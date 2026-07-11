@@ -5,6 +5,30 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>Banco de Laboratório Clínico — Hospital do Prenda</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyB72sUTmo7x1gOiNQfn112Na2MvX82kZ4E",
+    authDomain: "hospital-do-prenda-1de35.firebaseapp.com",
+    databaseURL: "https://hospital-do-prenda-1de35-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "hospital-do-prenda-1de35",
+    storageBucket: "hospital-do-prenda-1de35.firebasestorage.app",
+    messagingSenderId: "991683012968",
+    appId: "1:991683012968:web:f86ae42cd1cbe8bc71cedd"
+  };
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
+    window.__fbReady = false;
+  }
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -1421,6 +1445,31 @@ function ss(){
   if(typeof upd==='function')upd();
 }
 function ls(){/* Formulário começa vazio — usar carregarDoDia() */}
+// ── SINCRONIZAÇÃO ENTRE DISPOSITIVOS (Firebase Realtime Database) ──
+const FB_PATH = 'registos/laboratorio_clinico';
+function enviarParaFirebase(dataHoje, registo){
+  if(!window.__fbReady || !dataHoje || !window.__fbSet) return;
+  window.__fbSet(FB_PATH+'/'+dataHoje, registo)
+    .catch(function(e){console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e);});
+}
+function sincronizarHistoricoFirebase(){
+  if(!window.__fbReady || !window.__fbGet) return;
+  window.__fbGet(FB_PATH).then(function(remoto){
+    if(!remoto) return;
+    let hist=[]; try{hist=JSON.parse(localStorage.getItem('lab_banco_v1_hist')||'[]');}catch(e){hist=[];}
+    const porData={};
+    hist.forEach(function(h){ const d=(h.snapshot||h).data; if(d) porData[d]=h; });
+    Object.values(remoto).forEach(function(r){
+      const d = r && r.snapshot && r.snapshot.data; if(!d) return;
+      const atual = porData[d];
+      if(!atual || new Date(r.savedAt) > new Date((atual.savedAt))) porData[d]={data:d,savedAt:r.savedAt,snapshot:r.snapshot};
+    });
+    const merged = Object.values(porData).sort(function(a,b){return new Date(b.savedAt)-new Date(a.savedAt);}).slice(0,90);
+    localStorage.setItem('lab_banco_v1_hist', JSON.stringify(merged));
+  }).catch(function(e){ console.warn('Firebase: falha ao sincronizar histórico de outros dispositivos.', e); });
+}
+window.addEventListener('DOMContentLoaded', sincronizarHistoricoFirebase);
+
 function guardarNoHistorico(){
   try{
     const snap=buildSnapshot();
@@ -1438,6 +1487,7 @@ function guardarNoHistorico(){
       if(hist.length>90)hist=hist.slice(0,90);
       localStorage.setItem('lab_banco_v1_hist',JSON.stringify(hist));
       localStorage.removeItem('lab_banco_v1_draft_'+d);
+      enviarParaFirebase(d, {savedAt:entry.savedAt, snapshot:snap});
     }catch(e){}
   }catch(e){console.warn(e);}
 }
