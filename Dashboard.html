@@ -6,6 +6,8 @@
 <title>Dashboard · Resumo do Dia · Hospital do Prenda</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
@@ -32,77 +34,141 @@
 :root{
   --nv:#0D1B3E;--nv2:#122754;--nv3:#0a3a66;--bl:#1A56DB;--cy:#0EA5E9;--cyl:#22D3EE;
   --sf:#F4F7FF;--br:#E2E8F0;--br2:#CBD5E1;--tx:#0F172A;--tx2:#334155;--tx3:#64748B;
-  --r2:16px;--s1:0 2px 10px rgba(13,27,62,.08);--s2:0 10px 32px rgba(13,27,62,.16);
+  --gr:#059669;--rd:#DC2626;--am:#D97706;
+  --r:10px;--r2:16px;--s1:0 2px 10px rgba(13,27,62,.08);--s2:0 10px 32px rgba(13,27,62,.16);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased;}
 :focus-visible{outline:2.5px solid var(--cy);outline-offset:2px;border-radius:4px;}
+button{font-family:inherit;}
 
-.topbar{background:var(--nv);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:12px;}
-.topbar img{width:36px;height:36px;border-radius:9px;background:#fff;padding:3px;object-fit:contain;}
-.topbar .org{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cyl);font-family:'DM Mono',monospace;}
-.topbar .dep{font-size:.86rem;font-weight:700;}
-.topbar a{margin-left:auto;color:#C7D2E8;text-decoration:none;font-size:.78rem;font-family:'DM Mono',monospace;
+.topbar{background:var(--nv);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;}
+.topbar img{width:34px;height:34px;border-radius:9px;background:#fff;padding:3px;object-fit:contain;flex-shrink:0;}
+.topbar .org{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cyl);font-family:'DM Mono',monospace;}
+.topbar .dep{font-size:.84rem;font-weight:700;}
+.topbar .back{margin-left:auto;color:#C7D2E8;text-decoration:none;font-size:.76rem;font-family:'DM Mono',monospace;
   border:1px solid rgba(255,255,255,.18);padding:7px 12px;border-radius:100px;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.topbar .note{margin-left:auto;font-size:.66rem;color:#8CA0C6;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:6px;}
+@media(max-width:760px){.topbar .note span.long{display:none;}}
 
-.hero{background:linear-gradient(155deg,var(--nv) 0%,var(--nv2) 55%,var(--nv3) 100%);color:#fff;padding:28px 20px 34px;}
-.hero-in{max-width:1100px;margin:0 auto;}
-.hero h1{font-size:clamp(1.4rem,3.6vw,1.9rem);font-weight:800;letter-spacing:-.02em;}
-.hero p{margin-top:8px;color:#C7D2E8;font-size:.88rem;max-width:600px;line-height:1.6;}
-.date-row{margin-top:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
-.date-row label{font-family:'DM Mono',monospace;font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:#8CA0C6;}
+.hero{background:linear-gradient(155deg,var(--nv) 0%,var(--nv2) 55%,var(--nv3) 100%);color:#fff;padding:22px 20px 20px;}
+.hero-in{max-width:1180px;margin:0 auto;}
+.hero h1{font-size:clamp(1.25rem,3vw,1.6rem);font-weight:800;letter-spacing:-.02em;}
+.date-row{margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.date-row label{font-family:'DM Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:#8CA0C6;}
 #dataSel{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);border-radius:10px;color:#fff;
-  padding:10px 14px;font-family:'DM Mono',monospace;font-size:.88rem;}
+  padding:9px 13px;font-family:'DM Mono',monospace;font-size:.84rem;}
 #dataSel::-webkit-calendar-picker-indicator{filter:invert(1);cursor:pointer;}
 .qbtns{display:flex;gap:8px;}
-.qbtn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#DCE5F5;font-size:.78rem;
-  font-family:'DM Mono',monospace;padding:9px 13px;border-radius:100px;cursor:pointer;transition:background .15s;}
+.qbtn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#DCE5F5;font-size:.76rem;
+  font-family:'DM Mono',monospace;padding:8px 12px;border-radius:100px;cursor:pointer;transition:background .15s;}
 .qbtn:hover{background:rgba(255,255,255,.18);}
-.stat-row{display:flex;gap:26px;margin-top:22px;flex-wrap:wrap;}
-.stat-row .n{font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:600;color:#fff;line-height:1;}
-.stat-row .l{font-family:'DM Mono',monospace;font-size:.64rem;color:#8CA0C6;text-transform:uppercase;letter-spacing:.08em;margin-top:5px;}
+.qbtn.active{background:var(--cy);border-color:var(--cy);color:#04222E;font-weight:700;}
+.stat-mini{margin-left:auto;display:flex;gap:20px;}
+.stat-mini div{text-align:right;}
+.stat-mini .n{font-family:'DM Mono',monospace;font-size:1.15rem;font-weight:700;color:#fff;}
+.stat-mini .l{font-family:'DM Mono',monospace;font-size:.6rem;color:#8CA0C6;text-transform:uppercase;letter-spacing:.06em;}
+@media(max-width:760px){.stat-mini{margin-left:0;width:100%;justify-content:flex-start;gap:22px;}}
 
-main{max-width:1100px;margin:0 auto;padding:30px 20px 60px;}
+/* ── TABS ─────────────────────────────────────────────── */
+.tabs-wrap{background:#fff;border-bottom:1px solid var(--br);position:sticky;top:62px;z-index:30;box-shadow:0 2px 8px rgba(13,27,62,.04);}
+.tabs{max-width:1180px;margin:0 auto;padding:10px 20px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;font-size:.72rem;font-weight:600;
+  color:var(--tx2);background:var(--sf);border:1px solid var(--br);border-radius:100px;padding:8px 14px;cursor:pointer;
+  transition:all .15s;white-space:nowrap;}
+.tab i{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.tab .dot-empty{background:var(--br2)!important;}
+.tab:hover{border-color:var(--accent,var(--bl));color:var(--accent,var(--bl));}
+.tab.active{background:var(--accent,var(--bl));border-color:var(--accent,var(--bl));color:#fff;}
+.tab.active i{background:#fff!important;}
+.tab-sep{width:1px;background:var(--br);flex-shrink:0;margin:2px 4px;}
 
-.panel{background:#fff;border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--s1);padding:22px 22px 18px;margin-bottom:22px;}
-.panel h2{font-size:.92rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.panel h2 .cnt{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tx3);background:var(--sf);border-radius:100px;padding:2px 9px;font-weight:500;}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
 
-.bars{display:flex;flex-direction:column;gap:10px;}
-.bar-row{display:grid;grid-template-columns:150px 1fr 46px;align-items:center;gap:10px;}
-.bar-row .lbl{font-size:.76rem;font-weight:600;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.bar-track{background:var(--sf);border-radius:6px;height:16px;overflow:hidden;}
+/* ── PANEL / CARD SHELL ───────────────────────────────── */
+.panel{background:#fff;border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--s1);padding:20px 20px 16px;margin-bottom:18px;}
+.panel h2{font-size:.88rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.panel h2 .cnt{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tx3);background:var(--sf);border-radius:100px;padding:2px 9px;font-weight:500;}
+
+/* ── DETAIL HEADER ────────────────────────────────────── */
+.dh{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+.dh-l{display:flex;align-items:center;gap:12px;}
+.dh-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--accent,var(--bl)) 14%, white);color:var(--accent,var(--bl));flex-shrink:0;}
+.dh h1{font-size:1.15rem;font-weight:800;letter-spacing:-.01em;}
+.dh .sub{font-size:.76rem;color:var(--tx3);margin-top:2px;font-family:'DM Mono',monospace;}
+.dh-status{font-family:'DM Mono',monospace;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  padding:5px 11px;border-radius:100px;}
+.dh-status.ok{background:#DCFCE7;color:#166534;}
+.dh-status.empty{background:#F1F5F9;color:var(--tx3);}
+#btnPDF{display:flex;align-items:center;gap:7px;background:var(--nv);color:#fff;border:none;border-radius:10px;
+  padding:11px 16px;font-size:.8rem;font-weight:700;cursor:pointer;transition:background .15s;}
+#btnPDF:hover{background:var(--nv2);}
+#btnPDF:disabled{opacity:.45;cursor:not-allowed;}
+
+/* ── STATS GRID ───────────────────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:10px;}
+.stat-tile{background:var(--sf);border:1px solid var(--br);border-radius:12px;padding:12px 12px 10px;}
+.stat-tile.zero{opacity:.5;}
+.stat-tile .v{font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--tx);line-height:1;}
+.stat-tile.zero .v{color:var(--tx3);}
+.stat-tile .l{font-size:.66rem;color:var(--tx3);margin-top:5px;line-height:1.3;font-weight:600;}
+
+/* ── CHARTS ───────────────────────────────────────────── */
+.bars{display:flex;flex-direction:column;gap:9px;}
+.bar-row{display:grid;grid-template-columns:150px 1fr 40px;align-items:center;gap:10px;}
+.bar-row.zero{opacity:.4;}
+.bar-row .lbl{font-size:.74rem;font-weight:600;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{background:var(--sf);border-radius:6px;height:14px;overflow:hidden;}
 .bar-fill{height:100%;border-radius:6px;transition:width .5s cubic-bezier(.2,.8,.2,1);}
-.bar-row .val{font-family:'DM Mono',monospace;font-size:.74rem;color:var(--tx2);text-align:right;font-weight:600;}
+.bar-row .val{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--tx2);text-align:right;font-weight:600;}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
-.card{position:relative;background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:16px 16px 14px;box-shadow:var(--s1);
-  transition:transform .16s,box-shadow .16s,border-color .16s;text-decoration:none;color:inherit;display:block;}
+/* ── LISTS ────────────────────────────────────────────── */
+.rec-list{display:flex;flex-direction:column;gap:8px;}
+.rec{background:var(--sf);border:1px solid var(--br);border-radius:10px;padding:10px 13px;}
+.rec .rt{font-size:.82rem;font-weight:700;color:var(--tx);}
+.rec .rs{font-size:.72rem;color:var(--tx2);margin-top:2px;}
+.rec .rm{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.rec .rm span{font-family:'DM Mono',monospace;font-size:.62rem;background:#fff;border:1px solid var(--br);border-radius:100px;padding:2px 8px;color:var(--tx3);}
+.list-empty{text-align:center;padding:20px;color:var(--tx3);font-size:.78rem;}
+
+/* ── TEAM ─────────────────────────────────────────────── */
+.team-grp{margin-bottom:10px;}
+.team-grp:last-child{margin-bottom:0;}
+.team-grp .tg-l{font-family:'DM Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:6px;}
+.team-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.team-chip{background:var(--sf);border:1px solid var(--br);border-radius:100px;padding:5px 12px;font-size:.74rem;color:var(--tx2);font-weight:600;}
+
+/* ── NOTES ────────────────────────────────────────────── */
+.note-block{background:var(--sf);border-left:3px solid var(--accent,var(--bl));border-radius:0 10px 10px 0;padding:10px 14px;font-size:.8rem;color:var(--tx2);line-height:1.6;margin-bottom:8px;}
+.note-block .nl{font-family:'DM Mono',monospace;font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:3px;display:block;}
+
+/* ── OVERVIEW GRID (Visão Geral) ─────────────────────────*/
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.card{position:relative;background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:15px 15px 13px;box-shadow:var(--s1);
+  cursor:pointer;transition:transform .16s,box-shadow .16s,border-color .16s;text-align:left;width:100%;font-family:inherit;color:inherit;}
 .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--bl));border-radius:var(--r2) 0 0 var(--r2);}
 @media(hover:hover){.card:hover{transform:translateY(-3px);box-shadow:var(--s2);border-color:var(--accent,var(--bl));}}
-.card h3{font-size:.86rem;font-weight:700;margin-bottom:10px;padding-right:60px;}
-.card .badge-empty{position:absolute;right:12px;top:14px;font-family:'DM Mono',monospace;font-size:.58rem;font-weight:600;
+.card h3{font-size:.84rem;font-weight:700;margin-bottom:10px;padding-right:56px;}
+.card .badge-empty{position:absolute;right:12px;top:13px;font-family:'DM Mono',monospace;font-size:.56rem;font-weight:600;
   letter-spacing:.03em;text-transform:uppercase;padding:3px 8px;border-radius:100px;background:#F1F5F9;color:var(--tx3);}
-.card .badge-time{position:absolute;right:12px;top:14px;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:600;color:var(--tx3);}
-.card .headline{font-family:'DM Mono',monospace;font-size:1.9rem;font-weight:700;color:var(--accent,var(--bl));line-height:1;}
-.card .headline-l{font-size:.66rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-top:4px;font-weight:600;}
-.card .secs{display:flex;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid var(--br);}
-.card .sec{font-size:.72rem;color:var(--tx2);}
-.card .sec b{display:block;font-family:'DM Mono',monospace;font-size:.92rem;color:var(--tx);}
-.card.empty{opacity:.55;}
+.card .badge-time{position:absolute;right:12px;top:13px;font-family:'DM Mono',monospace;font-size:.58rem;font-weight:600;color:var(--tx3);}
+.card .headline{font-family:'DM Mono',monospace;font-size:1.7rem;font-weight:700;color:var(--accent,var(--bl));line-height:1;}
+.card .headline-l{font-size:.64rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-top:4px;font-weight:600;}
 .card.empty .headline{color:var(--br2);}
+.card.empty{opacity:.6;}
 
-.empty-state{text-align:center;padding:40px 20px;color:var(--tx3);}
-.empty-state svg{margin-bottom:10px;opacity:.35;}
-.empty-state p{font-size:.86rem;}
-.loading{text-align:center;padding:40px;color:var(--tx3);font-size:.86rem;font-family:'DM Mono',monospace;}
-.fb-warn{background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;border-radius:12px;padding:14px 16px;font-size:.82rem;
-  line-height:1.6;margin-bottom:22px;display:none;}
+.loading{text-align:center;padding:40px;color:var(--tx3);font-size:.82rem;font-family:'DM Mono',monospace;}
+.fb-warn{background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;border-radius:12px;padding:13px 15px;font-size:.8rem;
+  line-height:1.6;margin-bottom:18px;display:none;}
 .fb-warn.show{display:block;}
+.pdf-credit{text-align:center;font-size:.68rem;color:var(--tx3);font-family:'DM Mono',monospace;margin-top:6px;}
 
 @media(max-width:480px){
-  .bar-row{grid-template-columns:100px 1fr 40px;}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+  .bar-row{grid-template-columns:96px 1fr 36px;}
+  .stats-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
 }
 </style>
 </head>
@@ -111,13 +177,12 @@ main{max-width:1100px;margin:0 auto;padding:30px 20px 60px;}
 <div class="topbar">
   <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAYGBgYHBgcICAcKCwoLCg8ODAwODxYQERAREBYiFRkVFRkVIh4kHhweJB42KiYmKjY+NDI0PkxERExfWl98fKcBBgYGBgcGBwgIBwoLCgsKDw4MDA4PFhAREBEQFiIVGRUVGRUiHiQeHB4kHjYqJiYqNj40MjQ+TERETF9aX3x8p//CABEIAUMBQwMBIgACEQEDEQH/xAAwAAEBAAMBAQAAAAAAAAAAAAAAAQQFBgMCAQEBAQEBAAAAAAAAAAAAAAAAAQMCBP/aAAwDAQACEAMQAAAC09Pb4ZVQAWopCgVIoCgQACKWAiok+oqUQSxRBECqtgClgFCFUKkNjLrm3cd6ht1altSaltxqGR4d8xSSUsWCVLJRFkRYoCgstgFFirJKULU3+h9OOukvLfWenTzmvg6hy/3XTOb8ozMM2xgEogIslilkokqWKBQWyUsUFEKsAdTy/UY7c7sc33471Or2eT3nq9xt/DLfJ4vtMPnrmsbtuQ382Os2ySiLJYsIslixUsAlWWxZUUFLCrAFWybrS7LPTW5uwc9a95fHXHWZOs2fj9w+Z1qdBsNb7PDFmuUWSpRBLFhJSxZLFAFstiyoKBZSpKVOp5fqcN9FmfWRz1j5GNrOuez+eey8d9x8ffJTrrOQzdVv5pK3wgIslSwCWSlkoglWWxZShFLFAWxRHv4brjvDbP1x25z59PP0+Zt9T0+WvjqsnaY7co9Pj1+SAk+osBFksCwRAsEtFlsJSgWUWPqUBG11e3z0zPTw9fN6dF4e/h7PE6rldlnrs7zCX6+bNsEsVKIJZLFAksliyWKAq2VAqlRZbFlRZRlYvQ8d6+ZGbjtzkzcP0+abvS9Plrj+eLt8tuWfXz6vHJZQSwLJZKlEEslkoUBbKgVbKlS2VKiiOi53YZ67f65n5479/GX0ed1HL+2emzz+W9eO/j5s2wgqCWBZKISUJZLFAAtlQKtlSpUqWxZQWzZYmz1+O2Ml2wb3RdBjtZ8+OPo00s9niAglkpZLISxQlksUAC2VFlpZUWVFlsAp91uNf5zLTyqaZXd6PM402zQfWfflPv43xSwEBFSyVLBLJUsUCWWKLKCiypSpbKEu309566/H8NT5vVMY9fjddyPS4b/GJ7++euowM/A9PlDrlAglgVLJYCSpYFWUWWxZUWWlhLYstgoTbYObjZbYiNcbtNVvM9dPuUz71ePZvghZAokqWASwipZKABbCUWVKVLYsFFlycbos9Pv08sjzerlGdg+zxOo5brsdub2/jn896HDycbfzwdciSgQSoCEqCwKsSWxVsqLFlBUtiwXNwtrx1qvTJwrMrGTqXLw/WXI+eh0uO2tG/nIUgCVLASUQEUJZQqWxYLZUWLKCoLuNNt+O/HA6jz475tfnfBvdJ02WuHsNTnZbc2y8T0+UhAVAEUSAWCUAlAKlsqC2EosqCnScd827Fnpx17BXHOxHHOxHHM/A1xIsAQUQElsJUAIJVWLKCpbFgt+aiwXMwqZ7Ac9Z7AGewBnsAevkdckAhYLYCEogIVEpKVKLFlBUJUtLBUJUoShKEoQtQCFRAKICSgEAW0SUWKAAVQgAAAAAAEChCAEQKgBb/8QAAv/aAAwDAQACAAMAAAAhixQY1SDSADDDgNzWZOBDMhQhEHUJNywNx0BYBCRjlBkpEFjDIVnX5PhOLJHqReASa1gHROnAfAWrEZGnjmVMt/CHRWhYg9jBoFmRqDZAxUgDyUDEeiVMEwYJmVCARAp8AjiVjDxt1f5L0pgorBAVFaUBgCmfLCdHCTKWBDnzVDUQJrKFLwBArVCoWbiWBVDUoMLjEKsAfDpioRFAWBVDUAKPqRQLHg9Bq4/1AUBVDAADrCUNGIv+SHsGdTAB/VARKcCIGS3M9CbroCr7AiorAkFgRlCcbyb1GVAk2AQHBLJgRgEA5cwpCByBaa8nmiDyBEzfUe+zKPizGnF+kJmiDDCaFM1E4LAZEngqAAWJejBDWzox55NhYlle5zIlSJgLjJCCCCiO3aQaglObKhyDJif7777OOFPqAmjP8cBBA8AAAgeAAA8gcDgf8//EAAL/2gAMAwEAAgADAAAAEPLbtOrGozPf/X/P/ZOOj/8Aw7z/AO7R/wDvPNQPnNGvPfP2zf3d/OJMktNbO9DdtvKf+jbfOP8AUac2c6PcfNhb63Ls2bj+3zf/AL96d48eVt93/vJsO/bhweApu3/+8vt659/o/wDFunuEvW/qJmvl/fbfbK8q/wCb9Xfek8lbqeqrzL/rjzuRWJ287h1/38SrR1b2rz0Lh7GqfmlxYD37mz+j2rzyt9pLpfKv5DmcV03/AM9h4or+V/8AAIt6zZvgeM/Hfa4fxHk/2FPTY9f/AGP3b3r1hXSj7xaLgwpE3mqjn/wr22rVx4/5qjMqt/aTi/v8H59gvwXmsOIqXoeT31SIuHJtvivzT7E2PFj+/wD60b7E8V48iOx8uP3+226f9R+Aeza+8cPjutxzzzRjH8LCHdwo6uM98tt5555+i+j09G4/8/8A4n/vffX/AP333572P9/z/8QAMBEAAQQCAQQABAYBBQEAAAAAAQACAxEEEDEFEiFBExVRUxQgMmFxkTMjMDRCclT/2gAIAQIBAT8AJXGgK1SJRVE1siwgNEWqRC7dFuuNgWvAVID6qaaKJoMjqFr5lh/cXzLE+6F8xw/uhfMcP7oTHte0OabB4VBEcUiAiL07fOgL0OddqzMeGZjWyOoXa+T4gFue5DpGI7y1ziEej4gHl7gh0jEdw9xUULYo2sHAC7SuF26IvRFaagEUBoClyus2MZn/ALCny8x2O9jsemlvkqHIZj9Njeea8BT9TdkYzo3tHd48hYOWMZ0jiLJFALp/UTklzH13jitEWiNBEWqtdp0OFzoeEOVwupNxzCPjOIAd4pTdQ6dNGY3PIBFcFCHEOI0EgxAclZDYWzOETiWoLpsWGIQ6Ly7272uURSItFHjRFaHKq9c6ApcrrX+KEkeA/wArIyOmmB4Y1ncW+KbXlQ4rsjpLWA0RZCl6dNDjmWTx+yw8N2UXta4Ahti10nAkhc98tg8BqIrRFKhohUDsXe27zpoYYC6WPvH0X4iBo7j00V/Ch7exha2gQuszOZCwBrSHOogpsuVhESfBiaD4NJptrXfUaPhDTvyjhAbHvXVG9+KR8Iv8jwOU9oDP9P4/d9Dwsfv+BF3/AKu0WurY0uRHEI23T/Kb0RhrvmeR9EG0Gj6D8jthUhpuihxrqWTJiwB7Ksuryn5vUo2d7o4+3+FBJ8aCN9V3NBXWJpYWw/DkLbdRKknyoA17c1rzf6Qmkua0/snaIop2ibXvTeUU1e0BoFdVhlyMcMjbZ7rTeixuA7ppP4UEbY2NYOGigup4ZyRCLADXWbWT0jHMYMBDXg8kpopjR+yd6070ncInRIrTUU38l0vSx5pXdVnYXktDfAVhdbcRiCj/ANwoogXMtmT5KAqv4TteyiUeNHnR01Feghxpz2t/UaUUUcWdLP8AGae4VS5ql1KOCWJrJZQzzYNodPAYJPxzw3634TXDtaWuDgRyFzqvKPJXrT9g3oG01DnWVisyWBjyQLvwoMCJ+fLAXHtaoo2xxtYOGigusMEs2Iz0SQnyvggnw5PRtpWD/wAPH/8AA0TSdwFdJ3pXQXOmoc6avaKtE0sZ+A3Nc5khMjrGs5+Gx0T57sElnKyMnpWS4GQm6rghQtY2Fgb+kAUidO8o8aJ9IjxsoO0DvqOT8DGcR+p3gLzHHE8RSB7XWXEeFjyiaFkg9hdYLBLiF/6Q7ys7J6dJjlsTW9/iqbSxgRiwg89gvRNomkXImkT7V3oG007tA3rNMLYTLJGHdvAKiczJgaS2g5oNKNjI2gMaGj6BTthc0uka0hovyFi5OHPMIxjtaTwSAmn0ib2T7XO7H1XOgUd9y6lZw5AAsbqjIYY2GJ9gVwg4miuqySGNkLAS55pSY+bEyKT4QHw/Y5UMgfGx49hO9aJpE2iaRKPOrtA6vhUu7WXlsxow5zSQSh1nH+0V88g+25fPIPtOR65AR/icseX4kTXhtAi9X4V2uAuUfOu4IGjoGtArnT445R2yNBH7r8JifYZ/S/CYn2Gf0vwmJ9hn9L8Jh/8Azs/pNAa0BooD0vJRRRK7tE0vH0RCBJNa7l3a7lYXheEKKFFWF3DVi6Tjru1X+0fSb+V3OncaGv/EAC4RAAEEAgEDAgYBBAMAAAAAAAEAAgMRBBAFEiExE1MUFSAyQVGRIjRhcUJSc//aAAgBAwEBPwAlE7tWiVav6LVjQKB1eydE7JVqKGWZ1RtLivl2Z7RXy7M9or5fmey5fLsz2intcxxa4UQrQOgUDoHRKOiUTq1iZMsDy+NoJpDm8w9gxqdzmWOxa0JvN5jjQa0p3NZrfMYH+wpZXSSOe7yTe7VoFAoFXolEonROuEAOQ+/+hWLjYDclhGVbursFNivyeUkjb46u5WPxIxspkjDbVyGCcr02ggAHuVyfG/CBjmWWlWgUDoIFDRTkSir0SuPfktmIgbbi0hR8byMcgkEQsG/IXq5bcwuAPqE+AsR07oGmYAOTiQ00LK5OXMMxEwIH4H4QKtWdBWgr0dE1olFcJZlmDTTjGaWNjcsMiMvc7p6u/dTZYxuYe+gRYBUPKxT5bYYhYI+5Z2eMP0y5ttcaK5jkYckMZGAQO5dsFDQP0HRRRRKwYZ5shrIn9Lv2vhcguLByX9QHi1L1B7g51uB7lcJEyTIe5znN6GXYT48PNJjGRK5wBIBTx0uc39HQKGgh9BR8bdri39OWw+oGee5UT7fcxxuj9jysro+Il6Pt6jS4bLixpZXPPlnZfO3t6uiCNpP5ARcXOJQQ0EPKCCtFFHRRRXG40eTkiN5NUT2TMLi5pPSZLL1LIj9KaSO76SQuFghmkmMsfWGtsBQwYuQXsdgPiFfcVIA17gP2hsIaGyijo64vJixsoSSGhRTudc0n08eMH9qWR0j3PPlxsrjM74MzENJLm0Fjc1kh5E9uYRVUnm3uP+foCGm7KKKKKKKyIIhxONIGAPLjZVLgmtdm04A/0lTyhgfTsY0EfudoIFBDQ0dFFOR0GOd4FqWWWTBix/RcOg3acCDS4x88U5kiiLyAjyT3SGP4GMu/Vd09rmvdYo34QQQQQ03R2UUdYuVJiy9bKJ/ysvkJosCCZrW9T/PZSPMj3PPkm1wrzFDmSD/i0FMhbk5OPmQ/6eP8rP8A72f/ANDoBBBBBN0UdFFFEKlkxZxwY2vYPSaLBVLj48yRk7IACHAByx8bmMVjhEBSlLnSPc/7iSSgNBDQCGzs743G9fKYD9o7lU2SaZhnjMb29IaCsiB0Mz4z+CuFa8xZbWEhxaKXH4vIRZIdKXdHe+6zOk5Uxb46zoDYCAQGiEQjutYQldMI43lpf2sKVr4J3NDu7T5T3vkdb3ElQPna4Nic4FxrsVl42djw+p8U5w8EAoqlWgEAggNlEI76VxpDcyIk/lZPFySzSvEsdEk+UW0SFxTIxK6WQgNYLUORhSvmj9Vx9X8O8BSxhkjmg3RQGgEAgEENEaIVIjVLExH5Ly1hAIC+R5HuhHgZ/cahwU/uNXyKf3GqeF0MrmOIJBVaAQCA0Aq0RohUiFSZJJG62OIK+Ny/ff8Ayvjcv33/AMr43L99/wDK+Ny/ff8AynFznFziSSqVIBAKkAgFSIVKtVqlS6V0rpXSqVIKtAIBBV9BR+o/V+tjX//EAD4QAAECAwIKCAQFBAMBAAAAAAIBAwAEEQUSEBMVITFQUVNxkRQgIjRBUnKhMjNhgSNAY5KxQ2JwgkJgc9H/2gAIAQEAAT8C/wAFM2a+82JioUWMjzXmb5rGR5rzN81jI815m+axkea8zfNYyPNeZvmsZHmvM3zWMjzXmb5rGR5rzN81h9g2HLhKlaeGoJS0JdqXbAlWqfSMrSm1eUZXldq8oytKbS5RlaU2lyjK0rtXlGVpTavKMryu1eUZWlNpcon3wffvhopqAWXiSotkqcMAgZrQRVeEEBgtCFU44RbcL4QVeCRiH90fKNC6hszuQ/eOjTG5PlFmMuhM1Jsk7K6Ui1u8p6EhBVVRE0w/KvMUvpm2+EWN8pz1YJjvL3/osOyj7TaGY5l1BZfcx4rGVpfynEvPtPncES0eMWt3pPQkWXKf1yT0/wD2CESSipVIl5UJe/c0KtcDUk024bmklWtYcbFwCAtCxMMkw6oL9uH5+Tn2GZdAK9XPgkXwYevFWl2J58H3kMNF2kSs47L/AFHyxLzLT41Bft1Ju0xDstZ12+EGZmV4iqv5+Vs5x8b966nhGRv1vaMjfre0Py5sOXS+0Ntm4V0BqsSdnowt8lqeFxsTFRLQsTdnONdoO0PumoJclCz0JPAFWOnTe+WJGcmDmREzqi1i1/ja4LFlONq2ooiISafrgRwSqiLo04BMSrdKtFosLSJs2zfJW0on8/X8/KIjkiI10jSMjnvU5RK2arLyGrlaRa6pjW0/thl0mnBMfCJm0jcS632U2+MWP8tz1YDecZmnSBadtYmLSV1m4g0Vfi1A1MPM/AdIyjObz2SMozm89kgyIyUiWqrhlBngbq0A0LPni9au7bh6Tm0vuEHjVaahsyWaMSMxrnolYKbkBJRxehfLDbkg8K9kPulIeFBdNE0IubDLlckRLY3WMru7sYlJjpLN5RpnpDiIjhonmXUFnzgMoQHo2xj7MJc9z9sA1IvItwQXhEy0jT5gnguGUu9DbvaLmeL1m/pe0LOSbTfZIeAwS3iVduoLNmWmxIDWmetYJmzSJSUxz/3Q0UhLoVwxz6c9YmHMa8Z7VwjaFJfE4v8A40rXUbMo88N4ETTSMmzWxOcLZ00ifCnOFSi0ws2a040BqZZ0rGSWPOcOWSN38M1r9dQ2T3cvXB2q6JElwdMSU6UwpooUpE+iJNOYW0JZAUHTi80Yi0/7/wB0SiPAx+Muf67IcWpkqeZdQWT8g/XCnZ9Vriq8ISZkm0W6QJwiZdxr5ntwtOYuRA9jdYyuu594YeGaYVVH6KkEl0iTYuoJWe6OCjcrnrpg1vEq7V6uPeu3cYtKUpgB51tKAapCrVdQyEs0/jL/AIUiYBG3zFNCL1LMbAmCvCi9uFmbPRVTs/thZqzvp+3UVkf1v9Yne9O8epZXyC9cE7Zd5aiNfTDzlmq0dxErTNm1FZH9b/WJzvTvHqWa80DJIZona8Yu2aq1q3zi5Zn6fPUItuEmYVX7QITI/CJp9lhWn1WqgfKFRUWipTD0Cb3XukG2bZXTSiw2y46qoA1hwDbJRNKLqCRnGWGrp1rWJeYbfFSCuZYctCXbMgWtU+kTTguvmY6FwvPIy0hroqkWlL41rGDpH+Isn5rnpi0u9n9tQ2R8lz1xO96d49S0e5l9osyZvDiSXOmjhDEtiZt2nwEOaLS72f21DZ82yw2SGukomXBcfcJNCr1Jm0EeYVvFqkNmTZoY6UjLA7pecTL2OeI6UrqFmyzcbE1cpXwpE3JlLXe1VF8eolkCqIuNXlGRx3q8oOyMy3Xc/CFRUVUXSmoJVnHPgHh48ItGZVgAEdKr/EPiM3J1TZVOPUnDMJJSFaLRI6ZNb0ost913GoZVpSkT/fHeOoLKZutK4uktHCHHrMdKpkir94lnpNfw2SThFoMYqYWmgs6YXmcfLYutKokZGXfe0Scn0a/26qsThoc06SaK6g6fM4u5VKUpowNuG2aGK50h+aefRL6pmw9Pm97/ABGUJzerySCnZohVFdWi6hspsDccQhRez4xaACE0aCiIlEzdVltXXQBPFY6NJCoCrQVXRmi0pdGnUUUoJahsf5rnpi0++HwTq2Qx8Ty8EicSbObQwaKgfDE4z0iVXN2qVTjqGyTEHXLxInZ8Ydas5075kCr6o6LZe0P3wdLy024BSqom2DfZlJWgEKqiUTjGWJjyBElaOOUkduivhE62ATBXFSi5/wDpMjKS5yrZE0irHQZTcjHQZTcjHQZTdDHQZTcjHQZTdDHQZTcjFpNg1MXQGiXU1A3PTTQoIOURPokZTnt77JGU57e+yRlOe3vskZTnt77JGU57e+yRlOe3vskZTnt77JGU57e+yQ6848V4yqv+Nf/EACsQAAIBAQUGBwEBAAAAAAAAAAERACEQMUFR8CAwQGFx8VCBkaGxwdHhYP/aAAgBAQABPyH/ABC4pRRRWqLwEdVcMl/E1B9TUH1NQfU1B9TRH1NAfU0R9TUH1HramSu/PAr5YvzbmSoA2JValKIqF4AB52AiPaxxzkDjgnIFaBJR31J3rCCQEIjbXFe8+c7niqm+IJr2ZgmGRQEP3lhgNLKEQWAX0R5xJz1B18Ao1tZ24fsXxNVAmrZmfEsHY5LwQ4aEjdxwsVh+zB4CC4YEZXHVSzzcfRHTcGZsxDgUj0ECrrC6Bzy+p5rhXjrsNOd4H7CAo2J2lwo2HMJcjJmnvmnvhl1izEDzD4QU6cuFommBERqzwDL0wJ5Sv9AitvYEcnZru9WLDQ8k0mBsp8YRgRhCAEk0gNvJ48utin8QtpMPdUQAzpCmqgn5mE4qXqMouJIKw0/KG6FNlXyNcY7q+Hhy8AfOE3i8e80fymj+UKBvBNr0uMf2d4/sOA0SYadd6eEE8MKVAYxWrQaMIpxKhAChf2aCvpFYUeGTegOa8x4wBFlLtwA99o7R3Q2Rsu8BlgA4TBBjeT/ED+bIiHLhSh0NbSAyZy5TREGVILv5QpO8mfPdncjbGzXXVFdG6RMyRwupQY0UpdBS0nPP8yh3p2xvj5ALw2efHdIIQgiLxaOxI8GM7kPyODkuH2hBBIIu8A9y+BAVpEMcIJMQgsRB5g+otZq40Uqpq/3M/YmprmMDdwkHr4B778CZ2lWF8z4wgb/SAEhAqdBbSBrToJyevSJ0hkmsHmKNybDvjtkC161GClF0wrrs+vsYRQsByWgYQhJZN54kbg6s4aKvcw5wNgkkmvHIQsAwKOoiB+/84obi/qx2T9y+BMQhWqBCr72/cm08NreezZeO5RLAQnCab5KjXfZ4NoHZgjGlWyBGojzKFxRZGltAaHrDIkOBjscBmoHzEtW8X+AFt9TQOUMCKhSuTUYe1QT5BR2AAYAPQlQIhsT6xqOc9j8NrHaNh4PUctk9LzmEh8/8R8G8chdRNNy3h3I3hTjYEHhMQMDYHggqryhTERixAxJglDy2Hsng3HsDcLd5Cz8lKuxfUBYYnpB0QOaIiOYtfFuw+cH0oUVCnoIS+p6MMPrYK7AkjqJ3KNnG8c4CDye4Fh4UWDbXfB6EpzZNQMu5lH9yhX3VvVUb7qzkdesCOBcFdMlBHkF4AaSK7jBYh1dQAmYEFaBgAHQZfiaI+pi5xQD43R4cHPS48ZdVQAhds/zCsYcxSwqhBvQrhcCPAddzmo5bNzNdY2YR6IaqgAFimHGPZLAE4ixhEQbzT9zQP2AA7gJY0sKNVQFaCsCQlBd8dlP7KJoHged8c4p0XftHxN8AbVAWT1naJ2CdqnYJ2qdgnap2CJqcIWOPjcCogz5E0fzmj+c0fzmj+c0fzmj+c0fzmj+cuDtNAfHip3L8Vcdjtdjj4cQcSdx//8QAKRABAAICAgEEAQMFAQAAAAAAAQARECAhMUEwUWFxgZGhscHR4fDxQP/aAAgBAQABPxCEBvamU4O9KlHoOhHFOH0KNwxTrXqVKzRoTNZogN4D0axWKh6AFMp0rNbV6S4rIMqJCq2oPwU8L0KJFiRgkYLCLUQF2tPsGjisvpry4Dc8gUie2w/yeP8Al8U7/Wz/ALWL/wB9P+/j/l8W7/URCi59FZHr0adad1wG1TqKAd08Jw0hwSoG1Co7aIITSxrrq6ZXxKho5UkA/if6H/SPOQiJSJ2JlN1RInoEpi4DasVBa/73jE3jaVE7IZmmcoHarQEErTK5be1z9BwdKEcaqEO1vLlPqu7+qnWhKdXFOxAMkNBzUqL6f8uMvJzNXAUfSxzOkOUiL7dMFCuqYzvTUrvVUOOTp4/OseGk5Fz/AAFuoqVlzToxNTuVtTkMm9YXnOZjGJ28Pbak8PkmmxMG3ptP8/EHWU9s/sMrUSOdfb/dTuRU1rmsVqcU7BDJ16K0/kTxspO+0zrjWqPXvzqcSPB7r0EeEZ3Yv7DPYMdpY/JEfPrRf2B2ZrCa0Y84TQ70DTvS/jFY354CxvMRDgADsYccW+F17PibohGEir8lOOvFhcqpXswiQBbfYj260PRHdPnAZTNYetEyDeDrYxwk7wEM1EU7O1LiwfKgT42ctDBhCoPiFEa4njzL4Yr+Vx+4e0/ZI7IWk0uxvwIJT1BYfa/nRHNbPWHQh6B3ijHnUNIj70GfEg+LA0Irda4Jf54ErhknEHH/ACLURJWKwkSsVqcODBDvNGxl/nyKICYxnUxXcNhK/IoTknjRYPHJAR6YREAHpk/6kIGAvtIDZDSo4fBg+k7bkOtBoNCxFvKNUiEVpdUy35WA7oHG+4KSWHPad0AzwAV/hObnwTAiAaRa/BHYAfsV7hucI3gx2wYNBoVVXLTsCoRi+mgrOCNFFgIt47ntADnv7+pSrwCeI6OjsdRgwYCGr+L1w8gOPrOL8DcTGpEKROxyyCMDURftikNzAoor9BEaCkR7Ejh0WsOzkwdYNTBpiUhDleiqBygKojDc0P5QrnhjXdbx0x979GFYiTIqrqDWX8gD6J2cmpoYCGKyYF1XXsxV7vAB/CFUghe6AM9lfNavln/YwWNlysEn9icPeLw+iOTUhgbHZvWeUU6Z8tkrq145zVWPxDjVYMUKqBbLJwtO1e3D3o5cOjk0NRkwLD1fmkRRpyh0NKhs2QQjgt2RTgukB0xyxzUYx0cmhqNSfs8rjn+QOZnvSAIPjm3KIeY95Y6HY4GGDBkwak7fWL07qOQrqTWjWqS5nEezDhcPWLfaOVyckMGDJvyL6qRf2E+UG5ivojZX7VrBQ2rNR56ZeB0GiSVHUWrzydRgFMFA/Ii0Tjadi+yXstx3cGTvJByMNBft6upCD5aPmWAw8usLEWDpQp4cHLPoShRJgnemdzq/Uj/d+2O5i7DghgzeDA6GP3b+MGfdT9//ABy8vXL9+x9wyv8ASqkf2v8AHHLh7w4cmMcGCGgh6BarSXhSI+t9SrNEnTVl7jOWSx/R+GFYP6aF2AiW8Ki4WPoDh0GEINZMLqGEAom2g9eSNRGQHGPGVlKKh6w/x2Wp0nGpMZyy7s7DC5IaOjqOo3gxeqvD3Xt2T8xLljCVo/v/AMl3o86ptFlCWTB1rucoRRRb+qixbLHRjHUcHpD1Mn0TOF5v6D6JYAoJdfLJIp+kHsRnhjKS3ceFyCNvnlTxhLrirHvVbD36TGLHQag7XqNS0e+ACVrhxeurbvspIKVasULhahyIBITg82FAXX2Da4uxjh1NRvLoPPIBkftALNQRWOggy4sud+Ai+3k/BOZswKeczhXjCu2AzeL0Y6MY6GLwej+2x/vPbBwsuIHYX/Vx0UpVwqtYODM/QLZuXtebixcMfGt4H0RCpRBGzAG7AfB11DS/zpTcqKtOXGG9CKqh4Fr0QZPxLd5Qfywmq5wJxqeu1nED9MDzOIvoHRwl4bdhl+pZHW8vebixi4uLh9ESzer56rWnDCpOmtO041qk20PywvQY4Y6uq3oYuXm4OOc+PfjffollllllhhnXefBT4BF5y5uLi8rUXNmRi5HNsvI+leLxcuXlwOhl4t0D6F4tly5cuXLly9L0vVbjHQhodehbLwpLlJcvC8LS8rHdw6n/AKxx5NDhz//Z" alt="Hospital do Prenda"/>
   <div><div class="org">Hospital do Prenda</div><div class="dep">Dashboard · Resumo do Dia</div></div>
-  <a href="index.html">← Central de Registo</a>
+  <div class="note"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span class="long">Só visualização — sem edição aqui</span></div>
 </div>
 
 <div class="hero">
   <div class="hero-in">
-    <h1>Resumo do Dia <em style="font-style:normal;color:var(--cyl);">por Serviço</em></h1>
-    <p>Vista consolidada de todos os registos confirmados, agregados a partir de cada especialidade em tempo real via Firebase.</p>
+    <h1>Resumo do Dia por Especialidade</h1>
     <div class="date-row">
       <label for="dataSel">Data</label>
       <input type="date" id="dataSel"/>
@@ -125,163 +190,544 @@ main{max-width:1100px;margin:0 auto;padding:30px 20px 60px;}
         <button class="qbtn" id="btnHoje">Hoje</button>
         <button class="qbtn" id="btnOntem">Ontem</button>
       </div>
-    </div>
-    <div class="stat-row">
-      <div><div class="n" id="statReportaram">—</div><div class="l">Serviços reportaram</div></div>
-      <div><div class="n" id="statTotal">15</div><div class="l">Serviços monitorizados</div></div>
-      <div><div class="n" id="statHora">—</div><div class="l">Último registo</div></div>
+      <div class="stat-mini">
+        <div><div class="n" id="statReportaram">—</div><div class="l">Reportaram</div></div>
+        <div><div class="n" id="statTotal">15</div><div class="l">Serviços</div></div>
+        <div><div class="n" id="statHora">—</div><div class="l">Último registo</div></div>
+      </div>
     </div>
   </div>
 </div>
 
+<div class="tabs-wrap">
+  <div class="tabs" id="tabs"></div>
+</div>
+
 <main>
   <div class="fb-warn" id="fbWarn">
-    ⚠ Não foi possível ligar ao Firebase (ou as permissões de leitura ainda não foram activadas). Os dados mostrados podem estar incompletos. Verifique a ligação à internet e as regras do Realtime Database.
+    ⚠ Não foi possível ligar ao Firebase (ou as permissões de leitura ainda não foram activadas). Verifique a ligação à internet e as regras do Realtime Database.
   </div>
-
-  <div class="panel" id="chartPanel">
-    <h2>Movimento por serviço <span class="cnt" id="chartCnt"></span></h2>
-    <div class="bars" id="bars"><div class="loading">A carregar…</div></div>
-  </div>
-
-  <div class="panel">
-    <h2>Detalhe por serviço <span class="cnt" id="gridCnt"></span></h2>
-    <div class="grid" id="grid"><div class="loading">A carregar…</div></div>
-  </div>
+  <div id="content"><div class="loading">A carregar…</div></div>
 </main>
 
 <script>
-const SERVICES = [
-  {id:'cirurgia_geral', name:'Cirurgia Geral', color:'#DC2626', file:'Cirurgia_Geral.html', hl:s=>['Pacientes', num(s.pacTotal)], secs:s=>[['Altas',num(s.altas)],['Óbitos',countSaved(s.obitData)]]},
-  {id:'ortopedia', name:'Ortopedia', color:'#DC2626', file:'Ortopedia.html', hl:s=>['Pacientes', num(s.pacTotal)], secs:s=>[['Altas',num(s.altas)],['Óbitos',countSaved(s.obitData)]]},
-  {id:'neurocirurgia', name:'Neurocirurgia', color:'#DC2626', file:'Neurocirurgia.html', hl:s=>['Pacientes', num(s.pacTotal)], secs:s=>[['Altas',num(s.altas)],['Óbitos',countSaved(s.obitData)]]},
-  {id:'cirurgia_maxilo_facial', name:'Maxilo Facial', color:'#DC2626', file:'Cirurgia_Maxilo_Facial.html', hl:s=>['Pacientes', num(s.pacTotal)], secs:s=>[['Altas',num(s.altas)],['Óbitos',countSaved(s.obitData)]]},
-  {id:'oftalmologia', name:'Oftalmologia', color:'#DC2626', file:'Oftalmologia.html', hl:s=>['Pacientes', num(s.pacTotal)], secs:s=>[['Altas',num(s.altas)],['Óbitos',countSaved(s.obitData)]]},
-  {id:'otorrinolaringologia', name:'Otorrinolaringologia', color:'#DC2626', file:'Otorrinolaringologia.html', hl:s=>['Pacientes', num(s.pacTotal)], secs:s=>[['Altas',num(s.altas)],['Óbitos',countSaved(s.obitData)]]},
-  {id:'bloco_operatorio', name:'Bloco Operatório', color:'#DC2626', file:'Bloco_Operatorio.html', hl:s=>['Cirurgias', countSaved(s.urgData)+countSaved(s.eleData)], secs:s=>[['Urgentes',countSaved(s.urgData)],['Electivas',countSaved(s.eleData)]]},
-  {id:'medicina_interna', name:'Medicina Interna', color:'#7C3AED', file:'banco_medicina_interna_v2-2-1-2-1.html', hl:s=>['Pacientes', num(s.pacTotal)], secs:s=>[['Altas',num(s.altas)],['Óbitos',countSaved(s.obitData)]]},
-  {id:'nefrologia', name:'Nefrologia', color:'#7C3AED', file:'Banco_Nefrologia_v2-1.html', hl:s=>['Hemodiálise', num(s.hemodialise)], secs:s=>[['D. Peritoneal',num(s.dialisePeritoneal)],['Óbitos',(s.obitosData||[]).length]]},
-  {id:'uci', name:'UCI', color:'#7C3AED', file:'banco_uci_v1-3-1-1.html', hl:s=>['Internados', num(s.internados)], secs:s=>[['Ventilados',num(s.ventilados)],['Óbitos',num(s.falecidos)]]},
-  {id:'fisioterapia', name:'Fisioterapia', color:'#7C3AED', file:'banco_fisioterapia_v1-1-1.html', hl:s=>['Atendimentos', sumV(s.intV)+sumV(s.modV)], secs:s=>[['Internamento',sumV(s.intV)],['Modalidades',sumV(s.modV)]]},
-  {id:'laboratorio_clinico', name:'Laboratório Clínico', color:'#0EA5E9', file:'Laboratório_Clínico.html', hl:s=>['Exames', sumExames(s.exameData)], secs:s=>[['Positivos',sumExames(s.positivoData)],['—','']]},
-  {id:'imagiologia', name:'Imagiologia', color:'#0EA5E9', file:'Imagiologia.html', hl:s=>['Exames', sumBU(s.bu)+sumBU(s.int)], secs:s=>[['ECG',num(s.ecg)],['—','']]},
-  {id:'consulta_externa', name:'Consulta Externa', color:'#059669', file:'Consulta_Externa-2.html', hl:s=>['Consultas', sumEsp(s.espData)], secs:s=>[['—',''],['—','']]},
-  {id:'psicologia_clinica', name:'Psicologia Clínica', color:'#059669', file:'psicologia_clinica_hp-1-3-1.html', hl:s=>['Atendidos', sumIntVals(s.intVals)+num(s.extTotal)], secs:s=>[['Externos',num(s.extTotal)],['—','']]},
+/* ══════════════════ CATÁLOGO DE SERVIÇOS ══════════════════ */
+const CATS = [
+  {id:'cirurgicas', label:'Especialidades Cirúrgicas', color:'#DC2626'},
+  {id:'internamento', label:'Internamento & Cuidados', color:'#7C3AED'},
+  {id:'diagnostico', label:'Diagnóstico & Laboratório', color:'#0EA5E9'},
+  {id:'ambulatorio', label:'Ambulatório & Saúde Mental', color:'#059669'},
 ];
+const SERVICES = [
+  {id:'cirurgia_geral', name:'Cirurgia Geral', cat:'cirurgicas'},
+  {id:'ortopedia', name:'Ortopedia', cat:'cirurgicas'},
+  {id:'neurocirurgia', name:'Neurocirurgia', cat:'cirurgicas'},
+  {id:'cirurgia_maxilo_facial', name:'Maxilo Facial', cat:'cirurgicas'},
+  {id:'oftalmologia', name:'Oftalmologia', cat:'cirurgicas'},
+  {id:'otorrinolaringologia', name:'Otorrinolaringologia', cat:'cirurgicas'},
+  {id:'bloco_operatorio', name:'Bloco Operatório', cat:'cirurgicas'},
+  {id:'medicina_interna', name:'Medicina Interna', cat:'internamento'},
+  {id:'nefrologia', name:'Nefrologia', cat:'internamento'},
+  {id:'uci', name:'UCI', cat:'internamento'},
+  {id:'fisioterapia', name:'Fisioterapia', cat:'internamento'},
+  {id:'laboratorio_clinico', name:'Laboratório Clínico', cat:'diagnostico'},
+  {id:'imagiologia', name:'Imagiologia', cat:'diagnostico'},
+  {id:'consulta_externa', name:'Consulta Externa', cat:'ambulatorio'},
+  {id:'psicologia_clinica', name:'Psicologia Clínica', cat:'ambulatorio'},
+];
+SERVICES.forEach(s=>{ s.color = CATS.find(c=>c.id===s.cat).color; });
+const catOf = id => CATS.find(c=>c.id===id);
+const svcOf = id => SERVICES.find(s=>s.id===id);
 
-function num(v){const n=parseInt(v);return isNaN(n)?0:n;}
-function countSaved(arr){return Array.isArray(arr)?arr.filter(x=>x&&x.saved).length:0;}
-function sumV(arr){return Array.isArray(arr)?arr.reduce((a,x)=>a+(parseInt(x&&x.v)||0),0):0;}
-function sumExames(obj){if(!obj)return 0;return Object.values(obj).reduce((a,v)=>a+(num(v&&v.urg)+num(v&&v.int)),0);}
-function sumBU(arr){return Array.isArray(arr)?arr.reduce((a,r)=>a+(num(r&&r.prx)+num(r&&r.peco)+num(r&&r.ptac)),0):0;}
-function sumEsp(obj){if(!obj)return 0;return Object.values(obj).reduce((a,e)=>a+num(e&&e.total),0);}
-function sumIntVals(obj){if(!obj)return 0;return Object.values(obj).reduce((a,v)=>a+num(v),0);}
+/* ══════════════════ HELPERS DE EXTRACÇÃO ══════════════════ */
+function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
+function saved(arr){return Array.isArray(arr)?arr.filter(x=>x&&x.saved):[];}
+function txt(v){return (v===undefined||v===null||v==='')?'—':v;}
+function fmtHora(iso){try{const d=new Date(iso);return d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});}catch(e){return '—';}}
+function fmtDataLong(v){try{return new Date(v+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});}catch(e){return v||'—';}}
 
-const dataSel = document.getElementById('dataSel');
-const barsEl = document.getElementById('bars');
-const gridEl = document.getElementById('grid');
-const fbWarn = document.getElementById('fbWarn');
+/* Secções genéricas: {type:'stats'|'chart'|'list'|'team'|'notes', title, items} */
+function S_stats(title, items){return {type:'stats', title, items};}          // items: [{label,value}]
+function S_chart(title, items){return {type:'chart', title, items};}          // items: [{label,value}]
+function S_list(title, items, emptyText){return {type:'list', title, items, emptyText: emptyText||'Sem registos.'};} // items: [{title,subtitle,meta:[]}]
+function S_team(title, groups){return {type:'team', title, groups};}          // groups: [{label, chips:[]}]
+function S_notes(title, blocks){return {type:'notes', title, blocks};}        // blocks: [{label,text}]
 
-function todayISO(offsetDays){
-  const d=new Date(); if(offsetDays)d.setDate(d.getDate()+offsetDays);
-  return d.toISOString().slice(0,10);
+const EQ_TIPOS = {esp:'Médico Especialista', int:'Médico Interno', est:'Médico Estagiário', vol:'Voluntário'};
+
+function equipaTeam(title, eq){
+  if(!eq) return S_team(title, []);
+  const groups = Object.entries(EQ_TIPOS).map(([k,lbl])=>({
+    label: lbl+'s', chips: (eq[k]||[]).filter(x=>x&&x.saved).map(x=>x.nome||'—')
+  })).filter(g=>g.chips.length);
+  return S_team(title, groups);
 }
-dataSel.value = todayISO(0);
-document.getElementById('btnHoje').addEventListener('click', ()=>{dataSel.value=todayISO(0);load();});
-document.getElementById('btnOntem').addEventListener('click', ()=>{dataSel.value=todayISO(-1);load();});
-dataSel.addEventListener('change', load);
 
-function fmtHora(iso){
-  try{const d=new Date(iso);return d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});}catch(e){return '—';}
+/* ── Grupo A: Cirurgia Geral / Ortopedia / Neurocirurgia / Maxilo Facial / Oftalmologia / Otorrino / Medicina Interna ── */
+function groupASections(s){
+  const obitos = saved(s.obitData), operados = saved(s.opData);
+  return [
+    S_stats('Movimento Geral', [
+      {label:'Pacientes Observados', value:num(s.pacTotal)},
+      {label:'Altas', value:num(s.altas)},
+      {label:'Cirurgia Maior', value:num(s.cirMaior)},
+      {label:'Cirurgia Menor', value:num(s.cirMenor)},
+      {label:'Operados', value:operados.length},
+      {label:'Óbitos', value:obitos.length},
+      {label:'Verificações', value:(s.verfData||[]).length},
+      {label:'Internados', value:(s.intData||[]).length},
+    ]),
+    S_chart('Distribuição por Género', [
+      {label:'Masculino', value:num(s.genM)}, {label:'Feminino', value:num(s.genF)}
+    ]),
+    S_chart('Faixa Etária', [
+      {label:'Menor de 15 anos', value:num(s.idMen)}, {label:'15 anos e mais', value:num(s.idMai)}
+    ]),
+    S_chart('Transferências', [
+      {label:'Recebidas', value:(s.transfR||[]).length}, {label:'Efectuadas', value:(s.transfE||[]).length}
+    ]),
+    S_chart('Actos e Procedimentos', (s.procV||[]).map(x=>({label:x.t, value:num(x.v)}))),
+    S_chart('Sinistralidade', (s.sinV||[]).map(x=>({label:x.t, value:num(x.v)}))),
+    S_list('Diagnósticos Registados', (s.diagData||[]).map(d=>({title:d.desc||'—', subtitle:'', meta:[(d.qty||1)+' caso(s)']}))),
+    S_list('Óbitos', obitos.map(o=>({title:txt(o.nome), subtitle:'Idade: '+txt(o.idade)+' · '+(o.genero==='F'?'Feminino':'Masculino'), meta:[o.hora||'—', o.causa? o.causa : (o.cidDesc||'—')]}))),
+    S_list('Operados', operados.map(o=>({title:txt(o.nome), subtitle:(o.especialidade||'—')+' · '+(o.tipo==='urgencia'?'Urgência':'Electiva'), meta:['Idade: '+txt(o.idade), o.genero==='F'?'Feminino':'Masculino']}))),
+    S_list('Transferências Recebidas', (s.transfR||[]).map(t=>({title:txt(t.nome), subtitle:t.hospital||t.hospitalManual||'—', meta:['Idade: '+txt(t.idade)]}))),
+    S_list('Transferências Efectuadas', (s.transfE||[]).map(t=>({title:txt(t.nome), subtitle:t.hospital||t.hospitalManual||'—', meta:['Idade: '+txt(t.idade)]}))),
+    S_list('Internados', (s.intData||[]).map(p=>({title:txt(p.nome), subtitle:p.descricao||p.cidDesc||'—', meta:['Idade: '+txt(p.idade), p.desfecho||'—']}))),
+    equipaTeam('Equipa de Serviço', s.eq1),
+    equipaTeam('Equipa que Entra', s.eq2),
+    S_notes('Observações', [
+      {label:'Altas', text:s.altasObs}, {label:'Sinistralidade', text:s.sinObs}, {label:'Turno', text:s.obsTurno}
+    ].filter(b=>b.text)),
+  ];
 }
 
-async function load(){
-  const data = dataSel.value;
-  barsEl.innerHTML = '<div class="loading">A carregar…</div>';
-  gridEl.innerHTML = '<div class="loading">A carregar…</div>';
+/* ── UCI ── */
+function uciSections(s){
+  const camas=saved(s.camas), obitos=saved(s.obitos), ocorr=saved(s.ocorr);
+  return [
+    S_stats('Indicadores Clínicos', [
+      {label:'Ventilados', value:num(s.ventilados)},
+      {label:'Internados', value:num(s.internados)},
+      {label:'Transferidos', value:num(s.transferidos)},
+      {label:'Falecidos', value:num(s.falecidos)},
+      {label:'Camas Ocupadas', value:camas.length},
+      {label:'Óbitos Registados', value:obitos.length},
+      {label:'Pendentes UTI', value:num(s.pendUTI)},
+      {label:'Pendentes Enfermaria', value:num(s.pendENF)},
+    ]),
+    S_chart('Avaliações Noutros Serviços', [
+      {label:'Banco de Urgência', value:num(s.avalBU)}, {label:'Bloco Operatório', value:num(s.avalBO)},
+      {label:'Medicina', value:num(s.avalMed)}, {label:'Ortopedia', value:num(s.avalOrt)}, {label:'Cirurgia', value:num(s.avalCir)},
+    ]),
+    S_list('Camas Ocupadas', camas.map(c=>({title:txt(c.nome), subtitle:c.diagnostico||'—', meta:['Idade: '+txt(c.idade), c.genero==='F'?'Feminino':'Masculino']}))),
+    S_list('Óbitos', obitos.map(o=>({title:txt(o.nome), subtitle:o.causa||'—', meta:['Idade: '+txt(o.idade), o.hora||'—']}))),
+    S_list('Ocorrências do Turno', ocorr.map(o=>({title:o.tipo||'Ocorrência', subtitle:o.descricao||'—', meta:[]}))),
+    equipaTeam('Equipa de Serviço', s.eq1),
+    equipaTeam('Equipa que Entra', s.eq2),
+    S_notes('Observações', [{label:'Turno', text:s.obsTurno}, {label:'Classificação', text:s.classUCI}].filter(b=>b.text)),
+  ];
+}
 
-  if(!window.__fbReady || !window.__fbGet){
-    fbWarn.classList.add('show');
-    barsEl.innerHTML = emptyState('Sem ligação ao Firebase.');
-    gridEl.innerHTML = SERVICES.map(svc=>`<div class="card empty" style="--accent:${svc.color}">
-        <div class="badge-empty">Sem ligação</div>
-        <h3>${svc.name}</h3>
-        <div class="headline">—</div>
-        <div class="headline-l">Não foi possível verificar</div>
-      </div>`).join('');
-    document.getElementById('gridCnt').textContent = SERVICES.length + ' serviços';
-    document.getElementById('statReportaram').textContent = '—';
-    document.getElementById('statHora').textContent = '—';
-    return;
+/* ── Nefrologia ── */
+function nefrologiaSections(s){
+  const entrados=s.entradosData||[], obitos=s.obitosData||[];
+  return [
+    S_stats('Movimento do Turno', [
+      {label:'Hemodiálise', value:num(s.hemodialise)},
+      {label:'Diálise Peritoneal', value:num(s.dialisePeritoneal)},
+      {label:'Altas', value:num(s.altas)},
+      {label:'Leitos Ocupados', value:num(s.leitosOcupados)},
+      {label:'Vagas', value:num(s.vagas)},
+      {label:'Entrados', value:entrados.length},
+      {label:'Óbitos', value:obitos.length},
+    ]),
+    S_list('Doentes Entrados', entrados.map(e=>({title:txt(e.nome), subtitle:e.diagNefrologia||'—', meta:['Idade: '+txt(e.idade), e.genero==='F'?'Feminino':'Masculino']}))),
+    S_list('Óbitos', obitos.map(o=>({title:txt(o.nome), subtitle:o.causa||'—', meta:['Idade: '+txt(o.idade), o.hora||'—']}))),
+    S_notes('Observações', [{label:'Médico de Entrada', text:s.medicoEntrada}, {label:'Médico/Serviço', text:s.medicoServico}, {label:'Observações', text:s.obs}].filter(b=>b.text)),
+  ];
+}
+
+/* ── Fisioterapia ── */
+function fisioterapiaSections(s){
+  const intV=(s.intV||[]).map(x=>({label:x.t,value:num(x.v)}));
+  const extV=(s.extV||[]).map(x=>({label:x.t,value:num(x.v)}));
+  const modV=(s.modV||[]).map(x=>({label:x.t,value:num(x.v)}));
+  const totInt=intV.reduce((a,x)=>a+x.value,0), totExt=extV.reduce((a,x)=>a+x.value,0), totMod=modV.reduce((a,x)=>a+x.value,0);
+  return [
+    S_stats('Movimento Geral', [
+      {label:'Atendimentos Internos', value:totInt},
+      {label:'Atendimentos Externos', value:totExt},
+      {label:'Sessões de Modalidades', value:totMod},
+      {label:'Equipa (Fisios)', value:num(s.equipaFis)},
+      {label:'Equipa (Técnicos)', value:num(s.equipaTec)},
+    ]),
+    S_chart('Doentes Internos Atendidos (por serviço)', intV),
+    S_chart('Doentes Externos Atendidos', extV),
+    S_chart('Modalidades Terapêuticas', modV),
+    S_notes('Observações', [{label:'Observações', text:s.obs}].filter(b=>b.text)),
+  ];
+}
+
+/* ── Laboratório Clínico ── */
+function labSections(s){
+  const ex = s.exameData||{}, pos = s.positivoData||{};
+  const exChart = Object.entries(ex).map(([k,v])=>({label:k, value:num(v&&v.urg)+num(v&&v.int)}));
+  const posChart = Object.entries(pos).map(([k,v])=>({label:k, value:num(v&&v.urg)+num(v&&v.int)}));
+  const totEx = exChart.reduce((a,x)=>a+x.value,0), totPos = posChart.reduce((a,x)=>a+x.value,0);
+  return [
+    S_stats('Movimento do Turno', [
+      {label:'Exames Realizados', value:totEx},
+      {label:'Resultados Positivos', value:totPos},
+      {label:'Técnicos de Serviço', value:num(s.numTec)},
+    ]),
+    S_chart('Exames Realizados por Tipo', exChart),
+    S_chart('Resultados Positivos por Tipo', posChart),
+    S_list('Exames Extra', (s.extraExames||[]).map(e=>({title:e.nome||'Exame', subtitle:'', meta:[(e.qty||0)+'x']}))),
+    S_team('Técnicos de Laboratório', [{label:'Chefe de Equipa: '+(s.chefeEquipa||'—'), chips:(s.tecs||[]).filter(Boolean)}]),
+    S_notes('Observações', [{label:'Observações do Turno', text:s.obsGeral}].filter(b=>b.text)),
+  ];
+}
+
+/* ── Imagiologia ── */
+function imagiologiaSections(s){
+  const somaLinhas = arr => (arr||[]).reduce((a,r)=>({prx:a.prx+num(r.prx),rx:a.rx+num(r.rx),peco:a.peco+num(r.peco),eco:a.eco+num(r.eco),ptac:a.ptac+num(r.ptac),tac:a.tac+num(r.tac)}),{prx:0,rx:0,peco:0,eco:0,ptac:0,tac:0});
+  const bu = somaLinhas(s.bu), int = somaLinhas(s.int);
+  const modChart = [
+    {label:'Prx', value:bu.prx+int.prx},{label:'Rx', value:bu.rx+int.rx},{label:'Peco', value:bu.peco+int.peco},
+    {label:'Eco', value:bu.eco+int.eco},{label:'Ptac', value:bu.ptac+int.ptac},{label:'Tac', value:bu.tac+int.tac},
+  ];
+  const totBU = Object.values(bu).reduce((a,v)=>a+v,0), totInt = Object.values(int).reduce((a,v)=>a+v,0);
+  return [
+    S_stats('Totais Gerais', [
+      {label:'Banco de Urgência', value:totBU},
+      {label:'Internamentos', value:totInt},
+      {label:'ECG', value:num(s.ecg)},
+      {label:'Autorizados Prx', value:num(s.autPrx)}, {label:'Autorizados Rx', value:num(s.autRx)},
+      {label:'Autorizados Peco', value:num(s.autPeco)}, {label:'Autorizados Eco', value:num(s.autEco)},
+      {label:'Autorizados Ptac', value:num(s.autPtac)}, {label:'Autorizados Tac', value:num(s.autTac)},
+    ]),
+    S_chart('Exames por Modalidade (BU + Internamento)', modChart),
+    S_list('Intercorrências', (s.incData||[]).map(i=>({title:i.tipo||'Intercorrência', subtitle:i.descricao||'—', meta:[]}))),
+    equipaTeam('Médicos que Entram', s.eq2),
+    S_notes('Observações', [{label:'Turno', text:s.obsTurno}, {label:'Classificação', text:s.selClass}].filter(b=>b.text)),
+  ];
+}
+
+/* ── Consulta Externa ── */
+const CE_ESP = {med:'Medicina',neu:'Neurologia',car:'Cardiologia',cirg:'Cirurgia Geral',ort:'Ortopedia',ncir:'Neurocirurgia',
+  reu:'Reumatologia',mxf:'Cirurgia Maxilo-Facial',ane:'Anestesiologia',uro:'Urologia',col:'Coloproctologia',
+  est:'Estomatologia',opt:'Optometria',oft:'Oftalmologia',nps:'Neuropsicologia'};
+function consultaExternaSections(s){
+  const esp = s.espData||{};
+  const chart = Object.entries(esp).map(([id,d])=>({label:CE_ESP[id]||id, value:num(d&&d.total)}));
+  const totGeral = chart.reduce((a,x)=>a+x.value,0);
+  return [
+    S_stats('Movimento Geral', [
+      {label:'Total de Consultas', value:totGeral},
+      {label:'Hospital de Dia', value:num(s.hdia)},
+    ]),
+    S_chart('Consultas por Especialidade', chart),
+    S_notes('Observações', [{label:'Observações Gerais', text:s.obs}].filter(b=>b.text)),
+  ];
+}
+
+/* ── Psicologia Clínica ── */
+function psicologiaSections(s){
+  const intVals = s.intVals||{};
+  const intTotal = Object.values(intVals).reduce((a,v)=>a+num(v),0);
+  const patData = s.patData||[];
+  return [
+    S_stats('Movimento Geral', [
+      {label:'Doentes Internados', value:intTotal},
+      {label:'Doentes Externos', value:num(s.extTotal)},
+      {label:'Patologias Registadas', value:patData.reduce((a,p)=>a+num(p.qty),0)},
+    ]),
+    S_list('Patologias Registadas', patData.map(p=>({title:p.nome||'—', subtitle:'', meta:[(p.qty||0)+' caso(s)']}))),
+    S_team('Psicólogos no Consultório', [{label:'Responsável: '+(s.psicologo||'—'), chips:(s.consProfs||[])}]),
+    S_notes('Observações', [{label:'Externos', text:s.extObs}, {label:'Geral', text:s.obsGeral}].filter(b=>b.text)),
+  ];
+}
+
+/* ── Bloco Operatório ── */
+function blocoOperatorioSections(s){
+  const urg=saved(s.urgData), ele=saved(s.eleData), sus=saved(s.susData);
+  return [
+    S_stats('Movimento do Turno', [
+      {label:'Cirurgias Urgentes', value:urg.length},
+      {label:'Cirurgias Electivas', value:ele.length},
+      {label:'Suspensas', value:sus.length},
+      {label:'Óbitos', value:urg.concat(ele).filter(c=>c.falecido).length},
+    ]),
+    S_list('Cirurgias Urgentes', urg.map(c=>({title:txt(c.paciente), subtitle:(c.especialidade||'—')+(c.cidDesc?' · '+c.cidDesc:''), meta:['Idade: '+txt(c.idade), c.genero==='F'?'Feminino':'Masculino']}))),
+    S_list('Cirurgias Electivas', ele.map(c=>({title:txt(c.paciente), subtitle:(c.especialidade||'—')+(c.cidDesc?' · '+c.cidDesc:''), meta:['Idade: '+txt(c.idade), c.genero==='F'?'Feminino':'Masculino']}))),
+    S_list('Cirurgias Suspensas', sus.map(c=>({title:txt(c.paciente), subtitle:c.motivo||c.motivoOutro||'—', meta:[c.especialidade||'—']}))),
+    equipaTeam('Equipa de Serviço', s.eq1),
+    equipaTeam('Equipa que Entra', s.eq2),
+    S_notes('Observações', [{label:'Turno', text:s.obsTurno}, {label:'Classificação', text:s.selClass}].filter(b=>b.text)),
+  ];
+}
+
+const SCHEMAS = {
+  cirurgia_geral: groupASections, ortopedia: groupASections, neurocirurgia: groupASections,
+  cirurgia_maxilo_facial: groupASections, oftalmologia: groupASections, otorrinolaringologia: groupASections,
+  medicina_interna: groupASections,
+  uci: uciSections, nefrologia: nefrologiaSections, fisioterapia: fisioterapiaSections,
+  laboratorio_clinico: labSections, imagiologia: imagiologiaSections,
+  consulta_externa: consultaExternaSections, psicologia_clinica: psicologiaSections,
+  bloco_operatorio: blocoOperatorioSections,
+};
+
+/* Métrica de destaque (usada só na Visão Geral) */
+function headline(id, s){
+  switch(id){
+    case 'bloco_operatorio': return ['Cirurgias', saved(s.urgData).length+saved(s.eleData).length];
+    case 'uci': return ['Internados', num(s.internados)];
+    case 'nefrologia': return ['Hemodiálise', num(s.hemodialise)];
+    case 'fisioterapia': { const t=(s.intV||[]).reduce((a,x)=>a+num(x.v),0)+(s.modV||[]).reduce((a,x)=>a+num(x.v),0); return ['Atendimentos', t]; }
+    case 'laboratorio_clinico': { const ex=s.exameData||{}; const t=Object.values(ex).reduce((a,v)=>a+num(v&&v.urg)+num(v&&v.int),0); return ['Exames', t]; }
+    case 'imagiologia': { const t=[...(s.bu||[]),...(s.int||[])].reduce((a,r)=>a+num(r.prx)+num(r.rx)+num(r.peco)+num(r.eco)+num(r.ptac)+num(r.tac),0); return ['Exames', t]; }
+    case 'consulta_externa': { const esp=s.espData||{}; const t=Object.values(esp).reduce((a,d)=>a+num(d&&d.total),0); return ['Consultas', t]; }
+    case 'psicologia_clinica': { const t=Object.values(s.intVals||{}).reduce((a,v)=>a+num(v),0)+num(s.extTotal); return ['Atendidos', t]; }
+    default: return ['Pacientes', num(s.pacTotal)];
   }
+}
 
-  const results = await Promise.all(SERVICES.map(async svc=>{
-    try{
-      const r = await window.__fbGet('registos/'+svc.id+'/'+data);
-      return {svc, record:r};
-    }catch(e){ return {svc, record:null, error:e}; }
-  }));
+/* ══════════════════ RENDERIZAÇÃO ══════════════════ */
+const tabsEl = document.getElementById('tabs');
+const contentEl = document.getElementById('content');
+const dataSel = document.getElementById('dataSel');
+const fbWarn = document.getElementById('fbWarn');
+let currentTab = 'overview';
+let currentDataset = {}; // id -> {savedAt, snapshot} | null
 
-  const withData = results.filter(r=>r.record && r.record.snapshot);
-  fbWarn.classList.toggle('show', results.every(r=>!r.record) && results.some(r=>r.error));
+function todayISO(offsetDays){ const d=new Date(); if(offsetDays)d.setDate(d.getDate()+offsetDays); return d.toISOString().slice(0,10); }
+dataSel.value = todayISO(0);
 
-  document.getElementById('statReportaram').textContent = withData.length;
-  document.getElementById('chartCnt').textContent = withData.length + ' de ' + SERVICES.length;
-  document.getElementById('gridCnt').textContent = SERVICES.length + ' serviços';
-
-  let lastTime = null;
-  withData.forEach(r=>{
-    if(!lastTime || new Date(r.record.savedAt) > new Date(lastTime)) lastTime = r.record.savedAt;
+function buildTabs(){
+  let html = `<button class="tab active" data-tab="overview" style="--accent:${'#0D1B3E'}"><i style="background:#0D1B3E"></i>Visão Geral</button><span class="tab-sep"></span>`;
+  CATS.forEach(cat=>{
+    SERVICES.filter(s=>s.cat===cat.id).forEach(svc=>{
+      html += `<button class="tab" data-tab="${svc.id}" style="--accent:${svc.color}"><i style="background:${svc.color}"></i>${svc.name}</button>`;
+    });
   });
+  tabsEl.innerHTML = html;
+  tabsEl.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click', ()=>selectTab(btn.dataset.tab)));
+}
+buildTabs();
+
+function selectTab(id){
+  currentTab = id;
+  tabsEl.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===id));
+  render();
+  const activeBtn = tabsEl.querySelector('.tab.active');
+  if(activeBtn) activeBtn.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function sectionHTML(sec, accent){
+  if(sec.type==='stats'){
+    if(!sec.items.length) return '';
+    return `<div class="panel"><h2>${sec.title}</h2><div class="stats-grid">${sec.items.map(it=>`
+      <div class="stat-tile ${it.value?'':'zero'}"><div class="v">${it.value}</div><div class="l">${it.label}</div></div>
+    `).join('')}</div></div>`;
+  }
+  if(sec.type==='chart'){
+    if(!sec.items.length) return '';
+    const max = Math.max(...sec.items.map(x=>x.value), 1);
+    return `<div class="panel"><h2>${sec.title}</h2><div class="bars">${sec.items.map(x=>`
+      <div class="bar-row ${x.value?'':'zero'}">
+        <div class="lbl">${x.label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((x.value/max)*100)}%;background:${accent};"></div></div>
+        <div class="val">${x.value}</div>
+      </div>`).join('')}</div></div>`;
+  }
+  if(sec.type==='list'){
+    if(!sec.items || !sec.items.length) return `<div class="panel"><h2>${sec.title} <span class="cnt">0</span></h2><div class="list-empty">${sec.emptyText}</div></div>`;
+    return `<div class="panel"><h2>${sec.title} <span class="cnt">${sec.items.length}</span></h2><div class="rec-list">${sec.items.map(it=>`
+      <div class="rec"><div class="rt">${it.title}</div>${it.subtitle?`<div class="rs">${it.subtitle}</div>`:''}
+        ${it.meta&&it.meta.length?`<div class="rm">${it.meta.map(m=>`<span>${m}</span>`).join('')}</div>`:''}
+      </div>`).join('')}</div></div>`;
+  }
+  if(sec.type==='team'){
+    const groups = (sec.groups||[]).filter(g=>g.chips && g.chips.length);
+    if(!groups.length) return '';
+    return `<div class="panel"><h2>${sec.title}</h2>${groups.map(g=>`
+      <div class="team-grp"><div class="tg-l">${g.label}</div><div class="team-chips">${g.chips.map(c=>`<span class="team-chip">${c}</span>`).join('')}</div></div>
+    `).join('')}</div>`;
+  }
+  if(sec.type==='notes'){
+    if(!sec.blocks || !sec.blocks.length) return '';
+    return `<div class="panel"><h2>${sec.title}</h2>${sec.blocks.map(b=>`
+      <div class="note-block"><span class="nl">${b.label}</span>${b.text}</div>
+    `).join('')}</div>`;
+  }
+  return '';
+}
+
+function renderDetail(id){
+  const svc = svcOf(id);
+  const entry = currentDataset[id];
+  const has = entry && entry.snapshot;
+  const s = has ? entry.snapshot : {};
+  const schema = SCHEMAS[id] || (()=>[]);
+  const sections = schema(s);
+  const nonEmpty = sections.filter(sec=>{
+    if(sec.type==='stats') return sec.items.length;
+    if(sec.type==='chart') return sec.items.length;
+    if(sec.type==='list') return true;
+    if(sec.type==='team') return (sec.groups||[]).some(g=>g.chips&&g.chips.length);
+    if(sec.type==='notes') return sec.blocks&&sec.blocks.length;
+    return false;
+  });
+
+  contentEl.innerHTML = `
+    <div class="panel" style="--accent:${svc.color};">
+      <div class="dh">
+        <div class="dh-l">
+          <div class="dh-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></div>
+          <div><h1>${svc.name}</h1><div class="sub">${fmtDataLong(dataSel.value)}</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="dh-status ${has?'ok':'empty'}">${has?'Reportado às '+fmtHora(entry.savedAt):'Sem registo'}</span>
+          <button id="btnPDF" ${has?'':'disabled'}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button>
+        </div>
+      </div>
+    </div>
+    <div id="detailBody" style="--accent:${svc.color};">
+      ${has ? (nonEmpty.length ? nonEmpty.map(sec=>sectionHTML(sec, svc.color)).join('') : `<div class="panel"><div class="list-empty">Registo confirmado, mas sem dados preenchidos.</div></div>`)
+            : `<div class="panel"><div class="list-empty">Nenhum registo confirmado para ${svc.name} nesta data.</div></div>`}
+    </div>
+  `;
+  const pdfBtn = document.getElementById('btnPDF');
+  if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportPDF(svc, dataSel.value));
+}
+
+function renderOverview(){
+  const withData = SERVICES.filter(svc=>currentDataset[svc.id] && currentDataset[svc.id].snapshot);
+  let lastTime = null;
+  withData.forEach(svc=>{
+    const t = currentDataset[svc.id].savedAt;
+    if(!lastTime || new Date(t) > new Date(lastTime)) lastTime = t;
+  });
+  document.getElementById('statReportaram').textContent = withData.length;
   document.getElementById('statHora').textContent = lastTime ? fmtHora(lastTime) : '—';
 
-  // ── BARRAS ──
+  let barsHTML;
   if(!withData.length){
-    barsEl.innerHTML = emptyState('Nenhum registo confirmado para esta data ainda.');
+    barsHTML = `<div class="list-empty">Nenhum registo confirmado para esta data ainda.</div>`;
   }else{
-    const withHl = withData.map(r=>{
-      const [label, value] = r.svc.hl(r.record.snapshot);
-      return {name:r.svc.name, color:r.svc.color, label, value: (typeof value==='number')?value:0};
+    const withHl = withData.map(svc=>{
+      const [label, value] = headline(svc.id, currentDataset[svc.id].snapshot);
+      return {name:svc.name, color:svc.color, label, value:(typeof value==='number')?value:0};
     }).sort((a,b)=>b.value-a.value);
     const max = Math.max(...withHl.map(x=>x.value), 1);
-    barsEl.innerHTML = withHl.map(x=>`
-      <div class="bar-row">
+    barsHTML = withHl.map(x=>`
+      <div class="bar-row ${x.value?'':'zero'}">
         <div class="lbl">${x.name}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${Math.round((x.value/max)*100)}%;background:${x.color};"></div></div>
         <div class="val">${x.value}</div>
       </div>`).join('');
   }
 
-  // ── CARDS ──
-  gridEl.innerHTML = SERVICES.map(svc=>{
-    const found = results.find(r=>r.svc.id===svc.id);
-    const rec = found && found.record;
-    if(!rec || !rec.snapshot){
-      return `<div class="card empty" style="--accent:${svc.color}">
-        <div class="badge-empty">Sem registo</div>
-        <h3>${svc.name}</h3>
-        <div class="headline">—</div>
-        <div class="headline-l">Sem dados para esta data</div>
-      </div>`;
+  const cardsHTML = SERVICES.map(svc=>{
+    const entry = currentDataset[svc.id];
+    const has = entry && entry.snapshot;
+    if(!has){
+      return `<button class="card empty" style="--accent:${svc.color}" onclick="selectTab('${svc.id}')">
+        <div class="badge-empty">Sem registo</div><h3>${svc.name}</h3>
+        <div class="headline">—</div><div class="headline-l">Sem dados</div>
+      </button>`;
     }
-    const s = rec.snapshot;
-    const [hlLabel, hlValue] = svc.hl(s);
-    const secs = svc.secs(s).filter(x=>x[0]!=='—');
-    return `<a class="card" href="${svc.file}" style="--accent:${svc.color}">
-      <div class="badge-time">${fmtHora(rec.savedAt)}</div>
-      <h3>${svc.name}</h3>
-      <div class="headline">${hlValue}</div>
-      <div class="headline-l">${hlLabel}</div>
-      ${secs.length?`<div class="secs">${secs.map(([l,v])=>`<div class="sec">${l}<b>${v}</b></div>`).join('')}</div>`:''}
-    </a>`;
+    const [hlLabel, hlValue] = headline(svc.id, entry.snapshot);
+    return `<button class="card" style="--accent:${svc.color}" onclick="selectTab('${svc.id}')">
+      <div class="badge-time">${fmtHora(entry.savedAt)}</div><h3>${svc.name}</h3>
+      <div class="headline">${hlValue}</div><div class="headline-l">${hlLabel}</div>
+    </button>`;
   }).join('');
+
+  contentEl.innerHTML = `
+    <div class="panel"><h2>Movimento por Serviço <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="bars">${barsHTML}</div></div>
+    <div class="panel"><h2>Todos os Serviços <span class="cnt">${SERVICES.length}</span></h2><div class="grid">${cardsHTML}</div></div>
+  `;
 }
 
-function emptyState(msg){
-  return `<div class="empty-state">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6v6H9z"/></svg>
-    <p>${msg}</p>
-  </div>`;
+function render(){
+  if(currentTab==='overview') renderOverview();
+  else renderDetail(currentTab);
+}
+
+/* ══════════════════ CARREGAMENTO ══════════════════ */
+async function load(){
+  contentEl.innerHTML = '<div class="loading">A carregar…</div>';
+  const data = dataSel.value;
+
+  if(!window.__fbReady || !window.__fbGet){
+    fbWarn.classList.add('show');
+    currentDataset = {};
+    document.getElementById('statReportaram').textContent = '—';
+    document.getElementById('statHora').textContent = '—';
+    render();
+    return;
+  }
+
+  const results = await Promise.all(SERVICES.map(async svc=>{
+    try{ return [svc.id, await window.__fbGet('registos/'+svc.id+'/'+data)]; }
+    catch(e){ return [svc.id, null]; }
+  }));
+  currentDataset = Object.fromEntries(results);
+  fbWarn.classList.remove('show');
+  render();
+}
+
+document.getElementById('btnHoje').addEventListener('click', ()=>{dataSel.value=todayISO(0);load();});
+document.getElementById('btnOntem').addEventListener('click', ()=>{dataSel.value=todayISO(-1);load();});
+dataSel.addEventListener('change', load);
+
+/* ══════════════════ EXPORTAR PDF ══════════════════ */
+async function exportPDF(svc, dateStr){
+  const el = document.getElementById('detailBody');
+  if(!el) return;
+  const btn = document.getElementById('btnPDF');
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.textContent = 'A gerar…';
+  try{
+    const canvas = await html2canvas(el, {scale:2, backgroundColor:'#F4F7FF', useCORS:true});
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+    const pageW = 210, pageH = 297, margin = 10;
+    const imgW = pageW - margin*2;
+    const imgH = canvas.height * imgW / canvas.width;
+    const pageContentH = pageH - margin*2;
+
+    pdf.setFontSize(13); pdf.setTextColor(13,27,62);
+    pdf.text('Hospital do Prenda — ' + svc.name, margin, margin+2);
+    pdf.setFontSize(9); pdf.setTextColor(100,116,139);
+    pdf.text('Resumo do dia ' + fmtDataLong(dateStr), margin, margin+8);
+
+    // Desenha a imagem completa em cada página, deslocada para cima,
+    // recortada pela altura visível da página (técnica padrão para
+    // capturas longas divididas em várias páginas de PDF).
+    const imgData = canvas.toDataURL('image/png');
+    const firstPageH = pageContentH - 14;
+    let heightLeft = imgH - firstPageH;
+    let renderedH = firstPageH;
+    pdf.addImage(imgData, 'PNG', margin, margin+14, imgW, imgH, undefined, 'FAST');
+    let page = 0;
+    while(heightLeft > 0 && page < 20){
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', margin, margin - renderedH, imgW, imgH, undefined, 'FAST');
+      renderedH += pageContentH;
+      heightLeft -= pageContentH;
+      page++;
+    }
+    pdf.save('resumo_'+svc.id+'_'+dateStr+'.pdf');
+  }catch(e){
+    console.error(e);
+    alert('Não foi possível gerar o PDF: '+e.message);
+  }finally{
+    btn.disabled = false; btn.innerHTML = orig;
+  }
 }
 
 load();
