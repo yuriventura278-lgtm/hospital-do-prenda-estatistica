@@ -1184,8 +1184,9 @@ function mostrarHistorico(){
         <div style="font-size:.78rem;color:var(--tx2);line-height:1.6;">
           Médicos: <b>${(s.eq||[]).filter(x=>x.saved).length}</b> · Camas: <b>${(s.camas||[]).filter(x=>x.saved).length}</b> · Ventilados: <b>${s.ventilados||0}</b>${s.classUCI?' · <b>'+s.classUCI+'</b>':''}
         </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
           <button class="bs bse" onclick="restaurar(${i})" style="font-size:.72rem;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Carregar</button>
+          <button class="bs bsd" onclick="apagarHistorico(${i})" style="font-size:.72rem;" title="Eliminar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>
         </div>
       </div>`;
     }).join('')+'</div>';
@@ -1193,6 +1194,22 @@ function mostrarHistorico(){
   document.getElementById('m-data').textContent='Histórico de Registos';
   document.getElementById('m-body').innerHTML=html;
   document.getElementById('ov').classList.add('open');
+}
+function apagarHistorico(i){
+  if(!confirm('Eliminar este registo do histórico? Esta acção não pode ser desfeita.'))return;
+  try{
+    const hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');
+    const h=hist[i];
+    if(!h){toast('Registo não encontrado.');return;}
+    hist.splice(i,1);
+    localStorage.setItem(HIST_KEY,JSON.stringify(hist));
+    const d=h.snap&&h.snap.data;
+    if(d&&window.__fbReady&&window.__fbSet){
+      window.__fbSet(FB_PATH+'/'+d,null).catch(e=>console.warn('Firebase: falha ao eliminar registo remoto.',e));
+    }
+    toast('✓ Registo eliminado.');
+    mostrarHistorico();
+  }catch(e){toast('Erro ao eliminar registo.');}
 }
 function restaurar(i){
   try{

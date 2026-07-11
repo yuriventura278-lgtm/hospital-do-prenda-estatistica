@@ -481,6 +481,16 @@ function closeDateReminder(){
 <!-- ACTION BAR -->
 <div class="ab">
   <button class="bm bpd" onclick="visualizar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span>Visualizar</span></button>
+  <button class="bm bpd" onclick="historicoRegisto()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>Histórico</span></button>
+</div>
+
+<!-- MODAL HISTÓRICO -->
+<div id="ovh" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.7);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;animation:su .28s cubic-bezier(.34,1.2,.64,1);">
+    <div class="mh"><div><h3>Histórico de Registos</h3><p id="mh-sub" style="margin:0;"></p></div></div>
+    <div class="mb" id="mh-body"></div>
+    <div class="mf"><button onclick="document.getElementById('ovh').style.display='none';" style="flex:1;padding:14px;background:#F1F5F9;border:none;border-radius:10px;color:#64748B;font-size:.88rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Fechar</button></div>
+  </div>
 </div>
 
 <!-- MODAL -->
@@ -1110,6 +1120,66 @@ function renderAll(){
 }
 
 // ── GUARDAR ───────────────────────────────────────────────
+// ── HISTÓRICO ─────────────────────────────────────────────
+async function historicoRegisto(){
+  let dias=[];
+  try{
+    const db=await openDB();
+    dias=await new Promise((res)=>{
+      const tx=db.transaction(STORE,'readonly');
+      const req=tx.objectStore(STORE).getAll();
+      req.onsuccess=()=>res(req.result||[]);
+      req.onerror=()=>res([]);
+    });
+  }catch(e){dias=[];}
+  dias=dias.filter(s=>s.data && s.data!=='__draft__').sort((a,b)=>b.data.localeCompare(a.data));
+  const fmtD=v=>{try{return new Date(v+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});}catch(e){return v;}};
+  document.getElementById('mh-sub').textContent = dias.length + ' registo(s) guardado(s)';
+  document.getElementById('mh-body').innerHTML = dias.length ? dias.map(s=>{
+    const nCir = (s.urgData||[]).filter(x=>x.saved).length + (s.eleData||[]).filter(x=>x.saved).length;
+    const nSus = (s.susData||[]).filter(x=>x.saved).length;
+    return `<div style="background:#FAFBFF;border:1.5px solid var(--br);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;">
+      <div style="font-size:.85rem;font-weight:700;color:var(--tx);margin-bottom:6px;">${fmtD(s.data)}</div>
+      <div style="font-size:.78rem;color:var(--tx2);">Cirurgias: <b>${nCir}</b> · Suspensas: <b>${nSus}</b>${s.selClass?' · '+s.selClass:''}</div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="bs bse" onclick="carregarDoHistorico('${s.data}')">Carregar</button>
+        <button class="bs bsd" onclick="apagarHistorico('${s.data}')" title="Eliminar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>
+      </div>
+    </div>`;
+  }).join('') : '<div style="text-align:center;padding:24px;color:var(--tx3);">Ainda não há registos guardados.</div>';
+  document.getElementById('ovh').style.display='flex';
+}
+function carregarDoHistorico(dataKey){
+  openDB().then(db=>{
+    const tx=db.transaction(STORE,'readonly');
+    const req=tx.objectStore(STORE).get(dataKey);
+    req.onsuccess=()=>{
+      if(req.result){
+        if(!confirm('Carregar este registo vai substituir os dados actuais no formulário. Continuar?'))return;
+        applySnapshot(req.result);
+        renderAll();upd();
+        document.getElementById('ovh').style.display='none';
+        window.scrollTo({top:0,behavior:'smooth'});
+        toast('✓ Registo carregado.');
+      }else{toast('Registo não encontrado.');}
+    };
+  });
+}
+function apagarHistorico(dataKey){
+  if(!confirm('Eliminar este registo do histórico? Esta acção não pode ser desfeita.'))return;
+  openDB().then(db=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(dataKey);
+    tx.oncomplete=()=>{
+      if(window.__fbReady && window.__fbSet){
+        window.__fbSet(FB_PATH+'/'+dataKey,null).catch(e=>console.warn('Firebase: falha ao eliminar registo remoto.',e));
+      }
+      toast('✓ Registo eliminado.');
+      historicoRegisto();
+    };
+  });
+}
+
 function salvarRegisto(){
   const erros=[];
   if(!gv('data'))erros.push('Data do relatório em falta.');
