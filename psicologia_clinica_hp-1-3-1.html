@@ -773,6 +773,7 @@ async function onDateFieldChange(){
     try{__ddSave(__ddPrevDate,buildSnapshot());}catch(e){}
   }
   if(novaData){
+    try{if(typeof limparFormulario==='function')limparFormulario();}catch(e){}
     const existente=await __ddLoad(novaData);
     if(existente){
       try{applySnapshot(existente);}catch(e){}
@@ -881,7 +882,7 @@ function loadDraft(){
   }catch(e){}
 }
 
-document.addEventListener('input',e=>{if(!e.target.closest('#ov')&&!e.target.closest('#ov-vis')&&!e.target.closest('#ov2')){upd();ss();updateDataLabel();}});
+document.addEventListener('input',e=>{if(e.target.id!=='data'&&e.target.id!=='data-fim'&&!e.target.closest('#ov')&&!e.target.closest('#ov-vis')&&!e.target.closest('#ov2')){upd();ss();updateDataLabel();}});
 
 // ═══════════════════════════════════════════════
 // SALVAR REGISTO

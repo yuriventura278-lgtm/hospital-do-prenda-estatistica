@@ -736,6 +736,17 @@ function ss(){
 
 function applySnapshot(s){
   const sv=(id,v)=>{const el=document.getElementById(id);if(el)el.value=(v!==null&&v!==undefined)?v:'';};
+  // Limpar tudo primeiro, para nunca herdar dados de outra data
+  INT_TIPOS.forEach(t=>sv('int-'+sid(t),''));
+  EXT_TIPOS.forEach(t=>sv('ext-'+sid(t),''));
+  MOD_TIPOS.forEach(t=>sv('mod-'+sid(t),''));
+  const intList=document.getElementById('int-outros-list');if(intList)intList.innerHTML='';
+  const extList=document.getElementById('ext-outros-list');if(extList)extList.innerHTML='';
+  const modList=document.getElementById('mod-outros-list');if(modList)modList.innerHTML='';
+  intOutros.length=0;extOutros.length=0;modOutros.length=0;
+  const eqList=document.getElementById('eq-list');if(eqList)eqList.innerHTML='';
+  equipaData.length=0;
+
   sv('data',s.data);sv('resp',s.resp);sv('uci',s.uci);sv('consulta',s.consulta);
   if(s.intV)s.intV.forEach(({t,v})=>{const el=document.getElementById('int-'+sid(t));if(el)el.value=v||'';});
   if(s.extV)s.extV.forEach(({t,v})=>{const el=document.getElementById('ext-'+sid(t));if(el)el.value=v||'';});
@@ -744,8 +755,8 @@ function applySnapshot(s){
   if(s.extOutros)s.extOutros.forEach(o=>addExtOutro(o.label,o.v));
   if(s.modOutros)s.modOutros.forEach(o=>addModOutro(o.label,o.v));
   sv('eq-fis',s.equipaFis);sv('eq-tec',s.equipaTec);
-  if(s.equipaData)s.equipaData.forEach(e=>addEquipaItem(e));
-  sv('obs',s.obs);
+  if(s.equipaData)s.equipaData.forEach(e=>{equipaData.push(e);addEquipaItem(e);});
+  sv('obs',s.obs||'');
   calcTotais();updModBadge();updEquipa();
 }
 

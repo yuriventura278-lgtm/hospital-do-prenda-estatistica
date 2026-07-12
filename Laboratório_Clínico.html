@@ -786,21 +786,24 @@ function applySnapshot(s){
     const sv=(id,val)=>{const el=document.getElementById(id);if(el)el.value=(val!==undefined&&val!==null)?val:'';};
     sv('data',s.data);
     sv('data-fim',s.dataFim||'');
-    if(s.chefeEquipa){const el=document.getElementById('chefe-equipa');if(el)el.value=s.chefeEquipa;}
-    if(s.numTec){const el=document.getElementById('num-tec');if(el)el.value=s.numTec;}
+    sv('chefe-equipa',s.chefeEquipa||'');
+    sv('num-tec',s.numTec||'');
     renderTecGrid();
-    if(s.tecs)s.tecs.forEach((v,i)=>{const el=document.getElementById('tec-'+(i+1));if(el)el.value=v||'';});
+    const nTec=parseInt(gv('num-tec'))||0;
+    for(let i=1;i<=nTec;i++){const el=document.getElementById('tec-'+i);if(el)el.value=(s.tecs&&s.tecs[i-1])||'';}
+    Object.keys(exameData).forEach(k=>delete exameData[k]);
     if(s.exameData)Object.assign(exameData,s.exameData);
+    Object.keys(positivoData).forEach(k=>delete positivoData[k]);
     if(s.positivoData)Object.assign(positivoData,s.positivoData);
-    if(s.extraExames){extraExames.length=0;extraExames.push(...s.extraExames);}
-    sv('obs-geral',s.obsGeral);
+    extraExames.length=0;
+    if(s.extraExames)extraExames.push(...s.extraExames);
+    sv('obs-geral',s.obsGeral||'');
     renderExamesTable();renderPositivosTable();upd();
-    initDates();
   }catch(e){console.warn(e);}
 }
 function ss_LAB_OLD(){/* removida */}
 function ls_OLD(){/* removida */}
-document.addEventListener('input',e=>{if(!e.target.closest('#ov')&&!e.target.closest('#ov2')){upd();ss();}});
+document.addEventListener('input',e=>{if(e.target.id!=='data'&&e.target.id!=='data-fim'&&!e.target.closest('#ov')&&!e.target.closest('#ov2')){upd();ss();}});
 
 // ── VISUALIZAR ───────────────────────────────────────────────
 async function compartilhar(canal){
