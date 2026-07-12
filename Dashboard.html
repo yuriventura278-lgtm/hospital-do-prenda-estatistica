@@ -763,7 +763,7 @@ function sectionHTML(sec, accent){
     `).join('')}</div></div>`;
   }
   if(sec.type==='chart'){
-    if(!sec.items.length) return '';
+    if(!sec.items.length) return `<div class="panel"><h2>${sec.title}</h2><div class="list-empty">Sem dados registados.</div></div>`;
     const max = Math.max(...sec.items.map(x=>x.value), 1);
     return `<div class="panel"><h2>${sec.title}</h2><div class="bars">${sec.items.map(x=>`
       <div class="bar-row ${x.value?'':'zero'}">
@@ -804,7 +804,7 @@ function renderDetail(id){
   const sections = schema(s);
   const nonEmpty = sections.filter(sec=>{
     if(sec.type==='stats') return sec.items.length;
-    if(sec.type==='chart') return sec.items.length;
+    if(sec.type==='chart') return true;
     if(sec.type==='list') return true;
     if(sec.type==='team') return (sec.groups||[]).some(g=>g.chips&&g.chips.length);
     if(sec.type==='notes') return sec.blocks&&sec.blocks.length;
@@ -988,7 +988,7 @@ function renderDetailPeriod(id){
   const merged = mergeSections(sectionsPerDay, reportedDays.map(d=>d.date));
   const nonEmpty = merged.filter(sec=>{
     if(sec.type==='stats') return sec.items.length;
-    if(sec.type==='chart') return sec.items.length;
+    if(sec.type==='chart') return true;
     if(sec.type==='list') return true;
     if(sec.type==='team') return (sec.groups||[]).some(g=>g.chips&&g.chips.length);
     if(sec.type==='notes') return sec.blocks&&sec.blocks.length;
