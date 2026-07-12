@@ -310,38 +310,80 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
       </div>
       <div style="font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1A56DB;font-family:'DM Mono',monospace;margin-bottom:4px;">Sistema de Zelo Estatístico e Levantamento de Ocorrências</div>
       <div style="font-size:1.05rem;font-weight:800;color:#0F172A;">Acesso Restrito</div>
-      <div style="font-size:.8rem;color:#64748B;margin-top:4px;">Este sistema requer chave de acesso.</div>
+      <div style="font-size:.8rem;color:#64748B;margin-top:4px;">Inicie sessão para aceder a este sistema.</div>
     </div>
-    <label for="zeloAuthUser" style="display:block;font-size:.72rem;font-weight:700;color:#334155;margin-bottom:5px;">Utilizador</label>
-    <input id="zeloAuthUser" type="text" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid #E2E8F0;border-radius:8px;font-size:.9rem;margin-bottom:14px;box-sizing:border-box;font-family:inherit;" />
+    <label for="zeloAuthEmail" style="display:block;font-size:.72rem;font-weight:700;color:#334155;margin-bottom:5px;">Email</label>
+    <input id="zeloAuthEmail" type="email" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid #E2E8F0;border-radius:8px;font-size:.9rem;margin-bottom:14px;box-sizing:border-box;font-family:inherit;" />
     <label for="zeloAuthPass" style="display:block;font-size:.72rem;font-weight:700;color:#334155;margin-bottom:5px;">Password</label>
     <input id="zeloAuthPass" type="password" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid #E2E8F0;border-radius:8px;font-size:.9rem;margin-bottom:6px;box-sizing:border-box;font-family:inherit;" />
-    <div id="zeloAuthErr" style="display:none;color:#B91C1C;font-size:.76rem;margin-bottom:10px;">Utilizador ou password incorretos.</div>
-    <button type="submit" style="width:100%;margin-top:8px;background:#1A56DB;color:#fff;border:none;border-radius:8px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">Entrar</button>
+    <div id="zeloAuthErr" style="display:none;color:#B91C1C;font-size:.76rem;margin-bottom:10px;">Email ou password incorretos.</div>
+    <button type="submit" id="zeloAuthBtn" style="width:100%;margin-top:8px;background:#1A56DB;color:#fff;border:none;border-radius:8px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">Entrar</button>
     <a href="Estatistica.html" style="display:block;text-align:center;margin-top:14px;font-size:.74rem;color:#64748B;text-decoration:none;">← Voltar à Estatística</a>
   </form>
 </div>
-<script>
-(function(){
-  var ZELO_AUTH_USER='administrador', ZELO_AUTH_PASS='Zelo@';
-  var gate=document.getElementById('zeloAuthGate');
-  var form=document.getElementById('zeloAuthForm');
-  var err=document.getElementById('zeloAuthErr');
-  var htmlEl=document.documentElement;
-  var prevOverflow=htmlEl.style.overflow;
-  htmlEl.style.overflow='hidden';
-  form.addEventListener('submit', function(e){
-    e.preventDefault();
-    var u=document.getElementById('zeloAuthUser').value.trim();
-    var p=document.getElementById('zeloAuthPass').value;
-    if(u===ZELO_AUTH_USER && p===ZELO_AUTH_PASS){
-      gate.remove();
-      htmlEl.style.overflow=prevOverflow;
-    } else {
-      err.style.display='block';
-    }
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB72sUTmo7x1gOiNQfn112Na2MvX82kZ4E",
+  authDomain: "hospital-do-prenda-1de35.firebaseapp.com",
+  databaseURL: "https://hospital-do-prenda-1de35-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "hospital-do-prenda-1de35",
+  storageBucket: "hospital-do-prenda-1de35.firebasestorage.app",
+  messagingSenderId: "991683012968",
+  appId: "1:991683012968:web:f86ae42cd1cbe8bc71cedd"
+};
+
+const gate = document.getElementById('zeloAuthGate');
+const form = document.getElementById('zeloAuthForm');
+const err = document.getElementById('zeloAuthErr');
+const btn = document.getElementById('zeloAuthBtn');
+const htmlEl = document.documentElement;
+const prevOverflow = htmlEl.style.overflow;
+htmlEl.style.overflow = 'hidden';
+
+function friendlyError(code){
+  if(code === 'auth/invalid-email') return 'Email inválido.';
+  if(code === 'auth/missing-password') return 'Introduza a password.';
+  if(code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') return 'Email ou password incorretos.';
+  if(code === 'auth/too-many-requests') return 'Demasiadas tentativas. Tente novamente mais tarde.';
+  if(code === 'auth/network-request-failed') return 'Sem ligação à internet. Verifique a rede e tente de novo.';
+  return 'Não foi possível iniciar sessão. Tente novamente.';
+}
+
+let auth;
+try{
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  setPersistence(auth, browserSessionPersistence).catch(()=>{});
+  signOut(auth).catch(()=>{});
+}catch(e){
+  console.warn('Firebase Auth indisponível.', e);
+}
+
+form.addEventListener('submit', function(e){
+  e.preventDefault();
+  err.style.display = 'none';
+  if(!auth){
+    err.textContent = 'Serviço de autenticação indisponível. Verifique a ligação à internet.';
+    err.style.display = 'block';
+    return;
+  }
+  const email = document.getElementById('zeloAuthEmail').value.trim();
+  const pass = document.getElementById('zeloAuthPass').value;
+  btn.disabled = true;
+  btn.textContent = 'A validar…';
+  signInWithEmailAndPassword(auth, email, pass).then(function(){
+    gate.remove();
+    htmlEl.style.overflow = prevOverflow;
+  }).catch(function(error){
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    err.textContent = friendlyError(error.code);
+    err.style.display = 'block';
   });
-})();
+});
 </script>
 
 <!-- ══ SPLASH ══ -->
