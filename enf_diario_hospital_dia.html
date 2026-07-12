@@ -91,24 +91,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.65;}
 .pr-in{display:flex;flex-direction:column;align-items:center;gap:3px;}
 .pr-in span{font-size:.52rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--tx3);}
 .pr-in input{width:54px;padding:7px 2px;text-align:center;font-family:'DM Mono',monospace;font-size:.92rem;border-radius:7px;}
-/* PROCEDIMENTOS — categorias colapsáveis + pesquisa */
-.proc-tools{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
-.proc-search{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--sf);border:1.5px solid var(--br2);border-radius:var(--r);padding:9px 12px;}
-.proc-search svg{color:var(--tx3);flex-shrink:0;}
-.proc-search input{border:none;background:transparent;outline:none;font-size:.82rem;flex:1;color:var(--tx);width:100%;padding:0;}
-.proc-toggle-all{flex-shrink:0;background:#fff;border:1.5px solid var(--br2);border-radius:var(--r);padding:9px 14px;font-size:.72rem;font-weight:700;color:var(--tx2);cursor:pointer;font-family:'Inter',sans-serif;}
-.proc-toggle-all:active{transform:scale(.97);}
-.pcat{border:1.5px solid var(--br);border-radius:12px;margin-bottom:8px;overflow:hidden;}
-.pcat-h{width:100%;display:flex;align-items:center;gap:9px;padding:11px 12px;background:var(--sf);border:none;cursor:pointer;font-family:'Inter',sans-serif;text-align:left;-webkit-tap-highlight-color:transparent;}
-.pcat-h svg{flex-shrink:0;color:var(--tx3);transition:transform .16s;}
-.pcat.open>.pcat-h svg{transform:rotate(90deg);}
-.pcat-label{flex:1;font-size:.78rem;font-weight:700;color:var(--nv);}
-.pcat-badge{font-family:'DM Mono',monospace;font-size:.62rem;font-weight:700;color:var(--tx3);background:#fff;border-radius:100px;padding:2px 9px;flex-shrink:0;border:1px solid var(--br2);}
-.pcat-badge.on{color:#166534;background:#F0FDF4;border-color:#86EFAC;}
-.pcat-body{display:none;padding:2px 12px 4px;}
-.pcat.open>.pcat-body{display:block;}
-.pr.hide{display:none;}
-.pcat.filtered-hide{display:none;}
 /* ACTION BAR */
 .ab{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--br);padding:10px 14px;display:flex;gap:8px;z-index:100;box-shadow:0 -6px 24px rgba(13,27,62,.1);}
 .bm{flex:1;padding:15px 8px;border-radius:var(--r);font-size:.8rem;font-weight:700;font-family:'Inter',sans-serif;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .13s;-webkit-tap-highlight-color:transparent;}
@@ -377,28 +359,19 @@ function grandTotals(){
   return {d,n,t:d+n};
 }
 
-// ── Procedimentos — gerados a partir de CATS/SUBS: categorias colapsáveis + pesquisa ──
+// ── Procedimentos — gerados a partir de CATS/SUBS: lista corrida, ordem fixa ──
 function renderProcSection(s,idx){
   const nn=String(idx+1).padStart(2,'0');
-  let catsHtml='';
+  let rows='';
   CATS.forEach(cat=>{
-    let rows='';
     cat.names.forEach((name,i)=>{
-      rows+='<div class="pr" data-name="'+escHtml(name).toLowerCase()+'">'
+      rows+='<div class="pr">'
           +'<div class="pr-name">'+escHtml(name)+'</div>'
           +'<div class="pr-inputs">'
           +'<div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_'+s.id+'_'+cat.id+'_'+i+'_d" oninput="onProcInput(\''+s.id+'\')"/></div>'
           +'<div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_'+s.id+'_'+cat.id+'_'+i+'_n" oninput="onProcInput(\''+s.id+'\')"/></div>'
           +'</div></div>';
     });
-    catsHtml+='<div class="pcat open" data-cat="'+cat.id+'">'
-        +'<button type="button" class="pcat-h" onclick="toggleCat(this)">'
-        +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
-        +'<span class="pcat-label">'+escHtml(cat.label)+'</span>'
-        +'<span class="pcat-badge" id="catbdg_'+s.id+'_'+cat.id+'">0</span>'
-        +'</button>'
-        +'<div class="pcat-body">'+rows+'</div>'
-        +'</div>';
   });
   return '<div class="subhdr"><span class="sn">'+nn+'</span><h3>'+escHtml(s.label)+'</h3></div>'
     +'<div class="subtot">'
@@ -408,16 +381,9 @@ function renderProcSection(s,idx){
     +'</div>'
     +'<div class="sec">'
     +'<div class="sh"><div class="si igr"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><path d="M5 6h14v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>'
-    +'<div class="st"><h2>Procedimentos</h2><p>73 procedimentos · agrupados por categoria</p></div>'
+    +'<div class="st"><h2>Procedimentos</h2><p>73 procedimentos · ordem fixa</p></div>'
     +'<span class="bdg" id="bdg_'+s.id+'">0</span></div>'
-    +'<div class="sb">'
-    +'<div class="proc-tools">'
-    +'<div class="proc-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>'
-    +'<input type="text" placeholder="Procurar procedimento..." oninput="filterProc(\''+s.id+'\',this.value)"/></div>'
-    +'<button type="button" class="proc-toggle-all" id="toggleAllBtn_'+s.id+'" onclick="toggleAllCats(\''+s.id+'\')">Recolher tudo</button>'
-    +'</div>'
-    +'<div class="proc-cats" id="procCats_'+s.id+'">'+catsHtml+'</div>'
-    +'</div></div>';
+    +'<div class="sb">'+rows+'</div></div>';
 }
 function renderAllProcedures(){
   SUBS.forEach((s,idx)=>{
@@ -425,48 +391,11 @@ function renderAllProcedures(){
     if(root) root.outerHTML=renderProcSection(s,idx);
   });
 }
-function toggleCat(btn){
-  btn.parentElement.classList.toggle('open');
-}
-function toggleAllCats(subId){
-  const wrap=document.getElementById('procCats_'+subId);
-  const btn=document.getElementById('toggleAllBtn_'+subId);
-  if(!wrap)return;
-  const cats=wrap.querySelectorAll('.pcat');
-  const anyOpen=Array.from(cats).some(c=>c.classList.contains('open'));
-  cats.forEach(c=>c.classList.toggle('open', !anyOpen));
-  if(btn) btn.textContent = anyOpen ? 'Expandir tudo' : 'Recolher tudo';
-}
-function filterProc(subId,query){
-  const wrap=document.getElementById('procCats_'+subId);
-  if(!wrap)return;
-  const q=(query||'').trim().toLowerCase();
-  wrap.querySelectorAll('.pcat').forEach(cat=>{
-    let anyVisible=false;
-    cat.querySelectorAll('.pr').forEach(row=>{
-      const match = !q || (row.dataset.name||'').indexOf(q)!==-1;
-      row.classList.toggle('hide', !match);
-      if(match) anyVisible=true;
-    });
-    cat.classList.toggle('filtered-hide', !anyVisible);
-    if(q && anyVisible) cat.classList.add('open');
-  });
-}
-function updCatBadges(subId){
-  CATS.forEach(cat=>{
-    const el=document.getElementById('catbdg_'+subId+'_'+cat.id);
-    if(!el)return;
-    const t=catTotals(subId,cat.id).t;
-    el.textContent=t;
-    el.classList.toggle('on',t>0);
-  });
-}
 function updSubUI(subId){
   const r=subTotals(subId);
   const dd=document.getElementById('subt_'+subId+'_d');if(dd)dd.textContent=r.d;
   const nn=document.getElementById('subt_'+subId+'_n');if(nn)nn.textContent=r.n;
   const tt=document.getElementById('subt_'+subId+'_t');if(tt)tt.textContent=r.t;
-  updCatBadges(subId);
 }
 function updSubBadge(subId){
   const r=subTotals(subId);
