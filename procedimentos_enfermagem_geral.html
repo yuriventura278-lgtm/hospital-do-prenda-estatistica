@@ -372,11 +372,8 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
   #zeloAuthGate .zaf-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94A3B8;padding:6px;display:flex;align-items:center;justify-content:center;border-radius:6px;}
   #zeloAuthGate .zaf-toggle:hover{color:#1A56DB;background:#EFF6FF;}
   #zeloAuthGate button[type=submit]{width:100%;margin-top:6px;background:#1A56DB;color:#fff;border:none;border-radius:10px;padding:12px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .08s;}
-  #zeloAuthGate button[type=submit]:hover:not(:disabled){background:#164ac2;}
-  #zeloAuthGate button[type=submit]:active:not(:disabled){transform:scale(.985);}
-  #zeloAuthGate button[type=submit]:disabled{opacity:.72;cursor:default;}
-  #zeloAuthGate .zaf-spin{width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;display:none;animation:zaf-spin .7s linear infinite;}
-  @keyframes zaf-spin{to{transform:rotate(360deg);}}
+  #zeloAuthGate button[type=submit]:hover{background:#164ac2;}
+  #zeloAuthGate button[type=submit]:active{transform:scale(.985);}
   #zeloAuthGate .zaf-err{display:none;align-items:flex-start;gap:7px;background:#FEF2F2;border:1px solid #FECACA;border-radius:9px;padding:9px 11px;margin-bottom:14px;}
   #zeloAuthGate .zaf-err svg{flex-shrink:0;margin-top:1px;color:#B91C1C;}
   #zeloAuthGate .zaf-err span{color:#B91C1C;font-size:.78rem;line-height:1.4;}
@@ -391,14 +388,14 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
       </div>
       <div style="font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#1A56DB;font-family:'DM Mono',monospace;margin-bottom:4px;">Sistema de Zelo Estatístico e Levantamento de Ocorrências</div>
       <div style="font-size:1.08rem;font-weight:800;color:#0F172A;">Acesso Restrito</div>
-      <div style="font-size:.8rem;color:#64748B;margin-top:4px;">Inicie sessão para aceder a este sistema.</div>
+      <div style="font-size:.8rem;color:#64748B;margin-top:4px;">Este sistema requer chave de acesso.</div>
     </div>
 
     <div class="zaf-field">
-      <label for="zeloAuthEmail">Email</label>
+      <label for="zeloAuthUser">Utilizador</label>
       <div class="zaf-wrap">
-        <svg class="zaf-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        <input id="zeloAuthEmail" type="email" inputmode="email" placeholder="nome@exemplo.com" autocomplete="off" required/>
+        <svg class="zaf-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <input id="zeloAuthUser" type="text" placeholder="utilizador" autocomplete="off" required/>
       </div>
     </div>
 
@@ -415,98 +412,50 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
 
     <div class="zaf-err" id="zeloAuthErr" role="alert">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-      <span id="zeloAuthErrText">Email ou password incorretos.</span>
+      <span>Utilizador ou password incorretos.</span>
     </div>
 
-    <button type="submit" id="zeloAuthBtn"><span class="zaf-spin" id="zeloAuthSpin"></span><span id="zeloAuthBtnText">Entrar</span></button>
+    <button type="submit" id="zeloAuthBtn">Entrar</button>
     <a href="Estatistica.html" class="zaf-back">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
       Voltar à Estatística
     </a>
   </form>
 </div>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+<script>
+(function(){
+  var ZELO_AUTH_USER='administrador', ZELO_AUTH_PASS='Zelo@';
+  var gate=document.getElementById('zeloAuthGate');
+  var form=document.getElementById('zeloAuthForm');
+  var err=document.getElementById('zeloAuthErr');
+  var passInput=document.getElementById('zeloAuthPass');
+  var toggleBtn=document.getElementById('zeloAuthToggle');
+  var eyeIcon=document.getElementById('zeloAuthEyeIcon');
+  var htmlEl=document.documentElement;
+  var prevOverflow=htmlEl.style.overflow;
+  htmlEl.style.overflow='hidden';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyB72sUTmo7x1gOiNQfn112Na2MvX82kZ4E",
-  authDomain: "hospital-do-prenda-1de35.firebaseapp.com",
-  databaseURL: "https://hospital-do-prenda-1de35-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "hospital-do-prenda-1de35",
-  storageBucket: "hospital-do-prenda-1de35.firebasestorage.app",
-  messagingSenderId: "991683012968",
-  appId: "1:991683012968:web:f86ae42cd1cbe8bc71cedd"
-};
-
-const gate = document.getElementById('zeloAuthGate');
-const form = document.getElementById('zeloAuthForm');
-const err = document.getElementById('zeloAuthErr');
-const errText = document.getElementById('zeloAuthErrText');
-const btn = document.getElementById('zeloAuthBtn');
-const btnText = document.getElementById('zeloAuthBtnText');
-const spin = document.getElementById('zeloAuthSpin');
-const passInput = document.getElementById('zeloAuthPass');
-const toggleBtn = document.getElementById('zeloAuthToggle');
-const eyeIcon = document.getElementById('zeloAuthEyeIcon');
-const htmlEl = document.documentElement;
-const prevOverflow = htmlEl.style.overflow;
-htmlEl.style.overflow = 'hidden';
-
-toggleBtn.addEventListener('click', function(){
-  const showing = passInput.type === 'text';
-  passInput.type = showing ? 'password' : 'text';
-  eyeIcon.innerHTML = showing
-    ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>'
-    : '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.06 21.06 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.06 21.06 0 0 1-3.22 4.43M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
-  toggleBtn.setAttribute('aria-label', showing ? 'Mostrar password' : 'Ocultar password');
-});
-
-function friendlyError(code){
-  if(code === 'auth/invalid-email') return 'Email inválido.';
-  if(code === 'auth/missing-password') return 'Introduza a password.';
-  if(code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') return 'Email ou password incorretos.';
-  if(code === 'auth/too-many-requests') return 'Demasiadas tentativas. Tente novamente mais tarde.';
-  if(code === 'auth/network-request-failed') return 'Sem ligação à internet. Verifique a rede e tente de novo.';
-  return 'Não foi possível iniciar sessão. Tente novamente.';
-}
-
-function setLoading(loading){
-  btn.disabled = loading;
-  spin.style.display = loading ? 'inline-block' : 'none';
-  btnText.textContent = loading ? 'A validar…' : 'Entrar';
-}
-
-let auth;
-try{
-  const app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  setPersistence(auth, browserSessionPersistence).catch(function(){});
-  signOut(auth).catch(function(){});
-}catch(e){
-  console.warn('Firebase Auth indisponível.', e);
-}
-
-form.addEventListener('submit', function(e){
-  e.preventDefault();
-  err.style.display = 'none';
-  if(!auth){
-    errText.textContent = 'Serviço de autenticação indisponível. Verifique a ligação à internet.';
-    err.style.display = 'flex';
-    return;
-  }
-  const email = document.getElementById('zeloAuthEmail').value.trim();
-  const pass = passInput.value;
-  setLoading(true);
-  signInWithEmailAndPassword(auth, email, pass).then(function(){
-    gate.remove();
-    htmlEl.style.overflow = prevOverflow;
-  }).catch(function(error){
-    setLoading(false);
-    errText.textContent = friendlyError(error.code);
-    err.style.display = 'flex';
+  toggleBtn.addEventListener('click', function(){
+    var showing = passInput.type === 'text';
+    passInput.type = showing ? 'password' : 'text';
+    eyeIcon.innerHTML = showing
+      ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>'
+      : '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.06 21.06 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.06 21.06 0 0 1-3.22 4.43M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    toggleBtn.setAttribute('aria-label', showing ? 'Mostrar password' : 'Ocultar password');
   });
-});
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var u=document.getElementById('zeloAuthUser').value.trim();
+    var p=passInput.value;
+    if(u===ZELO_AUTH_USER && p===ZELO_AUTH_PASS){
+      gate.remove();
+      htmlEl.style.overflow=prevOverflow;
+    } else {
+      err.style.display='flex';
+    }
+  });
+})();
 </script>
 
 <svg id="svg-sprite" xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
