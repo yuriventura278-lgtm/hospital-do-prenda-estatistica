@@ -1371,12 +1371,15 @@ function gerarPDF(silencioso){
     }
     // ── RODAPE ─────────────────────────────────────────────
     const nPg=pdf.internal.getNumberOfPages();
+    let zeloLogoSrc=null;
+    try{ const zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
     for(let p=1;p<=nPg;p++){
       pdf.setPage(p);
       sf('#F1F5F9');pdf.rect(0,PH-12,PW,12,'F');
       sf('#059669');pdf.rect(0,PH-12,PW,.7,'F');
+      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10,6,6); }catch(e){} }
       st('#64748B');pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);
-      pdf.text('Consulta Externa - Hospital do Prenda - GEPE',ML,PH-4.5);
+      pdf.text('Consulta Externa - Hospital do Prenda - GEPE',ML+8,PH-4.5);
       pdf.text(safe(pdfDateFmt()),PW/2,PH-4.5,{align:'center'});
       st('#334155');pdf.setFont('helvetica','bold');
       pdf.text('Pag. '+p+' / '+nPg,PW-MR,PH-4.5,{align:'right'});

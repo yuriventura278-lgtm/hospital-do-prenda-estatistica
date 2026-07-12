@@ -1746,12 +1746,15 @@ async function gerarPDF(silencioso){
     }
     // ── RODAPÉ ─────────────────────────────────────────────
     var nP=pdf.internal.getNumberOfPages();
+    var zeloLogoSrc=null;
+    try{ var zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
     for(var p=1;p<=nP;p++){
       pdf.setPage(p);
       sf('#0C2340');pdf.rect(0,PH-11,PW,11,'F');
       sf('#0891B2');pdf.rect(0,PH-11,PW,1,'F');
+      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-9.5,6,6); }catch(e){} }
       st('#67E8F9');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
-      pdf.text('Servico de Imagiologia - Hospital do Prenda - DEMA',ML,PH-4);
+      pdf.text('Servico de Imagiologia - Hospital do Prenda - DEMA',ML+8,PH-4);
       st('#ffffff');pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);
       pdf.text('Pag. '+p+'/'+nP,PW-MR,PH-4,{align:'right'});
     }

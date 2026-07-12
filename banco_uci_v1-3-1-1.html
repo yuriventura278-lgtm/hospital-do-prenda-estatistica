@@ -1603,13 +1603,16 @@ async function gerarPDF(silencioso){
     // RODAPE
     var nPg=pdf.internal.getNumberOfPages();
     var mp='Serviço de Admissão e Arquivo Médico Estatístico';
+    var zeloLogoSrc=null;
+    try{ var zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
     for(var p=1;p<=nPg;p++){
       pdf.setPage(p);
       setFill('#0B1A2E');pdf.rect(0,PH-12,PW,12,'F');
       setFill('#0284C7');pdf.rect(0,PH-12,PW,1,'F');
       setFill('#0EA5E9');pdf.rect(0,PH-13,PW,1,'F');
+      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
       setTxt('#7DD3FC');pdf.setFontSize(7.5);pdf.setFont('helvetica','normal');
-      T('UCI - Hospital do Prenda - DEMA',ML,PH-5);
+      T('UCI - Hospital do Prenda - DEMA',ML+9,PH-5);
       T(new Date().toLocaleDateString('pt-PT')+' - Dr. '+mp,PW/2,PH-5,{align:'center'});
       setTxt('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(8);
       T('Pag. '+p+' / '+nPg,PW-MR,PH-5,{align:'right'});

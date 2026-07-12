@@ -1113,11 +1113,14 @@ async function gerarPDF(silencioso){
 
     // Rodapé
     const totalPages=pdf.internal.pages.length-1;
+    let zeloLogoSrc=null;
+    try{ const zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
     for(let p=1;p<=totalPages;p++){
       pdf.setPage(p);
       setFill('#0D1B3E');pdf.rect(0,PH-12,PW,12,'F');
+      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
       setTxt('#93C5FD');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
-      pdf.text('Hospital do Prenda \u2014 Servico de Nefrologia \u2014 '+safe(gv('data')||'\u2014')+' \u2014 Med. Servico: '+safe(gv('medico-servico')||'\u2014'),ML,PH-5);
+      pdf.text('Hospital do Prenda \u2014 Servico de Nefrologia \u2014 '+safe(gv('data')||'\u2014')+' \u2014 Med. Servico: '+safe(gv('medico-servico')||'\u2014'),ML+9,PH-5);
       pdf.text('Pag. '+p+'/'+totalPages,PW-MR,PH-5,{align:'right'});
     }
 

@@ -1599,8 +1599,10 @@ async function gerarPDF(silencioso){
     // Rodapé
     const pg=pdf.internal.getNumberOfPages();
     for(let i=1;i<=pg;i++){
-      pdf.setPage(i);setT('#94A3B8');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
-      pdf.text('Departamento de Estatística · Hospital do Prenda | DEMA',ML,PH-8);
+      pdf.setPage(i);
+      try{ pdf.addImage(ZELO_ICON_B64,'PNG',ML,PH-13,6,6); }catch(e){}
+      setT('#94A3B8');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
+      pdf.text('Departamento de Estatística · Hospital do Prenda | DEMA',ML+8,PH-8);
       pdf.text(`Página ${i} / ${pg}`,PW-MR,PH-8,{align:'right'});
       setF('#E2E8F0');pdf.rect(ML,PH-11,CW,.4,'F');
     }

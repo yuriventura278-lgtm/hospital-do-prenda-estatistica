@@ -1195,13 +1195,16 @@ async function gerarPDF(silencioso){
 
     // Rodapé em cada página
     const nPages=pdf.internal.getNumberOfPages();
+    let zeloLogoSrc=null;
+    try{ const zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
     for(let p=1;p<=nPages;p++){
       pdf.setPage(p);
       // Linha de acento + fundo
       F('#064E3B');pdf.rect(0,PH-12,PW,12,'F');
       F('#059669');pdf.rect(0,PH-12,PW,1,'F');
+      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
       T('#6EE7B7');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
-      pdf.text('Banco de Laboratório Clínico · Hospital do Prenda · GEPE · Criado por Yuri Matias',ML,PH-5);
+      pdf.text('Banco de Laboratório Clínico · Hospital do Prenda · GEPE · Criado por Yuri Matias',ML+9,PH-5);
       T('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);
       pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});
     }

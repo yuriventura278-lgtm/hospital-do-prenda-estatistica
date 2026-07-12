@@ -1074,11 +1074,14 @@ function gerarPDF(silencioso){
 
   // Rodapé
   const totalPages=doc.internal.pages.length-1;
+  let zeloLogoSrc=null;
+  try{ const zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
   for(let p=1;p<=totalPages;p++){
     doc.setPage(p);
     doc.setFillColor(13,27,62);doc.rect(0,PH-12,PW,12,'F');
+    if(zeloLogoSrc){ try{ doc.addImage(zeloLogoSrc,'PNG',M,PH-10.5,7,7); }catch(e){} }
     doc.setTextColor(147,197,253);doc.setFontSize(7);doc.setFont('helvetica','normal');
-    doc.text(`Hospital do Prenda · Serviço de Fisioterapia · ${gv('data')||'—'}`,M,PH-5);
+    doc.text(`Hospital do Prenda · Serviço de Fisioterapia · ${gv('data')||'—'}`,M+9,PH-5);
     doc.text(`Pág. ${p}/${totalPages}`,PW-M,PH-5,{align:'right'});
   }
 
