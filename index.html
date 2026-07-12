@@ -55,7 +55,6 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
 .brand-text .org{font-size:1.15rem;font-weight:800;color:#fff;letter-spacing:-.01em;}
 .brand-text .dep{font-size:1.05rem;letter-spacing:-.005em;text-transform:none;color:#fff;font-weight:700;font-family:'Inter',sans-serif;margin-top:10px;max-width:440px;line-height:1.4;}
 
-.hero-body{display:flex;justify-content:center;align-items:center;padding-bottom:38px;}
 .hero h1{font-size:clamp(1.7rem,4.4vw,2.5rem);font-weight:800;line-height:1.14;letter-spacing:-.02em;display:flex;align-items:center;flex-wrap:wrap;gap:.28em;}
 .hero h1 em{font-style:normal;color:var(--cyl);}
 .zelo-h1-icon{width:1.15em;height:1.15em;flex-shrink:0;}
@@ -65,17 +64,6 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
 .hero-meta div{font-family:'DM Mono',monospace;}
 .hero-meta .n{font-size:1.5rem;font-weight:600;color:#fff;line-height:1;}
 .hero-meta .l{font-size:.64rem;color:#8CA0C6;text-transform:uppercase;letter-spacing:.08em;margin-top:5px;}
-
-/* ── SIGNATURE: 24h movement dial ─────────────────────── */
-.dial-wrap{display:flex;justify-content:center;align-items:center;position:relative;}
-.dial-card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:20px;
-  padding:18px;backdrop-filter:blur(6px);width:100%;max-width:300px;}
-.dial-card .dial-title{font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;
-  color:#8CA0C6;text-align:center;margin-bottom:6px;}
-#dial-svg{display:block;margin:0 auto;}
-.dial-legend{display:flex;justify-content:center;gap:14px;margin-top:8px;flex-wrap:wrap;}
-.dial-legend span{display:flex;align-items:center;gap:5px;font-size:.62rem;color:#C7D2E8;font-family:'DM Mono',monospace;}
-.dial-legend i{width:7px;height:7px;border-radius:50%;display:inline-block;}
 
 /* ── CATEGORY CHIPS ───────────────────────────────────── */
 .chips{display:flex;gap:8px;overflow-x:auto;padding:34px 20px 0;max-width:1040px;margin:0 auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
@@ -192,18 +180,6 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
       </div>
     </div>
 
-    <div class="hero-body">
-      <div class="dial-wrap">
-        <div class="dial-card">
-          <div class="dial-title">Movimento das 24 horas</div>
-          <svg id="dial-svg" width="220" height="220" viewBox="0 0 220 220"></svg>
-          <div class="dial-legend">
-            <span><i style="background:#FDE047"></i>Manhã 08–18h</span>
-            <span><i style="background:#FB923C"></i>Tarde 18–08h</span>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -258,66 +234,6 @@ function tick(){
 }
 tick(); setInterval(tick,1000*30);
 document.getElementById('footyear').textContent = new Date().getFullYear();
-
-/* ── Dial de movimento 24h ─────────────────────────────── */
-(function(){
-  const svg = document.getElementById('dial-svg');
-  const NS='http://www.w3.org/2000/svg';
-  const cx=110, cy=110, r=82, rIn=64;
-  function polar(cx,cy,rad,hourFrac){
-    const ang = (hourFrac/24)*2*Math.PI - Math.PI/2;
-    return [cx+rad*Math.cos(ang), cy+rad*Math.sin(ang)];
-  }
-  function arcPath(h1,h2,rad){
-    const [x1,y1]=polar(cx,cy,rad,h1), [x2,y2]=polar(cx,cy,rad,h2);
-    const large = (h2-h1)%24 > 12 ? 1:0;
-    return `M${x1.toFixed(2)},${y1.toFixed(2)} A${rad},${rad} 0 ${large} 1 ${x2.toFixed(2)},${y2.toFixed(2)}`;
-  }
-  function el(tag,attrs){
-    const e=document.createElementNS(NS,tag);
-    for(const k in attrs)e.setAttribute(k,attrs[k]);
-    return e;
-  }
-  // fundo
-  svg.appendChild(el('circle',{cx,cy,r:r+11,fill:'none',stroke:'rgba(255,255,255,.08)','stroke-width':1}));
-
-  // turnos
-  const turnos=[[8,18,'#FDE047'],[18,32,'#FB923C']];
-  turnos.forEach(([h1,h2,color])=>{
-    const path=el('path',{d:arcPath(h1,h2,r),fill:'none',stroke:color,'stroke-width':13,'stroke-linecap':'round',opacity:.85});
-    svg.appendChild(path);
-  });
-
-  // marcas de hora
-  for(let h=0;h<24;h+=3){
-    const [x1,y1]=polar(cx,cy,r-15,h), [x2,y2]=polar(cx,cy,r-9,h);
-    svg.appendChild(el('line',{x1,y1,x2,y2,stroke:'rgba(255,255,255,.35)','stroke-width':1.4}));
-    const [lx,ly]=polar(cx,cy,r-27,h);
-    const t=el('text',{x:lx,y:ly+3,fill:'#8CA0C6','font-size':'8','font-family':'DM Mono, monospace','text-anchor':'middle'});
-    t.textContent=String(h).padStart(2,'0')+'h';
-    svg.appendChild(t);
-  }
-
-  // pulso central (agora)
-  const now=new Date();
-  const hourFrac = now.getHours() + now.getMinutes()/60;
-  const [px,py] = polar(cx,cy,r,hourFrac);
-  const pulse=el('circle',{cx:px,cy:py,r:5,fill:'#22D3EE'});
-  const ring=el('circle',{cx:px,cy:py,r:5,fill:'none',stroke:'#22D3EE','stroke-width':2,opacity:.6});
-  ring.innerHTML='<animate attributeName="r" values="5;15;5" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values=".6;0;.6" dur="2.4s" repeatCount="indefinite"/>';
-  svg.appendChild(ring);
-  svg.appendChild(pulse);
-
-  // centro
-  svg.appendChild(el('circle',{cx,cy,r:rIn,fill:'rgba(255,255,255,.03)',stroke:'rgba(255,255,255,.1)'}));
-  const hh=String(now.getHours()).padStart(2,'0'), mi=String(now.getMinutes()).padStart(2,'0');
-  const big=el('text',{x:cx,y:cy-2,fill:'#fff','font-size':'22','font-weight':'700','font-family':'DM Mono, monospace','text-anchor':'middle'});
-  big.textContent=`${hh}:${mi}`;
-  svg.appendChild(big);
-  const small=el('text',{x:cx,y:cy+16,fill:'#8CA0C6','font-size':'8.5','font-family':'Inter, sans-serif','text-anchor':'middle','letter-spacing':'.06em'});
-  small.textContent='AGORA EM SERVIÇO';
-  svg.appendChild(small);
-})();
 
 /* ── Ícones ─────────────────────────────────────────────── */
 </script>
