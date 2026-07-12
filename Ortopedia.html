@@ -99,9 +99,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .nd label{justify-content:center;font-size:.62rem;margin-bottom:6px;text-align:center;text-transform:uppercase;letter-spacing:.05em;}
 .val{font-family:'DM Mono',monospace;font-size:2.3rem;font-weight:600;color:var(--nv);line-height:1;}
 .nd.rd2{background:#FFF5F5;border-color:#FCA5A5;}.nd.rd2 .val{color:var(--rd);}
-.nd.gr2{background:#F0FDF4;border-color:#86EFAC;}.nd.gr2 .val{color:var(--gr);}
-.nd.am2{background:#FFFBEB;border-color:#FCD34D;}.nd.am2 .val{color:var(--am);}
-.nd.pu2{background:#F5F3FF;border-color:#C4B5FD;}.nd.pu2 .val{color:var(--pu);}
+.nd.gr2{background:var(--blxt);border-color:var(--br);}.nd.gr2 .val{color:var(--nv);}
+.nd.am2{background:var(--blxt);border-color:var(--br);}.nd.am2 .val{color:var(--nv);}
+.nd.pu2{background:var(--blxt);border-color:var(--br);}.nd.pu2 .val{color:var(--nv);}
 .nd.tot{background:linear-gradient(145deg,#EFF6FF,#DBEAFE);border-color:#93C5FD;}.nd.tot .val{color:var(--bl);font-size:2.7rem;}
 /* ALERT */
 .valert{background:#FFF5F5;border:1.5px solid #FCA5A5;border-radius:var(--r);padding:10px 14px;font-size:.8rem;color:var(--rd);margin-bottom:12px;display:none;}
@@ -144,10 +144,10 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .ba{width:100%;padding:13px 16px;border:none;border-radius:var(--r);background:#1A56DB;cursor:pointer;font-size:.88rem;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .13s,transform .13s;font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 8px rgba(26,86,219,.25);}
 .ba:hover{opacity:.88;}.ba:active{transform:scale(.97);}
 .ba.rd{background:#DC2626;box-shadow:0 2px 8px rgba(220,38,38,.3);}
-.ba.am{background:#D97706;box-shadow:0 2px 8px rgba(217,119,6,.3);}
-.ba.pu{background:#7C3AED;box-shadow:0 2px 8px rgba(124,58,237,.3);}
-.ba.gr{background:#059669;box-shadow:0 2px 8px rgba(5,150,105,.3);}
-.ba.inv{background:#4338CA;box-shadow:0 2px 8px rgba(67,56,202,.3);}
+.ba.am{background:#1A56DB;box-shadow:0 2px 8px rgba(26,86,219,.25);}
+.ba.pu{background:#1A56DB;box-shadow:0 2px 8px rgba(26,86,219,.25);}
+.ba.gr{background:#1A56DB;box-shadow:0 2px 8px rgba(26,86,219,.25);}
+.ba.inv{background:#1A56DB;box-shadow:0 2px 8px rgba(26,86,219,.25);}
 /* CID */
 .cw{position:relative;}
 .cd{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid var(--br2);border-radius:var(--r);box-shadow:var(--s2);z-index:600;max-height:220px;overflow-y:auto;display:none;}
@@ -487,7 +487,7 @@ function closeSplash(){
   <div class="sb">
     <div class="sl">Verificação</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-      <div class="nd am2" style="min-width:108px;flex-shrink:0;"><label>Total</label><div class="val" id="verf-cnt">0</div><div style="font-size:.58rem;color:var(--am);margin-top:4px;">Automático</div></div>
+      <div class="nd am2" style="min-width:108px;flex-shrink:0;"><label>Total</label><div class="val" id="verf-cnt">0</div><div style="font-size:.58rem;color:var(--tx3);margin-top:4px;">Automático</div></div>
       <div style="flex:1;min-width:0;font-size:.8rem;color:var(--tx3);line-height:1.6;">Nome, idade e género são obrigatórios. Diagnóstico é opcional.</div>
     </div>
     <div class="rl" id="verf-list"></div>
@@ -495,7 +495,7 @@ function closeSplash(){
     <div class="sep"></div>
     <div class="sl">Altas</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-      <div class="nd gr2" style="min-width:108px;flex-shrink:0;"><label>Total</label><input type="number" id="altas-tot" min="0" value="" placeholder="0" oninput="upd();ss();" style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;color:var(--gr);text-align:center;border:none;background:transparent;padding:0;width:100%;box-shadow:none;"/><div style="font-size:.56rem;color:var(--gr);margin-top:2px;">Manual</div></div>
+      <div class="nd gr2" style="min-width:108px;flex-shrink:0;"><label>Total</label><input type="number" id="altas-tot" min="0" value="" placeholder="0" oninput="upd();ss();" style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;color:var(--nv);text-align:center;border:none;background:transparent;padding:0;width:100%;box-shadow:none;"/><div style="font-size:.56rem;color:var(--tx3);margin-top:2px;">Manual</div></div>
       <div style="flex:1;min-width:0;font-size:.8rem;color:var(--tx3);line-height:1.6;">Preencha o número total de altas do turno.</div>
     </div>
     <div class="f"><label>Observações</label><textarea id="altas-obs" rows="2" placeholder="Detalhes sobre as altas (tipo, circunstâncias, etc.)..." oninput="ss();"></textarea></div>
@@ -520,12 +520,12 @@ function closeSplash(){
   <div class="sb">
     <div class="g3 f">
       <div class="nd tot"><label>Total</label><div class="val" id="op-tot">0</div><div style="font-size:.56rem;color:var(--bl);margin-top:4px;">Auto</div></div>
-      <div class="nd am2"><label>Urgência</label><div class="val" id="op-urg">0</div><div style="font-size:.56rem;color:var(--am);margin-top:4px;">Auto</div></div>
-      <div class="nd pu2"><label>Eletiva</label><div class="val" id="op-ele">0</div><div style="font-size:.56rem;color:var(--pu);margin-top:4px;">Auto</div></div>
+      <div class="nd am2"><label>Urgência</label><div class="val" id="op-urg">0</div><div style="font-size:.56rem;color:var(--tx3);margin-top:4px;">Auto</div></div>
+      <div class="nd pu2"><label>Eletiva</label><div class="val" id="op-ele">0</div><div style="font-size:.56rem;color:var(--tx3);margin-top:4px;">Auto</div></div>
     </div>
     <div class="g2 f" style="margin-top:10px;">
-      <div class="nd" style="background:#F0FDF4;border:1.5px solid #86EFAC;"><label style="color:#166534;">Cirurgia Maior nº</label><input type="number" id="cir-maior" min="0" placeholder="0" readonly style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;color:#166534;text-align:center;border:none;background:transparent;padding:0;width:100%;box-shadow:none;"/><div style="font-size:.56rem;color:#166534;margin-top:2px;">Auto — cada operado é uma cirurgia maior</div></div>
-      <div class="nd" style="background:#FFF7ED;border:1.5px solid #FDBA74;"><label style="color:#C2410C;">Cirurgia Menor nº</label><input type="number" id="cir-menor" min="0" placeholder="0" oninput="ss();" style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;color:#C2410C;text-align:center;border:none;background:transparent;padding:0;width:100%;box-shadow:none;"/><div style="font-size:.56rem;color:#C2410C;margin-top:2px;">Manual</div></div>
+      <div class="nd"><label>Cirurgia Maior nº</label><input type="number" id="cir-maior" min="0" placeholder="0" readonly style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;color:var(--nv);text-align:center;border:none;background:transparent;padding:0;width:100%;box-shadow:none;"/><div style="font-size:.56rem;color:var(--tx3);margin-top:2px;">Auto — cada operado é uma cirurgia maior</div></div>
+      <div class="nd"><label>Cirurgia Menor nº</label><input type="number" id="cir-menor" min="0" placeholder="0" oninput="ss();" style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;color:var(--nv);text-align:center;border:none;background:transparent;padding:0;width:100%;box-shadow:none;"/><div style="font-size:.56rem;color:var(--tx3);margin-top:2px;">Manual</div></div>
     </div>
     <div class="rl" id="op-list"></div>
     <button class="ba pu" onclick="addOp()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar Operado</button>
@@ -599,7 +599,7 @@ function closeSplash(){
   <div class="sb">
     <div class="g2 f">
       <div class="nd rd2"><label>Óbitos no Internamento</label><div class="val" id="int-obt">0</div><div style="font-size:.56rem;color:var(--rd);margin-top:4px;">Auto</div></div>
-      <div class="nd gr2"><label>Altas</label><input type="number" id="int-alt-manual" min="0" placeholder="0" oninput="ss();" style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;color:var(--gr);text-align:center;border:none;background:transparent;padding:0;width:100%;box-shadow:none;"/><div style="font-size:.56rem;color:var(--gr);margin-top:2px;">Manual</div></div>
+      <div class="nd gr2"><label>Altas</label><input type="number" id="int-alt-manual" min="0" placeholder="0" oninput="ss();" style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;color:var(--nv);text-align:center;border:none;background:transparent;padding:0;width:100%;box-shadow:none;"/><div style="font-size:.56rem;color:var(--tx3);margin-top:2px;">Manual</div></div>
     </div>
     <div class="sep"></div>
     <div class="rl" id="int-list"></div>
