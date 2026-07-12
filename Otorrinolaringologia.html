@@ -2981,22 +2981,35 @@ async function gerarPDF(){
 }
 
 // ── ACÇÕES ────────────────────────────────────────────────
-async function acaoWA(){
+async function compartilhar(canal){
   const errs=validateAll();
   if(errs.length&&!confirm('⚠️ Campos incompletos:\n\n'+errs.join('\n')+'\n\nDeseja continuar mesmo assim?'))return;
   const pdf=await gerarPDF();
-  if(pdf)setTimeout(()=>window.open('https://wa.me/','_blank'),500);
-}
-async function acaoEmail(){
-  const errs=validateAll();
-  if(errs.length&&!confirm('⚠️ Campos incompletos:\n\n'+errs.join('\n')+'\n\nDeseja continuar mesmo assim?'))return;
-  const pdf=await gerarPDF();
-  if(pdf){
-    const sub=encodeURIComponent('Movimento do Banco de Otorrinolaringologia — '+pdfDateFmt());
-    const bod=encodeURIComponent('Exmo(a) Senhor(a),\n\nSegue em anexo o relatório diário do Banco de Otorrinolaringologia — '+pdfDateFmt()+'.\n\nAtenciosamente,\nDEMA — Hospital do Prenda');
-    setTimeout(()=>window.open(`mailto:estatisticahp@gmail.com?subject=${sub}&body=${bod}`,'_blank'),400);
+  if(!pdf)return;
+  try{
+    const blob=pdf.output('blob');
+    const nome=(typeof pdfFileName==='function'?pdfFileName():String(Date.now()))+'.pdf';
+    const file=new File([blob],nome,{type:'application/pdf'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      const periodoShare=(typeof pdfDateFmt==='function')?(' — '+pdfDateFmt()):'';
+      await navigator.share({files:[file],title:'Banco de Otorrinolaringologia',text:'Banco de Otorrinolaringologia'+periodoShare});
+      if(typeof toast==='function')toast('✓ PDF enviado.');
+      return;
+    }
+  }catch(e){
+    if(e && e.name==='AbortError'){ return; }
+    console.error(e);
+  }
+  if(canal==='wa'){ setTimeout(()=>window.open('https://wa.me/','_blank'),400); }
+  if(canal==='email'){
+    const periodo=(typeof pdfDateFmt==='function')?(' — '+pdfDateFmt()):'';
+    const sub=encodeURIComponent('Banco de Otorrinolaringologia'+periodo);
+    const bod=encodeURIComponent('Exmo(a) Senhor(a),\n\nSegue em anexo o relatório diário — Banco de Otorrinolaringologia'+periodo+'.\n\nAtenciosamente,\nDEMA — Hospital do Prenda');
+    setTimeout(()=>window.open('mailto:estatisticahp@gmail.com?subject='+sub+'&body='+bod,'_blank'),400);
   }
 }
+async function acaoWA(){ await compartilhar('wa'); }
+async function acaoEmail(){ await compartilhar('email'); }
 async function acaoPDF(){await gerarPDF();}
 
 // ── MODAL ─────────────────────────────────────────────────

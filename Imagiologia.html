@@ -1774,19 +1774,33 @@ async function acaoPDF(){
 
 
 // ── MODAL ───────────────────────────────────────────────
-async function acaoWA(){
+async function compartilhar(canal){
   const pdf=await gerarPDF();
   if(!pdf)return;
-  setTimeout(()=>window.open('https://wa.me/','_blank'),500);
+  try{
+    const blob=pdf.output('blob');
+    const nome=(typeof pdfFileName==='function'?pdfFileName():String(Date.now()))+'.pdf';
+    const file=new File([blob],nome,{type:'application/pdf'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      const periodoShare=(typeof pdfDateFmt==='function')?(' — '+pdfDateFmt()):'';
+      await navigator.share({files:[file],title:'Serviço de Imagiologia',text:'Serviço de Imagiologia'+periodoShare});
+      if(typeof toast==='function')toast('✓ PDF enviado.');
+      return;
+    }
+  }catch(e){
+    if(e && e.name==='AbortError'){ return; }
+    console.error(e);
+  }
+  if(canal==='wa'){ setTimeout(()=>window.open('https://wa.me/','_blank'),400); }
+  if(canal==='email'){
+    const periodo=(typeof pdfDateFmt==='function')?(' — '+pdfDateFmt()):'';
+    const sub=encodeURIComponent('Serviço de Imagiologia'+periodo);
+    const bod=encodeURIComponent('Exmo(a) Senhor(a),\n\nSegue em anexo o relatório diário — Serviço de Imagiologia'+periodo+'.\n\nAtenciosamente,\nDEMA — Hospital do Prenda');
+    setTimeout(()=>window.open('mailto:estatisticahp@gmail.com?subject='+sub+'&body='+bod,'_blank'),400);
+  }
 }
-async function acaoEmail(){
-  const pdf=await gerarPDF();
-  if(!pdf)return;
-  const periodo=(typeof pdfDateFmt==='function')?(' — '+pdfDateFmt()):'';
-  const sub=encodeURIComponent('Movimento — Serviço de Imagiologia'+periodo);
-  const bod=encodeURIComponent('Exmo(a) Senhor(a),\n\nSegue em anexo o relatório diário — Serviço de Imagiologia'+periodo+'.\n\nAtenciosamente,\nDEMA — Hospital do Prenda');
-  setTimeout(()=>window.open('mailto:estatisticahp@gmail.com?subject='+sub+'&body='+bod,'_blank'),400);
-}
+async function acaoWA(){ await compartilhar('wa'); }
+async function acaoEmail(){ await compartilhar('email'); }
 function visualizar(){
   const meds=getMeds(eq1),meds2=getMeds(eq2);
   const bu=calcSection('bu',BU_SERVICOS),it=calcSection('int',INT_SERVICOS),au=calcAut();
