@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
-<title>Departamento de Estatística Médica · Hospital do Prenda</title>
+<title>ZELO · Hospital do Prenda</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
 <style>
@@ -57,6 +57,7 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
 .hero-body{display:grid;grid-template-columns:1.15fr .85fr;gap:30px;align-items:center;padding-bottom:38px;}
 .hero h1{font-size:clamp(1.7rem,4.4vw,2.5rem);font-weight:800;line-height:1.14;letter-spacing:-.02em;}
 .hero h1 em{font-style:normal;color:var(--cyl);}
+.zelo-tag{margin-top:8px;font-family:'DM Mono',monospace;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:#8CA0C6;}
 .hero p{margin-top:13px;color:#C7D2E8;font-size:.94rem;max-width:480px;line-height:1.6;}
 .hero-meta{display:flex;gap:22px;margin-top:24px;flex-wrap:wrap;}
 .hero-meta div{font-family:'DM Mono',monospace;}
@@ -113,32 +114,32 @@ main{max-width:1040px;margin:0 auto;padding:56px 20px 60px;}
 .cat-head .cnt{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--tx3);background:var(--br);border-radius:100px;padding:2px 9px;}
 .cat-bar{height:3px;width:26px;border-radius:2px;}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
 .card{
-  position:relative;display:block;text-decoration:none;color:var(--tx);overflow:hidden;
-  background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:18px 18px 16px;
-  box-shadow:var(--s1);min-height:128px;
-  transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .16s,border-color .16s;
+  position:relative;display:flex;align-items:center;gap:14px;text-decoration:none;color:#fff;overflow:hidden;
+  background:linear-gradient(120deg,var(--nv) 0%,var(--accent,var(--bl)) 170%);
+  border-radius:var(--r2);padding:15px 16px;box-shadow:0 8px 20px rgba(13,27,62,.18);
+  transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .16s;
 }
-.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--bl));border-radius:var(--r2) 0 0 var(--r2);}
+.card::after{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 90% 0%, rgba(255,255,255,.22), transparent 55%);pointer-events:none;}
 .card:active{transform:scale(.97);}
 .card:focus-visible{outline:2.5px solid var(--cy);outline-offset:2px;}
 @media(hover:hover){
-  .card:hover{transform:translateY(-3px);box-shadow:var(--s2);border-color:var(--accent,var(--bl));}
+  .card:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(13,27,62,.26);}
 }
-.card .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-  background:color-mix(in srgb, var(--accent,var(--bl)) 14%, white);color:var(--accent,var(--bl));margin-bottom:14px;flex-shrink:0;}
-.card .ic svg{width:22px;height:22px;}
-.card h3{font-size:.94rem;font-weight:700;line-height:1.25;letter-spacing:-.005em;margin-bottom:4px;padding-right:18px;color:var(--tx);}
-.card .sub{font-size:.74rem;color:var(--tx3);line-height:1.4;}
-.card .arrow{position:absolute;right:14px;top:16px;color:var(--tx3);transition:transform .16s,color .16s;}
-@media(hover:hover){.card:hover .arrow{transform:translate(3px,-3px);color:var(--accent,var(--bl));}}
-.card .status{position:absolute;right:12px;top:13px;font-family:'DM Mono',monospace;font-size:.58rem;font-weight:600;
-  letter-spacing:.03em;text-transform:uppercase;padding:3px 8px;border-radius:100px;background:#F1F5F9;color:var(--tx3);
+.card .ic{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.16);color:#fff;flex-shrink:0;}
+.card .ic svg{width:21px;height:21px;}
+.card .txt{flex:1;min-width:0;}
+.card h3{font-size:.86rem;font-weight:800;line-height:1.25;letter-spacing:-.005em;color:#fff;overflow-wrap:break-word;word-break:break-word;}
+.card .sub{font-size:.68rem;color:rgba(255,255,255,.8);line-height:1.35;margin-top:2px;overflow-wrap:break-word;word-break:break-word;}
+.card .arrow{flex-shrink:0;color:#fff;opacity:.85;transition:transform .16s;}
+@media(hover:hover){.card:hover .arrow{transform:translate(2px,-2px);}}
+.card .status{display:inline-block;margin-top:5px;font-family:'DM Mono',monospace;font-size:.56rem;font-weight:700;
+  letter-spacing:.03em;text-transform:uppercase;padding:3px 8px;border-radius:100px;background:rgba(255,255,255,.16);color:#fff;
   white-space:nowrap;line-height:1.5;}
-.card.wip{opacity:.7;}
-.card.wip::before{background:#94A3B8;}
-.card.wip .ic{background:#F1F5F9;color:#94A3B8;}
+.card.wip{opacity:.6;}
+.card.wip .ic{background:rgba(255,255,255,.1);}
 
 /* ── FOOTER───────────────────────────────────────────── */
 footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
@@ -161,8 +162,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
 }
 @media(max-width:480px){
   .hero{padding:26px 16px 0;}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
-  .card{padding:13px 13px 12px;}
+  .grid{grid-template-columns:1fr;gap:10px;}
   .foot-grid{flex-direction:column;align-items:flex-start;}
   .foot-meta{text-align:left;}
 }
@@ -172,7 +172,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
 
 <div class="topbar">
   <span class="dot"></span>
-  <span>Sistema de Registo de Turnos</span>
+  <span>ZELO · Sistema de Registo de Turnos</span>
   <span class="clock" id="topclock"></span>
 </div>
 
@@ -189,13 +189,9 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
 
     <div class="hero-body">
       <div>
-        <h1>Central de <em>Registo de Turnos</em></h1>
+        <h1>ZELO <em>· Central de Registo de Turnos</em></h1>
+        <p class="zelo-tag">Sistema de Zelo Estatístico e Levantamento de Ocorrências</p>
         <p>Acesso rápido a todos os módulos de registo por serviço. Cada módulo guarda os dados por dia — mude de data sem perder nada do que já foi registado.</p>
-        <div class="hero-meta">
-          <div><div class="n" id="stat-total">15</div><div class="l">Módulos</div></div>
-          <div><div class="n" id="stat-cat">4</div><div class="l">Áreas</div></div>
-          <div><div class="n">24h</div><div class="l">Cobertura</div></div>
-        </div>
       </div>
 
       <div class="dial-wrap">
@@ -211,8 +207,6 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
     </div>
   </div>
 </div>
-
-<nav class="chips" id="chips" aria-label="Ir para categoria"></nav>
 
 <div class="dash-wrap">
   <a class="dash-cta" href="enf_diario_index.html">
@@ -400,16 +394,6 @@ const CATS = [
 ];
 
 const main = document.getElementById('main');
-const chipsBar = document.getElementById('chips');
-
-let totalItems = 0;
-CATS.forEach(c=>totalItems+=c.items.length);
-document.getElementById('stat-total').textContent = totalItems;
-document.getElementById('stat-cat').textContent = CATS.length;
-
-chipsBar.innerHTML = CATS.map(cat=>`
-  <a class="chip" href="#cat-${cat.id}"><i style="background:${cat.color}"></i>${cat.label} · ${cat.items.length}</a>
-`).join('');
 
 function render(){
   main.innerHTML = '';
@@ -436,12 +420,13 @@ function render(){
       a.style.setProperty('--accent', cat.color);
       a.setAttribute('aria-label', `${it.name} — ${it.sub}${it.wip ? ' (em construção)' : ''}`);
       a.innerHTML = `
-        ${it.wip
-          ? `<div class="status">Em construção</div>`
-          : `<div class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>`}
         <div class="ic">${icon(it.icon)}</div>
-        <h3>${it.name}</h3>
-        <div class="sub">${it.sub}</div>
+        <div class="txt">
+          <h3>${it.name}</h3>
+          <div class="sub">${it.sub}</div>
+          ${it.wip ? `<div class="status">Em construção</div>` : ''}
+        </div>
+        <div class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
       `;
       grid.appendChild(a);
     });
