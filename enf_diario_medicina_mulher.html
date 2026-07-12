@@ -153,20 +153,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.65;}
 <body>
 
 <div id="splash" style="position:fixed;inset:0;background:linear-gradient(145deg,#08112A 0%,#0D1B3E 45%,#162E6B 100%);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;overflow-y:auto;">
-  <div id="splash-progress" style="display:flex;flex-direction:column;align-items:center;">
-    <div style="position:relative;width:84px;height:84px;margin-bottom:18px;">
-      <svg id="splash-ring" width="84" height="84" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">
-        <circle cx="42" cy="42" r="36" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="4"/>
-        <circle id="splash-arc" cx="42" cy="42" r="36" fill="none" stroke="url(#ringGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226" style="transition:stroke-dashoffset .1s linear;"/>
-        <defs><linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#34D399"/><stop offset="100%" stop-color="#60A5FA"/></linearGradient></defs>
-      </svg>
-      <div style="position:absolute;inset:6px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.15);background:#04598C;"></div>
-    </div>
-    <div style="text-align:center;">
-      <div style="font-size:.58rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:7px;">Procedimentos de Enfermagem</div>
-      <div style="font-size:1.2rem;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.15;">Medicina Mulher</div>
-    </div>
-  </div>
   <div id="splash-msg" style="display:none;max-width:400px;width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px 20px 16px;backdrop-filter:blur(8px);text-align:center;">
     <p style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:10px;line-height:1.35;">Bem-vindo — Medicina Mulher</p>
     <p style="font-size:.84rem;color:rgba(255,255,255,.8);line-height:1.7;margin-bottom:16px;">Os dados que preenche aqui alimentam directamente as estatísticas do Hospital do Prenda — <strong style="color:#93C5FD;">são vidas</strong>, não apenas números. Preencha com clareza, rigor e dados reais.</p>
@@ -178,26 +164,11 @@ textarea{resize:vertical;min-height:72px;line-height:1.65;}
 </div>
 <script>
 (function(){
-  var arc=document.getElementById('splash-arc');
   var msg=document.getElementById('splash-msg');
-  var CIRCUM=226, DURATION=650, START=Date.now();
   var showMsg=true;
   try{ showMsg=!localStorage.getItem('hp_welcome_seen_'+new Date().toISOString().slice(0,10)); }catch(e){}
-  function tick(){
-    var p=Math.min((Date.now()-START)/DURATION,1);
-    if(arc)arc.style.strokeDashoffset=CIRCUM*(1-p);
-    if(p<1){requestAnimationFrame(tick);}
-    else{
-      var prog=document.getElementById('splash-progress');
-      if(showMsg){
-        if(prog)prog.style.display='none';
-        if(msg)msg.style.display='block';
-      }else{
-        closeSplash();
-      }
-    }
-  }
-  requestAnimationFrame(tick);
+  if(showMsg){ if(msg)msg.style.display='block'; }
+  else{ closeSplash(); }
 })();
 function closeSplash(){
   try{ localStorage.setItem('hp_welcome_seen_'+new Date().toISOString().slice(0,10),'1'); }catch(e){}
