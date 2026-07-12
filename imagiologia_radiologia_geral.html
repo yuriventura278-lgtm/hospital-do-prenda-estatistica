@@ -641,6 +641,47 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
 </style>
 </head>
 <body>
+<div id="zeloAuthGate" style="position:fixed;inset:0;z-index:999999;background:linear-gradient(155deg,#0D1B3E 0%,#122754 55%,#0a3a66 100%);display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Inter',-apple-system,sans-serif;">
+  <form id="zeloAuthForm" autocomplete="off" style="background:#fff;border-radius:16px;padding:32px 28px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);box-sizing:border-box;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="width:52px;height:52px;border-radius:14px;background:#0D1B3E;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div style="font-size:1.05rem;font-weight:800;color:#0F172A;">Acesso Restrito</div>
+      <div style="font-size:.8rem;color:#64748B;margin-top:4px;">Este sistema requer chave de acesso.</div>
+    </div>
+    <label for="zeloAuthUser" style="display:block;font-size:.72rem;font-weight:700;color:#334155;margin-bottom:5px;">Utilizador</label>
+    <input id="zeloAuthUser" type="text" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid #E2E8F0;border-radius:8px;font-size:.9rem;margin-bottom:14px;box-sizing:border-box;font-family:inherit;" />
+    <label for="zeloAuthPass" style="display:block;font-size:.72rem;font-weight:700;color:#334155;margin-bottom:5px;">Password</label>
+    <input id="zeloAuthPass" type="password" autocomplete="off" style="width:100%;padding:10px 12px;border:1px solid #E2E8F0;border-radius:8px;font-size:.9rem;margin-bottom:6px;box-sizing:border-box;font-family:inherit;" />
+    <div id="zeloAuthErr" style="display:none;color:#B91C1C;font-size:.76rem;margin-bottom:10px;">Utilizador ou password incorretos.</div>
+    <button type="submit" style="width:100%;margin-top:8px;background:#1A56DB;color:#fff;border:none;border-radius:8px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;">Entrar</button>
+    <a href="Estatistica.html" style="display:block;text-align:center;margin-top:14px;font-size:.74rem;color:#64748B;text-decoration:none;">← Voltar à Estatística</a>
+  </form>
+</div>
+<script>
+(function(){
+  var ZELO_AUTH_USER='administrador', ZELO_AUTH_PASS='Zelo@';
+  var gate=document.getElementById('zeloAuthGate');
+  var form=document.getElementById('zeloAuthForm');
+  var err=document.getElementById('zeloAuthErr');
+  var htmlEl=document.documentElement;
+  var prevOverflow=htmlEl.style.overflow;
+  htmlEl.style.overflow='hidden';
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var u=document.getElementById('zeloAuthUser').value.trim();
+    var p=document.getElementById('zeloAuthPass').value;
+    if(u===ZELO_AUTH_USER && p===ZELO_AUTH_PASS){
+      gate.remove();
+      htmlEl.style.overflow=prevOverflow;
+    } else {
+      err.style.display='block';
+    }
+  });
+})();
+</script>
+
 
 <!-- ════ SPLASH SCREEN ════ -->
 <div id="splash">
