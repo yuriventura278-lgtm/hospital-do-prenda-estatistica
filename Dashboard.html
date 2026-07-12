@@ -38,11 +38,11 @@
   --r:10px;--r2:16px;--s1:0 2px 10px rgba(13,27,62,.08);--s2:0 10px 32px rgba(13,27,62,.16);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);height:100vh;overflow:hidden;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased;}
 :focus-visible{outline:2.5px solid var(--cy);outline-offset:2px;border-radius:4px;}
 button{font-family:inherit;}
 
-.topbar{background:var(--nv);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:40;}
+.topbar{background:var(--nv);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;}
 .topbar img{width:34px;height:34px;border-radius:9px;background:#fff;padding:3px;object-fit:contain;flex-shrink:0;}
 .topbar .org{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cyl);font-family:'DM Mono',monospace;}
 .topbar .dep{font-size:.84rem;font-weight:700;}
@@ -52,7 +52,7 @@ button{font-family:inherit;}
 .topbar .home-link:hover{background:rgba(255,255,255,.1);}
 @media(max-width:760px){.topbar .note span.long{display:none;}}
 
-.hero{background:linear-gradient(155deg,var(--nv) 0%,var(--nv2) 55%,var(--nv3) 100%);color:#fff;padding:24px 20px 20px;flex-shrink:0;}
+.hero{background:linear-gradient(155deg,var(--nv) 0%,var(--nv2) 55%,var(--nv3) 100%);color:#fff;padding:24px 20px 20px;}
 .hero-in{max-width:1180px;margin:0 auto;}
 .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;}
 .hero h1{font-size:clamp(1.25rem,3vw,1.6rem);font-weight:800;letter-spacing:-.02em;}
@@ -84,7 +84,7 @@ input[type="week"]#weekSel,input[type="month"]#monthSel{background:rgba(255,255,
 .stat-mini .l{font-family:'DM Mono',monospace;font-size:.6rem;color:#8CA0C6;text-transform:uppercase;letter-spacing:.06em;margin-top:5px;}
 
 /* ── TABS ─────────────────────────────────────────────── */
-.tabs-wrap{background:#fff;border-bottom:1px solid var(--br);flex-shrink:0;z-index:30;box-shadow:0 2px 8px rgba(13,27,62,.04);}
+.tabs-wrap{background:#fff;border-bottom:1px solid var(--br);position:sticky;top:62px;z-index:30;box-shadow:0 2px 8px rgba(13,27,62,.04);}
 .tabs{max-width:1180px;margin:0 auto;padding:10px 20px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{flex-shrink:0;display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;font-size:.72rem;font-weight:600;
@@ -97,7 +97,7 @@ input[type="week"]#weekSel,input[type="month"]#monthSel{background:rgba(255,255,
 .tab.active i{background:#fff!important;}
 .tab-sep{width:1px;background:var(--br);flex-shrink:0;margin:2px 4px;}
 
-main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;flex:1;overflow-y:auto;min-height:0;width:100%;}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
 
 /* ── PANEL / CARD SHELL ───────────────────────────────── */
 .panel{background:#fff;border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--s1);padding:20px 20px 16px;margin-bottom:18px;}
@@ -1255,9 +1255,29 @@ function renderOverview(){
       </div>`).join('');
   }
 
+  const cardIcon = `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>`;
+  const cardArrow = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg>`;
+  const cardsHTML = SERVICES.map(svc=>{
+    const rec = currentDataset[svc.id];
+    if(!rec || !rec.snapshot){
+      return `<button class="card empty" style="--accent:${svc.color}" onclick="selectTab('${svc.id}')">
+        <div class="ic">${cardIcon}</div>
+        <div class="txt"><h3>${svc.name}</h3><div class="sub">Sem registo neste dia</div></div>
+        <div class="arrow">${cardArrow}</div>
+      </button>`;
+    }
+    const [label, value] = headline(svc.id, rec.snapshot);
+    return `<button class="card" style="--accent:${svc.color}" onclick="selectTab('${svc.id}')">
+      <div class="ic">${cardIcon}</div>
+      <div class="txt"><h3>${svc.name}</h3><div class="sub">${(typeof value==='number')?value:0} ${label}</div></div>
+      <div class="arrow">${cardArrow}</div>
+    </button>`;
+  }).join('');
+
   contentEl.innerHTML = `
     <div class="panel"><h2>Cobertura do Dia</h2>${donutsHTML}</div>
     <div class="panel"><h2>Movimento por Serviço <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="bars">${barsHTML}</div></div>
+    <div class="panel"><h2>Serviços <span class="cnt">${SERVICES.length}</span></h2><div class="grid">${cardsHTML}</div></div>
     <div class="sec-divider"><span>Resumo Geral do Dia</span></div>
     ${renderResumoGeral(currentDataset)}
     <div class="sec-divider"><span>Laboratório, Imagiologia, Consulta Externa e Fisioterapia</span></div>
