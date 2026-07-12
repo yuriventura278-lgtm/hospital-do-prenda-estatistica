@@ -1564,8 +1564,8 @@ async function gerarPDF(silencioso){
     const sd=h=>pdf.setDrawColor(hR(h),hG(h),hB(h));
     const st=h=>pdf.setTextColor(hR(h),hG(h),hB(h));
     function hdrS(){
-      sf('#0C2340');pdf.rect(0,0,PW,10,'F');sf('#0891B2');pdf.rect(0,9,PW,1,'F');
-      st('#67E8F9');pdf.setFontSize(6);pdf.setFont('helvetica','bold');
+      sf('#0D1B3E');pdf.rect(0,0,PW,10,'F');sf('#1A56DB');pdf.rect(0,9,PW,1,'F');
+      st('#93C5FD');pdf.setFontSize(6);pdf.setFont('helvetica','bold');
       pdf.text('SERVICO DE IMAGIOLOGIA - HOSPITAL DO PRENDA - DEMA',ML,7);
       st('#ffffff');pdf.setFont('helvetica','normal');pdf.setFontSize(6);
       pdf.text(safe(pdfDate()),PW-MR,7,{align:'right'});
@@ -1574,7 +1574,7 @@ async function gerarPDF(silencioso){
     function chk(n){if(y+n>PH-MB){pdf.addPage();hdrS();}}
     function sep(g){y+=(g||4);}
     function secTitle(txt,bg){
-      bg=bg||'#0891B2';
+      bg=bg||'#1A56DB';
       chk(10);
       sf(bg);pdf.rect(ML,y,CW,7,'F');
       st('#FFFFFF');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
@@ -1608,8 +1608,8 @@ async function gerarPDF(silencioso){
     }
     // ── CABEÇALHO ──────────────────────────────────────────
     const HDR=42;
-    sf('#0C2340');pdf.rect(0,0,PW,HDR,'F');
-    sf('#0891B2');pdf.rect(0,HDR-1,PW,1,'F');
+    sf('#0D1B3E');pdf.rect(0,0,PW,HDR,'F');
+    sf('#1A56DB');pdf.rect(0,HDR-1,PW,1,'F');
     // Logo
     try{
       const lc=document.createElement('canvas');lc.width=300;lc.height=300;
@@ -1622,7 +1622,7 @@ async function gerarPDF(silencioso){
       pdf.addImage(lc.toDataURL('image/png'),'PNG',ML,5,28,28);
     }catch(e){}
     const TX=ML+34;
-    st('#67E8F9');pdf.setFontSize(6.5);pdf.setFont('helvetica','normal');
+    st('#93C5FD');pdf.setFontSize(6.5);pdf.setFont('helvetica','normal');
     pdf.text('RELATORIO DIARIO - TURNO 24H - Servico de Admissao e Arquivo Medico Estatistico',TX,10);
     st('#FFFFFF');pdf.setFontSize(13);pdf.setFont('helvetica','bold');
     pdf.text('SERVICO DE IMAGIOLOGIA',TX,20);
@@ -1630,22 +1630,22 @@ async function gerarPDF(silencioso){
     pdf.text(safe(pdfDate()),TX,28);
     if(selClass){
       const pX=PW-MR-34,pY=8;
-      sf('#0D3A5C');pdf.roundedRect(pX,pY,32,22,3,3,'F');
-      st('#67E8F9');pdf.setFontSize(5.5);pdf.setFont('helvetica','bold');
+      sf('#0D1B3E');pdf.roundedRect(pX,pY,32,22,3,3,'F');
+      st('#93C5FD');pdf.setFontSize(5.5);pdf.setFont('helvetica','bold');
       pdf.text('ESTADO',pX+16,pY+7,{align:'center'});
       st('#FFFFFF');pdf.setFontSize(11);pdf.setFont('helvetica','bold');
       pdf.text(safe(selClass),pX+16,pY+16,{align:'center'});
     }
     y=HDR+5;
     // ── SEC 1: EQUIPA ──────────────────────────────────────
-    secTitle('Equipa de Servico','#0D3A5C');
+    secTitle('Equipa de Servico','#0D1B3E');
     Object.entries(meds).forEach(function(e,i){tableRow(e[0],e[1],i%2===0);});
     sep(5);
     // ── SEC 2: TOTAIS GERAIS ───────────────────────────────
-    secTitle('Totais Gerais do Servico','#0891B2');
+    secTitle('Totais Gerais do Servico','#1A56DB');
     numCards([
       {label:'TOTAL Rx',val:gRx,bg:'#FFF5F5',lc:'#991B1B',vc:'#DC2626'},
-      {label:'TOTAL ECO.',val:gEco,bg:'#ECFEFF',lc:'#0E7490',vc:'#0891B2'},
+      {label:'TOTAL ECO.',val:gEco,bg:'#ECFEFF',lc:'#0E7490',vc:'#1A56DB'},
       {label:'TOTAL TAC',val:gTac,bg:'#F5F3FF',lc:'#5B21B6',vc:'#7C3AED'},
       {label:'ECG',val:ecg,bg:'#FFFBEB',lc:'#92400E',vc:'#D97706'},
       {label:'TOTAL GERAL',val:gTot,bg:'#F0FDF4',lc:'#166534',vc:'#059669'}
@@ -1655,8 +1655,8 @@ async function gerarPDF(silencioso){
     secTitle('Banco de Urgencia','#DC2626');
     tableRow('Ptes Rx',bu.prx,true,'#DC2626');
     tableRow('Raio-X',bu.rx,false,'#DC2626');
-    tableRow('Ptes Eco.',bu.peco,true,'#0891B2');
-    tableRow('Ecografia',bu.eco,false,'#0891B2');
+    tableRow('Ptes Eco.',bu.peco,true,'#1A56DB');
+    tableRow('Ecografia',bu.eco,false,'#1A56DB');
     tableRow('Ptes TAC',bu.ptac,true,'#7C3AED');
     tableRow('TAC',bu.tac,false,'#7C3AED');
     tableRow('TOTAL BU',bu.tot,true,'#1E40AF');
@@ -1668,11 +1668,11 @@ async function gerarPDF(silencioso){
     });
     sep(5);
     // ── SEC 4: INTERNAMENTOS ───────────────────────────────
-    secTitle('Internamentos','#0D3A5C');
+    secTitle('Internamentos','#0D1B3E');
     tableRow('Ptes Rx',it.prx,true,'#DC2626');
     tableRow('Raio-X',it.rx,false,'#DC2626');
-    tableRow('Ptes Eco.',it.peco,true,'#0891B2');
-    tableRow('Ecografia',it.eco,false,'#0891B2');
+    tableRow('Ptes Eco.',it.peco,true,'#1A56DB');
+    tableRow('Ecografia',it.eco,false,'#1A56DB');
     tableRow('Ptes TAC',it.ptac,true,'#7C3AED');
     tableRow('TAC',it.tac,false,'#7C3AED');
     tableRow('TOTAL INT.',it.tot,true,'#1E40AF');
@@ -1688,8 +1688,8 @@ async function gerarPDF(silencioso){
       secTitle('Autorizados','#059669');
       tableRow('Ptes Rx',au.prx,true,'#DC2626');
       tableRow('Raio-X',au.rx,false,'#DC2626');
-      tableRow('Ptes Eco.',au.peco,true,'#0891B2');
-      tableRow('Ecografia',au.eco,false,'#0891B2');
+      tableRow('Ptes Eco.',au.peco,true,'#1A56DB');
+      tableRow('Ecografia',au.eco,false,'#1A56DB');
       tableRow('Ptes TAC',au.ptac,true,'#7C3AED');
       tableRow('TAC',au.tac,false,'#7C3AED');
       tableRow('TOTAL AUT.',au.tot,true,'#1E40AF');
@@ -1750,13 +1750,14 @@ async function gerarPDF(silencioso){
     try{ var zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
     for(var p=1;p<=nP;p++){
       pdf.setPage(p);
-      sf('#0C2340');pdf.rect(0,PH-11,PW,11,'F');
-      sf('#0891B2');pdf.rect(0,PH-11,PW,1,'F');
-      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-9.5,6,6); }catch(e){} }
-      st('#67E8F9');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
-      pdf.text('Servico de Imagiologia - Hospital do Prenda - DEMA',ML+8,PH-4);
-      st('#ffffff');pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);
-      pdf.text('Pag. '+p+'/'+nP,PW-MR,PH-4,{align:'right'});
+      sf('#0D1B3E');pdf.rect(0,PH-12,PW,12,'F');
+      sf('#1A56DB');pdf.rect(0,PH-12,PW,1,'F');
+      sf('#059669');pdf.rect(0,PH-13,PW,1,'F');
+      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
+      st('#93C5FD');pdf.setFontSize(7.5);pdf.setFont('helvetica','normal');
+      pdf.text('Servico de Imagiologia - Hospital do Prenda - DEMA',ML+9,PH-5);
+      st('#ffffff');pdf.setFont('helvetica','bold');pdf.setFontSize(8);
+      pdf.text('Pag. '+p+'/'+nP,PW-MR,PH-5,{align:'right'});
     }
     var rawDate=gv('data')||new Date().toLocaleDateString('pt-PT').replace(/\//g,'-');
     if(!silencioso){pdf.save(pdfFileName()+'.pdf');toast('\u2713 PDF exportado!');}

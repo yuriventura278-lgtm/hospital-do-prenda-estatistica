@@ -948,8 +948,8 @@ async function gerarPDF(silencioso){
 
     function pageStrip(){
       // Faixa superior em páginas seguintes
-      F('#064E3B');pdf.rect(0,0,PW,10,'F');
-      T('#6EE7B7');pdf.setFontSize(6);pdf.setFont('helvetica','bold');
+      F('#0D1B3E');pdf.rect(0,0,PW,10,'F');
+      T('#93C5FD');pdf.setFontSize(6);pdf.setFont('helvetica','bold');
       pdf.text('LABORATÓRIO CLÍNICO · HOSPITAL DO PRENDA',ML,6.5);
       T('#FFFFFF');pdf.setFont('helvetica','normal');
       pdf.text(pdfDateFmt(),PW-MR,6.5,{align:'right'});
@@ -958,15 +958,15 @@ async function gerarPDF(silencioso){
 
     // ── CABEÇALHO PRINCIPAL ────────────────────────────────────
     const HDR=48;
-    F('#064E3B');pdf.rect(0,0,PW,HDR,'F');
+    F('#0D1B3E');pdf.rect(0,0,PW,HDR,'F');
     // Linha de acento verde
-    F('#34D399');pdf.rect(0,HDR,PW,1.5,'F');
+    F('#059669');pdf.rect(0,HDR,PW,1.5,'F');
 
     // Logo circular
     try{
       const cv=document.createElement('canvas');cv.width=280;cv.height=280;
       const cx=cv.getContext('2d');
-      cx.fillStyle='#053D2E';cx.beginPath();cx.arc(140,140,140,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#04598C';cx.beginPath();cx.arc(140,140,140,0,Math.PI*2);cx.fill();
       const im=new Image();
       await new Promise(r=>{im.onload=r;im.onerror=r;im.src='data:image/jpeg;base64,'+LOGO_B64;});
       cx.save();cx.beginPath();cx.arc(140,140,136,0,Math.PI*2);cx.clip();
@@ -978,7 +978,7 @@ async function gerarPDF(silencioso){
 
     // Textos cabeçalho
     const TX=ML+38;
-    T('#6EE7B7');pdf.setFontSize(6);pdf.setFont('helvetica','normal');
+    T('#93C5FD');pdf.setFontSize(6);pdf.setFont('helvetica','normal');
     pdf.text('HOSPITAL DO PRENDA · LUANDA · GEPE',TX,11);
     T('#FFFFFF');pdf.setFontSize(14);pdf.setFont('helvetica','bold');
     pdf.text('BANCO DE LABORATÓRIO CLÍNICO',TX,20);
@@ -1050,7 +1050,7 @@ async function gerarPDF(silencioso){
     chk(28);
     // Fundo do bloco
     F('#F0FDF4');pdf.roundedRect(ML,y,CW,24,3,3,'F');
-    D('#6EE7B7');pdf.setLineWidth(0.5);pdf.roundedRect(ML,y,CW,24,3,3,'S');
+    D('#93C5FD');pdf.setLineWidth(0.5);pdf.roundedRect(ML,y,CW,24,3,3,'S');
     // Rótulo
     T('#065F46');pdf.setFontSize(7);pdf.setFont('helvetica','bold');
     pdf.text('TOTAL DE EXAMES REALIZADOS',ML+5,y+6);
@@ -1061,7 +1061,7 @@ async function gerarPDF(silencioso){
     const totalBoxW=(BOX_W2+GAP2)*4-GAP2;
     const boxes=[
       {l:'URGENCIA',v:tU,c:'#1E3A5F',bg:'#EFF6FF',bd:'#BFDBFE'},
-      {l:'INTERNAMENTO',v:tI,c:'#1A3D2B',bg:'#D1FAE5',bd:'#6EE7B7'},
+      {l:'INTERNAMENTO',v:tI,c:'#1A3D2B',bg:'#D1FAE5',bd:'#93C5FD'},
       {l:'TOTAL GERAL',v:tU+tI,c:'#FFFFFF',bg:'#059669',bd:'#047857',inv:true},
       {l:'POSITIVOS',v:tP,c:'#7F1D1D',bg:'#FFF5F5',bd:'#FCA5A5'},
     ];
@@ -1082,9 +1082,9 @@ async function gerarPDF(silencioso){
     if(chefeNome){
       chk(14);
       F('#F0FDF4');pdf.roundedRect(ML,y,CW,12,2,2,'F');
-      D('#6EE7B7');pdf.setLineWidth(0.3);pdf.roundedRect(ML,y,CW,12,2,2,'S');
+      D('#93C5FD');pdf.setLineWidth(0.3);pdf.roundedRect(ML,y,CW,12,2,2,'S');
       F('#059669');pdf.rect(ML,y,3,12,'F');
-      T('#064E3B');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
+      T('#0D1B3E');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
       pdf.text('CHEFE DE EQUIPA / SUPERVISOR',ML+7,y+5);
       T('#1E293B');pdf.setFontSize(9.5);pdf.setFont('helvetica','normal');
       pdf.text(chefeNome,ML+7,y+10);
@@ -1104,7 +1104,7 @@ async function gerarPDF(silencioso){
         const cx2=ML+(i%cols)*(cellW+8);
         const cy=y+Math.floor(i/cols)*9;
         // Número do técnico
-        F('#064E3B');pdf.circle(cx2+3.5,cy+4,3,'F');
+        F('#0D1B3E');pdf.circle(cx2+3.5,cy+4,3,'F');
         T('#FFFFFF');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
         pdf.text(String(i+1),cx2+3.5,cy+5.2,{align:'center'});
         // Nome
@@ -1200,10 +1200,10 @@ async function gerarPDF(silencioso){
     for(let p=1;p<=nPages;p++){
       pdf.setPage(p);
       // Linha de acento + fundo
-      F('#064E3B');pdf.rect(0,PH-12,PW,12,'F');
+      F('#0D1B3E');pdf.rect(0,PH-12,PW,12,'F');
       F('#059669');pdf.rect(0,PH-12,PW,1,'F');
       if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
-      T('#6EE7B7');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
+      T('#93C5FD');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
       pdf.text('Banco de Laboratório Clínico · Hospital do Prenda · GEPE · Criado por Yuri Matias',ML+9,PH-5);
       T('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);
       pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});

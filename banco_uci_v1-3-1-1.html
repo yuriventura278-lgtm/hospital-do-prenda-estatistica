@@ -1354,9 +1354,9 @@ async function gerarPDF(silencioso){
       if(y+(needed||8)>PH-MB){pdf.addPage();y=MT;headerStrip();}
     }
     function headerStrip(){
-      setFill('#0B1A2E');pdf.rect(0,0,PW,11,'F');
-      setFill('#0284C7');pdf.rect(0,10,PW,1,'F');
-      setTxt('#7DD3FC');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
+      setFill('#0D1B3E');pdf.rect(0,0,PW,11,'F');
+      setFill('#1A56DB');pdf.rect(0,10,PW,1,'F');
+      setTxt('#93C5FD');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
       T('UCI - UNIDADE DE CUIDADOS INTENSIVOS - HOSPITAL DO PRENDA - Serviço de Admissão e Arquivo Médico Estatístico',ML,7);
       setTxt('#FFFFFF');pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);
       T(pdfDateFmt(),PW-MR,7,{align:'right'});
@@ -1365,8 +1365,8 @@ async function gerarPDF(silencioso){
 
     // Cabecalho 1a pagina
     var HDR_H=42;
-    setFill('#0B1A2E');pdf.rect(0,0,PW,HDR_H,'F');
-    setFill('#0284C7');pdf.rect(0,HDR_H-1,PW,1,'F');
+    setFill('#0D1B3E');pdf.rect(0,0,PW,HDR_H,'F');
+    setFill('#1A56DB');pdf.rect(0,HDR_H-1,PW,1,'F');
     try{
       var logoCanvas=document.createElement('canvas');
       logoCanvas.width=300;logoCanvas.height=300;
@@ -1382,17 +1382,17 @@ async function gerarPDF(silencioso){
       pdf.addImage(logoCanvas.toDataURL('image/png'),'PNG',ML,5,30,30);
     }catch(e){console.warn('Logo:',e);}
     var TX=ML+36;
-    setTxt('#7DD3FC');pdf.setFontSize(6.5);pdf.setFont('helvetica','normal');
+    setTxt('#93C5FD');pdf.setFontSize(6.5);pdf.setFont('helvetica','normal');
     T('RELATORIO DIARIO - Serviço de Admissão e Arquivo Médico Estatístico - HOSPITAL DO PRENDA',TX,10);
     setTxt('#FFFFFF');pdf.setFontSize(13);pdf.setFont('helvetica','bold');
     T('UCI - UNIDADE DE CUIDADOS INTENSIVOS',TX,19);
     setTxt('#38BDF8');pdf.setFontSize(9);pdf.setFont('helvetica','normal');
     T(pdfDateFmt(),TX,27);
-    setFill('#0EA5E9');pdf.rect(0,HDR_H-2,PW,2,'F');
+    setFill('#059669');pdf.rect(0,HDR_H-2,PW,2,'F');
     if(classUCI){
       var cmap={Estavel:'#059669',Instavel:'#D97706',Critico:'#DC2626'};
       var ckey=safe(classUCI).replace(/[^a-zA-Z]/g,'');
-      var fc=cmap[ckey]||'#0284C7';
+      var fc=cmap[ckey]||'#1A56DB';
       var pW=34,pX=PW-MR-pW,pY=10;
       setFill(fc);pdf.roundedRect(pX,pY,pW,20,3,3,'F');
       setTxt('#FFFFFF');pdf.setFontSize(6);pdf.setFont('helvetica','bold');
@@ -1402,7 +1402,7 @@ async function gerarPDF(silencioso){
     y=HDR_H+5;
 
     function secTitle(label,bg,fg){
-      bg=bg||'#0284C7';fg=fg||'#FFFFFF';
+      bg=bg||'#1A56DB';fg=fg||'#FFFFFF';
       checkPage(10);
       setFill(bg);pdf.rect(ML,y,CW,7,'F');
       setTxt(fg);pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
@@ -1442,7 +1442,7 @@ async function gerarPDF(silencioso){
         setFill(it.bg||'#E0F2FE');pdf.roundedRect(cx,y,cw,16,2,2,'F');
         setTxt(it.lc||'#0369A1');pdf.setFontSize(6);pdf.setFont('helvetica','bold');
         T(safe(it.label),cx+cw/2,y+5.5,{align:'center'});
-        setTxt(it.vc||'#0B1A2E');pdf.setFontSize(15);pdf.setFont('helvetica','bold');
+        setTxt(it.vc||'#0D1B3E');pdf.setFontSize(15);pdf.setFont('helvetica','bold');
         T(String(it.val||0),cx+cw/2,y+13.5,{align:'center'});
       });
       y+=19;
@@ -1472,7 +1472,7 @@ async function gerarPDF(silencioso){
       }
       sep(5);
     }
-    eqTable(state.eq1,'Medico de Servico','#0284C7');
+    eqTable(state.eq1,'Medico de Servico','#1A56DB');
     eqTable(state.eq2,'Medico que Entra','#059669');
 
     // SECCAO 1B - OBITOS
@@ -1499,20 +1499,20 @@ async function gerarPDF(silencioso){
 
     // SECCAO 2 - CAMAS
     var cs=state.camas.filter(function(x){return x.saved;});
-    secTitle('Camas Ocupadas ('+cs.length+')','#0284C7');
+    secTitle('Camas Ocupadas ('+cs.length+')','#1A56DB');
     if(cs.length){
       numCards([
-        {label:'TOTAL',val:cs.length,bg:'#E0F2FE',lc:'#0369A1',vc:'#0B1A2E'},
+        {label:'TOTAL',val:cs.length,bg:'#E0F2FE',lc:'#0369A1',vc:'#0D1B3E'},
         {label:'MASCULINO',val:cs.filter(function(c){return c.genero==='Masculino';}).length,bg:'#EFF6FF',lc:'#1E40AF',vc:'#1E40AF'},
         {label:'FEMININO',val:cs.filter(function(c){return c.genero==='Feminino';}).length,bg:'#FDF2F8',lc:'#9D174D',vc:'#9D174D'},
       ]);
       checkPage(7);
-      setFill('#0B1A2E');pdf.rect(ML,y,CW,5.5,'F');
-      setTxt('#7DD3FC');pdf.setFontSize(7);pdf.setFont('helvetica','bold');
+      setFill('#0D1B3E');pdf.rect(ML,y,CW,5.5,'F');
+      setTxt('#93C5FD');pdf.setFontSize(7);pdf.setFont('helvetica','bold');
       T('Cama',ML+2,y+4);T('Doente',ML+22,y+4);T('Idade',ML+82,y+4);T('Genero',ML+102,y+4);T('Diagnostico',ML+132,y+4);y+=5.5;
       cs.forEach(function(c,i){
         detailRow([
-          {txt:'Cama '+(i+1),w:20,bold:true,color:'#0284C7'},
+          {txt:'Cama '+(i+1),w:20,bold:true,color:'#1A56DB'},
           {txt:c.nome||'',w:60,bold:true},
           {txt:c.idade?c.idade+'a':'--',w:20,color:'#64748B'},
           {txt:c.genero||'--',w:30,color:'#64748B'},
@@ -1527,7 +1527,7 @@ async function gerarPDF(silencioso){
     sep(5);
 
     // SECCAO 3 - INDICADORES
-    secTitle('Indicadores Clinicos','#0284C7');
+    secTitle('Indicadores Clinicos','#1A56DB');
     var gnP=function(id){var el=document.getElementById(id);return el?parseInt(el.value)||0:0;};
     numCards([
       {label:'VENTILADOS',val:gnP('ventilados'),bg:'#EDE9FE',lc:'#5B21B6',vc:'#5B21B6'},
@@ -1574,7 +1574,7 @@ async function gerarPDF(silencioso){
     var obsEl=document.getElementById('obs-turno');
     var obsV=obsEl?(obsEl.value||'').trim():'';
     if(obsV){
-      secTitle('Observacoes do Turno','#0284C7');
+      secTitle('Observacoes do Turno','#1A56DB');
       checkPage(16);
       var oLines=splitS(obsV,CW-6);
       var bh=oLines.length*5.5+8;
@@ -1591,9 +1591,9 @@ async function gerarPDF(silencioso){
     var nls2=splitS(nota,CW-16);
     var nH=nls2.length*5.5+16;
     checkPage(nH+6);
-    setFill('#0B1A2E');pdf.roundedRect(ML,y,CW,nH,3,3,'F');
-    setFill('#0EA5E9');pdf.rect(ML,y,CW,1.5,'F');
-    setTxt('#7DD3FC');pdf.setFontSize(8);pdf.setFont('helvetica','bold');
+    setFill('#0D1B3E');pdf.roundedRect(ML,y,CW,nH,3,3,'F');
+    setFill('#059669');pdf.rect(ML,y,CW,1.5,'F');
+    setTxt('#93C5FD');pdf.setFontSize(8);pdf.setFont('helvetica','bold');
     T('NOTA IMPORTANTE - ENTREGA OBRIGATORIA',ML+8,y+9);
     setDraw('#1E3A6E');pdf.setLineWidth(0.3);pdf.line(ML+8,y+12,ML+CW-8,y+12);
     setTxt('#E0F2FE');pdf.setFontSize(9);pdf.setFont('helvetica','normal');
@@ -1607,11 +1607,11 @@ async function gerarPDF(silencioso){
     try{ var zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
     for(var p=1;p<=nPg;p++){
       pdf.setPage(p);
-      setFill('#0B1A2E');pdf.rect(0,PH-12,PW,12,'F');
-      setFill('#0284C7');pdf.rect(0,PH-12,PW,1,'F');
-      setFill('#0EA5E9');pdf.rect(0,PH-13,PW,1,'F');
+      setFill('#0D1B3E');pdf.rect(0,PH-12,PW,12,'F');
+      setFill('#1A56DB');pdf.rect(0,PH-12,PW,1,'F');
+      setFill('#059669');pdf.rect(0,PH-13,PW,1,'F');
       if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
-      setTxt('#7DD3FC');pdf.setFontSize(7.5);pdf.setFont('helvetica','normal');
+      setTxt('#93C5FD');pdf.setFontSize(7.5);pdf.setFont('helvetica','normal');
       T('UCI - Hospital do Prenda - DEMA',ML+9,PH-5);
       T(new Date().toLocaleDateString('pt-PT')+' - Dr. '+mp,PW/2,PH-5,{align:'center'});
       setTxt('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(8);
