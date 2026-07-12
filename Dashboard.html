@@ -103,6 +103,9 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
 .panel{background:#fff;border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--s1);padding:20px 20px 16px;margin-bottom:18px;}
 .panel h2{font-size:.88rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .panel h2 .cnt{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tx3);background:var(--sf);border-radius:100px;padding:2px 9px;font-weight:500;}
+.sec-divider{display:flex;align-items:center;gap:12px;margin:26px 0 14px;}
+.sec-divider span{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--nv);white-space:nowrap;}
+.sec-divider::after{content:'';flex:1;height:1.5px;background:var(--br2);}
 
 /* ── DETAIL HEADER ────────────────────────────────────── */
 .dh{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
@@ -557,6 +560,218 @@ function blocoOperatorioSections(s){
   ];
 }
 
+/* ══════════════════ RESUMO GERAL DO DIA (cruza vários serviços) ══════════════════
+   Agrega dados brutos de vários serviços heterogéneos para a Visão Geral diária.
+   'type' indica que forma de dados o serviço tem, já que cada banco guarda os
+   seus campos de forma diferente (ver SCHEMAS acima para a mesma lógica por serviço). */
+const RESUMO_SERVICES = [
+  {id:'medicina_interna', name:'Medicina Interna', type:'groupA'},
+  {id:'cirurgia_geral', name:'Cirurgia Geral', type:'groupA'},
+  {id:'cirurgia_maxilo_facial', name:'Maxilo Facial', type:'groupA'},
+  {id:'neurocirurgia', name:'Neurocirurgia', type:'groupA'},
+  {id:'nefrologia', name:'Nefrologia', type:'nefro'},
+  {id:'oftalmologia', name:'Oftalmologia', type:'groupA'},
+  {id:'otorrinolaringologia', name:'Otorrinolaringologia', type:'groupA'},
+  {id:'bloco_operatorio', name:'Bloco Operatório', type:'bloco'},
+  {id:'uci', name:'UCI', type:'uci'},
+];
+
+function resumoPatientStats(type, s){
+  if(type==='groupA') return {total:num(s.pacTotal), genM:num(s.genM), genF:num(s.genF), idMen:num(s.idMen), idMai:num(s.idMai)};
+  let arr=[];
+  if(type==='nefro') arr = s.entradosData||[];
+  if(type==='uci') arr = saved(s.camas||[]);
+  if(type==='bloco') arr = [...saved(s.urgData||[]), ...saved(s.eleData||[])];
+  let genM=0,genF=0,idMen=0,idMai=0;
+  arr.forEach(p=>{ if((p.genero||'M')==='F')genF++; else genM++; if(num(p.idade)<15)idMen++; else idMai++; });
+  return {total:arr.length, genM, genF, idMen, idMai};
+}
+function resumoInternados(type, s){
+  if(type==='groupA') return (s.intData||[]).length;
+  if(type==='uci') return num(s.internados);
+  if(type==='nefro') return (s.entradosData||[]).length;
+  return 0;
+}
+function resumoObitosList(type, s){
+  if(type==='groupA') return saved(s.obitData||[]);
+  if(type==='uci') return saved(s.obitos||[]);
+  if(type==='nefro') return s.obitosData||[];
+  if(type==='bloco') return [...saved(s.urgData||[]), ...saved(s.eleData||[])].filter(c=>c.falecido);
+  return [];
+}
+function resumoAltas(type, s){
+  if(type==='groupA'||type==='nefro') return num(s.altas);
+  return 0;
+}
+function resumoTransfers(type, s){
+  if(type==='groupA') return {recebidas:s.transfR||[], efetuadas:s.transfE||[]};
+  return {recebidas:[], efetuadas:[]};
+}
+function resumoSinistralidade(type, s){
+  if(type==='groupA') return (s.sinV||[]).reduce((a,x)=>a+num(x.v),0);
+  return 0;
+}
+function resumoDiagnosticos(type, s){
+  if(type==='groupA') return s.diagData||[];
+  return [];
+}
+function resumoCirMaiorMenor(type, s){
+  if(type==='groupA') return {maior:num(s.cirMaior), menor:num(s.cirMenor)};
+  return {maior:0, menor:0};
+}
+function resumoVerificacoes(type, s){
+  if(type==='groupA') return (s.verfData||[]).length;
+  return 0;
+}
+
+function tableRow(cols){
+  return `<div class="rec"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">${cols.map((c,i)=>
+    `<span style="${i===0?'flex:1;min-width:120px;font-weight:700;color:var(--tx);':'font-family:\'DM Mono\',monospace;font-weight:700;color:var(--tx2);'}">${c}</span>`
+  ).join('')}</div></div>`;
+}
+function tablePanel(title, headerCols, rows, totalRow){
+  return `<div class="panel"><h2>${title}</h2><div class="rec-list">
+    <div class="rec" style="background:transparent;border:none;padding:2px 13px;"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">${headerCols.map((c,i)=>`<span style="${i===0?'flex:1;min-width:120px;':''}font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);">${c}</span>`).join('')}</div></div>
+    ${rows.join('')}
+    ${totalRow?`<div class="rec" style="background:var(--blxt);border-color:#BFDBFE;">${totalRow}</div>`:''}
+  </div></div>`;
+}
+
+function renderResumoGeral(dataset){
+  const present = RESUMO_SERVICES.filter(rs=>dataset[rs.id] && dataset[rs.id].snapshot);
+  if(!present.length){
+    return `<div class="panel"><h2>Resumo Geral do Dia</h2><div class="list-empty">Nenhum dos serviços do resumo geral tem registo confirmado nesta data.</div></div>`;
+  }
+  const rows = present.map(rs=>({rs, s:dataset[rs.id].snapshot}));
+
+  /* 1) Pacientes atendidos, género e faixa etária */
+  let totPac={total:0,genM:0,genF:0,idMen:0,idMai:0};
+  const pacRows = rows.map(({rs,s})=>{
+    const p = resumoPatientStats(rs.type, s);
+    totPac.total+=p.total; totPac.genM+=p.genM; totPac.genF+=p.genF; totPac.idMen+=p.idMen; totPac.idMai+=p.idMai;
+    return tableRow([rs.name, p.total, p.genM+'M/'+p.genF+'F', '<15: '+p.idMen, '15+: '+p.idMai]);
+  });
+  const pacTotalRow = tableRow(['<b>TOTAL GERAL</b>', totPac.total, totPac.genM+'M/'+totPac.genF+'F', '<15: '+totPac.idMen, '15+: '+totPac.idMai]);
+
+  /* 2) Internados */
+  let totInt=0;
+  const intRows = rows.map(({rs,s})=>{ const v=resumoInternados(rs.type,s); totInt+=v; return tableRow([rs.name, v]); });
+  const intTotalRow = tableRow(['<b>TOTAL GERAL</b>', totInt]);
+
+  /* 3) Óbitos por serviço + 13) por género/faixa etária */
+  let totObitos=0, obitGenM=0, obitGenF=0, obitIdMen=0, obitIdMai=0, maxObitosServ=null, maxObitosVal=-1;
+  const obitRows = rows.map(({rs,s})=>{
+    const list = resumoObitosList(rs.type, s);
+    list.forEach(o=>{ if((o.genero||'M')==='F')obitGenF++; else obitGenM++; if(num(o.idade)<15)obitIdMen++; else obitIdMai++; });
+    totObitos+=list.length;
+    if(list.length>maxObitosVal){ maxObitosVal=list.length; maxObitosServ=rs.name; }
+    return tableRow([rs.name, list.length]);
+  });
+  const obitTotalRow = tableRow(['<b>TOTAL GERAL</b>', totObitos]);
+  const taxaObito = totPac.total>0 ? ((totObitos/totPac.total)*100).toFixed(1) : '0.0';
+
+  /* 4) Altas */
+  let totAltas=0;
+  const altasRows = rows.map(({rs,s})=>{ const v=resumoAltas(rs.type,s); totAltas+=v; return tableRow([rs.name, v]); });
+  const altasTotalRow = tableRow(['<b>TOTAL GERAL</b>', totAltas]);
+
+  /* 5) Transferências recebidas/efectuadas + hospitais envolvidos */
+  let totRec=0, totEfe=0; const hospMap={};
+  const transfRows = rows.map(({rs,s})=>{
+    const t = resumoTransfers(rs.type, s);
+    totRec+=t.recebidas.length; totEfe+=t.efetuadas.length;
+    [...t.recebidas, ...t.efetuadas].forEach(r=>{
+      const h=(r.hospital||r.hospitalManual||'').trim(); if(!h) return;
+      hospMap[h]=(hospMap[h]||0)+1;
+    });
+    return tableRow([rs.name, 'Receb.: '+t.recebidas.length, 'Efect.: '+t.efetuadas.length]);
+  });
+  const transfTotalRow = tableRow(['<b>TOTAL GERAL</b>', 'Receb.: '+totRec, 'Efect.: '+totEfe]);
+  const hospList = Object.entries(hospMap).sort((a,b)=>b[1]-a[1]);
+
+  /* 6) Sinistralidade */
+  let totSin=0;
+  const sinRows = rows.map(({rs,s})=>{ const v=resumoSinistralidade(rs.type,s); totSin+=v; return tableRow([rs.name, v]); });
+  const sinTotalRow = tableRow(['<b>TOTAL GERAL</b>', totSin]);
+
+  /* 8) Top 20 diagnósticos */
+  const diagMap={};
+  rows.forEach(({rs,s})=>{
+    resumoDiagnosticos(rs.type,s).forEach(d=>{
+      const key=(d.desc||'—').trim(); if(!key||key==='—') return;
+      diagMap[key]=(diagMap[key]||0)+(num(d.qty)||1);
+    });
+  });
+  const top20Diag = Object.entries(diagMap).sort((a,b)=>b[1]-a[1]).slice(0,20);
+
+  /* 9) Cirurgias maiores/menores por especialidade */
+  let totMaior=0, totMenor=0;
+  const cirRows = rows.filter(({rs})=>rs.type==='groupA').map(({rs,s})=>{
+    const c = resumoCirMaiorMenor(rs.type,s); totMaior+=c.maior; totMenor+=c.menor;
+    return tableRow([rs.name, 'Maior: '+c.maior, 'Menor: '+c.menor]);
+  });
+  const cirTotalRow = tableRow(['<b>TOTAL GERAL</b>', 'Maior: '+totMaior, 'Menor: '+totMenor]);
+
+  /* 10) Técnicas anestésicas + 11) Cirurgias urgentes/electivas (só Bloco Operatório) */
+  const blocoEntry = dataset['bloco_operatorio'];
+  const blocoS = blocoEntry && blocoEntry.snapshot;
+  let urgN=0, eleN=0, anestMap={};
+  if(blocoS){
+    const urg=saved(blocoS.urgData||[]), ele=saved(blocoS.eleData||[]);
+    urgN=urg.length; eleN=ele.length;
+    [...urg,...ele].forEach(c=>(c.anest||[]).forEach(a=>{ anestMap[a]=(anestMap[a]||0)+1; }));
+  }
+  const anestList = Object.entries(anestMap).sort((a,b)=>b[1]-a[1]);
+  const anestTotal = anestList.reduce((a,[,v])=>a+v,0);
+
+  /* 12) Verificações */
+  let totVerf=0;
+  const verfRows = rows.filter(({rs})=>rs.type==='groupA').map(({rs,s})=>{
+    const v=resumoVerificacoes(rs.type,s); totVerf+=v; return tableRow([rs.name, v]);
+  });
+  const verfTotalRow = tableRow(['<b>TOTAL GERAL</b>', totVerf]);
+
+  return `
+    ${tablePanel('Pacientes Atendidos — por Serviço, Género e Faixa Etária', ['Serviço','Total','Género','<15 anos','15+ anos'], pacRows, pacTotalRow)}
+    ${tablePanel('Internados — por Serviço', ['Serviço','Internados'], intRows, intTotalRow)}
+    <div class="panel"><h2>Óbitos do Dia</h2>
+      <div class="stats-grid" style="margin-bottom:14px;">
+        <div class="stat-tile"><div class="v">${totObitos}</div><div class="l">Óbitos — Total Geral</div></div>
+        <div class="stat-tile"><div class="v">${taxaObito}%</div><div class="l">Taxa de Óbito do Dia</div></div>
+        <div class="stat-tile ${maxObitosVal>0?'':'zero'}"><div class="v" style="font-size:1rem;">${maxObitosVal>0?maxObitosServ:'—'}</div><div class="l">Serviço com Mais Óbitos</div></div>
+      </div>
+      <div class="rec-list">${obitRows.join('')}${obitTotalRow}</div>
+      <h2 style="margin-top:16px;">Óbitos — Género e Faixa Etária</h2>
+      <div class="stats-grid">
+        <div class="stat-tile"><div class="v">${obitGenM}</div><div class="l">Masculino</div></div>
+        <div class="stat-tile"><div class="v">${obitGenF}</div><div class="l">Feminino</div></div>
+        <div class="stat-tile"><div class="v">${obitIdMen}</div><div class="l">&lt;15 anos</div></div>
+        <div class="stat-tile"><div class="v">${obitIdMai}</div><div class="l">15+ anos</div></div>
+      </div>
+    </div>
+    ${tablePanel('Altas — por Serviço', ['Serviço','Altas'], altasRows, altasTotalRow)}
+    <div class="panel"><h2>Transferências — Recebidas e Efectuadas</h2>
+      <div class="rec-list">${transfRows.join('')}${transfTotalRow}</div>
+      ${hospList.length?`<h2 style="margin-top:16px;">Hospitais/Serviços Envolvidos</h2><div class="rec-list">${hospList.map(([h,n])=>tableRow([h,n])).join('')}</div>`:''}
+    </div>
+    ${tablePanel('Sinistralidade — por Serviço', ['Serviço','Casos'], sinRows, sinTotalRow)}
+    <div class="panel"><h2>20 Diagnósticos Mais Atendidos <span class="cnt">${top20Diag.length}</span></h2>
+      ${top20Diag.length?`<div class="rec-list">${top20Diag.map(([d,n],i)=>tableRow([(i+1)+'. '+d, n])).join('')}</div>`:`<div class="list-empty">Sem diagnósticos registados.</div>`}
+    </div>
+    ${cirRows.length?tablePanel('Cirurgias Maiores e Menores — por Especialidade', ['Especialidade','Maior','Menor'], cirRows, cirTotalRow):''}
+    <div class="panel"><h2>Bloco Operatório — Cirurgias do Dia</h2>
+      <div class="stats-grid" style="margin-bottom:14px;">
+        <div class="stat-tile"><div class="v">${urgN}</div><div class="l">Urgentes</div></div>
+        <div class="stat-tile"><div class="v">${eleN}</div><div class="l">Electivas</div></div>
+        <div class="stat-tile"><div class="v">${urgN+eleN}</div><div class="l">Total do Dia</div></div>
+      </div>
+      <h2>Técnicas Anestésicas</h2>
+      ${anestList.length?`<div class="rec-list">${anestList.map(([a,n])=>tableRow([a,n])).join('')}${tableRow(['<b>TOTAL GERAL</b>', anestTotal])}</div>`:`<div class="list-empty">Sem técnicas anestésicas registadas.</div>`}
+    </div>
+    ${verfRows.length?tablePanel('Verificações — por Serviço', ['Serviço','Verificações'], verfRows, verfTotalRow):''}
+  `;
+}
+
 const SCHEMAS = {
   cirurgia_geral: groupASections, ortopedia: groupASections, neurocirurgia: groupASections,
   cirurgia_maxilo_facial: groupASections, oftalmologia: groupASections, otorrinolaringologia: groupASections,
@@ -933,6 +1148,8 @@ function renderOverview(){
     <div class="panel"><h2>Cobertura do Dia</h2>${donutsHTML}</div>
     <div class="panel"><h2>Movimento por Serviço <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="bars">${barsHTML}</div></div>
     <div class="panel"><h2>Todos os Serviços <span class="cnt">${SERVICES.length}</span></h2><div class="grid">${cardsHTML}</div></div>
+    <div class="sec-divider"><span>Resumo Geral do Dia</span></div>
+    ${renderResumoGeral(currentDataset)}
   `;
 }
 
