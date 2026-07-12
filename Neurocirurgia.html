@@ -2388,7 +2388,7 @@ function updateDataLabel(){
 }
 
 // ── PDF (jsPDF nativo — sem canvas, paginação automática) ─────
-async function gerarPDF(){
+async function gerarPDF(silencioso){
   const meds=getMeds(eq1),meds2=getMeds(eq2);
   const sinRows=getSinData();
   const opSaved=opData.filter(x=>x.saved);
@@ -2944,8 +2944,9 @@ async function gerarPDF(){
     }
 
     const nome=`BANCO_ORTOPEDIA_${pdfFileName()}.pdf`;
-    pdf.save(nome);window._lastPDF=pdf;
-    toast('✓ PDF guardado.');return pdf;
+    window._lastPDF=pdf;
+    if(!silencioso){pdf.save(nome);toast('✓ PDF guardado.');}
+    return pdf;
   }catch(err){
     console.error(err);toast('Erro ao gerar PDF: '+err.message);return null;
   }
@@ -2955,7 +2956,7 @@ async function gerarPDF(){
 async function compartilhar(canal){
   const errs=validateAll();
   if(errs.length&&!confirm('⚠️ Campos incompletos:\n\n'+errs.join('\n')+'\n\nDeseja continuar mesmo assim?'))return;
-  const pdf=await gerarPDF();
+  const pdf=await gerarPDF(true);
   if(!pdf)return;
   try{
     const blob=pdf.output('blob');
@@ -2971,6 +2972,9 @@ async function compartilhar(canal){
     if(e && e.name==='AbortError'){ return; }
     console.error(e);
   }
+  const nomeFallback=(typeof pdfFileName==='function'?pdfFileName():String(Date.now()))+'.pdf';
+  pdf.save(nomeFallback);
+  if(typeof toast==='function')toast('PDF guardado — anexe manualmente.');
   if(canal==='wa'){ setTimeout(()=>window.open('https://wa.me/','_blank'),400); }
   if(canal==='email'){
     const periodo=(typeof pdfDateFmt==='function')?(' — '+pdfDateFmt()):'';

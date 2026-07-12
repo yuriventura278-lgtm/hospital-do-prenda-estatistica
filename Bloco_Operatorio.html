@@ -1138,7 +1138,7 @@ function pdfDateFmt(){
 
 // ── VISUALIZAR (modal igual à ortopedia) ─────────────────
 async function compartilhar(canal){
-  const pdf=await gerarPDF();
+  const pdf=await gerarPDF(true);
   if(!pdf)return;
   try{
     const blob=pdf.output('blob');
@@ -1154,6 +1154,9 @@ async function compartilhar(canal){
     if(e && e.name==='AbortError'){ return; }
     console.error(e);
   }
+  const nomeFallback=(typeof pdfFileName==='function'?pdfFileName():String(Date.now()))+'.pdf';
+  pdf.save(nomeFallback);
+  if(typeof toast==='function')toast('PDF guardado — anexe manualmente.');
   if(canal==='wa'){ setTimeout(()=>window.open('https://wa.me/','_blank'),400); }
   if(canal==='email'){
     const periodo=(typeof pdfDateFmt==='function')?(' — '+pdfDateFmt()):'';
@@ -1327,7 +1330,7 @@ function closeModal(){document.getElementById('ov').classList.remove('open');}
 document.getElementById('ov').addEventListener('click',e=>{if(e.target===document.getElementById('ov'))closeModal();});
 
 // ── PDF ───────────────────────────────────────────────────
-async function gerarPDF(){
+async function gerarPDF(silencioso){
   const urgSv=urgData.filter(x=>x.saved),eleSv=eleData.filter(x=>x.saved),susSv=susData.filter(x=>x.saved);
   const meds=getMeds(eq1),meds2=getMeds(eq2);
   toast('A gerar PDF...');
@@ -1579,8 +1582,8 @@ async function gerarPDF(){
       setF('#E2E8F0');pdf.rect(ML,PH-11,CW,.4,'F');
     }
     const rawDate=gv('data')||new Date().toLocaleDateString('pt-PT').replace(/\//g,'-');
-    pdf.save(`BlocoOperatorio_${rawDate}.pdf`);
-    toast('✓ PDF gerado!');return pdf;
+    if(!silencioso){pdf.save(`BlocoOperatorio_${rawDate}.pdf`);toast('✓ PDF gerado!');}
+    return pdf;
   }catch(e){console.error(e);toast('Erro ao gerar PDF.');}
 }
 
