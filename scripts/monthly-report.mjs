@@ -13,6 +13,7 @@ const CATS = {
   internamento: {label: 'Internamento & Cuidados', color: '#7C3AED'},
   diagnostico: {label: 'Diagnóstico & Laboratório', color: '#0EA5E9'},
   ambulatorio: {label: 'Ambulatório & Saúde Mental', color: '#059669'},
+  procedimentos: {label: 'Procedimentos de Enfermagem', color: '#D97706'},
 };
 
 const SERVICES = [
@@ -32,6 +33,28 @@ const SERVICES = [
   {id:'consulta_externa', name:'Consulta Externa', cat:'ambulatorio'},
   {id:'psicologia_clinica', name:'Psicologia Clínica', cat:'ambulatorio'},
 ];
+
+// Procedimentos de Enfermagem (registos_enf/<slug>) — namespace próprio no Firebase porque
+// 3 slugs (nefrologia, neurocirurgia, ortopedia) coincidem com ids de bancos acima.
+const PROC_CATS = [
+  {id: 'medicacao', label: 'Medicação e Terapêutica'},
+  {id: 'monitorizacao', label: 'Monitorização e Avaliação'},
+  {id: 'invasivos', label: 'Procedimentos Invasivos e Sondas'},
+  {id: 'curativos', label: 'Curativos, Pensos e Cirurgia Menor'},
+  {id: 'higiene', label: 'Higiene, Conforto e Cuidados Gerais'},
+  {id: 'avaliacao', label: 'Triagem, Consultas e Análises'},
+  {id: 'gestao', label: 'Gestão do Doente'},
+];
+const PROC_LABELS = {
+  cirurgia:'Cirurgia', ortopedia:'Ortopedia', neurocirurgia:'Neurocirurgia', maxilo_facial:'Maxilo Facial',
+  nefrologia:'Nefrologia', uci_intermedio:'UCI / Cuidados Intermédios', medicina_homem:'Medicina Homem',
+  medicina_mulher:'Medicina Mulher', bloco_operatorio:'Bloco Operatório', banco_urgencia:'Banco de Urgência',
+  hospital_dia:'Hospital de Dia', consulta_externa:'Consulta Externa',
+};
+const PROC_SERVICES = Object.entries(PROC_LABELS).map(([slug, name])=>(
+  {id:'proc_'+slug, name, cat:'procedimentos', slug, fbPrefix:'registos_enf'}
+));
+const ALL_SERVICES = [...SERVICES, ...PROC_SERVICES];
 
 function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
 function saved(arr){ return Array.isArray(arr) ? arr.filter(x=>x && x.saved) : []; }
@@ -76,12 +99,30 @@ function dayMetrics(id, s){
   }
 }
 
+/** Métrica de UM dia de procedimentos de enfermagem (snapshot no formato {sub:{subId:{cats:{catId:{d:[],n:[]}}}}}). */
+function procDayMetrics(s){
+  const sub = s.sub || {};
+  const catTotal = {};
+  PROC_CATS.forEach(c=>{ catTotal[c.label] = 0; });
+  let total = 0;
+  Object.values(sub).forEach(sd=>{
+    PROC_CATS.forEach(c=>{
+      const cd = sd && sd.cats && sd.cats[c.id];
+      if(!cd) return;
+      const t = (cd.d||[]).reduce((a,v)=>a+num(v),0) + (cd.n||[]).reduce((a,v)=>a+num(v),0);
+      catTotal[c.label] += t;
+      total += t;
+    });
+  });
+  return {headline: total, secondary: catTotal};
+}
+
 const HEADLINE_LABEL = {
   bloco_operatorio: 'Cirurgias', uci: 'Internados', nefrologia: 'Hemodiálise',
   fisioterapia: 'Atendimentos', laboratorio_clinico: 'Exames', imagiologia: 'Exames',
   consulta_externa: 'Consultas', psicologia_clinica: 'Atendidos',
 };
-function headlineLabel(id){ return HEADLINE_LABEL[id] || 'Pacientes'; }
+function headlineLabel(id){ if(id.startsWith('proc_')) return 'Procedimentos'; return HEADLINE_LABEL[id] || 'Pacientes'; }
 
 function getTargetMonth(refDate){
   const d = refDate || new Date();
@@ -171,10 +212,12 @@ async function main(){
   console.log(`A gerar resumo de ${monthLabel} (${ym})…`);
 
   const perService = [];
-  const toDelete = []; // {id, date}
+  const toDelete = []; // {prefix, id, date}
 
-  for(const svc of SERVICES){
-    const snap = await db.ref('registos/' + svc.id).once('value');
+  for(const svc of ALL_SERVICES){
+    const prefix = svc.fbPrefix || 'registos';
+    const fbId = svc.slug || svc.id;
+    const snap = await db.ref(prefix + '/' + fbId).once('value');
     const all = snap.val() || {};
     const monthEntries = Object.entries(all).filter(([date]) => date.startsWith(ym));
 
@@ -182,12 +225,12 @@ async function main(){
     const secondaryTotals = {};
     for(const [date, rec] of monthEntries){
       const s = (rec && rec.snapshot) || {};
-      const m = dayMetrics(svc.id, s);
+      const m = svc.cat === 'procedimentos' ? procDayMetrics(s) : dayMetrics(svc.id, s);
       headlineTotal += m.headline;
       for(const [k, v] of Object.entries(m.secondary)){
         secondaryTotals[k] = (secondaryTotals[k] || 0) + v;
       }
-      toDelete.push({id: svc.id, date});
+      toDelete.push({prefix, id: fbId, date});
     }
 
     perService.push({
@@ -228,8 +271,8 @@ async function main(){
   }
 
   console.log(`A remover ${toDelete.length} registo(s) confirmado(s) de ${ym} do Firebase…`);
-  for(const {id, date} of toDelete){
-    await db.ref('registos/' + id + '/' + date).remove();
+  for(const {prefix, id, date} of toDelete){
+    await db.ref(prefix + '/' + id + '/' + date).remove();
   }
   console.log('Limpeza concluída.');
 }

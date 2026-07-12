@@ -264,6 +264,7 @@ const CATS = [
   {id:'internamento', label:'Internamento & Cuidados', color:'#7C3AED'},
   {id:'diagnostico', label:'Diagnóstico & Laboratório', color:'#0EA5E9'},
   {id:'ambulatorio', label:'Ambulatório & Saúde Mental', color:'#059669'},
+  {id:'procedimentos', label:'Procedimentos de Enfermagem', color:'#D97706'},
 ];
 const SERVICES = [
   {id:'cirurgia_geral', name:'Cirurgia Geral', cat:'cirurgicas'},
@@ -282,6 +283,43 @@ const SERVICES = [
   {id:'consulta_externa', name:'Consulta Externa', cat:'ambulatorio'},
   {id:'psicologia_clinica', name:'Psicologia Clínica', cat:'ambulatorio'},
 ];
+
+/* ── Procedimentos de Enfermagem (registos_enf/<slug>) — namespace próprio no Firebase
+     porque 3 slugs (nefrologia, neurocirurgia, ortopedia) coincidem com ids de bancos acima ── */
+const PROC_CATS = [
+  {"id": "medicacao", "label": "Medicação e Terapêutica", "n": 11, "names": ["Medicação Oral", "Injecção IM", "Injecção IV", "Injecção SC", "Venoclise (Hidratação EV)", "Nebulização", "Medicação Rectal", "Oxigenoterapia", "Hidratação Via Oral / SRO", "Hemotransfusão", "Insulinoterapia"]},
+  {"id": "monitorizacao", "label": "Monitorização e Avaliação", "n": 9, "names": ["Avaliação da TA", "Controle da Temperatura", "Glicemia Capilar", "Electrocardiograma", "Controle da Respiração", "Controle do Pulso", "Controle do Peso", "Monitoramento da Dor", "Balanço Hídrico"]},
+  {"id": "invasivos", "label": "Procedimentos Invasivos e Sondas", "n": 21, "names": ["Canalização Venosa — Veia Periférica", "Alimentação / SNG", "Algaliação (Sonda Vesical)", "Lavagem Gástrica", "Aspiração de Secreções", "Entubação Naso Gástrica", "Lavagem Vesical", "Abordagem da Veia Superficial", "Cuidados c/ Abordagem Profunda", "Abordagem de Veia Profunda", "Retirada de Sonda Vesical", "Remoção de Sonda Nasogástrica", "Troca de Máscara de Oxigénio", "Cuidados com Cateter Venoso Periférico", "Cuidados com Cateter Venoso Central", "Cuidados com Cateter Diálise", "Higienização do Monitor de Diálise", "Pensos do Cateter Central", "Cuidados Orotraqueais", "Canalização Fístula Artério Venosa", "Remoção de Drenos"]},
+  {"id": "curativos", "label": "Curativos, Pensos e Cirurgia Menor", "n": 13, "names": ["Penso e Curativo", "Suturas", "Aplicação de Gesso", "Aplicação de Tala de Gesso", "Tricotomia", "Outros Actos de Pequena Cirurgia", "Retirada de Pontos", "Lavagem de Ouvidos", "Remoção de Gesso", "Remoção de Tala", "Lavagem Vaginal", "Extracção Dentária", "Tratamento Dentário"]},
+  {"id": "higiene", "label": "Higiene, Conforto e Cuidados Gerais", "n": 9, "names": ["Suporte Alimentar / Via Oral", "Imobilização de Doentes", "Banho na Cama", "Mudança de Cúbito", "Preparação de Cadáver", "Prevenção de Escaras", "Auxílio na Alimentação do Doente", "Troca de Cardaço", "Troca de Saco Colector de Urina"]},
+  {"id": "avaliacao", "label": "Triagem, Consultas e Análises", "n": 6, "names": ["Triagem Adulto", "Análises Colhidas", "Testagem Voluntária e Aconselhamento", "Consulta ORL", "Consulta Oftalmologia", "Cuidados com os Olhos"]},
+  {"id": "gestao", "label": "Gestão do Doente", "n": 4, "names": ["Orientação do Doente na Admissão", "Orientação do Doente na Alta", "Arrumação dos Doentes", "Transporte dos Doentes"]}
+];
+const PROC_SUBS = {
+  cirurgia: [{id:'cirurgia', label:'Cirurgia'}],
+  ortopedia: [{id:'ortopedia', label:'Ortopedia'}],
+  neurocirurgia: [{id:'neurocirurgia', label:'Neurocirurgia'}],
+  maxilo_facial: [{id:'maxilo', label:'Maxilo Facial'}],
+  nefrologia: [{id:'nefrologia', label:'Nefrologia'}],
+  uci_intermedio: [{id:'uci', label:'UCI'}, {id:'cuid_intermedio', label:'Cuidados Intermédios'}],
+  medicina_homem: [{id:'med_homem', label:'Medicina Homem'}],
+  medicina_mulher: [{id:'med_mulher', label:'Medicina Mulher'}],
+  bloco_operatorio: [{id:'bloco_urgente', label:'Bloco Op. Urgente'}, {id:'bloco_electiva', label:'Bloco Op. Electiva'}],
+  banco_urgencia: [{id:'banco_urg', label:'Banco de Urgência'}],
+  hospital_dia: [{id:'hosp_dia', label:'Hospital de Dia'}],
+  consulta_externa: [{id:'consulta_ext', label:'Consulta Externa'}],
+};
+const PROC_LABELS = {
+  cirurgia:'Cirurgia', ortopedia:'Ortopedia', neurocirurgia:'Neurocirurgia', maxilo_facial:'Maxilo Facial',
+  nefrologia:'Nefrologia', uci_intermedio:'UCI / Cuidados Intermédios', medicina_homem:'Medicina Homem',
+  medicina_mulher:'Medicina Mulher', bloco_operatorio:'Bloco Operatório', banco_urgencia:'Banco de Urgência',
+  hospital_dia:'Hospital de Dia', consulta_externa:'Consulta Externa',
+};
+const PROC_SERVICES = Object.keys(PROC_SUBS).map(slug=>({
+  id:'proc_'+slug, name:PROC_LABELS[slug], cat:'procedimentos', slug, fbPrefix:'registos_enf',
+}));
+SERVICES.push(...PROC_SERVICES);
+
 SERVICES.forEach(s=>{ s.color = CATS.find(c=>c.id===s.cat).color; });
 const catOf = id => CATS.find(c=>c.id===id);
 const svcOf = id => SERVICES.find(s=>s.id===id);
@@ -525,8 +563,67 @@ const SCHEMAS = {
   bloco_operatorio: blocoOperatorioSections,
 };
 
+/* ── Procedimentos de Enfermagem: dados no formato {_ts, chefeTurno, dataInicio, sub:{subId:{cats:{catId:{d:[],n:[]}}}}} ── */
+function procedimentoSections(s){
+  const slug = this && this.slug;
+  const subs = PROC_SUBS[slug] || [];
+  const sub = s.sub || {};
+  const catTotal = catId=>{
+    let d=0,n=0;
+    subs.forEach(sb=>{
+      const cd = sub[sb.id] && sub[sb.id].cats && sub[sb.id].cats[catId];
+      if(cd){ d += (cd.d||[]).reduce((a,v)=>a+num(v),0); n += (cd.n||[]).reduce((a,v)=>a+num(v),0); }
+    });
+    return {d,n,t:d+n};
+  };
+  let totD=0, totN=0;
+  const chartCats = PROC_CATS.map(c=>{ const t=catTotal(c.id); totD+=t.d; totN+=t.n; return {label:c.label, value:t.t}; });
+  const items = [];
+  subs.forEach(sb=>{
+    const subData = sub[sb.id];
+    if(!subData) return;
+    PROC_CATS.forEach(c=>{
+      const cd = subData.cats && subData.cats[c.id];
+      if(!cd) return;
+      c.names.forEach((name,i)=>{
+        const d = num(cd.d && cd.d[i]), n = num(cd.n && cd.n[i]);
+        if(d||n) items.push({title:name, subtitle:(subs.length>1?sb.label+' · ':'')+c.label, meta:['Dia: '+d, 'Noite: '+n, 'Total: '+(d+n)], _t:d+n});
+      });
+    });
+  });
+  items.sort((a,b)=>b._t-a._t);
+  const notes = [];
+  if(s.chefeTurno) notes.push({label:'Chefe de Turno', text:s.chefeTurno});
+  subs.forEach(sb=>{
+    const subData = sub[sb.id];
+    if(!subData) return;
+    if(subData.notesD) notes.push({label:sb.label+' · Notas do Dia', text:subData.notesD});
+    if(subData.notesN) notes.push({label:sb.label+' · Notas da Noite', text:subData.notesN});
+  });
+  return [
+    S_stats('Movimento do Turno', [
+      {label:'Procedimentos — Dia', value:totD},
+      {label:'Procedimentos — Noite', value:totN},
+      {label:'Total de Procedimentos', value:totD+totN},
+    ]),
+    S_chart('Procedimentos por Categoria', chartCats),
+    S_list('Procedimentos Registados', items, 'Sem procedimentos registados.'),
+    S_notes('Observações', notes),
+  ];
+}
+PROC_SERVICES.forEach(svc=>{ SCHEMAS[svc.id] = procedimentoSections.bind(svc); });
+
 /* Métrica de destaque (usada só na Visão Geral) */
 function headline(id, s){
+  if(s && s.sub){
+    let t=0;
+    Object.values(s.sub).forEach(sd=>{
+      Object.values((sd&&sd.cats)||{}).forEach(cd=>{
+        t += (cd.d||[]).reduce((a,v)=>a+num(v),0) + (cd.n||[]).reduce((a,v)=>a+num(v),0);
+      });
+    });
+    return ['Procedimentos', t];
+  }
   switch(id){
     case 'bloco_operatorio': return ['Cirurgias', saved(s.urgData).length+saved(s.eleData).length];
     case 'uci': return ['Internados', num(s.internados)];
@@ -1024,7 +1121,7 @@ async function load(){
   if(currentPeriod==='day'){
     const data = dataSel.value;
     const results = await Promise.all(SERVICES.map(async svc=>{
-      try{ return [svc.id, await window.__fbGet('registos/'+svc.id+'/'+data)]; }
+      try{ return [svc.id, await window.__fbGet((svc.fbPrefix||'registos')+'/'+(svc.slug||svc.id)+'/'+data)]; }
       catch(e){ return [svc.id, null]; }
     }));
     currentDataset = Object.fromEntries(results);
@@ -1034,7 +1131,7 @@ async function load(){
     const results = await Promise.all(SERVICES.map(async svc=>{
       const days = await Promise.all(currentRange.map(async date=>{
         try{
-          const entry = await window.__fbGet('registos/'+svc.id+'/'+date);
+          const entry = await window.__fbGet((svc.fbPrefix||'registos')+'/'+(svc.slug||svc.id)+'/'+date);
           return {date, savedAt: entry&&entry.savedAt, snapshot: entry&&entry.snapshot};
         }catch(e){ return {date, savedAt:null, snapshot:null}; }
       }));

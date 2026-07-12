@@ -6,6 +6,30 @@
 <title>Procedimentos de Enfermagem — Cirurgia — Hospital do Prenda</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyB72sUTmo7x1gOiNQfn112Na2MvX82kZ4E",
+    authDomain: "hospital-do-prenda-1de35.firebaseapp.com",
+    databaseURL: "https://hospital-do-prenda-1de35-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "hospital-do-prenda-1de35",
+    storageBucket: "hospital-do-prenda-1de35.firebasestorage.app",
+    messagingSenderId: "991683012968",
+    appId: "1:991683012968:web:f86ae42cd1cbe8bc71cedd"
+  };
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
+    window.__fbReady = false;
+  }
+</script>
 <style>
 
 :root{
@@ -794,9 +818,20 @@ async function acaoPDF(){
   const pdf=await construirPDF();
   if(pdf){ pdf.save(pdfFileName()); toast('✓ PDF guardado.'); }
 }
+// ── SINCRONIZAÇÃO ENTRE DISPOSITIVOS (Firebase Realtime Database) ──
+const FB_PATH = 'registos_enf/' + PAGE_SLUG;
+
+function enviarParaFirebase(dataStr, registo){
+  if(!window.__fbReady || !dataStr || !window.__fbSet) return;
+  window.__fbSet(FB_PATH+'/'+dataStr, registo)
+    .catch(e=>console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e));
+}
+
 function acaoGuardar(){
   if(!validarChefe())return;
-  persist(currentDate());
+  const dataStr=currentDate();
+  persist(dataStr);
+  enviarParaFirebase(dataStr, {savedAt:new Date().toISOString(), snapshot:buildSnapshot()});
   toast('✓ Registo guardado.');
 }
 
