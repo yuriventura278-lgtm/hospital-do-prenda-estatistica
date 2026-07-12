@@ -539,8 +539,20 @@ function pdfDateFmt(){
   const [y,m,dd]=d.split('-');return dd+'/'+m+'/'+y;
 }
 function pdfFileName(){
-  const d=gv('data')||new Date().toISOString().slice(0,10);
-  return d.replace(/-/g,'');
+  var SERVICO='Psicologia Clínica';
+  var raw=gv('data');
+  var rawFim=gv('data-fim');
+  var fmtFull=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});};
+  var fmtShort=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long'});};
+  if(!raw){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(new Date());
+  }
+  var d1=new Date(raw+'T12:00:00');
+  if(!rawFim){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(d1);
+  }
+  var d2=new Date(rawFim+'T12:00:00');
+  return 'Relatório Diário de '+SERVICO+' do dia '+fmtShort(d1)+' ao dia '+fmtFull(d2);
 }
 
 // ═══════════════════════════════════════════════
@@ -1214,7 +1226,7 @@ async function gerarPDF(silencioso){
       pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});
     }
 
-    const nome='PSICOLOGIA_'+pdfFileName()+'.pdf';
+    const nome=pdfFileName()+'.pdf';
     window._lastPDF=pdf;
     if(!silencioso){pdf.save(nome);toast('✓ PDF guardado.');}
     return pdf;

@@ -1164,7 +1164,22 @@ function pdfDateFmt(){
   const v=gv('data');if(!v)return new Date().toLocaleDateString('pt-PT');
   try{return new Date(v+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});}catch(e){return v;}
 }
-function pdfFileName(){return(gv('data')||new Date().toISOString().slice(0,10)).replace(/-/g,'_');}
+function pdfFileName(){
+  var SERVICO='Consulta Externa';
+  var raw=gv('data');
+  var rawFim=gv('data-fim');
+  var fmtFull=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});};
+  var fmtShort=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long'});};
+  if(!raw){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(new Date());
+  }
+  var d1=new Date(raw+'T12:00:00');
+  if(!rawFim){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(d1);
+  }
+  var d2=new Date(rawFim+'T12:00:00');
+  return 'Relatório Diário de '+SERVICO+' do dia '+fmtShort(d1)+' ao dia '+fmtFull(d2);
+}
 
 function gerarPDF(silencioso){
   try{
@@ -1317,7 +1332,7 @@ function gerarPDF(silencioso){
       pdf.text('Pag. '+p+' / '+nPg,PW-MR,PH-4.5,{align:'right'});
     }
     window._lastPDF=pdf;
-    if(!silencioso){pdf.save('CONSULTA_EXTERNA_'+pdfFileName()+'.pdf');toast('✓ PDF gerado com sucesso!');}
+    if(!silencioso){pdf.save(pdfFileName()+'.pdf');toast('✓ PDF gerado com sucesso!');}
     return pdf;
   }catch(err){console.error(err);toast('Erro ao gerar PDF: '+err.message);return null;}
 }

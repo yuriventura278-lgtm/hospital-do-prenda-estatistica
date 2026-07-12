@@ -670,7 +670,22 @@ function pdfDateFmt(){
   if(rawFim&&rawFim!==raw)return fmt(raw)+' — '+fmt(rawFim);
   return new Date(raw+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
 }
-function pdfFileName(){const raw=gv('data');if(!raw)return new Date().toLocaleDateString('pt-PT').replace(/\//g,'-');return new Date(raw+'T12:00:00').toLocaleDateString('pt-PT').replace(/\//g,'-');}
+function pdfFileName(){
+  var SERVICO='Laboratório Clínico';
+  var raw=gv('data');
+  var rawFim=gv('data-fim');
+  var fmtFull=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});};
+  var fmtShort=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long'});};
+  if(!raw){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(new Date());
+  }
+  var d1=new Date(raw+'T12:00:00');
+  if(!rawFim){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(d1);
+  }
+  var d2=new Date(rawFim+'T12:00:00');
+  return 'Relatório Diário de '+SERVICO+' do dia '+fmtShort(d1)+' ao dia '+fmtFull(d2);
+}
 
 // ── SNAPSHOT ─────────────────────────────────────────────────
 
@@ -1184,7 +1199,7 @@ async function gerarPDF(silencioso){
       pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});
     }
 
-    const nome='LABORATORIO_CLINICO_'+pdfFileName()+'.pdf';
+    const nome=pdfFileName()+'.pdf';
     window._lastPDF=pdf;
     if(!silencioso){pdf.save(nome);toast('PDF guardado com sucesso!');}
     return pdf;

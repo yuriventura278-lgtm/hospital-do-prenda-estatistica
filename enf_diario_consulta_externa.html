@@ -753,7 +753,12 @@ async function construirPDF(){
   }
 }
 
-function pdfFileName(){ return 'Procedimentos_Enfermagem_'+slugTitle()+'_'+pdfFileNameDate()+'.pdf'; }
+function pdfFileName(){
+  var fim=currentDate();
+  var d=fim?new Date(fim+'T12:00:00'):new Date();
+  var fmtFull=d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
+  return 'Procedimentos de Enfermagem de '+PAGE_LABEL+' do dia '+fmtFull+'.pdf';
+}
 
 // ── ACÇÕES — WhatsApp/Email carregam o PDF e abrem a partilha nativa ──
 async function compartilhar(canal){

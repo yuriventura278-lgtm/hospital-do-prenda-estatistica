@@ -2365,13 +2365,20 @@ function pdfDateFmt(){
   return fmt1+' a '+fmt2;
 }
 function pdfFileName(){
-  const raw=gv('data');
-  const rawFim=gv('data-fim');
-  if(!raw)return new Date().toLocaleDateString('pt-PT').replace(/\//g,'-');
-  const d1=new Date(raw+'T12:00:00').toLocaleDateString('pt-PT').replace(/\//g,'-');
-  if(!rawFim) return d1;
-  const d2=new Date(rawFim+'T12:00:00').toLocaleDateString('pt-PT').replace(/\//g,'-');
-  return d1+'_a_'+d2;
+  var SERVICO='Maxilo Facial';
+  var raw=gv('data');
+  var rawFim=gv('data-fim');
+  var fmtFull=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});};
+  var fmtShort=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long'});};
+  if(!raw){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(new Date());
+  }
+  var d1=new Date(raw+'T12:00:00');
+  if(!rawFim){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(d1);
+  }
+  var d2=new Date(rawFim+'T12:00:00');
+  return 'Relatório Diário de '+SERVICO+' do dia '+fmtShort(d1)+' ao dia '+fmtFull(d2);
 }
 function updateDataLabel(){
   const raw=gv('data');
@@ -2943,7 +2950,7 @@ async function gerarPDF(silencioso){
       pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});
     }
 
-    const nome=`BANCO_ORTOPEDIA_${pdfFileName()}.pdf`;
+    const nome=pdfFileName()+'.pdf';
     window._lastPDF=pdf;
     if(!silencioso){pdf.save(nome);toast('✓ PDF guardado.');}
     return pdf;

@@ -1330,6 +1330,22 @@ function closeModal(){document.getElementById('ov').classList.remove('open');}
 document.getElementById('ov').addEventListener('click',e=>{if(e.target===document.getElementById('ov'))closeModal();});
 
 // ── PDF ───────────────────────────────────────────────────
+function pdfFileName(){
+  var SERVICO='Bloco Operatório';
+  var raw=gv('data');
+  var rawFim=gv('data-fim');
+  var fmtFull=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});};
+  var fmtShort=function(d){return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long'});};
+  if(!raw){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(new Date());
+  }
+  var d1=new Date(raw+'T12:00:00');
+  if(!rawFim){
+    return 'Relatório Diário de '+SERVICO+' do dia '+fmtFull(d1);
+  }
+  var d2=new Date(rawFim+'T12:00:00');
+  return 'Relatório Diário de '+SERVICO+' do dia '+fmtShort(d1)+' ao dia '+fmtFull(d2);
+}
 async function gerarPDF(silencioso){
   const urgSv=urgData.filter(x=>x.saved),eleSv=eleData.filter(x=>x.saved),susSv=susData.filter(x=>x.saved);
   const meds=getMeds(eq1),meds2=getMeds(eq2);
@@ -1582,7 +1598,7 @@ async function gerarPDF(silencioso){
       setF('#E2E8F0');pdf.rect(ML,PH-11,CW,.4,'F');
     }
     const rawDate=gv('data')||new Date().toLocaleDateString('pt-PT').replace(/\//g,'-');
-    if(!silencioso){pdf.save(`BlocoOperatorio_${rawDate}.pdf`);toast('✓ PDF gerado!');}
+    if(!silencioso){pdf.save(pdfFileName()+'.pdf');toast('✓ PDF gerado!');}
     return pdf;
   }catch(e){console.error(e);toast('Erro ao gerar PDF.');}
 }
