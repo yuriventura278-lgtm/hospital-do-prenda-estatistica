@@ -91,6 +91,24 @@ textarea{resize:vertical;min-height:72px;line-height:1.65;}
 .pr-in{display:flex;flex-direction:column;align-items:center;gap:3px;}
 .pr-in span{font-size:.52rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--tx3);}
 .pr-in input{width:54px;padding:7px 2px;text-align:center;font-family:'DM Mono',monospace;font-size:.92rem;border-radius:7px;}
+/* PROCEDIMENTOS — categorias colapsáveis + pesquisa */
+.proc-tools{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+.proc-search{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--sf);border:1.5px solid var(--br2);border-radius:var(--r);padding:9px 12px;}
+.proc-search svg{color:var(--tx3);flex-shrink:0;}
+.proc-search input{border:none;background:transparent;outline:none;font-size:.82rem;flex:1;color:var(--tx);width:100%;padding:0;}
+.proc-toggle-all{flex-shrink:0;background:#fff;border:1.5px solid var(--br2);border-radius:var(--r);padding:9px 14px;font-size:.72rem;font-weight:700;color:var(--tx2);cursor:pointer;font-family:'Inter',sans-serif;}
+.proc-toggle-all:active{transform:scale(.97);}
+.pcat{border:1.5px solid var(--br);border-radius:12px;margin-bottom:8px;overflow:hidden;}
+.pcat-h{width:100%;display:flex;align-items:center;gap:9px;padding:11px 12px;background:var(--sf);border:none;cursor:pointer;font-family:'Inter',sans-serif;text-align:left;-webkit-tap-highlight-color:transparent;}
+.pcat-h svg{flex-shrink:0;color:var(--tx3);transition:transform .16s;}
+.pcat.open>.pcat-h svg{transform:rotate(90deg);}
+.pcat-label{flex:1;font-size:.78rem;font-weight:700;color:var(--nv);}
+.pcat-badge{font-family:'DM Mono',monospace;font-size:.62rem;font-weight:700;color:var(--tx3);background:#fff;border-radius:100px;padding:2px 9px;flex-shrink:0;border:1px solid var(--br2);}
+.pcat-badge.on{color:#166534;background:#F0FDF4;border-color:#86EFAC;}
+.pcat-body{display:none;padding:2px 12px 4px;}
+.pcat.open>.pcat-body{display:block;}
+.pr.hide{display:none;}
+.pcat.filtered-hide{display:none;}
 /* ACTION BAR */
 .ab{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--br);padding:10px 14px;display:flex;gap:8px;z-index:100;box-shadow:0 -6px 24px rgba(13,27,62,.1);}
 .bm{flex:1;padding:15px 8px;border-radius:var(--r);font-size:.8rem;font-weight:700;font-family:'Inter',sans-serif;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .13s;-webkit-tap-highlight-color:transparent;}
@@ -265,19 +283,12 @@ function closeSplash(){
 <div class="sec">
   <div class="sh">
     <div class="si ibl"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-    <div class="st"><h2>Período do Turno</h2><p id="data-label">Turno de 24 horas</p></div>
+    <div class="st"><h2>Data do Registo</h2><p id="data-label">Turno de 24 horas</p></div>
   </div>
   <div class="sb">
-    <div class="dr">
-      <div class="dr-col">
-        <label>Início (dia anterior)</label>
-        <div class="db"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><input type="date" id="dataInicio" oninput="onDatasInput()"/></div>
-      </div>
-      <div class="dr-arrow">→</div>
-      <div class="dr-col">
-        <label>Fim (hoje)</label>
-        <div class="db"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><input type="date" id="dataFim" required oninput="onDatasInput()"/></div>
-      </div>
+    <div class="f">
+      <label>Data</label>
+      <div class="db"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><input type="date" id="dataFim" required oninput="onDatasInput()"/></div>
     </div>
   </div>
 </div>
@@ -297,534 +308,8 @@ function closeSplash(){
 </div>
 
 
-<div class="subhdr"><span class="sn">01</span><h3>Hospital de Dia</h3></div>
-<div class="subtot">
-  <div class="stc d"><div class="l">Dia</div><div class="v" id="subt_hosp_dia_d">0</div></div>
-  <div class="stc n"><div class="l">Noite</div><div class="v" id="subt_hosp_dia_n">0</div></div>
-  <div class="stc t"><div class="l">Total</div><div class="v" id="subt_hosp_dia_t">0</div></div>
-</div>
+<div id="procRoot_hosp_dia"></div>
 
-<div class="sec">
-  <div class="sh">
-    <div class="si igr"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><path d="M5 6h14v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
-    <div class="st"><h2>Procedimentos</h2><p>73 procedimentos · ordem fixa</p></div>
-    <span class="bdg" id="bdg_hosp_dia">0</span>
-  </div>
-  <div class="sb">
-    
-      <div class="pr">
-        <div class="pr-name">Medicação Oral</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_0_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_0_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Injecção IM</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_1_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_1_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Injecção IV</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_2_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_2_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Injecção SC</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_3_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_3_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Venoclise (Hidratação EV)</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_4_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_4_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Nebulização</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_5_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_5_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Medicação Rectal</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_6_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_6_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Oxigenoterapia</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_7_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_7_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Hidratação Via Oral / SRO</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_8_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_8_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Hemotransfusão</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_9_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_9_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Insulinoterapia</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_10_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_medicacao_10_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Avaliação da TA</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_0_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_0_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Controle da Temperatura</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_1_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_1_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Glicemia Capilar</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_2_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_2_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Electrocardiograma</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_3_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_3_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Controle da Respiração</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_4_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_4_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Controle do Pulso</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_5_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_5_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Controle do Peso</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_6_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_6_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Monitoramento da Dor</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_7_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_7_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Balanço Hídrico</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_8_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_monitorizacao_8_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Canalização Venosa — Veia Periférica</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_0_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_0_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Alimentação / SNG</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_1_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_1_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Algaliação (Sonda Vesical)</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_2_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_2_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Lavagem Gástrica</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_3_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_3_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Aspiração de Secreções</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_4_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_4_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Entubação Naso Gástrica</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_5_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_5_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Lavagem Vesical</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_6_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_6_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Abordagem da Veia Superficial</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_7_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_7_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Cuidados c/ Abordagem Profunda</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_8_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_8_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Abordagem de Veia Profunda</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_9_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_9_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Retirada de Sonda Vesical</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_10_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_10_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Remoção de Sonda Nasogástrica</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_11_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_11_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Troca de Máscara de Oxigénio</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_12_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_12_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Cuidados com Cateter Venoso Periférico</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_13_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_13_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Cuidados com Cateter Venoso Central</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_14_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_14_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Cuidados com Cateter Diálise</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_15_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_15_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Higienização do Monitor de Diálise</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_16_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_16_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Pensos do Cateter Central</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_17_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_17_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Cuidados Orotraqueais</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_18_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_18_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Canalização Fístula Artério Venosa</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_19_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_19_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Remoção de Drenos</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_20_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_invasivos_20_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Penso e Curativo</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_0_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_0_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Suturas</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_1_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_1_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Aplicação de Gesso</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_2_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_2_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Aplicação de Tala de Gesso</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_3_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_3_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Tricotomia</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_4_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_4_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Outros Actos de Pequena Cirurgia</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_5_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_5_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Retirada de Pontos</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_6_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_6_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Lavagem de Ouvidos</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_7_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_7_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Remoção de Gesso</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_8_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_8_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Remoção de Tala</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_9_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_9_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Lavagem Vaginal</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_10_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_10_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Extracção Dentária</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_11_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_11_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Tratamento Dentário</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_12_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_curativos_12_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Suporte Alimentar / Via Oral</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_0_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_0_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Imobilização de Doentes</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_1_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_1_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Banho na Cama</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_2_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_2_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Mudança de Cúbito</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_3_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_3_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Preparação de Cadáver</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_4_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_4_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Prevenção de Escaras</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_5_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_5_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Auxílio na Alimentação do Doente</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_6_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_6_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Troca de Cardaço</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_7_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_7_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Troca de Saco Colector de Urina</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_8_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_higiene_8_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Triagem Adulto</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_0_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_0_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Análises Colhidas</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_1_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_1_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Testagem Voluntária e Aconselhamento</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_2_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_2_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Consulta ORL</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_3_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_3_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Consulta Oftalmologia</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_4_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_4_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Cuidados com os Olhos</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_5_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_avaliacao_5_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Orientação do Doente na Admissão</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_gestao_0_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_gestao_0_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Orientação do Doente na Alta</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_gestao_1_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_gestao_1_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Arrumação dos Doentes</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_gestao_2_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_gestao_2_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-      <div class="pr">
-        <div class="pr-name">Transporte dos Doentes</div>
-        <div class="pr-inputs">
-          <div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_gestao_3_d" oninput="onProcInput('hosp_dia')"/></div>
-          <div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_hosp_dia_gestao_3_n" oninput="onProcInput('hosp_dia')"/></div>
-        </div>
-      </div>
-  </div>
-</div>
 <div class="sec">
   <div class="sh"><div class="si ibl"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><path d="M5 6h14v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div><div class="st"><h2>Observações — Hospital de Dia</h2><p>Notas do turno Dia / Noite</p></div></div>
   <div class="sb">
@@ -892,11 +377,96 @@ function grandTotals(){
   return {d,n,t:d+n};
 }
 
+// ── Procedimentos — gerados a partir de CATS/SUBS: categorias colapsáveis + pesquisa ──
+function renderProcSection(s,idx){
+  const nn=String(idx+1).padStart(2,'0');
+  let catsHtml='';
+  CATS.forEach(cat=>{
+    let rows='';
+    cat.names.forEach((name,i)=>{
+      rows+='<div class="pr" data-name="'+escHtml(name).toLowerCase()+'">'
+          +'<div class="pr-name">'+escHtml(name)+'</div>'
+          +'<div class="pr-inputs">'
+          +'<div class="pr-in"><span>Dia</span><input type="number" min="0" inputmode="numeric" id="f_'+s.id+'_'+cat.id+'_'+i+'_d" oninput="onProcInput(\''+s.id+'\')"/></div>'
+          +'<div class="pr-in"><span>Noite</span><input type="number" min="0" inputmode="numeric" id="f_'+s.id+'_'+cat.id+'_'+i+'_n" oninput="onProcInput(\''+s.id+'\')"/></div>'
+          +'</div></div>';
+    });
+    catsHtml+='<div class="pcat open" data-cat="'+cat.id+'">'
+        +'<button type="button" class="pcat-h" onclick="toggleCat(this)">'
+        +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+        +'<span class="pcat-label">'+escHtml(cat.label)+'</span>'
+        +'<span class="pcat-badge" id="catbdg_'+s.id+'_'+cat.id+'">0</span>'
+        +'</button>'
+        +'<div class="pcat-body">'+rows+'</div>'
+        +'</div>';
+  });
+  return '<div class="subhdr"><span class="sn">'+nn+'</span><h3>'+escHtml(s.label)+'</h3></div>'
+    +'<div class="subtot">'
+    +'<div class="stc d"><div class="l">Dia</div><div class="v" id="subt_'+s.id+'_d">0</div></div>'
+    +'<div class="stc n"><div class="l">Noite</div><div class="v" id="subt_'+s.id+'_n">0</div></div>'
+    +'<div class="stc t"><div class="l">Total</div><div class="v" id="subt_'+s.id+'_t">0</div></div>'
+    +'</div>'
+    +'<div class="sec">'
+    +'<div class="sh"><div class="si igr"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><path d="M5 6h14v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>'
+    +'<div class="st"><h2>Procedimentos</h2><p>73 procedimentos · agrupados por categoria</p></div>'
+    +'<span class="bdg" id="bdg_'+s.id+'">0</span></div>'
+    +'<div class="sb">'
+    +'<div class="proc-tools">'
+    +'<div class="proc-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>'
+    +'<input type="text" placeholder="Procurar procedimento..." oninput="filterProc(\''+s.id+'\',this.value)"/></div>'
+    +'<button type="button" class="proc-toggle-all" id="toggleAllBtn_'+s.id+'" onclick="toggleAllCats(\''+s.id+'\')">Recolher tudo</button>'
+    +'</div>'
+    +'<div class="proc-cats" id="procCats_'+s.id+'">'+catsHtml+'</div>'
+    +'</div></div>';
+}
+function renderAllProcedures(){
+  SUBS.forEach((s,idx)=>{
+    const root=document.getElementById('procRoot_'+s.id);
+    if(root) root.outerHTML=renderProcSection(s,idx);
+  });
+}
+function toggleCat(btn){
+  btn.parentElement.classList.toggle('open');
+}
+function toggleAllCats(subId){
+  const wrap=document.getElementById('procCats_'+subId);
+  const btn=document.getElementById('toggleAllBtn_'+subId);
+  if(!wrap)return;
+  const cats=wrap.querySelectorAll('.pcat');
+  const anyOpen=Array.from(cats).some(c=>c.classList.contains('open'));
+  cats.forEach(c=>c.classList.toggle('open', !anyOpen));
+  if(btn) btn.textContent = anyOpen ? 'Expandir tudo' : 'Recolher tudo';
+}
+function filterProc(subId,query){
+  const wrap=document.getElementById('procCats_'+subId);
+  if(!wrap)return;
+  const q=(query||'').trim().toLowerCase();
+  wrap.querySelectorAll('.pcat').forEach(cat=>{
+    let anyVisible=false;
+    cat.querySelectorAll('.pr').forEach(row=>{
+      const match = !q || (row.dataset.name||'').indexOf(q)!==-1;
+      row.classList.toggle('hide', !match);
+      if(match) anyVisible=true;
+    });
+    cat.classList.toggle('filtered-hide', !anyVisible);
+    if(q && anyVisible) cat.classList.add('open');
+  });
+}
+function updCatBadges(subId){
+  CATS.forEach(cat=>{
+    const el=document.getElementById('catbdg_'+subId+'_'+cat.id);
+    if(!el)return;
+    const t=catTotals(subId,cat.id).t;
+    el.textContent=t;
+    el.classList.toggle('on',t>0);
+  });
+}
 function updSubUI(subId){
   const r=subTotals(subId);
   const dd=document.getElementById('subt_'+subId+'_d');if(dd)dd.textContent=r.d;
   const nn=document.getElementById('subt_'+subId+'_n');if(nn)nn.textContent=r.n;
   const tt=document.getElementById('subt_'+subId+'_t');if(tt)tt.textContent=r.t;
+  updCatBadges(subId);
 }
 function updSubBadge(subId){
   const r=subTotals(subId);
@@ -944,7 +514,7 @@ function scheduleSave(){
   saveTimer=setTimeout(()=>persist(currentDate()),500);
 }
 function currentDate(){return document.getElementById('dataFim').value;}
-function dataInicioVal(){return document.getElementById('dataInicio').value;}
+function dataInicioVal(){return isoMinusOneDay(currentDate());}
 function isoMinusOneDay(iso){
   if(!iso)return '';
   const d=new Date(iso+'T12:00:00');
@@ -1040,7 +610,6 @@ async function loadForDate(dateStr){
   if(data){
     try{
       const ch=document.getElementById('chefeTurno'); if(ch) ch.value=data.chefeTurno||'';
-      if(data.dataInicio){ const di=document.getElementById('dataInicio'); if(di) di.value=data.dataInicio; }
       SUBS.forEach(s=>{
         const sd=data.sub&&data.sub[s.id]; if(!sd)return;
         CATS.forEach(c=>{
@@ -1055,16 +624,11 @@ async function loadForDate(dateStr){
       });
     }catch(e){console.error(e);}
   }
-  // Se a data de início ficou vazia, assume o dia anterior ao fim
-  const diEl=document.getElementById('dataInicio');
-  if(diEl && !diEl.value){ diEl.value=isoMinusOneDay(dateStr); }
   updateDataLabel();
   recalcAll();
 }
 function onDateChange(prevDate){
   if(prevDate) persist(prevDate);
-  // Ao mudar o fim, recalcula automaticamente o início (dia anterior)
-  document.getElementById('dataInicio').value=isoMinusOneDay(currentDate());
   loadForDate(currentDate());
 }
 
@@ -1352,12 +916,11 @@ function acaoGuardar(){
 }
 
 window.addEventListener('DOMContentLoaded',function(){
+  renderAllProcedures();
   const fimEl=document.getElementById('dataFim');
-  const iniEl=document.getElementById('dataInicio');
   const today=new Date();
   const iso=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
   fimEl.value=iso;
-  iniEl.value=isoMinusOneDay(iso);
   let prev=iso;
   fimEl.addEventListener('change',function(){ onDateChange(prev); prev=fimEl.value; });
   __ddOpen().then(function(){ loadForDate(iso); });
