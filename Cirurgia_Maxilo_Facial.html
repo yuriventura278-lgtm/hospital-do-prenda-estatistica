@@ -2437,7 +2437,7 @@ async function gerarPDF(silencioso){
       setFill('#0D1B3E');pdf.rect(0,0,PW,11,'F');
       setFill('#1A56DB');pdf.rect(0,10,PW,1,'F');
       setTxt('#93C5FD');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
-      pdf.text('BANCO DE ORTOPEDIA · HOSPITAL DO PRENDA · DEMA',ML,7);
+      pdf.text('BANCO DE CIRURGIA MAXILO FACIAL · HOSPITAL DO PRENDA · DEMA',ML,7);
       setTxt('#FFFFFF');pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);
       pdf.text(pdfDateFmt(),PW-MR,7,{align:'right'});
       y=15; // reset y para baixo do header strip
@@ -2484,7 +2484,7 @@ async function gerarPDF(silencioso){
     setTxt('#93C5FD');pdf.setFontSize(6.5);pdf.setFont('helvetica','normal');
     pdf.text('RELATÓRIO DIÁRIO · TURNO 24H · DEMA — HOSPITAL DO PRENDA',TX,10);
     setTxt('#FFFFFF');pdf.setFontSize(13);pdf.setFont('helvetica','bold');
-    pdf.text('MOVIMENTO DO BANCO DE ORTOPEDIA',TX,19);
+    pdf.text('MOVIMENTO DO BANCO DE CIRURGIA MAXILO FACIAL',TX,19);
     setTxt('#60A5FA');pdf.setFontSize(9);pdf.setFont('helvetica','normal');
     pdf.text(pdfDateFmt(),TX,27);
 
@@ -2941,6 +2941,8 @@ async function gerarPDF(silencioso){
     // RODAPÉ em cada página
     // ════════════════════════════════════════════════════════
     const nPages=pdf.internal.getNumberOfPages();
+    let zeloLogoSrc=null;
+    try{ const zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
     for(let p=1;p<=nPages;p++){
       pdf.setPage(p);
       // Fundo rodapé
@@ -2950,8 +2952,10 @@ async function gerarPDF(silencioso){
       setTxt('#93C5FD');pdf.setFontSize(7.5);pdf.setFont('helvetica','normal');
       // Linha verde no rodapé
       setFill('#059669');pdf.rect(0,PH-13,PW,1,'F');
+      // Logotipo ZELO
+      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
       const medicoPrincipal=Object.entries(meds).map(([k,v])=>v).find(v=>v&&v!=='—')||'DEMA';
-      pdf.text('Banco de Maxilo Facial · Hospital do Prenda · DEMA',ML,PH-5);
+      pdf.text('Banco de Maxilo Facial · Hospital do Prenda · DEMA',ML+9,PH-5);
       pdf.text(new Date().toLocaleDateString('pt-PT')+' · Dr. '+medicoPrincipal,PW/2,PH-5,{align:'center'});
       setTxt('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(8);
       pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});

@@ -2941,6 +2941,8 @@ async function gerarPDF(silencioso){
     // RODAPÉ em cada página
     // ════════════════════════════════════════════════════════
     const nPages=pdf.internal.getNumberOfPages();
+    let zeloLogoSrc=null;
+    try{ const zi=document.querySelector('.ld img'); if(zi&&zi.src) zeloLogoSrc=zi.src; }catch(e){}
     for(let p=1;p<=nPages;p++){
       pdf.setPage(p);
       // Fundo rodapé
@@ -2950,8 +2952,10 @@ async function gerarPDF(silencioso){
       setTxt('#93C5FD');pdf.setFontSize(7.5);pdf.setFont('helvetica','normal');
       // Linha verde no rodapé
       setFill('#059669');pdf.rect(0,PH-13,PW,1,'F');
+      // Logotipo ZELO
+      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
       const medicoPrincipal=Object.entries(meds).map(([k,v])=>v).find(v=>v&&v!=='—')||'DEMA';
-      pdf.text('Banco de Ortopedia · Hospital do Prenda · DEMA',ML,PH-5);
+      pdf.text('Banco de Ortopedia · Hospital do Prenda · DEMA',ML+9,PH-5);
       pdf.text(new Date().toLocaleDateString('pt-PT')+' · Dr. '+medicoPrincipal,PW/2,PH-5,{align:'center'});
       setTxt('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(8);
       pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});
