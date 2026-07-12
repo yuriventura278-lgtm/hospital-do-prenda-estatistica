@@ -131,7 +131,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .int-inp:focus{outline:none;border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
 
 /* DRAFT BANNER */
-#draft-banner{display:none;background:linear-gradient(90deg,#FFFBEB,#FEF3C7);border-bottom:1px solid #FCD34D;padding:8px 16px;align-items:center;gap:10px;position:sticky;top:88px;z-index:90;}
+#draft-banner{display:none;background:linear-gradient(90deg,#FFFBEB,#FEF3C7);border-bottom:1px solid #FCD34D;padding:8px 16px;align-items:center;gap:10px;position:relative;z-index:90;}
 #draft-banner.show{display:flex;}
 .db-icon{width:22px;height:22px;background:#FEF3C7;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#92400E;}
 .db-msg{font-size:.78rem;font-weight:600;color:#92400E;flex:1;}
@@ -840,7 +840,50 @@ function hideDraftBanner(){
   const banner=document.getElementById('draft-banner');
   if(banner)banner.classList.remove('show');
 }
+const CLEAR_LOCK_NS = DRAFT_KEY;
+// ── PROTECÇÃO POR CÓDIGO — limpar/apagar rascunho exige código de segurança ──
+const CLEAR_PIN = '2001';
+function __clearLockKey(){ return CLEAR_LOCK_NS+'_clearlock'; }
+function __clearAttemptsKey(){ return CLEAR_LOCK_NS+'_clearattempts'; }
+function isClearLocked(){
+  try{ return localStorage.getItem(__clearLockKey())==='1'; }catch(e){ return false; }
+}
+function applyClearLockUI(){
+  if(!isClearLocked())return;
+  document.querySelectorAll('.db-clear').forEach(function(btn){
+    btn.disabled=true;
+    btn.style.opacity='.45';
+    btn.style.cursor='not-allowed';
+    btn.title='Bloqueado após 3 tentativas de código incorrecto.';
+  });
+}
+function __clearDraftAuthCheck(){
+  if(isClearLocked()){
+    toast('Função bloqueada — código incorrecto 3 vezes.');
+    return false;
+  }
+  const code = prompt('Introduza o código de segurança (4 dígitos) para limpar o rascunho:');
+  if(code===null) return false;
+  if(code.trim()!==CLEAR_PIN){
+    let attempts=0;
+    try{ attempts=parseInt(localStorage.getItem(__clearAttemptsKey())||'0',10)+1; }catch(e){ attempts=1; }
+    try{ localStorage.setItem(__clearAttemptsKey(), String(attempts)); }catch(e){}
+    if(attempts>=3){
+      try{ localStorage.setItem(__clearLockKey(),'1'); }catch(e){}
+      applyClearLockUI();
+      toast('Código incorrecto 3 vezes — função bloqueada.');
+    }else{
+      toast('Código incorrecto. Tentativa '+attempts+' de 3.');
+    }
+    return false;
+  }
+  try{ localStorage.removeItem(__clearAttemptsKey()); }catch(e){}
+  return true;
+}
+applyClearLockUI();
+
 function clearDraft(){
+  if(!__clearDraftAuthCheck())return;
   if(!confirm('Limpar o rascunho irá apagar todos os dados não guardados. Continuar?'))return;
   localStorage.removeItem(DRAFT_KEY);
   hideDraftBanner();

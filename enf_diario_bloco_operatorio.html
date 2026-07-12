@@ -125,7 +125,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.65;}
 .bgr{background:linear-gradient(135deg,#1A56DB,#1E40AF);color:#fff;box-shadow:0 4px 14px rgba(26,86,219,.3);}
 #toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--nv);color:#fff;padding:11px 22px;border-radius:100px;font-size:.8rem;font-weight:500;opacity:0;transition:all .3s cubic-bezier(.34,1.2,.64,1);z-index:400;white-space:nowrap;box-shadow:0 6px 20px rgba(13,27,62,.3);pointer-events:none;max-width:90vw;overflow:hidden;text-overflow:ellipsis;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-#draft-banner{display:none;background:linear-gradient(90deg,#92400E 0%,#B45309 100%);color:#fff;padding:0 14px;height:42px;font-size:.78rem;font-weight:600;align-items:center;gap:10px;position:sticky;top:0;z-index:99;box-shadow:0 3px 12px rgba(180,83,9,.45);}
+#draft-banner{display:none;background:linear-gradient(90deg,#92400E 0%,#B45309 100%);color:#fff;padding:0 14px;height:42px;font-size:.78rem;font-weight:600;align-items:center;gap:10px;position:relative;z-index:99;box-shadow:0 3px 12px rgba(180,83,9,.45);}
 #draft-banner.show{display:flex;}
 #draft-banner .db-icon{flex-shrink:0;width:28px;height:28px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;}
 #draft-banner .db-icon svg{width:14px;height:14px;}
@@ -476,7 +476,50 @@ function removePersisted(dateStr){
   try{ if(__ddDB){ const tx=__ddDB.transaction(__DD_STORE,'readwrite'); tx.objectStore(__DD_STORE).delete(chave); } }catch(e){}
   try{ localStorage.removeItem(chave); }catch(e){}
 }
+const CLEAR_LOCK_NS = 'enfdiario_'+PAGE_SLUG;
+// ── PROTECÇÃO POR CÓDIGO — limpar/apagar rascunho exige código de segurança ──
+const CLEAR_PIN = '2001';
+function __clearLockKey(){ return CLEAR_LOCK_NS+'_clearlock'; }
+function __clearAttemptsKey(){ return CLEAR_LOCK_NS+'_clearattempts'; }
+function isClearLocked(){
+  try{ return localStorage.getItem(__clearLockKey())==='1'; }catch(e){ return false; }
+}
+function applyClearLockUI(){
+  if(!isClearLocked())return;
+  document.querySelectorAll('.db-clear').forEach(function(btn){
+    btn.disabled=true;
+    btn.style.opacity='.45';
+    btn.style.cursor='not-allowed';
+    btn.title='Bloqueado após 3 tentativas de código incorrecto.';
+  });
+}
+function __clearDraftAuthCheck(){
+  if(isClearLocked()){
+    toast('Função bloqueada — código incorrecto 3 vezes.');
+    return false;
+  }
+  const code = prompt('Introduza o código de segurança (4 dígitos) para limpar o rascunho:');
+  if(code===null) return false;
+  if(code.trim()!==CLEAR_PIN){
+    let attempts=0;
+    try{ attempts=parseInt(localStorage.getItem(__clearAttemptsKey())||'0',10)+1; }catch(e){ attempts=1; }
+    try{ localStorage.setItem(__clearAttemptsKey(), String(attempts)); }catch(e){}
+    if(attempts>=3){
+      try{ localStorage.setItem(__clearLockKey(),'1'); }catch(e){}
+      applyClearLockUI();
+      toast('Código incorrecto 3 vezes — função bloqueada.');
+    }else{
+      toast('Código incorrecto. Tentativa '+attempts+' de 3.');
+    }
+    return false;
+  }
+  try{ localStorage.removeItem(__clearAttemptsKey()); }catch(e){}
+  return true;
+}
+applyClearLockUI();
+
 function clearDraft(){
+  if(!__clearDraftAuthCheck())return;
   if(!confirm('Limpar o rascunho irá apagar todos os dados não guardados deste dia. Continuar?'))return;
   const d=currentDate();
   clearForm();
