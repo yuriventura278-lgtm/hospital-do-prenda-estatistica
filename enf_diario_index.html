@@ -26,7 +26,6 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
   font-family:'DM Mono',monospace;font-size:.68rem;letter-spacing:.04em;border-bottom:1px solid rgba(255,255,255,.08);}
 .topbar .dot{width:6px;height:6px;border-radius:50%;background:var(--cyl);box-shadow:0 0 0 3px rgba(34,211,238,.2);flex-shrink:0;}
 .topbar span.muted{color:#8CA0C6;}
-.topbar .clock{margin-left:auto;color:#C7D2E8;}
 .zelo-topbar-icon{width:18px;height:18px;flex-shrink:0;}
 .topbar a.back{margin-left:12px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:5px;
   background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:100px;padding:4px 10px;white-space:nowrap;}
@@ -118,7 +117,6 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     Início
   </a>
-  <span class="clock" id="topclock"></span>
 </div>
 
 <div class="hero">
@@ -149,12 +147,6 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
 </footer>
 
 <script>
-function tick(){
-  const d=new Date();
-  const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0'), yy=d.getFullYear();
-  document.getElementById('topclock').textContent = `${dd}/${mm}/${yy}`;
-}
-tick(); setInterval(tick,1000*60);
 document.getElementById('footyear').textContent = new Date().getFullYear();
 
 const ICONS = {
