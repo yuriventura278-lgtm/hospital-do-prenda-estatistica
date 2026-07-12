@@ -1,0 +1,51 @@
+name: Relatório mensal e limpeza do histórico
+
+on:
+  schedule:
+    # 06:00 UTC do dia 2 de cada mês
+    - cron: '0 6 2 * *'
+  workflow_dispatch:
+    inputs:
+      skip_cleanup:
+        description: 'Gerar o PDF sem apagar o histórico do Firebase (modo de teste)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  relatorio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Instalar Chromium do Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Gerar resumo mensal e limpar histórico
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          SKIP_CLEANUP: ${{ github.event.inputs.skip_cleanup || 'false' }}
+        run: npm run relatorio-mensal
+
+      - name: Publicar o PDF no repositório
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add relatorios/
+          if git diff --cached --quiet; then
+            echo "Nenhum relatório novo para publicar."
+          else
+            git commit -m "Resumo mensal automático · $(date -u +%Y-%m)"
+            git push
+          fi
