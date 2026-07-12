@@ -69,6 +69,12 @@ button{font-family:inherit;}
   font-family:'DM Mono',monospace;padding:8px 11px;border-radius:100px;cursor:pointer;transition:background .15s;}
 .qbtn:hover{background:rgba(255,255,255,.18);}
 .qbtn.active{background:var(--cy);border-color:var(--cy);color:#04222E;font-weight:700;}
+.period-tabs{display:flex;gap:6px;margin-bottom:10px;}
+.period-tabs .qbtn{flex:1;text-align:center;}
+input[type="week"]#weekSel,input[type="month"]#monthSel{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.22);
+  border-radius:10px;color:#fff;padding:8px 12px;font-family:'DM Mono',monospace;font-size:.8rem;}
+.period-badge{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.62rem;
+  color:var(--tx3);background:var(--sf);border:1px solid var(--br);border-radius:100px;padding:3px 10px;margin-left:8px;font-weight:600;}
 .stat-strip{margin-top:22px;display:flex;gap:28px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding-top:16px;}
 .stat-mini .n{font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;color:#fff;line-height:1;}
 .stat-mini .l{font-family:'DM Mono',monospace;font-size:.6rem;color:#8CA0C6;text-transform:uppercase;letter-spacing:.06em;margin-top:5px;}
@@ -203,13 +209,30 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
         <p class="hero-sub">Vista consolidada, só de leitura, de tudo o que foi confirmado em cada serviço.</p>
       </div>
       <div class="date-card">
-        <div class="date-card-l">Data seleccionada</div>
+        <div class="period-tabs" id="periodTabs">
+          <button class="qbtn active" data-period="day">Diário</button>
+          <button class="qbtn" data-period="week">Semanal</button>
+          <button class="qbtn" data-period="month">Mensal</button>
+        </div>
+        <div class="date-card-l">Período seleccionado</div>
         <div class="date-card-v" id="dataLong">—</div>
-        <div class="date-row">
+        <div class="date-row" id="rowDay">
           <input type="date" id="dataSel"/>
           <div class="qbtns">
             <button class="qbtn" id="btnHoje">Hoje</button>
             <button class="qbtn" id="btnOntem">Ontem</button>
+          </div>
+        </div>
+        <div class="date-row" id="rowWeek" style="display:none;">
+          <input type="week" id="weekSel"/>
+          <div class="qbtns">
+            <button class="qbtn" id="btnEstaSemana">Esta Semana</button>
+          </div>
+        </div>
+        <div class="date-row" id="rowMonth" style="display:none;">
+          <input type="month" id="monthSel"/>
+          <div class="qbtns">
+            <button class="qbtn" id="btnEsteMes">Este Mês</button>
           </div>
         </div>
       </div>
@@ -217,7 +240,7 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
     <div class="stat-strip">
       <div class="stat-mini"><div class="n" id="statReportaram">—</div><div class="l">Serviços Reportaram</div></div>
       <div class="stat-mini"><div class="n" id="statTotal">15</div><div class="l">Serviços Monitorizados</div></div>
-      <div class="stat-mini"><div class="n" id="statHora">—</div><div class="l">Último Registo</div></div>
+      <div class="stat-mini"><div class="n" id="statHora">—</div><div class="l" id="statHoraL">Último Registo</div></div>
       <div class="stat-mini"><div class="n" id="statPend">—</div><div class="l">Pendentes</div></div>
     </div>
   </div>
@@ -523,19 +546,96 @@ const contentEl = document.getElementById('content');
 const dataSel = document.getElementById('dataSel');
 const fbWarn = document.getElementById('fbWarn');
 let currentTab = 'overview';
-let currentDataset = {}; // id -> {savedAt, snapshot} | null
+let currentDataset = {}; // id -> {savedAt, snapshot} | null  (modo Diário)
+let currentDatasetMulti = {}; // id -> [{date,savedAt,snapshot}]  (modo Semanal/Mensal)
+let currentPeriod = 'day'; // 'day' | 'week' | 'month'
+let currentRange = []; // ISO dates cobertos pelo período seleccionado
 
 function todayISO(offsetDays){ const d=new Date(); if(offsetDays)d.setDate(d.getDate()+offsetDays); return d.toISOString().slice(0,10); }
 dataSel.value = todayISO(0);
 
-function updateDataLong(){
+function todayISOWeek(){
+  const d = new Date();
+  const target = new Date(d.valueOf());
+  const dayNr = (d.getDay()+6)%7;
+  target.setDate(target.getDate()-dayNr+3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0,1);
+  if(target.getDay()!==4) target.setMonth(0,1+((4-target.getDay())+7)%7);
+  const week = 1+Math.ceil((firstThursday-target)/604800000);
+  return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+function isoWeekToRange(weekStr){
+  const [yStr,wStr] = weekStr.split('-W');
+  const year = parseInt(yStr), week = parseInt(wStr);
+  const simple = new Date(Date.UTC(year,0,1+(week-1)*7));
+  const dow = simple.getUTCDay()||7;
+  const monday = new Date(simple);
+  if(dow<=4) monday.setUTCDate(simple.getUTCDate()-dow+1);
+  else monday.setUTCDate(simple.getUTCDate()+8-dow);
+  const days=[];
+  for(let i=0;i<7;i++){ const d=new Date(monday); d.setUTCDate(monday.getUTCDate()+i); days.push(d.toISOString().slice(0,10)); }
+  return days;
+}
+function currentMonthStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function monthToRange(monthStr){
+  const [y,m] = monthStr.split('-').map(Number);
+  const days=[]; const last = new Date(y,m,0).getDate();
+  for(let dd=1; dd<=last; dd++) days.push(`${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`);
+  return days;
+}
+function fmtDataShort(v){ try{ return new Date(v+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit'}); }catch(e){ return v; } }
+
+const weekSel = document.getElementById('weekSel');
+const monthSel = document.getElementById('monthSel');
+weekSel.value = todayISOWeek();
+monthSel.value = currentMonthStr();
+
+function computeRange(){
+  if(currentPeriod==='week') return isoWeekToRange(weekSel.value || todayISOWeek());
+  if(currentPeriod==='month') return monthToRange(monthSel.value || currentMonthStr());
+  return [dataSel.value];
+}
+
+function periodRangeLabel(){
+  if(currentPeriod==='day'){
+    try{
+      const d = new Date(dataSel.value+'T00:00:00');
+      const txt = d.toLocaleDateString('pt-PT',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+      return txt.charAt(0).toUpperCase()+txt.slice(1);
+    }catch(e){ return dataSel.value; }
+  }
+  if(!currentRange.length) return '—';
+  if(currentPeriod==='week'){
+    return `${fmtDataShort(currentRange[0])} – ${fmtDataShort(currentRange[currentRange.length-1])} · Semana ${weekSel.value}`;
+  }
   try{
-    const d = new Date(dataSel.value+'T00:00:00');
-    const txt = d.toLocaleDateString('pt-PT',{weekday:'long', day:'2-digit', month:'long', year:'numeric'});
-    document.getElementById('dataLong').textContent = txt.charAt(0).toUpperCase()+txt.slice(1);
-  }catch(e){ document.getElementById('dataLong').textContent = dataSel.value; }
+    const d = new Date(monthSel.value+'-01T00:00:00');
+    const txt = d.toLocaleDateString('pt-PT',{month:'long', year:'numeric'});
+    return txt.charAt(0).toUpperCase()+txt.slice(1);
+  }catch(e){ return monthSel.value; }
+}
+
+function updateDataLong(){
+  document.getElementById('dataLong').textContent = periodRangeLabel();
 }
 updateDataLong();
+
+document.getElementById('periodTabs').querySelectorAll('.qbtn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    currentPeriod = btn.dataset.period;
+    document.getElementById('periodTabs').querySelectorAll('.qbtn').forEach(b=>b.classList.toggle('active', b===btn));
+    document.getElementById('rowDay').style.display = currentPeriod==='day' ? 'flex' : 'none';
+    document.getElementById('rowWeek').style.display = currentPeriod==='week' ? 'flex' : 'none';
+    document.getElementById('rowMonth').style.display = currentPeriod==='month' ? 'flex' : 'none';
+    updateDataLong();
+    load();
+  });
+});
+weekSel.addEventListener('change', ()=>{ updateDataLong(); load(); });
+monthSel.addEventListener('change', ()=>{ updateDataLong(); load(); });
+document.getElementById('btnEstaSemana').addEventListener('click', ()=>{ weekSel.value=todayISOWeek(); updateDataLong(); load(); });
+document.getElementById('btnEsteMes').addEventListener('click', ()=>{ monthSel.value=currentMonthStr(); updateDataLong(); load(); });
 
 function buildTabs(){
   let html = `<button class="tab active" data-tab="overview" style="--accent:${'#0D1B3E'}"><i style="background:#0D1B3E"></i>Visão Geral</button><span class="tab-sep"></span>`;
@@ -633,7 +733,7 @@ function renderDetail(id){
     </div>
   `;
   const pdfBtn = document.getElementById('btnPDF');
-  if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportPDF(svc, dataSel.value));
+  if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportPDF(svc, 'Resumo do dia '+fmtDataLong(dataSel.value), dataSel.value));
 }
 
 function donutSVG(segments, size, stroke){
@@ -664,6 +764,7 @@ function renderOverview(){
     if(!lastTime || new Date(t) > new Date(lastTime)) lastTime = t;
   });
   document.getElementById('statReportaram').textContent = withData.length;
+  document.getElementById('statHoraL').textContent = 'Último Registo';
   document.getElementById('statHora').textContent = lastTime ? fmtHora(lastTime) : '—';
   document.getElementById('statPend').textContent = pendCount;
 
@@ -734,30 +835,213 @@ function renderOverview(){
   `;
 }
 
+/* ══════════════════ AGREGAÇÃO SEMANAL/MENSAL ══════════════════ */
+/* Soma as secções (já normalizadas por SCHEMAS) de vários dias — mesma
+   estrutura de secções em todos os dias de um serviço, por isso basta
+   somar valores/concatenar listas item a item, mantendo a ordem. */
+function mergeSections(sectionsPerDay, rangeDates){
+  if(!sectionsPerDay.length) return [];
+  const template = sectionsPerDay[0];
+  return template.map((tmpl,i)=>{
+    const type = tmpl.type;
+    if(type==='stats' || type==='chart'){
+      const totals = {}, order = [];
+      sectionsPerDay.forEach(daySecs=>{
+        (daySecs[i].items||[]).forEach(it=>{
+          if(!(it.label in totals)){ totals[it.label]=0; order.push(it.label); }
+          totals[it.label] += (it.value||0);
+        });
+      });
+      return {type, title:tmpl.title, items: order.map(l=>({label:l, value:totals[l]}))};
+    }
+    if(type==='list'){
+      let items = [];
+      sectionsPerDay.forEach(daySecs=>{ items = items.concat(daySecs[i].items||[]); });
+      return {type, title:tmpl.title, items, emptyText:tmpl.emptyText};
+    }
+    if(type==='team'){
+      const groupMap = {}, order = [];
+      sectionsPerDay.forEach(daySecs=>{
+        (daySecs[i].groups||[]).forEach(g=>{
+          if(!(g.label in groupMap)){ groupMap[g.label]=[]; order.push(g.label); }
+          groupMap[g.label] = groupMap[g.label].concat(g.chips||[]);
+        });
+      });
+      return {type, title:tmpl.title, groups: order.map(l=>({label:l, chips:[...new Set(groupMap[l])]}))};
+    }
+    if(type==='notes'){
+      let blocks = [];
+      sectionsPerDay.forEach((daySecs,di)=>{
+        (daySecs[i].blocks||[]).forEach(b=>{
+          blocks.push({label: b.label+' — '+fmtDataShort(rangeDates[di]), text: b.text});
+        });
+      });
+      return {type, title:tmpl.title, blocks};
+    }
+    return tmpl;
+  });
+}
+
+function renderDetailPeriod(id){
+  const svc = svcOf(id);
+  const schema = SCHEMAS[id] || (()=>[]);
+  const allDays = currentDatasetMulti[id] || [];
+  const reportedDays = allDays.filter(d=>d.snapshot);
+  const sectionsPerDay = reportedDays.map(d=>schema(d.snapshot));
+  const merged = mergeSections(sectionsPerDay, reportedDays.map(d=>d.date));
+  const nonEmpty = merged.filter(sec=>{
+    if(sec.type==='stats') return sec.items.length;
+    if(sec.type==='chart') return sec.items.length;
+    if(sec.type==='list') return true;
+    if(sec.type==='team') return (sec.groups||[]).some(g=>g.chips&&g.chips.length);
+    if(sec.type==='notes') return sec.blocks&&sec.blocks.length;
+    return false;
+  });
+
+  contentEl.innerHTML = `
+    <div class="panel" style="--accent:${svc.color};">
+      <div class="dh">
+        <div class="dh-l">
+          <div class="dh-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></div>
+          <div><h1>${svc.name}</h1><div class="sub">${periodRangeLabel()}<span class="period-badge">${reportedDays.length} de ${allDays.length} dias com registo</span></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="dh-status ${reportedDays.length?'ok':'empty'}">${reportedDays.length?'Dados agregados':'Sem registos no período'}</span>
+          <button id="btnPDF" ${reportedDays.length?'':'disabled'}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button>
+        </div>
+      </div>
+    </div>
+    <div id="detailBody" style="--accent:${svc.color};">
+      ${reportedDays.length ? (nonEmpty.length ? nonEmpty.map(sec=>sectionHTML(sec, svc.color)).join('') : `<div class="panel"><div class="list-empty">Registos confirmados, mas sem dados preenchidos.</div></div>`)
+            : `<div class="panel"><div class="list-empty">Nenhum registo confirmado para ${svc.name} neste período.</div></div>`}
+    </div>
+  `;
+  const pdfBtn = document.getElementById('btnPDF');
+  if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportPDF(svc, (currentPeriod==='week'?'Resumo semanal ':'Resumo mensal ')+periodRangeLabel(), currentPeriod+'_'+(currentPeriod==='week'?weekSel.value:monthSel.value)));
+}
+
+function renderOverviewPeriod(){
+  const withData = SERVICES.filter(svc => (currentDatasetMulti[svc.id]||[]).some(d=>d.snapshot));
+  const pendCount = SERVICES.length - withData.length;
+  document.getElementById('statReportaram').textContent = withData.length;
+  const totalSlots = SERVICES.length * currentRange.length;
+  const filledSlots = SERVICES.reduce((a,svc)=>a+((currentDatasetMulti[svc.id]||[]).filter(d=>d.snapshot).length),0);
+  document.getElementById('statHoraL').textContent = 'Cobertura de Dias';
+  document.getElementById('statHora').textContent = totalSlots ? Math.round((filledSlots/totalSlots)*100)+'%' : '—';
+  document.getElementById('statPend').textContent = pendCount;
+
+  const coverageDonut = donutSVG([
+    {value:withData.length, color:'var(--gr)'}, {value:pendCount, color:'var(--br)'}
+  ]);
+  const coveragePct = Math.round((withData.length/SERVICES.length)*100);
+
+  const catSegs = CATS.map(cat=>({
+    cat, value: SERVICES.filter(s=>s.cat===cat.id && withData.find(w=>w.id===s.id)).length, color:cat.color
+  }));
+  const catDonut = donutSVG(catSegs.map(s=>({value:s.value, color:s.color})));
+
+  const donutsHTML = `
+    <div class="donut-grid">
+      <div class="donut-card">
+        <div class="donut-wrap">${coverageDonut}<div class="donut-center"><div class="dc-n">${coveragePct}%</div><div class="dc-l">Cobertura</div></div></div>
+        <div class="donut-legend">
+          <span><i style="background:var(--gr)"></i>Reportaram · ${withData.length}</span>
+          <span><i style="background:var(--br)"></i>Pendentes · ${pendCount}</span>
+        </div>
+      </div>
+      <div class="donut-card">
+        <div class="donut-wrap">${catDonut}<div class="donut-center"><div class="dc-n">${withData.length}</div><div class="dc-l">de ${SERVICES.length}</div></div></div>
+        <div class="donut-legend">${catSegs.map(s=>`<span><i style="background:${s.color}"></i>${s.cat.label} · ${s.value}/${SERVICES.filter(x=>x.cat===s.cat.id).length}</span>`).join('')}</div>
+      </div>
+    </div>`;
+
+  let barsHTML;
+  if(!withData.length){
+    barsHTML = `<div class="list-empty">Nenhum registo confirmado neste período ainda.</div>`;
+  }else{
+    const withHl = withData.map(svc=>{
+      const days = (currentDatasetMulti[svc.id]||[]).filter(d=>d.snapshot);
+      const label = days.length ? headline(svc.id, days[0].snapshot)[0] : '—';
+      const total = days.reduce((a,d)=>a+(Number(headline(svc.id,d.snapshot)[1])||0),0);
+      return {name:svc.name, color:svc.color, label, value: total};
+    }).sort((a,b)=>b.value-a.value);
+    const max = Math.max(...withHl.map(x=>x.value), 1);
+    barsHTML = withHl.map(x=>`
+      <div class="bar-row ${x.value?'':'zero'}">
+        <div class="lbl">${x.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((x.value/max)*100)}%;background:${x.color};"></div></div>
+        <div class="val">${x.value}</div>
+      </div>`).join('');
+  }
+
+  const cardsHTML = SERVICES.map(svc=>{
+    const days = (currentDatasetMulti[svc.id]||[]).filter(d=>d.snapshot);
+    if(!days.length){
+      return `<button class="card empty" style="--accent:${svc.color}" onclick="selectTab('${svc.id}')">
+        <div class="badge-empty">Sem registo</div><h3>${svc.name}</h3>
+        <div class="headline">—</div><div class="headline-l">Sem dados</div>
+      </button>`;
+    }
+    const label = headline(svc.id, days[0].snapshot)[0];
+    const total = days.reduce((a,d)=>a+(Number(headline(svc.id,d.snapshot)[1])||0),0);
+    return `<button class="card" style="--accent:${svc.color}" onclick="selectTab('${svc.id}')">
+      <div class="badge-time">${days.length}/${currentRange.length} dias</div><h3>${svc.name}</h3>
+      <div class="headline">${total}</div><div class="headline-l">${label}</div>
+    </button>`;
+  }).join('');
+
+  contentEl.innerHTML = `
+    <div class="panel"><h2>Cobertura do Período</h2>${donutsHTML}</div>
+    <div class="panel"><h2>Movimento por Serviço (total do período) <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="bars">${barsHTML}</div></div>
+    <div class="panel"><h2>Todos os Serviços <span class="cnt">${SERVICES.length}</span></h2><div class="grid">${cardsHTML}</div></div>
+  `;
+}
+
 function render(){
-  if(currentTab==='overview') renderOverview();
-  else renderDetail(currentTab);
+  if(currentPeriod==='day'){
+    if(currentTab==='overview') renderOverview();
+    else renderDetail(currentTab);
+  }else{
+    if(currentTab==='overview') renderOverviewPeriod();
+    else renderDetailPeriod(currentTab);
+  }
 }
 
 /* ══════════════════ CARREGAMENTO ══════════════════ */
 async function load(){
   contentEl.innerHTML = '<div class="loading">A carregar…</div>';
-  const data = dataSel.value;
 
   if(!window.__fbReady || !window.__fbGet){
     fbWarn.classList.add('show');
     currentDataset = {};
+    currentDatasetMulti = {};
     document.getElementById('statReportaram').textContent = '—';
     document.getElementById('statHora').textContent = '—';
     render();
     return;
   }
 
-  const results = await Promise.all(SERVICES.map(async svc=>{
-    try{ return [svc.id, await window.__fbGet('registos/'+svc.id+'/'+data)]; }
-    catch(e){ return [svc.id, null]; }
-  }));
-  currentDataset = Object.fromEntries(results);
+  if(currentPeriod==='day'){
+    const data = dataSel.value;
+    const results = await Promise.all(SERVICES.map(async svc=>{
+      try{ return [svc.id, await window.__fbGet('registos/'+svc.id+'/'+data)]; }
+      catch(e){ return [svc.id, null]; }
+    }));
+    currentDataset = Object.fromEntries(results);
+  }else{
+    currentRange = computeRange();
+    updateDataLong();
+    const results = await Promise.all(SERVICES.map(async svc=>{
+      const days = await Promise.all(currentRange.map(async date=>{
+        try{
+          const entry = await window.__fbGet('registos/'+svc.id+'/'+date);
+          return {date, savedAt: entry&&entry.savedAt, snapshot: entry&&entry.snapshot};
+        }catch(e){ return {date, savedAt:null, snapshot:null}; }
+      }));
+      return [svc.id, days];
+    }));
+    currentDatasetMulti = Object.fromEntries(results);
+  }
   fbWarn.classList.remove('show');
   render();
 }
@@ -767,7 +1051,7 @@ document.getElementById('btnOntem').addEventListener('click', ()=>{dataSel.value
 dataSel.addEventListener('change', ()=>{updateDataLong();load();});
 
 /* ══════════════════ EXPORTAR PDF ══════════════════ */
-async function exportPDF(svc, dateStr){
+async function exportPDF(svc, subtitleText, fileSuffix){
   const el = document.getElementById('detailBody');
   if(!el) return;
   const btn = document.getElementById('btnPDF');
@@ -785,7 +1069,7 @@ async function exportPDF(svc, dateStr){
     pdf.setFontSize(13); pdf.setTextColor(13,27,62);
     pdf.text('Hospital do Prenda — ' + svc.name, margin, margin+2);
     pdf.setFontSize(9); pdf.setTextColor(100,116,139);
-    pdf.text('Resumo do dia ' + fmtDataLong(dateStr), margin, margin+8);
+    pdf.text(subtitleText, margin, margin+8);
 
     // Desenha a imagem completa em cada página, deslocada para cima,
     // recortada pela altura visível da página (técnica padrão para
@@ -803,7 +1087,7 @@ async function exportPDF(svc, dateStr){
       heightLeft -= pageContentH;
       page++;
     }
-    pdf.save('resumo_'+svc.id+'_'+dateStr+'.pdf');
+    pdf.save('resumo_'+svc.id+'_'+fileSuffix+'.pdf');
   }catch(e){
     console.error(e);
     alert('Não foi possível gerar o PDF: '+e.message);

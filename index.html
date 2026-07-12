@@ -46,12 +46,13 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
   background-size:34px 34px;pointer-events:none;mask-image:linear-gradient(to bottom,#000,transparent 80%);
 }
 .hero-in{position:relative;max-width:1040px;margin:0 auto;}
-.brand-row{display:flex;align-items:center;gap:14px;margin-bottom:22px;}
-.logo-badge{width:52px;height:52px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 6px 18px rgba(0,0,0,.25);flex-shrink:0;overflow:hidden;padding:4px;}
-.logo-badge img{width:100%;height:100%;object-fit:contain;border-radius:9px;}
-.brand-text .org{font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;color:var(--cyl);font-weight:600;font-family:'DM Mono',monospace;}
-.brand-text .dep{font-size:.98rem;font-weight:700;color:#fff;margin-top:2px;letter-spacing:-.005em;}
+.brand-row{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;margin-bottom:30px;}
+.logo-badge{width:76px;height:76px;border-radius:20px;background:#fff;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 10px 28px rgba(0,0,0,.3);flex-shrink:0;overflow:hidden;padding:5px;}
+.logo-badge img{width:100%;height:100%;object-fit:contain;border-radius:14px;}
+.brand-text{display:flex;flex-direction:column;align-items:center;}
+.brand-text .org{font-size:1.15rem;font-weight:800;color:#fff;letter-spacing:-.01em;}
+.brand-text .dep{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cyl);font-weight:600;font-family:'DM Mono',monospace;margin-top:4px;}
 
 .hero-body{display:grid;grid-template-columns:1.15fr .85fr;gap:30px;align-items:center;padding-bottom:38px;}
 .hero h1{font-size:clamp(1.7rem,4.4vw,2.5rem);font-weight:800;line-height:1.14;letter-spacing:-.02em;}
@@ -112,11 +113,11 @@ main{max-width:1040px;margin:0 auto;padding:56px 20px 60px;}
 .cat-head .cnt{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--tx3);background:var(--br);border-radius:100px;padding:2px 9px;}
 .cat-bar{height:3px;width:26px;border-radius:2px;}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
 .card{
   position:relative;display:block;text-decoration:none;color:var(--tx);overflow:hidden;
-  background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:16px 16px 14px;
-  box-shadow:var(--s1);min-height:120px;
+  background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:18px 18px 16px;
+  box-shadow:var(--s1);min-height:128px;
   transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .16s,border-color .16s;
 }
 .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--bl));border-radius:var(--r2) 0 0 var(--r2);}
@@ -125,11 +126,11 @@ main{max-width:1040px;margin:0 auto;padding:56px 20px 60px;}
 @media(hover:hover){
   .card:hover{transform:translateY(-3px);box-shadow:var(--s2);border-color:var(--accent,var(--bl));}
 }
-.card .ic{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;
-  background:color-mix(in srgb, var(--accent,var(--bl)) 14%, white);color:var(--accent,var(--bl));margin-bottom:12px;flex-shrink:0;}
-.card .ic svg{width:21px;height:21px;}
-.card h3{font-size:.9rem;font-weight:700;line-height:1.25;letter-spacing:-.005em;margin-bottom:3px;padding-right:18px;color:var(--tx);}
-.card .sub{font-size:.72rem;color:var(--tx3);line-height:1.3;}
+.card .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb, var(--accent,var(--bl)) 14%, white);color:var(--accent,var(--bl));margin-bottom:14px;flex-shrink:0;}
+.card .ic svg{width:22px;height:22px;}
+.card h3{font-size:.94rem;font-weight:700;line-height:1.25;letter-spacing:-.005em;margin-bottom:4px;padding-right:18px;color:var(--tx);}
+.card .sub{font-size:.74rem;color:var(--tx3);line-height:1.4;}
 .card .arrow{position:absolute;right:14px;top:16px;color:var(--tx3);transition:transform .16s,color .16s;}
 @media(hover:hover){.card:hover .arrow{transform:translate(3px,-3px);color:var(--accent,var(--bl));}}
 .card .status{position:absolute;right:12px;top:13px;font-family:'DM Mono',monospace;font-size:.58rem;font-weight:600;
@@ -214,15 +215,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
 <nav class="chips" id="chips" aria-label="Ir para categoria"></nav>
 
 <div class="dash-wrap">
-  <a class="dash-cta" href="Dashboard.html">
-    <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></div>
-    <div class="dash-text">
-      <div class="dash-title">Dashboard <span>· Resumo do Dia</span></div>
-      <div class="dash-sub">Vista consolidada de todos os serviços, por data, com gráficos — sincronizado entre dispositivos.</div>
-    </div>
-    <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
-  </a>
-  <a class="dash-cta" href="enf_diario_index.html" style="margin-top:12px;background:linear-gradient(120deg,#0D1B3E 0%,#059669 100%);box-shadow:0 10px 28px rgba(5,150,105,.28);">
+  <a class="dash-cta" href="enf_diario_index.html">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Enfermagem <span>· Procedimentos Diários</span></div>
@@ -231,10 +224,10 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:10px;}
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
   <a class="dash-cta" href="Estatistica.html" style="margin-top:12px;background:linear-gradient(120deg,#0D1B3E 0%,#7C3AED 100%);box-shadow:0 10px 28px rgba(124,58,237,.28);">
-    <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+    <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></div>
     <div class="dash-text">
-      <div class="dash-title">Estatística <span>· Resumos Mensais</span></div>
-      <div class="dash-sub">Relatório em PDF por mês, com o total de todos os serviços já resumido e organizado.</div>
+      <div class="dash-title">Estatística <span>· Dashboard &amp; Resumos Mensais</span></div>
+      <div class="dash-sub">Dashboard ao vivo por serviço (diário, semanal, mensal) e relatórios PDF mensais já organizados.</div>
     </div>
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
