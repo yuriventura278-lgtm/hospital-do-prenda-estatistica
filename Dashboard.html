@@ -780,6 +780,125 @@ function renderResumoGeral(dataset){
   `;
 }
 
+/* ══════════════════ RESUMO GERAL DO DIA — 2ª LEVA ══════════════════
+   Laboratório, Imagiologia, Consulta Externa e Fisioterapia — serviços de
+   apoio/diagnóstico e ambulatório, cujas métricas (exames, consultas,
+   atendimentos) não são comparáveis às de pacientes/cirurgias da 1ª leva,
+   por isso ganham o seu próprio resumo. */
+const RESUMO_SERVICES_2 = [
+  {id:'laboratorio_clinico', name:'Laboratório Clínico'},
+  {id:'imagiologia', name:'Imagiologia'},
+  {id:'consulta_externa', name:'Consulta Externa'},
+  {id:'fisioterapia', name:'Fisioterapia'},
+];
+
+function renderResumoGeral2(dataset){
+  const present = RESUMO_SERVICES_2.filter(rs=>dataset[rs.id] && dataset[rs.id].snapshot);
+  if(!present.length){
+    return `<div class="panel"><h2>Resumo Geral do Dia — Laboratório, Imagiologia, Consulta Externa e Fisioterapia</h2><div class="list-empty">Nenhum destes serviços tem registo confirmado nesta data.</div></div>`;
+  }
+  const labS = dataset.laboratorio_clinico && dataset.laboratorio_clinico.snapshot;
+  const imgS = dataset.imagiologia && dataset.imagiologia.snapshot;
+  const ceS = dataset.consulta_externa && dataset.consulta_externa.snapshot;
+  const fisioS = dataset.fisioterapia && dataset.fisioterapia.snapshot;
+
+  /* Laboratório — exames por tipo + positivos por tipo */
+  let labHTML = '';
+  let totExLab=0, totPosLab=0;
+  if(labS){
+    const ex = labS.exameData||{}, pos = labS.positivoData||{};
+    const exRows = Object.entries(ex).map(([k,v])=>{ const t=num(v&&v.urg)+num(v&&v.int); totExLab+=t; return tableRow([k, 'Urg: '+num(v&&v.urg), 'Int: '+num(v&&v.int), 'Total: '+t]); });
+    const posRows = Object.entries(pos).map(([k,v])=>{ const t=num(v&&v.urg)+num(v&&v.int); totPosLab+=t; return tableRow([k, 'Urg: '+num(v&&v.urg), 'Int: '+num(v&&v.int), 'Total: '+t]); });
+    labHTML = `<div class="panel"><h2>Laboratório Clínico</h2>
+      <div class="stats-grid" style="margin-bottom:14px;">
+        <div class="stat-tile"><div class="v">${totExLab}</div><div class="l">Exames Realizados</div></div>
+        <div class="stat-tile"><div class="v">${totPosLab}</div><div class="l">Resultados Positivos</div></div>
+        <div class="stat-tile"><div class="v">${num(labS.numTec)}</div><div class="l">Técnicos de Serviço</div></div>
+      </div>
+      ${exRows.length?`<h2>Exames por Tipo</h2><div class="rec-list">${exRows.join('')}</div>`:''}
+      ${posRows.length?`<h2 style="margin-top:16px;">Positivos por Tipo</h2><div class="rec-list">${posRows.join('')}</div>`:''}
+    </div>`;
+  }
+
+  /* Imagiologia — exames por modalidade (BU + Internamento) */
+  let imgHTML = '';
+  let totImg=0;
+  if(imgS){
+    const somaLinhas = arr => (arr||[]).reduce((a,r)=>({prx:a.prx+num(r.prx),rx:a.rx+num(r.rx),peco:a.peco+num(r.peco),eco:a.eco+num(r.eco),ptac:a.ptac+num(r.ptac),tac:a.tac+num(r.tac)}),{prx:0,rx:0,peco:0,eco:0,ptac:0,tac:0});
+    const bu = somaLinhas(imgS.bu), int = somaLinhas(imgS.int);
+    const modRows = ['prx','rx','peco','eco','ptac','tac'].map(k=>{
+      const t = bu[k]+int[k]; totImg+=t;
+      return tableRow([k.toUpperCase(), 'BU: '+bu[k], 'Int: '+int[k], 'Total: '+t]);
+    });
+    const ecgN = num(imgS.ecg); totImg+=ecgN;
+    imgHTML = `<div class="panel"><h2>Imagiologia</h2>
+      <div class="stats-grid" style="margin-bottom:14px;">
+        <div class="stat-tile"><div class="v">${totImg}</div><div class="l">Exames — Total Geral</div></div>
+        <div class="stat-tile"><div class="v">${ecgN}</div><div class="l">ECG</div></div>
+      </div>
+      <h2>Exames por Modalidade (BU + Internamento)</h2>
+      <div class="rec-list">${modRows.join('')}${tableRow(['ECG', '', '', 'Total: '+ecgN])}</div>
+    </div>`;
+  }
+
+  /* Consulta Externa — consultas por especialidade */
+  let ceHTML = '';
+  let totCe=0;
+  if(ceS){
+    const esp = ceS.espData||{};
+    const espRows = Object.entries(esp).map(([id,d])=>{
+      const t = num(d&&d.total); totCe+=t;
+      return tableRow([CE_ESP[id]||id, t]);
+    });
+    ceHTML = `<div class="panel"><h2>Consulta Externa</h2>
+      <div class="stats-grid" style="margin-bottom:14px;">
+        <div class="stat-tile"><div class="v">${totCe}</div><div class="l">Total de Consultas</div></div>
+        <div class="stat-tile"><div class="v">${num(ceS.hdia)}</div><div class="l">Hospital de Dia</div></div>
+      </div>
+      ${espRows.length?`<h2>Consultas por Especialidade</h2><div class="rec-list">${espRows.join('')}</div>`:''}
+    </div>`;
+  }
+
+  /* Fisioterapia — atendimentos internos/externos + modalidades */
+  let fisioHTML = '';
+  let totFisio=0;
+  if(fisioS){
+    const intV=(fisioS.intV||[]).map(x=>({label:x.t,value:num(x.v)}));
+    const extV=(fisioS.extV||[]).map(x=>({label:x.t,value:num(x.v)}));
+    const modV=(fisioS.modV||[]).map(x=>({label:x.t,value:num(x.v)}));
+    const totInt=intV.reduce((a,x)=>a+x.value,0), totExt=extV.reduce((a,x)=>a+x.value,0), totMod=modV.reduce((a,x)=>a+x.value,0);
+    totFisio = totInt+totExt;
+    fisioHTML = `<div class="panel"><h2>Fisioterapia</h2>
+      <div class="stats-grid" style="margin-bottom:14px;">
+        <div class="stat-tile"><div class="v">${totInt}</div><div class="l">Atendimentos Internos</div></div>
+        <div class="stat-tile"><div class="v">${totExt}</div><div class="l">Atendimentos Externos</div></div>
+        <div class="stat-tile"><div class="v">${totMod}</div><div class="l">Sessões de Modalidades</div></div>
+        <div class="stat-tile"><div class="v">${num(fisioS.equipaFis)}</div><div class="l">Equipa — Fisios</div></div>
+        <div class="stat-tile"><div class="v">${num(fisioS.equipaTec)}</div><div class="l">Equipa — Técnicos</div></div>
+      </div>
+      ${intV.length?`<h2>Doentes Internos Atendidos (por serviço)</h2><div class="rec-list">${intV.map(x=>tableRow([x.label,x.value])).join('')}</div>`:''}
+      ${extV.length?`<h2 style="margin-top:16px;">Doentes Externos Atendidos</h2><div class="rec-list">${extV.map(x=>tableRow([x.label,x.value])).join('')}</div>`:''}
+      ${modV.length?`<h2 style="margin-top:16px;">Modalidades Terapêuticas</h2><div class="rec-list">${modV.map(x=>tableRow([x.label,x.value])).join('')}</div>`:''}
+    </div>`;
+  }
+
+  /* Total geral de actividade dos 4 serviços */
+  const totalGeralRows = [
+    labS ? tableRow(['Laboratório Clínico', totExLab]) : '',
+    imgS ? tableRow(['Imagiologia', totImg]) : '',
+    ceS ? tableRow(['Consulta Externa', totCe]) : '',
+    fisioS ? tableRow(['Fisioterapia', totFisio]) : '',
+  ].filter(Boolean);
+  const totalGeral = (labS?totExLab:0)+(imgS?totImg:0)+(ceS?totCe:0)+(fisioS?totFisio:0);
+
+  return `
+    <div class="panel"><h2>Total Geral de Actividade — Laboratório, Imagiologia, Consulta Externa e Fisioterapia</h2>
+      <div class="rec-list">${totalGeralRows.join('')}${tableRow(['<b>TOTAL GERAL</b>', totalGeral])}</div>
+    </div>
+    ${labHTML}${imgHTML}${ceHTML}${fisioHTML}
+  `;
+}
+
 const SCHEMAS = {
   cirurgia_geral: groupASections, ortopedia: groupASections, neurocirurgia: groupASections,
   cirurgia_maxilo_facial: groupASections, oftalmologia: groupASections, otorrinolaringologia: groupASections,
@@ -1141,6 +1260,8 @@ function renderOverview(){
     <div class="panel"><h2>Movimento por Serviço <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="bars">${barsHTML}</div></div>
     <div class="sec-divider"><span>Resumo Geral do Dia</span></div>
     ${renderResumoGeral(currentDataset)}
+    <div class="sec-divider"><span>Laboratório, Imagiologia, Consulta Externa e Fisioterapia</span></div>
+    ${renderResumoGeral2(currentDataset)}
   `;
 }
 
