@@ -133,6 +133,12 @@ textarea{resize:vertical;min-height:72px;line-height:1.65;}
 #draft-banner .db-time{font-family:'DM Mono',monospace;font-size:.66rem;opacity:.75;white-space:nowrap;flex-shrink:0;background:rgba(0,0,0,.2);padding:3px 7px;border-radius:4px;}
 #draft-banner .db-clear{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 10px;font-size:.7rem;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;flex-shrink:0;transition:background .13s;}
 #draft-banner .db-clear:hover{background:rgba(255,255,255,.3);}
+#missing-banner{display:none;background:linear-gradient(90deg,#0D1B3E 0%,#1A56DB 100%);color:#fff;padding:10px 14px;font-size:.76rem;font-weight:600;align-items:flex-start;gap:10px;position:relative;z-index:98;box-shadow:0 3px 12px rgba(13,27,62,.35);}
+#missing-banner.show{display:flex;}
+#missing-banner .mb-icon{flex-shrink:0;width:26px;height:26px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+#missing-banner .mb-icon svg{width:13px;height:13px;}
+#missing-banner .mb-msg{flex:1;line-height:1.5;}
+#missing-banner .mb-close{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 9px;font-size:.68rem;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;flex-shrink:0;}
 /* MODAL — Visualizar / Dashboard */
 #ov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.7);backdrop-filter:blur(8px);z-index:600;align-items:flex-end;justify-content:center;}
 #ov.open{display:flex;}
@@ -241,6 +247,13 @@ function closeSplash(){
   <button class="db-clear" onclick="clearDraft()">Limpar</button>
 </div>
 
+<!-- BANNER DE DIAS EM FALTA -->
+<div id="missing-banner">
+  <div class="mb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg></div>
+  <span class="mb-msg" id="missing-msg"></span>
+  <button class="mb-close" onclick="document.getElementById('missing-banner').classList.remove('show')">Ok</button>
+</div>
+
 <div class="wrap">
 
 
@@ -307,6 +320,11 @@ function closeSplash(){
     <div class="f"><label>Notas — Turno Noite</label><textarea id="notesN_cuid_intermedio" placeholder="Observações do turno nocturno..." oninput="scheduleSave()"></textarea></div>
   </div>
 </div>
+
+<button onclick="historicoRegisto()" style="width:100%;padding:16px;margin-top:10px;background:var(--blxt);border:1.5px solid var(--blt);border-radius:14px;color:var(--bl);font-size:.92rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+  Histórico de Registos
+</button>
 
 </div>
 
@@ -970,14 +988,161 @@ function enviarParaFirebase(dataStr, registo){
     .catch(e=>console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e));
 }
 
+// ── HISTÓRICO DE REGISTOS — um único registo por dia (ver, editar, eliminar) ──
+const HIST_IDX_KEY = 'enf_hidx_' + PAGE_SLUG;
+
+function loadHistIndex(){ try{ return JSON.parse(localStorage.getItem(HIST_IDX_KEY)||'[]'); }catch(e){ return []; } }
+function saveHistIndex(idx){ try{ localStorage.setItem(HIST_IDX_KEY, JSON.stringify(idx)); }catch(e){} }
+function addToHistIndex(dateStr){
+  if(!dateStr) return;
+  const idx=loadHistIndex();
+  if(idx.indexOf(dateStr)===-1){ idx.push(dateStr); idx.sort().reverse(); saveHistIndex(idx); }
+}
+function removeFromHistIndex(dateStr){ saveHistIndex(loadHistIndex().filter(d=>d!==dateStr)); }
+
+async function loadSnapshotForDate(dateStr){
+  const chave=storageKey(dateStr);
+  let data=null;
+  try{ data=await __ddLoad(chave); }catch(e){}
+  if(!data){
+    let raw=null;
+    try{ raw=localStorage.getItem(chave); }catch(e){}
+    if(raw){ try{ data=JSON.parse(raw); }catch(e){} }
+  }
+  return data;
+}
+
+async function sincronizarHistoricoFirebase(){
+  if(!window.__fbReady || !window.__fbGet) return;
+  try{
+    const remoto=await window.__fbGet(FB_PATH); // { 'YYYY-MM-DD': {savedAt, snapshot}, ... }
+    if(!remoto) return;
+    const idx=loadHistIndex();
+    let changed=false;
+    Object.keys(remoto).forEach(dateStr=>{
+      if(idx.indexOf(dateStr)===-1){ idx.push(dateStr); changed=true; }
+      const reg=remoto[dateStr];
+      if(reg && reg.snapshot){
+        __ddSave(storageKey(dateStr), reg.snapshot);
+        try{ localStorage.setItem(storageKey(dateStr), JSON.stringify(reg.snapshot)); }catch(e){}
+      }
+    });
+    if(changed){ idx.sort().reverse(); saveHistIndex(idx); }
+  }catch(e){ console.warn('Firebase: falha ao sincronizar histórico.', e); }
+}
+
+function fmtHistDate(dateStr){
+  try{ const d=new Date(dateStr+'T12:00:00'); return d.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'}); }catch(e){ return dateStr; }
+}
+function fmtHistDateShort(dateStr){
+  try{ const d=new Date(dateStr+'T12:00:00'); return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'); }catch(e){ return dateStr; }
+}
+
+function dayNightHasData(snapshot){
+  let hasD=false, hasN=false;
+  if(snapshot && snapshot.sub){
+    Object.keys(snapshot.sub).forEach(subId=>{
+      const sd=snapshot.sub[subId]; if(!sd) return;
+      if(sd.notesD && sd.notesD.trim()) hasD=true;
+      if(sd.notesN && sd.notesN.trim()) hasN=true;
+      const cats=sd.cats||{};
+      Object.keys(cats).forEach(catId=>{
+        const c=cats[catId]||{};
+        (c.d||[]).forEach(v=>{ if(v && Number(v)!==0) hasD=true; });
+        (c.n||[]).forEach(v=>{ if(v && Number(v)!==0) hasN=true; });
+      });
+    });
+  }
+  return {hasD, hasN};
+}
+
+async function checkMissingRecent(){
+  const banner=document.getElementById('missing-banner');
+  if(!banner) return;
+  const today=new Date();
+  const gaps=[];
+  for(let i=1;i<=7;i++){
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    const dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const snap=await loadSnapshotForDate(dateStr);
+    if(!snap){ gaps.push({dateStr, label:'sem registo'}); continue; }
+    const {hasD,hasN}=dayNightHasData(snap);
+    if(!hasD && !hasN) gaps.push({dateStr, label:'sem registo'});
+    else if(!hasD) gaps.push({dateStr, label:'falta Dia'});
+    else if(!hasN) gaps.push({dateStr, label:'falta Noite'});
+  }
+  if(!gaps.length){ banner.classList.remove('show'); return; }
+  gaps.sort((a,b)=> a.dateStr<b.dateStr?1:-1);
+  document.getElementById('missing-msg').textContent =
+    'Últimos 7 dias com procedimentos em falta: ' + gaps.map(g=>fmtHistDateShort(g.dateStr)+' ('+g.label+')').join(', ');
+  banner.classList.add('show');
+}
+
+async function historicoRegisto(){
+  const idx=loadHistIndex().slice(0,60);
+  document.getElementById('m-data').textContent='Histórico de Registos';
+  if(!idx.length){
+    document.getElementById('m-body').innerHTML='<div style="text-align:center;padding:24px 10px;color:var(--tx3);font-size:.9rem;">Ainda não há registos guardados no histórico.</div>';
+    document.getElementById('ov').classList.add('open');
+    return;
+  }
+  document.getElementById('m-body').innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:.85rem;">A carregar histórico…</div>';
+  document.getElementById('ov').classList.add('open');
+  const rows=await Promise.all(idx.map(async dateStr=>({dateStr, snap:await loadSnapshotForDate(dateStr)})));
+  let html='<div style="display:flex;flex-direction:column;gap:8px;">';
+  rows.forEach(({dateStr, snap})=>{
+    const chefeDia=(snap&&snap.chefeTurnoDia)||'—';
+    const chefeNoite=(snap&&snap.chefeTurnoNoite)||'—';
+    const {hasD,hasN}=dayNightHasData(snap);
+    html+='<div style="background:#FAFBFF;border:1.5px solid var(--br);border-radius:var(--r);padding:12px 14px;">'
+      +'<div style="font-size:.85rem;font-weight:700;color:var(--tx);margin-bottom:6px;">'+fmtHistDate(dateStr)+'</div>'
+      +'<div style="font-size:.78rem;color:var(--tx2);line-height:1.6;">'
+        +'Turno Dia: <b>'+escHtml(chefeDia)+'</b>'+(hasD?'':' <span style="color:var(--rd);">· vazio</span>')+'<br/>'
+        +'Turno Noite: <b>'+escHtml(chefeNoite)+'</b>'+(hasN?'':' <span style="color:var(--rd);">· vazio</span>')
+      +'</div>'
+      +'<div style="margin-top:8px;display:flex;gap:8px;">'
+        +'<button onclick="restaurarHistorico(\''+dateStr+'\')" style="flex:1;padding:9px;background:var(--bl);border:none;border-radius:9px;color:#fff;font-weight:700;font-size:.76rem;cursor:pointer;font-family:\'Inter\',sans-serif;">Carregar este registo</button>'
+        +'<button onclick="apagarHistorico(\''+dateStr+'\')" title="Eliminar este registo" style="padding:9px 12px;background:#FEF2F2;border:1px solid #FECACA;border-radius:9px;color:var(--rd);font-weight:700;cursor:pointer;font-family:\'Inter\',sans-serif;">🗑</button>'
+      +'</div>'
+    +'</div>';
+  });
+  html+='</div>';
+  document.getElementById('m-body').innerHTML=html;
+}
+
+async function restaurarHistorico(dateStr){
+  if(!confirm('Ir para o registo de '+fmtHistDate(dateStr)+'? Os dados actualmente preenchidos no ecrã serão substituídos pelos desse dia.'))return;
+  closeModal();
+  const prev=currentDate();
+  document.getElementById('dataFim').value=dateStr;
+  if(prev && prev!==dateStr) persist(prev);
+  await loadForDate(dateStr);
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('✓ Registo de '+fmtHistDate(dateStr)+' carregado.');
+}
+
+function apagarHistorico(dateStr){
+  if(!confirm('Eliminar o registo de '+fmtHistDate(dateStr)+'? Esta acção não pode ser desfeita.'))return;
+  removeFromHistIndex(dateStr);
+  try{ localStorage.removeItem(storageKey(dateStr)); }catch(e){}
+  try{ if(__ddDB){ const tx=__ddDB.transaction(__DD_STORE,'readwrite'); tx.objectStore(__DD_STORE).delete(storageKey(dateStr)); } }catch(e){}
+  if(window.__fbReady && window.__fbSet){
+    window.__fbSet(FB_PATH+'/'+dateStr, null).catch(e=>console.warn('Firebase: falha ao eliminar registo remoto.', e));
+  }
+  toast('✓ Registo eliminado.');
+  historicoRegisto();
+}
+
 function acaoGuardar(){
   if(!validarChefe())return;
   const dataStr=currentDate();
   persist(dataStr);
   enviarParaFirebase(dataStr, {savedAt:new Date().toISOString(), snapshot:buildSnapshot()});
+  addToHistIndex(dataStr);
   try{ localStorage.removeItem(draftKey(dataStr)); }catch(e){}
   hideDraftBanner();
   toast('✓ Registo guardado.');
+  checkMissingRecent();
 }
 
 window.addEventListener('DOMContentLoaded',function(){
@@ -988,7 +1153,9 @@ window.addEventListener('DOMContentLoaded',function(){
   fimEl.value=iso;
   let prev=iso;
   fimEl.addEventListener('change',function(){ onDateChange(prev); prev=fimEl.value; });
-  __ddOpen().then(function(){ loadForDate(iso); });
+  __ddOpen().then(function(){ loadForDate(iso).then(function(){
+    sincronizarHistoricoFirebase().then(checkMissingRecent);
+  }); });
 });
 </script>
 
