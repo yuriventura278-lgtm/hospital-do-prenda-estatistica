@@ -158,21 +158,27 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   .foot-meta{text-align:left;}
 }
 
-.card{flex-direction:column;align-items:flex-start;min-width:0;height:100%;box-sizing:border-box;}
-.card .head-row{display:flex;align-items:center;gap:14px;width:100%;min-width:0;}
-.card .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px;width:100%;}
+.card{flex-direction:column;align-items:flex-start;min-width:0;box-sizing:border-box;padding:0;overflow:visible;}
+.card .head-row{display:flex;align-items:center;gap:14px;width:100%;min-width:0;background:none;border:none;
+  cursor:pointer;padding:15px 16px;font:inherit;text-align:left;color:inherit;}
+.card .chev{flex-shrink:0;color:rgba(255,255,255,.75);transition:transform .2s;}
+.card.open .chev{transform:rotate(180deg);}
+.card-body{width:100%;max-height:0;overflow:hidden;transition:max-height .22s ease;}
+.card.open .card-body{max-height:220px;}
+.card .links{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 16px;width:100%;box-sizing:border-box;}
 .card .pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.16);color:#fff;text-decoration:none;
-  font-size:.7rem;font-weight:700;padding:6px 11px;border-radius:100px;transition:background .15s,transform .15s;border:1px solid rgba(255,255,255,.22);white-space:nowrap;}
+  font-size:.7rem;font-weight:700;padding:6px 11px;border-radius:100px;transition:background .15s,transform .15s;border:1px solid rgba(255,255,255,.22);white-space:nowrap;
+  cursor:pointer;font-family:inherit;}
 .card .pill:hover{background:rgba(255,255,255,.3);}
 .card .pill:active{transform:scale(.96);}
 .card .pill svg{width:12px;height:12px;flex-shrink:0;}
 .card.wip .pill{pointer-events:none;opacity:.7;}
-.code-row{display:flex;align-items:center;gap:8px;margin-top:13px;padding-top:12px;border-top:1px solid rgba(255,255,255,.16);width:100%;}
-.code-row label{font-size:.62rem;font-weight:700;color:rgba(255,255,255,.68);white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
-.code-input{flex:1;min-width:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.26);border-radius:8px;
-  color:#fff;font-size:.74rem;font-weight:700;padding:6px 10px;font-family:'DM Mono',monospace;letter-spacing:.03em;}
-.code-input::placeholder{color:rgba(255,255,255,.45);font-weight:500;}
-.code-input:focus{outline:none;border-color:rgba(255,255,255,.7);background:rgba(255,255,255,.2);}
+.code-pill{background:rgba(255,255,255,.08);border-style:dashed;}
+.code-pill:hover{background:rgba(255,255,255,.2);}
+.code-pill .code-val{font-family:'DM Mono',monospace;}
+.code-edit-input{width:78px;background:rgba(255,255,255,.95);border:none;border-radius:6px;color:var(--nv,#0D1B3E);
+  font-size:.7rem;font-weight:700;padding:5px 8px;font-family:'DM Mono',monospace;letter-spacing:.03em;}
+.code-edit-input:focus{outline:2px solid #fff;}
 
 /* ── PESQUISA ── */
 .search-wrap{max-width:1040px;margin:0 auto 24px;padding:0 20px;}
@@ -391,18 +397,22 @@ function render(){
       `).join('');
       const slug = it.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').toLowerCase();
       card.innerHTML = `
-        <div class="head-row">
+        <button type="button" class="head-row" onclick="toggleCard(this.closest('.card'))">
           <div class="ic">${icon(it.icon)}</div>
           <div class="txt">
             <h3>${it.name}</h3>
             <div class="sub">${it.sub}</div>
             ${it.wip ? `<div class="status">Em construção</div>` : ''}
           </div>
-        </div>
-        <div class="links">${linksHtml}</div>
-        <div class="code-row">
-          <label for="cod-${slug}">Código do Serviço:</label>
-          <input type="text" id="cod-${slug}" class="code-input" data-service="${slug}" placeholder="—" oninput="saveServiceCode(this)"/>
+          <div class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        </button>
+        <div class="card-body">
+          <div class="links">${linksHtml}
+            <button type="button" class="pill code-pill" data-service="${slug}" onclick="editServiceCode(this)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              <span class="code-label">Código: <b class="code-val">—</b></span>
+            </button>
+          </div>
         </div>
       `;
       grid.appendChild(card);
@@ -425,14 +435,35 @@ function filterServicos(q){
   });
   document.getElementById('noResults').style.display = anyVisible ? 'none' : 'block';
 }
-function saveServiceCode(el){
-  try{ localStorage.setItem('servico_codigo_'+el.dataset.service, el.value); }catch(e){}
+function toggleCard(card){
+  card.classList.toggle('open');
+}
+function editServiceCode(btn){
+  event.stopPropagation();
+  if(btn.querySelector('.code-edit-input')) return;
+  const current = btn.querySelector('.code-val').textContent.trim();
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'code-edit-input';
+  input.value = current === '—' ? '' : current;
+  input.placeholder = 'Código…';
+  const finish = () => {
+    const val = input.value.trim();
+    try{ localStorage.setItem('servico_codigo_'+btn.dataset.service, val); }catch(e){}
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="code-label">Código: <b class="code-val">${val || '—'}</b></span>`;
+  };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') input.blur(); });
+  input.addEventListener('click', e => e.stopPropagation());
+  btn.innerHTML = '';
+  btn.appendChild(input);
+  input.focus();
 }
 function loadServiceCodes(){
-  document.querySelectorAll('.code-input').forEach(el=>{
+  document.querySelectorAll('.code-pill').forEach(btn=>{
     try{
-      const v = localStorage.getItem('servico_codigo_'+el.dataset.service);
-      if(v) el.value = v;
+      const v = localStorage.getItem('servico_codigo_'+btn.dataset.service);
+      if(v) btn.querySelector('.code-val').textContent = v;
     }catch(e){}
   });
 }
