@@ -401,6 +401,11 @@ function render(){
         <a class="pill movimento-pill" href="movimento_mensal.html?servico=${m.slug}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg><span>${m.label}</span></a>
       `).join('');
       const slug = it.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').toLowerCase();
+      const codePillHtml = it.movimento ? `
+            <button type="button" class="pill code-pill" data-service="${slug}" onclick="editServiceCode(this)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              <span class="code-label">Código: <b class="code-val">—</b></span>
+            </button>` : '';
       card.innerHTML = `
         <button type="button" class="head-row" onclick="toggleCard(this.closest('.card'))">
           <div class="ic">${icon(it.icon)}</div>
@@ -412,11 +417,7 @@ function render(){
           <div class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
         </button>
         <div class="card-body">
-          <div class="links">${linksHtml}${movimentoHtml}
-            <button type="button" class="pill code-pill" data-service="${slug}" onclick="editServiceCode(this)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-              <span class="code-label">Código: <b class="code-val">—</b></span>
-            </button>
+          <div class="links">${linksHtml}${movimentoHtml}${codePillHtml}
           </div>
         </div>
       `;
