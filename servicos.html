@@ -164,7 +164,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .card .chev{flex-shrink:0;color:rgba(255,255,255,.75);transition:transform .2s;}
 .card.open .chev{transform:rotate(180deg);}
 .card-body{width:100%;max-height:0;overflow:hidden;transition:max-height .22s ease;}
-.card.open .card-body{max-height:220px;}
+.card.open .card-body{max-height:320px;}
 .card .links{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 16px;width:100%;box-sizing:border-box;}
 .card .pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.16);color:#fff;text-decoration:none;
   font-size:.7rem;font-weight:700;padding:6px 11px;border-radius:100px;transition:background .15s,transform .15s;border:1px solid rgba(255,255,255,.22);white-space:nowrap;
@@ -175,6 +175,8 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .card.wip .pill{pointer-events:none;opacity:.7;}
 .code-pill{background:rgba(255,255,255,.08);border-style:dashed;}
 .code-pill:hover{background:rgba(255,255,255,.2);}
+.movimento-pill{background:rgba(16,185,129,.22);border-color:rgba(16,185,129,.45);}
+.movimento-pill:hover{background:rgba(16,185,129,.4);}
 .code-pill .code-val{font-family:'DM Mono',monospace;}
 .code-edit-input{width:78px;background:rgba(255,255,255,.95);border:none;border-radius:6px;color:var(--nv,#0D1B3E);
   font-size:.7rem;font-weight:700;padding:5px 8px;font-family:'DM Mono',monospace;letter-spacing:.03em;}
@@ -274,19 +276,19 @@ const SERVICOS = [
       {name:'Cirurgia Geral', sub:'Banco e procedimentos de enfermagem', icon:'stretcher', links:[
         {label:'Banco', file:'Cirurgia_Geral.html', kind:'banco'},
         {label:'Procedimentos de Enfermagem', file:'enf_diario_cirurgia.html', kind:'enf'}
-      ]},
+      ], movimento:[{label:'Movimento Mensal', slug:'cirurgia_geral'}]},
       {name:'Ortopedia', sub:'Banco e procedimentos de enfermagem', icon:'bone', links:[
         {label:'Banco', file:'Ortopedia.html', kind:'banco'},
         {label:'Procedimentos de Enfermagem', file:'enf_diario_ortopedia.html', kind:'enf'}
-      ]},
+      ], movimento:[{label:'Movimento Mensal', slug:'ortopedia'}]},
       {name:'Neurocirurgia', sub:'Banco e procedimentos de enfermagem', icon:'brain', links:[
         {label:'Banco', file:'Neurocirurgia.html', kind:'banco'},
         {label:'Procedimentos de Enfermagem', file:'enf_diario_neurocirurgia.html', kind:'enf'}
-      ]},
+      ], movimento:[{label:'Movimento Mensal', slug:'neurocirurgia'}]},
       {name:'Maxilo Facial', sub:'Banco e procedimentos de enfermagem', icon:'jaw', links:[
         {label:'Banco', file:'Cirurgia_Maxilo_Facial.html', kind:'banco'},
         {label:'Procedimentos de Enfermagem', file:'enf_diario_maxilo_facial.html', kind:'enf'}
-      ]},
+      ], movimento:[{label:'Movimento Mensal', slug:'maxilo_facial'}]},
       {name:'Oftalmologia', sub:'Registo de turno · internamento', icon:'eye', links:[
         {label:'Banco', file:'Oftalmologia.html', kind:'banco'}
       ]},
@@ -306,15 +308,15 @@ const SERVICOS = [
         {label:'Banco', file:'banco_medicina_interna_v2-2-1-2-1.html', kind:'banco'},
         {label:'Enf. Medicina Homem', file:'enf_diario_medicina_homem.html', kind:'enf'},
         {label:'Enf. Medicina Mulher', file:'enf_diario_medicina_mulher.html', kind:'enf'}
-      ]},
+      ], movimento:[{label:'Mov. Mensal · Homem', slug:'medicina_homem'},{label:'Mov. Mensal · Mulher', slug:'medicina_mulher'}]},
       {name:'Nefrologia', sub:'Banco e procedimentos de enfermagem', icon:'droplet', links:[
         {label:'Banco', file:'Banco_Nefrologia_v2-1.html', kind:'banco'},
         {label:'Procedimentos de Enfermagem', file:'enf_diario_nefrologia.html', kind:'enf'}
-      ]},
+      ], movimento:[{label:'Movimento Mensal', slug:'nefrologia'}]},
       {name:'UCI / Cuidados Intermédios', sub:'Banco e procedimentos de enfermagem', icon:'activity', links:[
         {label:'Banco', file:'banco_uci_v1-3-1-1.html', kind:'banco'},
         {label:'Procedimentos de Enfermagem', file:'enf_diario_uci_intermedio.html', kind:'enf'}
-      ]},
+      ], movimento:[{label:'Movimento Mensal', slug:'uci_cuidados_intermedios'}]},
       {name:'Fisioterapia', sub:'Registo de turno', icon:'users', links:[
         {label:'Banco', file:'banco_fisioterapia_v1-1-1.html', kind:'banco'}
       ]},
@@ -395,6 +397,9 @@ function render(){
       const linksHtml = it.links.map(l=>`
         <a class="pill" href="${l.file}">${pillIcon(l.kind)}<span>${l.label}</span></a>
       `).join('');
+      const movimentoHtml = (it.movimento||[]).map(m=>`
+        <a class="pill movimento-pill" href="movimento_mensal.html?servico=${m.slug}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg><span>${m.label}</span></a>
+      `).join('');
       const slug = it.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').toLowerCase();
       card.innerHTML = `
         <button type="button" class="head-row" onclick="toggleCard(this.closest('.card'))">
@@ -407,7 +412,7 @@ function render(){
           <div class="chev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
         </button>
         <div class="card-body">
-          <div class="links">${linksHtml}
+          <div class="links">${linksHtml}${movimentoHtml}
             <button type="button" class="pill code-pill" data-service="${slug}" onclick="editServiceCode(this)">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
               <span class="code-label">Código: <b class="code-val">—</b></span>
