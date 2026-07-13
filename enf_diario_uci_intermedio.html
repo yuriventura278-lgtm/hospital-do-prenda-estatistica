@@ -260,12 +260,16 @@ function closeSplash(){
 <div class="sec">
   <div class="sh">
     <div class="si ipu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-    <div class="st"><h2>Chefe de Turno<span class="req">*</span></h2><p>Obrigatório — responsável pelo registo deste turno</p></div>
+    <div class="st"><h2>Responsáveis de Turno<span class="req">*</span></h2><p>Obrigatório — responsável pelo registo de cada turno</p></div>
   </div>
   <div class="sb">
     <div class="f">
-      <label>Nome do Chefe de Turno<span class="req">*</span></label>
-      <input type="text" id="chefeTurno" placeholder="Nome completo" oninput="onChefeInput()"/>
+      <label>Responsável — Turno Dia<span class="req">*</span></label>
+      <input type="text" id="chefeTurnoDia" placeholder="Nome completo" oninput="onChefeInput()"/>
+    </div>
+    <div class="f">
+      <label>Responsável — Turno Noite<span class="req">*</span></label>
+      <input type="text" id="chefeTurnoNoite" placeholder="Nome completo" oninput="onChefeInput()"/>
     </div>
   </div>
 </div>
@@ -427,20 +431,31 @@ function onProcInput(subId){
 }
 
 function validarChefe(){
-  const el=document.getElementById('chefeTurno');
-  const val=(el.value||'').trim();
-  if(!val){
-    el.classList.add('err-inp');
-    el.scrollIntoView({behavior:'smooth',block:'center'});
-    el.focus();
-    toast('Preencha o nome do Chefe de Turno.');
+  const elD=document.getElementById('chefeTurnoDia');
+  const elN=document.getElementById('chefeTurnoNoite');
+  const valD=(elD.value||'').trim();
+  const valN=(elN.value||'').trim();
+  if(!valD){
+    elD.classList.add('err-inp');
+    elD.scrollIntoView({behavior:'smooth',block:'center'});
+    elD.focus();
+    toast('Preencha o nome do Responsável do Turno Dia.');
     return false;
   }
-  el.classList.remove('err-inp');
+  elD.classList.remove('err-inp');
+  if(!valN){
+    elN.classList.add('err-inp');
+    elN.scrollIntoView({behavior:'smooth',block:'center'});
+    elN.focus();
+    toast('Preencha o nome do Responsável do Turno Noite.');
+    return false;
+  }
+  elN.classList.remove('err-inp');
   return true;
 }
 function onChefeInput(){
-  document.getElementById('chefeTurno').classList.remove('err-inp');
+  const elD=document.getElementById('chefeTurnoDia'); if(elD&&elD.value.trim()) elD.classList.remove('err-inp');
+  const elN=document.getElementById('chefeTurnoNoite'); if(elN&&elN.value.trim()) elN.classList.remove('err-inp');
   scheduleSave();
 }
 
@@ -572,7 +587,7 @@ function buildSnapshot(){
     });
     sub[s.id]={cats, notesD:gv('notesD_'+s.id), notesN:gv('notesN_'+s.id)};
   });
-  return {_ts:Date.now(), chefeTurno:gv('chefeTurno'), dataInicio:dataInicioVal(), sub};
+  return {_ts:Date.now(), chefeTurnoDia:gv('chefeTurnoDia'), chefeTurnoNoite:gv('chefeTurnoNoite'), dataInicio:dataInicioVal(), sub};
 }
 // ════════════ ARMAZENAMENTO POR DIA — IndexedDB (persistente) + localStorage (auxiliar) ════════════
 const __DD_DB='hp_enfdiario_'+PAGE_SLUG+'_db', __DD_STORE='dias';
@@ -611,7 +626,8 @@ function persist(dateStr){
   try{ localStorage.setItem(chave, JSON.stringify(snap)); }catch(e){console.error(e);}
 }
 function clearForm(){
-  const ch=document.getElementById('chefeTurno'); if(ch){ch.value='';ch.classList.remove('err-inp');}
+  const chD=document.getElementById('chefeTurnoDia'); if(chD){chD.value='';chD.classList.remove('err-inp');}
+  const chN=document.getElementById('chefeTurnoNoite'); if(chN){chN.value='';chN.classList.remove('err-inp');}
   SUBS.forEach(s=>{
     CATS.forEach(c=>{
       for(let i=0;i<c.n;i++){ const di=document.getElementById('f_'+s.id+'_'+c.id+'_'+i+'_d'); if(di)di.value=''; const ni=document.getElementById('f_'+s.id+'_'+c.id+'_'+i+'_n'); if(ni)ni.value=''; }
@@ -632,7 +648,8 @@ async function loadForDate(dateStr){
   }
   if(data){
     try{
-      const ch=document.getElementById('chefeTurno'); if(ch) ch.value=data.chefeTurno||'';
+      const chD=document.getElementById('chefeTurnoDia'); if(chD) chD.value=data.chefeTurnoDia||'';
+      const chN=document.getElementById('chefeTurnoNoite'); if(chN) chN.value=data.chefeTurnoNoite||'';
       SUBS.forEach(s=>{
         const sd=data.sub&&data.sub[s.id]; if(!sd)return;
         CATS.forEach(c=>{
@@ -661,7 +678,8 @@ function montarDashboard(){
   document.getElementById('m-data').textContent=pdfDateFmt();
   let html='';
   html+='<div class="ms"><div class="mst">Identificação</div>';
-  html+='<div class="ml2"><span class="mk">Chefe de Turno</span><span class="mv">'+escHtml(gv('chefeTurno')||'—')+'</span></div>';
+  html+='<div class="ml2"><span class="mk">Responsável Turno Dia</span><span class="mv">'+escHtml(gv('chefeTurnoDia')||'—')+'</span></div>';
+  html+='<div class="ml2"><span class="mk">Responsável Turno Noite</span><span class="mv">'+escHtml(gv('chefeTurnoNoite')||'—')+'</span></div>';
   html+='<div class="ml2"><span class="mk">Período</span><span class="mv">'+pdfDateFmt()+'</span></div></div>';
   const gt=grandTotals();
   html+='<div class="ms"><div class="mst">Totais Gerais</div>';
@@ -834,8 +852,10 @@ async function construirPDF(){
     }
     function sep(gap=4){y+=gap;}
 
-    const chefe=gv('chefeTurno')||'—';
-    tableRow('Chefe de Turno',chefe,0.4,true,'#0D1B3E');
+    const chefeDia=gv('chefeTurnoDia')||'—';
+    const chefeNoite=gv('chefeTurnoNoite')||'—';
+    tableRow('Responsável Turno Dia',chefeDia,0.4,true,'#0D1B3E');
+    tableRow('Responsável Turno Noite',chefeNoite,0.4,true,'#0D1B3E');
     sep(3);
 
     // Lista única por sub-serviço — sem secções por categoria, ordem fixa,
