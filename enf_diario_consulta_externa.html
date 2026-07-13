@@ -1095,37 +1095,68 @@ async function historicoRegisto(){
 }
 
 // ── PROTECÇÃO POR CÓDIGO — carregar (editar) ou eliminar um registo do histórico exige código ──
-const HIST_PIN = '2001';
+const HIST_PIN = 'Zelo@';
 function __histLockKey(){ return HIST_IDX_KEY+'_lock'; }
 function __histAttemptsKey(){ return HIST_IDX_KEY+'_attempts'; }
 function isHistLocked(){
   try{ return localStorage.getItem(__histLockKey())==='1'; }catch(e){ return false; }
 }
 function __histAuthCheck(){
-  if(isHistLocked()){
-    toast('Função bloqueada — código incorrecto 3 vezes.');
-    return false;
-  }
-  const code=prompt('Introduza o código de autorização (4 dígitos) para continuar:');
-  if(code===null) return false;
-  if(code.trim()!==HIST_PIN){
-    let attempts=0;
-    try{ attempts=parseInt(localStorage.getItem(__histAttemptsKey())||'0',10)+1; }catch(e){ attempts=1; }
-    try{ localStorage.setItem(__histAttemptsKey(), String(attempts)); }catch(e){}
-    if(attempts>=3){
-      try{ localStorage.setItem(__histLockKey(),'1'); }catch(e){}
-      toast('Código incorrecto 3 vezes — função bloqueada.');
-    }else{
-      toast('Código incorrecto. Tentativa '+attempts+' de 3.');
+  return new Promise(function(resolve){
+    if(isHistLocked()){
+      toast('Função bloqueada — código incorrecto 3 vezes.');
+      resolve(false);
+      return;
     }
-    return false;
-  }
-  try{ localStorage.removeItem(__histAttemptsKey()); }catch(e){}
-  return true;
-}
+    const overlay=document.getElementById('codeAuthOverlay');
+    const input=document.getElementById('codeAuthInput');
+    const err=document.getElementById('codeAuthErr');
+    const errText=document.getElementById('codeAuthErrText');
+    const btnConfirm=document.getElementById('codeAuthConfirm');
+    const btnCancel=document.getElementById('codeAuthCancel');
+    input.value='';
+    input.type='password';
+    err.style.display='none';
+    overlay.style.display='flex';
+    setTimeout(function(){ input.focus(); },50);
 
+    function cleanup(result){
+      overlay.style.display='none';
+      btnConfirm.removeEventListener('click', onConfirm);
+      btnCancel.removeEventListener('click', onCancel);
+      input.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    }
+    function onConfirm(){
+      const code=(input.value||'').trim();
+      if(code===HIST_PIN){
+        try{ localStorage.removeItem(__histAttemptsKey()); }catch(e){}
+        cleanup(true);
+        return;
+      }
+      let attempts=0;
+      try{ attempts=parseInt(localStorage.getItem(__histAttemptsKey())||'0',10)+1; }catch(e){ attempts=1; }
+      try{ localStorage.setItem(__histAttemptsKey(), String(attempts)); }catch(e){}
+      if(attempts>=3){
+        try{ localStorage.setItem(__histLockKey(),'1'); }catch(e){}
+        toast('Código incorrecto 3 vezes — função bloqueada.');
+        cleanup(false);
+        return;
+      }
+      errText.textContent='Código incorrecto. Tentativa '+attempts+' de 3.';
+      err.style.display='flex';
+      input.value='';
+      input.focus();
+    }
+    function onCancel(){ cleanup(false); }
+    function onKeydown(e){ if(e.key==='Enter') onConfirm(); if(e.key==='Escape') onCancel(); }
+    btnConfirm.addEventListener('click', onConfirm);
+    btnCancel.addEventListener('click', onCancel);
+    input.addEventListener('keydown', onKeydown);
+  });
+}
 async function restaurarHistorico(dateStr){
-  if(!__histAuthCheck())return;
+  if(!(await __histAuthCheck()))return;
   if(!confirm('Ir para o registo de '+fmtHistDate(dateStr)+'? Os dados actualmente preenchidos no ecrã serão substituídos pelos desse dia.'))return;
   closeModal();
   const prev=currentDate();
@@ -1136,8 +1167,8 @@ async function restaurarHistorico(dateStr){
   toast('✓ Registo de '+fmtHistDate(dateStr)+' carregado.');
 }
 
-function apagarHistorico(dateStr){
-  if(!__histAuthCheck())return;
+async function apagarHistorico(dateStr){
+  if(!(await __histAuthCheck()))return;
   if(!confirm('Eliminar o registo de '+fmtHistDate(dateStr)+'? Esta acção não pode ser desfeita.'))return;
   removeFromHistIndex(dateStr);
   try{ localStorage.removeItem(storageKey(dateStr)); }catch(e){}
@@ -1175,8 +1206,45 @@ window.addEventListener('DOMContentLoaded',function(){
   __ddOpen().then(function(){ loadForDate(iso).then(function(){
     sincronizarHistoricoFirebase().then(checkMissingRecent);
   }); });
+  document.getElementById('codeAuthToggle').addEventListener('click', function(){
+    const inp=document.getElementById('codeAuthInput');
+    const eye=document.getElementById('codeAuthEyeIcon');
+    const showing=inp.type==='text';
+    inp.type=showing?'password':'text';
+    eye.innerHTML=showing
+      ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>'
+      : '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.06 21.06 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.06 21.06 0 0 1-3.22 4.43M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  });
 });
 </script>
+
+<div id="codeAuthOverlay" style="position:fixed;inset:0;z-index:999999;background:rgba(13,27,62,.55);display:none;align-items:center;justify-content:center;padding:20px;font-family:'Inter',-apple-system,sans-serif;">
+  <div id="codeAuthCard" style="background:#fff;border-radius:18px;padding:30px 26px;max-width:320px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);box-sizing:border-box;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="width:52px;height:52px;border-radius:14px;background:#0D1B3E;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div style="font-size:1.02rem;font-weight:800;color:#0F172A;">Código de Autorização</div>
+      <div style="font-size:.8rem;color:#64748B;margin-top:4px;">Necessário para editar ou eliminar um registo do histórico.</div>
+    </div>
+    <label for="codeAuthInput" style="display:block;font-size:.72rem;font-weight:700;color:#334155;margin-bottom:6px;">Código</label>
+    <div style="position:relative;">
+      <svg style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#94A3B8;pointer-events:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <input id="codeAuthInput" type="password" placeholder="••••••" autocomplete="off" style="width:100%;padding:12px 42px 12px 40px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:1rem;font-family:inherit;background:#F8FAFC;color:#0F172A;box-sizing:border-box;"/>
+      <button type="button" id="codeAuthToggle" aria-label="Mostrar código" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94A3B8;padding:6px;display:flex;align-items:center;justify-content:center;border-radius:6px;">
+        <svg id="codeAuthEyeIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div id="codeAuthErr" style="display:none;align-items:flex-start;gap:7px;background:#FEF2F2;border:1px solid #FECACA;border-radius:9px;padding:9px 11px;margin-top:10px;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#B91C1C;flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      <span id="codeAuthErrText" style="color:#B91C1C;font-size:.78rem;line-height:1.4;"></span>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button type="button" id="codeAuthCancel" style="flex:1;padding:12px;background:#F1F5F9;border:none;border-radius:10px;color:#334155;font-weight:700;font-size:.88rem;cursor:pointer;font-family:inherit;">Cancelar</button>
+      <button type="button" id="codeAuthConfirm" style="flex:1;padding:12px;background:#1A56DB;border:none;border-radius:10px;color:#fff;font-weight:700;font-size:.88rem;cursor:pointer;font-family:inherit;">Confirmar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
