@@ -1094,7 +1094,38 @@ async function historicoRegisto(){
   document.getElementById('m-body').innerHTML=html;
 }
 
+// ── PROTECÇÃO POR CÓDIGO — carregar (editar) ou eliminar um registo do histórico exige código ──
+const HIST_PIN = '2001';
+function __histLockKey(){ return HIST_IDX_KEY+'_lock'; }
+function __histAttemptsKey(){ return HIST_IDX_KEY+'_attempts'; }
+function isHistLocked(){
+  try{ return localStorage.getItem(__histLockKey())==='1'; }catch(e){ return false; }
+}
+function __histAuthCheck(){
+  if(isHistLocked()){
+    toast('Função bloqueada — código incorrecto 3 vezes.');
+    return false;
+  }
+  const code=prompt('Introduza o código de autorização (4 dígitos) para continuar:');
+  if(code===null) return false;
+  if(code.trim()!==HIST_PIN){
+    let attempts=0;
+    try{ attempts=parseInt(localStorage.getItem(__histAttemptsKey())||'0',10)+1; }catch(e){ attempts=1; }
+    try{ localStorage.setItem(__histAttemptsKey(), String(attempts)); }catch(e){}
+    if(attempts>=3){
+      try{ localStorage.setItem(__histLockKey(),'1'); }catch(e){}
+      toast('Código incorrecto 3 vezes — função bloqueada.');
+    }else{
+      toast('Código incorrecto. Tentativa '+attempts+' de 3.');
+    }
+    return false;
+  }
+  try{ localStorage.removeItem(__histAttemptsKey()); }catch(e){}
+  return true;
+}
+
 async function restaurarHistorico(dateStr){
+  if(!__histAuthCheck())return;
   if(!confirm('Ir para o registo de '+fmtHistDate(dateStr)+'? Os dados actualmente preenchidos no ecrã serão substituídos pelos desse dia.'))return;
   closeModal();
   const prev=currentDate();
@@ -1106,6 +1137,7 @@ async function restaurarHistorico(dateStr){
 }
 
 function apagarHistorico(dateStr){
+  if(!__histAuthCheck())return;
   if(!confirm('Eliminar o registo de '+fmtHistDate(dateStr)+'? Esta acção não pode ser desfeita.'))return;
   removeFromHistIndex(dateStr);
   try{ localStorage.removeItem(storageKey(dateStr)); }catch(e){}
