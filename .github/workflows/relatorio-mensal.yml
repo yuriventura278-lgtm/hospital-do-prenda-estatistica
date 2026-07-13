@@ -38,14 +38,14 @@ jobs:
           SKIP_CLEANUP: ${{ github.event.inputs.skip_cleanup || 'false' }}
         run: npm run relatorio-mensal
 
-      - name: Publicar o PDF no repositório
+      - name: Publicar o PDF e o arquivo local no repositório
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add relatorios/
+          git add relatorios/ arquivo/
           if git diff --cached --quiet; then
             echo "Nenhum relatório novo para publicar."
           else
-            git commit -m "Resumo mensal automático · $(date -u +%Y-%m)"
+            git commit -m "Resumo mensal automático e arquivo de dados · $(date -u +%Y-%m)"
             git push
           fi

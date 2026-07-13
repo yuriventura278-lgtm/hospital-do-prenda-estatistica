@@ -211,6 +211,12 @@ async function main(){
 
   console.log(`A gerar resumo de ${monthLabel} (${ym})…`);
 
+  // Arquivo local dos dados em bruto — guardado ANTES da limpeza, para nunca perder o
+  // detalhe dia-a-dia depois de o Firebase ser esvaziado. Fica organizado por mês/prefixo/serviço.
+  const archiveDir = `arquivo/${ym}`;
+  fs.mkdirSync('arquivo', {recursive: true});
+  const archivedServices = [];
+
   const perService = [];
   const toDelete = []; // {prefix, id, date}
 
@@ -233,12 +239,39 @@ async function main(){
       toDelete.push({prefix, id: fbId, date});
     }
 
+    if(monthEntries.length){
+      const subDir = `${archiveDir}/${prefix}`;
+      fs.mkdirSync(subDir, {recursive: true});
+      const raw = Object.fromEntries(monthEntries.sort((a, b) => a[0].localeCompare(b[0])));
+      fs.writeFileSync(`${subDir}/${fbId}.json`, JSON.stringify(raw, null, 2));
+      archivedServices.push({id: svc.id, name: svc.name, cat: svc.cat, prefix, fbId, daysReported: monthEntries.length});
+    }
+
     perService.push({
       id: svc.id, name: svc.name, cat: svc.cat,
       daysReported: monthEntries.length, daysInMonth,
       headlineTotal, headlineLabel: headlineLabel(svc.id), secondaryTotals,
     });
   }
+
+  if(archivedServices.length){
+    fs.writeFileSync(`${archiveDir}/index.json`, JSON.stringify({
+      ym, label: monthLabel, generatedAt: new Date().toISOString(), services: archivedServices,
+    }, null, 2));
+  }
+
+  const archiveIndexPath = 'arquivo/index.json';
+  let archiveIndex = [];
+  if(fs.existsSync(archiveIndexPath)){
+    try{ archiveIndex = JSON.parse(fs.readFileSync(archiveIndexPath, 'utf-8')); }catch(e){ archiveIndex = []; }
+  }
+  archiveIndex = archiveIndex.filter(entry => entry.ym !== ym);
+  if(archivedServices.length){
+    archiveIndex.push({ym, label: monthLabel, servicesCount: archivedServices.length, generatedAt: new Date().toISOString()});
+    archiveIndex.sort((a, b) => b.ym.localeCompare(a.ym));
+  }
+  fs.writeFileSync(archiveIndexPath, JSON.stringify(archiveIndex, null, 2));
+  console.log(`Arquivo local de ${ym} guardado em ${archiveDir}/ (${archivedServices.length} serviço(s) com dados).`);
 
   const html = buildReportHTML(monthLabel, perService, ym);
   fs.mkdirSync('relatorios', {recursive: true});
