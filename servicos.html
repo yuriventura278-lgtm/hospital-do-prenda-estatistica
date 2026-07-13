@@ -167,6 +167,12 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .card .pill:active{transform:scale(.96);}
 .card .pill svg{width:13px;height:13px;flex-shrink:0;}
 .card.wip .pill{pointer-events:none;opacity:.7;}
+.code-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.18);width:100%;flex-wrap:wrap;}
+.code-row label{font-size:.64rem;font-weight:700;color:rgba(255,255,255,.75);white-space:nowrap;}
+.code-input{flex:1;min-width:80px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:8px;
+  color:#fff;font-size:.72rem;font-weight:700;padding:5px 9px;font-family:'DM Mono',monospace;}
+.code-input::placeholder{color:rgba(255,255,255,.5);}
+.code-input:focus{outline:none;border-color:#fff;background:rgba(255,255,255,.22);}
 
 </style>
 </head>
@@ -365,6 +371,7 @@ function render(){
       const linksHtml = it.links.map(l=>`
         <a class="pill" href="${l.file}">${pillIcon(l.kind)}<span>${l.label}</span></a>
       `).join('');
+      const slug = it.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').toLowerCase();
       card.innerHTML = `
         <div class="head-row">
           <div class="ic">${icon(it.icon)}</div>
@@ -375,10 +382,26 @@ function render(){
           </div>
         </div>
         <div class="links">${linksHtml}</div>
+        <div class="code-row">
+          <label for="cod-${slug}">Código do Serviço:</label>
+          <input type="text" id="cod-${slug}" class="code-input" data-service="${slug}" placeholder="—" oninput="saveServiceCode(this)"/>
+        </div>
       `;
       grid.appendChild(card);
     });
     main.appendChild(sec);
+  });
+  loadServiceCodes();
+}
+function saveServiceCode(el){
+  try{ localStorage.setItem('servico_codigo_'+el.dataset.service, el.value); }catch(e){}
+}
+function loadServiceCodes(){
+  document.querySelectorAll('.code-input').forEach(el=>{
+    try{
+      const v = localStorage.getItem('servico_codigo_'+el.dataset.service);
+      if(v) el.value = v;
+    }catch(e){}
   });
 }
 render();
