@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controlo de Procedimentos de Enfermagem — GEPE/DEMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyB72sUTmo7x1gOiNQfn112Na2MvX82kZ4E",
+    authDomain: "hospital-do-prenda-1de35.firebaseapp.com",
+    databaseURL: "https://hospital-do-prenda-1de35-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "hospital-do-prenda-1de35",
+    storageBucket: "hospital-do-prenda-1de35.firebasestorage.app",
+    messagingSenderId: "991683012968",
+    appId: "1:991683012968:web:f86ae42cd1cbe8bc71cedd"
+  };
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível.', e);
+    window.__fbReady = false;
+  }
+</script>
+<style>
+:root{
+  --bg:#0a1628;
+  --bg-elev:#0f1f38;
+  --bg-card:#13243f;
+  --line:#1f3656;
+  --line-soft:#16294a;
+  --cyan:#22d3ee;
+  --cyan-dim:#0e7490;
+  --green:#34d399;
+  --amber:#fbbf24;
+  --red:#f87171;
+  --red-strong:#ef4444;
+  --text:#e8f1fb;
+  --text-dim:#90a8c9;
+  --text-faint:#5c7493;
+  --radius:14px;
+  --shadow:0 8px 30px -8px rgba(0,0,0,0.5);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  padding-bottom:60px;
+}
+.mono{font-family:'DM Mono',monospace;}
+button{font-family:inherit;}
+input{font-family:inherit;}
+
+/* Splash */
+#splash{
+  position:fixed; inset:0; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:999; transition:opacity .6s ease, visibility .6s ease;
+}
+#splash.hide{opacity:0; visibility:hidden;}
+.splash-mark{
+  width:84px; height:84px; border-radius:20px;
+  background:#1d6fb8;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+  animation:pulse 1.4s ease-in-out infinite;
+  box-shadow:0 0 40px -5px rgba(34,211,238,.5);
+}
+.splash-mark img{ width:100%; height:100%; object-fit:cover; }
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+.splash-title{margin-top:18px; font-weight:700; font-size:15px; letter-spacing:.04em; color:var(--text);}
+.splash-sub{margin-top:4px; font-size:12.5px; color:var(--text-faint); letter-spacing:.03em;}
+
+/* Header */
+header{
+  position:sticky; top:0; z-index:50;
+  background:rgba(10,22,40,.92); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.header-inner{ max-width:920px; margin:0 auto; padding:14px 18px 12px; }
+.header-top{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand-mark{
+  width:38px; height:38px; border-radius:10px; flex-shrink:0;
+  background:#1d6fb8;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.brand-mark img{ width:100%; height:100%; object-fit:cover; }
+.brand-text h1{font-size:14.5px; font-weight:700; line-height:1.2;}
+.brand-text p{font-size:11px; color:var(--text-faint); margin-top:1px; letter-spacing:.02em;}
+
+/* Date navigator */
+.date-nav{display:flex; align-items:center; gap:6px;}
+.date-arrow{
+  width:30px; height:30px; border-radius:8px; flex-shrink:0;
+  background:var(--bg-elev); border:1px solid var(--line); color:var(--text-dim);
+  display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px;
+  transition:.15s;
+}
+.date-arrow:hover{border-color:var(--cyan-dim); color:var(--cyan);}
+.date-pill-wrap{position:relative;}
+.date-pill{
+  font-family:'DM Mono',monospace; font-size:12px; color:var(--cyan);
+  background:var(--bg-elev); border:1px solid var(--line);
+  padding:6px 12px; border-radius:20px; white-space:nowrap; cursor:pointer;
+}
+.date-input-hidden{
+  position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
+}
+.today-btn{
+  font-size:10.5px; font-weight:700; color:var(--text-faint);
+  background:none; border:none; cursor:pointer; padding:4px 2px; text-decoration:underline;
+  text-decoration-color:var(--line);
+}
+.today-btn:hover{color:var(--cyan);}
+
+.progress-track{ margin-top:12px; height:6px; border-radius:4px; background:var(--line-soft); overflow:hidden; }
+.progress-dept-label{
+  margin-top:7px; font-size:10px; font-weight:700; color:var(--cyan);
+  letter-spacing:.06em; text-transform:uppercase; text-align:center;
+}
+.progress-fill{ height:100%; border-radius:4px; background:linear-gradient(90deg, var(--cyan-dim), var(--cyan)); transition:width .5s ease; }
+.progress-label{ display:flex; justify-content:space-between; margin-top:6px; font-size:11px; color:var(--text-faint); }
+.progress-label span.mono{color:var(--text-dim);}
+
+/* Tabs */
+.tabs{display:flex; gap:4px; margin-top:14px; border-bottom:1px solid var(--line);}
+.tab-btn{
+  flex:1; background:none; border:none; color:var(--text-faint); cursor:pointer;
+  font-size:12px; font-weight:700; padding:9px 4px; border-bottom:2px solid transparent;
+  transition:.15s; letter-spacing:.02em;
+}
+.tab-btn.active{color:var(--cyan); border-bottom-color:var(--cyan);}
+.tab-btn:hover{color:var(--text-dim);}
+
+/* Friday / read-only banners */
+#friday-banner{ display:none; background:linear-gradient(90deg, rgba(239,68,68,.18), rgba(239,68,68,.06)); border-bottom:1px solid rgba(239,68,68,.4); }
+#friday-banner.show{display:block;}
+.friday-inner{ max-width:920px; margin:0 auto; padding:10px 18px; display:flex; align-items:center; gap:10px; font-size:12.5px; color:#fecaca; font-weight:600; }
+.friday-dot{width:7px; height:7px; border-radius:50%; background:var(--red-strong); flex-shrink:0; animation:blink 1.2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+#readonly-banner{ display:none; background:rgba(251,191,36,.08); border-bottom:1px solid rgba(251,191,36,.3); }
+#readonly-banner.show{display:block;}
+.readonly-inner{
+  max-width:920px; margin:0 auto; padding:9px 18px; display:flex; align-items:center;
+  justify-content:space-between; gap:10px; font-size:12px; color:var(--amber); font-weight:600;
+}
+
+#sync-banner{ background:rgba(56,189,248,.06); border-bottom:1px solid rgba(56,189,248,.2); }
+.sync-inner{
+  max-width:920px; margin:0 auto; padding:8px 18px; display:flex; align-items:center;
+  gap:8px; font-size:11.5px; color:var(--cyan); font-weight:600;
+}
+#sync-dot{ width:7px; height:7px; border-radius:50%; background:var(--cyan); flex-shrink:0; animation:blink 1.4s infinite; }
+#sync-banner.ok #sync-dot{ background:var(--green); animation:none; }
+#sync-banner.ok .sync-inner{ color:var(--green); }
+#sync-banner.offline #sync-dot{ background:var(--amber); animation:none; }
+#sync-banner.offline .sync-inner{ color:var(--amber); }
+#sync-banner.error #sync-dot{ background:var(--red); animation:none; }
+#sync-banner.error .sync-inner{ color:var(--red); }
+
+main{max-width:920px; margin:0 auto; padding:20px 16px 0;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* KPI cards */
+.kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px;}
+.kpi{ background:var(--bg-card); border:1px solid var(--line); border-radius:var(--radius); padding:14px 14px 12px; box-shadow:var(--shadow); }
+.kpi-label{font-size:10.5px; color:var(--text-faint); letter-spacing:.05em; text-transform:uppercase; font-weight:600;}
+.kpi-value{font-family:'DM Mono',monospace; font-size:26px; font-weight:500; margin-top:4px;}
+.kpi.total .kpi-value{color:var(--text);}
+.kpi.done .kpi-value{color:var(--green);}
+.kpi.missing .kpi-value{color:var(--red);}
+
+/* Toolbar */
+.toolbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:10px; flex-wrap:wrap; }
+.toolbar h2{font-size:13px; font-weight:700; color:var(--text-dim); letter-spacing:.02em;}
+.toolbar-actions{display:flex; gap:8px;}
+.btn-ghost{
+  background:var(--bg-card); border:1px solid var(--line); color:var(--text-dim);
+  font-size:12px; font-weight:600; padding:7px 12px; border-radius:9px; cursor:pointer; transition:.15s;
+}
+.btn-ghost:hover{border-color:var(--cyan-dim); color:var(--cyan);}
+.btn-ghost:disabled{opacity:.4; cursor:not-allowed;}
+
+/* Missing pill bar (dashboard) */
+.missing-strip{
+  display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px;
+}
+.missing-chip{
+  font-size:11.5px; font-weight:600; padding:6px 11px; border-radius:20px;
+  background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.35); color:#fca5a5;
+}
+.all-done-chip{
+  font-size:12px; font-weight:700; padding:8px 14px; border-radius:20px;
+  background:rgba(52,211,153,.12); border:1px solid rgba(52,211,153,.4); color:var(--green);
+}
+
+/* Service list */
+.service-list{display:flex; flex-direction:column; gap:8px; margin-bottom:28px;}
+.service{
+  background:var(--bg-card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:13px 14px; display:flex; align-items:center; gap:12px; transition:border-color .25s, background .25s;
+}
+.service.is-done{border-color:rgba(52,211,153,.35); background:linear-gradient(180deg, rgba(52,211,153,.06), var(--bg-card));}
+.service.is-missing{border-color:rgba(248,113,113,.25);}
+.service.is-na{border-color:rgba(92,116,147,.3); opacity:.6;}
+.svc-status{
+  width:34px; height:34px; border-radius:10px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:16px; transition:.2s;
+  background:var(--bg-elev); border:1px solid var(--line);
+}
+.service.is-done .svc-status{background:rgba(52,211,153,.15); border-color:rgba(52,211,153,.4); color:var(--green);}
+.service.is-missing .svc-status{color:var(--text-faint);}
+.svc-info{flex:1; min-width:0;}
+.svc-name-row{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+.svc-name{font-size:13.5px; font-weight:600; line-height:1.3;}
+.na-tag{
+  font-size:9px; font-weight:700; color:var(--text-faint); background:rgba(92,116,147,.12);
+  border:1px solid rgba(92,116,147,.3); padding:1px 6px; border-radius:8px; letter-spacing:.02em;
+}
+.svc-note-wrap{margin-top:4px;}
+.svc-note{
+  width:100%; background:var(--bg-elev); border:1px solid var(--line); border-radius:7px;
+  padding:6px 9px; font-size:12px; color:var(--text);
+}
+.svc-note::placeholder{color:var(--text-faint);}
+.svc-note:disabled{opacity:.6;}
+.svc-toggle{
+  flex-shrink:0; width:46px; height:26px; border-radius:14px;
+  background:var(--line-soft); border:1px solid var(--line); cursor:pointer; position:relative; transition:.2s;
+}
+.svc-toggle::after{
+  content:''; position:absolute; top:2px; left:2px; width:20px; height:20px;
+  border-radius:50%; background:var(--text-faint); transition:.2s;
+}
+.svc-toggle.on{background:rgba(52,211,153,.25); border-color:rgba(52,211,153,.5);}
+.svc-toggle.on::after{left:22px; background:var(--green);}
+.svc-toggle.disabled{cursor:not-allowed; opacity:.5;}
+.svc-time{font-size:10.5px; color:var(--text-faint); margin-top:3px; font-family:'DM Mono',monospace;}
+
+/* Footer actions */
+.footer-actions{display:flex; gap:10px; margin-bottom:30px; flex-wrap:wrap;}
+.btn-primary{
+  flex:1; min-width:120px; background:linear-gradient(135deg, var(--cyan), var(--cyan-dim));
+  color:#04141f; border:none; font-weight:700; font-size:13px; padding:13px; border-radius:11px;
+  cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-secondary{
+  flex:1; min-width:120px; background:var(--bg-card); border:1px solid var(--line); color:var(--text);
+  font-weight:700; font-size:13px; padding:13px; border-radius:11px; cursor:pointer; transition:.15s;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.btn-secondary:hover{border-color:var(--cyan-dim);}
+.btn-save{
+  width:100%; background:rgba(52,211,153,.12); border:1px solid rgba(52,211,153,.4); color:var(--green);
+  font-weight:700; font-size:13px; padding:13px; border-radius:11px; cursor:pointer; transition:.15s;
+  margin-bottom:12px; display:flex; align-items:center; justify-content:center; gap:7px;
+}
+.btn-save:hover{background:rgba(52,211,153,.2);}
+.btn-save.saved{background:rgba(52,211,153,.25);}
+
+/* Toast */
+#toast{
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--bg-card); border:1px solid var(--line); border-radius:11px;
+  padding:11px 18px; font-size:12.5px; color:var(--text); box-shadow:var(--shadow);
+  opacity:0; transition:.3s; z-index:200; max-width:90%; text-align:center;
+}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+.notif-banner{
+  background:var(--bg-card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:12px 14px; margin-bottom:16px; font-size:12px; color:var(--text-dim);
+  display:flex; align-items:center; gap:10px;
+}
+.notif-banner button{
+  background:var(--cyan); color:var(--bg); border:none; font-weight:700;
+  font-size:11.5px; padding:6px 10px; border-radius:7px; cursor:pointer; flex-shrink:0;
+}
+
+/* History list */
+.history-list{display:flex; flex-direction:column; gap:8px;}
+.history-row{
+  background:var(--bg-card); border:1px solid var(--line); border-radius:12px;
+  padding:12px 14px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:.15s;
+}
+.history-row:hover{border-color:var(--cyan-dim);}
+.history-date{font-family:'DM Mono',monospace; font-size:13px; color:var(--text); width:78px; flex-shrink:0;}
+.history-bar-wrap{flex:1; height:7px; border-radius:4px; background:var(--line-soft); overflow:hidden;}
+.history-bar{height:100%; border-radius:4px;}
+.history-pct{font-family:'DM Mono',monospace; font-size:12px; width:42px; text-align:right; flex-shrink:0;}
+.history-empty{ text-align:center; padding:40px 20px; color:var(--text-faint); font-size:13px; }
+.month-selector{
+  display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:18px;
+}
+.month-label{font-family:'DM Mono',monospace; font-size:14px; font-weight:500; min-width:150px; text-align:center;}
+
+/* Calendar grid (dashboard) */
+.cal-weekdays{
+  display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px;
+}
+.cal-weekdays span{
+  text-align:center; font-size:10px; font-weight:700; color:var(--text-faint);
+  letter-spacing:.03em; text-transform:uppercase;
+}
+.cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+.cal-cell{
+  aspect-ratio:1; border-radius:9px; border:1px solid var(--line); background:var(--bg-card);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:pointer; transition:.15s; position:relative; padding:2px;
+}
+.cal-cell:hover{border-color:var(--cyan-dim);}
+.cal-cell.empty{background:transparent; border:none; cursor:default;}
+.cal-cell.is-today{border-color:var(--cyan); box-shadow:0 0 0 1px var(--cyan) inset;}
+.cal-cell.is-selected{border-color:var(--cyan); background:rgba(34,211,238,.1);}
+.cal-cell.is-future{opacity:.35; cursor:not-allowed;}
+.cal-cell.no-data{background:var(--bg-elev);}
+.cal-day-num{font-family:'DM Mono',monospace; font-size:11.5px; font-weight:500; color:var(--text);}
+.cal-day-pct{font-size:8.5px; font-weight:700; margin-top:1px;}
+.cal-dot{width:5px; height:5px; border-radius:50%; margin-top:2px;}
+
+/* Stats ranking */
+.stats-section{margin-bottom:26px;}
+.stats-section h3{font-size:12.5px; font-weight:700; color:var(--text-dim); letter-spacing:.03em; margin-bottom:10px; text-transform:uppercase;}
+.rank-row{
+  display:flex; align-items:center; gap:10px; background:var(--bg-card); border:1px solid var(--line);
+  border-radius:11px; padding:10px 12px; margin-bottom:7px;
+}
+.rank-num{
+  font-family:'DM Mono',monospace; font-size:12px; color:var(--text-faint); width:20px; flex-shrink:0; text-align:center;
+}
+.rank-name{flex:1; font-size:13px; font-weight:600; min-width:0;}
+.rank-bar-wrap{flex:1.4; height:7px; border-radius:4px; background:var(--line-soft); overflow:hidden; min-width:40px;}
+.rank-bar{height:100%; border-radius:4px;}
+.rank-pct{font-family:'DM Mono',monospace; font-size:12.5px; width:46px; text-align:right; flex-shrink:0;}
+.rank-time{font-family:'DM Mono',monospace; font-size:10.5px; color:var(--text-faint); width:54px; text-align:right; flex-shrink:0;}
+.stats-empty{text-align:center; padding:30px 20px; color:var(--text-faint); font-size:13px;}
+.stats-note{font-size:11px; color:var(--text-faint); margin-top:-4px; margin-bottom:14px; line-height:1.5;}
+
+@media(max-width:480px){
+  .kpis{grid-template-columns:repeat(3,1fr); gap:8px;}
+  .kpi-value{font-size:21px;}
+  .rank-time{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="splash-mark"><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAYGBgYHBgcICAcKCwoLCg8ODAwODxYQERAREBYiFRkVFRkVIh4kHhweJB42KiYmKjY+NDI0PkxERExfWl98fKcBBgYGBgcGBwgIBwoLCgsKDw4MDA4PFhAREBEQFiIVGRUVGRUiHiQeHB4kHjYqJiYqNj40MjQ+TERETF9aX3x8p//CABEIAUMBQwMBIgACEQEDEQH/xAAwAAEBAAMBAQAAAAAAAAAAAAAAAQQFBgMCAQEBAQEBAAAAAAAAAAAAAAAAAQMCBP/aAAwDAQACEAMQAAAC09Pb4ZVQAWopCgVIoCgQACKWAiok+oqUQSxRBECqtgClgFCFUKkNjLrm3cd6ht1altSaltxqGR4d8xSSUsWCVLJRFkRYoCgstgFFirJKULU3+h9OOukvLfWenTzmvg6hy/3XTOb8ozMM2xgEogIslilkokqWKBQWyUsUFEKsAdTy/UY7c7sc33471Or2eT3nq9xt/DLfJ4vtMPnrmsbtuQ382Os2ySiLJYsIslixUsAlWWxZUUFLCrAFWybrS7LPTW5uwc9a95fHXHWZOs2fj9w+Z1qdBsNb7PDFmuUWSpRBLFhJSxZLFAFstiyoKBZSpKVOp5fqcN9FmfWRz1j5GNrOuez+eey8d9x8ffJTrrOQzdVv5pK3wgIslSwCWSlkoglWWxZShFLFAWxRHv4brjvDbP1x25z59PP0+Zt9T0+WvjqsnaY7co9Pj1+SAk+osBFksCwRAsEtFlsJSgWUWPqUBG11e3z0zPTw9fN6dF4e/h7PE6rldlnrs7zCX6+bNsEsVKIJZLFAksliyWKAq2VAqlRZbFlRZRlYvQ8d6+ZGbjtzkzcP0+abvS9Plrj+eLt8tuWfXz6vHJZQSwLJZKlEEslkoUBbKgVbKlS2VKiiOi53YZ67f65n5479/GX0ed1HL+2emzz+W9eO/j5s2wgqCWBZKISUJZLFAAtlQKtlSpUqWxZQWzZYmz1+O2Ml2wb3RdBjtZ8+OPo00s9niAglkpZLISxQlksUAC2VFlpZUWVFlsAp91uNf5zLTyqaZXd6PM402zQfWfflPv43xSwEBFSyVLBLJUsUCWWKLKCiypSpbKEu309566/H8NT5vVMY9fjddyPS4b/GJ7++euowM/A9PlDrlAglgVLJYCSpYFWUWWxZUWWlhLYstgoTbYObjZbYiNcbtNVvM9dPuUz71ePZvghZAokqWASwipZKABbCUWVKVLYsFFlycbos9Pv08sjzerlGdg+zxOo5brsdub2/jn896HDycbfzwdciSgQSoCEqCwKsSWxVsqLFlBUtiwXNwtrx1qvTJwrMrGTqXLw/WXI+eh0uO2tG/nIUgCVLASUQEUJZQqWxYLZUWLKCoLuNNt+O/HA6jz475tfnfBvdJ02WuHsNTnZbc2y8T0+UhAVAEUSAWCUAlAKlsqC2EosqCnScd827Fnpx17BXHOxHHOxHHM/A1xIsAQUQElsJUAIJVWLKCpbFgt+aiwXMwqZ7Ac9Z7AGewBnsAevkdckAhYLYCEogIVEpKVKLFlBUJUtLBUJUoShKEoQtQCFRAKICSgEAW0SUWKAAVQgAAAAAAEChCAEQKgBb/8QAAv/aAAwDAQACAAMAAAAhixQY1SDSADDDgNzWZOBDMhQhEHUJNywNx0BYBCRjlBkpEFjDIVnX5PhOLJHqReASa1gHROnAfAWrEZGnjmVMt/CHRWhYg9jBoFmRqDZAxUgDyUDEeiVMEwYJmVCARAp8AjiVjDxt1f5L0pgorBAVFaUBgCmfLCdHCTKWBDnzVDUQJrKFLwBArVCoWbiWBVDUoMLjEKsAfDpioRFAWBVDUAKPqRQLHg9Bq4/1AUBVDAADrCUNGIv+SHsGdTAB/VARKcCIGS3M9CbroCr7AiorAkFgRlCcbyb1GVAk2AQHBLJgRgEA5cwpCByBaa8nmiDyBEzfUe+zKPizGnF+kJmiDDCaFM1E4LAZEngqAAWJejBDWzox55NhYlle5zIlSJgLjJCCCCiO3aQaglObKhyDJif7777OOFPqAmjP8cBBA8AAAgeAAA8gcDgf8//EAAL/2gAMAwEAAgADAAAAEPLbtOrGozPf/X/P/ZOOj/8Aw7z/AO7R/wDvPNQPnNGvPfP2zf3d/OJMktNbO9DdtvKf+jbfOP8AUac2c6PcfNhb63Ls2bj+3zf/AL96d48eVt93/vJsO/bhweApu3/+8vt659/o/wDFunuEvW/qJmvl/fbfbK8q/wCb9Xfek8lbqeqrzL/rjzuRWJ287h1/38SrR1b2rz0Lh7GqfmlxYD37mz+j2rzyt9pLpfKv5DmcV03/AM9h4or+V/8AAIt6zZvgeM/Hfa4fxHk/2FPTY9f/AGP3b3r1hXSj7xaLgwpE3mqjn/wr22rVx4/5qjMqt/aTi/v8H59gvwXmsOIqXoeT31SIuHJtvivzT7E2PFj+/wD60b7E8V48iOx8uP3+226f9R+Aeza+8cPjutxzzzRjH8LCHdwo6uM98tt5555+i+j09G4/8/8A4n/vffX/AP333572P9/z/8QAMBEAAQQCAQQABAYBBQEAAAAAAQACAxEEEDEFEiFBExVRUxQgMmFxkTMjMDRCclT/2gAIAQIBAT8AJXGgK1SJRVE1siwgNEWqRC7dFuuNgWvAVID6qaaKJoMjqFr5lh/cXzLE+6F8xw/uhfMcP7oTHte0OabB4VBEcUiAiL07fOgL0OddqzMeGZjWyOoXa+T4gFue5DpGI7y1ziEej4gHl7gh0jEdw9xUULYo2sHAC7SuF26IvRFaagEUBoClyus2MZn/ALCny8x2O9jsemlvkqHIZj9Njeea8BT9TdkYzo3tHd48hYOWMZ0jiLJFALp/UTklzH13jitEWiNBEWqtdp0OFzoeEOVwupNxzCPjOIAd4pTdQ6dNGY3PIBFcFCHEOI0EgxAclZDYWzOETiWoLpsWGIQ6Ly7272uURSItFHjRFaHKq9c6ApcrrX+KEkeA/wArIyOmmB4Y1ncW+KbXlQ4rsjpLWA0RZCl6dNDjmWTx+yw8N2UXta4Ahti10nAkhc98tg8BqIrRFKhohUDsXe27zpoYYC6WPvH0X4iBo7j00V/Ch7exha2gQuszOZCwBrSHOogpsuVhESfBiaD4NJptrXfUaPhDTvyjhAbHvXVG9+KR8Iv8jwOU9oDP9P4/d9Dwsfv+BF3/AKu0WurY0uRHEI23T/Kb0RhrvmeR9EG0Gj6D8jthUhpuihxrqWTJiwB7Ksuryn5vUo2d7o4+3+FBJ8aCN9V3NBXWJpYWw/DkLbdRKknyoA17c1rzf6Qmkua0/snaIop2ibXvTeUU1e0BoFdVhlyMcMjbZ7rTeixuA7ppP4UEbY2NYOGigup4ZyRCLADXWbWT0jHMYMBDXg8kpopjR+yd6070ncInRIrTUU38l0vSx5pXdVnYXktDfAVhdbcRiCj/ANwoogXMtmT5KAqv4TteyiUeNHnR01Feghxpz2t/UaUUUcWdLP8AGae4VS5ql1KOCWJrJZQzzYNodPAYJPxzw3634TXDtaWuDgRyFzqvKPJXrT9g3oG01DnWVisyWBjyQLvwoMCJ+fLAXHtaoo2xxtYOGigusMEs2Iz0SQnyvggnw5PRtpWD/wAPH/8AA0TSdwFdJ3pXQXOmoc6avaKtE0sZ+A3Nc5khMjrGs5+Gx0T57sElnKyMnpWS4GQm6rghQtY2Fgb+kAUidO8o8aJ9IjxsoO0DvqOT8DGcR+p3gLzHHE8RSB7XWXEeFjyiaFkg9hdYLBLiF/6Q7ys7J6dJjlsTW9/iqbSxgRiwg89gvRNomkXImkT7V3oG007tA3rNMLYTLJGHdvAKiczJgaS2g5oNKNjI2gMaGj6BTthc0uka0hovyFi5OHPMIxjtaTwSAmn0ib2T7XO7H1XOgUd9y6lZw5AAsbqjIYY2GJ9gVwg4miuqySGNkLAS55pSY+bEyKT4QHw/Y5UMgfGx49hO9aJpE2iaRKPOrtA6vhUu7WXlsxow5zSQSh1nH+0V88g+25fPIPtOR65AR/icseX4kTXhtAi9X4V2uAuUfOu4IGjoGtArnT445R2yNBH7r8JifYZ/S/CYn2Gf0vwmJ9hn9L8Jh/8Azs/pNAa0BooD0vJRRRK7tE0vH0RCBJNa7l3a7lYXheEKKFFWF3DVi6Tjru1X+0fSb+V3OncaGv/EAC4RAAEEAgEDAgYBBAMAAAAAAAEAAgMRBBAFEiExE1MUFSAyQVGRIjRhcUJSc//aAAgBAwEBPwAlE7tWiVav6LVjQKB1eydE7JVqKGWZ1RtLivl2Z7RXy7M9or5fmey5fLsz2intcxxa4UQrQOgUDoHRKOiUTq1iZMsDy+NoJpDm8w9gxqdzmWOxa0JvN5jjQa0p3NZrfMYH+wpZXSSOe7yTe7VoFAoFXolEonROuEAOQ+/+hWLjYDclhGVbursFNivyeUkjb46u5WPxIxspkjDbVyGCcr02ggAHuVyfG/CBjmWWlWgUDoIFDRTkSir0SuPfktmIgbbi0hR8byMcgkEQsG/IXq5bcwuAPqE+AsR07oGmYAOTiQ00LK5OXMMxEwIH4H4QKtWdBWgr0dE1olFcJZlmDTTjGaWNjcsMiMvc7p6u/dTZYxuYe+gRYBUPKxT5bYYhYI+5Z2eMP0y5ttcaK5jkYckMZGAQO5dsFDQP0HRRRRKwYZ5shrIn9Lv2vhcguLByX9QHi1L1B7g51uB7lcJEyTIe5znN6GXYT48PNJjGRK5wBIBTx0uc39HQKGgh9BR8bdri39OWw+oGee5UT7fcxxuj9jysro+Il6Pt6jS4bLixpZXPPlnZfO3t6uiCNpP5ARcXOJQQ0EPKCCtFFHRRRXG40eTkiN5NUT2TMLi5pPSZLL1LIj9KaSO76SQuFghmkmMsfWGtsBQwYuQXsdgPiFfcVIA17gP2hsIaGyijo64vJixsoSSGhRTudc0n08eMH9qWR0j3PPlxsrjM74MzENJLm0Fjc1kh5E9uYRVUnm3uP+foCGm7KKKKKKKyIIhxONIGAPLjZVLgmtdm04A/0lTyhgfTsY0EfudoIFBDQ0dFFOR0GOd4FqWWWTBix/RcOg3acCDS4x88U5kiiLyAjyT3SGP4GMu/Vd09rmvdYo34QQQQQ03R2UUdYuVJiy9bKJ/ysvkJosCCZrW9T/PZSPMj3PPkm1wrzFDmSD/i0FMhbk5OPmQ/6eP8rP8A72f/ANDoBBBBBN0UdFFFEKlkxZxwY2vYPSaLBVLj48yRk7IACHAByx8bmMVjhEBSlLnSPc/7iSSgNBDQCGzs743G9fKYD9o7lU2SaZhnjMb29IaCsiB0Mz4z+CuFa8xZbWEhxaKXH4vIRZIdKXdHe+6zOk5Uxb46zoDYCAQGiEQjutYQldMI43lpf2sKVr4J3NDu7T5T3vkdb3ElQPna4Nic4FxrsVl42djw+p8U5w8EAoqlWgEAggNlEI76VxpDcyIk/lZPFySzSvEsdEk+UW0SFxTIxK6WQgNYLUORhSvmj9Vx9X8O8BSxhkjmg3RQGgEAgEENEaIVIjVLExH5Ly1hAIC+R5HuhHgZ/cahwU/uNXyKf3GqeF0MrmOIJBVaAQCA0Aq0RohUiFSZJJG62OIK+Ny/ff8Ayvjcv33/AMr43L99/wDK+Ny/ff8AynFznFziSSqVIBAKkAgFSIVKtVqlS6V0rpXSqVIKtAIBBV9BR+o/V+tjX//EAD4QAAECAwIKCAQFBAMBAAAAAAIBAwAEEQUSEBMVITFQUVNxkRQgIjRBUnKhMjNhgSNAY5KxQ2JwgkJgc9H/2gAIAQEAAT8C/wAFM2a+82JioUWMjzXmb5rGR5rzN81jI815m+axkea8zfNYyPNeZvmsZHmvM3zWMjzXmb5rGR5rzN81h9g2HLhKlaeGoJS0JdqXbAlWqfSMrSm1eUZXldq8oytKbS5RlaU2lyjK0rtXlGVpTavKMryu1eUZWlNpcon3wffvhopqAWXiSotkqcMAgZrQRVeEEBgtCFU44RbcL4QVeCRiH90fKNC6hszuQ/eOjTG5PlFmMuhM1Jsk7K6Ui1u8p6EhBVVRE0w/KvMUvpm2+EWN8pz1YJjvL3/osOyj7TaGY5l1BZfcx4rGVpfynEvPtPncES0eMWt3pPQkWXKf1yT0/wD2CESSipVIl5UJe/c0KtcDUk024bmklWtYcbFwCAtCxMMkw6oL9uH5+Tn2GZdAK9XPgkXwYevFWl2J58H3kMNF2kSs47L/AFHyxLzLT41Bft1Ju0xDstZ12+EGZmV4iqv5+Vs5x8b966nhGRv1vaMjfre0Py5sOXS+0Ntm4V0BqsSdnowt8lqeFxsTFRLQsTdnONdoO0PumoJclCz0JPAFWOnTe+WJGcmDmREzqi1i1/ja4LFlONq2ooiISafrgRwSqiLo04BMSrdKtFosLSJs2zfJW0on8/X8/KIjkiI10jSMjnvU5RK2arLyGrlaRa6pjW0/thl0mnBMfCJm0jcS632U2+MWP8tz1YDecZmnSBadtYmLSV1m4g0Vfi1A1MPM/AdIyjObz2SMozm89kgyIyUiWqrhlBngbq0A0LPni9au7bh6Tm0vuEHjVaahsyWaMSMxrnolYKbkBJRxehfLDbkg8K9kPulIeFBdNE0IubDLlckRLY3WMru7sYlJjpLN5RpnpDiIjhonmXUFnzgMoQHo2xj7MJc9z9sA1IvItwQXhEy0jT5gnguGUu9DbvaLmeL1m/pe0LOSbTfZIeAwS3iVduoLNmWmxIDWmetYJmzSJSUxz/3Q0UhLoVwxz6c9YmHMa8Z7VwjaFJfE4v8A40rXUbMo88N4ETTSMmzWxOcLZ00ifCnOFSi0ws2a040BqZZ0rGSWPOcOWSN38M1r9dQ2T3cvXB2q6JElwdMSU6UwpooUpE+iJNOYW0JZAUHTi80Yi0/7/wB0SiPAx+Muf67IcWpkqeZdQWT8g/XCnZ9Vriq8ISZkm0W6QJwiZdxr5ntwtOYuRA9jdYyuu594YeGaYVVH6KkEl0iTYuoJWe6OCjcrnrpg1vEq7V6uPeu3cYtKUpgB51tKAapCrVdQyEs0/jL/AIUiYBG3zFNCL1LMbAmCvCi9uFmbPRVTs/thZqzvp+3UVkf1v9Yne9O8epZXyC9cE7Zd5aiNfTDzlmq0dxErTNm1FZH9b/WJzvTvHqWa80DJIZona8Yu2aq1q3zi5Zn6fPUItuEmYVX7QITI/CJp9lhWn1WqgfKFRUWipTD0Cb3XukG2bZXTSiw2y46qoA1hwDbJRNKLqCRnGWGrp1rWJeYbfFSCuZYctCXbMgWtU+kTTguvmY6FwvPIy0hroqkWlL41rGDpH+Isn5rnpi0u9n9tQ2R8lz1xO96d49S0e5l9osyZvDiSXOmjhDEtiZt2nwEOaLS72f21DZ82yw2SGukomXBcfcJNCr1Jm0EeYVvFqkNmTZoY6UjLA7pecTL2OeI6UrqFmyzcbE1cpXwpE3JlLXe1VF8eolkCqIuNXlGRx3q8oOyMy3Xc/CFRUVUXSmoJVnHPgHh48ItGZVgAEdKr/EPiM3J1TZVOPUnDMJJSFaLRI6ZNb0ost913GoZVpSkT/fHeOoLKZutK4uktHCHHrMdKpkir94lnpNfw2SThFoMYqYWmgs6YXmcfLYutKokZGXfe0Scn0a/26qsThoc06SaK6g6fM4u5VKUpowNuG2aGK50h+aefRL6pmw9Pm97/ABGUJzerySCnZohVFdWi6hspsDccQhRez4xaACE0aCiIlEzdVltXXQBPFY6NJCoCrQVXRmi0pdGnUUUoJahsf5rnpi0++HwTq2Qx8Ty8EicSbObQwaKgfDE4z0iVXN2qVTjqGyTEHXLxInZ8Ydas5075kCr6o6LZe0P3wdLy024BSqom2DfZlJWgEKqiUTjGWJjyBElaOOUkduivhE62ATBXFSi5/wDpMjKS5yrZE0irHQZTcjHQZTcjHQZTdDHQZTcjHQZTdDHQZTcjHQZTdDHQZTcjFpNg1MXQGiXU1A3PTTQoIOURPokZTnt77JGU57e+yRlOe3vskZTnt77JGU57e+yRlOe3vskZTnt77JGU57e+yQ6848V4yqv+Nf/EACsQAAIBAQUGBwEBAAAAAAAAAAERACEQMUFR8CAwQGFx8VCBkaGxwdHhYP/aAAgBAQABPyH/ABC4pRRRWqLwEdVcMl/E1B9TUH1NQfU1B9TRH1NAfU0R9TUH1HramSu/PAr5YvzbmSoA2JValKIqF4AB52AiPaxxzkDjgnIFaBJR31J3rCCQEIjbXFe8+c7niqm+IJr2ZgmGRQEP3lhgNLKEQWAX0R5xJz1B18Ao1tZ24fsXxNVAmrZmfEsHY5LwQ4aEjdxwsVh+zB4CC4YEZXHVSzzcfRHTcGZsxDgUj0ECrrC6Bzy+p5rhXjrsNOd4H7CAo2J2lwo2HMJcjJmnvmnvhl1izEDzD4QU6cuFommBERqzwDL0wJ5Sv9AitvYEcnZru9WLDQ8k0mBsp8YRgRhCAEk0gNvJ48utin8QtpMPdUQAzpCmqgn5mE4qXqMouJIKw0/KG6FNlXyNcY7q+Hhy8AfOE3i8e80fymj+UKBvBNr0uMf2d4/sOA0SYadd6eEE8MKVAYxWrQaMIpxKhAChf2aCvpFYUeGTegOa8x4wBFlLtwA99o7R3Q2Rsu8BlgA4TBBjeT/ED+bIiHLhSh0NbSAyZy5TREGVILv5QpO8mfPdncjbGzXXVFdG6RMyRwupQY0UpdBS0nPP8yh3p2xvj5ALw2efHdIIQgiLxaOxI8GM7kPyODkuH2hBBIIu8A9y+BAVpEMcIJMQgsRB5g+otZq40Uqpq/3M/YmprmMDdwkHr4B778CZ2lWF8z4wgb/SAEhAqdBbSBrToJyevSJ0hkmsHmKNybDvjtkC161GClF0wrrs+vsYRQsByWgYQhJZN54kbg6s4aKvcw5wNgkkmvHIQsAwKOoiB+/84obi/qx2T9y+BMQhWqBCr72/cm08NreezZeO5RLAQnCab5KjXfZ4NoHZgjGlWyBGojzKFxRZGltAaHrDIkOBjscBmoHzEtW8X+AFt9TQOUMCKhSuTUYe1QT5BR2AAYAPQlQIhsT6xqOc9j8NrHaNh4PUctk9LzmEh8/8R8G8chdRNNy3h3I3hTjYEHhMQMDYHggqryhTERixAxJglDy2Hsng3HsDcLd5Cz8lKuxfUBYYnpB0QOaIiOYtfFuw+cH0oUVCnoIS+p6MMPrYK7AkjqJ3KNnG8c4CDye4Fh4UWDbXfB6EpzZNQMu5lH9yhX3VvVUb7qzkdesCOBcFdMlBHkF4AaSK7jBYh1dQAmYEFaBgAHQZfiaI+pi5xQD43R4cHPS48ZdVQAhds/zCsYcxSwqhBvQrhcCPAddzmo5bNzNdY2YR6IaqgAFimHGPZLAE4ixhEQbzT9zQP2AA7gJY0sKNVQFaCsCQlBd8dlP7KJoHged8c4p0XftHxN8AbVAWT1naJ2CdqnYJ2qdgnap2CJqcIWOPjcCogz5E0fzmj+c0fzmj+c0fzmj+c0fzmj+cuDtNAfHip3L8Vcdjtdjj4cQcSdx//8QAKRABAAICAgEEAQMFAQAAAAAAAQARECAhMUEwUWFxgZGhscHR4fDxQP/aAAgBAQABPxCEBvamU4O9KlHoOhHFOH0KNwxTrXqVKzRoTNZogN4D0axWKh6AFMp0rNbV6S4rIMqJCq2oPwU8L0KJFiRgkYLCLUQF2tPsGjisvpry4Dc8gUie2w/yeP8Al8U7/Wz/ALWL/wB9P+/j/l8W7/URCi59FZHr0adad1wG1TqKAd08Jw0hwSoG1Co7aIITSxrrq6ZXxKho5UkA/if6H/SPOQiJSJ2JlN1RInoEpi4DasVBa/73jE3jaVE7IZmmcoHarQEErTK5be1z9BwdKEcaqEO1vLlPqu7+qnWhKdXFOxAMkNBzUqL6f8uMvJzNXAUfSxzOkOUiL7dMFCuqYzvTUrvVUOOTp4/OseGk5Fz/AAFuoqVlzToxNTuVtTkMm9YXnOZjGJ28Pbak8PkmmxMG3ptP8/EHWU9s/sMrUSOdfb/dTuRU1rmsVqcU7BDJ16K0/kTxspO+0zrjWqPXvzqcSPB7r0EeEZ3Yv7DPYMdpY/JEfPrRf2B2ZrCa0Y84TQ70DTvS/jFY354CxvMRDgADsYccW+F17PibohGEir8lOOvFhcqpXswiQBbfYj260PRHdPnAZTNYetEyDeDrYxwk7wEM1EU7O1LiwfKgT42ctDBhCoPiFEa4njzL4Yr+Vx+4e0/ZI7IWk0uxvwIJT1BYfa/nRHNbPWHQh6B3ijHnUNIj70GfEg+LA0Irda4Jf54ErhknEHH/ACLURJWKwkSsVqcODBDvNGxl/nyKICYxnUxXcNhK/IoTknjRYPHJAR6YREAHpk/6kIGAvtIDZDSo4fBg+k7bkOtBoNCxFvKNUiEVpdUy35WA7oHG+4KSWHPad0AzwAV/hObnwTAiAaRa/BHYAfsV7hucI3gx2wYNBoVVXLTsCoRi+mgrOCNFFgIt47ntADnv7+pSrwCeI6OjsdRgwYCGr+L1w8gOPrOL8DcTGpEKROxyyCMDURftikNzAoor9BEaCkR7Ejh0WsOzkwdYNTBpiUhDleiqBygKojDc0P5QrnhjXdbx0x979GFYiTIqrqDWX8gD6J2cmpoYCGKyYF1XXsxV7vAB/CFUghe6AM9lfNavln/YwWNlysEn9icPeLw+iOTUhgbHZvWeUU6Z8tkrq145zVWPxDjVYMUKqBbLJwtO1e3D3o5cOjk0NRkwLD1fmkRRpyh0NKhs2QQjgt2RTgukB0xyxzUYx0cmhqNSfs8rjn+QOZnvSAIPjm3KIeY95Y6HY4GGDBkwak7fWL07qOQrqTWjWqS5nEezDhcPWLfaOVyckMGDJvyL6qRf2E+UG5ivojZX7VrBQ2rNR56ZeB0GiSVHUWrzydRgFMFA/Ii0Tjadi+yXstx3cGTvJByMNBft6upCD5aPmWAw8usLEWDpQp4cHLPoShRJgnemdzq/Uj/d+2O5i7DghgzeDA6GP3b+MGfdT9//ABy8vXL9+x9wyv8ASqkf2v8AHHLh7w4cmMcGCGgh6BarSXhSI+t9SrNEnTVl7jOWSx/R+GFYP6aF2AiW8Ki4WPoDh0GEINZMLqGEAom2g9eSNRGQHGPGVlKKh6w/x2Wp0nGpMZyy7s7DC5IaOjqOo3gxeqvD3Xt2T8xLljCVo/v/AMl3o86ptFlCWTB1rucoRRRb+qixbLHRjHUcHpD1Mn0TOF5v6D6JYAoJdfLJIp+kHsRnhjKS3ceFyCNvnlTxhLrirHvVbD36TGLHQag7XqNS0e+ACVrhxeurbvspIKVasULhahyIBITg82FAXX2Da4uxjh1NRvLoPPIBkftALNQRWOggy4sud+Ai+3k/BOZswKeczhXjCu2AzeL0Y6MY6GLwej+2x/vPbBwsuIHYX/Vx0UpVwqtYODM/QLZuXtebixcMfGt4H0RCpRBGzAG7AfB11DS/zpTcqKtOXGG9CKqh4Fr0QZPxLd5Qfywmq5wJxqeu1nED9MDzOIvoHRwl4bdhl+pZHW8vebixi4uLh9ESzer56rWnDCpOmtO041qk20PywvQY4Y6uq3oYuXm4OOc+PfjffollllllhhnXefBT4BF5y5uLi8rUXNmRi5HNsvI+leLxcuXlwOhl4t0D6F4tly5cuXLly9L0vVbjHQhodehbLwpLlJcvC8LS8rHdw6n/AKxx5NDhz//Z" alt="Hospital Prenda"></div>
+  <div class="splash-title">GEPE / DEMA</div>
+  <div class="splash-sub">Controlo de Procedimentos de Enfermagem</div>
+</div>
+
+<header>
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-mark"><img src="data:image/jpeg;base64,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" alt="Hospital Prenda"></div>
+        <div class="brand-text">
+          <h1>Procedimentos de Enfermagem</h1>
+          <p>Hospital do Prenda · GEPE/DEMA — Dep. Estatística Médica</p>
+        </div>
+      </div>
+      <div class="date-nav">
+        <button class="date-arrow" id="date-prev" title="Dia anterior">‹</button>
+        <div class="date-pill-wrap">
+          <div class="date-pill mono" id="date-pill">--/--/----</div>
+          <input type="date" id="date-input" class="date-input-hidden">
+        </div>
+        <button class="date-arrow" id="date-next" title="Dia seguinte">›</button>
+      </div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-dept-label">Departamento de Estatística Médica</div>
+    <div class="progress-label">
+      <span><span class="mono" id="progress-done">0</span> / <span class="mono" id="progress-total">14</span> serviços entregues</span>
+      <span style="display:flex; gap:10px; align-items:center;">
+        <button class="today-btn" id="btn-today">hoje</button>
+        <button class="today-btn" id="btn-refresh" title="Verificar agora nos Procedimentos de Enfermagem">↻</button>
+        <span id="progress-pct" class="mono">0%</span>
+      </span>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-view="registo">Registo</button>
+      <button class="tab-btn" data-view="dashboard">Dashboard</button>
+      <button class="tab-btn" data-view="historico">Histórico</button>
+      <button class="tab-btn" data-view="estatistica">Estatística</button>
+    </div>
+  </div>
+</header>
+
+<div id="friday-banner">
+  <div class="friday-inner">
+    <span class="friday-dot"></span>
+    <span>Sexta-feira — não se pode encerrar a semana com serviços em falta. Notifique os pendentes.</span>
+  </div>
+</div>
+
+<div id="readonly-banner">
+  <div class="readonly-inner">
+    <span>A ver um dia anterior — os dados ainda podem ser editados e corrigidos.</span>
+  </div>
+</div>
+
+<div id="sync-banner">
+  <div class="sync-inner">
+    <span id="sync-dot"></span>
+    <span id="sync-text">A ligar aos Procedimentos de Enfermagem…</span>
+  </div>
+</div>
+
+<main>
+
+  <!-- VIEW: REGISTO -->
+  <section class="view active" id="view-registo">
+
+    <div class="notif-banner" id="notif-banner">
+      <span>Ativar avisos do navegador para ser notificado de hora a hora sobre serviços em falta.</span>
+      <button id="notif-enable">Ativar</button>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi total">
+        <div class="kpi-label">Serviços</div>
+        <div class="kpi-value mono" id="kpi-total">14</div>
+      </div>
+      <div class="kpi done">
+        <div class="kpi-label">Entregues</div>
+        <div class="kpi-value mono" id="kpi-done">0</div>
+      </div>
+      <div class="kpi missing">
+        <div class="kpi-label">Em falta</div>
+        <div class="kpi-value mono" id="kpi-missing">14</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <h2>SERVIÇOS — ESTADO DO DIA</h2>
+    </div>
+
+    <div class="service-list" id="service-list"></div>
+
+    <button class="btn-save" id="btn-save">Guardar</button>
+
+    <div class="footer-actions">
+      <button class="btn-secondary" id="btn-export-pdf">📄 Exportar PDF</button>
+      <button class="btn-primary" id="btn-share">📤 Partilhar WhatsApp</button>
+    </div>
+  </section>
+
+  <!-- VIEW: DASHBOARD -->
+  <section class="view" id="view-dashboard">
+    <div class="month-selector">
+      <button class="date-arrow" id="dash-cal-prev">‹</button>
+      <div class="month-label mono" id="dash-cal-month-label">-- 2026</div>
+      <button class="date-arrow" id="dash-cal-next">›</button>
+    </div>
+    <div class="cal-weekdays" id="dash-cal-weekdays"></div>
+    <div class="cal-grid" id="dash-cal-grid"></div>
+
+    <div class="toolbar" style="margin-top:22px;">
+      <h2 id="dash-day-title">SERVIÇOS EM FALTA — HOJE</h2>
+    </div>
+    <div class="missing-strip" id="dashboard-missing"></div>
+
+    <div class="kpis" style="margin-top:6px;">
+      <div class="kpi total">
+        <div class="kpi-label">Taxa de entrega</div>
+        <div class="kpi-value mono" id="dash-pct">0%</div>
+      </div>
+      <div class="kpi done">
+        <div class="kpi-label">Entregues</div>
+        <div class="kpi-value mono" id="dash-done">0</div>
+      </div>
+      <div class="kpi missing">
+        <div class="kpi-label">Em falta</div>
+        <div class="kpi-value mono" id="dash-missing">0</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <h2>ESTADO DETALHADO</h2>
+    </div>
+    <div class="service-list" id="dashboard-list"></div>
+  </section>
+
+  <!-- VIEW: HISTÓRICO -->
+  <section class="view" id="view-historico">
+    <div class="month-selector">
+      <button class="date-arrow" id="hist-prev">‹</button>
+      <div class="month-label mono" id="hist-month-label">-- 2026</div>
+      <button class="date-arrow" id="hist-next">›</button>
+    </div>
+    <div class="history-list" id="history-list"></div>
+  </section>
+
+  <!-- VIEW: ESTATÍSTICA -->
+  <section class="view" id="view-estatistica">
+    <div class="month-selector">
+      <button class="date-arrow" id="stats-prev">‹</button>
+      <div class="month-label mono" id="stats-month-label">-- 2026</div>
+      <button class="date-arrow" id="stats-next">›</button>
+    </div>
+
+    <div class="stats-section">
+      <h3>🏆 Top 3 — mais pontuais no mês</h3>
+      <div id="rank-fast"></div>
+    </div>
+
+    <div class="stats-section">
+      <h3>⚠️ Top 3 — mais faltas/atrasos no mês</h3>
+      <div id="rank-slow"></div>
+    </div>
+
+    <button class="btn-secondary" id="btn-export-pdf-month" style="width:100%; margin-top:6px;">📄 Exportar PDF do mês (detalhado)</button>
+  </section>
+
+</main>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var SERVICES = [
+    {id:'ortopedia', name:'Ortopedia', note:true},
+    {id:'cuidados_intermedios', name:'Cuidados Intermédios'},
+    {id:'uci', name:'UCI'},
+    {id:'cirurgia_geral', name:'Cirurgia Geral'},
+    {id:'cirurgia_maxilo', name:'Cirurgia Maxilo Facial'},
+    {id:'bloco_urgencia', name:'Bloco Operatório — Urgência'},
+    {id:'bloco_eletiva', name:'Bloco Operatório — Eletiva', noWeekend:true},
+    {id:'nefrologia', name:'Nefrologia'},
+    {id:'hospital_dia', name:'Hospital de Dia'},
+    {id:'medicina_homem', name:'Medicina — Homem'},
+    {id:'medicina_mulher', name:'Medicina — Mulher'},
+    {id:'neurocirurgia', name:'Neurocirurgia'},
+    {id:'banco_urgencia', name:'Banco de Urgência'},
+    {id:'consulta_externa', name:'Consulta Externa', noWeekend:true}
+  ];
+  // ---------- Ligação com o sistema de Procedimentos de Enfermagem (Firebase) ----------
+  // Cada serviço aqui corresponde a uma página real de registo diário (registos_enf/<slug>/<data>).
+  // Quando o "sub" está definido, o formulário é partilhado por dois serviços (ex.: UCI e Cuidados
+  // Intermédios ficam no mesmo registo, mas em sub-secções próprias — por isso são verificadas
+  // separadamente dentro do mesmo registo).
+  var SERVICE_FB_MAP = {
+    ortopedia:            {slug:'ortopedia'},
+    cuidados_intermedios: {slug:'uci_intermedio', sub:'cuid_intermedio'},
+    uci:                  {slug:'uci_intermedio', sub:'uci'},
+    cirurgia_geral:       {slug:'cirurgia'},
+    cirurgia_maxilo:      {slug:'maxilo_facial'},
+    bloco_urgencia:       {slug:'bloco_operatorio', sub:'bloco_urgente'},
+    bloco_eletiva:        {slug:'bloco_operatorio', sub:'bloco_electiva'},
+    nefrologia:           {slug:'nefrologia'},
+    hospital_dia:         {slug:'hospital_dia'},
+    medicina_homem:       {slug:'medicina_homem'},
+    medicina_mulher:      {slug:'medicina_mulher'},
+    neurocirurgia:        {slug:'neurocirurgia'},
+    banco_urgencia:       {slug:'banco_urgencia'},
+    consulta_externa:     {slug:'consulta_externa'}
+  };
+
+  function subHasData(subObj){
+    if(!subObj) return false;
+    if((subObj.notesD && subObj.notesD.trim()) || (subObj.notesN && subObj.notesN.trim())) return true;
+    var cats = subObj.cats || {};
+    for(var k in cats){
+      if(!cats.hasOwnProperty(k)) continue;
+      var c = cats[k] || {};
+      var arrs = [c.d || [], c.n || []];
+      for(var a=0; a<arrs.length; a++){
+        for(var i=0; i<arrs[a].length; i++){
+          var v = arrs[a][i];
+          if(v !== '' && v !== null && v !== undefined && Number(v) !== 0) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  function fbTimeFromISO(iso){
+    try{ var dt = new Date(iso); return pad(dt.getHours()) + ':' + pad(dt.getMinutes()); }catch(e){ return null; }
+  }
+
+  // Vai buscar, para uma data, todos os registos das páginas ligadas (uma leitura por página, não por serviço).
+  function fetchRegistosForDate(dateKey){
+    var slugsSet = {};
+    Object.keys(SERVICE_FB_MAP).forEach(function(id){ slugsSet[SERVICE_FB_MAP[id].slug] = true; });
+    var slugs = Object.keys(slugsSet);
+    if(!window.__fbReady || !window.__fbGet){
+      return Promise.resolve(null); // null = não foi possível verificar (offline / Firebase indisponível)
+    }
+    var out = {};
+    return Promise.all(slugs.map(function(slug){
+      return window.__fbGet('registos_enf/' + slug + '/' + dateKey).then(function(val){ out[slug] = val; }).catch(function(){ out[slug] = undefined; });
+    })).then(function(){ return out; });
+  }
+
+  // Aplica os registos obtidos ao objeto de estado de um dia (done/time por serviço).
+  function applyRegistosToState(stateObj, registos){
+    var anyUnknown = false;
+    Object.keys(SERVICE_FB_MAP).forEach(function(id){
+      var map = SERVICE_FB_MAP[id];
+      var reg = registos ? registos[map.slug] : undefined;
+      var cur = stateObj[id] || {done:false, note:'', time:null};
+      if(registos === null || reg === undefined){
+        anyUnknown = true;
+        stateObj[id] = cur; // mantém o último estado conhecido
+        return;
+      }
+      var done = false, time = null;
+      if(reg && reg.snapshot){
+        if(map.sub){
+          done = subHasData(reg.snapshot.sub && reg.snapshot.sub[map.sub]);
+        } else {
+          done = true;
+        }
+        if(done && reg.savedAt) time = fbTimeFromISO(reg.savedAt);
+      }
+      cur.done = done;
+      cur.time = time;
+      stateObj[id] = cur;
+    });
+    return anyUnknown;
+  }
+
+  function setSyncBanner(status, text){
+    var banner = document.getElementById('sync-banner');
+    var textEl = document.getElementById('sync-text');
+    if(!banner || !textEl) return;
+    banner.className = status || '';
+    textEl.textContent = text;
+  }
+
+  var syncInFlight = null;
+  // Sincroniza o dia atualmente visível (aba Registo) com os Procedimentos de Enfermagem.
+  function syncTodayView(){
+    var dateKey = keyFromDate(viewingDate);
+    setSyncBanner('', 'A verificar nos Procedimentos de Enfermagem…');
+    var p = fetchRegistosForDate(dateKey).then(function(registos){
+      if(keyFromDate(viewingDate) !== dateKey) return; // o utilizador já mudou de dia
+      var anyUnknown = applyRegistosToState(state, registos);
+      saveStateFor(dateKey, state);
+      if(registos === null){
+        setSyncBanner('offline', 'Sem ligação — a mostrar o último estado guardado.');
+      } else if(anyUnknown){
+        setSyncBanner('offline', 'Ligação parcial — alguns serviços não puderam ser verificados.');
+      } else {
+        setSyncBanner('ok', 'Ligado aos Procedimentos de Enfermagem · verificado às ' + nowTimeStr());
+      }
+      render();
+    }).catch(function(){
+      setSyncBanner('error', 'Erro ao verificar os Procedimentos de Enfermagem.');
+    });
+    syncInFlight = p;
+    return p;
+  }
+
+  // Sincroniza um dia específico (usado no calendário/Dashboard/Histórico) e devolve o estado atualizado.
+  function syncDayState(dateKey){
+    return fetchRegistosForDate(dateKey).then(function(registos){
+      var st = loadStateFor(dateKey);
+      applyRegistosToState(st, registos);
+      saveStateFor(dateKey, st);
+      return st;
+    });
+  }
+
+  var STORAGE_PREFIX = 'enf_controlo_';
+  var MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var DIAS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  // ---------- Date helpers ----------
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function keyFromDate(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+  function dateFromKey(k){
+    var parts = k.split('-').map(Number);
+    return new Date(parts[0], parts[1]-1, parts[2]);
+  }
+  function formatDatePT(d){ return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear(); }
+  function storageKeyFor(dateKey){ return STORAGE_PREFIX + dateKey; }
+  function todayKey(){ return keyFromDate(new Date()); }
+
+  var viewingDate = new Date(); // currently displayed day
+  var todayKeyStr = todayKey();
+
+  // ---------- State load/save ----------
+  function loadStateFor(dateKey){
+    try{
+      var raw = localStorage.getItem(storageKeyFor(dateKey));
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    var fresh = {};
+    SERVICES.forEach(function(s){ fresh[s.id] = {done:false, note:'', time:null}; });
+    return fresh;
+  }
+  function saveStateFor(dateKey, state){
+    try{ localStorage.setItem(storageKeyFor(dateKey), JSON.stringify(state)); }catch(e){}
+  }
+  function listAllDateKeys(){
+    var keys = [];
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf(STORAGE_PREFIX) === 0){
+        keys.push(k.substring(STORAGE_PREFIX.length));
+      }
+    }
+    return keys.sort();
+  }
+
+  var state = loadStateFor(keyFromDate(viewingDate));
+
+  // ---------- Toast ----------
+  function showToast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 3200);
+  }
+
+  // ---------- Tabs / views ----------
+  var tabButtons = document.querySelectorAll('.tab-btn');
+  tabButtons.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      tabButtons.forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+      var target = document.getElementById('view-' + btn.dataset.view);
+      if(target) target.classList.add('active');
+
+      if(btn.dataset.view === 'dashboard') renderDashboard();
+      if(btn.dataset.view === 'historico') renderHistory();
+      if(btn.dataset.view === 'estatistica') renderStats();
+    });
+  });
+
+  // ---------- Date navigation ----------
+  function isFutureDate(d){
+    var t = new Date();
+    t.setHours(0,0,0,0);
+    var dd = new Date(d); dd.setHours(0,0,0,0);
+    return dd > t;
+  }
+
+  function goToDate(d){
+    if(isFutureDate(d)){
+      showToast('Não é possível registar dias futuros.');
+      return;
+    }
+    viewingDate = new Date(d);
+    state = loadStateFor(keyFromDate(viewingDate));
+    render();
+    syncTodayView();
+  }
+
+  document.getElementById('date-prev').addEventListener('click', function(){
+    var d = new Date(viewingDate);
+    d.setDate(d.getDate()-1);
+    goToDate(d);
+  });
+  document.getElementById('date-next').addEventListener('click', function(){
+    var d = new Date(viewingDate);
+    d.setDate(d.getDate()+1);
+    goToDate(d);
+  });
+  document.getElementById('btn-today').addEventListener('click', function(){
+    goToDate(new Date());
+  });
+  document.getElementById('date-pill').addEventListener('click', function(){
+    document.getElementById('date-input').showPicker ? document.getElementById('date-input').showPicker() : document.getElementById('date-input').click();
+  });
+  document.getElementById('date-input').addEventListener('change', function(e){
+    if(!e.target.value) return;
+    var parts = e.target.value.split('-').map(Number);
+    var d = new Date(parts[0], parts[1]-1, parts[2]);
+    goToDate(d);
+  });
+
+  // ---------- Weekend helpers ----------
+  function isWeekendDate(d){
+    var day = d.getDay();
+    return day === 0 || day === 6;
+  }
+  function applicableServices(d){
+    if(isWeekendDate(d)){
+      return SERVICES.filter(function(s){ return !s.noWeekend; });
+    }
+    return SERVICES;
+  }
+
+  // ---------- Render: Registo ----------
+  function isReadOnlyDay(){
+    return keyFromDate(viewingDate) !== todayKeyStr && isFutureDate(viewingDate);
+  }
+
+  function render(){
+    var dateKey = keyFromDate(viewingDate);
+    document.getElementById('date-pill').textContent = formatDatePT(viewingDate);
+    document.getElementById('date-input').value = dateKey;
+
+    var readBanner = document.getElementById('readonly-banner');
+    if(dateKey !== todayKeyStr){
+      readBanner.classList.add('show');
+    } else {
+      readBanner.classList.remove('show');
+    }
+
+    var list = document.getElementById('service-list');
+    list.innerHTML = '';
+    var doneCount = 0;
+    var applicable = applicableServices(viewingDate);
+    var weekend = isWeekendDate(viewingDate);
+
+    SERVICES.forEach(function(svc){
+      var s = state[svc.id] || {done:false, note:'', time:null};
+      var notApplicable = weekend && svc.noWeekend;
+      if(s.done) doneCount++;
+
+      var row = document.createElement('div');
+      row.className = 'service ' + (notApplicable ? 'is-na' : (s.done ? 'is-done' : 'is-missing'));
+
+      var statusIcon = document.createElement('div');
+      statusIcon.className = 'svc-status';
+      statusIcon.textContent = notApplicable ? '—' : (s.done ? '✓' : '–');
+      row.appendChild(statusIcon);
+
+      var info = document.createElement('div');
+      info.className = 'svc-info';
+
+      var nameRow = document.createElement('div');
+      nameRow.className = 'svc-name-row';
+      var nameEl = document.createElement('div');
+      nameEl.className = 'svc-name';
+      nameEl.textContent = svc.name;
+      nameRow.appendChild(nameEl);
+      if(notApplicable){
+        var naTag = document.createElement('span');
+        naTag.className = 'na-tag';
+        naTag.textContent = 'NÃO APLICÁVEL · FIM DE SEMANA';
+        nameRow.appendChild(naTag);
+      }
+      info.appendChild(nameRow);
+
+      if(svc.note){
+        var noteWrap = document.createElement('div');
+        noteWrap.className = 'svc-note-wrap';
+        var noteInput = document.createElement('input');
+        noteInput.className = 'svc-note';
+        noteInput.type = 'text';
+        noteInput.placeholder = 'Observação (ex.: BOM)';
+        noteInput.value = s.note || '';
+        noteInput.disabled = notApplicable;
+        noteInput.addEventListener('input', function(){
+          state[svc.id].note = noteInput.value;
+          saveStateFor(dateKey, state);
+        });
+        noteWrap.appendChild(noteInput);
+        info.appendChild(noteWrap);
+      }
+
+      if(s.done && s.time){
+        var timeEl = document.createElement('div');
+        timeEl.className = 'svc-time';
+        timeEl.textContent = 'entregue às ' + s.time;
+        info.appendChild(timeEl);
+      }
+
+      row.appendChild(info);
+
+      // Estado automático — vem da submissão real dos Procedimentos de Enfermagem, não é editável aqui.
+      var toggle = document.createElement('div');
+      toggle.className = 'svc-toggle disabled' + (s.done ? ' on' : '');
+      toggle.title = 'Estado automático: atualiza sozinho quando o serviço submete os Procedimentos de Enfermagem.';
+      row.appendChild(toggle);
+
+      list.appendChild(row);
+    });
+
+    var total = applicable.length;
+    var doneApplicable = applicable.filter(function(s){ return state[s.id] && state[s.id].done; }).length;
+    var missing = total - doneApplicable;
+    var pct = total ? Math.round((doneApplicable/total)*100) : 0;
+
+    document.getElementById('kpi-total').textContent = total;
+    document.getElementById('kpi-done').textContent = doneApplicable;
+    document.getElementById('kpi-missing').textContent = missing;
+    document.getElementById('progress-done').textContent = doneApplicable;
+    document.getElementById('progress-total').textContent = total;
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-fill').style.width = pct + '%';
+
+    var fridayBanner = document.getElementById('friday-banner');
+    if(new Date().getDay() === 5 && missing > 0 && dateKey === todayKeyStr){
+      fridayBanner.classList.add('show');
+    } else {
+      fridayBanner.classList.remove('show');
+    }
+
+    // reset "saved" visual state on the save button when data changes via date nav
+    var saveBtn = document.getElementById('btn-save');
+    saveBtn.classList.remove('saved');
+    saveBtn.textContent = 'Guardar';
+  }
+
+  function nowTimeStr(){
+    return new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+  }
+
+  function missingServiceNames(stateObj, refDate){
+    stateObj = stateObj || state;
+    refDate = refDate || new Date();
+    return applicableServices(refDate).filter(function(s){
+      var st = stateObj[s.id];
+      return !st || !st.done;
+    }).map(function(s){ return s.name; });
+  }
+
+  // ---------- Save button ----------
+  document.getElementById('btn-save').addEventListener('click', function(){
+    saveStateFor(keyFromDate(viewingDate), state);
+    var btn = document.getElementById('btn-save');
+    btn.classList.add('saved');
+    btn.textContent = '✓ Guardado';
+    showToast('Dados guardados para ' + formatDatePT(viewingDate) + '.');
+    setTimeout(function(){
+      btn.classList.remove('saved');
+      btn.textContent = 'Guardar';
+    }, 2200);
+  });
+
+  // ---------- Notifications (hourly, today only) ----------
+  var notifBanner = document.getElementById('notif-banner');
+  var notifTimer = null;
+
+  function updateNotifBannerVisibility(){
+    if('Notification' in window && Notification.permission === 'granted'){
+      notifBanner.style.display = 'none';
+      startHourlyCheck();
+    } else {
+      notifBanner.style.display = 'flex';
+    }
+  }
+  document.getElementById('notif-enable').addEventListener('click', function(){
+    if(!('Notification' in window)){
+      showToast('O seu navegador não suporta notificações.');
+      return;
+    }
+    Notification.requestPermission().then(function(perm){
+      if(perm === 'granted'){
+        showToast('Notificações ativadas.');
+        updateNotifBannerVisibility();
+      } else {
+        showToast('Permissão de notificações não concedida.');
+      }
+    });
+  });
+  function fireNotificationIfMissing(){
+    var now = new Date();
+    syncDayState(todayKeyStr).catch(function(){ return loadStateFor(todayKeyStr); }).then(function(todayState){
+      var missing = missingServiceNames(todayState, now);
+      if(missing.length === 0) return;
+      if('Notification' in window && Notification.permission === 'granted'){
+        var isFriday = now.getDay() === 5;
+        var title = isFriday ? 'Sexta-feira — serviços em falta' : 'Serviços em falta';
+        var body = missing.length + ' serviço(s) ainda não entregaram: ' + missing.join(', ');
+        try{ new Notification(title, { body: body }); }catch(e){}
+      }
+      if(keyFromDate(viewingDate) === todayKeyStr) render();
+    });
+  }
+  function startHourlyCheck(){
+    if(notifTimer) return;
+    fireNotificationIfMissing();
+    notifTimer = setInterval(fireNotificationIfMissing, 60 * 60 * 1000);
+  }
+  window.addEventListener('beforeunload', function(){
+    if(notifTimer) clearInterval(notifTimer);
+  });
+
+  // ---------- PDF export (current viewed day) ----------
+  function safe(t){
+    return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  }
+
+  document.getElementById('btn-export-pdf').addEventListener('click', function(){
+    try{
+      var dateKey = keyFromDate(viewingDate);
+      var jsPDFCtor = window.jspdf.jsPDF;
+      var doc = new jsPDFCtor({unit:'pt', format:'a4'});
+      var pageW = doc.internal.pageSize.getWidth();
+      var marginX = 40;
+      var y = 0;
+
+      // Header band
+      doc.setFillColor(13,30,55);
+      doc.rect(0,0,pageW,64,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(14);
+      doc.text(safe('Hospital do Prenda'), marginX, 28);
+      doc.setFontSize(10.5);
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(180,210,230);
+      doc.text(safe('GEPE / DEMA — Controlo Diario de Procedimentos de Enfermagem'), marginX, 44);
+
+      doc.setTextColor(34,211,238);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(11);
+      doc.text(safe(formatDatePT(viewingDate)), pageW - marginX, 36, {align:'right'});
+
+      y = 90;
+
+      var applicableDay = applicableServices(viewingDate);
+      var doneCount = applicableDay.filter(function(s){ return state[s.id] && state[s.id].done; }).length;
+      var pct = Math.round((doneCount/applicableDay.length)*100);
+
+      doc.setFontSize(10.5);
+      doc.setTextColor(60,70,90);
+      doc.setFont('helvetica','bold');
+      doc.text(safe('Resumo: ' + doneCount + '/' + applicableDay.length + ' entregues (' + pct + '%)'), marginX, y);
+      y += 22;
+
+      // Table header
+      doc.setFillColor(235,240,247);
+      doc.rect(marginX, y-12, pageW - marginX*2, 20, 'F');
+      doc.setFontSize(9);
+      doc.setTextColor(70,80,100);
+      doc.text(safe('ESTADO'), marginX+6, y+2);
+      doc.text(safe('SERVICO'), marginX+95, y+2);
+      doc.text(safe('HORA'), marginX+330, y+2);
+      doc.text(safe('OBSERVACAO'), marginX+390, y+2);
+      y += 18;
+
+      doc.setFontSize(10);
+      var weekendDay = isWeekendDate(viewingDate);
+      SERVICES.forEach(function(svc, idx){
+        var s = state[svc.id] || {done:false, note:'', time:null};
+        var notApplicable = weekendDay && svc.noWeekend;
+        if(idx % 2 === 1){
+          doc.setFillColor(248,250,252);
+          doc.rect(marginX, y-11, pageW - marginX*2, 18, 'F');
+        }
+
+        doc.setFont('helvetica','bold');
+        if(notApplicable){ doc.setTextColor(140,150,165); doc.text(safe('N/A'), marginX+6, y+1); }
+        else if(s.done){ doc.setTextColor(22,163,116); doc.text(safe('ENTREGUE'), marginX+6, y+1); }
+        else { doc.setTextColor(200,60,60); doc.text(safe('EM FALTA'), marginX+6, y+1); }
+
+        doc.setFont('helvetica','normal');
+        doc.setTextColor(notApplicable ? 160 : 30, notApplicable ? 165 : 30, notApplicable ? 175 : 40);
+        doc.text(safe(svc.name), marginX+95, y+1);
+
+        doc.setTextColor(90,100,120);
+        doc.text(safe(notApplicable ? '—' : (s.time || '—')), marginX+330, y+1);
+
+        if(svc.note && s.note){
+          doc.setTextColor(90,100,120);
+          doc.text(safe(s.note), marginX+390, y+1, {maxWidth: pageW - marginX - 390 - 10});
+        }
+
+        y += 18;
+        if(y > 770){
+          doc.addPage();
+          y = 50;
+        }
+      });
+
+      y += 14;
+      doc.setDrawColor(210,210,210);
+      doc.line(marginX, y, pageW - marginX, y);
+      y += 16;
+      doc.setFont('helvetica','italic');
+      doc.setFontSize(8.5);
+      doc.setTextColor(140,150,165);
+      doc.text(safe('Limite de entrega: ate ao fim do dia. Gerado pelo sistema de Controlo de Procedimentos de Enfermagem — GEPE/DEMA.'), marginX, y);
+
+      doc.save('controlo_enfermagem_' + dateKey + '.pdf');
+      showToast('PDF gerado.');
+    }catch(err){
+      showToast('Erro ao gerar PDF.');
+      console.error(err);
+    }
+  });
+
+  // ---------- WhatsApp share (current viewed day) ----------
+  document.getElementById('btn-share').addEventListener('click', function(){
+    var applicableDay = applicableServices(viewingDate);
+    var doneCount = applicableDay.filter(function(s){ return state[s.id] && state[s.id].done; }).length;
+    var pct = Math.round((doneCount/applicableDay.length)*100);
+    var missing = missingServiceNames(state, viewingDate);
+
+    var lines = [];
+    lines.push('📋 *Controlo de Enfermagem*');
+    lines.push('🗓 ' + formatDatePT(viewingDate));
+    lines.push('✅ Entregues: ' + doneCount + '/' + applicableDay.length + ' (' + pct + '%)');
+    lines.push('');
+
+    if(missing.length){
+      lines.push('🔴 *Em falta (' + missing.length + ')*');
+      missing.forEach(function(m){ lines.push('• ' + m); });
+      lines.push('');
+    } else {
+      lines.push('Todos os serviços entregaram. ✅');
+      lines.push('');
+    }
+    lines.push('_GEPE/DEMA — Hospital do Prenda_');
+
+    var text = encodeURIComponent(lines.join('\n'));
+    window.open('https://wa.me/?text=' + text, '_blank');
+  });
+
+  // ---------- Dashboard ----------
+  var dashCalMonth = new Date();
+  var dashSelectedDate = new Date();
+
+  function dayStatsFor(dateKey, refDate){
+    var raw = localStorage.getItem(storageKeyFor(dateKey));
+    var applicable = applicableServices(refDate);
+    if(!raw) return {hasData:false, doneCount:0, total:applicable.length, pct:0};
+    var st;
+    try{ st = JSON.parse(raw); }catch(e){ return {hasData:false, doneCount:0, total:applicable.length, pct:0}; }
+    var doneCount = applicable.filter(function(s){ return st[s.id] && st[s.id].done; }).length;
+    var pct = applicable.length ? Math.round((doneCount/applicable.length)*100) : 0;
+    return {hasData:true, doneCount:doneCount, total:applicable.length, pct:pct};
+  }
+
+  function renderDashCalendar(){
+    document.getElementById('dash-cal-month-label').textContent = MESES_PT[dashCalMonth.getMonth()] + ' ' + dashCalMonth.getFullYear();
+
+    var weekdaysEl = document.getElementById('dash-cal-weekdays');
+    weekdaysEl.innerHTML = '';
+    DIAS_PT.forEach(function(d){
+      var span = document.createElement('span');
+      span.textContent = d;
+      weekdaysEl.appendChild(span);
+    });
+
+    var grid = document.getElementById('dash-cal-grid');
+    grid.innerHTML = '';
+
+    var year = dashCalMonth.getFullYear();
+    var month = dashCalMonth.getMonth();
+    var firstDay = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month+1, 0).getDate();
+
+    for(var i=0; i<firstDay; i++){
+      var empty = document.createElement('div');
+      empty.className = 'cal-cell empty';
+      grid.appendChild(empty);
+    }
+
+    for(var day=1; day<=daysInMonth; day++){
+      var d = new Date(year, month, day);
+      var dk = keyFromDate(d);
+      var future = isFutureDate(d);
+      var stats = dayStatsFor(dk, d);
+
+      var cell = document.createElement('div');
+      cell.className = 'cal-cell' + (future ? ' is-future' : '') + (!stats.hasData && !future ? ' no-data' : '');
+      if(dk === todayKeyStr) cell.classList.add('is-today');
+      if(dk === keyFromDate(dashSelectedDate)) cell.classList.add('is-selected');
+
+      var numEl = document.createElement('div');
+      numEl.className = 'cal-day-num';
+      numEl.textContent = day;
+      cell.appendChild(numEl);
+
+      if(stats.hasData){
+        var pctEl = document.createElement('div');
+        pctEl.className = 'cal-day-pct';
+        pctEl.textContent = stats.pct + '%';
+        pctEl.style.color = stats.pct === 100 ? 'var(--green)' : (stats.pct >= 50 ? 'var(--amber)' : 'var(--red)');
+        cell.appendChild(pctEl);
+      } else if(!future){
+        var dot = document.createElement('div');
+        dot.className = 'cal-dot';
+        dot.style.background = 'var(--text-faint)';
+        cell.appendChild(dot);
+      }
+
+      if(!future){
+        cell.addEventListener('click', function(dd){
+          return function(){
+            dashSelectedDate = dd;
+            renderDashCalendar();
+            renderDashboardDay();
+            syncAndRenderDashboardDay();
+          };
+        }(d));
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+
+  document.getElementById('dash-cal-prev').addEventListener('click', function(){
+    dashCalMonth = new Date(dashCalMonth.getFullYear(), dashCalMonth.getMonth()-1, 1);
+    renderDashCalendar();
+  });
+  document.getElementById('dash-cal-next').addEventListener('click', function(){
+    var next = new Date(dashCalMonth.getFullYear(), dashCalMonth.getMonth()+1, 1);
+    if(next > new Date()) return;
+    dashCalMonth = next;
+    renderDashCalendar();
+  });
+
+  // Sincroniza o dia selecionado no Dashboard com os Procedimentos de Enfermagem e depois volta a desenhar.
+  function syncAndRenderDashboardDay(){
+    var dk = keyFromDate(dashSelectedDate);
+    syncDayState(dk).then(function(){
+      if(keyFromDate(dashSelectedDate) === dk) renderDashboardDay();
+    });
+  }
+
+  function renderDashboardDay(){
+    var dk = keyFromDate(dashSelectedDate);
+    var dayState = loadStateFor(dk);
+    var missing = missingServiceNames(dayState, dashSelectedDate);
+    var applicable = applicableServices(dashSelectedDate);
+    var doneCount = applicable.length - missing.length;
+    var pct = applicable.length ? Math.round((doneCount/applicable.length)*100) : 0;
+    var weekend = isWeekendDate(dashSelectedDate);
+
+    var titlePrefix = (dk === todayKeyStr) ? 'SERVIÇOS EM FALTA — HOJE' : 'SERVIÇOS EM FALTA — ' + formatDatePT(dashSelectedDate);
+    document.getElementById('dash-day-title').textContent = titlePrefix;
+
+    document.getElementById('dash-pct').textContent = pct + '%';
+    document.getElementById('dash-done').textContent = doneCount;
+    document.getElementById('dash-missing').textContent = missing.length;
+
+    var strip = document.getElementById('dashboard-missing');
+    strip.innerHTML = '';
+    if(missing.length === 0){
+      var chip = document.createElement('div');
+      chip.className = 'all-done-chip';
+      chip.textContent = '✓ Todos os serviços entregaram';
+      strip.appendChild(chip);
+    } else {
+      missing.forEach(function(name){
+        var chip = document.createElement('div');
+        chip.className = 'missing-chip';
+        chip.textContent = name;
+        strip.appendChild(chip);
+      });
+    }
+
+    var list = document.getElementById('dashboard-list');
+    list.innerHTML = '';
+    SERVICES.forEach(function(svc){
+      var s = dayState[svc.id] || {done:false, note:'', time:null};
+      var notApplicable = weekend && svc.noWeekend;
+      var row = document.createElement('div');
+      row.className = 'service ' + (notApplicable ? 'is-na' : (s.done ? 'is-done' : 'is-missing'));
+
+      var statusIcon = document.createElement('div');
+      statusIcon.className = 'svc-status';
+      statusIcon.textContent = notApplicable ? '—' : (s.done ? '✓' : '–');
+      row.appendChild(statusIcon);
+
+      var info = document.createElement('div');
+      info.className = 'svc-info';
+      var nameRow = document.createElement('div');
+      nameRow.className = 'svc-name-row';
+      var nameEl = document.createElement('div');
+      nameEl.className = 'svc-name';
+      nameEl.textContent = svc.name;
+      nameRow.appendChild(nameEl);
+      if(notApplicable){
+        var naTag = document.createElement('span');
+        naTag.className = 'na-tag';
+        naTag.textContent = 'NÃO APLICÁVEL';
+        nameRow.appendChild(naTag);
+      }
+      info.appendChild(nameRow);
+      if(s.done && s.time){
+        var timeEl = document.createElement('div');
+        timeEl.className = 'svc-time';
+        timeEl.textContent = 'entregue às ' + s.time;
+        info.appendChild(timeEl);
+      }
+      row.appendChild(info);
+      list.appendChild(row);
+    });
+  }
+
+  function renderDashboard(){
+    dashSelectedDate = new Date();
+    dashCalMonth = new Date();
+    renderDashCalendar();
+    renderDashboardDay();
+    syncAndRenderDashboardDay();
+  }
+
+  // ---------- History ----------
+  var historyMonth = new Date(); // any day within the displayed month
+
+
+  function renderHistory(){
+    document.getElementById('hist-month-label').textContent = MESES_PT[historyMonth.getMonth()] + ' ' + historyMonth.getFullYear();
+    var list = document.getElementById('history-list');
+    list.innerHTML = '';
+
+    var year = historyMonth.getFullYear();
+    var month = historyMonth.getMonth();
+    var daysInMonth = new Date(year, month+1, 0).getDate();
+    var rows = [];
+
+    for(var day=1; day<=daysInMonth; day++){
+      var d = new Date(year, month, day);
+      if(isFutureDate(d)) continue;
+      var dk = keyFromDate(d);
+      var raw = localStorage.getItem(storageKeyFor(dk));
+      if(!raw) continue;
+      var st;
+      try{ st = JSON.parse(raw); }catch(e){ continue; }
+      var doneCount = applicableServices(d).filter(function(s){ return st[s.id] && st[s.id].done; }).length;
+      var applicableCount = applicableServices(d).length;
+      var pct = applicableCount ? Math.round((doneCount/applicableCount)*100) : 0;
+      rows.push({date:d, dk:dk, doneCount:doneCount, pct:pct});
+    }
+
+    rows.sort(function(a,b){ return b.date - a.date; });
+
+    if(rows.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'history-empty';
+      empty.textContent = 'Sem registos neste mês.';
+      list.appendChild(empty);
+      return;
+    }
+
+    rows.forEach(function(r){
+      var row = document.createElement('div');
+      row.className = 'history-row';
+      row.addEventListener('click', function(){
+        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+        document.querySelector('.tab-btn[data-view="registo"]').classList.add('active');
+        document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+        document.getElementById('view-registo').classList.add('active');
+        goToDate(r.date);
+      });
+
+      var dateEl = document.createElement('div');
+      dateEl.className = 'history-date';
+      dateEl.textContent = pad(r.date.getDate()) + '/' + pad(r.date.getMonth()+1);
+      row.appendChild(dateEl);
+
+      var barWrap = document.createElement('div');
+      barWrap.className = 'history-bar-wrap';
+      var bar = document.createElement('div');
+      bar.className = 'history-bar';
+      bar.style.width = r.pct + '%';
+      bar.style.background = r.pct === 100 ? 'var(--green)' : (r.pct >= 50 ? 'var(--amber)' : 'var(--red)');
+      barWrap.appendChild(bar);
+      row.appendChild(barWrap);
+
+      var pctEl = document.createElement('div');
+      pctEl.className = 'history-pct mono';
+      pctEl.textContent = r.pct + '%';
+      pctEl.style.color = r.pct === 100 ? 'var(--green)' : (r.pct >= 50 ? 'var(--amber)' : 'var(--red)');
+      row.appendChild(pctEl);
+
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('hist-prev').addEventListener('click', function(){
+    historyMonth = new Date(historyMonth.getFullYear(), historyMonth.getMonth()-1, 1);
+    renderHistory();
+  });
+  document.getElementById('hist-next').addEventListener('click', function(){
+    var next = new Date(historyMonth.getFullYear(), historyMonth.getMonth()+1, 1);
+    if(next > new Date()) return;
+    historyMonth = next;
+    renderHistory();
+  });
+
+  // ---------- Statistics ----------
+  var statsMonth = new Date();
+
+  function computeMonthlyAggregates(year, month){
+    var daysInMonth = new Date(year, month+1, 0).getDate();
+    var agg = {};
+    SERVICES.forEach(function(s){ agg[s.id] = {doneDays:0, missingDays:0, applicableDays:0, times:[]}; });
+    var recordedDayCount = 0;
+
+    for(var day=1; day<=daysInMonth; day++){
+      var d = new Date(year, month, day);
+      if(isFutureDate(d)) continue;
+      var dk = keyFromDate(d);
+      var raw = localStorage.getItem(storageKeyFor(dk));
+      if(!raw) continue;
+      var st;
+      try{ st = JSON.parse(raw); }catch(e){ continue; }
+      recordedDayCount++;
+      var weekend = isWeekendDate(d);
+
+      SERVICES.forEach(function(svc){
+        if(weekend && svc.noWeekend) return; // não aplicável, não entra na contagem
+        var s = st[svc.id];
+        var a = agg[svc.id];
+        a.applicableDays++;
+        if(s && s.done){
+          a.doneDays++;
+          if(s.time) a.times.push(s.time);
+        } else {
+          a.missingDays++;
+        }
+      });
+    }
+
+    return {agg:agg, recordedDayCount:recordedDayCount};
+  }
+
+  function renderStats(){
+    document.getElementById('stats-month-label').textContent = MESES_PT[statsMonth.getMonth()] + ' ' + statsMonth.getFullYear();
+
+    var result = computeMonthlyAggregates(statsMonth.getFullYear(), statsMonth.getMonth());
+    var agg = result.agg;
+    var recordedDayCount = result.recordedDayCount;
+
+    var fastBox = document.getElementById('rank-fast');
+    var slowBox = document.getElementById('rank-slow');
+    fastBox.innerHTML = '';
+    slowBox.innerHTML = '';
+
+    if(recordedDayCount === 0){
+      fastBox.innerHTML = '<div class="stats-empty">Sem dados registados neste mês.</div>';
+      slowBox.innerHTML = '<div class="stats-empty">Sem dados registados neste mês.</div>';
+      return;
+    }
+
+    var list = [];
+    SERVICES.forEach(function(svc){
+      var a = agg[svc.id];
+      var base = a.applicableDays || 1;
+      var onTimePct = Math.round((a.doneDays / base) * 100);
+      var missingPct = Math.round((a.missingDays / base) * 100);
+      var avgTime = avgTimeStr(a.times);
+      list.push({name:svc.name, onTimePct:onTimePct, missingPct:missingPct, avgTime:avgTime});
+    });
+
+    var fastList = list.slice().sort(function(a,b){ return b.onTimePct - a.onTimePct; }).slice(0,3);
+    var slowList = list.slice().sort(function(a,b){ return b.missingPct - a.missingPct; }).slice(0,3);
+
+    fastList.forEach(function(item, idx){
+      fastBox.appendChild(buildRankRow(idx+1, item.name, item.onTimePct, item.avgTime, 'var(--green)'));
+    });
+    slowList.forEach(function(item, idx){
+      slowBox.appendChild(buildRankRow(idx+1, item.name, item.missingPct, item.avgTime, 'var(--red)'));
+    });
+  }
+
+  function avgTimeStr(times){
+    if(!times || times.length === 0) return '—';
+    var totalMin = 0;
+    times.forEach(function(t){
+      var parts = t.split(':').map(Number);
+      totalMin += parts[0]*60 + parts[1];
+    });
+    var avg = Math.round(totalMin / times.length);
+    var h = Math.floor(avg/60), m = avg%60;
+    return pad(h) + ':' + pad(m);
+  }
+
+  function buildRankRow(rank, name, pct, avgTime, color){
+    var row = document.createElement('div');
+    row.className = 'rank-row';
+
+    var num = document.createElement('div');
+    num.className = 'rank-num mono';
+    num.textContent = rank;
+    row.appendChild(num);
+
+    var nameEl = document.createElement('div');
+    nameEl.className = 'rank-name';
+    nameEl.textContent = name;
+    row.appendChild(nameEl);
+
+    var barWrap = document.createElement('div');
+    barWrap.className = 'rank-bar-wrap';
+    var bar = document.createElement('div');
+    bar.className = 'rank-bar';
+    bar.style.width = Math.min(pct,100) + '%';
+    bar.style.background = color;
+    barWrap.appendChild(bar);
+    row.appendChild(barWrap);
+
+    var pctEl = document.createElement('div');
+    pctEl.className = 'rank-pct mono';
+    pctEl.textContent = pct + '%';
+    pctEl.style.color = color;
+    row.appendChild(pctEl);
+
+    var timeEl = document.createElement('div');
+    timeEl.className = 'rank-time mono';
+    timeEl.textContent = avgTime;
+    row.appendChild(timeEl);
+
+    return row;
+  }
+
+  document.getElementById('stats-prev').addEventListener('click', function(){
+    statsMonth = new Date(statsMonth.getFullYear(), statsMonth.getMonth()-1, 1);
+    renderStats();
+  });
+  document.getElementById('stats-next').addEventListener('click', function(){
+    var next = new Date(statsMonth.getFullYear(), statsMonth.getMonth()+1, 1);
+    if(next > new Date()) return;
+    statsMonth = next;
+    renderStats();
+  });
+
+  // ---------- Monthly PDF (detailed, day by day) ----------
+  document.getElementById('btn-export-pdf-month').addEventListener('click', function(){
+    try{
+      var year = statsMonth.getFullYear();
+      var month = statsMonth.getMonth();
+      var daysInMonth = new Date(year, month+1, 0).getDate();
+
+      var jsPDFCtor = window.jspdf.jsPDF;
+      var doc = new jsPDFCtor({unit:'pt', format:'a4'});
+      var pageW = doc.internal.pageSize.getWidth();
+      var marginX = 40;
+      var y = 0;
+      var firstPage = true;
+
+      function drawHeader(){
+        doc.setFillColor(13,30,55);
+        doc.rect(0,0,pageW,56,'F');
+        doc.setTextColor(255,255,255);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(13);
+        doc.text(safe('Hospital do Prenda'), marginX, 24);
+        doc.setFontSize(9.5);
+        doc.setFont('helvetica','normal');
+        doc.setTextColor(180,210,230);
+        doc.text(safe('GEPE / DEMA — Relatorio Mensal de Procedimentos de Enfermagem'), marginX, 38);
+        doc.setTextColor(34,211,238);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(10.5);
+        doc.text(safe(MESES_PT[month] + ' ' + year), pageW - marginX, 30, {align:'right'});
+        y = 78;
+      }
+
+      drawHeader();
+
+      var monthDayCount = 0;
+      for(var day=1; day<=daysInMonth; day++){
+        var d = new Date(year, month, day);
+        if(isFutureDate(d)) continue;
+        var dk = keyFromDate(d);
+        var raw = localStorage.getItem(storageKeyFor(dk));
+        if(!raw) continue;
+        var st;
+        try{ st = JSON.parse(raw); }catch(e){ continue; }
+        monthDayCount++;
+
+        var weekend = isWeekendDate(d);
+        var applicableDay = applicableServices(d);
+        var doneCount = applicableDay.filter(function(s){ return st[s.id] && st[s.id].done; }).length;
+        var pctDay = applicableDay.length ? Math.round((doneCount/applicableDay.length)*100) : 0;
+
+        if(y > 700){ doc.addPage(); drawHeader(); }
+
+        doc.setFillColor(235,240,247);
+        doc.rect(marginX, y-12, pageW - marginX*2, 18, 'F');
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(40,50,70);
+        doc.text(safe(formatDatePT(d) + '  (' + DIAS_PT[d.getDay()] + ')' + (weekend ? ' — fim de semana' : '')), marginX+6, y+1);
+        doc.setTextColor(pctDay === 100 ? 22 : (pctDay >= 50 ? 200 : 200), pctDay === 100 ? 163 : (pctDay >= 50 ? 140 : 60), pctDay === 100 ? 116 : (pctDay >= 50 ? 20 : 60));
+        doc.text(safe(doneCount + '/' + applicableDay.length + ' (' + pctDay + '%)'), pageW - marginX - 6, y+1, {align:'right'});
+        y += 16;
+
+        doc.setFontSize(8.5);
+        SERVICES.forEach(function(svc){
+          var notApplicable = weekend && svc.noWeekend;
+          if(notApplicable) return; // omitido do detalhe diário no PDF mensal para poupar espaço
+          var s = st[svc.id];
+          var done = s && s.done;
+          doc.setFont('helvetica','normal');
+          doc.setTextColor(done ? 22 : 190, done ? 140 : 60, done ? 90 : 60);
+          doc.text(safe((done ? 'OK' : 'FALTA') + '  ' + svc.name + (s && s.time ? '  (' + s.time + ')' : '')), marginX+10, y+1);
+          y += 12;
+          if(y > 770){ doc.addPage(); drawHeader(); }
+        });
+
+        y += 8;
+      }
+
+      if(monthDayCount === 0){
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(11);
+        doc.setTextColor(100,100,100);
+        doc.text(safe('Sem registos neste mês.'), marginX, y);
+      }
+
+      doc.save('relatorio_mensal_enfermagem_' + year + '-' + pad(month+1) + '.pdf');
+      showToast('PDF mensal gerado.');
+    }catch(err){
+      showToast('Erro ao gerar PDF mensal.');
+      console.error(err);
+    }
+  });
+
+  // ---------- Init ----------
+  render();
+  syncTodayView();
+  document.getElementById('btn-refresh').addEventListener('click', function(){
+    syncTodayView();
+    showToast('A verificar nos Procedimentos de Enfermagem…');
+  });
+  updateNotifBannerVisibility();
+
+  setTimeout(function(){
+    document.getElementById('splash').classList.add('hide');
+  }, 900);
+
+})();
+</script>
+</body>
+</html>
