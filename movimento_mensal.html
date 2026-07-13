@@ -119,12 +119,21 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
       </div>
       <div class="field">
         <label>Data</label>
-        <input type="date" id="selData" onchange="onDataChange()"/>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="btn btn-outline" style="padding:9px 12px;" onclick="changeDay(-1)" title="Dia anterior">◀</button>
+          <input type="date" id="selData" onchange="onDataChange()"/>
+          <button type="button" class="btn btn-outline" style="padding:9px 12px;" onclick="changeDay(1)" title="Dia seguinte">▶</button>
+        </div>
       </div>
       <div class="field">
         <label>Código do Serviço</label>
         <input type="text" id="codigoServico" placeholder="—" style="border:1.5px solid var(--br);border-radius:10px;padding:9px 12px;font-family:'DM Mono',monospace;" oninput="saveCodigo()"/>
       </div>
+    </div>
+    <div class="save-row">
+      <button class="btn btn-outline" onclick="exportBackup()">⬇ Exportar Backup</button>
+      <button class="btn btn-outline" onclick="document.getElementById('restoreFile').click()">⬆ Restaurar Backup</button>
+      <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="importBackup(this)"/>
     </div>
   </div>
 
@@ -172,12 +181,15 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   <div class="panel" id="painelTabela" style="display:none;">
     <h2>Tabela do Mês <span id="tabelaMesLabel" style="color:var(--tx3);font-weight:500;"></span></h2>
     <div class="sub">Igual ao modelo oficial — atualizada automaticamente a partir dos dias guardados.</div>
+    <div class="sub" style="margin:2px 0 10px;">Clica num dia da tabela para o abrir no registo acima.</div>
     <div class="table-wrap"><table class="mm" id="tabelaMensal"></table></div>
     <div class="legend">
       <span><i style="background:#fff;border:1px solid var(--br);"></i> Preenchimento manual</span>
-      <span><i style="background:#F1F5F9;"></i> Cálculo automático</span>
-      <span><i style="background:#EFF6FF;"></i> Total do mês</span>
+      <span><i style="background:#F1F5F9;"></i> Cálculo automático (protegido)</span>
+      <span><i style="background:#EFF6FF;"></i> Resultado / Total do mês (protegido)</span>
+      <span><i style="background:#F8FAFC;opacity:.4;"></i> Dia inexistente no mês</span>
     </div>
+    <div class="sub" style="margin-top:10px;font-style:italic;">Nota: alterações a dias já fechados devem ser autorizadas pelo Departamento de Estatística do Hospital do Prenda.</div>
     <div class="sign-row">
       <div class="field"><label>Chefe de Enfermagem</label><input type="text" id="chefeEnfermagem" placeholder="Nome completo" oninput="saveMeta()"/></div>
       <div class="field"><label>Data</label><input type="date" id="dataAssinatura" oninput="saveMeta()"/></div>
@@ -275,6 +287,22 @@ function onServicoChange(){
 function onDataChange(){
   currentDate = document.getElementById('selData').value;
   loadForCurrent();
+}
+
+function changeDay(delta){
+  const d = new Date(currentDate+'T00:00:00');
+  d.setDate(d.getDate()+delta);
+  currentDate = d.toISOString().slice(0,10);
+  document.getElementById('selData').value = currentDate;
+  loadForCurrent();
+}
+
+function jumpToDay(dia){
+  const [y,m] = monthKey(currentDate).split('-');
+  currentDate = `${y}-${m}-${String(dia).padStart(2,'0')}`;
+  document.getElementById('selData').value = currentDate;
+  loadForCurrent();
+  document.querySelector('main .panel').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function computeDayFromManual(m, existAnteriorManual, isDay1NoPrev){
@@ -423,6 +451,41 @@ function saveCodigo(){
   try{ localStorage.setItem('servico_codigo_'+currentServico, document.getElementById('codigoServico').value); }catch(e){}
 }
 
+function exportBackup(){
+  const data = {};
+  for(let i=0; i<localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k.startsWith('movimento_') || k.startsWith('servico_codigo_')) data[k] = localStorage.getItem(k);
+  }
+  const backup = {app:'movimento_mensal', exportedAt:new Date().toISOString(), data};
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `movimento_mensal_backup_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('✅ Backup exportado!');
+}
+
+function importBackup(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const backup = JSON.parse(e.target.result);
+      const data = backup.data || backup;
+      if(!confirm('Isto vai substituir os dados guardados do Movimento Mensal neste dispositivo. Continuar?')){ input.value=''; return; }
+      Object.keys(data).forEach(k=>{
+        if(k.startsWith('movimento_') || k.startsWith('servico_codigo_')) localStorage.setItem(k, data[k]);
+      });
+      loadForCurrent();
+      toast('✅ Backup restaurado!');
+    }catch(err){ toast('❌ Ficheiro inválido!'); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
 function toggleTabela(){
   const p = document.getElementById('painelTabela');
   const btn = document.getElementById('btnToggleTabela');
@@ -447,7 +510,11 @@ function renderTabela(){
   document.getElementById('tabelaMesLabel').textContent = '— ' + dObj.toLocaleDateString('pt-PT',{month:'long',year:'numeric'});
 
   let html = '<thead><tr><th class="rowlabel">Movimento Mensal</th>';
-  for(let d=1; d<=31; d++){ html += d<=totalDias ? `<th>${d}</th>` : `<th style="opacity:.3">${d}</th>`; }
+  for(let d=1; d<=31; d++){
+    html += d<=totalDias
+      ? `<th style="cursor:pointer;${d===dayNum(currentDate)?'background:var(--bl);':''}" onclick="jumpToDay(${d})" title="Abrir dia ${d} no registo">${d}</th>`
+      : `<th style="opacity:.3">${d}</th>`;
+  }
   html += '<th>TOTAL</th></tr></thead><tbody>';
 
   ROWS.forEach(row=>{
