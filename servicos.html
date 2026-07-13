@@ -96,14 +96,14 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
 }
 
 /* ── CONTENT ──────────────────────────────────────────── */
-main{max-width:1040px;margin:0 auto;padding:56px 20px 60px;}
+main{width:100%;max-width:1040px;margin:0 auto;padding:56px 20px 60px;box-sizing:border-box;}
 .cat{margin-bottom:34px;scroll-margin-top:80px;}
 .cat-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-left:2px;}
 .cat-head h2{font-size:1.02rem;font-weight:700;letter-spacing:-.01em;}
 .cat-head .cnt{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--tx3);background:var(--br);border-radius:100px;padding:2px 9px;}
 .cat-bar{height:3px;width:26px;border-radius:2px;}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start;}
 .card{
   position:relative;display:flex;align-items:center;gap:14px;text-decoration:none;color:#fff;overflow:hidden;
   background:linear-gradient(120deg,var(--nv) 0%,var(--accent,var(--bl)) 170%);
@@ -158,21 +158,30 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   .foot-meta{text-align:left;}
 }
 
-.card{flex-direction:column;align-items:flex-start;}
-.card .head-row{display:flex;align-items:center;gap:14px;width:100%;}
-.card .links{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;width:100%;}
+.card{flex-direction:column;align-items:flex-start;min-width:0;height:100%;box-sizing:border-box;}
+.card .head-row{display:flex;align-items:center;gap:14px;width:100%;min-width:0;}
+.card .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px;width:100%;}
 .card .pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.16);color:#fff;text-decoration:none;
-  font-size:.72rem;font-weight:700;padding:7px 12px;border-radius:100px;transition:background .15s,transform .15s;border:1px solid rgba(255,255,255,.22);}
+  font-size:.7rem;font-weight:700;padding:6px 11px;border-radius:100px;transition:background .15s,transform .15s;border:1px solid rgba(255,255,255,.22);white-space:nowrap;}
 .card .pill:hover{background:rgba(255,255,255,.3);}
 .card .pill:active{transform:scale(.96);}
-.card .pill svg{width:13px;height:13px;flex-shrink:0;}
+.card .pill svg{width:12px;height:12px;flex-shrink:0;}
 .card.wip .pill{pointer-events:none;opacity:.7;}
-.code-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.18);width:100%;flex-wrap:wrap;}
-.code-row label{font-size:.64rem;font-weight:700;color:rgba(255,255,255,.75);white-space:nowrap;}
-.code-input{flex:1;min-width:80px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:8px;
-  color:#fff;font-size:.72rem;font-weight:700;padding:5px 9px;font-family:'DM Mono',monospace;}
-.code-input::placeholder{color:rgba(255,255,255,.5);}
-.code-input:focus{outline:none;border-color:#fff;background:rgba(255,255,255,.22);}
+.code-row{display:flex;align-items:center;gap:8px;margin-top:13px;padding-top:12px;border-top:1px solid rgba(255,255,255,.16);width:100%;}
+.code-row label{font-size:.62rem;font-weight:700;color:rgba(255,255,255,.68);white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+.code-input{flex:1;min-width:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.26);border-radius:8px;
+  color:#fff;font-size:.74rem;font-weight:700;padding:6px 10px;font-family:'DM Mono',monospace;letter-spacing:.03em;}
+.code-input::placeholder{color:rgba(255,255,255,.45);font-weight:500;}
+.code-input:focus{outline:none;border-color:rgba(255,255,255,.7);background:rgba(255,255,255,.2);}
+
+/* ── PESQUISA ── */
+.search-wrap{max-width:1040px;margin:0 auto 24px;padding:0 20px;}
+.search-box{position:relative;max-width:420px;}
+.search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--tx3);pointer-events:none;}
+.search-box input{width:100%;padding:12px 16px 12px 40px;border-radius:100px;border:1.5px solid var(--br);background:#fff;
+  font-family:'Inter',sans-serif;font-size:.86rem;color:var(--tx);box-shadow:var(--s1);}
+.search-box input:focus{outline:none;border-color:var(--bl);}
+.no-results{text-align:center;padding:40px 20px;color:var(--tx3);font-size:.86rem;display:none;}
 
 </style>
 </head>
@@ -198,7 +207,15 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   </div>
 </div>
 
+<div class="search-wrap">
+  <div class="search-box">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchServico" placeholder="Pesquisar serviço…" oninput="filterServicos(this.value)"/>
+  </div>
+</div>
+
 <main id="main"></main>
+<div class="no-results" id="noResults">Nenhum serviço encontrado para essa pesquisa.</div>
 
 <footer>
   <div class="foot-grid">
@@ -368,6 +385,7 @@ function render(){
       const card = document.createElement('div');
       card.className = 'card' + (it.wip ? ' wip' : '');
       card.style.setProperty('--accent', cat.color);
+      card.dataset.name = it.name.toLowerCase();
       const linksHtml = it.links.map(l=>`
         <a class="pill" href="${l.file}">${pillIcon(l.kind)}<span>${l.label}</span></a>
       `).join('');
@@ -392,6 +410,20 @@ function render(){
     main.appendChild(sec);
   });
   loadServiceCodes();
+}
+function filterServicos(q){
+  q = q.trim().toLowerCase();
+  let anyVisible = false;
+  document.querySelectorAll('.cat').forEach(sec=>{
+    let catHasVisible = false;
+    sec.querySelectorAll('.card').forEach(card=>{
+      const match = !q || card.dataset.name.includes(q);
+      card.style.display = match ? '' : 'none';
+      if(match){ catHasVisible = true; anyVisible = true; }
+    });
+    sec.style.display = catHasVisible ? '' : 'none';
+  });
+  document.getElementById('noResults').style.display = anyVisible ? 'none' : 'block';
 }
 function saveServiceCode(el){
   try{ localStorage.setItem('servico_codigo_'+el.dataset.service, el.value); }catch(e){}
