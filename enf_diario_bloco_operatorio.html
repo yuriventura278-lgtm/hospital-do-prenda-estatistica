@@ -273,15 +273,15 @@ function closeSplash(){
 <div class="sec">
   <div class="sh">
     <div class="si ipu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-    <div class="st"><h2>Responsáveis de Turno<span class="req">*</span></h2><p>Obrigatório — responsável pelo registo de cada turno</p></div>
+    <div class="st"><h2>Responsáveis de Turno<span class="req">*</span></h2><p>Preencha o responsável do turno que está a registar — pode guardar o turno Dia e voltar mais tarde para o turno Noite (ou vice-versa)</p></div>
   </div>
   <div class="sb">
     <div class="f">
-      <label>Responsável — Turno Dia<span class="req">*</span></label>
+      <label>Responsável — Turno Dia</label>
       <input type="text" id="chefeTurnoDia" placeholder="Nome completo" oninput="onChefeInput()"/>
     </div>
     <div class="f">
-      <label>Responsável — Turno Noite<span class="req">*</span></label>
+      <label>Responsável — Turno Noite</label>
       <input type="text" id="chefeTurnoNoite" placeholder="Nome completo" oninput="onChefeInput()"/>
     </div>
   </div>
@@ -453,21 +453,14 @@ function validarChefe(){
   const elN=document.getElementById('chefeTurnoNoite');
   const valD=(elD.value||'').trim();
   const valN=(elN.value||'').trim();
-  if(!valD){
+  if(!valD && !valN){
     elD.classList.add('err-inp');
     elD.scrollIntoView({behavior:'smooth',block:'center'});
     elD.focus();
-    toast('Preencha o nome do Responsável do Turno Dia.');
+    toast('Preencha o responsável de pelo menos um turno (Dia ou Noite).');
     return false;
   }
   elD.classList.remove('err-inp');
-  if(!valN){
-    elN.classList.add('err-inp');
-    elN.scrollIntoView({behavior:'smooth',block:'center'});
-    elN.focus();
-    toast('Preencha o nome do Responsável do Turno Noite.');
-    return false;
-  }
   elN.classList.remove('err-inp');
   return true;
 }
@@ -1141,7 +1134,10 @@ function acaoGuardar(){
   addToHistIndex(dataStr);
   try{ localStorage.removeItem(draftKey(dataStr)); }catch(e){}
   hideDraftBanner();
-  toast('✓ Registo guardado.');
+  const valD=(gv('chefeTurnoDia')||'').trim(), valN=(gv('chefeTurnoNoite')||'').trim();
+  if(!valD) toast('✓ Guardado. Falta o responsável do Turno Dia.');
+  else if(!valN) toast('✓ Guardado. Falta o responsável do Turno Noite.');
+  else toast('✓ Registo guardado.');
   checkMissingRecent();
 }
 
