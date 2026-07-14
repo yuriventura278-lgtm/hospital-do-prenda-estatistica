@@ -140,6 +140,15 @@ input.err-inp{border-color:var(--rd)!important;background:#FFF5F5!important;box-
 #ov-hist{display:none;position:fixed;inset:0;background:rgba(13,27,62,.7);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center;}
 #ov-hist.open{display:flex;}
 #mo-hist{background:#fff;border-radius:var(--r3) var(--r3) 0 0;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;animation:su .28s cubic-bezier(.34,1.2,.64,1);}
+/* BACKUP MODAL */
+#ov-backup{display:none;position:fixed;inset:0;background:rgba(13,27,62,.7);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center;}
+#ov-backup.open{display:flex;}
+#mo-backup{background:#fff;border-radius:var(--r3) var(--r3) 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;animation:su .28s cubic-bezier(.34,1.2,.64,1);}
+.bk-opt{width:100%;padding:14px;border:1.5px solid var(--br);border-radius:var(--r);background:#FAFBFF;color:var(--tx);font-size:.88rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:10px;text-align:left;}
+.bk-opt svg{flex-shrink:0;color:var(--bl);}
+.bk-opt small{display:block;font-weight:500;color:var(--tx3);font-size:.72rem;margin-top:2px;}
+.bk-mes{display:flex;gap:8px;margin-bottom:10px;}
+.bk-mes input{flex:1;padding:12px 14px;border:1.5px solid var(--br2);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:.85rem;}
 /* CONFIRM / POST */
 #ov2,#ov3{display:none;position:fixed;inset:0;background:rgba(13,27,62,.72);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:16px;}
 #ov2.open,#ov3.open{display:flex;}
@@ -399,6 +408,15 @@ function closeSplash(){const s=document.getElementById('splash');if(s){s.style.o
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     Histórico de Registos
   </button>
+  <button class="hist-btn" onclick="zeloAbrirBackup()" style="margin-top:8px;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Backup / Exportar
+  </button>
+  <button class="hist-btn" onclick="document.getElementById('zeloRestoreFile').click()" style="margin-top:8px;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>
+    Restaurar Backup
+  </button>
+  <input type="file" id="zeloRestoreFile" accept="application/json" style="display:none;" onchange="zeloRestoreFromFile(this)"/>
 </div>
 <div style="height:20px;"></div>
 </div>
@@ -438,6 +456,39 @@ function closeSplash(){const s=document.getElementById('splash');if(s){s.style.o
     <div class="mb" id="hist-body"></div>
     <div class="mf">
       <button onclick="fecharHistorico()" style="flex:1;background:var(--sf);border:1.5px solid var(--br)!important;color:var(--tx2);">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BACKUP -->
+<div id="ov-backup">
+  <div id="mo-backup">
+    <div class="mh">
+      <div class="ml"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div style="flex:1;"><h3>Backup / Exportar</h3><p>Guarde os registos em ficheiro JSON</p></div>
+      <button onclick="zeloFecharBackup()" style="border:none;background:none;cursor:pointer;color:rgba(255,255,255,.6);padding:4px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="mb">
+      <button class="bk-opt" onclick="zeloBackupDiario()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Diário<small>Apenas o registo de hoje</small></span>
+      </button>
+      <div id="zeloMesPicker" style="display:none;">
+        <div class="bk-mes">
+          <input type="month" id="zeloMesInput"/>
+        </div>
+      </div>
+      <button class="bk-opt" onclick="zeloToggleMesPicker()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+        <span>Mensal<small>Escolher o mês a exportar</small></span>
+      </button>
+      <button class="bk-opt" onclick="zeloBackupGeral()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        <span>Geral<small>Todos os registos guardados</small></span>
+      </button>
+    </div>
+    <div class="mf">
+      <button onclick="zeloFecharBackup()" style="flex:1;background:var(--sf);border:1.5px solid var(--br)!important;color:var(--tx2);">Fechar</button>
     </div>
   </div>
 </div>
@@ -943,9 +994,74 @@ function gerarPDFFromSnap(snap,wa,email){
   }
 }
 
+// ─── BACKUP / RESTAURAR ─────────────────────────────────────────────
+function zeloAbrirBackup(){
+  const hoje=new Date().toISOString().slice(0,10);
+  document.getElementById('zeloMesInput').value=hoje.slice(0,7);
+  document.getElementById('zeloMesPicker').style.display='none';
+  document.getElementById('ov-backup').classList.add('open');
+}
+function zeloFecharBackup(){document.getElementById('ov-backup').classList.remove('open');}
+function zeloToggleMesPicker(){
+  const p=document.getElementById('zeloMesPicker');
+  if(p.style.display==='none'){p.style.display='block';}
+  else{
+    const mes=document.getElementById('zeloMesInput').value;
+    if(!mes){toast('Escolha um mês.');return;}
+    zeloBackupMensal(mes);
+  }
+}
+function zeloDownload(registos, suffix){
+  const payload={sistema:'dias_cama_doente', exportadoEm:new Date().toISOString(), total:registos.length, registos};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='backup_dias_cama_doente_'+suffix+'.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('✓ Backup exportado.');
+  zeloFecharBackup();
+}
+async function zeloBackupDiario(){
+  const hoje=new Date().toISOString().slice(0,10);
+  const todos=await dbAll();
+  zeloDownload(todos.filter(r=>r.data===hoje), 'diario_'+hoje);
+}
+async function zeloBackupMensal(mes){
+  const todos=await dbAll();
+  zeloDownload(todos.filter(r=>(r.data||'').slice(0,7)===mes), 'mensal_'+mes);
+}
+async function zeloBackupGeral(){
+  const todos=await dbAll();
+  zeloDownload(todos, 'geral_'+new Date().toISOString().slice(0,10));
+}
+function zeloRestoreFromFile(input){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const payload=JSON.parse(e.target.result);
+      const registos=Array.isArray(payload)?payload:(payload.registos||[]);
+      if(!registos.length){toast('Ficheiro sem registos.');return;}
+      if(!confirm('Restaurar '+registos.length+' registo(s) para este dispositivo? Registos com a mesma data serão substituídos.'))return;
+      for(const r of registos){await dbPut(r);}
+      toast('✓ '+registos.length+' registo(s) restaurado(s).');
+      setTimeout(()=>location.reload(), 900);
+    }catch(err){
+      toast('Erro ao ler o ficheiro de backup.');
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────
 document.getElementById('data').valueAsDate=new Date();
-['ov','ov-hist','ov2','ov3'].forEach(id=>{
+['ov','ov-hist','ov-backup','ov2','ov3'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{
     if(e.target===document.getElementById(id)) document.getElementById(id).classList.remove('open');
   });
