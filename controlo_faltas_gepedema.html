@@ -367,6 +367,10 @@
     </div>
   </div>
   <div class="hint">Toque num dia do calendário para registar quem faltou. Tudo fica guardado automaticamente, sem precisar de internet.</div>
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    <button style="padding:6px 14px;font-size:12px;font-weight:700;border-radius:100px;border:1px solid var(--border);background:#fff;color:var(--ink);cursor:pointer;" onclick="cfgOpenBackup()">⬇ Backup</button>
+    <button style="padding:6px 14px;font-size:12px;font-weight:700;border-radius:100px;border:1px solid var(--border);background:#fff;color:var(--ink);cursor:pointer;" onclick="document.getElementById('cfgRestoreFile').click()">⬆ Restaurar</button>
+  </div>
 </header>
 
 <main>
@@ -449,6 +453,32 @@
 </div>
 
 <div class="toast" id="toast"><span class="check">✓</span><span id="toastMsg">Guardado</span></div>
+
+<div class="overlay" id="cfgBackupOverlay" onclick="if(event.target===this) cfgCloseBackup()">
+  <div class="modal">
+    <h3 style="font-size:1rem;font-weight:800;color:var(--ink);margin-bottom:6px;">Exportar Backup</h3>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px;">Escolhe o que queres exportar.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="cfgBackupDiario()" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;text-align:left;">
+        <strong style="font-size:.82rem;color:var(--ink);">Diário</strong><span id="cfg-backup-diario-sub" style="font-size:.7rem;color:var(--muted);">Só o dia atual</span>
+      </button>
+      <button onclick="cfgToggleMesPicker()" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;text-align:left;">
+        <strong style="font-size:.82rem;color:var(--ink);">Mensal</strong><span style="font-size:.7rem;color:var(--muted);">Escolher um mês</span>
+      </button>
+      <button onclick="cfgBackupGeral()" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg);cursor:pointer;text-align:left;">
+        <strong style="font-size:.82rem;color:var(--ink);">Geral</strong><span style="font-size:.7rem;color:var(--muted);">Todos os registos guardados</span>
+      </button>
+    </div>
+    <div id="cfgBackupMesPicker" style="display:none;margin-top:12px;gap:8px;align-items:center;">
+      <input type="month" id="cfgBackupMesInput" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);"/>
+      <button onclick="cfgBackupMensal()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--cyan-600);color:#fff;font-weight:700;cursor:pointer;">Exportar</button>
+    </div>
+    <div style="margin-top:18px;text-align:right;">
+      <button onclick="cfgCloseBackup()" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;">Fechar</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="cfgRestoreFile" accept=".json" style="display:none" onchange="cfgRestoreFromFile(this)">
 
 <div class="overlay" id="overlayFerias">
   <div class="modal">
@@ -1630,6 +1660,131 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
 
   boot();
 
+})();
+</script>
+<script>
+// ══════════════════ BACKUP / RESTORE ══════════════════
+(function(){
+  var CFG_LS_KEY = "controloFaltasHP_backup";
+  var CFG_LS_KEY_FERIAS = "controloFaltasHP_ferias_backup";
+  var CFG_DB_NAME = "ControloFaltasHP";
+  var CFG_DB_VERSION = 2;
+  var CFG_STORE = "faltas";
+  var CFG_STORE_FERIAS = "ferias";
+
+  function cfgToast(msg){
+    var t = document.getElementById("toast");
+    document.getElementById("toastMsg").textContent = msg;
+    t.classList.add("show");
+    setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+  function cfgPad(n){ return String(n).padStart(2,'0'); }
+  function cfgTodayISO(){ var d = new Date(); return d.getFullYear()+'-'+cfgPad(d.getMonth()+1)+'-'+cfgPad(d.getDate()); }
+  function cfgLoadFaltas(){ try{ return JSON.parse(localStorage.getItem(CFG_LS_KEY) || '{}'); }catch(e){ return {}; } }
+  function cfgLoadFerias(){ try{ return JSON.parse(localStorage.getItem(CFG_LS_KEY_FERIAS) || '[]'); }catch(e){ return []; } }
+
+  window.cfgOpenBackup = function(){
+    document.getElementById('cfg-backup-diario-sub').textContent = 'Só o dia atual (' + cfgTodayISO().split('-').reverse().join('/') + ')';
+    document.getElementById('cfgBackupMesPicker').style.display = 'none';
+    document.getElementById('cfgBackupMesInput').value = cfgTodayISO().slice(0,7);
+    document.getElementById('cfgBackupOverlay').classList.add('show');
+  };
+  window.cfgCloseBackup = function(){ document.getElementById('cfgBackupOverlay').classList.remove('show'); };
+  window.cfgToggleMesPicker = function(){
+    var el = document.getElementById('cfgBackupMesPicker');
+    el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+  };
+  function cfgDownload(payload, suffix){
+    var blob = new Blob([JSON.stringify({version:1, exported:new Date().toISOString(), data:payload}, null, 2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'backup_controlo_faltas_' + suffix + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    cfgToast('⬇️ Backup exportado com sucesso!');
+    window.cfgCloseBackup();
+  }
+  window.cfgBackupDiario = function(){
+    var hoje = cfgTodayISO();
+    var faltas = cfgLoadFaltas(), ferias = cfgLoadFerias();
+    var faltasF = {}; if(faltas[hoje]) faltasF[hoje] = faltas[hoje];
+    var feriasF = ferias.filter(function(f){ return f.inicio <= hoje && f.fim >= hoje; });
+    if(!Object.keys(faltasF).length && !feriasF.length){ cfgToast('⚠️ Sem dados para exportar neste período.'); return; }
+    cfgDownload({faltas:faltasF, ferias:feriasF}, 'diario_'+hoje);
+  };
+  window.cfgBackupMensal = function(){
+    var val = document.getElementById('cfgBackupMesInput').value; // "YYYY-MM"
+    if(!val){ cfgToast('⚠️ Escolhe um mês.'); return; }
+    var faltas = cfgLoadFaltas(), ferias = cfgLoadFerias();
+    var faltasF = {};
+    Object.keys(faltas).forEach(function(k){ if(k.indexOf(val) === 0) faltasF[k] = faltas[k]; });
+    var mesInicio = val+'-01', mesFim = val+'-31';
+    var feriasF = ferias.filter(function(f){ return f.inicio <= mesFim && f.fim >= mesInicio; });
+    if(!Object.keys(faltasF).length && !feriasF.length){ cfgToast('⚠️ Sem dados para exportar neste período.'); return; }
+    cfgDownload({faltas:faltasF, ferias:feriasF}, 'mensal_'+val);
+  };
+  window.cfgBackupGeral = function(){
+    cfgDownload({faltas:cfgLoadFaltas(), ferias:cfgLoadFerias()}, 'geral_'+cfgTodayISO());
+  };
+
+  function cfgOpenDB(){
+    return new Promise(function(resolve){
+      if(!window.indexedDB){ resolve(null); return; }
+      var req = indexedDB.open(CFG_DB_NAME, CFG_DB_VERSION);
+      req.onupgradeneeded = function(e){
+        var d = e.target.result;
+        if(!d.objectStoreNames.contains(CFG_STORE)) d.createObjectStore(CFG_STORE, {keyPath:"date"});
+        if(!d.objectStoreNames.contains(CFG_STORE_FERIAS)) d.createObjectStore(CFG_STORE_FERIAS, {keyPath:"id"});
+      };
+      req.onsuccess = function(e){ resolve(e.target.result); };
+      req.onerror = function(){ resolve(null); };
+    });
+  }
+  window.cfgRestoreFromFile = function(input){
+    var file = input.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      (async function(){
+        try{
+          var parsed = JSON.parse(e.target.result);
+          var data = parsed.data || parsed;
+          var faltas = data.faltas || {};
+          var ferias = data.ferias || [];
+          if(!confirm('Isto vai adicionar/substituir os dias e férias do ficheiro nos dados guardados neste dispositivo. Continuar?')){ input.value=''; return; }
+
+          var curFaltas = cfgLoadFaltas();
+          Object.keys(faltas).forEach(function(k){ curFaltas[k] = faltas[k]; });
+          localStorage.setItem(CFG_LS_KEY, JSON.stringify(curFaltas));
+
+          var curFerias = cfgLoadFerias();
+          ferias.forEach(function(f){
+            var idx = curFerias.findIndex(function(x){ return x.id === f.id; });
+            if(idx >= 0) curFerias[idx] = f; else curFerias.push(f);
+          });
+          localStorage.setItem(CFG_LS_KEY_FERIAS, JSON.stringify(curFerias));
+
+          var db = await cfgOpenDB();
+          if(db){
+            await new Promise(function(res){
+              var tx = db.transaction(CFG_STORE, 'readwrite');
+              Object.keys(faltas).forEach(function(k){ tx.objectStore(CFG_STORE).put({date:k, data:faltas[k]}); });
+              tx.oncomplete = res; tx.onerror = res;
+            });
+            await new Promise(function(res){
+              var tx = db.transaction(CFG_STORE_FERIAS, 'readwrite');
+              ferias.forEach(function(f){ tx.objectStore(CFG_STORE_FERIAS).put(f); });
+              tx.oncomplete = res; tx.onerror = res;
+            });
+          }
+          cfgToast('✅ Backup restaurado com sucesso!');
+          setTimeout(function(){ location.reload(); }, 900);
+        }catch(err){ cfgToast('❌ Ficheiro de backup inválido!'); }
+        input.value = '';
+      })();
+    };
+    reader.readAsText(file);
+  };
 })();
 </script>
 </body>
