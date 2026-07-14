@@ -354,7 +354,7 @@ function S_list(title, items, emptyText){return {type:'list', title, items, empt
 function S_team(title, groups){return {type:'team', title, groups};}          // groups: [{label, chips:[]}]
 function S_notes(title, blocks){return {type:'notes', title, blocks};}        // blocks: [{label,text}]
 
-const EQ_TIPOS = {esp:'Médico Especialista', int:'Médico Interno', est:'Médico Estagiário', vol:'Voluntário'};
+const EQ_TIPOS = {esp:'Médico Especialista', int:'Médico Interno', est:'Médico Estagiário', vol:'Voluntário', tec:'Técnico'};
 
 function equipaTeam(title, eq){
   if(!eq) return S_team(title, []);
@@ -367,6 +367,9 @@ function equipaTeam(title, eq){
 /* ── Grupo A: Cirurgia Geral / Ortopedia / Neurocirurgia / Maxilo Facial / Oftalmologia / Otorrino / Medicina Interna ── */
 function groupASections(s){
   const obitos = saved(s.obitData), operados = saved(s.opData);
+  const trint = saved(s.trintData);
+  const procTodos = (s.procV||[]).concat((s.procOutros||[]).filter(o=>o.saved&&o.count>0).map(o=>({t:o.label,v:o.count})));
+  const sinTodos = (s.sinV||[]).concat((s.sinOutros||[]).filter(o=>o.saved&&o.count>0).map(o=>({t:o.label,v:o.count})));
   return [
     S_stats('Movimento Geral', [
       {label:'Pacientes Observados', value:num(s.pacTotal)},
@@ -376,7 +379,12 @@ function groupASections(s){
       {label:'Operados', value:operados.length},
       {label:'Óbitos', value:obitos.length},
       {label:'Verificações', value:(s.verfData||[]).length},
+      {label:'Vindos de Outras Unidades', value:num(s.provTot)},
+    ]),
+    S_stats('Internamento', [
       {label:'Internados', value:(s.intData||[]).length},
+      {label:'Altas (Internamento)', value:num(s.intAltManual)},
+      {label:'Transferências Internas', value:trint.length},
     ]),
     S_chart('Distribuição por Género', [
       {label:'Masculino', value:num(s.genM)}, {label:'Feminino', value:num(s.genF)}
@@ -384,20 +392,23 @@ function groupASections(s){
     S_chart('Faixa Etária', [
       {label:'Menor de 15 anos', value:num(s.idMen)}, {label:'15 anos e mais', value:num(s.idMai)}
     ]),
-    S_chart('Transferências', [
+    S_chart('Transferências (Outros Hospitais)', [
       {label:'Recebidas', value:(s.transfR||[]).length}, {label:'Efectuadas', value:(s.transfE||[]).length}
     ]),
-    S_chart('Actos e Procedimentos', (s.procV||[]).map(x=>({label:x.t, value:num(x.v)}))),
-    S_chart('Sinistralidade', (s.sinV||[]).map(x=>({label:x.t, value:num(x.v)}))),
+    S_chart('Actos e Procedimentos', procTodos.map(x=>({label:x.t, value:num(x.v)}))),
+    S_chart('Sinistralidade', sinTodos.map(x=>({label:x.t, value:num(x.v)}))),
     S_list('Diagnósticos Registados', (s.diagData||[]).map(d=>({title:d.desc||'—', subtitle:'', meta:[(d.qty||1)+' caso(s)']}))),
     S_list('Óbitos', obitos.map(o=>({title:txt(o.nome), subtitle:'Idade: '+txt(o.idade)+' · '+(o.genero==='F'?'Feminino':'Masculino'), meta:[o.hora||'—', o.causa? o.causa : (o.cidDesc||'—')]}))),
     S_list('Operados', operados.map(o=>({title:txt(o.nome), subtitle:(o.especialidade||'—')+' · '+(o.tipo==='urgencia'?'Urgência':'Electiva'), meta:['Idade: '+txt(o.idade), o.genero==='F'?'Feminino':'Masculino']}))),
-    S_list('Transferências Recebidas', (s.transfR||[]).map(t=>({title:txt(t.nome), subtitle:t.hospital||t.hospitalManual||'—', meta:['Idade: '+txt(t.idade)]}))),
-    S_list('Transferências Efectuadas', (s.transfE||[]).map(t=>({title:txt(t.nome), subtitle:t.hospital||t.hospitalManual||'—', meta:['Idade: '+txt(t.idade)]}))),
+    S_list('Transferências Recebidas (Outros Hospitais)', (s.transfR||[]).map(t=>({title:txt(t.nome), subtitle:t.hospital||t.hospitalManual||'—', meta:['Idade: '+txt(t.idade)]}))),
+    S_list('Transferências Efectuadas (Outros Hospitais)', (s.transfE||[]).map(t=>({title:txt(t.nome), subtitle:t.hospital||t.hospitalManual||'—', meta:['Idade: '+txt(t.idade)]}))),
+    S_list('Transferências Internas', trint.map(t=>({title:txt(t.nome), subtitle:(t.cidDesc||t.diagManual||'—'), meta:['Idade: '+txt(t.idade), t.genero==='F'?'Feminino':'Masculino', 'Destino: '+(t.servico||'—')]}))),
     S_list('Internados', (s.intData||[]).map(p=>({title:txt(p.nome), subtitle:p.descricao||p.cidDesc||'—', meta:['Idade: '+txt(p.idade), p.desfecho||'—']}))),
     equipaTeam('Equipa de Serviço', s.eq1),
     equipaTeam('Equipa que Entra', s.eq2),
     S_notes('Observações', [
+      {label:'Proveniência (Outras Unidades)', text:s.provDet},
+      {label:'Classificação do Turno', text:s.selClass},
       {label:'Altas', text:s.altasObs}, {label:'Sinistralidade', text:s.sinObs}, {label:'Turno', text:s.obsTurno}
     ].filter(b=>b.text)),
   ];
@@ -412,6 +423,7 @@ function uciSections(s){
       {label:'Internados', value:num(s.internados)},
       {label:'Transferidos', value:num(s.transferidos)},
       {label:'Falecidos', value:num(s.falecidos)},
+      {label:'Camas Totais', value:num(s.camasN)},
       {label:'Camas Ocupadas', value:camas.length},
       {label:'Óbitos Registados', value:obitos.length},
       {label:'Pendentes UTI', value:num(s.pendUTI)},
@@ -451,9 +463,9 @@ function nefrologiaSections(s){
 
 /* ── Fisioterapia ── */
 function fisioterapiaSections(s){
-  const intV=(s.intV||[]).map(x=>({label:x.t,value:num(x.v)}));
-  const extV=(s.extV||[]).map(x=>({label:x.t,value:num(x.v)}));
-  const modV=(s.modV||[]).map(x=>({label:x.t,value:num(x.v)}));
+  const intV=(s.intV||[]).map(x=>({label:x.t,value:num(x.v)})).concat((s.intOutros||[]).filter(o=>num(o.v)>0).map(o=>({label:o.label,value:num(o.v)})));
+  const extV=(s.extV||[]).map(x=>({label:x.t,value:num(x.v)})).concat((s.extOutros||[]).filter(o=>num(o.v)>0).map(o=>({label:o.label,value:num(o.v)})));
+  const modV=(s.modV||[]).map(x=>({label:x.t,value:num(x.v)})).concat((s.modOutros||[]).filter(o=>num(o.v)>0).map(o=>({label:o.label,value:num(o.v)})));
   const totInt=intV.reduce((a,x)=>a+x.value,0), totExt=extV.reduce((a,x)=>a+x.value,0), totMod=modV.reduce((a,x)=>a+x.value,0);
   return [
     S_stats('Movimento Geral', [
@@ -466,6 +478,7 @@ function fisioterapiaSections(s){
     S_chart('Doentes Internos Atendidos (por serviço)', intV),
     S_chart('Doentes Externos Atendidos', extV),
     S_chart('Modalidades Terapêuticas', modV),
+    S_team('Equipa de Fisioterapia', [{label:'Responsável de Turno: '+(s.resp||'—'), chips:(s.equipaData||[]).map(e=>e.nome+(e.func?' ('+e.func+')':''))}]),
     S_notes('Observações', [{label:'Observações', text:s.obs}].filter(b=>b.text)),
   ];
 }
@@ -510,7 +523,8 @@ function imagiologiaSections(s){
     ]),
     S_chart('Exames por Modalidade (BU + Internamento)', modChart),
     S_list('Intercorrências', (s.incData||[]).map(i=>({title:i.tipo||'Intercorrência', subtitle:i.descricao||'—', meta:[]}))),
-    equipaTeam('Médicos que Entram', s.eq2),
+    equipaTeam('Equipa de Serviço', s.eq1),
+    equipaTeam('Equipa que Entra', s.eq2),
     S_notes('Observações', [{label:'Turno', text:s.obsTurno}, {label:'Classificação', text:s.selClass}].filter(b=>b.text)),
   ];
 }
@@ -529,23 +543,33 @@ function consultaExternaSections(s){
       {label:'Hospital de Dia', value:num(s.hdia)},
     ]),
     S_chart('Consultas por Especialidade', chart),
+    (()=>{
+      const groups = {};
+      (s.consData||[]).forEach(m=>{ (groups[m.esp||'Outra']=groups[m.esp||'Outra']||[]).push(m.nome); });
+      return S_team('Médicos nos Consultórios', Object.entries(groups).map(([label,chips])=>({label,chips})));
+    })(),
     S_notes('Observações', [{label:'Observações Gerais', text:s.obs}].filter(b=>b.text)),
   ];
 }
 
 /* ── Psicologia Clínica ── */
+const PSI_SERVICOS = ["Banco de Urgência", "Cirurgia Geral", "Ortopedia", "Medicina Homem", "Medicina Mulher", "Neurocirurgia", "Maxilo Facial", "UCI", "Nefrologia"];
 function psicologiaSections(s){
   const intVals = s.intVals||{};
-  const intTotal = Object.values(intVals).reduce((a,v)=>a+num(v),0);
+  const intChart = PSI_SERVICOS.map((label,i)=>({label, value:num(intVals['int_'+i])}));
+  const intTotal = intChart.reduce((a,x)=>a+x.value,0);
   const patData = s.patData||[];
+  const psiCons = s.psiCons || {};
   return [
     S_stats('Movimento Geral', [
       {label:'Doentes Internados', value:intTotal},
       {label:'Doentes Externos', value:num(s.extTotal)},
       {label:'Patologias Registadas', value:patData.reduce((a,p)=>a+num(p.qty),0)},
     ]),
+    S_chart('Doentes Internos Atendidos (por serviço)', intChart),
     S_list('Patologias Registadas', patData.map(p=>({title:p.nome||'—', subtitle:'', meta:[(p.qty||0)+' caso(s)']}))),
     S_team('Psicólogos no Consultório', [{label:'Responsável: '+(s.psicologo||'—'), chips:(s.consProfs||[])}]),
+    S_team('Psicólogos que Entram', [{label:'Turno seguinte', chips:(psiCons.nomes||[]).filter(Boolean)}]),
     S_notes('Observações', [{label:'Externos', text:s.extObs}, {label:'Geral', text:s.obsGeral}].filter(b=>b.text)),
   ];
 }
@@ -940,6 +964,8 @@ function procedimentoSections(s){
   });
   items.sort((a,b)=>b._t-a._t);
   const notes = [];
+  if(s.chefeTurnoDia) notes.push({label:'Chefe de Turno — Dia', text:s.chefeTurnoDia});
+  if(s.chefeTurnoNoite) notes.push({label:'Chefe de Turno — Noite', text:s.chefeTurnoNoite});
   if(s.chefeTurno) notes.push({label:'Chefe de Turno', text:s.chefeTurno});
   subs.forEach(sb=>{
     const subData = sub[sb.id];
