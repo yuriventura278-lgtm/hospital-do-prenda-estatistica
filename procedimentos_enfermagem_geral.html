@@ -312,6 +312,12 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 .mbtn.cancel:hover{color:var(--text);}
 .mbtn.confirm{background:var(--danger);color:#fff;}
 .mbtn.confirm:hover{opacity:.85;}
+.backup-opts{display:flex;flex-direction:column;gap:8px;}
+.bopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:6px;
+  border:1px solid var(--border);background:var(--bg);cursor:pointer;text-align:left;width:100%;}
+.bopt:hover{border-color:var(--accent,#1A56DB);background:var(--surface);}
+.bopt strong{font-family:var(--font-head);font-size:.78rem;font-weight:700;color:var(--text);}
+.bopt span{font-family:var(--font-head);font-size:.66rem;color:var(--muted);}
 
 /* SAVE BAR */
 .save-bar{position:fixed;bottom:0;left:var(--nav-w);right:0;height:44px;z-index:50;
@@ -858,6 +864,32 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     <div class="modal-btns">
       <button class="mbtn cancel" onclick="closeRestoreModal()">Cancelar</button>
       <button class="mbtn confirm" id="confirmRestoreBtn">Restaurar</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP OPTIONS MODAL -->
+<div class="modal-overlay" id="backupModal">
+  <div class="modal-box">
+    <h3>Exportar Backup</h3>
+    <p>Escolhe o que queres exportar.</p>
+    <div class="backup-opts">
+      <button class="bopt" onclick="doBackupDiario()">
+        <strong>Diário</strong><span id="bopt-diario-sub">Só o dia atualmente aberto</span>
+      </button>
+      <button class="bopt" onclick="toggleBackupMesPicker()">
+        <strong>Mensal</strong><span>Escolher um mês</span>
+      </button>
+      <button class="bopt" onclick="doBackupGeral()">
+        <strong>Geral</strong><span>Todos os registos guardados</span>
+      </button>
+    </div>
+    <div id="backupMesPicker" style="display:none;margin-top:12px;display:flex;gap:8px;align-items:center;">
+      <input type="month" id="backupMesInput" style="flex:1;padding:8px;border-radius:4px;border:1px solid var(--border);font-family:var(--font-head);"/>
+      <button class="mbtn confirm" onclick="doBackupMensal()">Exportar</button>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn cancel" onclick="closeBackupModal()">Fechar</button>
     </div>
   </div>
 </div>
@@ -1967,18 +1999,62 @@ function loadComparacao() {
 //  BACKUP / RESTORE
 // ════════════════════════════════════════════════════════════
 function openBackup() {
+  document.getElementById('bopt-diario-sub').textContent = 'Só o dia atualmente aberto (' + fmtDate(currentLoadedDate) + ')';
+  document.getElementById('backupMesPicker').style.display = 'none';
+  document.getElementById('backupMesInput').value = currentLoadedDate.slice(0,7);
+  document.getElementById('backupModal').classList.add('open');
+}
+function closeBackupModal() {
+  document.getElementById('backupModal').classList.remove('open');
+}
+document.getElementById('backupModal').addEventListener('click', function(e){
+  if(e.target===this) closeBackupModal();
+});
+
+// Extrai os últimos 8 dígitos (YYYYMMDD) do fim da chave, seja enf5_YYYYMMDD ou enf4_specId_turno_YYYYMMDD
+function _keyDateStr(k) {
+  const m = k.match(/(\d{8})$/);
+  return m ? m[1] : null;
+}
+function _collectBackupData(filterFn) {
   const all = {};
   _storageKeys('enf5_').concat(_storageKeys('enf4_')).forEach(function(k) {
+    if (!filterFn(k)) return;
     try { all[k] = JSON.parse(_storageGet(k)); } catch(e){}
   });
+  return all;
+}
+function _downloadBackup(all, suffix) {
+  if (Object.keys(all).length === 0) { showToast('⚠️ Sem dados para exportar neste período.'); return; }
   const blob = new Blob([JSON.stringify({version:'5',exported:new Date().toISOString(),data:all},null,2)],{type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `backup_procedimentos_${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `backup_procedimentos_${suffix}.json`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('⬇️ Backup exportado com sucesso!');
+  closeBackupModal();
+}
+function doBackupDiario() {
+  const dateStr = currentLoadedDate.replace(/-/g,'');
+  const all = _collectBackupData(k => _keyDateStr(k) === dateStr);
+  _downloadBackup(all, 'diario_' + currentLoadedDate);
+}
+function toggleBackupMesPicker() {
+  const el = document.getElementById('backupMesPicker');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+function doBackupMensal() {
+  const val = document.getElementById('backupMesInput').value; // "YYYY-MM"
+  if (!val) { showToast('⚠️ Escolhe um mês.'); return; }
+  const mesStr = val.replace('-','');
+  const all = _collectBackupData(k => { const d = _keyDateStr(k); return d && d.slice(0,6) === mesStr; });
+  _downloadBackup(all, 'mensal_' + val);
+}
+function doBackupGeral() {
+  const all = _collectBackupData(() => true);
+  _downloadBackup(all, 'geral_' + new Date().toISOString().split('T')[0]);
 }
 
 let _pendingRestore = null;
