@@ -937,7 +937,12 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
         <div class="sec-h"><span class="n">2</span><div class="htxt"><b>Exportar Dados (JSON)</b></div></div>
         <div class="sec-b-wrap"><div class="sec-b-inner"><div class="sec-b">
           <p class="field-hint" style="margin-bottom:10px;">Use para transferir os dados entre dispositivos ou guardar uma cópia de segurança.</p>
-          <button class="btn btn-navy block" id="btn-export-json"><svg class="svc-icon"><use href="#i-download"/></svg>Exportar Tudo (.json)</button>
+          <button class="btn btn-navy block" id="btn-export-diario"><svg class="svc-icon"><use href="#i-download"/></svg>Diário (hoje)</button>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="month" id="export-mes-input" style="flex:1;min-width:0;">
+            <button class="btn btn-navy" id="btn-export-mensal">Mensal</button>
+          </div>
+          <button class="btn btn-navy block" id="btn-export-json" style="margin-top:8px;"><svg class="svc-icon"><use href="#i-download"/></svg>Geral (tudo)</button>
         </div></div></div>
       </div>
       <div class="sec open">
@@ -3769,9 +3774,32 @@ CE.Backup = (function(){
     var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'consulta_externa_backup_' + todayISO() + '.json';
+    a.download = 'consulta_externa_backup_geral_' + todayISO() + '.json';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     toast('Exportação concluída.');
+  }
+
+  async function exportarFiltrado(filterFn, suffix){
+    var sessoes = (await CE.Store.getAllSessoes()).filter(filterFn);
+    if (!sessoes.length){ toast('Sem dados para exportar neste período.'); return; }
+    var sessaoIds = sessoes.map(function(s){ return s.id; });
+    var registos = (await CE.Store.getAllRegistos()).filter(function(r){ return sessaoIds.indexOf(r.sessaoId) !== -1; });
+    var payload = { versao: 1, exportadoEm: new Date().toISOString(), sessoes: sessoes, registos: registos };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'consulta_externa_backup_' + suffix + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('Exportação concluída.');
+  }
+  function exportarDiario(){
+    var hoje = todayISO();
+    exportarFiltrado(function(s){ return s.data === hoje; }, 'diario_' + hoje);
+  }
+  function exportarMensal(){
+    var val = document.getElementById('export-mes-input').value; // "YYYY-MM"
+    if (!val){ toast('Escolhe um mês.'); return; }
+    exportarFiltrado(function(s){ return (s.data || '').indexOf(val) === 0; }, 'mensal_' + val);
   }
 
   function importarJSON(file){
@@ -3805,6 +3833,10 @@ CE.Backup = (function(){
 
   function init(){
     document.getElementById('btn-export-json').addEventListener('click', exportarJSON);
+    document.getElementById('btn-export-diario').addEventListener('click', exportarDiario);
+    document.getElementById('btn-export-mensal').addEventListener('click', exportarMensal);
+    var mesInput = document.getElementById('export-mes-input');
+    if (mesInput) mesInput.value = todayISO().slice(0,7);
     document.getElementById('f-import-json').addEventListener('change', function(e){
       if (e.target.files[0]) importarJSON(e.target.files[0]);
     });
