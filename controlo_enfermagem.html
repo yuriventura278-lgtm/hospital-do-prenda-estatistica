@@ -411,6 +411,8 @@ main{max-width:920px; margin:0 auto; padding:20px 16px 0;}
       <span style="display:flex; gap:10px; align-items:center;">
         <button class="today-btn" id="btn-today">hoje</button>
         <button class="today-btn" id="btn-refresh" title="Verificar agora nos Procedimentos de Enfermagem">↻</button>
+        <button class="today-btn" onclick="zeloOpenBackup()" title="Exportar backup">backup</button>
+        <button class="today-btn" onclick="document.getElementById('zeloRestoreFile').click()" title="Restaurar backup">restaurar</button>
         <span id="progress-pct" class="mono">0%</span>
       </span>
     </div>
@@ -563,6 +565,33 @@ main{max-width:920px; margin:0 auto; padding:20px 16px 0;}
 </footer>
 
 <div id="toast"></div>
+
+<!-- BACKUP -->
+<div id="zeloBackupOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center;" onclick="if(event.target===this) zeloCloseBackup()">
+  <div style="background:var(--bg-card);border:1px solid var(--line);border-radius:14px;padding:22px;width:420px;max-width:92vw;">
+    <h3 style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:6px;">Exportar Backup</h3>
+    <p style="font-size:.75rem;color:var(--text-dim);margin-bottom:14px;">Escolhe o que queres exportar.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="zeloBackupDiario()" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg-elev);cursor:pointer;text-align:left;color:var(--text);">
+        <strong style="font-size:.8rem;">Diário</strong><span id="zelo-backup-diario-sub" style="font-size:.68rem;color:var(--text-dim);">Só o dia atual</span>
+      </button>
+      <button onclick="zeloToggleMesPicker()" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg-elev);cursor:pointer;text-align:left;color:var(--text);">
+        <strong style="font-size:.8rem;">Mensal</strong><span style="font-size:.68rem;color:var(--text-dim);">Escolher um mês</span>
+      </button>
+      <button onclick="zeloBackupGeral()" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg-elev);cursor:pointer;text-align:left;color:var(--text);">
+        <strong style="font-size:.8rem;">Geral</strong><span style="font-size:.68rem;color:var(--text-dim);">Todos os registos guardados</span>
+      </button>
+    </div>
+    <div id="zeloBackupMesPicker" style="display:none;margin-top:12px;gap:8px;align-items:center;">
+      <input type="month" id="zeloBackupMesInput" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--bg-elev);color:var(--text);"/>
+      <button onclick="zeloBackupMensal()" style="padding:8px 14px;border-radius:6px;border:none;background:var(--cyan-dim);color:#fff;font-weight:700;cursor:pointer;">Exportar</button>
+    </div>
+    <div style="margin-top:18px;text-align:right;">
+      <button onclick="zeloCloseBackup()" style="padding:7px 16px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--text-dim);cursor:pointer;">Fechar</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="zeloRestoreFile" accept=".json" style="display:none" onchange="zeloRestoreFromFile(this)">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
@@ -1665,6 +1694,87 @@ main{max-width:920px; margin:0 auto; padding:20px 16px 0;}
   }, 900);
 
 })();
+</script>
+<script>
+// ══════════════════ BACKUP / RESTORE ══════════════════
+function showToast(msg){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3200);
+}
+var ZELO_BK_PREFIX = 'enf_controlo_';
+function _zeloPad(n){ return String(n).padStart(2,'0'); }
+function _zeloTodayKey(){ var d = new Date(); return d.getFullYear()+'-'+_zeloPad(d.getMonth()+1)+'-'+_zeloPad(d.getDate()); }
+function zeloOpenBackup(){
+  document.getElementById('zelo-backup-diario-sub').textContent = 'Só o dia atual (' + _zeloTodayKey().split('-').reverse().join('/') + ')';
+  document.getElementById('zeloBackupMesPicker').style.display = 'none';
+  document.getElementById('zeloBackupMesInput').value = _zeloTodayKey().slice(0,7);
+  document.getElementById('zeloBackupOverlay').style.display = 'flex';
+}
+function zeloCloseBackup(){ document.getElementById('zeloBackupOverlay').style.display = 'none'; }
+function zeloToggleMesPicker(){
+  var el = document.getElementById('zeloBackupMesPicker');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+function _zeloCollectBackup(filterFn){
+  var all = {};
+  for(var i=0;i<localStorage.length;i++){
+    var k = localStorage.key(i);
+    if(k && k.indexOf(ZELO_BK_PREFIX) === 0 && filterFn(k)){
+      try{ all[k] = JSON.parse(localStorage.getItem(k)); }catch(e){}
+    }
+  }
+  return all;
+}
+function _zeloDownloadBackup(all, suffix){
+  if(Object.keys(all).length === 0){ showToast('⚠️ Sem dados para exportar neste período.'); return; }
+  var blob = new Blob([JSON.stringify({version:'1',exported:new Date().toISOString(),data:all},null,2)],{type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'backup_controlo_enfermagem_'+suffix+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('⬇️ Backup exportado com sucesso!');
+  zeloCloseBackup();
+}
+function zeloBackupDiario(){
+  var dateStr = _zeloTodayKey();
+  var all = _zeloCollectBackup(function(k){ return k.slice(ZELO_BK_PREFIX.length) === dateStr; });
+  _zeloDownloadBackup(all, 'diario_'+dateStr);
+}
+function zeloBackupMensal(){
+  var val = document.getElementById('zeloBackupMesInput').value; // "YYYY-MM"
+  if(!val){ showToast('⚠️ Escolhe um mês.'); return; }
+  var all = _zeloCollectBackup(function(k){ return k.slice(ZELO_BK_PREFIX.length).indexOf(val) === 0; });
+  _zeloDownloadBackup(all, 'mensal_'+val);
+}
+function zeloBackupGeral(){
+  var all = _zeloCollectBackup(function(){ return true; });
+  _zeloDownloadBackup(all, 'geral_'+_zeloTodayKey());
+}
+function zeloRestoreFromFile(input){
+  var file = input.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var parsed = JSON.parse(e.target.result);
+      var data = parsed.data || parsed;
+      if(!data || typeof data !== 'object') throw new Error('Formato inválido');
+      if(!confirm('Isto vai substituir os dados guardados de Controlo de Enfermagem neste dispositivo. Continuar?')){ input.value=''; return; }
+      Object.keys(data).forEach(function(k){
+        if(k.indexOf(ZELO_BK_PREFIX) === 0){
+          localStorage.setItem(k, typeof data[k]==='string' ? data[k] : JSON.stringify(data[k]));
+        }
+      });
+      showToast('✅ Backup restaurado com sucesso!');
+      setTimeout(function(){ location.reload(); }, 900);
+    }catch(err){ showToast('❌ Ficheiro de backup inválido!'); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
 </script>
 </body>
 </html>
