@@ -1734,6 +1734,17 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
           <div class="bk-desc">Apenas o registo do dia seleccionado</div>
         </div>
       </button>
+      <button class="backup-btn" onclick="toggleMesPicker()">
+        <span class="bk-icon">🗓️</span>
+        <div class="bk-info">
+          <div class="bk-name">Exportar Mês</div>
+          <div class="bk-desc">Escolha o mês a exportar</div>
+        </div>
+      </button>
+      <div id="backup-mes-picker" style="display:none;gap:8px;padding:0 2px 2px;">
+        <input type="month" id="backup-mes-input" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font-display);font-size:.8rem;color:var(--text);"/>
+        <button onclick="backupMensal()" style="font-family:var(--font-head);font-size:.75rem;font-weight:700;color:#fff;background:var(--blue);border:none;border-radius:9px;padding:8px 16px;cursor:pointer;flex-shrink:0;">Exportar</button>
+      </div>
       <button class="backup-btn" onclick="document.getElementById('restore-file').click()">
         <span class="bk-icon">⬆️</span>
         <div class="bk-info">
@@ -3832,6 +3843,34 @@ function backupToday() {
   URL.revokeObjectURL(url);
   closeBackup();
   showToast('✓ Dia exportado!');
+}
+function toggleMesPicker() {
+  const p = document.getElementById('backup-mes-picker');
+  const showing = p.style.display === 'flex';
+  if (showing) { p.style.display = 'none'; return; }
+  const input = document.getElementById('backup-mes-input');
+  if (!input.value) input.value = (dateInput.value || new Date().toISOString().split('T')[0]).slice(0, 7);
+  p.style.display = 'flex';
+}
+function backupMensal() {
+  const mes = document.getElementById('backup-mes-input').value;
+  if (!mes) { showToast('⚠ Escolha um mês'); return; }
+  const allKeys = Object.keys(_idbCache).filter(k => k.startsWith('bloco_') && k.slice('bloco_'.length, 'bloco_'.length + 7) === mes);
+  if (!allKeys.length) { showToast('⚠ Sem dados neste mês'); return; }
+  const backup = {};
+  allKeys.forEach(k => {
+    try { backup[k] = JSON.parse(safeGet(k)); } catch(e){}
+  });
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bloco_backup_mensal_${mes}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('backup-mes-picker').style.display = 'none';
+  closeBackup();
+  toast('Backup mensal exportado com sucesso','pdf');
 }
 function restoreFromFile(input) {
   const file = input.files[0];
