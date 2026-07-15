@@ -127,12 +127,15 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 
 /* ── Picker de serviço (substitui o combobox) ── */
 .picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:16px;}
-.picker-card{display:flex;align-items:center;gap:12px;padding:16px;border-radius:14px;text-decoration:none;color:#fff;
+.picker-card{position:relative;border-radius:14px;color:#fff;
   border:1px solid rgba(255,255,255,.14);transition:transform .15s,box-shadow .15s;}
 .picker-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(13,27,62,.2);}
+.picker-main{display:flex;align-items:center;gap:12px;padding:16px;padding-right:38px;text-decoration:none;color:#fff;}
 .picker-card .ic{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .picker-card .ic svg{width:19px;height:19px;}
 .picker-card .nm{font-size:.9rem;font-weight:800;}
+.picker-card .dl-btn{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:none;transition:background .15s;}
+.picker-card .dl-btn:hover{background:rgba(255,255,255,.34);}
 
 /* ── Modal de assinatura (obrigatória para exportar PDF) ── */
 .modal-ov{position:fixed;inset:0;background:rgba(13,27,62,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
@@ -412,14 +415,14 @@ _idbInit();
 // ══════════════════════════════════════════════════════════════════
 
 const SERVICOS = [
-  {slug:'cirurgia_geral', nome:'Cirurgia Geral', icon:'stretcher', cor:'#DC2626'},
-  {slug:'ortopedia', nome:'Ortopedia', icon:'bone', cor:'#DC2626'},
-  {slug:'neurocirurgia', nome:'Neurocirurgia', icon:'brain', cor:'#DC2626'},
-  {slug:'maxilo_facial', nome:'Cirurgia Maxilo-Facial', icon:'jaw', cor:'#DC2626'},
-  {slug:'nefrologia', nome:'Nefrologia', icon:'droplet', cor:'#7C3AED'},
-  {slug:'uci_cuidados_intermedios', nome:'UCI / Cuidados Intermédios', icon:'activity', cor:'#7C3AED'},
-  {slug:'medicina_homem', nome:'Medicina do Homem', icon:'heartbeat', cor:'#7C3AED'},
-  {slug:'medicina_mulher', nome:'Medicina da Mulher', icon:'heartbeat', cor:'#7C3AED'},
+  {slug:'cirurgia_geral', nome:'Cirurgia Geral', icon:'stretcher', cor:'#DC2626', arquivo:'movimento_excel/CIRURGIA_GERAL_Movimento_2026.xlsx'},
+  {slug:'ortopedia', nome:'Ortopedia', icon:'bone', cor:'#DC2626', arquivo:'movimento_excel/ORTOPEDIA_Movimento_2026.xlsx'},
+  {slug:'neurocirurgia', nome:'Neurocirurgia', icon:'brain', cor:'#DC2626', arquivo:'movimento_excel/NEUROCIRURGIA_Movimento_2026.xlsx'},
+  {slug:'maxilo_facial', nome:'Cirurgia Maxilo-Facial', icon:'jaw', cor:'#DC2626', arquivo:'movimento_excel/CIRURGIA_MAXILO_FACIAL_Movimento_2026.xlsx'},
+  {slug:'nefrologia', nome:'Nefrologia', icon:'droplet', cor:'#7C3AED', arquivo:'movimento_excel/NEFROLOGIA_Movimento_2026.xlsx'},
+  {slug:'uci_cuidados_intermedios', nome:'UCI / Cuidados Intermédios', icon:'activity', cor:'#7C3AED', arquivo:'movimento_excel/UCI_INTERMEDIARIO_UTI_Movimento_2026.xlsx'},
+  {slug:'medicina_homem', nome:'Medicina do Homem', icon:'heartbeat', cor:'#7C3AED', arquivo:'movimento_excel/MEDICINA_DO_HOMEM_Movimento_2026.xlsx'},
+  {slug:'medicina_mulher', nome:'Medicina da Mulher', icon:'heartbeat', cor:'#7C3AED', arquivo:'movimento_excel/MEDICINA_DA_MULHER_Movimento_2026.xlsx'},
 ];
 const ICONS = {
   stretcher:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
@@ -541,10 +544,15 @@ function getExistenciaInicialDoMes(servico, ym, monthData){
 function renderPicker(){
   const grid = document.getElementById('pickerGrid');
   grid.innerHTML = SERVICOS.map(s=>`
-    <a class="picker-card" href="movimento_mensal.html?servico=${s.slug}" style="background:linear-gradient(120deg,var(--nv) 0%,${s.cor} 160%);">
-      <div class="ic">${svcIcon(s.icon)}</div>
-      <div class="nm">${s.nome}</div>
-    </a>
+    <div class="picker-card" style="background:linear-gradient(120deg,var(--nv) 0%,${s.cor} 160%);">
+      <a class="picker-main" href="movimento_mensal.html?servico=${s.slug}">
+        <div class="ic">${svcIcon(s.icon)}</div>
+        <div class="nm">${s.nome}</div>
+      </a>
+      <a class="dl-btn" href="${s.arquivo}" download title="Descarregar Excel — ${s.nome}" onclick="event.stopPropagation();">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </a>
+    </div>
   `).join('');
 }
 
