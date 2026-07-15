@@ -57,17 +57,26 @@ function startInactivityWatch(onTimeout) {
 async function logAuditEvent(uid, email, action, extra) {
   try {
     const key = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    await set(ref(db, 'audit_log/' + key), {
+    const payload = {
       uid: uid || null,
       email: email || null,
       action,
       ts: Date.now(),
       dataHora: new Date().toISOString(),
       ...(extra || {})
-    });
+    };
+    await set(ref(db, 'audit_log/' + key), payload);
+    if (uid) {
+      set(ref(db, 'user_activity/' + uid + '/' + key), payload).catch(() => {});
+    }
   } catch (e) {
     console.warn('ZELO auth: falha ao registar auditoria (não bloqueante)', e);
   }
+}
+
+async function touchLastAccess(uid) {
+  try { await update(ref(db, 'users/' + uid), { ultimoAcesso: Date.now() }); }
+  catch (e) { /* não bloqueante */ }
 }
 
 const LOCKOUT_MAX = 5;
@@ -126,7 +135,7 @@ export {
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
-  checkLoginLockout, registerFailedLogin, clearLoginAttempts
+  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess
 };
 
 window.ZeloAuth = {
@@ -134,5 +143,5 @@ window.ZeloAuth = {
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
-  checkLoginLockout, registerFailedLogin, clearLoginAttempts
+  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess
 };

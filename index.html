@@ -39,7 +39,7 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
 @media(max-width:480px){
   .topbar .clock{display:none;}
   .topbar .tb-label{display:none;}
-  .topbar button, .topbar a#zeloAdminLink{margin-left:6px!important;padding:6px 9px!important;}
+  .topbar button, .topbar a{margin-left:6px!important;padding:6px 9px!important;}
 }
 
 /* ── HERO ─────────────────────────────────────────────── */
@@ -308,7 +308,8 @@ import {
   auth, db, ref, onValue, query, orderByChild, limitToLast,
   fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
-  startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts
+  startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
+  touchLastAccess
 } from './zelo_auth.js';
 
 (function(){
@@ -380,6 +381,7 @@ import {
     sessionStorage.setItem('zeloNome', perfil.nome || user.email);
     sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
     clearLoginAttempts(user.email);
+    touchLastAccess(user.uid);
     hideGate();
     if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
     if(typeof window.zeloApplyPermissoes === 'function') window.zeloApplyPermissoes(perfil.permissoes || {});
@@ -550,6 +552,10 @@ function initZeloNotifications(){
       <a href="admin_utilizadores.html" style="display:block;text-align:center;padding:10px;font-size:.72rem;color:#1A56DB;font-weight:700;text-decoration:none;border-top:1px solid #E2E8F0;">Ver tudo na Administração</a>
     </div>
   </div>
+  <a href="perfil.html" title="O meu perfil" style="margin-left:12px;color:#C7D2E8;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:6px 12px;border-radius:100px;font-size:.7rem;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:5px;flex-shrink:0;text-decoration:none;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span class="tb-label">Perfil</span>
+  </a>
   <a id="zeloAdminLink" href="admin_utilizadores.html" title="Administração de utilizadores" style="display:none;margin-left:12px;color:#C7D2E8;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:6px 12px;border-radius:100px;font-size:.7rem;font-family:'Inter',sans-serif;cursor:pointer;align-items:center;gap:5px;flex-shrink:0;text-decoration:none;">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     <span class="tb-label">Administração</span>

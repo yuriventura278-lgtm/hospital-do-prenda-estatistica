@@ -207,7 +207,8 @@ body{display:flex;flex-direction:column;}
 import {
   auth, fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
-  startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts
+  startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
+  touchLastAccess
 } from './zelo_auth.js';
 
 (function(){
@@ -278,6 +279,7 @@ import {
     sessionStorage.setItem('zeloRole', perfil.role || 'funcionario');
     sessionStorage.setItem('zeloNome', perfil.nome || user.email);
     clearLoginAttempts(user.email);
+    touchLastAccess(user.uid);
     hideGate();
     if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
     if(!stopInactivityWatch){
