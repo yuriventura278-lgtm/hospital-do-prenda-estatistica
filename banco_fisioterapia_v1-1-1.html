@@ -695,7 +695,7 @@ function enviarParaFirebase(dataHoje, snap){
   if(!window.__fbReady || !dataHoje || !window.__fbSet) return;
   clearTimeout(__fbSaveTimer);
   __fbSaveTimer=setTimeout(()=>{
-    window.__fbSet(FB_PATH+'/'+dataHoje, {savedAt:new Date().toISOString(), snapshot:snap})
+    window.__fbSet(FB_PATH+'/'+dataHoje, {savedAt:new Date().toISOString(), snapshot:snap, criadoPor:{nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null}})
       .catch(e=>console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e));
   },1500);
 }

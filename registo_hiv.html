@@ -615,8 +615,9 @@ function confirmarSave(){
     const snap=buildSnapshot();
     const key=snap.dataInicio+'_'+snap.dataFim;
     const idx=hist.findIndex(h=>h.key===key);
-    if(idx>=0){hist[idx]={key,savedAt:new Date().toISOString(),snapshot:snap};const u=hist.splice(idx,1)[0];hist.unshift(u);toast('Registo actualizado!');}
-    else{hist.unshift({key,savedAt:new Date().toISOString(),snapshot:snap});toast('Registo guardado!');}
+    const autor={nome:sessionStorage.getItem('zeloNome')||null,email:sessionStorage.getItem('zeloEmail')||null};
+    if(idx>=0){hist[idx]={key,savedAt:new Date().toISOString(),snapshot:snap,criadoPor:autor};const u=hist.splice(idx,1)[0];hist.unshift(u);toast('Registo actualizado!');}
+    else{hist.unshift({key,savedAt:new Date().toISOString(),snapshot:snap,criadoPor:autor});toast('Registo guardado!');}
     while(hist.length>60)hist.pop();
     localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));
   }catch(e){toast('Registo guardado!');}

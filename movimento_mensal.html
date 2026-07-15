@@ -471,7 +471,10 @@ function loadMonth(servico, ym){
     return raw ? JSON.parse(raw) : {days:{}, chefeEnfermagem:'', dataAssinatura:''};
   }catch(e){ return {days:{}, chefeEnfermagem:'', dataAssinatura:''}; }
 }
-function saveMonth(servico, ym, data){ safeSet(storageKey(servico, ym), JSON.stringify(data)); }
+function saveMonth(servico, ym, data){
+  data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
+  safeSet(storageKey(servico, ym), JSON.stringify(data));
+}
 
 function prevMonthKey(ym){
   const [y,m] = ym.split('-').map(Number);

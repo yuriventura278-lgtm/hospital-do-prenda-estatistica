@@ -483,7 +483,7 @@ function abrirDB(){
     req.onerror=()=>rej(req.error);
   });
 }
-function dbPut(r){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(r);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+function dbPut(r){if(r&&!r.criadoPor){r.criadoPor={nome:sessionStorage.getItem('zeloNome')||null,email:sessionStorage.getItem('zeloEmail')||null};}return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(r);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
 function dbGet(k){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).get(k);req.onsuccess=()=>res(req.result||null);req.onerror=()=>rej(req.error);});}
 function dbAll(){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');const req=tx.objectStore(STORE).getAll();req.onsuccess=()=>res((req.result||[]).sort((a,b)=>b.data.localeCompare(a.data)));req.onerror=()=>rej(req.error);});}
 function dbDel(k){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}

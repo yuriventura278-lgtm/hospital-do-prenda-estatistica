@@ -3069,6 +3069,7 @@ function persist(date) {
     data.eletAnest[specKey(t)] = document.getElementById(`elet-anest-${specKey(t)}`).value;
   });
   data._ts = Date.now();
+  data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   const ok = safeSet(storageKey(targetDate), JSON.stringify(data));
   setSyncState(ok ? 'synced' : 'error', ok ? ('Guardado localmente ' + _timeNow()) : 'Erro ao guardar!');
   return ok;

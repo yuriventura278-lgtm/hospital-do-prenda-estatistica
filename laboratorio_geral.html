@@ -1312,6 +1312,7 @@ function loadDay(date) {
 function saveAll() {
   collectFromDOM();
   cd.date = currentDate;
+  cd.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   localStorage.setItem(sk(currentDate), JSON.stringify(cd));
   addSavedDay(currentDate);
   showToast('✅ Registo de '+fmtDate(currentDate)+' guardado');

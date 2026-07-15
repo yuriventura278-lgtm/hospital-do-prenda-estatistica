@@ -15,6 +15,7 @@ onAuthStateChanged(auth, async function (user) {
   }
   sessionStorage.setItem('zeloRole', perfil.role || 'funcionario');
   sessionStorage.setItem('zeloNome', perfil.nome || user.email);
+  sessionStorage.setItem('zeloEmail', user.email || '');
   sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
   if (moduleKey && perfil.role !== 'admin' && perfil.permissoes && perfil.permissoes[moduleKey] === false) {
     window.location.replace('index.html');

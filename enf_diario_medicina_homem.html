@@ -971,7 +971,9 @@ const FB_PATH = 'registos_enf/' + PAGE_SLUG;
 
 function enviarParaFirebase(dataStr, registo){
   if(!window.__fbReady || !dataStr || !window.__fbSet) return;
-  window.__fbSet(FB_PATH+'/'+dataStr, registo)
+  var __autor = {nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null};
+  var __registoComAutor = Object.assign({}, registo, {criadoPor: __autor});
+  window.__fbSet(FB_PATH+'/'+dataStr, __registoComAutor)
     .catch(e=>console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e));
 }
 

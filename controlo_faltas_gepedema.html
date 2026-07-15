@@ -869,7 +869,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
       if(!db){ resolve(false); return; }
       try{
         var tx = db.transaction(STORE,"readwrite");
-        tx.objectStore(STORE).put({date:date, data:data});
+        tx.objectStore(STORE).put({date:date, data:data, criadoPor:{nome:sessionStorage.getItem('zeloNome')||null, email:sessionStorage.getItem('zeloEmail')||null}});
         tx.oncomplete = function(){ resolve(true); };
         tx.onerror = function(){ resolve(false); };
       }catch(e){ resolve(false); }

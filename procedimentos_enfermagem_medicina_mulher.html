@@ -1093,6 +1093,7 @@ function autoSave() {
 function persist(date) {
   const d = date || currentLoadedDate;
   const data = { _ts: Date.now(), specs: {} };
+  data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   SPECIALTIES.forEach(sp => {
     if(sp.id === 'medicina' || sp.id === 'bloco_op') return; // calculado — não guardar
     data.specs[sp.id] = { dia: {}, noite: {}, notesDia: '', notesNoite: '' };

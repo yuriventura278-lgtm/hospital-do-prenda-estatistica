@@ -1482,6 +1482,7 @@ function saveAllData(){
   collectCurrentData();
   const date=currentData.date||todayKey();
   const payload=JSON.parse(JSON.stringify(currentData));
+  payload.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   localStorage.setItem(sk(date),JSON.stringify(payload));
   addSavedDate(date);
   document.getElementById('sync-label').textContent='Guardado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});

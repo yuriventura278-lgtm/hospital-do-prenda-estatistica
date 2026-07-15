@@ -776,6 +776,13 @@ main{max-width:920px; margin:0 auto; padding:20px 16px 0;}
   }
   function saveStateFor(dateKey, state){
     try{ localStorage.setItem(storageKeyFor(dateKey), JSON.stringify(state)); }catch(e){}
+    try{
+      localStorage.setItem(storageKeyFor(dateKey) + '__autor', JSON.stringify({
+        nome: sessionStorage.getItem('zeloNome') || null,
+        email: sessionStorage.getItem('zeloEmail') || null,
+        ts: Date.now()
+      }));
+    }catch(e){}
   }
   function listAllDateKeys(){
     var keys = [];

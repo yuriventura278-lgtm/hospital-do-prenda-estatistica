@@ -1439,7 +1439,9 @@ function ls(){/* Formulário começa vazio — usar carregarDoDia() */}
 const FB_PATH = 'registos/laboratorio_clinico';
 function enviarParaFirebase(dataHoje, registo){
   if(!window.__fbReady || !dataHoje || !window.__fbSet) return;
-  window.__fbSet(FB_PATH+'/'+dataHoje, registo)
+  var __autor = {nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null};
+  var __registoComAutor = Object.assign({}, registo, {criadoPor: __autor});
+  window.__fbSet(FB_PATH+'/'+dataHoje, __registoComAutor)
     .catch(function(e){console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e);});
 }
 function sincronizarHistoricoFirebase(){
