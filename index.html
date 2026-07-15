@@ -384,7 +384,7 @@ import {
     touchLastAccess(user.uid);
     hideGate();
     if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
-    if(typeof window.zeloApplyPermissoes === 'function') window.zeloApplyPermissoes(perfil.permissoes || {});
+    if(typeof window.zeloApplyPermissoes === 'function') window.zeloApplyPermissoes(perfil.role || 'funcionario', perfil.permissoes || {});
     if(perfil.role === 'admin') initZeloNotifications();
     if(!stopInactivityWatch){
       stopInactivityWatch = startInactivityWatch(async function(){
@@ -570,10 +570,11 @@ window.zeloApplyRole = function(role){
   var link = document.getElementById('zeloAdminLink');
   if(link) link.style.display = (role === 'admin') ? 'flex' : 'none';
 };
-window.zeloApplyPermissoes = function(permissoes){
+window.zeloApplyPermissoes = function(role, permissoes){
+  var isAdmin = role === 'admin';
   document.querySelectorAll('.dash-cta[data-module]').forEach(function(card){
     var mod = card.dataset.module;
-    var permitido = permissoes ? (permissoes[mod] !== false) : true;
+    var permitido = isAdmin ? true : (permissoes ? (permissoes[mod] !== false) : true);
     card.style.display = permitido ? '' : 'none';
   });
   var noneVisible = ![...document.querySelectorAll('.dash-cta[data-module]')].some(function(c){ return c.style.display !== 'none'; });
@@ -694,11 +695,12 @@ window.zeloApplyPermissoes = function(permissoes){
 function filterDashCards(q){
   q = q.trim().toLowerCase();
   let anyVisible = false;
+  const isAdmin = sessionStorage.getItem('zeloRole') === 'admin';
   let permissoes = {};
   try{ permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'); }catch(e){}
   document.querySelectorAll('.dash-cta').forEach(card=>{
     const mod = card.dataset.module;
-    const permitido = mod ? (permissoes[mod] !== false) : true;
+    const permitido = isAdmin ? true : (mod ? (permissoes[mod] !== false) : true);
     const match = permitido && (!q || (card.dataset.name || '').includes(q));
     card.style.display = match ? '' : 'none';
     if(match) anyVisible = true;

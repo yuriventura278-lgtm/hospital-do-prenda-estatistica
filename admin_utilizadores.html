@@ -245,16 +245,25 @@ function renderStats(usersObj){
   }).join('');
 }
 
-function openPermModal(uid, permissoes, nome){
+function openPermModal(uid, permissoes, nome, role){
   permUid = uid;
   document.getElementById('permModalTitle').textContent = 'Permissões — ' + (nome || uid);
   const list = document.getElementById('permModalList');
-  list.innerHTML = MODULES.map(function(m){
-    const checked = permissoes ? (permissoes[m.key] !== false) : true;
-    return '<label style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--tx2);cursor:pointer;">' +
-      '<input type="checkbox" data-mod="' + m.key + '" ' + (checked ? 'checked' : '') + ' style="width:auto;accent-color:var(--bl);"/>' + m.label +
-    '</label>';
-  }).join('');
+  const saveBtn = document.getElementById('permModalSave');
+  if(role === 'admin'){
+    list.innerHTML = '<div style="background:var(--sf);border:1px solid var(--br);border-radius:9px;padding:12px;font-size:.82rem;color:var(--tx2);line-height:1.5;">' +
+      'Administradores têm sempre acesso total a todos os módulos — as permissões não se aplicam a este papel.' +
+    '</div>';
+    saveBtn.style.display = 'none';
+  } else {
+    saveBtn.style.display = '';
+    list.innerHTML = MODULES.map(function(m){
+      const checked = permissoes ? (permissoes[m.key] !== false) : true;
+      return '<label style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--tx2);cursor:pointer;">' +
+        '<input type="checkbox" data-mod="' + m.key + '" ' + (checked ? 'checked' : '') + ' style="width:auto;accent-color:var(--bl);"/>' + m.label +
+      '</label>';
+    }).join('');
+  }
   document.getElementById('permModal').style.display = 'flex';
 }
 document.getElementById('permModalCancel').addEventListener('click', function(){
@@ -462,7 +471,7 @@ usersBody.addEventListener('click', async function(e){
   const u = snap.val();
 
   if(action === 'permissoes'){
-    openPermModal(uid, u.permissoes, u.nome || u.email);
+    openPermModal(uid, u.permissoes, u.nome || u.email, u.role);
     return;
   }
   if(action === 'toggle-role'){
