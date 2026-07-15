@@ -309,7 +309,7 @@ import {
   fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
-  touchLastAccess
+  touchLastAccess, escapeHtml
 } from './zelo_auth.js';
 
 (function(){
@@ -502,8 +502,8 @@ function initZeloNotifications(){
       var isUnread = ev.ts > since;
       var label = NOTIF_LABELS[ev.action] || ev.action;
       return '<div style="padding:10px 14px;border-bottom:1px solid #F1F5F9;' + (isUnread ? 'background:#EFF6FF;' : '') + '">' +
-        '<div style="font-size:.76rem;font-weight:700;color:#0F172A;">' + label + '</div>' +
-        '<div style="font-size:.68rem;color:#64748B;margin-top:2px;">' + (ev.email || '') + ' · ' + fmtDate(ev.ts) + '</div>' +
+        '<div style="font-size:.76rem;font-weight:700;color:#0F172A;">' + escapeHtml(label) + '</div>' +
+        '<div style="font-size:.68rem;color:#64748B;margin-top:2px;">' + escapeHtml(ev.email) + ' · ' + fmtDate(ev.ts) + '</div>' +
       '</div>';
     }).join('');
   }

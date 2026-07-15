@@ -185,7 +185,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <script type="module">
 import {
   auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
-  fetchUserProfile, onAuthStateChanged, signOut, logAuditEvent
+  fetchUserProfile, onAuthStateChanged, signOut, logAuditEvent, escapeHtml
 } from './zelo_auth.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signOut as secondarySignOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
@@ -389,14 +389,14 @@ function renderAudit(auditObj){
   auditBody.innerHTML = entries.map(ev => {
     const label = AUDIT_LABELS[ev.action] || ev.action || '—';
     const detalhes = [];
-    if(ev.alvoEmail) detalhes.push('Alvo: ' + ev.alvoEmail);
+    if(ev.alvoEmail) detalhes.push('Alvo: ' + escapeHtml(ev.alvoEmail));
     if(ev.novoRole) detalhes.push('Novo papel: ' + (ev.novoRole === 'admin' ? 'Administrador' : 'Funcionário'));
-    if(ev.erro) detalhes.push('Erro: ' + ev.erro);
+    if(ev.erro) detalhes.push('Erro: ' + escapeHtml(ev.erro));
     return `
       <tr>
         <td>${fmtDate(ev.ts)}</td>
-        <td>${label}</td>
-        <td>${ev.email || '—'}</td>
+        <td>${escapeHtml(label)}</td>
+        <td>${escapeHtml(ev.email) || '—'}</td>
         <td>${detalhes.join(' · ') || '—'}</td>
       </tr>
     `;
@@ -408,7 +408,7 @@ function avatarHtml(u){
     return '<div style="width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;"><img src="' + u.foto + '" style="width:100%;height:100%;object-fit:cover;" alt=""/></div>';
   }
   const iniciais = (u.nome || u.email || '?').trim().split(/\s+/).slice(0,2).map(function(p){ return p[0]; }).join('').toUpperCase();
-  return '<div style="width:30px;height:30px;border-radius:50%;background:var(--nv);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;flex-shrink:0;">' + iniciais + '</div>';
+  return '<div style="width:30px;height:30px;border-radius:50%;background:var(--nv);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;flex-shrink:0;">' + escapeHtml(iniciais) + '</div>';
 }
 
 function renderUsersTable(entries){
@@ -417,8 +417,8 @@ function renderUsersTable(entries){
   usersBody.innerHTML = entries.map(([uid, u]) => `
     <tr class="${u.ativo === false ? 'inativo' : ''}">
       <td>${avatarHtml(u)}</td>
-      <td>${u.nome || '—'}</td>
-      <td>${u.email || '—'}</td>
+      <td>${escapeHtml(u.nome) || '—'}</td>
+      <td>${escapeHtml(u.email) || '—'}</td>
       <td><span class="pill ${u.role === 'admin' ? 'admin' : 'funcionario'}">${u.role === 'admin' ? 'Administrador' : 'Funcionário'}</span></td>
       <td><span class="pill ${u.ativo === false ? 'inativo' : 'ativo'}">${u.ativo === false ? 'Inativo' : 'Ativo'}</span></td>
       <td>${fmtDate(u.criadoEm)}</td>
@@ -428,7 +428,7 @@ function renderUsersTable(entries){
           <button class="btn-sm" data-action="permissoes" data-uid="${uid}">Permissões</button>
           <button class="btn-sm" data-action="toggle-role" data-uid="${uid}">${u.role === 'admin' ? 'Tornar Funcionário' : 'Tornar Admin'}</button>
           <button class="btn-sm" data-action="toggle-ativo" data-uid="${uid}">${u.ativo === false ? 'Reativar' : 'Desativar'}</button>
-          <button class="btn-sm danger" data-action="eliminar" data-uid="${uid}" data-email="${u.email||''}">Eliminar</button>
+          <button class="btn-sm danger" data-action="eliminar" data-uid="${uid}" data-email="${escapeHtml(u.email)}">Eliminar</button>
         </div>
       </td>
     </tr>

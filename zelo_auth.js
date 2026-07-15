@@ -130,12 +130,21 @@ async function clearLoginAttempts(email) {
   catch (e) { /* não bloqueante */ }
 }
 
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export {
   app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
-  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess
+  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml
 };
 
 window.ZeloAuth = {
@@ -143,5 +152,5 @@ window.ZeloAuth = {
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
-  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess
+  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml
 };
