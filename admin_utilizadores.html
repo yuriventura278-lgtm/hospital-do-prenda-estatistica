@@ -188,7 +188,7 @@ import {
   fetchUserProfile, onAuthStateChanged, signOut, logAuditEvent, escapeHtml
 } from './zelo_auth.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import { getAuth, createUserWithEmailAndPassword, signOut as secondarySignOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import { getAuth, createUserWithEmailAndPassword, signOut as secondarySignOut, deleteUser } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 
 document.getElementById('footyear').textContent = new Date().getFullYear();
 
@@ -461,6 +461,13 @@ function renderUsers(usersObj){
   applyUserFilters();
 }
 
+function countActiveAdmins(excludeUid){
+  return Object.entries(currentUsersCache).filter(function(entry){
+    var uid = entry[0], u = entry[1];
+    return u.role === 'admin' && u.ativo !== false && uid !== excludeUid;
+  }).length;
+}
+
 usersBody.addEventListener('click', async function(e){
   const btn = e.target.closest('button[data-action]');
   if(!btn) return;
@@ -476,6 +483,10 @@ usersBody.addEventListener('click', async function(e){
   }
   if(action === 'toggle-role'){
     const novoRole = u.role === 'admin' ? 'funcionario' : 'admin';
+    if(u.role === 'admin' && novoRole !== 'admin' && u.ativo !== false && countActiveAdmins(uid) === 0){
+      alert('Não é possível remover o acesso de Administrador: este é o único Administrador ativo do sistema.');
+      return;
+    }
     if(uid === currentUid && novoRole !== 'admin'){
       if(!confirm('Vais remover o teu próprio acesso de Administrador. Continuar?')) return;
     }
@@ -484,6 +495,10 @@ usersBody.addEventListener('click', async function(e){
   }
   if(action === 'toggle-ativo'){
     const novoAtivo = u.ativo === false ? true : false;
+    if(u.role === 'admin' && !novoAtivo && countActiveAdmins(uid) === 0){
+      alert('Não é possível desativar esta conta: é o único Administrador ativo do sistema.');
+      return;
+    }
     if(uid === currentUid && !novoAtivo){
       if(!confirm('Vais desativar a tua própria conta e perder o acesso. Continuar?')) return;
     }
@@ -491,6 +506,10 @@ usersBody.addEventListener('click', async function(e){
     await logAuditEvent(currentUid, currentEmail, novoAtivo ? 'reativar_utilizador' : 'desativar_utilizador', { alvoUid: uid, alvoEmail: u.email });
   }
   if(action === 'eliminar'){
+    if(u.role === 'admin' && u.ativo !== false && countActiveAdmins(uid) === 0){
+      alert('Não é possível eliminar esta conta: é o único Administrador ativo do sistema.');
+      return;
+    }
     if(!confirm('Eliminar o acesso de ' + (btn.dataset.email || uid) + '? Esta ação não pode ser desfeita (a conta deixa de conseguir entrar no ZELO).')) return;
     await remove(ref(db, 'users/' + uid));
     await logAuditEvent(currentUid, currentEmail, 'eliminar_utilizador', { alvoUid: uid, alvoEmail: u.email });
@@ -507,14 +526,21 @@ createForm.addEventListener('submit', async function(e){
 
   createBtn.disabled = true;
   createBtn.textContent = 'A criar…';
+  let cred = null;
   try{
     // App Firebase secundária: cria o utilizador sem substituir a sessão do administrador atual
     const secondaryApp = initializeApp(auth.app.options, 'ZeloSecondary_' + Date.now());
     const secondaryAuth = getAuth(secondaryApp);
-    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+    cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
     const newUid = cred.user.uid;
+    try{
+      await set(ref(db, 'users/' + newUid), { nome, email, role, ativo: true, criadoEm: Date.now() });
+    }catch(writeErr){
+      // Reverter a conta criada no Firebase Auth para não deixar um utilizador "fantasma" sem perfil
+      try{ await deleteUser(cred.user); }catch(delErr){ console.error('Falha ao reverter conta órfã', delErr); }
+      throw writeErr;
+    }
     await secondarySignOut(secondaryAuth);
-    await set(ref(db, 'users/' + newUid), { nome, email, role, ativo: true, criadoEm: Date.now() });
     await logAuditEvent(currentUid, currentEmail, 'criar_utilizador', { alvoUid: newUid, alvoEmail: email, role });
     createForm.reset();
     showMsg(createMsg, 'Utilizador criado: ' + email, 'ok');
