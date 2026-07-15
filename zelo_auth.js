@@ -5,7 +5,7 @@ import {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getDatabase, ref, get, set, update, remove, onValue
+  getDatabase, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
 const firebaseConfig = {
@@ -70,16 +70,69 @@ async function logAuditEvent(uid, email, action, extra) {
   }
 }
 
+const LOCKOUT_MAX = 5;
+const LOCKOUT_WINDOW_MS = 15 * 60 * 1000; // 15 minutos
+
+function emailKey(email) {
+  return (email || '').trim().toLowerCase().replace(/[.#$/\[\]]/g, '_');
+}
+
+async function checkLoginLockout(email) {
+  try {
+    const snap = await get(ref(db, 'login_attempts/' + emailKey(email)));
+    if (!snap.exists()) return { blocked: false };
+    const data = snap.val();
+    const dentroDaJanela = (Date.now() - (data.firstAttempt || 0)) < LOCKOUT_WINDOW_MS;
+    if (dentroDaJanela && (data.count || 0) >= LOCKOUT_MAX) {
+      const remainingMs = LOCKOUT_WINDOW_MS - (Date.now() - data.lastAttempt);
+      return { blocked: true, remainingMinutes: Math.max(1, Math.ceil(remainingMs / 60000)) };
+    }
+    return { blocked: false };
+  } catch (e) {
+    console.warn('ZELO auth: falha ao verificar bloqueio de tentativas', e);
+    return { blocked: false };
+  }
+}
+
+async function registerFailedLogin(email) {
+  try {
+    const key = emailKey(email);
+    const r = ref(db, 'login_attempts/' + key);
+    const snap = await get(r);
+    const now = Date.now();
+    let count = 1, firstAttempt = now;
+    if (snap.exists()) {
+      const data = snap.val();
+      if ((now - (data.firstAttempt || 0)) < LOCKOUT_WINDOW_MS) {
+        count = (data.count || 0) + 1;
+        firstAttempt = data.firstAttempt;
+      }
+    }
+    await set(r, { count, firstAttempt, lastAttempt: now });
+    return count;
+  } catch (e) {
+    console.warn('ZELO auth: falha ao registar tentativa falhada', e);
+    return 0;
+  }
+}
+
+async function clearLoginAttempts(email) {
+  try { await remove(ref(db, 'login_attempts/' + emailKey(email))); }
+  catch (e) { /* não bloqueante */ }
+}
+
 export {
-  app, auth, db, ref, get, set, update, remove, onValue,
+  app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
-  fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent
+  fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
+  checkLoginLockout, registerFailedLogin, clearLoginAttempts
 };
 
 window.ZeloAuth = {
-  app, auth, db, ref, get, set, update, remove, onValue,
+  app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
-  fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent
+  fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
+  checkLoginLockout, registerFailedLogin, clearLoginAttempts
 };

@@ -318,7 +318,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 import {
   auth, fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
-  startInactivityWatch, logAuditEvent
+  startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts
 } from './zelo_auth.js';
 
 (function(){
@@ -388,6 +388,7 @@ import {
     }
     sessionStorage.setItem('zeloRole', perfil.role || 'funcionario');
     sessionStorage.setItem('zeloNome', perfil.nome || user.email);
+    clearLoginAttempts(user.email);
     hideGate();
     if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
     if(!stopInactivityWatch){
@@ -407,6 +408,14 @@ import {
     btn.disabled=true;
     btnLabel.innerHTML='<span class="zaf-spin"></span>';
     try{
+      var lockState = await checkLoginLockout(email);
+      if(lockState.blocked){
+        btn.disabled=false;
+        btnLabel.textContent='Entrar';
+        errText.textContent='Demasiadas tentativas falhadas. Tente novamente daqui a ' + lockState.remainingMinutes + ' minuto(s).';
+        err.style.display='flex';
+        return;
+      }
       await setPersistence(auth, rememberInput.checked ? browserLocalPersistence : browserSessionPersistence);
       await signInWithEmailAndPassword(auth, email, pass);
       if(window.PasswordCredential){ try{ navigator.credentials.store(new PasswordCredential({ id:email, password:pass, name:'ZELO' })); }catch(e2){} }
@@ -417,6 +426,10 @@ import {
       if(e2 && e2.code==='auth/too-many-requests') msg='Demasiadas tentativas falhadas. Tente novamente mais tarde.';
       if(e2 && e2.code==='auth/invalid-email') msg='Email inválido.';
       if(e2 && e2.code==='auth/user-disabled') msg='Esta conta foi desativada.';
+      if(e2 && (e2.code==='auth/wrong-password' || e2.code==='auth/invalid-credential' || e2.code==='auth/user-not-found')){
+        var novaContagem = await registerFailedLogin(email);
+        if(novaContagem >= 5) msg='Demasiadas tentativas falhadas. A conta fica bloqueada 15 minutos.';
+      }
       errText.textContent=msg;
       err.style.display='flex';
       form.classList.remove('shake');
