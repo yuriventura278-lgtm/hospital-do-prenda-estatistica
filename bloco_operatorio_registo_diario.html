@@ -1144,10 +1144,6 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
       <div class="surgery-form" id="cir-surg-form">
         <div class="form-row r1">
           <div class="form-group">
-            <label>Procedimento</label>
-            <input type="text" id="cir-s-paciente" placeholder="Descrição do procedimento (sem nome do paciente)">
-          </div>
-          <div class="form-group">
             <label>Especialidade <span style="color:var(--urgent);">*</span></label>
             <select id="cir-s-esp" onchange="this.classList.remove('field-error'); document.getElementById('cir-esp-error-msg').style.display='none';">
               <option value="">Selecionar</option>
@@ -1242,20 +1238,20 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
               </label>
             </div>
           </div>
-          <button class="btn-add" id="cir-s-submit-btn" onclick="addSurgery('cir')">+ Adicionar</button>
+          <button class="btn-add" id="cir-s-submit-btn" onclick="addSurgery('cir')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar</button>
         </div>
       </div>
       <div class="surgeries-table-wrap">
         <table id="cir-table">
           <thead><tr>
-            <th>#</th><th>Procedimento</th><th>Especialidade</th><th>Idade</th>
+            <th>#</th><th>Especialidade</th><th>Idade</th>
             <th>Sexo</th><th>Diagnóstico</th><th>Caracter.</th>
             <th>Anestesia</th><th>Hora</th><th>Falecido</th><th>Transfer.</th><th></th>
           </tr></thead>
           <tbody id="cir-tbody"></tbody>
           <tfoot><tr class="total-row">
             <td colspan="2">Total de Cirurgias</td>
-            <td colspan="10" id="cir-list-total">0</td>
+            <td colspan="9" id="cir-list-total">0</td>
           </tr></tfoot>
         </table>
       </div>
@@ -1430,12 +1426,12 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
       <div class="surgeries-table-wrap">
         <table id="resumo-table">
           <thead><tr>
-            <th>#</th><th>Tipo</th><th>Procedimento</th><th>Especialidade</th>
+            <th>#</th><th>Tipo</th><th>Especialidade</th>
             <th>Idade</th><th>Sexo</th><th>Diagnóstico</th>
             <th>Anestesia</th><th>Hora</th><th>Falecido</th><th>Transfer.</th>
           </tr></thead>
           <tbody id="resumo-tbody"></tbody>
-          <tfoot><tr class="total-row"><td colspan="2">Total Geral</td><td colspan="9" id="resumo-total">0</td></tr></tfoot>
+          <tfoot><tr class="total-row"><td colspan="2">Total Geral</td><td colspan="8" id="resumo-total">0</td></tr></tfoot>
         </table>
       </div>
     </div>
@@ -2481,14 +2477,12 @@ function validateSurgeryForm(formPrefix, esp, sexo, anestArr) {
 }
 
 function addSurgery(formPrefix) {
-  const pac   = document.getElementById(`${formPrefix}-s-paciente`).value.trim();
   const esp   = document.getElementById(`${formPrefix}-s-esp`).value;
   const idade = document.getElementById(`${formPrefix}-s-idade`).value;
   const sexo  = document.getElementById(`${formPrefix}-s-sexo`).value;
   const diag  = document.getElementById(`${formPrefix}-s-diag`).value.trim();
   const carac = document.getElementById(`${formPrefix}-s-carac`).value;
   const hora  = document.getElementById(`${formPrefix}-s-hora`).value;
-  if (!pac && !esp) return;
 
   // Collect all selected anesthesia types
   const anestArr = [];
@@ -2509,7 +2503,7 @@ function addSurgery(formPrefix) {
   const destPrefix = carac === 'Urgente' ? 'urg' : 'elet';
 
   surgeries[destPrefix].push({
-    pac: pac || '—', esp: esp || '—', idade: idade || '—', sexo: sexo || '—',
+    esp: esp || '—', idade: idade || '—', sexo: sexo || '—',
     diag: diag || '—', carac, anest: anestArr, hora: hora || '—',
     deceased, transfer,
     _origem: formPrefix  // keep track of which form it came from
@@ -2529,7 +2523,6 @@ function addSurgery(formPrefix) {
   }
 
   // Reset form
-  document.getElementById(`${formPrefix}-s-paciente`).value = '';
   document.getElementById(`${formPrefix}-s-esp`).value = '';
   document.getElementById(`${formPrefix}-s-idade`).value = '';
   document.getElementById(`${formPrefix}-s-sexo`).value = '';
@@ -2571,7 +2564,6 @@ function editSurgery(srcPrefix, idx) {
   clearFieldErrors(prefix);
 
   // Pre-fill fields
-  document.getElementById(`${prefix}-s-paciente`).value = s.pac === '—' ? '' : s.pac;
   document.getElementById(`${prefix}-s-esp`).value      = s.esp === '—' ? '' : s.esp;
   document.getElementById(`${prefix}-s-idade`).value    = s.idade === '—' ? '' : s.idade;
   document.getElementById(`${prefix}-s-sexo`).value     = s.sexo === '—' ? '' : s.sexo;
@@ -2606,7 +2598,7 @@ function editSurgery(srcPrefix, idx) {
 
   // Swap "Adicionar" button to "Atualizar" mode — remember the REAL source list
   const addBtn = document.getElementById('cir-s-submit-btn');
-  addBtn.textContent = '✎ Atualizar';
+  addBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Atualizar';
   addBtn.dataset.editIdx = idx;
   addBtn.dataset.editSrcPrefix = srcPrefix;
   addBtn.onclick = () => updateSurgery(srcPrefix, idx);
@@ -2614,7 +2606,6 @@ function editSurgery(srcPrefix, idx) {
 
 function updateSurgery(editPrefix, idx) {
   const formPrefix = 'cir';
-  const pac   = document.getElementById(`${formPrefix}-s-paciente`).value.trim();
   const esp   = document.getElementById(`${formPrefix}-s-esp`).value;
   const idade = document.getElementById(`${formPrefix}-s-idade`).value;
   const sexo  = document.getElementById(`${formPrefix}-s-sexo`).value;
@@ -2640,7 +2631,7 @@ function updateSurgery(editPrefix, idx) {
   const destPrefix = newCarac === 'Urgente' ? 'urg' : 'elet';
 
   const updated = {
-    pac: pac || '—', esp: esp || '—', idade: idade || '—', sexo: sexo || '—',
+    esp: esp || '—', idade: idade || '—', sexo: sexo || '—',
     diag: diag || '—', carac: newCarac, anest: anestArr, hora: hora || '—',
     deceased, transfer, _origem: formPrefix
   };
@@ -2668,12 +2659,11 @@ function updateSurgery(editPrefix, idx) {
 
   // Reset form back to "Adicionar" mode
   const addBtn = document.getElementById('cir-s-submit-btn');
-  addBtn.textContent = '+ Adicionar';
+  addBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar';
   addBtn.onclick = () => addSurgery('cir');
   delete addBtn.dataset.editIdx;
   delete addBtn.dataset.editSrcPrefix;
 
-  document.getElementById(`${formPrefix}-s-paciente`).value = '';
   document.getElementById(`${formPrefix}-s-esp`).value = '';
   document.getElementById(`${formPrefix}-s-idade`).value = '';
   document.getElementById(`${formPrefix}-s-sexo`).value = '';
@@ -2705,7 +2695,6 @@ function renderSurgeries(prefix) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${i+1}</td>
-      <td>${s.pac}</td>
       <td>${s.esp}</td>
       <td>${s.idade}</td>
       <td>${sexTag}</td>
@@ -2755,7 +2744,6 @@ function renderSurgeriesCombined() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${displayIdx+1}</td>
-      <td>${s.pac}</td>
       <td>${s.esp}</td>
       <td>${s.idade}</td>
       <td>${sexTag}</td>
@@ -2966,7 +2954,7 @@ function updateResumo() {
     else if (s.transfer === 'UCI') trTag = '<span class="tag tag-uci">🚑 UCI</span>';
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${i+1}</td><td>${typeTag}</td><td>${s.pac}</td><td>${s.esp}</td>
+      <td>${i+1}</td><td>${typeTag}</td><td>${s.esp}</td>
       <td>${s.idade}</td><td>${sexTag}</td><td>${s.diag}</td>
       <td>${anestTags}</td><td>${s.hora}</td><td>${decTag}</td><td>${trTag}</td>
     `;
@@ -3311,7 +3299,6 @@ function exportPDF() {
       s.hora && s.hora !== '—' ? s.hora : '—',
       s._type === 'urg' ? 'Urgente' : 'Eletiva',
       s.esp || '—',
-      s.pac || '—',
       s.idade && s.idade !== '—' ? s.idade : '—',
       s.sexo || '—',
       s.diag || '—',
@@ -3320,7 +3307,7 @@ function exportPDF() {
     ]);
     doc.autoTable({
       startY: doc.lastAutoTable.finalY + 14,
-      head: [['#', 'Hora', 'Caráter', 'Especialidade', 'Procedimento', 'Idade', 'Sexo', 'Diagnóstico', 'Anestesia', 'Obs.']],
+      head: [['#', 'Hora', 'Caráter', 'Especialidade', 'Idade', 'Sexo', 'Diagnóstico', 'Anestesia', 'Obs.']],
       body: surgRows,
       styles: { fontSize: 7.5, cellPadding: 2.5, lineColor: [225,230,240], lineWidth: 0.3 },
       headStyles: { fillColor: [33, 84, 217], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
@@ -3328,15 +3315,15 @@ function exportPDF() {
         0: { halign: 'center', cellWidth: 7 },
         1: { halign: 'center', cellWidth: 12 },
         2: { halign: 'center', cellWidth: 14 },
-        5: { halign: 'center', cellWidth: 11 },
-        6: { halign: 'center', cellWidth: 9 },
-        9: { halign: 'center', cellWidth: 14 },
+        4: { halign: 'center', cellWidth: 11 },
+        5: { halign: 'center', cellWidth: 9 },
+        8: { halign: 'center', cellWidth: 14 },
       },
       alternateRowStyles: { fillColor: [245, 250, 255] },
       didParseCell: (data) => {
         // Destaca visualmente falecidos na lista
         const row = surgRows[data.row.index];
-        if (row && row[9] === 'Sim' && data.section === 'body') {
+        if (row && row[8] === 'Sim' && data.section === 'body') {
           data.cell.styles.textColor = [214, 54, 74];
           data.cell.styles.fontStyle = 'bold';
         }
@@ -3933,7 +3920,7 @@ function _buildDaySummaryText() {
     lines.push('── LISTA DE CIRURGIAS ──');
     allSurg.forEach((s,i) => {
       const tipo = s._type === 'urg' ? '<svg width="7" height="7" viewBox="0 0 8 8" style="display:inline-block;vertical-align:middle;margin-right:4px;flex-shrink:0;"><circle cx="4" cy="4" r="4" fill="#e0394f"/></svg>' : '<svg width="7" height="7" viewBox="0 0 8 8" style="display:inline-block;vertical-align:middle;margin-right:4px;flex-shrink:0;"><circle cx="4" cy="4" r="4" fill="#0d8fa8"/></svg>';
-      lines.push(`  ${i+1}. ${tipo} ${s.pac||'—'} | ${s.esp||'—'} | ${s.diag||'—'} | ${s.sexo||'—'} ${s.idade||''}a${s.hora ? ' | '+s.hora : ''}`);
+      lines.push(`  ${i+1}. ${tipo} ${s.esp||'—'} | ${s.diag||'—'} | ${s.sexo||'—'} ${s.idade||''}a${s.hora ? ' | '+s.hora : ''}`);
     });
   }
   if (suspList.length > 0) {
