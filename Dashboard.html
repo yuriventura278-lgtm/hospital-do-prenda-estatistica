@@ -1241,6 +1241,14 @@ function renderOverview(){
   document.getElementById('statHoraL').textContent = 'Último Registo';
   document.getElementById('statHora').textContent = lastTime ? fmtHora(lastTime) : '—';
   document.getElementById('statPend').textContent = pendCount;
+  try{
+    window.parent.postMessage({
+      type: 'zelo-dashboard-overview',
+      reportaram: withData.length,
+      total: SERVICES.length,
+      pendentes: SERVICES.filter(function(svc){ return !(currentDataset[svc.id] && currentDataset[svc.id].snapshot); }).map(function(svc){ return svc.name; })
+    }, '*');
+  }catch(e){}
 
   // Donut 1: cobertura do dia (reportaram vs pendentes)
   const coverageDonut = donutSVG([
