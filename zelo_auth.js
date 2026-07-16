@@ -24,6 +24,8 @@ const db = getDatabase(app);
 
 const INACTIVITY_WARNING_MS = 13 * 60 * 1000; // 13 minutos — mostra aviso de expiração
 const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 minutos sem interação — logout automático
+const MAX_SESSION_MS = 8 * 60 * 60 * 1000; // 8 horas — sessão máxima mesmo com atividade contínua (fim de turno)
+const REVALIDATE_INTERVAL_MS = 2 * 60 * 1000; // 2 minutos — reconfirma em segundo plano que a conta continua activa
 
 async function fetchUserProfile(uid) {
   try {
@@ -75,18 +77,42 @@ function showInactivityModal(onContinuar) {
   });
 }
 
+/** Instante em que a sessão actual começou, persistido em sessionStorage para
+ *  sobreviver a um simples refresh da página (mas não a fechar o separador —
+ *  fechar o separador já termina a sessão por si só). Só é gravado uma vez. */
+function marcarInicioSessao() {
+  try {
+    if (!sessionStorage.getItem('zeloLoginAt')) {
+      sessionStorage.setItem('zeloLoginAt', String(Date.now()));
+    }
+    return parseInt(sessionStorage.getItem('zeloLoginAt'), 10) || Date.now();
+  } catch (e) {
+    return Date.now();
+  }
+}
+
 /** Vigia inactividade global (rato, teclado, scroll, toque). Aos 13 minutos mostra um
  *  aviso com opção de continuar; sem resposta, aos 15 minutos chama onTimeout (logout).
  *  Uma vez mostrado o aviso, só o botão "Continuar" reinicia a contagem — actividade
- *  geral na página por trás do aviso não o dispensa sozinha. */
-function startInactivityWatch(onTimeout) {
-  let warnTimer, logoutTimer, avisoMostrado = false;
+ *  geral na página por trás do aviso não o dispensa sozinha.
+ *
+ *  Também aplica dois limites adicionais recomendados para sistemas hospitalares:
+ *  - Sessão máxima de 8h, mesmo com atividade contínua (fim de turno).
+ *  - Reconfirmação periódica (a cada 2min) de que a conta continua activa — para o
+ *    caso de um administrador desactivar o utilizador enquanto a sessão está aberta.
+ *  - Ao voltar a ficar visível (ecrã bloqueado, separador em segundo plano,
+ *    computador em suspensão), recalcula a inactividade pelo tempo real decorrido
+ *    em vez de confiar apenas no temporizador, que pode atrasar-se nesses casos. */
+function startInactivityWatch(onTimeout, uid) {
+  let warnTimer, logoutTimer, avisoMostrado = false, lastActivityAt = Date.now();
+  const loginAt = marcarInicioSessao();
 
   function limparTimers() { clearTimeout(warnTimer); clearTimeout(logoutTimer); }
 
   function agendar() {
     limparTimers();
     avisoMostrado = false;
+    lastActivityAt = Date.now();
     removeInactivityModal();
     warnTimer = setTimeout(function () {
       avisoMostrado = true;
@@ -106,8 +132,41 @@ function startInactivityWatch(onTimeout) {
   ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
     window.addEventListener(evt, reset, { passive: true });
   });
+
+  const revalidateTimer = setInterval(async function () {
+    if (Date.now() - loginAt >= MAX_SESSION_MS) {
+      clearInterval(revalidateTimer);
+      removeInactivityModal();
+      onTimeout();
+      return;
+    }
+    if (uid) {
+      const perfil = await fetchUserProfile(uid);
+      if (!perfil || perfil.ativo === false) {
+        clearInterval(revalidateTimer);
+        removeInactivityModal();
+        onTimeout();
+      }
+    }
+  }, REVALIDATE_INTERVAL_MS);
+
+  function aoFicarVisivel() {
+    if (document.visibilityState !== 'visible') return;
+    if (Date.now() - loginAt >= MAX_SESSION_MS) { removeInactivityModal(); onTimeout(); return; }
+    const inactivoMs = Date.now() - lastActivityAt;
+    if (inactivoMs >= INACTIVITY_LIMIT_MS) { removeInactivityModal(); onTimeout(); }
+    else if (inactivoMs >= INACTIVITY_WARNING_MS && !avisoMostrado) { avisoMostrado = true; showInactivityModal(agendar); }
+  }
+  document.addEventListener('visibilitychange', aoFicarVisivel);
+
   agendar();
-  return function stop() { limparTimers(); removeInactivityModal(); };
+  return function stop() {
+    limparTimers();
+    clearInterval(revalidateTimer);
+    document.removeEventListener('visibilitychange', aoFicarVisivel);
+    removeInactivityModal();
+    try { sessionStorage.removeItem('zeloLoginAt'); } catch (e) {}
+  };
 }
 
 async function logAuditEvent(uid, email, action, extra) {
