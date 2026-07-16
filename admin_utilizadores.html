@@ -399,12 +399,22 @@ function ensurePdfLibs(cb){
   });
 }
 
+const EXPORT_USER_COLS = ['Nome','Email','Papel','Estado','Criado em','Último Acesso','Permissões'];
+function linhaExportUser(u){
+  return [
+    u.nome||'', u.email||'',
+    u.role==='admin'?'Administrador':'Funcionário',
+    u.ativo===false?'Inativo':'Ativo',
+    u.criadoEm ? new Date(u.criadoEm).toLocaleString('pt-PT') : '',
+    u.ultimoAcesso ? new Date(u.ultimoAcesso).toLocaleString('pt-PT') : '—',
+    u.role==='admin' ? 'Acesso total (Administrador)' : JSON.stringify(u.permissoes || {}),
+  ];
+}
+
 document.getElementById('exportUsersExcelBtn').addEventListener('click', function(){
   ensureExcelLib(function(){
-    const rows = [['Nome','Email','Papel','Estado','Criado em']];
-    Object.values(currentUsersCache).forEach(function(u){
-      rows.push([u.nome||'', u.email||'', u.role==='admin'?'Administrador':'Funcionário', u.ativo===false?'Inativo':'Ativo', u.criadoEm ? new Date(u.criadoEm).toLocaleString('pt-PT') : '']);
-    });
+    const rows = [EXPORT_USER_COLS];
+    Object.values(currentUsersCache).forEach(function(u){ rows.push(linhaExportUser(u)); });
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Utilizadores');
@@ -415,15 +425,13 @@ document.getElementById('exportUsersExcelBtn').addEventListener('click', functio
 document.getElementById('exportUsersPdfBtn').addEventListener('click', function(){
   ensurePdfLibs(function(){
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF({orientation:'landscape'});
     doc.setFontSize(14);
     doc.text('ZELO — Lista de Utilizadores', 14, 16);
     doc.setFontSize(9);
     doc.text('Gerado em ' + new Date().toLocaleString('pt-PT'), 14, 22);
-    const rows = Object.values(currentUsersCache).map(function(u){
-      return [u.nome||'', u.email||'', u.role==='admin'?'Administrador':'Funcionário', u.ativo===false?'Inativo':'Ativo', u.criadoEm ? new Date(u.criadoEm).toLocaleDateString('pt-PT') : ''];
-    });
-    doc.autoTable({ startY: 28, head: [['Nome','Email','Papel','Estado','Criado em']], body: rows, styles:{fontSize:8} });
+    const rows = Object.values(currentUsersCache).map(linhaExportUser);
+    doc.autoTable({ startY: 28, head: [EXPORT_USER_COLS], body: rows, styles:{fontSize:7} });
     doc.save('zelo_utilizadores_' + new Date().toISOString().slice(0,10) + '.pdf');
   });
 });

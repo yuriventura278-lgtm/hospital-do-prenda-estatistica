@@ -655,6 +655,14 @@ async function fetchJsonSeguro(url){
   }catch(e){ return null; }
 }
 
+// Converte um valor (número, texto, objeto ou array aninhado) numa célula de
+// Excel sem nunca descartar informação — valores compostos ficam em JSON.
+function celulaCompleta(v){
+  if(v === null || v === undefined) return '';
+  if(typeof v === 'object') return JSON.stringify(v);
+  return v;
+}
+
 async function exportarArquivoMesExcel(ym, label, btn){
   const original = btn.textContent;
   btn.textContent = 'A gerar…';
@@ -664,14 +672,66 @@ async function exportarArquivoMesExcel(ym, label, btn){
       alert('Não há dados arquivados para ' + label + '.');
       return;
     }
-    ensureExcelLib(function(){
-      const rows = [['Serviço', 'Categoria', 'Dias com Registo em ' + label]];
-      idx.services.forEach(function(s){ rows.push([s.name, s.cat, s.daysReported]); });
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, ym);
-      XLSX.writeFile(wb, 'zelo_arquivo_' + ym + '.xlsx');
-      btn.textContent = original;
+    ensureExcelLib(async function(){
+      try{
+        const wb = XLSX.utils.book_new();
+        const resumoRows = [['Serviço', 'Categoria', 'Dias com Registo em ' + label]];
+        let algumaFolhaDeDados = false;
+
+        for(const s of idx.services){
+          resumoRows.push([s.name, s.cat, s.daysReported]);
+          const raw = await fetchJsonSeguro('arquivo/' + ym + '/' + s.prefix + '/' + s.fbId + '.json');
+          if(!raw){ continue; }
+          const datas = Object.keys(raw).sort();
+          if(!datas.length){ continue; }
+
+          // Todas as colunas realmente presentes nos registos deste serviço —
+          // nenhum campo é assumido nem descartado à partida.
+          const colunas = [];
+          const colunasSet = new Set();
+          datas.forEach(function(d){
+            const snap = (raw[d] && raw[d].snapshot) || {};
+            Object.keys(snap).forEach(function(k){
+              if(!colunasSet.has(k)){ colunasSet.add(k); colunas.push(k); }
+            });
+          });
+
+          const cabecalho = ['Data', 'Guardado em', 'Criado por (nome)', 'Criado por (email)'].concat(colunas);
+          const linhas = [cabecalho];
+          datas.forEach(function(d){
+            const entry = raw[d] || {};
+            const snap = entry.snapshot || {};
+            const autor = snap.criadoPor || entry.criadoPor || {};
+            const linha = [d, entry.savedAt || '', autor.nome || '', autor.email || ''];
+            colunas.forEach(function(c){ linha.push(celulaCompleta(snap[c])); });
+            linhas.push(linha);
+          });
+
+          const ws = XLSX.utils.aoa_to_sheet(linhas);
+          // Nomes de folha do Excel têm limite de 31 caracteres e não podem repetir-se
+          let nomeFolha = (s.name || s.fbId).slice(0, 31);
+          let sufixo = 1;
+          const nomesUsados = wb.SheetNames;
+          while(nomesUsados.includes(nomeFolha)){
+            sufixo++;
+            nomeFolha = (s.name || s.fbId).slice(0, 28) + '_' + sufixo;
+          }
+          XLSX.utils.book_append_sheet(wb, ws, nomeFolha);
+          algumaFolhaDeDados = true;
+        }
+
+        const wsResumo = XLSX.utils.aoa_to_sheet(resumoRows);
+        XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+        if(!algumaFolhaDeDados){
+          alert('O índice do mês existe, mas não foi possível carregar os dados brutos de nenhum serviço.');
+        }
+        XLSX.writeFile(wb, 'zelo_arquivo_' + ym + '.xlsx');
+      }catch(e2){
+        console.error(e2);
+        alert('Não foi possível gerar o Excel completo.');
+      }finally{
+        btn.textContent = original;
+      }
     });
   }catch(e){
     console.error(e);
