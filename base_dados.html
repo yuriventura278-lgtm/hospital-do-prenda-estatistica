@@ -128,6 +128,24 @@ main{max-width:1040px;margin:0 auto;padding:22px 20px 70px;}
   .panel{padding:14px 16px;}
   .sync-bar{flex-direction:column;align-items:stretch;}
 }
+
+/* ── GESTÃO DA BASE DE DADOS ────────────────────────── */
+.zbd-wrap{max-width:900px;margin:18px auto 0;padding:0 20px;display:flex;flex-direction:column;gap:14px;}
+.zbd-panel{background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:18px 20px;}
+.zbd-panel h2{font-size:.86rem;font-weight:800;color:var(--tx);margin-bottom:12px;}
+.zbd-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:10px;}
+.zbd-stat{background:var(--sf);border-radius:12px;padding:14px;text-align:center;}
+.zbd-stat .n{font-size:1.4rem;font-weight:800;color:var(--bl);}
+.zbd-stat .l{font-size:.68rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.03em;margin-top:3px;}
+.zbd-note{font-size:.78rem;color:var(--tx3);line-height:1.55;}
+.zbd-empty{font-size:.82rem;color:var(--tx3);text-align:center;padding:14px 0;}
+.zbd-mes-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--br);font-size:.82rem;flex-wrap:wrap;}
+.zbd-mes-item:last-child{border-bottom:none;}
+.zbd-mes-nome{font-weight:700;color:var(--tx);}
+.zbd-mes-acoes{display:flex;gap:8px;flex-wrap:wrap;}
+.zbd-mes-acoes a, .zbd-mes-acoes button{font-size:.72rem;font-weight:700;color:var(--bl);background:var(--blxt,#EFF6FF);border:1px solid var(--br);border-radius:100px;padding:5px 12px;text-decoration:none;cursor:pointer;font-family:'Inter',sans-serif;}
+.zbd-mes-acoes a:hover, .zbd-mes-acoes button:hover{background:var(--bl);color:#fff;}
+.zbd-btn{display:inline-block;margin-top:6px;padding:9px 16px;border-radius:10px;background:var(--nv);color:#fff;text-decoration:none;font-size:.78rem;font-weight:700;}
 </style>
 </head>
 <body>
@@ -273,6 +291,29 @@ main{max-width:1040px;margin:0 auto;padding:22px 20px 70px;}
       <div class="stat-mini"><div class="n" id="statLocalTotal">0</div><div class="l">Registos Guardados Localmente</div></div>
       <div class="stat-mini"><div class="n" id="statPeriodo">0</div><div class="l">Nesta Vista</div></div>
     </div>
+  </div>
+</div>
+
+<div class="zbd-wrap">
+  <div class="zbd-panel">
+    <h2>Estado da Base de Dados</h2>
+    <div class="zbd-stats">
+      <div class="zbd-stat"><div class="n" id="zbdStatAoVivo">—</div><div class="l">Registos ao vivo no Firebase</div></div>
+      <div class="zbd-stat"><div class="n" id="zbdStatMeses">—</div><div class="l">Meses já arquivados</div></div>
+      <div class="zbd-stat"><div class="n">Dia 2</div><div class="l">Próxima limpeza automática</div></div>
+    </div>
+    <p class="zbd-note">O Firebase mantém apenas os dados do mês atual e do mês anterior. No dia 2 de cada mês, um processo automático gera um relatório em PDF e um arquivo completo (sem resumir nem perder nenhum dado), guarda tudo permanentemente neste repositório do GitHub, e só depois liberta esse espaço no Firebase — nada é apagado sem ficar arquivado primeiro.</p>
+  </div>
+
+  <div class="zbd-panel">
+    <h2>Relatórios e Arquivos Mensais</h2>
+    <div id="zbdRelatoriosList" class="zbd-empty">A verificar…</div>
+  </div>
+
+  <div class="zbd-panel">
+    <h2>Manutenção</h2>
+    <p class="zbd-note">A limpeza mensal corre automaticamente todo o dia 2. Para a correr manualmente antes disso (por exemplo, para testar), um Administrador com acesso ao repositório GitHub pode fazê-lo em Actions → "Relatório mensal e limpeza do histórico" → Run workflow.</p>
+    <a href="https://github.com/yuriventura278-lgtm/hospital-do-prenda-estatistica/actions/workflows/relatorio-mensal.yml" target="_blank" rel="noopener" class="zbd-btn">Abrir no GitHub Actions</a>
   </div>
 </div>
 
@@ -578,6 +619,86 @@ document.getElementById('btnEstaSemana').addEventListener('click', ()=>{ documen
 document.getElementById('btnEsteMes').addEventListener('click', ()=>{ const d=new Date(); document.getElementById('monthSel').value=d.getFullYear()+'-'+pad(d.getMonth()+1); render(); });
 document.getElementById('btnSync').addEventListener('click', sincronizarTudo);
 
+/* ══════════════════ GESTÃO DA BASE DE DADOS ══════════════════ */
+function ensureScript(url, checkFn, cb){
+  if(checkFn()){ cb(); return; }
+  const s = document.createElement('script');
+  s.src = url;
+  s.onload = function(){ setTimeout(cb, 150); };
+  s.onerror = function(){ alert('Não foi possível carregar uma biblioteca necessária (sem ligação à internet?).'); };
+  document.head.appendChild(s);
+}
+function ensureExcelLib(cb){ ensureScript('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js', function(){ return !!window.XLSX; }, cb); }
+
+async function fetchJsonSeguro(url){
+  try{
+    const res = await fetch(url, {cache:'no-store'});
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){ return null; }
+}
+
+async function exportarArquivoMesExcel(ym, label, btn){
+  const original = btn.textContent;
+  btn.textContent = 'A gerar…';
+  try{
+    const idx = await fetchJsonSeguro('arquivo/' + ym + '/index.json');
+    if(!idx || !idx.services || !idx.services.length){
+      alert('Não há dados arquivados para ' + label + '.');
+      return;
+    }
+    ensureExcelLib(function(){
+      const rows = [['Serviço', 'Categoria', 'Dias com Registo em ' + label]];
+      idx.services.forEach(function(s){ rows.push([s.name, s.cat, s.daysReported]); });
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, ym);
+      XLSX.writeFile(wb, 'zelo_arquivo_' + ym + '.xlsx');
+      btn.textContent = original;
+    });
+  }catch(e){
+    console.error(e);
+    alert('Não foi possível gerar o Excel.');
+    btn.textContent = original;
+  }
+}
+
+async function carregarEstadoBaseDados(){
+  const relatoriosIdx = await fetchJsonSeguro('relatorios/index.json');
+  const arquivoIdx = await fetchJsonSeguro('arquivo/index.json');
+
+  document.getElementById('zbdStatMeses').textContent = arquivoIdx ? arquivoIdx.length : 0;
+
+  const relatoriosByYm = {};
+  (relatoriosIdx || []).forEach(function(r){ relatoriosByYm[r.ym] = r; });
+
+  const list = document.getElementById('zbdRelatoriosList');
+  if(!arquivoIdx || !arquivoIdx.length){
+    list.textContent = 'Ainda não foi gerado nenhum relatório mensal — o primeiro será criado automaticamente no dia 2 do próximo mês.';
+    return;
+  }
+  list.classList.remove('zbd-empty');
+  list.innerHTML = arquivoIdx.map(function(a){
+    const rel = relatoriosByYm[a.ym];
+    const pdfLink = rel ? '<a href="relatorios/' + rel.file + '" target="_blank" rel="noopener">Ver PDF</a>' : '';
+    return '<div class="zbd-mes-item">' +
+      '<span class="zbd-mes-nome">' + a.label + ' <span style="color:var(--tx3);font-weight:400;">(' + a.servicesCount + ' serviços)</span></span>' +
+      '<span class="zbd-mes-acoes">' + pdfLink + '<button onclick="exportarArquivoMesExcel(\'' + a.ym + '\',\'' + a.label + '\',this)">Exportar Excel</button></span>' +
+    '</div>';
+  }).join('');
+
+  try{
+    let total = 0;
+    for(const svc of ALL_SERVICES){
+      const all = await window.__fbGet(svc.prefix + '/' + svc.id);
+      if(all) total += Object.keys(all).length;
+    }
+    document.getElementById('zbdStatAoVivo').textContent = total;
+  }catch(e){
+    document.getElementById('zbdStatAoVivo').textContent = '—';
+  }
+}
+
 /* ══════════════════ ARRANQUE ══════════════════ */
 window.addEventListener('DOMContentLoaded', async ()=>{
   const today=new Date();
@@ -587,6 +708,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   await ddOpen();
   await atualizarEstatisticas();
   await render();
+  carregarEstadoBaseDados();
 });
 </script>
 </body>
