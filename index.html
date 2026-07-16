@@ -1123,7 +1123,15 @@ document.getElementById('zeloSidebarSearch').addEventListener('input', function(
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+    // reg.update() força uma verificação imediata por uma versão nova do sw.js, em
+    // vez de esperar pelo ciclo normal do browser (que pode demorar até 24h) — assim
+    // quem já tinha uma versão antiga instalada (que guardava index.html em cache)
+    // recebe a limpeza da cache antiga logo na próxima visita, não só dias depois.
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        if (reg && reg.update) reg.update().catch(() => {});
+      }).catch(() => {});
+    });
   }
   var zeloDeferredInstallPrompt = null;
   window.addEventListener('beforeinstallprompt', (e) => {
