@@ -951,7 +951,7 @@ function toggleAnestPill(lbl,ckId){
 }
 
 // ── SUSPENSAS ────────────────────────────────────────────
-// Campos obrigatórios: nome, especialidade, motivo
+// Campos obrigatórios: procedimento, especialidade, motivo
 function addSus(){
   const id=Date.now();
   susData.push({id,paciente:'',especialidade:'Cirurgia Geral',motivo:'',motivoOutro:'',faltaMaterial:false,saved:false});
@@ -964,7 +964,7 @@ function saveSus(id){
   const motivo=(document.getElementById('su-mot-'+id)?.value||'').trim();
   const motivoOutro=(document.getElementById('su-outro-'+id)?.value||'').trim();
   let err=false;
-  if(!pac){toast('Nome é obrigatório.');document.getElementById('su-pac-'+id)?.classList.add('err-inp');err=true;}
+  if(!pac){toast('Procedimento é obrigatório.');document.getElementById('su-pac-'+id)?.classList.add('err-inp');err=true;}
   if(!motivo){toast('Motivo é obrigatório.');document.getElementById('su-mot-'+id)?.classList.add('err-inp');err=true;}
   if(motivo==='Outro'&&!motivoOutro){toast('Descreva o motivo.');document.getElementById('su-outro-'+id)?.classList.add('err-inp');err=true;}
   if(err)return;
@@ -1008,8 +1008,8 @@ function renderSus(){
         <div class="ra"><button class="bs bse" onclick="editSus(${s.id})">Editar</button><button class="bs bsd" onclick="delSus(${s.id})">Remover</button></div>`;
     }else if(!s.saved){
       div.innerHTML=`<div class="rh"><span class="rn or">Suspensa ${idx_+1}</span></div>
-        <div class="f"><label>Paciente / Procedimento<span class="req">*</span></label>
-          <input type="text" id="su-pac-${s.id}" value="${s.paciente}" placeholder="Nome do paciente ou procedimento..."/></div>
+        <div class="f"><label>Procedimento<span class="req">*</span></label>
+          <input type="text" id="su-pac-${s.id}" value="${s.paciente}" placeholder="Descreva o procedimento/cirurgia (sem nome do doente)..."/></div>
         <div class="f"><label>Especialidade<span class="req">*</span></label>
           <select id="su-esp-${s.id}">${ESPECIALIDADES.map(e=>`<option${e===s.especialidade?' selected':''}>${e}</option>`).join('')}</select></div>
         <div class="f"><label>Motivo da Suspensão<span class="req">*</span></label>

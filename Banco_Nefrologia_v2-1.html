@@ -395,7 +395,7 @@ function renderEntrados(){
     const sub=[item.idade?item.idade+' anos':'',gen].filter(Boolean).join(' · ');
     const codeBadge=item.diagCode?`<span style="background:#CFFAFE;border:1px solid #A5F3FC;border-radius:5px;padding:2px 7px;font-size:.68rem;font-weight:700;color:#0E7490;font-family:'DM Mono',monospace;margin-right:5px;">${esc(item.diagCode)}</span>`:'';
     const diagLine=item.diagNefrologia?`<div style="font-size:.73rem;color:var(--tx2);margin-top:3px;">${codeBadge}${esc(item.diagNefrologia)}</div>`:'';
-    return `<div class="rc"><div class="rh"><div class="rn">${i+1}</div><div class="rv"><div style="font-size:.93rem;font-weight:600;">${esc(item.nome)}</div><div style="font-size:.75rem;color:var(--tx3);margin-top:2px;">${esc(sub)}</div>${diagLine}</div><div style="display:flex;flex-direction:column;gap:5px;align-self:flex-start;"><button class="bs bse" onclick="editEntrado(${i})" style="padding:6px 10px;" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="bs bse" onclick="verEntrado(${i})" style="padding:6px 10px;" title="Ver detalhe"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="bs bsd" onclick="removeEntrado(${i})" style="padding:6px 10px;">×</button></div></div></div>`;
+    return `<div class="rc"><div class="rh"><div class="rn">${i+1}</div><div class="rv"><div style="font-size:.93rem;font-weight:600;">${esc(sub)||'Doente'}</div>${diagLine}</div><div style="display:flex;flex-direction:column;gap:5px;align-self:flex-start;"><button class="bs bse" onclick="editEntrado(${i})" style="padding:6px 10px;" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="bs bse" onclick="verEntrado(${i})" style="padding:6px 10px;" title="Ver detalhe"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="bs bsd" onclick="removeEntrado(${i})" style="padding:6px 10px;">×</button></div></div></div>`;
   }).join('');
 }
 function verEntrado(i){
@@ -404,10 +404,6 @@ function verEntrado(i){
   document.getElementById('mo-title').textContent='Detalhe — Doente Entrado #'+(i+1);
   document.getElementById('mo-body').innerHTML=`
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <div style="background:#F8FAFF;border-radius:10px;padding:14px;">
-        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:4px;">Nome</div>
-        <div style="font-size:1rem;font-weight:700;color:var(--tx);">${esc(p.nome)}</div>
-      </div>
       <div class="g2" style="gap:8px;">
         <div style="background:#F8FAFF;border-radius:10px;padding:14px;">
           <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:4px;">Idade</div>
@@ -438,8 +434,7 @@ function renderObitos(){
     const codeBadge=item.diagCode?`<span style="background:#FEE2E2;border:1px solid #FCA5A5;border-radius:5px;padding:2px 7px;font-size:.68rem;font-weight:700;color:#DC2626;font-family:'DM Mono',monospace;margin-right:5px;">${esc(item.diagCode)}</span>`:'';
     const diagLine=item.causa?`<div style="font-size:.73rem;color:var(--tx2);margin-top:3px;">${codeBadge}${esc(item.causa)}</div>`:'';
     return `<div class="rc"><div class="rh"><div class="rn rd">${i+1}</div><div class="rv">
-      <div style="font-size:.93rem;font-weight:600;">${esc(item.nome)}</div>
-      <div style="font-size:.75rem;color:var(--tx3);margin-top:2px;">${esc(meta)||'—'}</div>
+      <div style="font-size:.93rem;font-weight:600;">${esc(meta)||'Óbito'}</div>
       ${diagLine}
     </div><div style="display:flex;flex-direction:column;gap:5px;align-self:flex-start;"><button class="bs bse" onclick="editObito(${i})" style="padding:6px 10px;" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="bs bse" onclick="verObito(${i})" style="padding:6px 10px;" title="Ver detalhe"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="bs bsd" onclick="removeObito(${i})" style="padding:6px 10px;">×</button></div></div></div>`;
   }).join('');
@@ -454,10 +449,6 @@ function verObito(i){
   document.getElementById('mo-title').textContent='Detalhe — Óbito #'+(i+1);
   document.getElementById('mo-body').innerHTML=`
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <div style="background:#FFF5F5;border-radius:10px;padding:14px;">
-        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#DC2626;margin-bottom:4px;">Nome</div>
-        <div style="font-size:1rem;font-weight:700;color:var(--tx);">${esc(o.nome||'—')}</div>
-      </div>
       <div class="g2" style="gap:8px;">
         <div style="background:#FFF5F5;border-radius:10px;padding:14px;">
           <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#DC2626;margin-bottom:4px;">Idade</div>
@@ -487,7 +478,6 @@ function abrirModalEntrado(idx){
   const p=_editEntradoIdx!==null?entradosData[_editEntradoIdx]:null;
   document.getElementById('mo-title').textContent=p?'Editar Doente Entrado':'Registar Doente Entrado';
   document.getElementById('mo-body').innerHTML=`
-    <div class="f"><label>Nome do Doente <span class="req">*</span></label><input type="text" id="ent-nome" value="${p?esc(p.nome):''}" placeholder="Nome completo"/></div>
     <div class="g2 f">
       <div><label>Idade <span class="req">*</span></label><input type="number" id="ent-idade" min="0" max="130" value="${p?esc(p.idade):''}" placeholder="Anos"/></div>
       <div><label>Género <span class="req">*</span></label>
@@ -504,26 +494,24 @@ function abrirModalEntrado(idx){
     </div>
     <button class="ba" onclick="registrarEntrado()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${p?'Guardar Alterações':'Registar Entrada'}</button>`;
   document.getElementById('ov').classList.add('open');
-  setTimeout(()=>document.getElementById('ent-nome')?.focus(),200);
+  setTimeout(()=>document.getElementById('ent-idade')?.focus(),200);
 }
 function editEntrado(i){abrirModalEntrado(i);}
 function registrarEntrado(){
-  const nome=document.getElementById('ent-nome').value.trim();
   const idade=document.getElementById('ent-idade').value.trim();
   const genero=document.getElementById('ent-genero').value.trim();
   const diagNef=document.getElementById('ent-diag-nef').value.trim();
   const diagCode='';
-  if(!nome){toast('⚠️ Insira o nome do doente.');return;}
   if(!idade){toast('⚠️ Insira a idade.');return;}
   if(!genero){toast('⚠️ Seleccione o género.');return;}
   if(!diagNef){toast('⚠️ Preencha o diagnóstico de Nefrologia.');return;}
   if(_editEntradoIdx!==null){
-    entradosData[_editEntradoIdx]={nome,idade,genero,diagNefrologia:diagNef,diagCode};
+    entradosData[_editEntradoIdx]={idade,genero,diagNefrologia:diagNef,diagCode};
     _editEntradoIdx=null;
     renderEntrados();fecharModal();calcTotais();ss();
     toast('✅ Entrada atualizada!');
   }else{
-    entradosData.push({nome,idade,genero,diagNefrologia:diagNef,diagCode});
+    entradosData.push({idade,genero,diagNefrologia:diagNef,diagCode});
     renderEntrados();fecharModal();calcTotais();ss();
     toast('✅ Entrada registada!');
   }
@@ -535,7 +523,6 @@ function abrirModalObito(idx){
   const o=_editObitoIdx!==null?obitosData[_editObitoIdx]:null;
   document.getElementById('mo-title').textContent=o?'Editar Óbito':'Registar Óbito';
   document.getElementById('mo-body').innerHTML=`
-    <div class="f"><label>Nome do Doente <span class="req">*</span></label><input type="text" id="obi-nome" value="${o?esc(o.nome):''}" placeholder="Nome completo"/></div>
     <div class="g2 f">
       <div><label>Idade</label><input type="number" id="obi-idade" min="0" max="130" value="${o?esc(o.idade):''}" placeholder="Anos"/></div>
       <div><label>Género <span class="req">*</span></label>
@@ -553,27 +540,25 @@ function abrirModalObito(idx){
     </div>
     <button class="ba rd" onclick="registrarObito()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${o?'Guardar Alterações':'Registar Óbito'}</button>`;
   document.getElementById('ov').classList.add('open');
-  setTimeout(()=>document.getElementById('obi-nome')?.focus(),200);
+  setTimeout(()=>document.getElementById('obi-idade')?.focus(),200);
 }
 function editObito(i){abrirModalObito(i);}
 function registrarObito(){
-  const nome=document.getElementById('obi-nome').value.trim();
   const idade=document.getElementById('obi-idade').value.trim();
   const genero=document.getElementById('obi-genero').value.trim();
   const hora=document.getElementById('obi-hora').value.trim();
   const causa=document.getElementById('obi-causa').value.trim();
   const diagCode='';
-  if(!nome){toast('⚠️ Insira o nome do doente.');return;}
   if(!genero){toast('⚠️ Seleccione o género.');return;}
   if(!hora){toast('⚠️ Insira a hora do óbito.');return;}
   if(!causa){toast('⚠️ Preencha o diagnóstico / causa de óbito.');return;}
   if(_editObitoIdx!==null){
-    obitosData[_editObitoIdx]={nome,idade,genero,hora,causa,diagCode};
+    obitosData[_editObitoIdx]={idade,genero,hora,causa,diagCode};
     _editObitoIdx=null;
     renderObitos();fecharModal();calcTotais();ss();
     toast('✅ Óbito atualizado.');
   }else{
-    obitosData.push({nome,idade,genero,hora,causa,diagCode});
+    obitosData.push({idade,genero,hora,causa,diagCode});
     renderObitos();fecharModal();calcTotais();ss();
     toast('✅ Óbito registado.');
   }
@@ -835,13 +820,13 @@ function visualizar(){
   <div class="ms">${S('Movimento')}${L('Altas',altas)}${L('Leitos Ocupados',leitos)}${L('Vagas',vagas)}</div>
   <div class="ms">${S('Doentes Entrados ('+nEnt+')')}
     ${entradosData.map((p,i)=>`<div style="padding:7px 9px;background:#F8FAFF;border-radius:7px;margin:3px 0;font-size:.82rem;">
-      <div style="display:flex;align-items:center;gap:7px;"><b style="color:#1A56DB;">${i+1}</b> <span style="font-weight:600;">${esc(p.nome)}</span>${p.idade?', '+esc(p.idade)+'a':''} ${genLabel[p.genero]||''}</div>
+      <div style="display:flex;align-items:center;gap:7px;"><b style="color:#1A56DB;">${i+1}</b> <span style="font-weight:600;">${p.idade?esc(p.idade)+'a':'Doente'}</span> ${genLabel[p.genero]||''}</div>
       <div style="margin-top:3px;padding-left:20px;color:#334155;white-space:pre-wrap;word-break:break-word;">${p.diagCode?`<span style="font-family:'DM Mono',monospace;font-weight:700;color:#0E7490;margin-right:5px;">${esc(p.diagCode)}</span>`:''}${esc(p.diagNefrologia||'—')}</div>
     </div>`).join('')||'<div style="font-size:.82rem;color:var(--tx3);">Nenhum doente entrado registado.</div>'}
   </div>
   <div class="ms">${S('Óbitos ('+nObi+')')}
     ${obitosData.map((o,i)=>`<div style="padding:7px 9px;background:#FFF5F5;border-radius:7px;margin:3px 0;font-size:.82rem;">
-      <div style="display:flex;align-items:center;gap:7px;"><b style="color:#DC2626;">${i+1}</b> <span style="font-weight:600;">${esc(o.nome)}</span>${o.idade?', '+esc(o.idade)+'a':''} ${genLabel[o.genero]||''} <b style="margin-left:auto;color:#DC2626;">${esc(o.hora)||''}h</b></div>
+      <div style="display:flex;align-items:center;gap:7px;"><b style="color:#DC2626;">${i+1}</b> <span style="font-weight:600;">${o.idade?esc(o.idade)+'a':'Óbito'}</span> ${genLabel[o.genero]||''} <b style="margin-left:auto;color:#DC2626;">${esc(o.hora)||''}h</b></div>
       <div style="margin-top:3px;padding-left:20px;color:#334155;white-space:pre-wrap;word-break:break-word;">${o.diagCode?`<span style="font-family:'DM Mono',monospace;font-weight:700;color:#DC2626;margin-right:5px;">${esc(o.diagCode)}</span>`:''}${esc(o.causa||'—')}</div>
     </div>`).join('')||'<div style="font-size:.82rem;color:var(--tx3);">Nenhum óbito registado.</div>'}
   </div>`;
@@ -1019,16 +1004,14 @@ async function gerarPDF(silencioso){
       checkPage(7);
       setFill('#E0E7FF');pdf.rect(ML,y,CW,5.5,'F');
       setTxt('#312E81');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
-      pdf.text('#',ML+2,y+4);pdf.text('Nome do Doente',ML+12,y+4);
-      pdf.text('Idade',ML+87,y+4);pdf.text('Ge\u0301nero',ML+CW-28,y+4);
+      pdf.text('#',ML+2,y+4);pdf.text('Idade',ML+12,y+4);pdf.text('Ge\u0301nero',ML+CW-28,y+4);
       y+=5.5;
       const genLbl={M:'Masculino',F:'Feminino',Outro:'Outro'};
       entradosData.forEach(function(p,i){
         const bg=i%2===0?'#F8FAFF':'#EFF6FF';
         detailRow([
           {txt:'#'+(i+1),w:10,bold:true,color:'#312E81'},
-          {txt:p.nome,w:75,bold:true},
-          {txt:p.idade?(p.idade+'a'):'\u2014',w:20,color:'#64748B'},
+          {txt:p.idade?(p.idade+'a'):'\u2014',w:95,color:'#64748B'},
           {txt:genLbl[p.genero]||p.genero||'\u2014',w:CW-105},
         ],bg);
         if(p.diagNefrologia){
@@ -1081,8 +1064,7 @@ async function gerarPDF(silencioso){
       checkPage(7);
       setFill('#FEE2E2');pdf.rect(ML,y,CW,5.5,'F');
       setTxt('#DC2626');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
-      pdf.text('#',ML+2,y+4);pdf.text('Nome',ML+12,y+4);
-      pdf.text('Idade / G\u00e9nero',ML+78,y+4);pdf.text('Hora',ML+CW-20,y+4);
+      pdf.text('#',ML+2,y+4);pdf.text('Idade / G\u00e9nero',ML+12,y+4);pdf.text('Hora',ML+CW-20,y+4);
       y+=5.5;
       const genLblO={M:'Masculino',F:'Feminino'};
       obitosData.forEach(function(o,i){
@@ -1090,8 +1072,7 @@ async function gerarPDF(silencioso){
         const idadeGen=[o.idade?(o.idade+'a'):'',genLblO[o.genero]||''].filter(Boolean).join(' · ');
         detailRow([
           {txt:'\u00d3'+(i+1),w:10,bold:true,color:'#DC2626'},
-          {txt:o.nome||'Nao identificado',w:66,bold:true},
-          {txt:idadeGen||'\u2014',w:CW-101,color:'#64748B'},
+          {txt:idadeGen||'\u2014',w:CW-35,color:'#64748B'},
           {txt:o.hora?(o.hora+'h'):'\u2014',w:25,bold:true,color:'#DC2626'},
         ],bg);
         if(o.causa){

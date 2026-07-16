@@ -906,20 +906,18 @@ function addCamas(){
     if(perdidas>0&&!confirm('Reduzir para '+n+' camas vai remover '+perdidas+' ficha(s) já preenchida(s). Continuar?'))return;
   }
   // Adjust to exactly n camas
-  while(state.camas.length<n) state.camas.push({id:Date.now()+state.camas.length,nome:'',idade:'',genero:'',diagnostico:'',saved:false});
+  while(state.camas.length<n) state.camas.push({id:Date.now()+state.camas.length,idade:'',genero:'',diagnostico:'',saved:false});
   state.camas.length=n;
   renderCamas();upd();ss();
   toast('✓ '+n+' cama(s) preparada(s) — preencha cada ficha.');
 }
 function saveCama(id){
   const m=state.camas.find(x=>x.id===id);if(!m)return;
-  m.nome=(document.getElementById('c-nome-'+id)?.value||'').trim();
   m.idade=(document.getElementById('c-idade-'+id)?.value||'').trim();
   m.genero=(document.getElementById('c-gen-'+id)?.value||'').trim();
   m.diagnostico=(document.getElementById('c-diag-'+id)?.value||'').trim();
   // Todos os campos são obrigatórios
   const erros=[];
-  if(!m.nome){erros.push('c-nome-'+id);}
   if(!m.idade){erros.push('c-idade-'+id);}
   if(!m.genero){erros.push('c-gen-'+id);}
   if(!m.diagnostico){erros.push('c-diag-'+id);}
@@ -930,7 +928,7 @@ function saveCama(id){
   }
   m.saved=true;renderCamas();upd();ss();toast('✓ Cama guardada.');
 }
-function editCama(id){const m=state.camas.find(x=>x.id===id);if(m)m.saved=false;renderCamas();setTimeout(()=>{const el=document.getElementById('c-nome-'+id);if(el){el.focus();el.select();}},60);}
+function editCama(id){const m=state.camas.find(x=>x.id===id);if(m)m.saved=false;renderCamas();setTimeout(()=>{const el=document.getElementById('c-idade-'+id);if(el){el.focus();el.select();}},60);}
 function delCama(id){
   state.camas=state.camas.filter(x=>x.id!==id);
   const n=document.getElementById('camas-n');if(n)n.value=state.camas.length||'';
@@ -945,7 +943,6 @@ function renderCamas(){
       h+=`<div class="rc sv">
         <div class="rh">
           <span class="rn ci">Cama ${i+1}</span>
-          <span class="rv">${c.nome}</span>
           ${c.idade?`<span class="rb2 rbi">${c.idade} anos</span>`:''}
           ${c.genero?`<span class="rb2 rba">${c.genero}</span>`:''}
         </div>
@@ -959,11 +956,10 @@ function renderCamas(){
       h+=`<div class="rc ed">
         <div class="rh"><span class="rn">Cama ${i+1}</span></div>
         <div class="g2" style="margin-bottom:10px;">
-          <div class="f" style="margin-bottom:0;"><label>Nome <span class="req">*</span></label><input type="text" id="c-nome-${c.id}" value="${c.nome||''}" placeholder="Nome do doente" oninput="this.classList.remove('err-inp')"></div>
           <div class="f" style="margin-bottom:0;"><label>Idade <span class="req">*</span></label><input type="number" id="c-idade-${c.id}" value="${c.idade||''}" placeholder="Anos" min="0" max="130" oninput="this.classList.remove('err-inp')"></div>
+          <div class="f" style="margin-bottom:0;"><label>Género <span class="req">*</span></label><select id="c-gen-${c.id}" onchange="this.classList.remove('err-inp')">${GEN_OPTS.map(o=>`<option value="${o}" ${c.genero===o?'selected':''}>${o||'— Seleccionar —'}</option>`).join('')}</select></div>
         </div>
         <div class="g2" style="margin-bottom:10px;">
-          <div class="f" style="margin-bottom:0;"><label>Género <span class="req">*</span></label><select id="c-gen-${c.id}" onchange="this.classList.remove('err-inp')">${GEN_OPTS.map(o=>`<option value="${o}" ${c.genero===o?'selected':''}>${o||'— Seleccionar —'}</option>`).join('')}</select></div>
           <div class="f" style="margin-bottom:0;"><label>Diagnóstico <span class="req">*</span></label><input type="text" id="c-diag-${c.id}" value="${c.diagnostico||''}" placeholder="Diagnóstico / CID" oninput="this.classList.remove('err-inp')"></div>
         </div>
         <div class="ra">
@@ -982,22 +978,20 @@ function renderCamas(){
 // ── ÓBITOS ────────────────────────────────────────────────
 function addObito(){
   const id=Date.now();
-  state.obitos.push({id,nome:'',idade:'',genero:'',hora:'',causa:'',saved:false});
+  state.obitos.push({id,idade:'',genero:'',hora:'',causa:'',saved:false});
   renderObitos();
-  setTimeout(()=>{const el=document.getElementById('ob-nome-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
+  setTimeout(()=>{const el=document.getElementById('ob-idade-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
 }
 function saveObito(id){
   const m=state.obitos.find(x=>x.id===id);if(!m)return;
-  const nome=(document.getElementById('ob-nome-'+id)?.value||'').trim();
   const idade=(document.getElementById('ob-idade-'+id)?.value||'').trim();
   const genero=document.getElementById('ob-gen-'+id)?.value||'';
   const hora=document.getElementById('ob-hora-'+id)?.value||'';
   const causa=(document.getElementById('ob-causa-'+id)?.value||'').trim();
   const reqFld=(fid,msg)=>{const el=document.getElementById(fid);if(el){el.classList.add('err-inp');setTimeout(()=>el.classList.remove('err-inp'),2000);el.focus();}toast(msg);};
-  if(!nome){reqFld('ob-nome-'+id,'Nome é obrigatório.');return;}
   if(!hora){reqFld('ob-hora-'+id,'Hora do óbito é obrigatória.');return;}
   if(!causa){reqFld('ob-causa-'+id,'Causa / diagnóstico é obrigatório.');return;}
-  m.nome=nome;m.idade=idade;m.genero=genero;m.hora=hora;m.causa=causa;m.saved=true;
+  m.idade=idade;m.genero=genero;m.hora=hora;m.causa=causa;m.saved=true;
   renderObitos();upd();ss();toast('✓ Óbito registado.');
 }
 function editObito(id){const m=state.obitos.find(x=>x.id===id);if(m)m.saved=false;renderObitos();}
@@ -1008,7 +1002,7 @@ function renderObitos(){
   state.obitos.forEach((o,i)=>{
     if(o.saved){
       h+=`<div class="rc svr">
-        <div class="rh"><span class="rn rd">${i+1}</span><span class="rv">${o.nome}${o.idade?', '+o.idade+'a':''} ${o.genero==='Masculino'?'♂':o.genero==='Feminino'?'♀':''}</span></div>
+        <div class="rh"><span class="rn rd">${i+1}</span><span class="rv">${o.idade?o.idade+'a':''} ${o.genero==='Masculino'?'♂':o.genero==='Feminino'?'♀':''}</span></div>
         <div style="font-size:.85rem;color:var(--tx2);line-height:1.55;">${o.causa}</div>
         <div style="font-size:.72rem;color:var(--tx3);margin-top:2px;">Hora do óbito: <b>${o.hora}</b></div>
         <div class="ra">
@@ -1018,7 +1012,6 @@ function renderObitos(){
       </div>`;
     }else{
       h+=`<div class="rc ed">
-        <div class="f"><label>Nome <span class="req">*</span></label><input type="text" id="ob-nome-${o.id}" value="${o.nome||''}" placeholder="Nome completo"/></div>
         <div class="g2">
           <div class="f"><label>Idade</label><input type="number" id="ob-idade-${o.id}" min="0" value="${o.idade||''}" placeholder="Anos"/></div>
           <div class="f"><label>Género</label><select id="ob-gen-${o.id}"><option value="">—</option><option value="Masculino" ${o.genero==='Masculino'?'selected':''}>Masculino</option><option value="Feminino" ${o.genero==='Feminino'?'selected':''}>Feminino</option></select></div>
@@ -1270,7 +1263,7 @@ function visualizar(){
   const camasSv=state.camas.filter(x=>x.saved);
   html+=sec(IC.bed,'Camas Ocupadas ('+camasSv.length+' / '+(parseInt(s.camasN)||camasSv.length)+')',
     camasSv.length?camasSv.map((c,i)=>`<div style="padding:7px 9px;background:#F0F9FF;border-radius:7px;margin:3px 0;font-size:.82rem;">
-      <div style="display:flex;align-items:center;gap:7px;"><b style="color:#0284C7;">Cama ${i+1}</b> <span style="font-weight:600;">${c.nome||'—'}</span>${c.idade?', '+c.idade+'a':''} ${c.genero||''}</div>
+      <div style="display:flex;align-items:center;gap:7px;"><b style="color:#0284C7;">Cama ${i+1}</b> <span style="font-weight:600;">${c.idade?c.idade+'a':'—'}</span> ${c.genero||''}</div>
       ${c.diagnostico?`<div style="margin-top:2px;padding-left:4px;color:#334155;">${c.diagnostico}</div>`:''}
     </div>`).join(''):'<div style="font-size:.82rem;color:var(--tx3);">Nenhuma cama registada.</div>');
 
@@ -1286,7 +1279,7 @@ function visualizar(){
   const obSv=state.obitos.filter(x=>x.saved);
   if(obSv.length) html+=sec(IC.obito,'Óbitos ('+obSv.length+')',
     obSv.map((o,i)=>`<div style="padding:7px 9px;background:#FFF5F5;border-radius:7px;margin:3px 0;font-size:.82rem;">
-      <div style="display:flex;align-items:center;gap:7px;"><b style="color:#DC2626;">${i+1}</b> <span style="font-weight:600;">${o.nome}</span>${o.idade?', '+o.idade+'a':''} ${o.genero||''} <b style="margin-left:auto;color:#DC2626;">${o.hora||''}h</b></div>
+      <div style="display:flex;align-items:center;gap:7px;"><b style="color:#DC2626;">${i+1}</b> <span style="font-weight:600;">${o.idade?o.idade+'a':'Óbito'}</span> ${o.genero||''} <b style="margin-left:auto;color:#DC2626;">${o.hora||''}h</b></div>
       <div style="margin-top:2px;padding-left:4px;color:#334155;">${o.causa}</div>
     </div>`).join(''));
 
@@ -1500,7 +1493,7 @@ async function gerarPDF(silencioso){
         setFill(i%2===0?'#FFF5F5':'#FFFFFF');pdf.rect(ML,y,CW,6.5,'F');
         setDraw('#FCA5A5');pdf.setLineWidth(0.1);pdf.line(ML,y+6.5,ML+CW,y+6.5);
         setTxt('#DC2626');pdf.setFontSize(9);pdf.setFont('helvetica','bold');
-        T('#'+(i+1)+'  '+safe(o.nome||''),ML+3,y+4.5);
+        T('#'+(i+1),ML+3,y+4.5);
         setTxt('#64748B');pdf.setFont('helvetica','normal');pdf.setFontSize(8);
         T((o.idade?o.idade+'a ':'')+(o.genero||'')+'  -  '+(o.hora||''),ML+CW-2,y+4.5,{align:'right'});
         y+=6.5;
@@ -1523,14 +1516,13 @@ async function gerarPDF(silencioso){
       checkPage(7);
       setFill('#0D1B3E');pdf.rect(ML,y,CW,5.5,'F');
       setTxt('#93C5FD');pdf.setFontSize(7);pdf.setFont('helvetica','bold');
-      T('Cama',ML+2,y+4);T('Doente',ML+22,y+4);T('Idade',ML+82,y+4);T('Genero',ML+102,y+4);T('Diagnostico',ML+132,y+4);y+=5.5;
+      T('Cama',ML+2,y+4);T('Idade',ML+22,y+4);T('Genero',ML+52,y+4);T('Diagnostico',ML+82,y+4);y+=5.5;
       cs.forEach(function(c,i){
         detailRow([
           {txt:'Cama '+(i+1),w:20,bold:true,color:'#1A56DB'},
-          {txt:c.nome||'',w:60,bold:true},
-          {txt:c.idade?c.idade+'a':'--',w:20,color:'#64748B'},
+          {txt:c.idade?c.idade+'a':'--',w:30,color:'#64748B'},
           {txt:c.genero||'--',w:30,color:'#64748B'},
-          {txt:c.diagnostico||'--',w:CW-130,color:'#334155'},
+          {txt:c.diagnostico||'--',w:CW-80,color:'#334155'},
         ],i%2===0?'#F0F9FF':'#E0F2FE');
       });
     }else{
