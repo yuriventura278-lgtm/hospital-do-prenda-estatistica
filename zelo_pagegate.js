@@ -3,6 +3,37 @@ import { auth, fetchUserProfile, onAuthStateChanged, hasModuleAccess } from './z
 
 var moduleKey = window.ZELO_MODULE || null;
 var itemKey = window.ZELO_ITEM || null;
+var embedded = window.self !== window.top;
+var resolvido = false;
+
+function aplicarAcesso(role, permissoes){
+  resolvido = true;
+  if (moduleKey && !hasModuleAccess(role, permissoes || {}, moduleKey, itemKey)) {
+    showBlockedScreen();
+    return;
+  }
+  document.documentElement.style.visibility = 'visible';
+  window.dispatchEvent(new CustomEvent('zelo-gate-ready', {
+    detail: { role: role, permissoes: permissoes || {} }
+  }));
+}
+
+// Quando esta página está embutida num iframe (ex: Dashboard.html dentro do index.html),
+// a sessão do Firebase Auth por vezes não é detetada de imediato no contexto isolado do
+// iframe — reencaminhar nesse caso mostrava um ecrã de login duplicado dentro do próprio
+// painel. Em vez disso, esperamos que a página-mãe (já autenticada) confirme a sessão.
+if (embedded) {
+  window.addEventListener('message', function (ev) {
+    if (ev.source !== window.parent || ev.origin !== window.location.origin) return;
+    if (!ev.data || ev.data.type !== 'zelo-parent-auth' || resolvido) return;
+    sessionStorage.setItem('zeloRole', ev.data.role || 'funcionario');
+    sessionStorage.setItem('zeloNome', ev.data.nome || '');
+    sessionStorage.setItem('zeloEmail', ev.data.email || '');
+    sessionStorage.setItem('zeloPermissoes', JSON.stringify(ev.data.permissoes || {}));
+    aplicarAcesso(ev.data.role || 'funcionario', ev.data.permissoes || {});
+  });
+  try { window.parent.postMessage({ type: 'zelo-child-ready' }, window.location.origin); } catch (e) {}
+}
 
 function showBlockedScreen(){
   document.documentElement.style.visibility = 'visible';
@@ -21,12 +52,20 @@ function showBlockedScreen(){
 }
 
 onAuthStateChanged(auth, async function (user) {
+  if (resolvido) return;
   if (!user) {
+    if (embedded) {
+      // Dá tempo à página-mãe para responder com 'zelo-parent-auth' antes de desistir.
+      setTimeout(function () { if (!resolvido) window.top.location.href = 'index.html'; }, 4000);
+      return;
+    }
     window.location.replace('index.html');
     return;
   }
   var perfil = await fetchUserProfile(user.uid);
+  if (resolvido) return;
   if (!perfil || perfil.ativo === false) {
+    if (embedded) { window.top.location.href = 'index.html'; return; }
     window.location.replace('index.html');
     return;
   }
@@ -34,15 +73,7 @@ onAuthStateChanged(auth, async function (user) {
   sessionStorage.setItem('zeloNome', perfil.nome || user.email);
   sessionStorage.setItem('zeloEmail', user.email || '');
   sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
-  var role = perfil.role || 'funcionario';
-  if (moduleKey && !hasModuleAccess(role, perfil.permissoes || {}, moduleKey, itemKey)) {
-    showBlockedScreen();
-    return;
-  }
-  document.documentElement.style.visibility = 'visible';
-  window.dispatchEvent(new CustomEvent('zelo-gate-ready', {
-    detail: { role: role, permissoes: perfil.permissoes || {} }
-  }));
+  aplicarAcesso(perfil.role || 'funcionario', perfil.permissoes || {});
 });
 
 window.ZeloShowBlocked = showBlockedScreen;

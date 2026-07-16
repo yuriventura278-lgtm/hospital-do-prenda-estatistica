@@ -580,6 +580,8 @@ import {
     failCount=0;
     captchaBox.classList.remove('show');
     hideGate();
+    window.zeloAuthInfo = { role: perfil.role || 'funcionario', permissoes: perfil.permissoes || {}, nome: perfil.nome || user.email, email: user.email || '' };
+    if(typeof window.zeloEnviarAuthParaIframe === 'function') window.zeloEnviarAuthParaIframe();
     if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
     if(typeof window.zeloApplyPermissoes === 'function') window.zeloApplyPermissoes(perfil.role || 'funcionario', perfil.permissoes || {});
     if(typeof window.zeloDashboardInit === 'function') window.zeloDashboardInit(perfil.role || 'funcionario');
@@ -868,6 +870,25 @@ window.zeloDashboardInit = function(role){
   if(role === 'admin') carregarAlertasAdmin();
   else renderAlertas();
 };
+
+// Passa a sessão já autenticada para o iframe do Dashboard — evita que o iframe
+// (contexto isolado) tenha de detetar a sessão do Firebase Auth por si próprio,
+// o que por vezes falha e mostrava um ecrã de login duplicado dentro do painel.
+window.zeloEnviarAuthParaIframe = function(){
+  if(!window.zeloAuthInfo) return;
+  var ifr = document.getElementById('zeloDashIframe');
+  if(!ifr || !ifr.contentWindow) return;
+  try{ ifr.contentWindow.postMessage(Object.assign({type:'zelo-parent-auth'}, window.zeloAuthInfo), window.location.origin); }catch(e){}
+};
+window.addEventListener('message', function(ev){
+  if(ev.origin !== window.location.origin) return;
+  if(!ev.data || ev.data.type !== 'zelo-child-ready') return;
+  window.zeloEnviarAuthParaIframe();
+});
+document.addEventListener('DOMContentLoaded', function(){
+  var ifr = document.getElementById('zeloDashIframe');
+  if(ifr) ifr.addEventListener('load', window.zeloEnviarAuthParaIframe);
+});
 </script>
 
 <div class="zelo-shell">
