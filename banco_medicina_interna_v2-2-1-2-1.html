@@ -2074,9 +2074,9 @@ function renderOp(){
         <div class="f"><label>Especialidade</label>
           <input type="text" id="op-esp-${o.id}" value="${o.especialidade||'Medicina Interna'}" placeholder="Medicina Interna"/>
         </div>
-        <div class="f"><label>Diagnóstico (CID)<span class="req">*</span></label><div class="cw">
-          <input type="text" id="op-csrch-${o.id}" value="${o.cidCode?o.cidCode+' — '+o.cidDesc:(o.cidDesc||'')}" placeholder="Pesquisar CID ou escrever..." autocomplete="off"
-            oninput="cidSrch(this,'op-cdrop-${o.id}','op',${o.id});document.getElementById('op-cdesc-${o.id}').value=this.value;"/>
+        <div class="f"><label>Diagnóstico<span class="req">*</span></label><div class="cw">
+          <input type="text" id="op-csrch-${o.id}" value="${o.cidCode?o.cidCode+' — '+o.cidDesc:(o.cidDesc||'')}" placeholder="Escrever diagnóstico..." autocomplete="off"
+            oninput="document.getElementById('op-cdesc-${o.id}').value=this.value;"/>
           <div class="cd" id="op-cdrop-${o.id}"></div>
           <input type="hidden" id="op-ccode-${o.id}" value="${o.cidCode||''}"/>
           <input type="hidden" id="op-cdesc-${o.id}" value="${o.cidDesc||''}"/>
