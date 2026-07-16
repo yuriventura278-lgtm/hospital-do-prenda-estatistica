@@ -1,21 +1,40 @@
 // ── ZELO — Tema claro/escuro ──
-// Funciona em qualquer página do sistema sem precisar de tocar no CSS de
-// cada uma: em vez de reescrever as cores de cada painel/badge/formulário
-// (impraticável em ~65 páginas com estilos próprios), inverte a luminosidade
-// da página inteira e depois reverte imagens/fotos para não ficarem como
-// "negativos". O resultado é um modo escuro consistente em todo o sistema,
-// com um único ficheiro partilhado.
+// Aplicado em todas as páginas por um único ficheiro partilhado. Em vez de
+// inverter os pixels da página (efeito genérico e que quebra o azul-marinho
+// da marca, que já é escuro no tema claro), redefine as mesmas variáveis de
+// cor (--nv, --bl, --cy, --sf, --tx, ...) já usadas em todo o sistema, e
+// escurece também os painéis/cartões que usam branco fixo.
 (function () {
   var STORAGE_KEY = 'zeloTema';
 
   var style = document.createElement('style');
   style.textContent = `
-    html{transition:filter .25s ease;}
-    html[data-zelo-theme="dark"]{filter:invert(1) hue-rotate(180deg);background:#fff;}
-    html[data-zelo-theme="dark"] img,
-    html[data-zelo-theme="dark"] video,
-    html[data-zelo-theme="dark"] iframe,
-    html[data-zelo-theme="dark"] canvas{filter:invert(1) hue-rotate(180deg);}
+    html{color-scheme:light;}
+    html[data-zelo-theme="dark"]{color-scheme:dark;}
+    :root[data-zelo-theme="dark"]{
+      --bl:#3B82F6;--bl2:#60A5FA;--cy:#22D3EE;--cyl:#67E8F9;
+      --blt:#1E3A5F;--blxt:#152A47;
+      --gr:#34D399;--rd:#F87171;--am:#FBBF24;--or:#FB923C;--pu:#A78BFA;
+      --sf:#0B1220;--br:#1E293B;--br2:#334155;
+      --tx:#F1F5F9;--tx2:#CBD5E1;--tx3:#94A3B8;
+      --s1:0 2px 10px rgba(0,0,0,.35);--s2:0 10px 32px rgba(0,0,0,.5);
+    }
+    html[data-zelo-theme="dark"] body{background:var(--sf);color:var(--tx);}
+    html[data-zelo-theme="dark"] .panel,
+    html[data-zelo-theme="dark"] .rc,
+    html[data-zelo-theme="dark"] .st,
+    html[data-zelo-theme="dark"] .ms,
+    html[data-zelo-theme="dark"] .card,
+    html[data-zelo-theme="dark"] table,
+    html[data-zelo-theme="dark"] input,
+    html[data-zelo-theme="dark"] select,
+    html[data-zelo-theme="dark"] textarea{
+      background:#111A2E !important;color:var(--tx) !important;border-color:var(--br) !important;
+    }
+    html[data-zelo-theme="dark"] input::placeholder,
+    html[data-zelo-theme="dark"] textarea::placeholder{color:#64748B !important;}
+    html[data-zelo-theme="dark"] th{color:var(--tx3) !important;border-color:var(--br) !important;}
+    html[data-zelo-theme="dark"] td{border-color:var(--br) !important;}
     .zelo-theme-btn{
       position:fixed;bottom:18px;right:18px;z-index:2147483000;
       width:46px;height:46px;border-radius:50%;border:1.5px solid rgba(255,255,255,.18);
@@ -24,7 +43,6 @@
       font-family:Inter,Arial,sans-serif;line-height:1;padding:0;
     }
     .zelo-theme-btn:active{transform:scale(.94);}
-    html[data-zelo-theme="dark"] .zelo-theme-btn{filter:invert(1) hue-rotate(180deg);}
   `;
   document.head.appendChild(style);
 
