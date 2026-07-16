@@ -274,7 +274,7 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
   <div class="fb-warn" id="fbWarn">
     ⚠ Não foi possível ligar ao Firebase (ou as permissões de leitura ainda não foram activadas). Verifique a ligação à internet e as regras do Realtime Database.
   </div>
-  <div id="content"><div class="loading">A carregar…</div></div>
+  <div id="content"><div class="loading">A carregar indicadores…</div></div>
 </main>
 
 <script>
@@ -1546,7 +1546,7 @@ function render(){
 
 /* ══════════════════ CARREGAMENTO ══════════════════ */
 async function load(){
-  contentEl.innerHTML = '<div class="loading">A carregar…</div>';
+  contentEl.innerHTML = '<div class="loading">A carregar indicadores…</div>';
 
   if(!window.__fbReady || !window.__fbGet){
     fbWarn.classList.add('show');
@@ -1599,7 +1599,7 @@ async function exportPDF(svc, subtitleText, fileSuffix, sections, entry, coverag
   const btn = document.getElementById('btnPDF');
   if(!btn) return;
   const orig = btn.innerHTML;
-  btn.disabled = true; btn.textContent = 'A gerar…';
+  btn.disabled = true; btn.textContent = 'A gerar PDF…';
   try{
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});

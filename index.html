@@ -577,6 +577,7 @@ import {
     authGateResolvido = true;
     clearTimeout(authGateTimeout);
     if(!user){ showAuthForm(); return; }
+    if(btn.disabled){ btnLabel.innerHTML='<span class="zaf-spin"></span> A carregar dados…'; }
     var perfil = await fetchUserProfile(user.uid);
     if(!perfil || perfil.ativo === false){
       showAuthForm();
@@ -631,7 +632,7 @@ import {
       }
     }
     btn.disabled=true;
-    btnLabel.innerHTML='<span class="zaf-spin"></span>';
+    btnLabel.innerHTML='<span class="zaf-spin"></span> A verificar credenciais…';
     try{
       var lockState = await checkLoginLockout(email);
       if(lockState.blocked){
