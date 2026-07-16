@@ -149,7 +149,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   #zeloAuthGate input{width:100%;padding:12px 14px 12px 40px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:1rem;font-family:inherit;background:#F8FAFC;color:#0F172A;transition:border-color .15s,box-shadow .15s,background .15s;}
   #zeloAuthGate input::placeholder{color:#AAB4C4;}
   #zeloAuthGate input:focus{outline:none;border-color:#1A56DB;box-shadow:0 0 0 3px rgba(26,86,219,.14);background:#fff;}
-  #zeloAuthGate input#zeloAuthCode{padding-right:42px;}
+  #zeloAuthGate input#zeloAuthPass{padding-right:42px;}
   #zeloAuthGate .zaf-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94A3B8;padding:6px;display:flex;align-items:center;justify-content:center;border-radius:6px;}
   #zeloAuthGate .zaf-toggle:hover{color:#1A56DB;background:#EFF6FF;}
   #zeloAuthGate button[type=submit]{width:100%;margin-top:6px;background:#1A56DB;color:#fff;border:none;border-radius:10px;padding:12px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .08s,opacity .15s;}
@@ -191,11 +191,19 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
     </div>
 
     <div class="zaf-field">
-      <label for="zeloAuthCode">Código de Acesso</label>
+      <label for="zeloAuthEmail">Email</label>
+      <div class="zaf-wrap">
+        <svg class="zaf-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <input id="zeloAuthEmail" name="email" type="email" placeholder="nome@hospitaldoprenda.ao" autocomplete="email" required/>
+      </div>
+    </div>
+
+    <div class="zaf-field">
+      <label for="zeloAuthPass">Password</label>
       <div class="zaf-wrap">
         <svg class="zaf-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <input id="zeloAuthCode" name="codigo" type="password" placeholder="Introduza o seu código" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" required/>
-        <button type="button" class="zaf-toggle" id="zeloAuthToggle" aria-label="Mostrar código">
+        <input id="zeloAuthPass" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required/>
+        <button type="button" class="zaf-toggle" id="zeloAuthToggle" aria-label="Mostrar password">
           <svg id="zeloAuthEyeIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </div>
@@ -203,10 +211,10 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin:-8px 0 14px;font-size:.74rem;">
       <label style="display:flex;align-items:center;gap:6px;color:#475569;font-weight:600;cursor:pointer;margin:0;">
-        <input type="checkbox" id="zeloAuthRemember" style="width:auto;padding:0;margin:0;accent-color:#1A56DB;cursor:pointer;"/>
+        <input type="checkbox" id="zeloAuthRemember" checked style="width:auto;padding:0;margin:0;accent-color:#1A56DB;cursor:pointer;"/>
         Lembrar-me
       </label>
-      <span style="color:#94A3B8;font-weight:600;">Código perdido? Contacte um administrador.</span>
+      <a href="#" id="zeloForgotLink" style="color:#1A56DB;text-decoration:none;font-weight:600;">Esqueceu a password?</a>
     </div>
 
     <div class="zaf-caps" id="zeloCapsWarn">
@@ -228,10 +236,10 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 </div>
 <script type="module">
 import {
-  auth, fetchUserProfile, signInWithEmailAndPassword, signOut,
+  auth, fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
-  touchLastAccess, codeToEmail
+  touchLastAccess
 } from './zelo_auth.js';
 
 (function(){
@@ -239,8 +247,10 @@ import {
   var form=document.getElementById('zeloAuthForm');
   var err=document.getElementById('zeloAuthErr');
   var errText=err.querySelector('span');
-  var codeInput=document.getElementById('zeloAuthCode');
+  var userInput=document.getElementById('zeloAuthEmail');
+  var passInput=document.getElementById('zeloAuthPass');
   var rememberInput=document.getElementById('zeloAuthRemember');
+  var forgotLink=document.getElementById('zeloForgotLink');
   var toggleBtn=document.getElementById('zeloAuthToggle');
   var eyeIcon=document.getElementById('zeloAuthEyeIcon');
   var btn=document.getElementById('zeloAuthBtn');
@@ -251,22 +261,26 @@ import {
   htmlEl.style.overflow='hidden';
   var stopInactivityWatch=null;
 
-  codeInput.focus();
+  userInput.focus();
+
+  userInput.addEventListener('keydown', function(e){
+    if(e.key==='Enter'){ e.preventDefault(); passInput.focus(); }
+  });
 
   function checkCaps(e){
     if(e.getModifierState && e.getModifierState('CapsLock')){ capsWarn.style.display='flex'; }
     else{ capsWarn.style.display='none'; }
   }
-  codeInput.addEventListener('keyup', checkCaps);
-  codeInput.addEventListener('keydown', checkCaps);
+  passInput.addEventListener('keyup', checkCaps);
+  passInput.addEventListener('keydown', checkCaps);
 
   toggleBtn.addEventListener('click', function(){
-    var showing = codeInput.type === 'text';
-    codeInput.type = showing ? 'password' : 'text';
+    var showing = passInput.type === 'text';
+    passInput.type = showing ? 'password' : 'text';
     eyeIcon.innerHTML = showing
       ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>'
       : '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.06 21.06 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.06 21.06 0 0 1-3.22 4.43M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
-    toggleBtn.setAttribute('aria-label', showing ? 'Mostrar código' : 'Ocultar código');
+    toggleBtn.setAttribute('aria-label', showing ? 'Mostrar password' : 'Ocultar password');
   });
 
   function hideGate(){
@@ -280,12 +294,12 @@ import {
     var loading = document.getElementById('zeloAuthLoading');
     if(loading) loading.style.display = 'none';
     form.style.display = '';
-    codeInput.focus();
+    userInput.focus();
   }
 
   window.zeloLogout = function(){
     if(stopInactivityWatch){ stopInactivityWatch(); stopInactivityWatch=null; }
-    signOut(auth).catch(function(){}).then(function(){ window.location.reload(); });
+    signOut(auth);
   };
 
   onAuthStateChanged(auth, async function(user){
@@ -319,8 +333,8 @@ import {
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     if(btn.disabled) return;
-    var codigo=codeInput.value.trim();
-    var email=codeToEmail(codigo);
+    var email=userInput.value.trim();
+    var pass=passInput.value;
     err.style.display='none';
     btn.disabled=true;
     btnLabel.innerHTML='<span class="zaf-spin"></span>';
@@ -334,14 +348,16 @@ import {
         return;
       }
       await setPersistence(auth, rememberInput.checked ? browserLocalPersistence : browserSessionPersistence);
-      await signInWithEmailAndPassword(auth, email, codigo);
+      await signInWithEmailAndPassword(auth, email, pass);
+      if(window.PasswordCredential){ try{ navigator.credentials.store(new PasswordCredential({ id:email, password:pass, name:'ZELO' })); }catch(e2){} }
     }catch(e2){
       btn.disabled=false;
       btnLabel.textContent='Entrar';
-      var msg='Código incorreto.';
+      var msg='Email ou password incorretos.';
       if(e2 && e2.code==='auth/too-many-requests') msg='Demasiadas tentativas falhadas. Tente novamente mais tarde.';
+      if(e2 && e2.code==='auth/invalid-email') msg='Email inválido.';
       if(e2 && e2.code==='auth/user-disabled') msg='Esta conta foi desativada.';
-      if(e2 && (e2.code==='auth/wrong-password' || e2.code==='auth/invalid-credential' || e2.code==='auth/user-not-found' || e2.code==='auth/invalid-email')){
+      if(e2 && (e2.code==='auth/wrong-password' || e2.code==='auth/invalid-credential' || e2.code==='auth/user-not-found')){
         var novaContagem = await registerFailedLogin(email);
         if(novaContagem >= 5) msg='Demasiadas tentativas falhadas. A conta fica bloqueada 15 minutos.';
       }
@@ -351,6 +367,25 @@ import {
       void form.offsetWidth;
       form.classList.add('shake');
       await logAuditEvent(null, email, 'login_falhado', { erro: e2 && e2.code });
+    }
+  });
+
+  forgotLink.addEventListener('click', async function(e){
+    e.preventDefault();
+    var email=userInput.value.trim();
+    if(!email){
+      errText.textContent='Escreva o seu email no campo acima e clique novamente em "Esqueceu a password?".';
+      err.style.display='flex';
+      userInput.focus();
+      return;
+    }
+    try{
+      await sendPasswordResetEmail(auth, email);
+      err.style.display='none';
+      forgotLink.textContent='Email enviado! Verifique a caixa de entrada.';
+    }catch(e2){
+      errText.textContent='Não foi possível enviar o email de recuperação. Verifique se o email está correto.';
+      err.style.display='flex';
     }
   });
 })();
