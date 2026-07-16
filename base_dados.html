@@ -5,6 +5,8 @@
 <script>window.ZELO_MODULE='estatistica';</script>
 <script>window.ZELO_ITEM='base_dados';</script>
 <script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_indexeddb.js"></script>
+<script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
 <title>Base de Dados · ZELO</title>
@@ -203,8 +205,10 @@ main{max-width:1040px;margin:0 auto;padding:22px 20px 70px;}
       <div class="zbd-stat"><div class="n" id="zbdStatAoVivo">—</div><div class="l">Registos ao vivo no Firebase</div></div>
       <div class="zbd-stat"><div class="n" id="zbdStatMeses">—</div><div class="l">Meses já arquivados</div></div>
       <div class="zbd-stat"><div class="n">Dia 2</div><div class="l">Próxima limpeza automática</div></div>
+      <div class="zbd-stat"><div class="n" id="zbdStatEspaco">—</div><div class="l" id="zbdStatEspacoL">Espaço local usado</div></div>
     </div>
     <p class="zbd-note">O Firebase mantém apenas os dados do mês atual e do mês anterior. No dia 2 de cada mês, um processo automático gera um relatório em PDF e um arquivo completo (sem resumir nem perder nenhum dado), guarda tudo permanentemente neste repositório do GitHub, e só depois liberta esse espaço no Firebase — nada é apagado sem ficar arquivado primeiro.</p>
+    <p class="zbd-note" id="zbdPersistNote"></p>
   </div>
 
   <div class="zbd-panel">
@@ -271,61 +275,20 @@ const ALL_SERVICES = [
   ...PROC_SERVICES.map(s=>({...s, prefix:'registos_enf'})),
 ];
 
-/* ══════════════════ INDEXEDDB ══════════════════ */
-const DB_NAME='zelo_basedados_db', DB_VER=1, STORE='registos';
-let __db=null;
-function ddOpen(){
-  return new Promise((resolve,reject)=>{
-    if(!window.indexedDB){
-      reject(new Error('IndexedDB não está disponível neste navegador (pode estar em modo privado).'));
-      return;
-    }
-    const req=indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded=e=>{
-      const db=e.target.result;
-      if(!db.objectStoreNames.contains(STORE)){
-        const store=db.createObjectStore(STORE,{keyPath:'chave'});
-        store.createIndex('byDate','date',{unique:false});
-        store.createIndex('byPrefix','prefix',{unique:false});
-      }
-    };
-    req.onsuccess=e=>{ __db=e.target.result; resolve(__db); };
-    req.onerror=()=>reject(req.error);
-    req.onblocked=()=>reject(new Error('A base de dados local está bloqueada — fecha outras abas do ZELO abertas e recarrega a página.'));
-  });
-}
-function ddPutAll(records){
-  return new Promise((resolve,reject)=>{
-    if(!records.length){ resolve(); return; }
-    const tx=__db.transaction(STORE,'readwrite');
-    const store=tx.objectStore(STORE);
-    records.forEach(r=>store.put(r));
-    tx.oncomplete=()=>resolve();
-    tx.onerror=()=>reject(tx.error);
-  });
-}
+/* ══════════════════ INDEXEDDB (via ZeloDB — ligação única reutilizável) ══════════════════ */
+const STORE='registos';
+const zdb = new ZeloDB('zelo_basedados_db', 1, [
+  { name: STORE, keyPath: 'chave', indexes: [
+    { name: 'byDate', keyPath: 'date' },
+    { name: 'byPrefix', keyPath: 'prefix' },
+  ]},
+]);
+function ddOpen(){ return zdb.open(); }
+function ddPutAll(records){ return zdb.putAll(STORE, records); }
 function ddGetByDateRange(startStr,endStr){
-  return new Promise((resolve,reject)=>{
-    const tx=__db.transaction(STORE,'readonly');
-    const idx=tx.objectStore(STORE).index('byDate');
-    const range=IDBKeyRange.bound(startStr,endStr);
-    const out=[];
-    const req=idx.openCursor(range);
-    req.onsuccess=e=>{
-      const cur=e.target.result;
-      if(cur){ out.push(cur.value); cur.continue(); } else resolve(out);
-    };
-    req.onerror=()=>reject(req.error);
-  });
+  return zdb.queryByIndex(STORE, 'byDate', IDBKeyRange.bound(startStr,endStr), { limit: Infinity });
 }
-function ddCountAll(){
-  return new Promise((resolve,reject)=>{
-    const tx=__db.transaction(STORE,'readonly');
-    const req=tx.objectStore(STORE).count();
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
-  });
-}
+function ddCountAll(){ return zdb.count(STORE); }
 
 /* ══════════════════ SINCRONIZAÇÃO COM O FIREBASE ══════════════════ */
 const LAST_SYNC_KEY='zelo_basedados_lastsync';
@@ -678,6 +641,24 @@ async function carregarEstadoBaseDados(){
   }
 }
 
+async function carregarEstadoArmazenamento(){
+  const estimativa = await zeloStorageEstimate();
+  const elEspaco = document.getElementById('zbdStatEspaco');
+  if(estimativa && estimativa.usage != null){
+    elEspaco.textContent = (estimativa.usage / (1024*1024)).toFixed(1) + ' MB';
+    if(estimativa.pct != null) elEspaco.title = estimativa.pct.toFixed(1) + '% da quota do navegador';
+  }else{
+    elEspaco.textContent = 'N/D';
+  }
+  const persistResult = await zeloRequestPersistentStorage();
+  const nota = document.getElementById('zbdPersistNote');
+  if(persistResult.supported){
+    nota.textContent = persistResult.persisted
+      ? '✓ Armazenamento persistente ativo — o navegador não apaga estes dados automaticamente sob falta de espaço.'
+      : '⚠ O navegador não concedeu armazenamento persistente. Os dados continuam a ser guardados normalmente, mas em situações extremas de pouco espaço podem ser apagados pelo navegador — sincroniza regularmente para o Firebase servir de cópia de segurança.';
+  }
+}
+
 /* ══════════════════ ARRANQUE ══════════════════ */
 window.addEventListener('DOMContentLoaded', async ()=>{
   const today=new Date();
@@ -698,6 +679,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   await atualizarEstatisticas();
   await render();
   carregarEstadoBaseDados();
+  carregarEstadoArmazenamento();
 
   // Sincronização automática em segundo plano se a cópia local nunca foi feita
   // ou está desatualizada há mais de 24h — a força do armazenamento local
