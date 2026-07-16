@@ -544,18 +544,11 @@ import {
     setTimeout(function(){ gate.remove(); }, 250);
   }
 
-  // A verificação de sessão pode resolver mais que uma vez (ex.: Firebase confirma
-  // primeiro com o estado em cache e depois outra vez após validar com o servidor).
-  // Sem esta guarda, cada resolução voltava a chamar userInput.focus() e "puxava" o
-  // cursor de volta para o campo de email a meio da escrita da password, impedindo
-  // o utilizador de terminar de entrar. Só focamos o email da primeira vez que o
-  // formulário passa de escondido para visível.
-  var formJaMostrado = false;
   function showAuthForm(){
     var loading = document.getElementById('zeloAuthLoading');
     if(loading) loading.style.display = 'none';
     form.style.display = '';
-    if(!formJaMostrado){ formJaMostrado = true; userInput.focus(); }
+    userInput.focus();
   }
 
   window.zeloLogout = function(){
@@ -563,21 +556,9 @@ import {
     signOut(auth).catch(function(){}).then(function(){ window.location.reload(); });
   };
 
-  // A verificação de sessão (onAuthStateChanged) só serve para saltar o login de quem já
-  // está autenticado; nunca deve impedir quem precisa de entrar. Se a rede estiver lenta
-  // e o Firebase demorar a responder, revela o formulário de qualquer forma ao fim de
-  // 1.5s — a verificação continua em segundo plano, mas já dá para escrever e clicar
-  // em "Entrar" em vez de ficar preso no ecrã "A verificar sessão…".
-  var authGateResolvido = false;
-  var authGateTimeout = setTimeout(function(){
-    if(!authGateResolvido) showAuthForm();
-  }, 1500);
-
-  onAuthStateChanged(auth, async function(user){
-    authGateResolvido = true;
-    clearTimeout(authGateTimeout);
-    if(!user){ showAuthForm(); return; }
-    if(btn.disabled){ btnLabel.innerHTML='<span class="zaf-spin"></span> A carregar dados…'; }
+  // Aplica um login bem-sucedido — quer venha de uma sessão já existente ao abrir
+  // a página, quer venha do submit do formulário — e arranca o sistema.
+  async function completarLogin(user){
     var perfil = await fetchUserProfile(user.uid);
     if(!perfil || perfil.ativo === false){
       showAuthForm();
@@ -614,7 +595,31 @@ import {
         window.location.reload();
       }, user.uid);
     }
+  }
+
+  // ── 1. Verificar sessão — uma única vez, ao abrir a página ──────────────
+  // Regista-se, espera pela primeira resposta do Firebase (sessão existente ou
+  // não) e desliga-se logo de seguida — não fica à escuta continuamente. Um
+  // limite de segurança (2s) garante que, mesmo com rede lenta, o formulário
+  // aparece e para de "verificar" em vez de ficar preso indefinidamente.
+  var verificacaoInicialFeita = false;
+  var unsubscribeVerificacaoInicial = onAuthStateChanged(auth, function(user){
+    if(verificacaoInicialFeita) return;
+    verificacaoInicialFeita = true;
+    clearTimeout(verificacaoInicialTimeout);
+    if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
+    if(user){ completarLogin(user); }
+    else{ showAuthForm(); }
   });
+  var verificacaoInicialTimeout = setTimeout(function(){
+    if(verificacaoInicialFeita) return;
+    verificacaoInicialFeita = true;
+    if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
+    showAuthForm();
+  }, 2000);
+
+  // ── 2. Enquanto o utilizador escreve: nada disto corre — sem novas verificações,
+  //       sem bloquear campos. Só o clique em "Entrar" (abaixo) reactiva o sistema. ──
 
   form.addEventListener('submit', async function(e){
     e.preventDefault();
@@ -632,6 +637,7 @@ import {
       }
     }
     btn.disabled=true;
+    // ── 3. Só a partir daqui (clique em "Entrar") o sistema mostra processamento ──
     btnLabel.innerHTML='<span class="zaf-spin"></span> A verificar credenciais…';
     try{
       var lockState = await checkLoginLockout(email);
@@ -642,9 +648,15 @@ import {
         err.style.display='flex';
         return;
       }
+      btnLabel.innerHTML='<span class="zaf-spin"></span> A iniciar sessão…';
       await setPersistence(auth, rememberInput.checked ? browserLocalPersistence : browserSessionPersistence);
-      await signInWithEmailAndPassword(auth, email, pass);
+      var credenciais = await signInWithEmailAndPassword(auth, email, pass);
       if(window.PasswordCredential){ try{ navigator.credentials.store(new PasswordCredential({ id:email, password:pass, name:'ZELO' })); }catch(e2){} }
+      // ── 4. Sessão criada — carrega os dados e arranca o sistema; a partir daqui
+      //       (dentro de completarLogin/startInactivityWatch) as verificações
+      //       passam a ser periódicas em segundo plano, não mais contínuas. ──
+      btnLabel.innerHTML='<span class="zaf-spin"></span> A carregar dados…';
+      await completarLogin(credenciais.user);
     }catch(e2){
       btn.disabled=false;
       btnLabel.textContent=langDict[currentLang].enter;
