@@ -334,7 +334,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <script type="module">
 import {
   auth, fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
-  onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
+  setPersistence, browserLocalPersistence, browserSessionPersistence,
   startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
   touchLastAccess
 } from './zelo_auth.js';
@@ -433,18 +433,9 @@ import {
     }
   }
 
-  // ── 1. Verificar sessão — uma única vez, ao abrir a página ──────────────
-  // Regista-se, espera pela primeira resposta do Firebase (sessão existente ou
-  // não) e desliga-se logo de seguida — não fica à escuta continuamente. Um
-  // limite de segurança (2s) garante que, mesmo com rede lenta, o formulário
-  // aparece e para de "verificar" em vez de ficar preso indefinidamente.
-  var verificacaoInicialFeita = false;
-  var unsubscribeVerificacaoInicial = onAuthStateChanged(auth, function(user){
-    if(verificacaoInicialFeita) return;
-    verificacaoInicialFeita = true;
-    if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
-    if(user){ completarLogin(user); }
-  });
+  // Não há verificação de sessão automática ao abrir a página — mesmo que já
+  // exista uma sessão Firebase válida (ex.: "Lembrar-me" de uma visita anterior),
+  // não se entra sozinho. A autenticação só acontece ao clicar em "Entrar".
 
   form.addEventListener('submit', async function(e){
     e.preventDefault();
