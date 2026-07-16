@@ -1596,20 +1596,18 @@ function renderDiag(){
 // ── VERIFICAÇÃO ───────────────────────────────────────────
 function addVerf(){
   const id=Date.now();
-  verfData.push({id,nome:'',idade:'',genero:'M',cidCode:'',cidDesc:'',saved:false});
+  verfData.push({id,idade:'',genero:'M',cidCode:'',cidDesc:'',saved:false});
   renderVerf();
-  setTimeout(()=>{const el=document.getElementById('vf-nome-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
+  setTimeout(()=>{const el=document.getElementById('vf-idade-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
 }
 function saveVerf(id){
   const idx=verfData.findIndex(x=>x.id===id);
-  const nome=(document.getElementById('vf-nome-'+id)?.value||'').trim();
   const idade=(document.getElementById('vf-idade-'+id)?.value||'').trim();
   const genero=document.getElementById('vf-gen-'+id)?.value||'M';
   const cidDesc=(document.getElementById('vf-diag-'+id)?.value||'').trim();
   const reqFld=(fid,msg)=>{const el=document.getElementById(fid);if(el){el.classList.add('err-inp');setTimeout(()=>el.classList.remove('err-inp'),2500);el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();}toast(msg);};
-  if(!nome){reqFld('vf-nome-'+id,'⚠ Nome é obrigatório.');return;}
   if(!idade){reqFld('vf-idade-'+id,'⚠ Idade é obrigatória.');return;}
-  verfData[idx]={...verfData[idx],nome,idade,genero,cidCode:'',cidDesc,saved:true};
+  verfData[idx]={...verfData[idx],idade,genero,cidCode:'',cidDesc,saved:true};
   renderVerf();upd();ss();toast('✓ Verificação guardada.');
 }
 function editVerf(id){const idx=verfData.findIndex(x=>x.id===id);verfData[idx].saved=false;renderVerf();}
@@ -1633,7 +1631,7 @@ function renderVerf(){
       const genBg=v.genero==='M'?'#DBEAFE':'#FCE7F3';const genCol=v.genero==='M'?'#1E40AF':'#9D174D';const genBd=v.genero==='M'?'#93C5FD':'#F9A8D4';
       row.innerHTML=`<span class="ul-num" style="color:var(--am);">${i+1}.</span>
         <div class="ul-main">
-          <div class="ul-name">${v.nome}${v.idade?', '+v.idade+'a':''}</div>
+          <div class="ul-name">${v.idade?v.idade+' anos':'Verificação'}</div>
           <div class="ul-sub">${v.cidCode?`<span style="font-family:'DM Mono',monospace;font-size:.72rem;font-weight:700;color:var(--bl);margin-right:5px;">${v.cidCode}</span>`:''}${v.cidDesc}</div>
         </div>
         <span class="rb2" style="background:${genBg};color:${genCol};border-color:${genBd};">${v.genero==='M'?'Masc.':'Fem.'}</span>`;
@@ -1645,13 +1643,12 @@ function renderVerf(){
     const realIdx=verfData.indexOf(v);
     const div=document.createElement('div');div.className='rc '+(v.saved?'sva':'ed');div.style.marginBottom='8px';
     if(v.saved&&verfEditMode){
-      div.innerHTML=`<div class="rh"><span class="rn am">V${realIdx+1}</span><span class="rv">${v.nome}, ${v.idade}a</span>
+      div.innerHTML=`<div class="rh"><span class="rn am">V${realIdx+1}</span><span class="rv">${v.idade}a</span>
         <span class="rb2" style="background:${v.genero==='M'?'#DBEAFE':'#FCE7F3'};color:${v.genero==='M'?'#1E40AF':'#9D174D'};border-color:${v.genero==='M'?'#93C5FD':'#F9A8D4'};">${v.genero==='M'?'Masc.':'Fem.'}</span></div>
         ${v.cidCode?`<span class="cb">${v.cidCode}</span> `:''}<span style="font-size:.85rem;color:var(--tx2);">${v.cidDesc}</span>
         <div class="ra"><button class="bs bse" onclick="editVerf(${v.id})">Editar</button><button class="bs bsd" onclick="delVerf(${v.id})">Remover</button></div>`;
     }else if(!v.saved){
       div.innerHTML=`<div class="rh"><span class="rn am">Verificação ${i+1}</span></div>
-        <div class="f"><label>Nome<span class="req">*</span></label><input type="text" id="vf-nome-${v.id}" value="${v.nome}" placeholder="Nome completo do paciente..." onkeydown="if(event.key==='Enter')document.getElementById('vf-idade-${v.id}').focus()"/></div>
         <div class="g2">
           <div class="f"><label>Idade<span class="req">*</span></label><input type="text" id="vf-idade-${v.id}" value="${v.idade}" placeholder="Ex: 45"/></div>
           <div class="f"><label>Género<span class="req">*</span></label><select id="vf-gen-${v.id}"><option value="M" ${v.genero==='M'?'selected':''}>Masculino</option><option value="F" ${v.genero==='F'?'selected':''}>Feminino</option></select></div>
@@ -1671,23 +1668,20 @@ function renderVerf(){
 // ── ÓBITOS ────────────────────────────────────────────────
 function addObit(){
   const id=Date.now();
-  obitData.push({id,hora:'',nome:'',idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',causa:'',saved:false});
+  obitData.push({id,hora:'',idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',causa:'',saved:false});
   renderObit();
   setTimeout(()=>{const el=document.getElementById('ob-hora-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
 }
 function saveObit(id){
   const idx=obitData.findIndex(x=>x.id===id);
   const hora=document.getElementById('ob-hora-'+id)?.value;
-  const nome=(document.getElementById('ob-nome-'+id)?.value||'').trim();
   const idade=(document.getElementById('ob-idade-'+id)?.value||'').trim();
   const causa=(document.getElementById('ob-diag-'+id)?.value||'').trim();
   const reqFld=(id,msg)=>{const el=document.getElementById(id);if(el){el.classList.add('err-inp');setTimeout(()=>el.classList.remove('err-inp'),2500);el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();}toast(msg);};
   if(!hora){reqFld('ob-hora-'+id,'⚠ Hora do óbito é obrigatória.');return;}
-  if(!nome){reqFld('ob-nome-'+id,'⚠ Nome do paciente é obrigatório.');return;}
   if(!idade){reqFld('ob-idade-'+id,'⚠ Idade é obrigatória.');return;}
   if(!causa){reqFld('ob-diag-'+id,'⚠ Causa / diagnóstico é obrigatório.');return;}
   obitData[idx]={...obitData[idx],hora,
-    nome,
     idade,
     genero:document.getElementById('ob-gen-'+id)?.value||'M',
     cidCode:'',
@@ -1732,7 +1726,7 @@ function renderObit(){
       const genBg=o.genero==='M'?'#DBEAFE':'#FCE7F3';const genCol=o.genero==='M'?'#1E40AF':'#9D174D';const genBd=o.genero==='M'?'#93C5FD':'#F9A8D4';
       row.innerHTML=`<span class="ul-num" style="color:var(--rd);">${i+1}.</span>
         <div class="ul-main">
-          <div class="ul-name">${o.nome||'Não identificado'}${o.idade?', '+o.idade+'a':''} <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--rd);font-weight:700;">${o.hora}h</span></div>
+          <div class="ul-name">${o.idade?o.idade+'a':'Óbito'} <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--rd);font-weight:700;">${o.hora}h</span></div>
           <div class="ul-sub">${o.cidCode?`<span style="font-family:'DM Mono',monospace;font-size:.72rem;font-weight:700;color:var(--rd);margin-right:5px;">${o.cidCode}</span>`:''}${o.cidDesc}</div>
         </div>
         <span class="rb2" style="background:${genBg};color:${genCol};border-color:${genBd};">${o.genero==='M'?'Masc.':'Fem.'}</span>`;
@@ -1744,7 +1738,7 @@ function renderObit(){
     const div=document.createElement('div');div.className='rc '+(o.saved?'svr':'ed');div.style.marginBottom='8px';
     if(o.saved&&obitEditMode){
       div.innerHTML=`<div class="rh"><span class="rn rd">Ó${obitData.indexOf(o)+1}</span>
-        <span class="rv">${o.nome||'Não identificado'}${o.idade?', '+o.idade+'a':''}</span>
+        <span class="rv">${o.idade?o.idade+'a':''}</span>
         <span style="font-family:'DM Mono',monospace;font-size:.78rem;color:var(--rd);font-weight:700;">${o.hora}h</span>
         <span class="rb2" style="background:${o.genero==='M'?'#DBEAFE':'#FCE7F3'};color:${o.genero==='M'?'#1E40AF':'#9D174D'};border-color:${o.genero==='M'?'#93C5FD':'#F9A8D4'};">${o.genero==='M'?'Masc.':'Fem.'}</span>
         </div>
@@ -1756,10 +1750,7 @@ function renderObit(){
           <div class="f"><label>Hora do Óbito<span class="req">*</span></label><input type="time" id="ob-hora-${o.id}" value="${o.hora}"/></div>
           <div class="f"><label>Género<span class="req">*</span></label><select id="ob-gen-${o.id}"><option value="M" ${o.genero==='M'?'selected':''}>Masculino</option><option value="F" ${o.genero==='F'?'selected':''}>Feminino</option></select></div>
         </div>
-        <div class="g2">
-          <div class="f"><label>Nome<span class="req">*</span></label><input type="text" id="ob-nome-${o.id}" value="${o.nome}" placeholder="Nome do paciente"/></div>
-          <div class="f"><label>Idade<span class="req">*</span></label><input type="text" id="ob-idade-${o.id}" value="${o.idade}" placeholder="Ex: 45"/></div>
-        </div>
+        <div class="f"><label>Idade<span class="req">*</span></label><input type="text" id="ob-idade-${o.id}" value="${o.idade}" placeholder="Ex: 45"/></div>
         <div class="f"><label>Causa / Diagnóstico<span class="req">*</span></label>
           <textarea id="ob-diag-${o.id}" rows="4" style="min-height:80px;resize:vertical;" placeholder="Escrever a causa / diagnóstico...">${o.cidDesc||o.diagManual||''}</textarea>
         </div>
@@ -1773,21 +1764,18 @@ function renderObit(){
 
 function addOp(){
   const id=Date.now();
-  opData.push({id,nome:'',idade:'',tipo:'urgencia',genero:'M',especialidade:'Neurocirurgia',cidCode:'',cidDesc:'',diagManual:'',descricao:'',saved:false});
+  opData.push({id,idade:'',tipo:'urgencia',genero:'M',especialidade:'Neurocirurgia',cidCode:'',cidDesc:'',diagManual:'',descricao:'',saved:false});
   renderOp();
   setTimeout(()=>{const el=document.getElementById('op-tipo-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});},80);
 }
 function saveOp(id){
   const idx=opData.findIndex(x=>x.id===id);
-  const nome=(document.getElementById('op-nome-'+id)?.value||'').trim();
   const idade=(document.getElementById('op-idade-'+id)?.value||'').trim();
   const cidDesc=(document.getElementById('op-diag-'+id)?.value||'').trim();
   const reqFld=(fid,msg)=>{const el=document.getElementById(fid);if(el){el.classList.add('err-inp');setTimeout(()=>el.classList.remove('err-inp'),2500);el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();}toast(msg);};
-  if(!nome){reqFld('op-nome-'+id,'⚠ Nome / Identificação é obrigatório.');return;}
   if(!idade){reqFld('op-idade-'+id,'⚠ Idade é obrigatória.');return;}
   if(!cidDesc){reqFld('op-diag-'+id,'⚠ Preencha o diagnóstico.');return;}
   opData[idx]={...opData[idx],
-    nome,
     idade,
     tipo:document.getElementById('op-tipo-'+id)?.value||'urgencia',
     genero:document.getElementById('op-gen-'+id)?.value||'M',
@@ -1820,11 +1808,11 @@ function renderOp(){
         <span class="ul-num" style="color:${isUrg?'var(--am)':'var(--pu)'};">${i+1}.</span>
         <div class="ul-main">
           <div class="ul-name">
-            <span style="background:${isUrg?'#FEF3C7':'#EDE9FE'};color:${isUrg?'#92400E':'#5B21B6'};border:1px solid ${isUrg?'#FCD34D':'#C4B5FD'};border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700;margin-right:7px;">${isUrg?'Urgência':'Eletiva'}</span>${o.nome?o.nome+(o.idade?', '+o.idade+'a':''):(o.especialidade||'Neurocirurgia')}
+            <span style="background:${isUrg?'#FEF3C7':'#EDE9FE'};color:${isUrg?'#92400E':'#5B21B6'};border:1px solid ${isUrg?'#FCD34D':'#C4B5FD'};border-radius:6px;padding:2px 8px;font-size:.7rem;font-weight:700;margin-right:7px;">${isUrg?'Urgência':'Eletiva'}</span>${o.especialidade||'Neurocirurgia'}${o.idade?', '+o.idade+'a':''}
           </div>
           <div class="ul-sub">
             <span style="background:${isM?'#DBEAFE':'#FCE7F3'};color:${isM?'#1E40AF':'#9D174D'};border:1px solid ${isM?'#93C5FD':'#F9A8D4'};border-radius:6px;padding:1px 8px;font-size:.7rem;font-weight:600;">${isM?'Masculino':'Feminino'}</span>
-            ${o.nome?` ${o.especialidade||'Neurocirurgia'}`:''}${o.cidCode?` <span style="font-family:'DM Mono',monospace;font-size:.72rem;font-weight:700;color:var(--bl);">${o.cidCode}</span>`:''}${o.cidDesc?` ${o.cidDesc}`:''}${o.descricao?` — ${o.descricao}`:''}
+            ${o.cidCode?` <span style="font-family:'DM Mono',monospace;font-size:.72rem;font-weight:700;color:var(--bl);">${o.cidCode}</span>`:''}${o.cidDesc?` ${o.cidDesc}`:''}${o.descricao?` — ${o.descricao}`:''}
           </div>
         </div>`;
       list.appendChild(row);
@@ -1838,7 +1826,7 @@ function renderOp(){
     if(o.saved&&opEditMode){
       div.innerHTML=`<div class="rh">
         <span class="rn" style="${o.tipo==='urgencia'?'background:var(--am);':'background:var(--pu);'}">#${opData.indexOf(o)+1}</span>
-        ${o.nome?`<span class="rv">${o.nome}${o.idade?', '+o.idade+'a':''}</span>`:''}
+        ${o.idade?`<span class="rv">${o.idade}a</span>`:''}
         <span class="rb2" style="${tipoStyle}">${tipoLabel}</span>
         <span class="rb2" style="background:${o.genero==='M'?'#DBEAFE':'#FCE7F3'};color:${o.genero==='M'?'#1E40AF':'#9D174D'};border-color:${o.genero==='M'?'#93C5FD':'#F9A8D4'};">${o.genero==='M'?'Masculino':'Feminino'}</span>
         </div>
@@ -1848,7 +1836,6 @@ function renderOp(){
         <div class="ra"><button class="bs bse" onclick="editOp(${o.id})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar</button><button class="bs bsd" onclick="delOp(${o.id})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Remover</button></div>`;
     }else if(!o.saved){
       div.innerHTML=`<div class="rh"><span class="rn pu">Operado ${i+1}</span></div>
-        <div class="f"><label>Nome / Identificação<span class="req">*</span></label><input type="text" id="op-nome-${o.id}" value="${o.nome||''}" placeholder="Nome ou ID do doente..."/></div>
         <div class="g2">
           <div class="f"><label>Idade<span class="req">*</span></label><input type="text" id="op-idade-${o.id}" value="${o.idade||''}" placeholder="Ex: 45"/></div>
           <div class="f"><label>Género<span class="req">*</span></label>
@@ -1891,25 +1878,23 @@ function renderOp(){
 function addTransf(tipo){
   const id=Date.now();
   const arr=tipo==='r'?transfR:transfE;
-  arr.push({id,nome:'',idade:'',genero:'M',hospital:'',hospitalManual:'',cidCode:'',cidDesc:'',diagManual:'',especialidade:'Neurocirurgia',saved:false});
+  arr.push({id,idade:'',genero:'M',hospital:'',hospitalManual:'',cidCode:'',cidDesc:'',diagManual:'',especialidade:'Neurocirurgia',saved:false});
   renderTransf();
-  setTimeout(()=>{const el=document.getElementById('tr-nome-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
+  setTimeout(()=>{const el=document.getElementById('tr-idade-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
 }
 function saveTransf(tipo,id){
   const arr=tipo==='r'?transfR:transfE;
   const idx=arr.findIndex(x=>x.id===id);
-  const nome=(document.getElementById('tr-nome-'+id)?.value||'').trim();
   const hospSel=document.getElementById('tr-hosp-'+id)?.value||'';
   const hospMan=(document.getElementById('tr-hman-'+id)?.value||'').trim();
   const hospital=hospSel==='outro'?hospMan:hospSel;
   const idade=(document.getElementById('tr-idade-'+id)?.value||'').trim();
   const cidDesc=(document.getElementById('tr-diag-'+id)?.value||'').trim();
   const reqFld=(fid,msg)=>{const el=document.getElementById(fid);if(el){el.classList.add('err-inp');setTimeout(()=>el.classList.remove('err-inp'),2500);el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();}toast(msg);};
-  if(!nome){reqFld('tr-nome-'+id,'⚠ Nome é obrigatório.');return;}
   if(!idade){reqFld('tr-idade-'+id,'⚠ Idade é obrigatória.');return;}
   if(!hospital){toast('⚠ Hospital é obrigatório.');return;}
   if(!cidDesc){reqFld('tr-diag-'+id,'⚠ Preencha o diagnóstico.');return;}
-  arr[idx]={...arr[idx],nome,
+  arr[idx]={...arr[idx],
     idade,
     genero:document.getElementById('tr-gen-'+id)?.value||'M',
     hospital,cidCode:'',cidDesc,
@@ -1945,7 +1930,7 @@ function _renderTransfList(arr,tipo,elId){
       const row=document.createElement('div');row.className='ul-row';
       row.innerHTML=`<span class="ul-num" style="color:${tipo==='r'?'var(--bl)':'var(--gr)'};">${tipo==='r'?'R':'E'}${i+1}.</span>
         <div class="ul-main">
-          <div class="ul-name">${t.nome}${t.idade?', '+t.idade+'a':''}</div>
+          <div class="ul-name">${t.idade?t.idade+' anos':'Transferência'}</div>
           <div class="ul-sub">${t.hospital||'—'} · ${t.especialidade||'Neurocirurgia'}${t.cidDesc?' · '+t.cidDesc:''}</div>
         </div>
         <span class="rb2" style="${tipoColor}">${tipoLabel}</span>`;
@@ -1960,13 +1945,12 @@ function _renderTransfList(arr,tipo,elId){
       div.innerHTML=`<div class="rh">
         <span class="rn" style="${rnStyle}">${tipo==='r'?'R':'E'}${arr.indexOf(t)+1}</span>
         <span class="rb2" style="${tipoColor}">${tipoLabel}</span>
-        <span class="rv">${t.nome}${t.idade?', '+t.idade+'a':''}</span></div>
+        <span class="rv">${t.idade?t.idade+'a':''}</span></div>
         <div style="font-size:.82rem;color:var(--tx3);margin-bottom:4px;">${t.hospital||'—'} · ${t.especialidade||'Neurocirurgia'}</div>
         ${t.cidCode?`<span class="cb">${t.cidCode}</span> `:''}<span style="font-size:.82rem;color:var(--tx2);">${t.cidDesc}</span>
         <div class="ra"><button class="bs bse" onclick="editTransf('${tipo}',${t.id})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar</button><button class="bs bsd" onclick="delTransf('${tipo}',${t.id})"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Remover</button></div>`;
     }else if(!t.saved){
       div.innerHTML=`<div class="rh"><span class="rn" style="${rnStyle}">${tipoLabel} ${i}</span></div>
-        <div class="f"><label>Nome<span class="req">*</span></label><input type="text" id="tr-nome-${t.id}" value="${t.nome}" placeholder="Nome do paciente..."/></div>
         <div class="g2">
           <div class="f"><label>Idade<span class="req">*</span></label><input type="text" id="tr-idade-${t.id}" value="${t.idade}" placeholder="Ex: 45"/></div>
           <div class="f"><label>Género<span class="req">*</span></label><select id="tr-gen-${t.id}"><option value="M" ${t.genero==='M'?'selected':''}>Masculino</option><option value="F" ${t.genero==='F'?'selected':''}>Feminino</option></select></div>
@@ -2103,7 +2087,7 @@ function getSinData(){
 function addIntBanco(){
   // Cria um registo de internamento pré-associado ao banco
   const id=Date.now();
-  intData.push({id,nome:'',idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',descricao:'',desfecho:'internado',horaObit:'',dataAdm:'',obs:'Proveniente do Banco de Neurocirurgia',saved:false,_fromBanco:true});
+  intData.push({id,idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',descricao:'',desfecho:'internado',horaObit:'',dataAdm:'',obs:'Proveniente do Banco de Neurocirurgia',saved:false,_fromBanco:true});
   renderInt();
   // Scroll para a secção de internamento
   const sec=document.getElementById('int-sec');
@@ -2111,7 +2095,7 @@ function addIntBanco(){
   else {
     // Fallback: open directly in-place in the banco section
     }
-  const el=document.getElementById('it-nome-'+id);
+  const el=document.getElementById('it-idade-'+id);
   if(el) setTimeout(()=>el.focus(),200);
   toast('Abrir a secção Internamento de Neurocirurgia para completar os dados.');
 }
@@ -2127,23 +2111,21 @@ function editIntBanco(id){
 
 function addInt(){
   const id=Date.now();
-  intData.push({id,nome:'',idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',descricao:'',desfecho:'internado',horaObit:'',dataAdm:'',obs:'',saved:false});
+  intData.push({id,idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',descricao:'',desfecho:'internado',horaObit:'',dataAdm:'',obs:'',saved:false});
   renderInt();
-  setTimeout(()=>{const el=document.getElementById('it-nome-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
+  setTimeout(()=>{const el=document.getElementById('it-idade-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
 }
 function saveInt(id){
   const idx=intData.findIndex(x=>x.id===id);
-  const nome=(document.getElementById('it-nome-'+id)?.value||'').trim();
   const desfecho=document.getElementById('it-des-'+id)?.value||'internado';
   const horaObit=document.getElementById('it-hobit-'+id)?.value||'';
   const idade=(document.getElementById('it-idade-'+id)?.value||'').trim();
   const cidDesc=(document.getElementById('it-diag-'+id)?.value||'').trim();
   const reqFld=(fid,msg)=>{const el=document.getElementById(fid);if(el){el.classList.add('err-inp');setTimeout(()=>el.classList.remove('err-inp'),2500);el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();}toast(msg);};
-  if(!nome){reqFld('it-nome-'+id,'⚠ Nome / ID é obrigatório.');return;}
   if(!idade){reqFld('it-idade-'+id,'⚠ Idade é obrigatória.');return;}
   if(!cidDesc){reqFld('it-diag-'+id,'⚠ Diagnóstico é obrigatório.');return;}
   if(desfecho==='obito'&&!horaObit){reqFld('it-hobit-'+id,'⚠ Hora do óbito é obrigatória.');return;}
-  intData[idx]={...intData[idx],nome,
+  intData[idx]={...intData[idx],
     idade,
     genero:document.getElementById('it-gen-'+id)?.value||'M',
     cidCode:'',
@@ -2168,9 +2150,9 @@ function toggleIntEdit(){intEditMode=!intEditMode;renderInt();}
 
 function addObitInt(){
   const id=Date.now();
-  intData.push({id,nome:'',idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',descricao:'',desfecho:'obito',horaObit:'',dataAdm:'',obs:'',saved:false,_fromBanco:false});
+  intData.push({id,idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',descricao:'',desfecho:'obito',horaObit:'',dataAdm:'',obs:'',saved:false,_fromBanco:false});
   renderInt();
-  setTimeout(()=>{const el=document.getElementById('it-nome-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
+  setTimeout(()=>{const el=document.getElementById('it-idade-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
 }
 
 function renderInt(){
@@ -2189,7 +2171,7 @@ function renderInt(){
       const row=document.createElement('div');row.className='ul-row';
       row.innerHTML=`<span class="ul-num">${i+1}.</span>
         <div class="ul-main">
-          <div class="ul-name">${p.nome}${p.idade?', '+p.idade+'a':''}${p._fromBanco?'<span style="font-size:.65rem;font-weight:600;color:#7C3AED;margin-left:5px;background:#EDE9FE;padding:1px 6px;border-radius:10px;">Banco</span>':''}</div>
+          <div class="ul-name">${p.idade?p.idade+' anos':'Doente'}${p._fromBanco?'<span style="font-size:.65rem;font-weight:600;color:#7C3AED;margin-left:5px;background:#EDE9FE;padding:1px 6px;border-radius:10px;">Banco</span>':''}</div>
           <div class="ul-sub">${p.cidCode?`<span style="font-family:'DM Mono',monospace;font-size:.7rem;font-weight:700;color:var(--bl);margin-right:4px;">${p.cidCode}</span>`:''}${p.cidDesc}${p.descricao?` — ${p.descricao}`:''}</div>
         </div>
         <span class="rb2 ${cMap[p.desfecho]||'rbi'}">${dMap[p.desfecho]||'Internado'}</span>`;
@@ -2200,7 +2182,7 @@ function renderInt(){
   intData.filter(x=>!x.saved||(intEditMode&&x.saved)).forEach((p,i)=>{
     const div=document.createElement('div');div.className='rc '+(p.saved?'sv':'ed');div.style.marginBottom='8px';
     if(p.saved&&intEditMode){
-      div.innerHTML=`<div class="rh"><span class="rn">#${intData.indexOf(p)+1}</span><span class="rv">${p.nome}${p.idade?', '+p.idade+'a':''}</span>
+      div.innerHTML=`<div class="rh"><span class="rn">#${intData.indexOf(p)+1}</span><span class="rv">${p.idade?p.idade+'a':''}</span>
         <span class="rb2 ${cMap[p.desfecho]}">${dMap[p.desfecho]}</span>
         ${p.desfecho==='obito'&&p.horaObit?`<span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--rd);font-weight:700;">${p.horaObit}h</span>`:''}
         </div>
@@ -2210,7 +2192,6 @@ function renderInt(){
     }else if(!p.saved){
       const isObit=p.desfecho==='obito';
       div.innerHTML=`<div class="rh"><span class="rn">${isObit?'Óbito':'Internado'} ${i+1}</span></div>
-        <div class="f"><label>Nome / Identificação<span class="req">*</span></label><input type="text" id="it-nome-${p.id}" value="${p.nome}" placeholder="Nome ou ID do doente..."/></div>
         <div class="g2">
           <div class="f"><label>Idade<span class="req">*</span></label><input type="text" id="it-idade-${p.id}" value="${p.idade}" placeholder="Ex: 45"/></div>
           <div class="f"><label>Género</label><select id="it-gen-${p.id}"><option value="M">Masculino</option><option value="F">Feminino</option></select></div>
@@ -2236,24 +2217,22 @@ const trintData=[];
 const SERVICOS_INT=['UCI','Bloco Operatório','Medicina Interna','Cirurgia Geral','Ortopedia','Neurocirurgia','Otorrinolaringologia','Pediatria','Ginecologia','Maternidade','Nefrologia','Fisioterapia','Psicologia Clínica','Outro'];
 function addTrInt(){
   const id=Date.now();
-  trintData.push({id,nome:'',idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',servico:'',servicoManual:'',saved:false});
+  trintData.push({id,idade:'',genero:'M',cidCode:'',cidDesc:'',diagManual:'',servico:'',servicoManual:'',saved:false});
   renderTrInt();
-  setTimeout(()=>{const el=document.getElementById('tri-nome-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
+  setTimeout(()=>{const el=document.getElementById('tri-idade-'+id);if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.focus();}},80);
 }
 function saveTrInt(id){
   const idx=trintData.findIndex(x=>x.id===id);
-  const nome=(document.getElementById('tri-nome-'+id)?.value||'').trim();
   const idade=(document.getElementById('tri-idade-'+id)?.value||'').trim();
   const cidDesc=(document.getElementById('tri-diag-'+id)?.value||'').trim();
   const servSel=document.getElementById('tri-serv-'+id)?.value||'';
   const servMan=(document.getElementById('tri-servman-'+id)?.value||'').trim();
   const servico=servSel==='Outro'?servMan:servSel;
   const reqFld=(fid,msg)=>{const el=document.getElementById(fid);if(el){el.classList.add('err-inp');setTimeout(()=>el.classList.remove('err-inp'),2500);el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();}toast(msg);};
-  if(!nome){reqFld('tri-nome-'+id,'⚠ Nome é obrigatório.');return;}
   if(!idade){reqFld('tri-idade-'+id,'⚠ Idade é obrigatória.');return;}
   if(!cidDesc){reqFld('tri-diag-'+id,'⚠ Preencha o diagnóstico.');return;}
   if(!servico){toast('⚠ Serviço de destino é obrigatório.');return;}
-  trintData[idx]={...trintData[idx],nome,idade,
+  trintData[idx]={...trintData[idx],idade,
     genero:document.getElementById('tri-gen-'+id)?.value||'M',
     cidCode:'',
     cidDesc,diagManual:cidDesc,
@@ -2277,7 +2256,7 @@ function renderTrInt(){
       const row=document.createElement('div');row.className='ul-row';
       row.innerHTML=`<span class="ul-num">${i+1}.</span>
         <div class="ul-main">
-          <div class="ul-name">${t.nome}${t.idade?', '+t.idade+'a':''}<span style="font-size:.7rem;color:var(--tx3);margin-left:5px;">${t.genero==='M'?'M':'F'}</span></div>
+          <div class="ul-name">${t.idade?t.idade+' anos':'Transferência interna'}<span style="font-size:.7rem;color:var(--tx3);margin-left:5px;">${t.genero==='M'?'M':'F'}</span></div>
           <div class="ul-sub">${t.servico}${t.cidDesc?' · '+t.cidDesc:''}</div>
         </div>
         <div style="display:flex;gap:4px;margin-top:4px;">
@@ -2292,7 +2271,6 @@ function renderTrInt(){
     const div=document.createElement('div');div.className='rc ed';div.style.marginBottom='8px';
     const servOptions=SERVICOS_INT.map(s=>`<option value="${s}" ${t.servico===s?'selected':''}>${s}</option>`).join('');
     div.innerHTML=`<div class="rh"><span class="rn">Transferência Interna ${i+1}</span></div>
-      <div class="f"><label>Nome<span class="req">*</span></label><input type="text" id="tri-nome-${t.id}" value="${t.nome}" placeholder="Nome do doente..."/></div>
       <div class="g2">
         <div class="f"><label>Idade<span class="req">*</span></label><input type="text" id="tri-idade-${t.id}" value="${t.idade}" placeholder="Ex: 45"/></div>
         <div class="f"><label>Género</label><select id="tri-gen-${t.id}"><option value="M">Masculino</option><option value="F" ${t.genero==='F'?'selected':''}>Feminino</option></select></div>
@@ -2689,8 +2667,7 @@ async function gerarPDF(silencioso){
         const bg=i%2===0?'#FFFBEB':'#FEF9C3';
         detailRow([
           {txt:'V'+(i+1),w:10,bold:true,color:'#92400E'},
-          {txt:v.nome,w:60,bold:true},
-          {txt:v.idade+'a · '+(v.genero==='M'?'Masc.':'Fem.'),w:30,color:'#64748B'},
+          {txt:v.idade+'a · '+(v.genero==='M'?'Masc.':'Fem.'),w:90,color:'#64748B'},
           {txt:(v.cidCode?v.cidCode+' — ':'')+v.cidDesc,w:CW-100},
         ],bg);
       });
@@ -2706,8 +2683,7 @@ async function gerarPDF(silencioso){
         const bg=i%2===0?'#FFF5F5':'#FEE2E2';
         detailRow([
           {txt:'Ó'+(i+1),w:10,bold:true,color:'#DC2626'},
-          {txt:o.nome||'Não identificado',w:55,bold:true},
-          {txt:(o.idade?o.idade+'a · ':'')+(o.genero==='M'?'Masc.':'Fem.'),w:30,color:'#64748B'},
+          {txt:(o.idade?o.idade+'a · ':'')+(o.genero==='M'?'Masc.':'Fem.'),w:85,color:'#64748B'},
           {txt:(o.cidCode?o.cidCode+' — ':'')+o.cidDesc,w:CW-115},
           {txt:o.hora+'h',w:15,bold:true,color:'#DC2626'},
         ],bg);
@@ -2751,7 +2727,7 @@ async function gerarPDF(silencioso){
         const tipoTxt=o.tipo==='urgencia'?'Urgência':'Eletiva';
         detailRow([
           {txt:'#'+(i+1),w:10,bold:true,color:'#5B21B6'},
-          {txt:o.nome?o.nome+(o.idade?', '+o.idade+'a':''):'—',w:60,bold:true},
+          {txt:o.idade?o.idade+'a':'—',w:60,bold:true},
           {txt:tipoTxt,w:CW-100,bold:true,color:o.tipo==='urgencia'?'#92400E':'#5B21B6'},
           {txt:o.genero==='M'?'Masculino':'Feminino',w:30,color:'#0F172A'},
         ],bg);
@@ -2787,7 +2763,7 @@ async function gerarPDF(silencioso){
         trRSv.forEach((t,i)=>{
           detailRow([
             {txt:'R'+(i+1),w:28,bold:true,color:'#1E40AF'},
-            {txt:t.nome+(t.idade?', '+t.idade+'a':''),w:60},
+            {txt:t.idade?t.idade+'a':'—',w:60},
             {txt:t.hospital,w:40,color:'#64748B'},
             {txt:(t.cidCode?t.cidCode+' ':'')+t.cidDesc,w:CW-128},
           ],i%2===0?'#EFF6FF':'#DBEAFE');
@@ -2804,7 +2780,7 @@ async function gerarPDF(silencioso){
         trESv.forEach((t,i)=>{
           detailRow([
             {txt:'E'+(i+1),w:28,bold:true,color:'#166534'},
-            {txt:t.nome+(t.idade?', '+t.idade+'a':''),w:60},
+            {txt:t.idade?t.idade+'a':'—',w:60},
             {txt:t.hospital,w:40,color:'#64748B'},
             {txt:(t.cidCode?t.cidCode+' ':'')+t.cidDesc,w:CW-128},
           ],i%2===0?'#F0FDF4':'#DCFCE7');
@@ -2827,7 +2803,7 @@ async function gerarPDF(silencioso){
       trintSaved.forEach((t,i)=>{
         detailRow([
           {txt:'TI'+(i+1),w:10,bold:true,color:'#475569'},
-          {txt:t.nome+(t.idade?', '+t.idade+'a':''),w:78,bold:true},
+          {txt:t.idade?t.idade+'a':'—',w:78,bold:true},
           {txt:t.servico,w:40,color:'#64748B'},
           {txt:(t.cidCode?t.cidCode+' ':'')+(t.cidDesc||t.diagManual||'—'),w:CW-128},
         ],i%2===0?'#F8FAFC':'#F1F5F9');
@@ -2873,7 +2849,7 @@ async function gerarPDF(silencioso){
         const bg=i%2===0?'#F8FAFF':'#EFF6FF';
         detailRow([
           {txt:'#'+(i+1),w:10,bold:true,color:'#64748B'},
-          {txt:p.nome+(p.idade?', '+p.idade+'a':''),w:63,bold:true},
+          {txt:p.idade?p.idade+'a':'—',w:63,bold:true},
           {txt:(p.cidCode?p.cidCode+' ':'')+p.cidDesc,w:CW-103},
           {txt:dMap[p.desfecho]+(p.desfecho==='obito'&&p.horaObit?' '+p.horaObit+'h':''),w:30,bold:true,color:dCol[p.desfecho]},
         ],bg);
@@ -3071,11 +3047,11 @@ function visualizar(){
   <!-- RESULTADO BANCO -->
   <div class="ms">${S('Resultado do Banco')}
     ${L('Verificação',verfTotal)}
-    ${verfData.filter(x=>x.saved).map((v,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#FFFBEB;border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:#B45309;">V${i+1}</b> ${v.nome||'N/I'}${v.idade?', '+v.idade+'a':''} ${v.genero==='M'?'♂':'♀'} ${v.cidDesc?('· '+v.cidDesc):'<i style="color:var(--tx3);">sem diagnóstico</i>'}</div>`).join('')}
+    ${verfData.filter(x=>x.saved).map((v,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#FFFBEB;border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:#B45309;">V${i+1}</b> ${v.idade?v.idade+'a':''} ${v.genero==='M'?'♂':'♀'} ${v.cidDesc?('· '+v.cidDesc):'<i style="color:var(--tx3);">sem diagnóstico</i>'}</div>`).join('')}
     ${L('Altas (total)',altasTotal)}
     ${gv('altas-obs')?`<div style="font-size:.78rem;color:#334155;margin:3px 0;"><b>Obs.:</b> ${gv('altas-obs')}</div>`:''}
     ${L('Óbitos','<span style="color:'+(obitTotal>0?'#DC2626':'inherit')+';font-weight:700;">'+obitTotal+'</span>')}
-    ${obitData.filter(x=>x.saved).map((o,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#FFF5F5;border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:#DC2626;">Ó${i+1}</b> ${o.nome||'N/I'}${o.idade?', '+o.idade+'a':''} ${o.genero==='M'?'♂':'♀'} ${o.cidDesc} <b style="color:#DC2626;margin-left:auto;">${o.hora}h</b></div>`).join('')}
+    ${obitData.filter(x=>x.saved).map((o,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#FFF5F5;border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:#DC2626;">Ó${i+1}</b> ${o.idade?o.idade+'a':''} ${o.genero==='M'?'♂':'♀'} ${o.cidDesc} <b style="color:#DC2626;margin-left:auto;">${o.hora}h</b></div>`).join('')}
   </div>
 
   <!-- TRANSFERÊNCIAS -->
@@ -3085,22 +3061,22 @@ function visualizar(){
       <span style="background:#DBEAFE;color:#1E40AF;border:1px solid #93C5FD;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;">Recebidas</span>
       <span style="font-family:'DM Mono',monospace;font-weight:700;color:#1E40AF;">${trR}</span>
     </div>
-    ${transfR.filter(x=>x.saved).map((t,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#EFF6FF;border-radius:7px;margin:2px 0;font-size:.82rem;"><b style="color:#1E40AF;min-width:22px;">R${i+1}</b> ${t.nome}${t.idade?', '+t.idade+'a':''} · <i style="color:var(--tx3);">${t.hospital}</i>${t.cidCode?`<span style="background:#DBEAFE;border-radius:4px;padding:1px 5px;font-size:.7rem;font-weight:700;color:#1E40AF;">${t.cidCode}</span>`:''} ${t.cidDesc}</div>`).join('')||'<div style="font-size:.8rem;color:var(--tx3);padding:4px 8px;">Nenhuma</div>'}
+    ${transfR.filter(x=>x.saved).map((t,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#EFF6FF;border-radius:7px;margin:2px 0;font-size:.82rem;"><b style="color:#1E40AF;min-width:22px;">R${i+1}</b> ${t.idade?t.idade+'a':''} · <i style="color:var(--tx3);">${t.hospital}</i>${t.cidCode?`<span style="background:#DBEAFE;border-radius:4px;padding:1px 5px;font-size:.7rem;font-weight:700;color:#1E40AF;">${t.cidCode}</span>`:''} ${t.cidDesc}</div>`).join('')||'<div style="font-size:.8rem;color:var(--tx3);padding:4px 8px;">Nenhuma</div>'}
     <!-- Efetuadas -->
     <div style="display:flex;align-items:center;gap:6px;margin:8px 0 4px;">
       <span style="background:#DCFCE7;color:#166534;border:1px solid #86EFAC;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;">Efetuadas</span>
       <span style="font-family:'DM Mono',monospace;font-weight:700;color:#166534;">${trE}</span>
     </div>
-    ${transfE.filter(x=>x.saved).map((t,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#F0FDF4;border-radius:7px;margin:2px 0;font-size:.82rem;"><b style="color:#166534;min-width:22px;">E${i+1}</b> ${t.nome}${t.idade?', '+t.idade+'a':''} · <i style="color:var(--tx3);">${t.hospital}</i>${t.cidCode?`<span style="background:#DCFCE7;border-radius:4px;padding:1px 5px;font-size:.7rem;font-weight:700;color:#166534;">${t.cidCode}</span>`:''} ${t.cidDesc}</div>`).join('')||'<div style="font-size:.8rem;color:var(--tx3);padding:4px 8px;">Nenhuma</div>'}
+    ${transfE.filter(x=>x.saved).map((t,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#F0FDF4;border-radius:7px;margin:2px 0;font-size:.82rem;"><b style="color:#166534;min-width:22px;">E${i+1}</b> ${t.idade?t.idade+'a':''} · <i style="color:var(--tx3);">${t.hospital}</i>${t.cidCode?`<span style="background:#DCFCE7;border-radius:4px;padding:1px 5px;font-size:.7rem;font-weight:700;color:#166534;">${t.cidCode}</span>`:''} ${t.cidDesc}</div>`).join('')||'<div style="font-size:.8rem;color:var(--tx3);padding:4px 8px;">Nenhuma</div>'}
   </div>
 
-  ${opSaved.length?`<div class="ms">${S('Operados')}${L('Total',opSaved.length)}${L('Urgência',opSaved.filter(x=>x.tipo==='urgencia').length)}${L('Eletiva',opSaved.filter(x=>x.tipo==='eletiva').length)}${L('Cirurgia Maior (auto)',parseInt(gv('cir-maior'))||0)}${L('Cirurgia Menor (manual)',parseInt(gv('cir-menor'))||0)}${opSaved.map((o,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#F5F3FF;border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:#7C3AED;">${i+1}</b> ${o.nome||'N/I'}${o.idade?', '+o.idade+'a':''} · ${o.especialidade||''} ${o.cidDesc?('· '+o.cidDesc):''}</div>`).join('')}</div>`:''}
+  ${opSaved.length?`<div class="ms">${S('Operados')}${L('Total',opSaved.length)}${L('Urgência',opSaved.filter(x=>x.tipo==='urgencia').length)}${L('Eletiva',opSaved.filter(x=>x.tipo==='eletiva').length)}${L('Cirurgia Maior (auto)',parseInt(gv('cir-maior'))||0)}${L('Cirurgia Menor (manual)',parseInt(gv('cir-menor'))||0)}${opSaved.map((o,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#F5F3FF;border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:#7C3AED;">${i+1}</b> ${o.idade?o.idade+'a':''} · ${o.especialidade||''} ${o.cidDesc?('· '+o.cidDesc):''}</div>`).join('')}</div>`:''}
 
   ${sinRows.length?`<div class="ms">${S('Sinistralidade')}${sinRows.map(s=>L(s.label,s.v)).join('')}</div>`:''}
 
-  ${trintData.filter(x=>x.saved).length?`<div class="ms">${S('Transferências Internas')}${trintData.filter(x=>x.saved).map((t,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#F8FAFC;border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:#475569;">${i+1}</b> ${t.nome}${t.idade?', '+t.idade+'a':''} → <i>${t.servico}</i>${t.cidDesc?(' · '+t.cidDesc):''}</div>`).join('')}</div>`:''}
+  ${trintData.filter(x=>x.saved).length?`<div class="ms">${S('Transferências Internas')}${trintData.filter(x=>x.saved).map((t,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:#F8FAFC;border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:#475569;">${i+1}</b> ${t.idade?t.idade+'a':''} → <i>${t.servico}</i>${t.cidDesc?(' · '+t.cidDesc):''}</div>`).join('')}</div>`:''}
 
-  ${intSaved.length?`<div class="ms">${S('Internamento de Neurocirurgia')}${L('Total',intSaved.length)}${L('Altas',parseInt(gv('int-alt-manual'))||0)}${L('Óbitos',intSaved.filter(x=>x.desfecho==='obito').length)}${intSaved.map((p,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:${p.desfecho==='obito'?'#FFF5F5':'#F0F9FF'};border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:${p.desfecho==='obito'?'#DC2626':'#1A56DB'};">${i+1}</b> ${p.nome||'N/I'}${p.idade?', '+p.idade+'a':''} · ${p.cidDesc||'—'}${p.descricao?(' — '+p.descricao):''} <b style="margin-left:auto;color:${p.desfecho==='obito'?'#DC2626':'#1A56DB'};">${p.desfecho==='obito'?'Óbito':'Internado'}</b></div>`).join('')}</div>`:''}
+  ${intSaved.length?`<div class="ms">${S('Internamento de Neurocirurgia')}${L('Total',intSaved.length)}${L('Altas',parseInt(gv('int-alt-manual'))||0)}${L('Óbitos',intSaved.filter(x=>x.desfecho==='obito').length)}${intSaved.map((p,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:${p.desfecho==='obito'?'#FFF5F5':'#F0F9FF'};border-radius:7px;margin:3px 0;font-size:.82rem;"><b style="color:${p.desfecho==='obito'?'#DC2626':'#1A56DB'};">${i+1}</b> ${p.idade?p.idade+'a':''} · ${p.cidDesc||'—'}${p.descricao?(' — '+p.descricao):''} <b style="margin-left:auto;color:${p.desfecho==='obito'?'#DC2626':'#1A56DB'};">${p.desfecho==='obito'?'Óbito':'Internado'}</b></div>`).join('')}</div>`:''}
 
   ${getProcData().length?`<div class="ms">${S('Actos e Procedimentos')}${getProcData().map(p=>L(p.label,p.v)).join('')}</div>`:''}
 
