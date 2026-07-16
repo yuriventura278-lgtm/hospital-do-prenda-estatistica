@@ -6,6 +6,7 @@
 <script>window.ZELO_ITEM='fisioterapia';</script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_indexeddb.js"></script>
+<script src="zelo_sync.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
@@ -695,11 +696,16 @@ function buildSnapshot(){
 const FB_PATH = 'registos/fisioterapia';
 let __fbSaveTimer=null;
 function enviarParaFirebase(dataHoje, snap){
-  if(!window.__fbReady || !dataHoje || !window.__fbSet) return;
+  if(!dataHoje) return;
   clearTimeout(__fbSaveTimer);
   __fbSaveTimer=setTimeout(()=>{
-    window.__fbSet(FB_PATH+'/'+dataHoje, {savedAt:new Date().toISOString(), snapshot:snap, criadoPor:{nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null}})
-      .catch(e=>console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e));
+    var __payload = {savedAt:new Date().toISOString(), snapshot:snap, criadoPor:{nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null}};
+    if(window.zeloQueueWrite){
+      zeloQueueWrite(FB_PATH+'/'+dataHoje, __payload);
+    }else if(window.__fbReady && window.__fbSet){
+      window.__fbSet(FB_PATH+'/'+dataHoje, __payload)
+        .catch(e=>console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e));
+    }
   },1500);
 }
 function ss(){

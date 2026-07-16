@@ -4,6 +4,7 @@
 <script>document.documentElement.style.visibility='hidden';</script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_indexeddb.js"></script>
+<script src="zelo_sync.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
@@ -981,11 +982,15 @@ async function acaoPDF(){
 const FB_PATH = 'registos_enf/' + PAGE_SLUG;
 
 function enviarParaFirebase(dataStr, registo){
-  if(!window.__fbReady || !dataStr || !window.__fbSet) return;
+  if(!dataStr) return;
   var __autor = {nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null};
   var __registoComAutor = Object.assign({}, registo, {criadoPor: __autor});
-  window.__fbSet(FB_PATH+'/'+dataStr, __registoComAutor)
-    .catch(e=>console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e));
+  if(window.zeloQueueWrite){
+    zeloQueueWrite(FB_PATH+'/'+dataStr, __registoComAutor);
+  }else if(window.__fbReady && window.__fbSet){
+    window.__fbSet(FB_PATH+'/'+dataStr, __registoComAutor)
+      .catch(e=>console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e));
+  }
 }
 
 // ── HISTÓRICO DE REGISTOS — um único registo por dia (ver, editar, eliminar) ──
