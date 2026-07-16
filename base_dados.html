@@ -374,6 +374,10 @@ const DB_NAME='zelo_basedados_db', DB_VER=1, STORE='registos';
 let __db=null;
 function ddOpen(){
   return new Promise((resolve,reject)=>{
+    if(!window.indexedDB){
+      reject(new Error('IndexedDB não está disponível neste navegador (pode estar em modo privado).'));
+      return;
+    }
     const req=indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded=e=>{
       const db=e.target.result;
@@ -385,6 +389,7 @@ function ddOpen(){
     };
     req.onsuccess=e=>{ __db=e.target.result; resolve(__db); };
     req.onerror=()=>reject(req.error);
+    req.onblocked=()=>reject(new Error('A base de dados local está bloqueada — fecha outras abas do ZELO abertas e recarrega a página.'));
   });
 }
 function ddPutAll(records){
@@ -436,6 +441,8 @@ async function sincronizarTudo(){
   btn.disabled=true;
   btnText.textContent='A sincronizar…';
   let done=0, totalRecords=0;
+  const falhas=[];
+  let armazenamentoCheio=false;
   const totalServices=ALL_SERVICES.length;
   for(const svc of ALL_SERVICES){
     try{
@@ -449,7 +456,11 @@ async function sincronizarTudo(){
         await ddPutAll(records);
         totalRecords+=records.length;
       }
-    }catch(e){ console.warn('Falha ao sincronizar', svc.id, e); }
+    }catch(e){
+      console.warn('Falha ao sincronizar', svc.id, e);
+      falhas.push(svc.name);
+      if(e && (e.name === 'QuotaExceededError' || (e.message||'').toLowerCase().includes('quota'))) armazenamentoCheio = true;
+    }
     done++;
     fill.style.width=Math.round((done/totalServices)*100)+'%';
   }
@@ -458,7 +469,13 @@ async function sincronizarTudo(){
   bar.classList.remove('syncing');
   btn.disabled=false;
   btnText.textContent='Sincronizar agora';
-  toast('✓ Sincronização concluída — '+totalRecords+' registo(s) verificados.');
+  if(armazenamentoCheio){
+    toast('⚠️ Armazenamento local cheio — liberta espaço no navegador e tenta novamente. Nem todos os registos foram guardados.');
+  } else if(falhas.length){
+    toast('⚠️ Sincronizado com falhas em ' + falhas.length + ' serviço(s): ' + falhas.slice(0,3).join(', ') + (falhas.length>3?'…':'') + '. Tenta novamente.');
+  } else {
+    toast('✓ Sincronização concluída — '+totalRecords+' registo(s) verificados.');
+  }
   await atualizarEstatisticas();
   await render();
 }
@@ -705,10 +722,34 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   document.getElementById('dataSel').value=isoDate(today);
   document.getElementById('weekSel').value=isoWeek(today);
   document.getElementById('monthSel').value=today.getFullYear()+'-'+pad(today.getMonth()+1);
-  await ddOpen();
+  try{
+    await ddOpen();
+  }catch(e){
+    console.error('Falha ao abrir a base de dados local', e);
+    document.getElementById('content').innerHTML =
+      '<div class="list-empty" style="color:var(--rd);">Não foi possível abrir o armazenamento local deste navegador: ' +
+      (e && e.message ? e.message : 'erro desconhecido') +
+      '. Os dados no Firebase não são afetados — tenta noutro navegador ou fora do modo privado.</div>';
+    document.getElementById('btnSync').disabled = true;
+    return;
+  }
   await atualizarEstatisticas();
   await render();
   carregarEstadoBaseDados();
+
+  // Sincronização automática em segundo plano se a cópia local nunca foi feita
+  // ou está desatualizada há mais de 24h — a força do armazenamento local
+  // depende de estar sempre razoavelmente atual, não só de alguém se lembrar
+  // de clicar em "Sincronizar agora".
+  let lastSync = null;
+  try{ lastSync = localStorage.getItem(LAST_SYNC_KEY); }catch(e){}
+  const desatualizado = !lastSync || (Date.now() - new Date(lastSync).getTime()) > 24*60*60*1000;
+  if(desatualizado && window.__fbReady){
+    sincronizarTudo();
+  } else if(desatualizado){
+    // Firebase pode ainda não estar pronto (ligação lenta) — tenta uma vez, em breve
+    setTimeout(function(){ if(window.__fbReady) sincronizarTudo(); }, 3000);
+  }
 });
 </script>
 </body>
