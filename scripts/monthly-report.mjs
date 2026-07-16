@@ -88,10 +88,34 @@ function altasTotalFromSnapshot(s){
   return (s.altasV||[]).reduce((a,x)=>a+num(x&&x.v), 0);
 }
 
-/** Contagens do Banco de Urgência de UM dia, para uma das 7 especialidades acima. */
-function urgenciaMetrics(s){
+/** Faixa etária (< 15 / ≥ 15) a partir de uma lista de registos guardados com campo "idade". */
+function idadeBuckets(arr){
+  let men = 0, mai = 0;
+  saved(arr).forEach(x=>{
+    const idade = parseInt(x.idade);
+    if(isNaN(idade)) return;
+    if(idade < 15) men++; else mai++;
+  });
+  return {men, mai};
+}
+
+/** Contagens do Banco de Urgência de UM dia, para uma das 7 especialidades acima.
+ *  Medicina Interna não tem secção própria de "Pacientes Observados" (idade-men/
+ *  idade-mai) — os doentes observados nesta especialidade são os registados nas
+ *  Salas de Observação / Hospital de Dia (obsHData/obsMData, cada um já com idade
+ *  por doente), por isso a faixa etária vem desses registos em vez de s.idMen/s.idMai. */
+function urgenciaMetrics(id, s){
+  let idMen, idMai;
+  if(id === 'medicina_interna'){
+    const h = idadeBuckets(s.obsHData);
+    const m = idadeBuckets(s.obsMData);
+    idMen = h.men + m.men;
+    idMai = h.mai + m.mai;
+  } else {
+    idMen = num(s.idMen); idMai = num(s.idMai);
+  }
   return {
-    idMen: num(s.idMen), idMai: num(s.idMai),
+    idMen, idMai,
     vindosHospitais: saved(s.transfR).length,
     transfInternamento: saved(s.intData).length,
     altas: altasTotalFromSnapshot(s),
@@ -627,7 +651,7 @@ async function main(){
         secondaryTotals[k] = (secondaryTotals[k] || 0) + v;
       }
       if(URGENCIA_IDS.includes(svc.id)){
-        const u = urgenciaMetrics(s);
+        const u = urgenciaMetrics(svc.id, s);
         const agg = urgenciaAgg[svc.id];
         agg.idMen += u.idMen; agg.idMai += u.idMai;
         agg.vindosHospitais += u.vindosHospitais; agg.transfInternamento += u.transfInternamento;
