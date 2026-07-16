@@ -60,6 +60,184 @@ function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
 function saved(arr){ return Array.isArray(arr) ? arr.filter(x=>x && x.saved) : []; }
 function pad(n){ return String(n).padStart(2,'0'); }
 
+// ── BANCO DE URGÊNCIA — Tabela 2 (Atendimento) e Tabela 3 (Movimento) ─────
+// As 7 especialidades que compõem o Banco de Urgência partilham a mesma
+// estrutura de snapshot (idMen/idMai/pacTotal/transfR/transfE/intData/
+// obitData/altas — ver Cirurgia_Geral.html buildSnapshot()). "Vindos de
+// outros Hospitais" e "Transferidos para outras unidades" correspondem às
+// listas detalhadas de Transferências Recebidas/Efetuadas (cada uma regista
+// o hospital de origem/destino); "Transferidos para Internamento" corresponde
+// ao Internamento próprio da especialidade (intData); "Falecidos" corresponde
+// aos óbitos registados no próprio banco (obitData), não aos óbitos já
+// internados.
+const URGENCIA_ROWS = [
+  {id:'medicina_interna', label:'Medicina'},
+  {id:'cirurgia_geral', label:'Cirurgia'},
+  {id:'ortopedia', label:'Ortopedia e Traumatologia'},
+  {id:'cirurgia_maxilo_facial', label:'Maxilo Facial'},
+  {id:'otorrinolaringologia', label:'Otorrinolaringologia'},
+  {id:'neurocirurgia', label:'Neurocirurgia'},
+  {id:'oftalmologia', label:'Oftalmologia'},
+];
+const URGENCIA_IDS = URGENCIA_ROWS.map(r=>r.id);
+const URGENCIA_CLINICA_IDS = ['medicina_interna'];
+
+function altasTotalFromSnapshot(s){
+  const manual = num(s.altas);
+  if(manual) return manual;
+  return (s.altasV||[]).reduce((a,x)=>a+num(x&&x.v), 0);
+}
+
+/** Contagens do Banco de Urgência de UM dia, para uma das 7 especialidades acima. */
+function urgenciaMetrics(s){
+  return {
+    idMen: num(s.idMen), idMai: num(s.idMai),
+    vindosHospitais: saved(s.transfR).length,
+    transfInternamento: saved(s.intData).length,
+    altas: altasTotalFromSnapshot(s),
+    falecidos: saved(s.obitData).length,
+    transfOutrasUnidades: saved(s.transfE).length,
+  };
+}
+
+// ── Top 20 Diagnósticos — normalização e agrupamento ──────────────────────
+// Os diagnósticos são escritos livremente (diagData/patData), por vezes em
+// abreviatura, por vezes por extenso, com/sem acentos. Para não duplicar
+// "HTA" e "Hipertensão Arterial" como duas linhas diferentes no Top 20,
+// normalizamos o texto e expandimos abreviaturas comuns antes de agrupar; no
+// fim, um segundo passo aproximado (por semelhança de bigramas) junta ainda
+// variações que a lista de abreviaturas não cobre (pequenas diferenças de
+// escrita/erros de digitação). Isto é uma normalização de melhor-esforço —
+// não substitui uma codificação clínica formal (CID).
+const DIAG_SOURCE_IDS = ['medicina_interna','cirurgia_geral','ortopedia','cirurgia_maxilo_facial','neurocirurgia','oftalmologia','otorrinolaringologia','psicologia_clinica'];
+
+const DIAG_ABREV = {
+  hta:'hipertensao arterial', ha:'hipertensao arterial',
+  dm:'diabetes mellitus', dm1:'diabetes mellitus tipo 1', dm2:'diabetes mellitus tipo 2',
+  avc:'acidente vascular cerebral', ave:'acidente vascular cerebral',
+  avci:'acidente vascular cerebral isquemico', avch:'acidente vascular cerebral hemorragico',
+  tce:'traumatismo cranio encefalico', tcr:'traumatismo cranio raquidiano',
+  ivu:'infecao trato urinario', itu:'infecao trato urinario',
+  irc:'insuficiencia renal cronica', ira:'insuficiencia renal aguda',
+  dpoc:'doenca pulmonar obstrutiva cronica',
+  icc:'insuficiencia cardiaca congestiva',
+  iam:'infarto agudo miocardio', sca:'sindrome coronariana aguda',
+  fx:'fratura', fract:'fratura',
+  tvp:'trombose venosa profunda', tep:'tromboembolismo pulmonar',
+  hda:'hemorragia digestiva alta', hdb:'hemorragia digestiva baixa',
+  drge:'doenca refluxo gastroesofagico',
+  lca:'ligamento cruzado anterior', lcp:'ligamento cruzado posterior',
+  hbp:'hiperplasia benigna prostata',
+  ce:'corpo estranho', gea:'gastroenterite aguda',
+  eap:'edema agudo pulmao', dcv:'doenca cardiovascular',
+  ist:'infecao sexualmente transmissivel', its:'infecao sexualmente transmissivel', dst:'infecao sexualmente transmissivel',
+  irpa:'insuficiencia respiratoria aguda', irespa:'insuficiencia respiratoria aguda',
+  pcr:'paragem cardiorrespiratoria',
+  hsa:'hemorragia subaracnoideia', hic:'hemorragia intracraniana',
+  tcedve:'traumatismo cranio encefalico',
+};
+const DIAG_STOPWORDS = new Set(['de','do','da','dos','das','e','a','o','os','as','em','no','na','nos','nas','com','por','para','um','uma','ao','à','aos']);
+
+function stripAccents(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+
+/** Chave normalizada usada para agrupar diagnósticos equivalentes. */
+function normalizeDiagKey(raw){
+  let s = stripAccents(String(raw||'').toLowerCase());
+  s = s.replace(/[.,;:!?()"'`]/g, ' ').replace(/[-/]/g, ' ');
+  s = s.replace(/\s+/g, ' ').trim();
+  if(!s) return '';
+  const tokens = s.split(' ').filter(t=>t && !DIAG_STOPWORDS.has(t));
+  // Expandir abreviaturas primeiro (pode gerar frases com vários tokens), só depois
+  // achatar e aplicar o singular simples — assim uma abreviatura e a forma por
+  // extenso passam pelas mesmas regras e acabam com a mesma chave.
+  const expandedStr = tokens.map(tok=>DIAG_ABREV[tok] || tok).join(' ');
+  const finalTokens = expandedStr.split(' ').filter(Boolean).map(tok=>{
+    if(tok.length > 4 && tok.endsWith('s') && !tok.endsWith('ss')) return tok.slice(0, -1);
+    return tok;
+  });
+  finalTokens.sort();
+  return finalTokens.join(' ');
+}
+
+function bigrams(s){
+  const clean = s.replace(/\s+/g, '');
+  const out = [];
+  for(let i=0; i<clean.length-1; i++) out.push(clean.slice(i, i+2));
+  return out;
+}
+function diceCoefficient(a, b){
+  if(a === b) return 1;
+  const ga = bigrams(a), gb = bigrams(b);
+  if(!ga.length || !gb.length) return 0;
+  const counts = {};
+  gb.forEach(g=>{ counts[g] = (counts[g]||0) + 1; });
+  let matches = 0;
+  ga.forEach(g=>{ if(counts[g] > 0){ matches++; counts[g]--; } });
+  return (2 * matches) / (ga.length + gb.length);
+}
+
+/**
+ * Agrupa uma lista de {text, qty} em diagnósticos únicos, expandindo
+ * abreviaturas e fundindo variações muito semelhantes (bigramas). Devolve
+ * lista ordenada por qty desc, cada item com {label, qty} — o label é a
+ * grafia original mais usada dentro do grupo.
+ */
+function mergeDiagCounts(entries){
+  const groups = new Map(); // key -> {qty, labelCounts: Map<string,number>}
+  for(const {text, qty} of entries){
+    const clean = String(text||'').trim();
+    if(!clean) continue;
+    const key = normalizeDiagKey(clean);
+    if(!key) continue;
+    if(!groups.has(key)) groups.set(key, {qty: 0, labelCounts: new Map()});
+    const g = groups.get(key);
+    g.qty += qty;
+    g.labelCounts.set(clean, (g.labelCounts.get(clean)||0) + qty);
+  }
+  // Segundo passo: fundir chaves muito semelhantes que a normalização não juntou
+  // (pequenas diferenças de escrita / erros de digitação), começando pelos
+  // grupos maiores para que o rótulo final seja o mais representativo.
+  const keys = [...groups.keys()].sort((a,b)=>groups.get(b).qty - groups.get(a).qty);
+  const merged = new Set();
+  for(let i=0; i<keys.length; i++){
+    const ka = keys[i];
+    if(merged.has(ka) || !groups.has(ka)) continue;
+    for(let j=i+1; j<keys.length; j++){
+      const kb = keys[j];
+      if(merged.has(kb) || !groups.has(kb)) continue;
+      const lenRatio = Math.min(ka.length, kb.length) / Math.max(ka.length, kb.length);
+      if(lenRatio < 0.6) continue;
+      if(diceCoefficient(ka, kb) >= 0.85){
+        const ga = groups.get(ka), gb = groups.get(kb);
+        ga.qty += gb.qty;
+        gb.labelCounts.forEach((v,k)=>ga.labelCounts.set(k, (ga.labelCounts.get(k)||0) + v));
+        groups.delete(kb);
+        merged.add(kb);
+      }
+    }
+  }
+  const result = [];
+  groups.forEach(g=>{
+    let bestLabel = '', bestCount = -1;
+    g.labelCounts.forEach((count, label)=>{
+      if(count > bestCount || (count === bestCount && label.length > bestLabel.length)){
+        bestLabel = label; bestCount = count;
+      }
+    });
+    result.push({label: bestLabel, qty: g.qty});
+  });
+  result.sort((a,b)=>b.qty - a.qty);
+  return result;
+}
+
+/** Extrai a lista de {text, qty} de diagnósticos/patologias de UM dia. */
+function diagEntriesFromSnapshot(id, s){
+  if(id === 'psicologia_clinica'){
+    return (s.patData||[]).filter(p=>p && p.nome && num(p.qty) > 0).map(p=>({text: p.nome, qty: num(p.qty)}));
+  }
+  return (s.diagData||[]).filter(d=>d && d.desc).map(d=>({text: d.desc, qty: Math.max(1, num(d.qty) || 1)}));
+}
+
 /** Métrica principal + secundárias de UM dia, por serviço (para somar ao longo do mês). */
 function dayMetrics(id, s){
   switch(id){
@@ -150,7 +328,116 @@ function stripNomesDoentes(value){
   return value;
 }
 
-function buildReportHTML(monthLabel, perService, ym){
+/** Tabela 2 (Atendimento por especialidade/idade) + Tabela 3 (Movimento clínico/cirúrgico)
+ *  + Top 20 Diagnósticos, para o Banco de Urgência (secção fixa do relatório mensal). */
+function buildUrgenciaSectionHTML(urgenciaAgg, diagTop20){
+  const rows2 = URGENCIA_ROWS.map(r=>{
+    const a = urgenciaAgg[r.id];
+    return {label: r.label, men: a.idMen, mai: a.idMai, tot: a.idMen + a.idMai};
+  });
+  const t2TotMen = rows2.reduce((s,r)=>s+r.men, 0);
+  const t2TotMai = rows2.reduce((s,r)=>s+r.mai, 0);
+
+  const clinicaRows = URGENCIA_ROWS.filter(r=>URGENCIA_CLINICA_IDS.includes(r.id));
+  const cirurgicaRows = URGENCIA_ROWS.filter(r=>!URGENCIA_CLINICA_IDS.includes(r.id));
+  const sumField = (rows, field) => rows.reduce((s,r)=>s+urgenciaAgg[r.id][field], 0);
+  const obsField = rows => sumField(rows,'idMen') + sumField(rows,'idMai');
+  const movRows = [
+    {label:'Doentes Observados', clin: obsField(clinicaRows), cir: obsField(cirurgicaRows)},
+    {label:'Vindos de outros Hospitais', clin: sumField(clinicaRows,'vindosHospitais'), cir: sumField(cirurgicaRows,'vindosHospitais')},
+    {label:'Transferidos para Internamento', clin: sumField(clinicaRows,'transfInternamento'), cir: sumField(cirurgicaRows,'transfInternamento')},
+    {label:'Altas', clin: sumField(clinicaRows,'altas'), cir: sumField(cirurgicaRows,'altas')},
+    {label:'Falecidos', clin: sumField(clinicaRows,'falecidos'), cir: sumField(cirurgicaRows,'falecidos')},
+    {label:'Transferidos para outras unidades', clin: sumField(clinicaRows,'transfOutrasUnidades'), cir: sumField(cirurgicaRows,'transfOutrasUnidades')},
+  ];
+
+  const tableStyle = `width:100%;border-collapse:collapse;font-size:10px;margin-top:8px;`;
+  const thStyle = `background:#0D1B3E;color:#fff;padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.03em;`;
+  const tdStyle = `padding:5px 8px;border-bottom:1px solid #E2E8F0;`;
+  const tdNum = `${tdStyle}text-align:right;font-family:'DM Mono',monospace;font-weight:700;`;
+
+  const tabela2 = `
+    <section style="margin-bottom:22px;break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="width:24px;height:3px;border-radius:2px;background:#1A56DB;display:inline-block;"></span>
+        <h2 style="font-size:13px;font-weight:700;color:#0F172A;margin:0;">Tabela 2 — Atendimento no Banco de Urgência</h2>
+      </div>
+      <table style="${tableStyle}">
+        <thead><tr>
+          <th style="${thStyle}">Especialidade</th>
+          <th style="${thStyle}text-align:right;">Menor de 15 anos</th>
+          <th style="${thStyle}text-align:right;">15 anos e mais</th>
+          <th style="${thStyle}text-align:right;">Total</th>
+        </tr></thead>
+        <tbody>
+          ${rows2.map((r,i)=>`<tr style="background:${i%2===0?'#FAFBFF':'#fff'};">
+            <td style="${tdStyle}">${esc(r.label)}</td>
+            <td style="${tdNum}">${r.men}</td>
+            <td style="${tdNum}">${r.mai}</td>
+            <td style="${tdNum}color:#1A56DB;">${r.tot}</td>
+          </tr>`).join('')}
+          <tr style="background:#EFF6FF;font-weight:700;">
+            <td style="${tdStyle}">TOTAL GERAL</td>
+            <td style="${tdNum}">${t2TotMen}</td>
+            <td style="${tdNum}">${t2TotMai}</td>
+            <td style="${tdNum}color:#0D1B3E;">${t2TotMen + t2TotMai}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>`;
+
+  const tabela3 = `
+    <section style="margin-bottom:22px;break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="width:24px;height:3px;border-radius:2px;background:#7C3AED;display:inline-block;"></span>
+        <h2 style="font-size:13px;font-weight:700;color:#0F172A;margin:0;">Tabela 3 — Movimento do Banco de Urgência</h2>
+      </div>
+      <table style="${tableStyle}">
+        <thead><tr>
+          <th style="${thStyle}"></th>
+          <th style="${thStyle}text-align:right;">Urgências Média Clínica</th>
+          <th style="${thStyle}text-align:right;">Urgências Média Cirúrgica</th>
+          <th style="${thStyle}text-align:right;">Total</th>
+        </tr></thead>
+        <tbody>
+          ${movRows.map((r,i)=>`<tr style="background:${i%2===0?'#FAFBFF':'#fff'};">
+            <td style="${tdStyle}">${esc(r.label)}</td>
+            <td style="${tdNum}">${r.clin}</td>
+            <td style="${tdNum}">${r.cir}</td>
+            <td style="${tdNum}color:#7C3AED;">${r.clin + r.cir}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </section>`;
+
+  const tabelaDiag = diagTop20.length ? `
+    <section style="margin-bottom:22px;break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="width:24px;height:3px;border-radius:2px;background:#D97706;display:inline-block;"></span>
+        <h2 style="font-size:13px;font-weight:700;color:#0F172A;margin:0;">Top 20 Diagnósticos — Medicina, Cirurgia Geral, Ortopedia, Maxilo Facial, Neurocirurgia, Oftalmologia, Otorrinolaringologia e Psicologia Clínica</h2>
+      </div>
+      <table style="${tableStyle}">
+        <thead><tr>
+          <th style="${thStyle}">#</th>
+          <th style="${thStyle}">Diagnóstico</th>
+          <th style="${thStyle}text-align:right;">Casos</th>
+        </tr></thead>
+        <tbody>
+          ${diagTop20.map((d,i)=>`<tr style="background:${i%2===0?'#FAFBFF':'#fff'};">
+            <td style="${tdStyle}color:#D97706;font-weight:700;">${i+1}</td>
+            <td style="${tdStyle}">${esc(d.label)}</td>
+            <td style="${tdNum}color:#D97706;">${d.qty}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div style="font-size:8.5px;color:#94A3B8;margin-top:4px;">Diagnósticos escritos livremente pelos profissionais, agrupados automaticamente por semelhança (abreviaturas e variações de escrita); não substitui uma codificação clínica formal.</div>
+    </section>` : '';
+
+  return tabela2 + tabela3 + tabelaDiag;
+}
+
+function buildReportHTML(monthLabel, perService, ym, extra){
+  const {urgenciaAgg, diagTop20} = extra || {};
   const totalDaysReported = perService.reduce((a,s)=>a+s.daysReported, 0);
   const groups = Object.entries(CATS).map(([catId, cat])=>{
     const items = perService.filter(s=>s.cat===catId);
@@ -205,6 +492,7 @@ function buildReportHTML(monthLabel, perService, ym){
       <div><div class="n">${totalDaysReported}</div><div class="l">Dias com registo (total)</div></div>
     </div>
   </header>
+  ${urgenciaAgg ? buildUrgenciaSectionHTML(urgenciaAgg, diagTop20 || []) : ''}
   ${groups}
   <footer>Gerado automaticamente pelo sistema no dia 2 do mês seguinte · Hospital do Prenda · Uso interno · Luanda, Angola</footer>
 </body></html>`;
@@ -238,6 +526,16 @@ async function main(){
   const perService = [];
   const toDelete = []; // {prefix, id, date}
 
+  // Banco de Urgência: contagens mensais (Tabela 2 — Atendimento, Tabela 3 — Movimento)
+  // por especialidade, e diagnósticos em bruto para o Top 20 (ver URGENCIA_ROWS/
+  // DIAG_SOURCE_IDS acima). Alimentados dentro do mesmo ciclo para não repetir
+  // pedidos ao Firebase.
+  const urgenciaAgg = {};
+  URGENCIA_ROWS.forEach(r=>{
+    urgenciaAgg[r.id] = {idMen:0, idMai:0, vindosHospitais:0, transfInternamento:0, altas:0, falecidos:0, transfOutrasUnidades:0};
+  });
+  const diagRaw = []; // {text, qty}
+
   for(const svc of ALL_SERVICES){
     const prefix = svc.fbPrefix || 'registos';
     const fbId = svc.slug || svc.id;
@@ -253,6 +551,16 @@ async function main(){
       headlineTotal += m.headline;
       for(const [k, v] of Object.entries(m.secondary)){
         secondaryTotals[k] = (secondaryTotals[k] || 0) + v;
+      }
+      if(URGENCIA_IDS.includes(svc.id)){
+        const u = urgenciaMetrics(s);
+        const agg = urgenciaAgg[svc.id];
+        agg.idMen += u.idMen; agg.idMai += u.idMai;
+        agg.vindosHospitais += u.vindosHospitais; agg.transfInternamento += u.transfInternamento;
+        agg.altas += u.altas; agg.falecidos += u.falecidos; agg.transfOutrasUnidades += u.transfOutrasUnidades;
+      }
+      if(DIAG_SOURCE_IDS.includes(svc.id)){
+        diagRaw.push(...diagEntriesFromSnapshot(svc.id, s));
       }
       toDelete.push({prefix, id: fbId, date});
     }
@@ -296,7 +604,9 @@ async function main(){
   fs.writeFileSync(archiveIndexPath, JSON.stringify(archiveIndex, null, 2));
   console.log(`Arquivo local de ${ym} guardado em ${archiveDir}/ (${archivedServices.length} serviço(s) com dados).`);
 
-  const html = buildReportHTML(monthLabel, perService, ym);
+  const diagTop20 = mergeDiagCounts(diagRaw).slice(0, 20);
+
+  const html = buildReportHTML(monthLabel, perService, ym, {urgenciaAgg, diagTop20});
   fs.mkdirSync('relatorios', {recursive: true});
   const pdfPath = `relatorios/${ym}.pdf`;
 
