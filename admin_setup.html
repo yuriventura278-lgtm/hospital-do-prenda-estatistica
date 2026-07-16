@@ -66,16 +66,16 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
         <input id="fNome" type="text" placeholder="Nome do administrador" required/>
       </div>
       <div class="field">
-        <label for="fCodigo">Código de Acesso</label>
-        <input id="fCodigo" type="password" placeholder="mínimo 6 caracteres" minlength="6" required/>
+        <label for="fEmail">Email</label>
+        <input id="fEmail" type="email" placeholder="admin@hospitaldoprenda.ao" required/>
       </div>
       <div class="field">
-        <label for="fCodigo2">Confirmar Código</label>
-        <input id="fCodigo2" type="password" placeholder="repita o código" minlength="6" required/>
+        <label for="fPass">Password</label>
+        <input id="fPass" type="password" placeholder="mínimo 6 caracteres" minlength="6" required/>
       </div>
       <div class="field">
-        <label for="fEmail">Email de contacto <span style="font-weight:400;color:var(--tx3);">(opcional)</span></label>
-        <input id="fEmail" type="email" placeholder="admin@hospitaldoprenda.ao"/>
+        <label for="fPass2">Confirmar Password</label>
+        <input id="fPass2" type="password" placeholder="repita a password" minlength="6" required/>
       </div>
       <button type="submit" class="btn-primary" id="setupBtn">Criar conta de Administrador</button>
     </form>
@@ -90,7 +90,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 </footer>
 
 <script type="module">
-import { auth, db, ref, get, set, signInWithEmailAndPassword, signOut, codeToEmail } from './zelo_auth.js';
+import { auth, db, ref, get, set, signInWithEmailAndPassword, signOut } from './zelo_auth.js';
 import { createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 
 document.getElementById('footyear').textContent = new Date().getFullYear();
@@ -130,12 +130,11 @@ form.addEventListener('submit', async function(e){
   e.preventDefault();
   msg.style.display = 'none';
   const nome = document.getElementById('fNome').value.trim();
-  const codigo = document.getElementById('fCodigo').value;
-  const codigo2 = document.getElementById('fCodigo2').value;
-  const emailContacto = document.getElementById('fEmail').value.trim();
-  if(codigo !== codigo2){ showMsg('Os códigos não coincidem.', 'err'); return; }
-  if(codigo.length < 6){ showMsg('O código deve ter pelo menos 6 caracteres.', 'err'); return; }
-  const email = codeToEmail(codigo);
+  const email = document.getElementById('fEmail').value.trim();
+  const pass = document.getElementById('fPass').value;
+  const pass2 = document.getElementById('fPass2').value;
+  if(pass !== pass2){ showMsg('As passwords não coincidem.', 'err'); return; }
+  if(pass.length < 6){ showMsg('A password deve ter pelo menos 6 caracteres.', 'err'); return; }
 
   btn.disabled = true;
   btn.textContent = 'A criar conta…';
@@ -144,21 +143,22 @@ form.addEventListener('submit', async function(e){
     const snap = await get(ref(db, 'users'));
     if(snap.exists()){ showMsg('Já foi criado um administrador entretanto. Recarregue a página.', 'err'); btn.disabled=false; btn.textContent='Criar conta de Administrador'; return; }
 
-    const cred = await createUserWithEmailAndPassword(auth, email, codigo);
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
     await set(ref(db, 'users/' + cred.user.uid), {
-      nome, email: emailContacto || null, role: 'admin', ativo: true, criadoEm: Date.now()
+      nome, email, role: 'admin', ativo: true, criadoEm: Date.now()
     });
     await signOut(auth);
     form.style.display = 'none';
     pTitle.textContent = 'Conta criada com sucesso!';
-    pSub.textContent = 'Já podes iniciar sessão no ZELO com o teu código de acesso.';
-    showMsg('Administrador criado! Código de acesso: ' + codigo + ' — anota e guarda em privado. Vai a Início para iniciar sessão.', 'ok');
+    pSub.textContent = 'Já podes iniciar sessão no ZELO com este email e password.';
+    showMsg('Administrador criado: ' + email + '. Vai a Início para iniciar sessão.', 'ok');
   }catch(e2){
     btn.disabled = false;
     btn.textContent = 'Criar conta de Administrador';
     let m = 'Não foi possível criar a conta.';
-    if(e2 && e2.code === 'auth/email-already-in-use') m = 'Este código já está em uso. Escolhe outro.';
-    if(e2 && e2.code === 'auth/weak-password') m = 'Código demasiado curto.';
+    if(e2 && e2.code === 'auth/email-already-in-use') m = 'Este email já está registado.';
+    if(e2 && e2.code === 'auth/invalid-email') m = 'Email inválido.';
+    if(e2 && e2.code === 'auth/weak-password') m = 'Password demasiado fraca.';
     showMsg(m, 'err');
     console.error(e2);
   }
