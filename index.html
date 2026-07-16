@@ -330,7 +330,31 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   @keyframes zafGlow{0%,100%{box-shadow:0 0 0 0 rgba(26,86,219,.22)}50%{box-shadow:0 0 0 9px rgba(26,86,219,0)}}
   @keyframes zafSpin{to{transform:rotate(360deg)}}
   @media(max-width:380px){#zeloAuthGate form{padding:26px 20px;}}
+  #zeloAuthGate .zaf-topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:18px 26px;font-family:'Inter',sans-serif;}
+  #zeloAuthGate .zaf-topbar-brand{display:flex;align-items:center;gap:10px;color:#E7ECF7;font-weight:800;font-size:.92rem;letter-spacing:.02em;}
+  #zeloAuthGate .zaf-topbar-brand img{width:28px;height:28px;border-radius:8px;background:#fff;padding:2px;}
+  #zeloAuthGate .zaf-lang{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:3px;}
+  #zeloAuthGate .zaf-lang button{border:none;background:none;color:#C7D2E8;font-size:.72rem;font-weight:700;padding:5px 11px;border-radius:999px;cursor:pointer;font-family:inherit;transition:background .15s,color .15s;}
+  #zeloAuthGate .zaf-lang button.active{background:#fff;color:#0D1B3E;}
+  #zeloAuthGate .zaf-footer{position:absolute;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 20px 18px;text-align:center;font-family:'Inter',sans-serif;}
+  #zeloAuthGate .zaf-footer .zf-l1{color:#C7D2E8;font-size:.76rem;font-weight:600;}
+  #zeloAuthGate .zaf-footer .zf-l2{color:#8FA0C4;font-size:.7rem;display:flex;align-items:center;gap:6px;}
+  #zeloAuthGate .zaf-footer .zf-dot{width:7px;height:7px;border-radius:50%;background:#34D399;display:inline-block;box-shadow:0 0 0 3px rgba(52,211,153,.18);}
+  #zeloAuthGate .zaf-footer .zf-dot.off{background:#F87171;box-shadow:0 0 0 3px rgba(248,113,113,.18);}
+  #zeloAuthGate .zaf-footer .zf-l3{color:#6B7CA0;font-size:.68rem;}
+  #zeloAuthGate .zaf-captcha{display:none;background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:10px;padding:12px 14px;margin:-4px 0 16px;}
+  #zeloAuthGate .zaf-captcha.show{display:block;}
+  #zeloAuthGate .zaf-captcha .zc-q{font-size:.78rem;font-weight:700;color:#334155;margin-bottom:8px;}
+  #zeloAuthGate .zaf-captcha input{padding:9px 12px;font-size:.9rem;}
+  @media(max-width:560px){#zeloAuthGate .zaf-topbar{padding:14px 16px;}#zeloAuthGate .zaf-topbar-brand span{display:none;}}
 </style>
+  <div class="zaf-topbar">
+    <div class="zaf-topbar-brand"><img src="data:image/png;base64,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" alt="Hospital do Prenda"><span>Hospital do Prenda</span></div>
+    <div class="zaf-lang" role="group" aria-label="Idioma">
+      <button type="button" id="zeloLangPT" class="active" data-lang="pt">PT</button>
+      <button type="button" id="zeloLangEN" data-lang="en">EN</button>
+    </div>
+  </div>
   <div id="zeloAuthLoading" style="display:flex;flex-direction:column;align-items:center;gap:14px;">
   <div style="width:44px;height:44px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#22D3EE;animation:zeloAuthSpin .8s linear infinite;"></div>
   <div style="color:#C7D2E8;font-size:.8rem;font-family:'Inter',sans-serif;">A verificar sessão…</div>
@@ -385,8 +409,18 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
       <span>Utilizador ou password incorretos.</span>
     </div>
 
+    <div class="zaf-captcha" id="zeloCaptchaBox">
+      <div class="zc-q" id="zeloCaptchaQ">Quanto é 2 + 2?</div>
+      <input type="text" id="zeloCaptchaInput" inputmode="numeric" autocomplete="off" placeholder="Resposta"/>
+    </div>
+
     <button type="submit" id="zeloAuthBtn"><span id="zeloAuthBtnLabel">Entrar</span></button>
   </form>
+  <div class="zaf-footer">
+    <div class="zf-l1" id="zeloFootSystem">Sistema Integrado de Estatística Hospitalar</div>
+    <div class="zf-l2"><span>Versão 1.0</span><span>|</span><span id="zeloFootStatus"><span class="zf-dot" id="zeloFootDot"></span> <span id="zeloFootStatusText">Servidor Online</span></span></div>
+    <div class="zf-l3" id="zeloFootRights">&copy; <span id="zeloFootYear"></span> Hospital do Prenda — Todos os direitos reservados.</div>
+  </div>
 </div>
 <script type="module">
 import {
@@ -415,6 +449,71 @@ import {
   var prevOverflow=htmlEl.style.overflow;
   htmlEl.style.overflow='hidden';
   var stopInactivityWatch=null;
+  var captchaBox=document.getElementById('zeloCaptchaBox');
+  var captchaQ=document.getElementById('zeloCaptchaQ');
+  var captchaInput=document.getElementById('zeloCaptchaInput');
+  var captchaAnswer=0;
+  var failCount=0;
+
+  function newCaptcha(){
+    var a=Math.floor(Math.random()*9)+1, b=Math.floor(Math.random()*9)+1;
+    captchaAnswer=a+b;
+    captchaQ.dataset.a=a;
+    captchaQ.dataset.b=b;
+    captchaQ.textContent=langDict[currentLang].captchaPrefix+a+' + '+b+'?';
+    captchaInput.value='';
+  }
+
+  var langDict={
+    pt:{ brand:'Hospital do Prenda', emailLabel:'Email', passLabel:'Password', emailPh:'nome@hospitaldoprenda.ao',
+      remember:'Lembrar-me', forgot:'Esqueceu a password?', caps:'Caps Lock activado', enter:'Entrar',
+      captchaPrefix:'Verificação de segurança: quanto é ', foot1:'Sistema Integrado de Estatística Hospitalar',
+      version:'Versão 1.0', online:'Servidor Online', offline:'Servidor Offline', rights:'Hospital do Prenda — Todos os direitos reservados.' },
+    en:{ brand:'Hospital do Prenda', emailLabel:'Email', passLabel:'Password', emailPh:'name@hospitaldoprenda.ao',
+      remember:'Remember me', forgot:'Forgot your password?', caps:'Caps Lock is on', enter:'Sign in',
+      captchaPrefix:'Security check: what is ', foot1:'Integrated Hospital Statistics System',
+      version:'Version 1.0', online:'Server Online', offline:'Server Offline', rights:'Hospital do Prenda — All rights reserved.' }
+  };
+  var currentLang=localStorage.getItem('zeloLang')==='en' ? 'en' : 'pt';
+
+  function applyLang(lang){
+    currentLang=lang;
+    localStorage.setItem('zeloLang', lang);
+    var t=langDict[lang];
+    document.getElementById('zeloLangPT').classList.toggle('active', lang==='pt');
+    document.getElementById('zeloLangEN').classList.toggle('active', lang==='en');
+    document.querySelector('label[for="zeloAuthEmail"]').textContent=t.emailLabel;
+    document.querySelector('label[for="zeloAuthPass"]').textContent=t.passLabel;
+    userInput.placeholder=t.emailPh;
+    rememberInput.parentElement.lastChild.textContent=' '+t.remember;
+    forgotLink.textContent=t.forgot;
+    capsWarn.querySelector('span').textContent=t.caps;
+    if(!btn.disabled) btnLabel.textContent=t.enter;
+    document.getElementById('zeloFootSystem').textContent=t.foot1;
+    document.querySelector('.zaf-footer .zf-l2 span:first-child').textContent=t.version;
+    updateServerStatusText();
+    document.getElementById('zeloFootRights').innerHTML='&copy; <span id="zeloFootYear">'+new Date().getFullYear()+'</span> '+t.rights;
+    if(captchaBox.classList.contains('show')) captchaQ.textContent=t.captchaPrefix+captchaQ.dataset.a+' + '+captchaQ.dataset.b+'?';
+  }
+  document.getElementById('zeloLangPT').addEventListener('click', function(){ applyLang('pt'); });
+  document.getElementById('zeloLangEN').addEventListener('click', function(){ applyLang('en'); });
+
+  var footDot=document.getElementById('zeloFootDot');
+  var footStatusText=document.getElementById('zeloFootStatusText');
+  var serverOnline=true;
+  function updateServerStatusText(){
+    var t=langDict[currentLang];
+    footStatusText.textContent = serverOnline ? t.online : t.offline;
+    footDot.classList.toggle('off', !serverOnline);
+  }
+  try{
+    onValue(ref(db, '.info/connected'), function(snap){
+      serverOnline = snap.val() === true;
+      updateServerStatusText();
+    });
+  }catch(e0){}
+  document.getElementById('zeloFootYear').textContent=new Date().getFullYear();
+  applyLang(currentLang);
 
   userInput.focus();
 
@@ -478,6 +577,8 @@ import {
     window.zeloUltimoAcessoAnterior = perfil.ultimoAcesso || null;
     clearLoginAttempts(user.email);
     touchLastAccess(user.uid);
+    failCount=0;
+    captchaBox.classList.remove('show');
     hideGate();
     if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
     if(typeof window.zeloApplyPermissoes === 'function') window.zeloApplyPermissoes(perfil.role || 'funcionario', perfil.permissoes || {});
@@ -497,13 +598,22 @@ import {
     var email=userInput.value.trim();
     var pass=passInput.value;
     err.style.display='none';
+    if(captchaBox.classList.contains('show')){
+      var respondida=parseInt(captchaInput.value,10);
+      if(respondida!==captchaAnswer){
+        errText.textContent = currentLang==='en' ? 'Wrong answer to the security check. Try again.' : 'Resposta errada na verificação de segurança. Tente novamente.';
+        err.style.display='flex';
+        newCaptcha();
+        return;
+      }
+    }
     btn.disabled=true;
     btnLabel.innerHTML='<span class="zaf-spin"></span>';
     try{
       var lockState = await checkLoginLockout(email);
       if(lockState.blocked){
         btn.disabled=false;
-        btnLabel.textContent='Entrar';
+        btnLabel.textContent=langDict[currentLang].enter;
         errText.textContent='Demasiadas tentativas falhadas. Tente novamente daqui a ' + lockState.remainingMinutes + ' minuto(s).';
         err.style.display='flex';
         return;
@@ -513,7 +623,7 @@ import {
       if(window.PasswordCredential){ try{ navigator.credentials.store(new PasswordCredential({ id:email, password:pass, name:'ZELO' })); }catch(e2){} }
     }catch(e2){
       btn.disabled=false;
-      btnLabel.textContent='Entrar';
+      btnLabel.textContent=langDict[currentLang].enter;
       var msg='Email ou password incorretos.';
       if(e2 && e2.code==='auth/too-many-requests') msg='Demasiadas tentativas falhadas. Tente novamente mais tarde.';
       if(e2 && e2.code==='auth/invalid-email') msg='Email inválido.';
@@ -521,6 +631,11 @@ import {
       if(e2 && (e2.code==='auth/wrong-password' || e2.code==='auth/invalid-credential' || e2.code==='auth/user-not-found')){
         var novaContagem = await registerFailedLogin(email);
         if(novaContagem >= 5) msg='Demasiadas tentativas falhadas. A conta fica bloqueada 15 minutos.';
+        failCount++;
+        if(failCount>=3){
+          captchaBox.classList.add('show');
+          newCaptcha();
+        }
       }
       errText.textContent=msg;
       err.style.display='flex';
