@@ -132,6 +132,24 @@ function getTargetMonth(refDate){
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// O arquivo publicado no GitHub é público — nunca pode conter nomes de doentes.
+// Remove recursivamente qualquer campo chamado "nome" (a qualquer profundidade) de um
+// snapshot de um dia, mantendo todos os outros dados estatísticos intactos. Aplicado só
+// a rec.snapshot — rec.criadoPor (autor do registo, para responsabilização interna) fica
+// de fora porque está ao lado de snapshot, não dentro dele.
+function stripNomesDoentes(value){
+  if(Array.isArray(value)) return value.map(stripNomesDoentes);
+  if(value && typeof value === 'object'){
+    const out = {};
+    for(const [k, v] of Object.entries(value)){
+      if(/^nome$/i.test(k)) continue;
+      out[k] = stripNomesDoentes(v);
+    }
+    return out;
+  }
+  return value;
+}
+
 function buildReportHTML(monthLabel, perService, ym){
   const totalDaysReported = perService.reduce((a,s)=>a+s.daysReported, 0);
   const groups = Object.entries(CATS).map(([catId, cat])=>{
@@ -242,7 +260,12 @@ async function main(){
     if(monthEntries.length){
       const subDir = `${archiveDir}/${prefix}`;
       fs.mkdirSync(subDir, {recursive: true});
-      const raw = Object.fromEntries(monthEntries.sort((a, b) => a[0].localeCompare(b[0])));
+      const semNomes = monthEntries.map(([date, rec]) => {
+        const limpo = Object.assign({}, rec);
+        if(limpo && limpo.snapshot) limpo.snapshot = stripNomesDoentes(limpo.snapshot);
+        return [date, limpo];
+      });
+      const raw = Object.fromEntries(semNomes.sort((a, b) => a[0].localeCompare(b[0])));
       fs.writeFileSync(`${subDir}/${fbId}.json`, JSON.stringify(raw, null, 2));
       archivedServices.push({id: svc.id, name: svc.name, cat: svc.cat, prefix, fbId, daysReported: monthEntries.length});
     }
