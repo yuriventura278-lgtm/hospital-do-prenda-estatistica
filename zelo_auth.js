@@ -139,12 +139,28 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// Verifica acesso a um módulo (ou a um item específico dentro dele).
+// permissoes[mod] pode ser: ausente/true = tudo permitido; false = módulo todo bloqueado;
+// objeto {itemSlug: false, ...} = bloqueio item a item (ausência no objeto = permitido).
+function hasModuleAccess(role, permissoes, mod, itemSlug) {
+  if (role === 'admin') return true;
+  const modPerm = permissoes ? permissoes[mod] : undefined;
+  if (modPerm === false) return false;
+  if (modPerm === true || modPerm === undefined || modPerm === null) return true;
+  if (typeof modPerm === 'object') {
+    if (!itemSlug) return true;
+    return modPerm[itemSlug] !== false;
+  }
+  return true;
+}
+
 export {
   app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
-  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml
+  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
+  hasModuleAccess
 };
 
 window.ZeloAuth = {
@@ -152,5 +168,6 @@ window.ZeloAuth = {
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
-  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml
+  checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
+  hasModuleAccess
 };

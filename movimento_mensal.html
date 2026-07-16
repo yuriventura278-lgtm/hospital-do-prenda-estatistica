@@ -893,7 +893,26 @@ function importBackup(input){
   reader.readAsText(file);
 }
 
-(function init(){
+function zeloHasItemAccess(role, permissoes, mod, itemSlug){
+  if(role === 'admin') return true;
+  const modPerm = permissoes ? permissoes[mod] : undefined;
+  if(modPerm === false) return false;
+  if(modPerm === true || modPerm === undefined || modPerm === null) return true;
+  if(typeof modPerm === 'object'){
+    if(!itemSlug) return true;
+    return modPerm[itemSlug] !== false;
+  }
+  return true;
+}
+
+window.addEventListener('zelo-gate-ready', function(e){
+  const role = e.detail.role;
+  const permissoes = e.detail.permissoes || {};
+  const qServico = qs('servico');
+  if(qServico && !zeloHasItemAccess(role, permissoes, 'movimento_mensal', qServico)){
+    if(window.ZeloShowBlocked) window.ZeloShowBlocked();
+    return;
+  }
   if(setupPageForServico()){
     const qData = qs('data');
     if(qData) currentDate = qData;
@@ -901,7 +920,7 @@ function importBackup(input){
     // sobrepor dados que o utilizador já esteja a escrever no formulário.
     _idbReadyPromise.then(() => loadForCurrent());
   }
-})();
+});
 </script>
 </body>
 </html>
