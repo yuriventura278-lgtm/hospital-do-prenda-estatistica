@@ -243,6 +243,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   setTimeout(function(){
     var loading = document.getElementById('zeloAuthLoading');
     var form = document.getElementById('zeloAuthForm');
+    if(window.__zeloVerificacaoEmCurso) return; // já há uma sessão real a ser confirmada — não interromper
     if(loading && getComputedStyle(loading).display !== 'none' && form && getComputedStyle(form).display === 'none'){
       loading.style.display = 'none';
       form.style.display = '';
@@ -386,7 +387,7 @@ import {
       await signOut(auth);
       btn.disabled=false;
       btnLabel.textContent='Entrar';
-      errText.textContent='Esta conta está desativada. Contacte o administrador.';
+      errText.textContent='Não foi possível confirmar a sua conta (conta desativada ou falha de ligação). Verifique a internet e tente novamente.';
       err.style.display='flex';
       return;
     }
@@ -423,7 +424,7 @@ import {
     verificacaoInicialFeita = true;
     clearTimeout(verificacaoInicialTimeout);
     if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
-    if(user){ completarLogin(user); }
+    if(user){ window.__zeloVerificacaoEmCurso = true; completarLogin(user); }
     else{ showAuthForm(); }
   });
   var verificacaoInicialTimeout = setTimeout(function(){

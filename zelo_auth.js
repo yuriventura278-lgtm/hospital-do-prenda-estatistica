@@ -27,12 +27,24 @@ const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 minutos sem interação — lo
 const MAX_SESSION_MS = 8 * 60 * 60 * 1000; // 8 horas — sessão máxima mesmo com atividade contínua (fim de turno)
 const REVALIDATE_INTERVAL_MS = 2 * 60 * 1000; // 2 minutos — reconfirma em segundo plano que a conta continua activa
 
+// Numa ligação muito lenta ou instável, get() pode ficar pendente por muito
+// tempo (o SDK do Firebase não desiste sozinho). Sem um limite aqui, uma
+// sessão já existente podia ficar "a carregar dados" indefinidamente e só
+// resolver (com sucesso ou falha) muitos segundos depois — já com o
+// formulário de login visível por causa da rede de segurança do ecrã de
+// login — trocando de repente todo o ecrã a meio de o utilizador escrever.
+// Com um limite, a falha/sucesso acontece sempre dentro de um tempo previsível.
+const FETCH_PERFIL_TIMEOUT_MS = 10000;
+
 async function fetchUserProfile(uid) {
   try {
-    const snap = await get(ref(db, 'users/' + uid));
+    const snap = await Promise.race([
+      get(ref(db, 'users/' + uid)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FETCH_PERFIL_TIMEOUT_MS))
+    ]);
     return snap.exists() ? snap.val() : null;
   } catch (e) {
-    console.error('ZELO auth: falha ao ler perfil do utilizador', e);
+    console.error('ZELO auth: falha ao ler perfil do utilizador (ou tempo excedido)', e);
     return null;
   }
 }
