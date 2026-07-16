@@ -36,7 +36,7 @@ class ZeloDB {
       };
       req.onsuccess = (e) => resolve(e.target.result);
       req.onerror = () => { this._dbPromise = null; reject(req.error); };
-      req.onblocked = () => reject(new Error('A base de dados local está bloqueada — feche outras abas do ZELO abertas e recarregue a página.'));
+      req.onblocked = () => { this._dbPromise = null; reject(new Error('A base de dados local está bloqueada — feche outras abas do ZELO abertas e recarregue a página.')); };
     });
     return this._dbPromise;
   }

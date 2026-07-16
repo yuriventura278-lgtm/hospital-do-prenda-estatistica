@@ -67,6 +67,8 @@
           // fica em fila — tenta os restantes agora, e este de novo na próxima chamada
         }
       }
+    } catch (e) {
+      console.warn('ZELO sync: não foi possível ler a fila local — tenta de novo na próxima chamada.', e);
     } finally {
       aEnviar = false;
     }
