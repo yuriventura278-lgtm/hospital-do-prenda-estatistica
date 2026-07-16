@@ -34,6 +34,7 @@
     console.warn('Firebase indisponível.', e);
     window.__fbReady = false;
   }
+  window.dispatchEvent(new CustomEvent('zelo-dashboard-fb-ready'));
 </script>
 <style>
 :root{
@@ -1664,7 +1665,11 @@ async function exportPDF(svc, subtitleText, fileSuffix, sections, entry, coverag
   }
 }
 
-load();
+if(window.__fbReady === undefined){
+  window.addEventListener('zelo-dashboard-fb-ready', load, {once:true});
+}else{
+  load();
+}
 </script>
 </body>
 </html>
