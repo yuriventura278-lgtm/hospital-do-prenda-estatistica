@@ -182,12 +182,14 @@ function diceCoefficient(a, b){
  * lista ordenada por qty desc, cada item com {label, qty} — o label é a
  * grafia original mais usada dentro do grupo.
  */
-function mergeDiagCounts(entries){
+/** Núcleo partilhado: agrupa {text,qty} usando keyFn para decidir equivalência,
+ *  depois funde ainda chaves muito semelhantes (bigramas) que a keyFn não juntou. */
+function groupAndMergeCounts(entries, keyFn){
   const groups = new Map(); // key -> {qty, labelCounts: Map<string,number>}
   for(const {text, qty} of entries){
     const clean = String(text||'').trim();
     if(!clean) continue;
-    const key = normalizeDiagKey(clean);
+    const key = keyFn(clean);
     if(!key) continue;
     if(!groups.has(key)) groups.set(key, {qty: 0, labelCounts: new Map()});
     const g = groups.get(key);
@@ -230,12 +232,32 @@ function mergeDiagCounts(entries){
   return result;
 }
 
+function mergeDiagCounts(entries){
+  return groupAndMergeCounts(entries, normalizeDiagKey);
+}
+
+/** Chave simples (sem abreviaturas médicas) para agrupar nomes de hospitais/especialidades. */
+function normalizeSimpleKey(raw){
+  let s = stripAccents(String(raw||'').toLowerCase());
+  s = s.replace(/[.,;:!?()"'`]/g, ' ').replace(/[-/]/g, ' ');
+  return s.replace(/\s+/g, ' ').trim();
+}
+function mergeTextCounts(entries){
+  return groupAndMergeCounts(entries, normalizeSimpleKey);
+}
+
 /** Extrai a lista de {text, qty} de diagnósticos/patologias de UM dia. */
 function diagEntriesFromSnapshot(id, s){
   if(id === 'psicologia_clinica'){
     return (s.patData||[]).filter(p=>p && p.nome && num(p.qty) > 0).map(p=>({text: p.nome, qty: num(p.qty)}));
   }
   return (s.diagData||[]).filter(d=>d && d.desc).map(d=>({text: d.desc, qty: Math.max(1, num(d.qty) || 1)}));
+}
+
+/** Extrai {hospital, especialidade} de cada Transferência Recebida/Efetuada guardada de UM dia. */
+function transfEntriesFromSnapshot(s, tipo){
+  const arr = tipo === 'r' ? s.transfR : s.transfE;
+  return saved(arr).map(t=>({hospital: (t.hospital||'').trim(), especialidade: (t.especialidade||'').trim()}));
 }
 
 /** Métrica principal + secundárias de UM dia, por serviço (para somar ao longo do mês). */
@@ -330,7 +352,7 @@ function stripNomesDoentes(value){
 
 /** Tabela 2 (Atendimento por especialidade/idade) + Tabela 3 (Movimento clínico/cirúrgico)
  *  + Top 20 Diagnósticos, para o Banco de Urgência (secção fixa do relatório mensal). */
-function buildUrgenciaSectionHTML(urgenciaAgg, diagTop20){
+function buildUrgenciaSectionHTML(urgenciaAgg, diagTop20, transferencias){
   const rows2 = URGENCIA_ROWS.map(r=>{
     const a = urgenciaAgg[r.id];
     return {label: r.label, men: a.idMen, mai: a.idMai, tot: a.idMen + a.idMai};
@@ -433,11 +455,61 @@ function buildUrgenciaSectionHTML(urgenciaAgg, diagTop20){
       <div style="font-size:8.5px;color:#94A3B8;margin-top:4px;">Diagnósticos escritos livremente pelos profissionais, agrupados automaticamente por semelhança (abreviaturas e variações de escrita); não substitui uma codificação clínica formal.</div>
     </section>` : '';
 
-  return tabela2 + tabela3 + tabelaDiag;
+  const tabelasTransf = buildTransferTablesHTML(transferencias);
+
+  return tabela2 + tabela3 + tabelaDiag + tabelasTransf;
+}
+
+/** Tabelas de Transferências Recebidas/Efetuadas — por hospital e por especialidade,
+ *  para identificar de onde vêm mais transferências e para onde vão mais. */
+function buildTransferTablesHTML(transferencias){
+  if(!transferencias) return '';
+  const {recebidasPorHospital, recebidasPorEspecialidade, efetuadasPorHospital, efetuadasPorEspecialidade} = transferencias;
+  const hasAny = [recebidasPorHospital, recebidasPorEspecialidade, efetuadasPorHospital, efetuadasPorEspecialidade].some(a=>a && a.length);
+  if(!hasAny) return '';
+
+  const miniTable = (title, rows, color) => rows.length ? `
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:9.5px;font-weight:700;color:#0F172A;margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;">${esc(title)}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:9.5px;">
+        <tbody>
+          ${rows.slice(0,10).map((r,i)=>`<tr style="background:${i%2===0?'#FAFBFF':'#fff'};">
+            <td style="padding:4px 6px;border-bottom:1px solid #E2E8F0;">${esc(r.label)}</td>
+            <td style="padding:4px 6px;border-bottom:1px solid #E2E8F0;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${color};">${r.qty}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : `<div style="flex:1;min-width:0;"><div style="font-size:9.5px;color:#94A3B8;">${esc(title)}: sem registos.</div></div>`;
+
+  const recebidas = `
+    <section style="margin-bottom:22px;break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="width:24px;height:3px;border-radius:2px;background:#0EA5E9;display:inline-block;"></span>
+        <h2 style="font-size:13px;font-weight:700;color:#0F172A;margin:0;">Transferências Recebidas — por Hospital e por Especialidade</h2>
+      </div>
+      <div style="display:flex;gap:16px;">
+        ${miniTable('Hospital de origem', recebidasPorHospital, '#0EA5E9')}
+        ${miniTable('Especialidade que recebeu', recebidasPorEspecialidade, '#0EA5E9')}
+      </div>
+    </section>`;
+
+  const efetuadas = `
+    <section style="margin-bottom:22px;break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="width:24px;height:3px;border-radius:2px;background:#059669;display:inline-block;"></span>
+        <h2 style="font-size:13px;font-weight:700;color:#0F172A;margin:0;">Transferências Efetuadas — por Hospital e por Especialidade</h2>
+      </div>
+      <div style="display:flex;gap:16px;">
+        ${miniTable('Hospital de destino', efetuadasPorHospital, '#059669')}
+        ${miniTable('Especialidade que transferiu', efetuadasPorEspecialidade, '#059669')}
+      </div>
+    </section>`;
+
+  return recebidas + efetuadas;
 }
 
 function buildReportHTML(monthLabel, perService, ym, extra){
-  const {urgenciaAgg, diagTop20} = extra || {};
+  const {urgenciaAgg, diagTop20, transferencias} = extra || {};
   const totalDaysReported = perService.reduce((a,s)=>a+s.daysReported, 0);
   const groups = Object.entries(CATS).map(([catId, cat])=>{
     const items = perService.filter(s=>s.cat===catId);
@@ -492,7 +564,7 @@ function buildReportHTML(monthLabel, perService, ym, extra){
       <div><div class="n">${totalDaysReported}</div><div class="l">Dias com registo (total)</div></div>
     </div>
   </header>
-  ${urgenciaAgg ? buildUrgenciaSectionHTML(urgenciaAgg, diagTop20 || []) : ''}
+  ${urgenciaAgg ? buildUrgenciaSectionHTML(urgenciaAgg, diagTop20 || [], transferencias) : ''}
   ${groups}
   <footer>Gerado automaticamente pelo sistema no dia 2 do mês seguinte · Hospital do Prenda · Uso interno · Luanda, Angola</footer>
 </body></html>`;
@@ -535,6 +607,8 @@ async function main(){
     urgenciaAgg[r.id] = {idMen:0, idMai:0, vindosHospitais:0, transfInternamento:0, altas:0, falecidos:0, transfOutrasUnidades:0};
   });
   const diagRaw = []; // {text, qty}
+  const transfRRaw = []; // {hospital, especialidade} — Transferências Recebidas
+  const transfERaw = []; // {hospital, especialidade} — Transferências Efetuadas
 
   for(const svc of ALL_SERVICES){
     const prefix = svc.fbPrefix || 'registos';
@@ -561,6 +635,10 @@ async function main(){
       }
       if(DIAG_SOURCE_IDS.includes(svc.id)){
         diagRaw.push(...diagEntriesFromSnapshot(svc.id, s));
+      }
+      if(URGENCIA_IDS.includes(svc.id)){
+        transfRRaw.push(...transfEntriesFromSnapshot(s, 'r'));
+        transfERaw.push(...transfEntriesFromSnapshot(s, 'e'));
       }
       toDelete.push({prefix, id: fbId, date});
     }
@@ -605,8 +683,14 @@ async function main(){
   console.log(`Arquivo local de ${ym} guardado em ${archiveDir}/ (${archivedServices.length} serviço(s) com dados).`);
 
   const diagTop20 = mergeDiagCounts(diagRaw).slice(0, 20);
+  const transferencias = {
+    recebidasPorHospital: mergeTextCounts(transfRRaw.map(t=>({text: t.hospital, qty: 1}))),
+    recebidasPorEspecialidade: mergeTextCounts(transfRRaw.map(t=>({text: t.especialidade, qty: 1}))),
+    efetuadasPorHospital: mergeTextCounts(transfERaw.map(t=>({text: t.hospital, qty: 1}))),
+    efetuadasPorEspecialidade: mergeTextCounts(transfERaw.map(t=>({text: t.especialidade, qty: 1}))),
+  };
 
-  const html = buildReportHTML(monthLabel, perService, ym, {urgenciaAgg, diagTop20});
+  const html = buildReportHTML(monthLabel, perService, ym, {urgenciaAgg, diagTop20, transferencias});
   fs.mkdirSync('relatorios', {recursive: true});
   const pdfPath = `relatorios/${ym}.pdf`;
 
