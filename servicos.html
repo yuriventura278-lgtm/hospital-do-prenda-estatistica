@@ -375,11 +375,18 @@ import {
     setTimeout(function(){ gate.remove(); }, 250);
   }
 
+  // A verificação de sessão pode resolver mais que uma vez (ex.: Firebase confirma
+  // primeiro com o estado em cache e depois outra vez após validar com o servidor).
+  // Sem esta guarda, cada resolução voltava a chamar userInput.focus() e "puxava" o
+  // cursor de volta para o campo de email a meio da escrita da password, impedindo
+  // o utilizador de terminar de entrar. Só focamos o email da primeira vez que o
+  // formulário passa de escondido para visível.
+  var formJaMostrado = false;
   function showAuthForm(){
     var loading = document.getElementById('zeloAuthLoading');
     if(loading) loading.style.display = 'none';
     form.style.display = '';
-    userInput.focus();
+    if(!formJaMostrado){ formJaMostrado = true; userInput.focus(); }
   }
 
   window.zeloLogout = function(){
