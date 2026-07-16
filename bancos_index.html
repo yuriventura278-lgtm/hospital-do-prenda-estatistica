@@ -226,34 +226,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   @keyframes zafSpin{to{transform:rotate(360deg)}}
   @media(max-width:380px){#zeloAuthGate form{padding:26px 20px;}}
 </style>
-  <div id="zeloAuthLoading" style="display:flex;flex-direction:column;align-items:center;gap:14px;">
-  <div style="width:44px;height:44px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#22D3EE;animation:zeloAuthSpin .8s linear infinite;"></div>
-  <div style="color:#C7D2E8;font-size:.8rem;font-family:'Inter',sans-serif;">A verificar sessão…</div>
-</div>
-<style>@keyframes zeloAuthSpin{to{transform:rotate(360deg);}}</style>
-<script>
-(function(){
-  // Rede de segurança independente do módulo com Firebase abaixo: numa rede muito
-  // lenta, os próprios ficheiros do Firebase (importados nesse módulo) podem
-  // demorar a chegar, e nesse caso o módulo nem chega a correr — o seu limite de
-  // 2s fica sem efeito porque está dentro de código que ainda não carregou. Este
-  // script simples (sem imports, corre já) força a mostrar o formulário ao fim de
-  // alguns segundos de qualquer forma, para nunca se ficar preso a
-  // "A verificar sessão…" só porque a ligação está lenta.
-  setTimeout(function(){
-    var loading = document.getElementById('zeloAuthLoading');
-    var form = document.getElementById('zeloAuthForm');
-    if(window.__zeloVerificacaoEmCurso) return; // já há uma sessão real a ser confirmada — não interromper
-    if(loading && getComputedStyle(loading).display !== 'none' && form && getComputedStyle(form).display === 'none'){
-      loading.style.display = 'none';
-      form.style.display = '';
-      var email = document.getElementById('zeloAuthEmail');
-      if(email) email.focus();
-    }
-  }, 6000);
-})();
-</script>
-<form id="zeloAuthForm" class="zaf-card" onsubmit="return false;" style="display:none;background:#fff;border-radius:18px;padding:34px 30px;max-width:346px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);">
+<form id="zeloAuthForm" class="zaf-card" onsubmit="return false;" style="background:#fff;border-radius:18px;padding:34px 30px;max-width:346px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);">
     <div style="text-align:center;margin-bottom:24px;">
       <div style="display:flex;align-items:center;justify-content:center;gap:12px;">
         <div class="zaf-logo-ring" style="width:52px;height:52px;border-radius:14px;background:#fff;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(13,27,62,.12);padding:5px;flex-shrink:0;">
@@ -366,9 +339,6 @@ import {
   }
 
   function showAuthForm(){
-    var loading = document.getElementById('zeloAuthLoading');
-    if(loading) loading.style.display = 'none';
-    form.style.display = '';
     userInput.focus();
   }
 
@@ -422,17 +392,9 @@ import {
   var unsubscribeVerificacaoInicial = onAuthStateChanged(auth, function(user){
     if(verificacaoInicialFeita) return;
     verificacaoInicialFeita = true;
-    clearTimeout(verificacaoInicialTimeout);
     if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
-    if(user){ window.__zeloVerificacaoEmCurso = true; completarLogin(user); }
-    else{ showAuthForm(); }
+    if(user){ completarLogin(user); }
   });
-  var verificacaoInicialTimeout = setTimeout(function(){
-    if(verificacaoInicialFeita) return;
-    verificacaoInicialFeita = true;
-    if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
-    showAuthForm();
-  }, 2000);
 
   form.addEventListener('submit', async function(e){
     e.preventDefault();

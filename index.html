@@ -355,34 +355,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
       <button type="button" id="zeloLangEN" data-lang="en">EN</button>
     </div>
   </div>
-  <div id="zeloAuthLoading" style="display:flex;flex-direction:column;align-items:center;gap:14px;">
-  <div style="width:44px;height:44px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#22D3EE;animation:zeloAuthSpin .8s linear infinite;"></div>
-  <div style="color:#C7D2E8;font-size:.8rem;font-family:'Inter',sans-serif;">A verificar sessão…</div>
-</div>
-<style>@keyframes zeloAuthSpin{to{transform:rotate(360deg);}}</style>
-<script>
-(function(){
-  // Rede de segurança independente do módulo com Firebase abaixo: numa rede muito
-  // lenta, os próprios ficheiros do Firebase (importados nesse módulo) podem
-  // demorar a chegar, e nesse caso o módulo nem chega a correr — o seu limite de
-  // 2s fica sem efeito porque está dentro de código que ainda não carregou. Este
-  // script simples (sem imports, corre já) força a mostrar o formulário ao fim de
-  // alguns segundos de qualquer forma, para nunca se ficar preso a
-  // "A verificar sessão…" só porque a ligação está lenta.
-  setTimeout(function(){
-    var loading = document.getElementById('zeloAuthLoading');
-    var form = document.getElementById('zeloAuthForm');
-    if(window.__zeloVerificacaoEmCurso) return; // já há uma sessão real a ser confirmada — não interromper
-    if(loading && getComputedStyle(loading).display !== 'none' && form && getComputedStyle(form).display === 'none'){
-      loading.style.display = 'none';
-      form.style.display = '';
-      var email = document.getElementById('zeloAuthEmail');
-      if(email) email.focus();
-    }
-  }, 6000);
-})();
-</script>
-<form id="zeloAuthForm" class="zaf-card" onsubmit="return false;" style="display:none;background:#fff;border-radius:18px;padding:34px 30px;max-width:346px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);">
+<form id="zeloAuthForm" class="zaf-card" onsubmit="return false;" style="background:#fff;border-radius:18px;padding:34px 30px;max-width:346px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);">
     <div style="text-align:center;margin-bottom:24px;">
       <div style="display:flex;align-items:center;justify-content:center;gap:12px;">
         <div class="zaf-logo-ring" style="width:52px;height:52px;border-radius:14px;background:#fff;border:1px solid #E2E8F0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(13,27,62,.12);padding:5px;flex-shrink:0;">
@@ -440,7 +413,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   </form>
   <div class="zaf-footer">
     <div class="zf-l1" id="zeloFootSystem">Sistema Integrado de Estatística Hospitalar</div>
-    <div class="zf-l2"><span>Versão 1.0</span><span>|</span><span id="zeloFootStatus"><span class="zf-dot" id="zeloFootDot"></span> <span id="zeloFootStatusText">Servidor Online</span></span></div>
+    <div class="zf-l2"><span>Versão 1.0</span></div>
     <div class="zf-l3" id="zeloFootRights">&copy; <span id="zeloFootYear"></span> Hospital do Prenda — Todos os direitos reservados.</div>
   </div>
 </div>
@@ -513,27 +486,12 @@ import {
     if(!btn.disabled) btnLabel.textContent=t.enter;
     document.getElementById('zeloFootSystem').textContent=t.foot1;
     document.querySelector('.zaf-footer .zf-l2 span:first-child').textContent=t.version;
-    updateServerStatusText();
     document.getElementById('zeloFootRights').innerHTML='&copy; <span id="zeloFootYear">'+new Date().getFullYear()+'</span> '+t.rights;
     if(captchaBox.classList.contains('show')) captchaQ.textContent=t.captchaPrefix+captchaQ.dataset.a+' + '+captchaQ.dataset.b+'?';
   }
   document.getElementById('zeloLangPT').addEventListener('click', function(){ applyLang('pt'); });
   document.getElementById('zeloLangEN').addEventListener('click', function(){ applyLang('en'); });
 
-  var footDot=document.getElementById('zeloFootDot');
-  var footStatusText=document.getElementById('zeloFootStatusText');
-  var serverOnline=true;
-  function updateServerStatusText(){
-    var t=langDict[currentLang];
-    footStatusText.textContent = serverOnline ? t.online : t.offline;
-    footDot.classList.toggle('off', !serverOnline);
-  }
-  try{
-    onValue(ref(db, '.info/connected'), function(snap){
-      serverOnline = snap.val() === true;
-      updateServerStatusText();
-    });
-  }catch(e0){}
   document.getElementById('zeloFootYear').textContent=new Date().getFullYear();
   applyLang(currentLang);
 
@@ -567,9 +525,6 @@ import {
   }
 
   function showAuthForm(){
-    var loading = document.getElementById('zeloAuthLoading');
-    if(loading) loading.style.display = 'none';
-    form.style.display = '';
     userInput.focus();
   }
 
@@ -619,26 +574,17 @@ import {
     }
   }
 
-  // ── 1. Verificar sessão — uma única vez, ao abrir a página ──────────────
-  // Regista-se, espera pela primeira resposta do Firebase (sessão existente ou
-  // não) e desliga-se logo de seguida — não fica à escuta continuamente. Um
-  // limite de segurança (2s) garante que, mesmo com rede lenta, o formulário
-  // aparece e para de "verificar" em vez de ficar preso indefinidamente.
+  // ── 1. Verifica sessão — uma única vez, em silêncio, ao abrir a página ──
+  // O formulário já está visível por padrão (sem ecrã de carregamento nem
+  // texto de "a verificar"). Se já existir sessão, entra-se diretamente; caso
+  // contrário não há nada a fazer, o formulário já lá está.
   var verificacaoInicialFeita = false;
   var unsubscribeVerificacaoInicial = onAuthStateChanged(auth, function(user){
     if(verificacaoInicialFeita) return;
     verificacaoInicialFeita = true;
-    clearTimeout(verificacaoInicialTimeout);
     if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
-    if(user){ window.__zeloVerificacaoEmCurso = true; completarLogin(user); }
-    else{ showAuthForm(); }
+    if(user){ completarLogin(user); }
   });
-  var verificacaoInicialTimeout = setTimeout(function(){
-    if(verificacaoInicialFeita) return;
-    verificacaoInicialFeita = true;
-    if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
-    showAuthForm();
-  }, 2000);
 
   // ── 2. Enquanto o utilizador escreve: nada disto corre — sem novas verificações,
   //       sem bloquear campos. Só o clique em "Entrar" (abaixo) reactiva o sistema. ──
@@ -1175,20 +1121,6 @@ document.getElementById('zeloSidebarSearch').addEventListener('input', function(
     var btn = document.getElementById('zeloInstallBtn');
     if (btn) btn.style.display = 'none';
   });
-</script>
-
-<script>
-/* ── Relógio da topbar ─────────────────────────────────── */
-function tick(){
-  const d=new Date();
-  const hh=String(d.getHours()).padStart(2,'0'), mi=String(d.getMinutes()).padStart(2,'0');
-  const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0'), yy=d.getFullYear();
-  document.getElementById('topclock').textContent = `${hh}:${mi} · ${dd}/${mm}/${yy}`;
-}
-tick(); setInterval(tick,1000*30);
-document.getElementById('footyear').textContent = new Date().getFullYear();
-
-/* ── Ícones ─────────────────────────────────────────────── */
 </script>
 
 <script src="zelo_theme.js"></script>
