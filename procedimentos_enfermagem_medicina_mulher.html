@@ -1026,7 +1026,9 @@ async function _loadAllFromStorage() {
   }
 
   // 4. Aplica tema
-  if (_memCache['theme'] === 'dark') {
+  var _temaPartilhado = null;
+  try { _temaPartilhado = localStorage.getItem('zeloTema'); } catch (e) {}
+  if ((_temaPartilhado || _memCache['theme']) === 'dark') {
     document.documentElement.classList.add('dark');
   }
 }
@@ -3765,6 +3767,14 @@ function _statsHtml(data) {
 function toggleTheme() {
   var dark = document.documentElement.classList.toggle('dark');
   _storageSetTheme(dark ? 'dark' : 'light');
+  // Mantém sincronizado com o tema global partilhado (zelo_theme.js), para não
+  // ficar com um estado claro/escuro diferente do resto do sistema ao navegar.
+  try {
+    localStorage.setItem('zeloTema', dark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-zelo-theme', dark ? 'dark' : 'light');
+    var gbtn = document.getElementById('zeloThemeBtn');
+    if (gbtn) gbtn.textContent = dark ? '☀️' : '🌙';
+  } catch (e) {}
   var btn = document.getElementById('theme-toggle');
   if (btn) {
     btn.title = dark ? 'Mudar para tema claro' : 'Mudar para tema escuro';
