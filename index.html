@@ -92,14 +92,6 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
 .chip:hover,.chip:focus-visible{border-color:var(--bl);color:var(--bl);background:var(--blxt);}
 .chip:active{transform:scale(.96);}
 
-/* ── PESQUISA ── */
-.search-wrap{max-width:1040px;margin:22px auto 0;padding:0 20px;}
-.search-box{position:relative;max-width:420px;}
-.search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted,#6b7689);pointer-events:none;}
-.search-box input{width:100%;padding:12px 16px 12px 40px;border-radius:100px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.95);
-  font-family:'Inter',sans-serif;font-size:.86rem;color:#16213d;box-shadow:0 6px 18px rgba(13,27,62,.14);}
-.search-box input:focus{outline:none;border-color:var(--bl);}
-.dash-no-results{text-align:center;padding:30px 20px;color:#8B98B8;font-size:.86rem;display:none;}
 
 /* ── DASHBOARD CTA ────────────────────────────────────── */
 .dash-wrap{max-width:1040px;margin:14px auto 0;padding:0 20px 36px;}
@@ -634,13 +626,6 @@ window.zeloApplyPermissoes = function(role, permissoes){
   </div>
 </div>
 
-<div class="search-wrap">
-  <div class="search-box">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="searchSistema" placeholder="Pesquisar sistema…" oninput="filterDashCards(this.value)"/>
-  </div>
-</div>
-
 <div class="dash-wrap">
   <a class="dash-cta" data-module="servicos" data-name="relatório diário serviços banco" href="servicos.html">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
@@ -690,24 +675,8 @@ window.zeloApplyPermissoes = function(role, permissoes){
     </div>
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
-  <div class="dash-no-results" id="dashNoResults">Nenhum sistema encontrado para essa pesquisa.</div>
 </div>
 <script>
-function filterDashCards(q){
-  q = q.trim().toLowerCase();
-  let anyVisible = false;
-  const isAdmin = sessionStorage.getItem('zeloRole') === 'admin';
-  let permissoes = {};
-  try{ permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'); }catch(e){}
-  document.querySelectorAll('.dash-cta').forEach(card=>{
-    const mod = card.dataset.module;
-    const permitido = isAdmin ? true : (mod ? (permissoes[mod] !== false) : true);
-    const match = permitido && (!q || (card.dataset.name || '').includes(q));
-    card.style.display = match ? '' : 'none';
-    if(match) anyVisible = true;
-  });
-  document.getElementById('dashNoResults').style.display = anyVisible ? 'none' : 'block';
-}
 </script>
 
 <footer>
