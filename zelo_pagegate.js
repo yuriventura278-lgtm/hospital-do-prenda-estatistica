@@ -1,10 +1,27 @@
 // ZELO — proteção de página com sessão Firebase real (verifica módulo + item específico)
-import { auth, fetchUserProfile, onAuthStateChanged, hasModuleAccess } from './zelo_auth.js';
+import { auth, fetchUserProfile, onAuthStateChanged, hasModuleAccess, getModuleAccessLevel } from './zelo_auth.js';
 
 var moduleKey = window.ZELO_MODULE || null;
 var itemKey = window.ZELO_ITEM || null;
 var embedded = window.self !== window.top;
 var resolvido = false;
+
+// Bloqueia a edição da página inteira quando o utilizador só tem permissão de leitura
+// naquele módulo — evita ter de alterar cada página de banco/procedimento uma a uma.
+function aplicarModoLeitura(){
+  function bloquear(){
+    var banner = document.createElement('div');
+    banner.textContent = '🔒 Modo só de leitura — não é possível guardar alterações neste módulo.';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999997;background:#92400E;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.8rem;font-weight:700;padding:9px 12px;';
+    document.body.insertBefore(banner, document.body.firstChild);
+    document.querySelectorAll('input, select, textarea, button').forEach(function(el){ el.disabled = true; });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bloquear);
+  } else {
+    bloquear();
+  }
+}
 
 function aplicarAcesso(role, permissoes){
   resolvido = true;
@@ -13,6 +30,9 @@ function aplicarAcesso(role, permissoes){
     return;
   }
   document.documentElement.style.visibility = 'visible';
+  if (moduleKey && getModuleAccessLevel(role, permissoes || {}, moduleKey) === 'leitura') {
+    aplicarModoLeitura();
+  }
   window.dispatchEvent(new CustomEvent('zelo-gate-ready', {
     detail: { role: role, permissoes: permissoes || {} }
   }));

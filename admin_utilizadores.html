@@ -101,6 +101,9 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
           <div class="field"><label for="cNome">Nome</label><input id="cNome" type="text" required/></div>
           <div class="field"><label for="cEmail">Email</label><input id="cEmail" type="email" required/></div>
           <div class="field"><label for="cPass">Password inicial</label><input id="cPass" type="text" minlength="6" required/></div>
+          <div class="field"><label for="cCargo">Cargo</label>
+            <select id="cCargo"></select>
+          </div>
           <div class="field"><label for="cRole">Papel</label>
             <select id="cRole">
               <option value="funcionario">Funcionário</option>
@@ -136,7 +139,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
       </div>
       <div class="table-wrap">
         <table id="usersTable">
-          <thead><tr><th></th><th>Nome</th><th>Email</th><th>Papel</th><th>Estado</th><th>Criado em</th><th>Último Acesso</th><th>Ações</th></tr></thead>
+          <thead><tr><th></th><th>Nome</th><th>Email</th><th>Cargo</th><th>Papel</th><th>Estado</th><th>Criado em</th><th>Último Acesso</th><th>Ações</th></tr></thead>
           <tbody id="usersBody"></tbody>
         </table>
       </div>
@@ -166,7 +169,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <div id="permModal" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#fff;border-radius:16px;padding:22px;max-width:460px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--s2);">
     <h3 id="permModalTitle" style="font-size:1rem;font-weight:800;margin-bottom:4px;color:var(--tx);">Permissões</h3>
-    <p style="font-size:.78rem;color:var(--tx3);margin-bottom:16px;">Desmarca um módulo inteiro, ou deixa-o ativo e desmarca só os serviços/páginas específicos a que este utilizador não deve ter acesso.</p>
+    <p style="font-size:.78rem;color:var(--tx3);margin-bottom:16px;">Desmarca um módulo inteiro, ou deixa-o ativo e desmarca só os serviços/páginas específicos a que este utilizador não deve ter acesso. Para cada módulo ativo, escolhe também se pode Editar (guardar/alterar dados) ou só Ver (leitura).</p>
     <div id="permModalList" style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px;overflow-y:auto;padding-right:4px;"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="btn-sm" id="permModalCancel">Cancelar</button>
@@ -207,6 +210,17 @@ let currentEmail = null;
 let currentUsersCache = {};
 let currentAuditCache = [];
 let permUid = null;
+
+const CARGOS = [
+  'Gestor Hospitalar', 'Diretor de Serviço', 'Chefe de Enfermagem', 'Supervisor de Enfermagem',
+  'Enfermeiro(a)', 'Doutor(a)', 'TDT', 'Secretariado Clínico', 'Outro'
+];
+function cargoOptionsHtml(selecionado){
+  return '<option value="">— Selecionar —</option>' + CARGOS.map(function(c){
+    return '<option value="' + escapeHtml(c) + '" ' + (c === selecionado ? 'selected' : '') + '>' + escapeHtml(c) + '</option>';
+  }).join('');
+}
+document.getElementById('cCargo').innerHTML = cargoOptionsHtml();
 
 const MODULES = [
   { key: 'servicos', label: 'Relatório Diário (Serviços)', items: [
@@ -315,6 +329,11 @@ function openPermModal(uid, permissoes, nome, role){
   list.innerHTML = MODULES.map(function(m){
     const modPerm = permissoes ? permissoes[m.key] : undefined;
     const modOn = modPerm !== false;
+    const nivelAtual = (modPerm === 'leitura' || (modPerm && typeof modPerm === 'object' && modPerm._nivel === 'leitura')) ? 'leitura' : 'editar';
+    const nivelHtml = '<div class="perm-nivel" data-mod-nivel="' + m.key + '" style="margin-left:28px;margin-top:6px;display:' + (modOn ? 'flex' : 'none') + ';gap:14px;">' +
+      '<label style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--tx2);cursor:pointer;"><input type="radio" name="nivel-' + m.key + '" class="perm-nivel-radio" data-mod="' + m.key + '" value="editar" ' + (nivelAtual==='editar'?'checked':'') + ' style="width:auto;accent-color:var(--bl);"/> Editar</label>' +
+      '<label style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--tx2);cursor:pointer;"><input type="radio" name="nivel-' + m.key + '" class="perm-nivel-radio" data-mod="' + m.key + '" value="leitura" ' + (nivelAtual==='leitura'?'checked':'') + ' style="width:auto;accent-color:var(--bl);"/> Só leitura</label>' +
+    '</div>';
     let itemsHtml = '';
     if(m.items){
       const deniedSet = (modPerm && typeof modPerm === 'object') ? modPerm : {};
@@ -335,6 +354,7 @@ function openPermModal(uid, permissoes, nome, role){
       '<label style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--tx2);font-weight:700;cursor:pointer;">' +
         '<input type="checkbox" class="perm-mod-check" data-mod="' + m.key + '" ' + (modOn ? 'checked' : '') + ' style="width:auto;accent-color:var(--bl);"/>' + escapeHtml(m.label) +
       '</label>' +
+      nivelHtml +
       itemsHtml +
     '</div>';
   }).join('');
@@ -345,6 +365,8 @@ document.getElementById('permModalList').addEventListener('change', function(e){
   if(t.classList.contains('perm-mod-check')){
     const itemsDiv = document.querySelector('.perm-items[data-mod-items="' + t.dataset.mod + '"]');
     if(itemsDiv) itemsDiv.style.display = t.checked ? 'flex' : 'none';
+    const nivelDiv = document.querySelector('.perm-nivel[data-mod-nivel="' + t.dataset.mod + '"]');
+    if(nivelDiv) nivelDiv.style.display = t.checked ? 'flex' : 'none';
   }
   if(t.classList.contains('perm-all-check')){
     const mod = t.dataset.mod;
@@ -367,14 +389,17 @@ document.getElementById('permModalSave').addEventListener('click', async functio
     const modCheck = document.querySelector('.perm-mod-check[data-mod="' + m.key + '"]');
     if(!modCheck) return;
     if(!modCheck.checked){ perms[m.key] = false; return; }
-    if(!m.items){ perms[m.key] = true; return; }
+    const nivelRadio = document.querySelector('.perm-nivel-radio[data-mod="' + m.key + '"]:checked');
+    const nivel = nivelRadio ? nivelRadio.value : 'editar';
+    if(!m.items){ perms[m.key] = (nivel === 'leitura') ? 'leitura' : true; return; }
     const itemChecks = document.querySelectorAll('.perm-item-check[data-mod="' + m.key + '"]');
     const denied = {};
     let anyDenied = false;
     itemChecks.forEach(function(c){
       if(!c.checked){ denied[c.dataset.item] = false; anyDenied = true; }
     });
-    perms[m.key] = anyDenied ? denied : true;
+    if(nivel === 'leitura'){ denied._nivel = 'leitura'; perms[m.key] = denied; }
+    else { perms[m.key] = anyDenied ? denied : true; }
   });
   await update(ref(db, 'users/' + permUid), { permissoes: perms });
   await logAuditEvent(currentUid, currentEmail, 'alterar_permissoes', { alvoUid: permUid });
@@ -399,10 +424,10 @@ function ensurePdfLibs(cb){
   });
 }
 
-const EXPORT_USER_COLS = ['Nome','Email','Papel','Estado','Criado em','Último Acesso','Permissões'];
+const EXPORT_USER_COLS = ['Nome','Email','Cargo','Papel','Estado','Criado em','Último Acesso','Permissões'];
 function linhaExportUser(u){
   return [
-    u.nome||'', u.email||'',
+    u.nome||'', u.email||'', u.cargo||'',
     u.role==='admin'?'Administrador':'Funcionário',
     u.ativo===false?'Inativo':'Ativo',
     u.criadoEm ? new Date(u.criadoEm).toLocaleString('pt-PT') : '',
@@ -489,6 +514,7 @@ const AUDIT_LABELS = {
   reativar_utilizador: 'Utilizador reativado',
   alterar_papel: 'Papel alterado',
   alterar_permissoes: 'Permissões alteradas',
+  alterar_cargo: 'Cargo alterado',
 };
 
 function renderAudit(auditObj){
@@ -502,6 +528,7 @@ function renderAudit(auditObj){
     const detalhes = [];
     if(ev.alvoEmail) detalhes.push('Alvo: ' + escapeHtml(ev.alvoEmail));
     if(ev.novoRole) detalhes.push('Novo papel: ' + (ev.novoRole === 'admin' ? 'Administrador' : 'Funcionário'));
+    if(ev.novoCargo !== undefined) detalhes.push('Novo cargo: ' + (escapeHtml(ev.novoCargo) || '—'));
     if(ev.erro) detalhes.push('Erro: ' + escapeHtml(ev.erro));
     return `
       <tr>
@@ -530,6 +557,7 @@ function renderUsersTable(entries){
       <td>${avatarHtml(u)}</td>
       <td>${escapeHtml(u.nome) || '—'}</td>
       <td>${escapeHtml(u.email) || '—'}</td>
+      <td><select class="cargo-select" data-uid="${uid}" style="padding:5px 7px;border:1.5px solid var(--br);border-radius:7px;font-family:'Inter',sans-serif;font-size:.78rem;">${cargoOptionsHtml(u.cargo)}</select></td>
       <td><span class="pill ${u.role === 'admin' ? 'admin' : 'funcionario'}">${u.role === 'admin' ? 'Administrador' : 'Funcionário'}</span></td>
       <td><span class="pill ${u.ativo === false ? 'inativo' : 'ativo'}">${u.ativo === false ? 'Inativo' : 'Ativo'}</span></td>
       <td>${fmtDate(u.criadoEm)}</td>
@@ -579,6 +607,13 @@ function countActiveAdmins(excludeUid){
   }).length;
 }
 
+usersBody.addEventListener('change', async function(e){
+  const sel = e.target.closest('select.cargo-select');
+  if(!sel) return;
+  const uid = sel.dataset.uid;
+  await update(ref(db, 'users/' + uid), { cargo: sel.value });
+  await logAuditEvent(currentUid, currentEmail, 'alterar_cargo', { alvoUid: uid, novoCargo: sel.value });
+});
 usersBody.addEventListener('click', async function(e){
   const btn = e.target.closest('button[data-action]');
   if(!btn) return;
@@ -634,6 +669,7 @@ createForm.addEventListener('submit', async function(e){
   const email = document.getElementById('cEmail').value.trim();
   const pass = document.getElementById('cPass').value;
   const role = document.getElementById('cRole').value;
+  const cargo = document.getElementById('cCargo').value;
 
   createBtn.disabled = true;
   createBtn.textContent = 'A criar…';
@@ -645,7 +681,7 @@ createForm.addEventListener('submit', async function(e){
     cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
     const newUid = cred.user.uid;
     try{
-      await set(ref(db, 'users/' + newUid), { nome, email, role, ativo: true, criadoEm: Date.now() });
+      await set(ref(db, 'users/' + newUid), { nome, email, role, cargo, ativo: true, criadoEm: Date.now() });
     }catch(writeErr){
       // Reverter a conta criada no Firebase Auth para não deixar um utilizador "fantasma" sem perfil
       try{ await deleteUser(cred.user); }catch(delErr){ console.error('Falha ao reverter conta órfã', delErr); }

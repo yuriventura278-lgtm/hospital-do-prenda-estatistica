@@ -140,18 +140,30 @@ function escapeHtml(str) {
 }
 
 // Verifica acesso a um módulo (ou a um item específico dentro dele).
-// permissoes[mod] pode ser: ausente/true = tudo permitido; false = módulo todo bloqueado;
-// objeto {itemSlug: false, ...} = bloqueio item a item (ausência no objeto = permitido).
+// permissoes[mod] pode ser: ausente/true/'editar'/'leitura' = módulo acessível;
+// false = módulo todo bloqueado;
+// objeto {itemSlug: false, ..., _nivel?: 'leitura'} = bloqueio item a item
+// (ausência no objeto = permitido), com nível opcional (por omissão 'editar').
 function hasModuleAccess(role, permissoes, mod, itemSlug) {
   if (role === 'admin') return true;
   const modPerm = permissoes ? permissoes[mod] : undefined;
   if (modPerm === false) return false;
-  if (modPerm === true || modPerm === undefined || modPerm === null) return true;
+  if (modPerm === true || modPerm === undefined || modPerm === null || modPerm === 'editar' || modPerm === 'leitura') return true;
   if (typeof modPerm === 'object') {
     if (!itemSlug) return true;
     return modPerm[itemSlug] !== false;
   }
   return true;
+}
+
+// Devolve o nível de acesso ('editar' ou 'leitura') a um módulo já autorizado.
+// Administradores têm sempre nível 'editar'.
+function getModuleAccessLevel(role, permissoes, mod) {
+  if (role === 'admin') return 'editar';
+  const modPerm = permissoes ? permissoes[mod] : undefined;
+  if (modPerm === 'leitura') return 'leitura';
+  if (modPerm && typeof modPerm === 'object' && modPerm._nivel === 'leitura') return 'leitura';
+  return 'editar';
 }
 
 export {
@@ -160,7 +172,7 @@ export {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess
+  hasModuleAccess, getModuleAccessLevel
 };
 
 window.ZeloAuth = {
@@ -169,5 +181,5 @@ window.ZeloAuth = {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess
+  hasModuleAccess, getModuleAccessLevel
 };
