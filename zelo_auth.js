@@ -139,6 +139,15 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// Converte um código de acesso (identidade + senha) num email sintético
+// válido para o Firebase Authentication. Usado tanto na criação de
+// utilizadores (admin_utilizadores.html) como no login (index.html) —
+// tem de produzir sempre o mesmo resultado para o mesmo código.
+function codeToEmail(code) {
+  const clean = String(code == null ? '' : code).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  return clean + '@zelo.acesso';
+}
+
 // Verifica acesso a um módulo (ou a um item específico dentro dele).
 // permissoes[mod] pode ser: ausente/true = tudo permitido; false = módulo todo bloqueado;
 // objeto {itemSlug: false, ...} = bloqueio item a item (ausência no objeto = permitido).
@@ -160,7 +169,7 @@ export {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess
+  hasModuleAccess, codeToEmail
 };
 
 window.ZeloAuth = {
@@ -169,5 +178,5 @@ window.ZeloAuth = {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess
+  hasModuleAccess, codeToEmail
 };

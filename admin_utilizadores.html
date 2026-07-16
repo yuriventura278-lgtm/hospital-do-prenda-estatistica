@@ -94,13 +94,13 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 
     <div class="panel">
       <h2>Criar novo utilizador</h2>
-      <p class="sub">A password inicial deve ser partilhada com o utilizador em privado — ele pode alterá-la mais tarde.</p>
+      <p class="sub">O código de acesso é a única credencial necessária para entrar no ZELO (substitui email + password). Deve ser partilhado com o utilizador em privado.</p>
       <div class="msg" id="createMsg"></div>
       <form id="createForm">
         <div class="grid-form">
           <div class="field"><label for="cNome">Nome</label><input id="cNome" type="text" required/></div>
-          <div class="field"><label for="cEmail">Email</label><input id="cEmail" type="email" required/></div>
-          <div class="field"><label for="cPass">Password inicial</label><input id="cPass" type="text" minlength="6" required/></div>
+          <div class="field"><label for="cCodigo">Código de Acesso</label><input id="cCodigo" type="text" minlength="6" required placeholder="mínimo 6 caracteres"/></div>
+          <div class="field"><label for="cEmail">Email de contacto <span style="font-weight:400;color:var(--tx3);">(opcional)</span></label><input id="cEmail" type="email"/></div>
           <div class="field"><label for="cRole">Papel</label>
             <select id="cRole">
               <option value="funcionario">Funcionário</option>
@@ -185,7 +185,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <script type="module">
 import {
   auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
-  fetchUserProfile, onAuthStateChanged, signOut, logAuditEvent, escapeHtml
+  fetchUserProfile, onAuthStateChanged, signOut, logAuditEvent, escapeHtml, codeToEmail
 } from './zelo_auth.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signOut as secondarySignOut, deleteUser } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
@@ -471,6 +471,13 @@ function showMsg(el, text, kind){
   el.style.display = 'block';
 }
 
+function randomCode(){
+  const alfabeto = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sem 0/O/1/I/L para evitar confusão
+  let codigo = '';
+  for(let i = 0; i < 8; i++) codigo += alfabeto[Math.floor(Math.random() * alfabeto.length)];
+  return codigo;
+}
+
 function fmtDate(ts){
   if(!ts) return '—';
   const d = new Date(ts);
@@ -539,6 +546,7 @@ function renderUsersTable(entries){
           <button class="btn-sm" data-action="permissoes" data-uid="${uid}">Permissões</button>
           <button class="btn-sm" data-action="toggle-role" data-uid="${uid}">${u.role === 'admin' ? 'Tornar Funcionário' : 'Tornar Admin'}</button>
           <button class="btn-sm" data-action="toggle-ativo" data-uid="${uid}">${u.ativo === false ? 'Reativar' : 'Desativar'}</button>
+          <button class="btn-sm" data-action="novo-codigo" data-uid="${uid}">Novo código</button>
           <button class="btn-sm danger" data-action="eliminar" data-uid="${uid}" data-email="${escapeHtml(u.email)}">Eliminar</button>
         </div>
       </td>
@@ -616,6 +624,39 @@ usersBody.addEventListener('click', async function(e){
     await update(ref(db, 'users/' + uid), { ativo: novoAtivo });
     await logAuditEvent(currentUid, currentEmail, novoAtivo ? 'reativar_utilizador' : 'desativar_utilizador', { alvoUid: uid, alvoEmail: u.email });
   }
+  if(action === 'novo-codigo'){
+    if(!confirm('Gerar um novo código de acesso para ' + (u.nome || u.email || uid) + '?\n\nA conta atual fica desativada e é criada uma conta nova com o mesmo nome, papel e permissões — o código antigo deixa de funcionar.')) return;
+    const novoCodigo = randomCode();
+    const novoEmail = codeToEmail(novoCodigo);
+    btn.disabled = true;
+    btn.textContent = 'A gerar…';
+    try{
+      const secondaryApp = initializeApp(auth.app.options, 'ZeloSecondary_' + Date.now());
+      const secondaryAuth = getAuth(secondaryApp);
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, novoEmail, novoCodigo);
+      const novoUid = cred.user.uid;
+      try{
+        await set(ref(db, 'users/' + novoUid), {
+          nome: u.nome || '', email: u.email || null, role: u.role || 'funcionario',
+          permissoes: u.permissoes || {}, ativo: true, criadoEm: Date.now()
+        });
+      }catch(writeErr){
+        try{ await deleteUser(cred.user); }catch(delErr){ console.error('Falha ao reverter conta órfã', delErr); }
+        throw writeErr;
+      }
+      await secondarySignOut(secondaryAuth);
+      await update(ref(db, 'users/' + uid), { ativo: false });
+      await logAuditEvent(currentUid, currentEmail, 'criar_utilizador', { alvoUid: novoUid, alvoNome: u.nome, role: u.role, motivo: 'novo_codigo_substitui_' + uid });
+      alert('Novo código de acesso para ' + (u.nome || 'este utilizador') + ': ' + novoCodigo + '\n\nAnota e partilha em privado — não fica guardado em mais lado nenhum.');
+    }catch(e2){
+      console.error(e2);
+      alert('Não foi possível gerar um novo código: ' + (e2 && e2.message ? e2.message : 'erro desconhecido'));
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'Novo código';
+    }
+    return;
+  }
   if(action === 'eliminar'){
     if(u.role === 'admin' && u.ativo !== false && countActiveAdmins(uid) === 0){
       alert('Não é possível eliminar esta conta: é o único Administrador ativo do sistema.');
@@ -631,9 +672,10 @@ createForm.addEventListener('submit', async function(e){
   e.preventDefault();
   createMsg.style.display = 'none';
   const nome = document.getElementById('cNome').value.trim();
-  const email = document.getElementById('cEmail').value.trim();
-  const pass = document.getElementById('cPass').value;
+  const codigo = document.getElementById('cCodigo').value.trim();
+  const emailContacto = document.getElementById('cEmail').value.trim();
   const role = document.getElementById('cRole').value;
+  const authEmail = codeToEmail(codigo);
 
   createBtn.disabled = true;
   createBtn.textContent = 'A criar…';
@@ -642,24 +684,23 @@ createForm.addEventListener('submit', async function(e){
     // App Firebase secundária: cria o utilizador sem substituir a sessão do administrador atual
     const secondaryApp = initializeApp(auth.app.options, 'ZeloSecondary_' + Date.now());
     const secondaryAuth = getAuth(secondaryApp);
-    cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+    cred = await createUserWithEmailAndPassword(secondaryAuth, authEmail, codigo);
     const newUid = cred.user.uid;
     try{
-      await set(ref(db, 'users/' + newUid), { nome, email, role, ativo: true, criadoEm: Date.now() });
+      await set(ref(db, 'users/' + newUid), { nome, email: emailContacto || null, role, ativo: true, criadoEm: Date.now() });
     }catch(writeErr){
       // Reverter a conta criada no Firebase Auth para não deixar um utilizador "fantasma" sem perfil
       try{ await deleteUser(cred.user); }catch(delErr){ console.error('Falha ao reverter conta órfã', delErr); }
       throw writeErr;
     }
     await secondarySignOut(secondaryAuth);
-    await logAuditEvent(currentUid, currentEmail, 'criar_utilizador', { alvoUid: newUid, alvoEmail: email, role });
+    await logAuditEvent(currentUid, currentEmail, 'criar_utilizador', { alvoUid: newUid, alvoNome: nome, role });
     createForm.reset();
-    showMsg(createMsg, 'Utilizador criado: ' + email, 'ok');
+    showMsg(createMsg, 'Utilizador criado! Código de acesso: ' + codigo + ' — anota e partilha em privado (não fica guardado em mais lado nenhum).', 'ok');
   }catch(e2){
     let m = 'Não foi possível criar o utilizador.';
-    if(e2 && e2.code === 'auth/email-already-in-use') m = 'Este email já está registado.';
-    if(e2 && e2.code === 'auth/invalid-email') m = 'Email inválido.';
-    if(e2 && e2.code === 'auth/weak-password') m = 'Password demasiado fraca (mínimo 6 caracteres).';
+    if(e2 && e2.code === 'auth/email-already-in-use') m = 'Este código já está em uso. Escolhe outro.';
+    if(e2 && e2.code === 'auth/weak-password') m = 'Código demasiado curto (mínimo 6 caracteres).';
     showMsg(createMsg, m, 'err');
     console.error(e2);
   }finally{

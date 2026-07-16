@@ -88,7 +88,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   <main>
     <div class="panel">
       <h2>Dados Pessoais</h2>
-      <p class="sub">O email não pode ser alterado aqui — contacta um Administrador se precisares de o mudar.</p>
+      <p class="sub">O email é apenas para contacto — não é usado para entrar no ZELO (isso faz-se com o teu código de acesso).</p>
       <div class="msg" id="profileMsg"></div>
       <div class="avatar-row">
         <div class="avatar" id="avatarPreview">?</div>
@@ -100,21 +100,21 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
       </div>
       <form id="profileForm">
         <div class="field"><label for="pNome">Nome</label><input id="pNome" type="text" required/></div>
-        <div class="field"><label for="pEmail">Email</label><input id="pEmail" type="email" disabled/></div>
+        <div class="field"><label for="pEmail">Email de contacto</label><input id="pEmail" type="email"/></div>
         <div class="field"><label>Papel</label><div id="pRole"></div></div>
         <button type="submit" class="btn-primary" id="profileSaveBtn">Guardar alterações</button>
       </form>
     </div>
 
     <div class="panel">
-      <h2>Alterar Password</h2>
-      <p class="sub">Precisas de confirmar a password atual por segurança.</p>
+      <h2>Alterar Código de Acesso</h2>
+      <p class="sub">Precisas de confirmar o código atual por segurança.</p>
       <div class="msg" id="passMsg"></div>
       <form id="passForm">
-        <div class="field"><label for="passAtual">Password Atual</label><input id="passAtual" type="password" required/></div>
-        <div class="field"><label for="passNova">Nova Password</label><input id="passNova" type="password" minlength="6" required/></div>
-        <div class="field"><label for="passNova2">Confirmar Nova Password</label><input id="passNova2" type="password" minlength="6" required/></div>
-        <button type="submit" class="btn-primary" id="passSaveBtn">Alterar Password</button>
+        <div class="field"><label for="passAtual">Código Atual</label><input id="passAtual" type="password" required/></div>
+        <div class="field"><label for="passNova">Novo Código</label><input id="passNova" type="password" minlength="6" required/></div>
+        <div class="field"><label for="passNova2">Confirmar Novo Código</label><input id="passNova2" type="password" minlength="6" required/></div>
+        <button type="submit" class="btn-primary" id="passSaveBtn">Alterar Código</button>
       </form>
     </div>
 
@@ -142,10 +142,10 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <script type="module">
 import {
   auth, db, ref, get, update, onValue, query, orderByChild, limitToLast,
-  fetchUserProfile, onAuthStateChanged, logAuditEvent, escapeHtml
+  fetchUserProfile, onAuthStateChanged, logAuditEvent, escapeHtml, codeToEmail
 } from './zelo_auth.js';
 import {
-  EmailAuthProvider, reauthenticateWithCredential, updatePassword
+  EmailAuthProvider, reauthenticateWithCredential, updatePassword, updateEmail
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 
 document.getElementById('footyear').textContent = new Date().getFullYear();
@@ -237,11 +237,12 @@ document.getElementById('profileForm').addEventListener('submit', async function
   e.preventDefault();
   profileMsg.style.display = 'none';
   const nome = document.getElementById('pNome').value.trim();
+  const emailContacto = document.getElementById('pEmail').value.trim();
   const btn = document.getElementById('profileSaveBtn');
   btn.disabled = true;
   btn.textContent = 'A guardar…';
   try{
-    const payload = { nome };
+    const payload = { nome, email: emailContacto || null };
     if(currentFotoDataUri) payload.foto = currentFotoDataUri;
     await update(ref(db, 'users/' + currentUser.uid), payload);
     await logAuditEvent(currentUser.uid, currentUser.email, 'alterar_perfil', {});
@@ -267,18 +268,22 @@ document.getElementById('passForm').addEventListener('submit', async function(e)
   try{
     const cred = EmailAuthProvider.credential(currentUser.email, atual);
     await reauthenticateWithCredential(currentUser, cred);
+    // O email de autenticação é derivado do código — tem de ser atualizado em conjunto,
+    // senão a conta fica inacessível no próximo login (o código novo geraria outro email).
+    await updateEmail(currentUser, codeToEmail(nova));
     await updatePassword(currentUser, nova);
     await logAuditEvent(currentUser.uid, currentUser.email, 'alterar_password', {});
-    showMsg(passMsg, 'Password alterada com sucesso.', 'ok');
+    showMsg(passMsg, 'Código de acesso alterado com sucesso.', 'ok');
     document.getElementById('passForm').reset();
   }catch(err){
-    let m = 'Não foi possível alterar a password.';
-    if(err && err.code === 'auth/wrong-password') m = 'Password atual incorreta.';
-    if(err && err.code === 'auth/weak-password') m = 'A nova password é demasiado fraca (mínimo 6 caracteres).';
+    let m = 'Não foi possível alterar o código.';
+    if(err && err.code === 'auth/wrong-password') m = 'Código atual incorreto.';
+    if(err && err.code === 'auth/weak-password') m = 'O novo código é demasiado curto (mínimo 6 caracteres).';
+    if(err && err.code === 'auth/email-already-in-use') m = 'Este código já está em uso por outra conta. Escolhe outro.';
     showMsg(passMsg, m, 'err');
   }finally{
     btn.disabled = false;
-    btn.textContent = 'Alterar Password';
+    btn.textContent = 'Alterar Código';
   }
 });
 
@@ -298,7 +303,7 @@ onAuthStateChanged(auth, async function(user){
   blockedState.style.display = 'none';
   appContent.style.display = 'block';
   document.getElementById('pNome').value = perfil.nome || '';
-  document.getElementById('pEmail').value = perfil.email || user.email || '';
+  document.getElementById('pEmail').value = perfil.email || '';
   document.getElementById('pRole').innerHTML = '<span class="pill ' + (perfil.role === 'admin' ? 'admin' : 'funcionario') + '">' + (perfil.role === 'admin' ? 'Administrador' : 'Funcionário') + '</span>';
   renderAvatar(perfil.nome, perfil.foto);
   onValue(query(ref(db, 'user_activity/' + user.uid), orderByChild('ts'), limitToLast(50)), function(snap){
