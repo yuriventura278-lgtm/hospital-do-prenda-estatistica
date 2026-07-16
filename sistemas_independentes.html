@@ -276,7 +276,19 @@ import {
     signOut(auth);
   };
 
+  // A verificação de sessão (onAuthStateChanged) só serve para saltar o login de quem já
+  // está autenticado; nunca deve impedir quem precisa de entrar. Se a rede estiver lenta
+  // e o Firebase demorar a responder, revela o formulário de qualquer forma ao fim de
+  // 1.5s — a verificação continua em segundo plano, mas já dá para escrever e clicar
+  // em "Entrar" em vez de ficar preso no ecrã "A verificar sessão…".
+  var authGateResolvido = false;
+  var authGateTimeout = setTimeout(function(){
+    if(!authGateResolvido) showAuthForm();
+  }, 1500);
+
   onAuthStateChanged(auth, async function(user){
+    authGateResolvido = true;
+    clearTimeout(authGateTimeout);
     if(!user){ showAuthForm(); return; }
     var perfil = await fetchUserProfile(user.uid);
     if(!perfil || perfil.ativo === false){
