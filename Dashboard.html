@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
@@ -1018,6 +1019,46 @@ const tabsEl = document.getElementById('tabs');
 const contentEl = document.getElementById('content');
 const dataSel = document.getElementById('dataSel');
 const fbWarn = document.getElementById('fbWarn');
+
+/* ══════════════════ GRÁFICOS INTERATIVOS (Chart.js) ══════════════════ */
+let liveCharts = {};
+let pendingCharts = [];
+let chartIdSeq = 0;
+function nextChartId(){ return 'chart-' + (chartIdSeq++); }
+function queueChart(id, config){ pendingCharts.push({id:id, config:config}); }
+function flushCharts(){
+  const toMount = pendingCharts; pendingCharts = [];
+  toMount.forEach(function(pc){
+    const canvas = document.getElementById(pc.id);
+    if(!canvas) return;
+    if(liveCharts[pc.id]){ try{ liveCharts[pc.id].destroy(); }catch(e){} }
+    liveCharts[pc.id] = new Chart(canvas.getContext('2d'), pc.config);
+  });
+  Object.keys(liveCharts).forEach(function(id){
+    if(!document.getElementById(id)){ try{ liveCharts[id].destroy(); }catch(e){} delete liveCharts[id]; }
+  });
+}
+function chartBarOptions(labelFn){
+  return {
+    indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    animation:{ duration:400 },
+    plugins:{
+      legend:{ display:false },
+      tooltip:{ callbacks: labelFn ? { label: labelFn } : undefined }
+    },
+    scales:{
+      x:{ beginAtZero:true, ticks:{ precision:0, color:'#64748B' }, grid:{ color:'#F1F5F9' } },
+      y:{ ticks:{ autoSkip:false, color:'#334155', font:{ size:11, weight:'600' } }, grid:{ display:false } }
+    }
+  };
+}
+function chartDoughnutOptions(){
+  return {
+    cutout:'72%', responsive:true, maintainAspectRatio:false,
+    animation:{ duration:400 },
+    plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: function(ctx){ return ' '+ctx.label+': '+ctx.parsed; } } } }
+  };
+}
 let currentTab = 'overview';
 let currentDataset = {}; // id -> {savedAt, snapshot} | null  (modo Diário)
 let currentDatasetMulti = {}; // id -> [{date,savedAt,snapshot}]  (modo Semanal/Mensal)
@@ -1140,13 +1181,14 @@ function sectionHTML(sec, accent){
   }
   if(sec.type==='chart'){
     if(!sec.items.length) return `<div class="panel"><h2>${sec.title}</h2><div class="list-empty">Sem dados registados.</div></div>`;
-    const max = Math.max(...sec.items.map(x=>x.value), 1);
-    return `<div class="panel"><h2>${sec.title}</h2><div class="bars">${sec.items.map(x=>`
-      <div class="bar-row ${x.value?'':'zero'}">
-        <div class="lbl">${x.label}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((x.value/max)*100)}%;background:${accent};"></div></div>
-        <div class="val">${x.value}</div>
-      </div>`).join('')}</div></div>`;
+    const chartId = nextChartId();
+    queueChart(chartId, {
+      type:'bar',
+      data:{ labels: sec.items.map(x=>x.label), datasets:[{ data: sec.items.map(x=>x.value), backgroundColor: accent, borderRadius:5, maxBarThickness:22 }] },
+      options: chartBarOptions()
+    });
+    const h = Math.max(sec.items.length*34+16, 90);
+    return `<div class="panel"><h2>${sec.title}</h2><div style="position:relative;height:${h}px;"><canvas id="${chartId}"></canvas></div></div>`;
   }
   if(sec.type==='list'){
     if(!sec.items || !sec.items.length) return `<div class="panel"><h2>${sec.title} <span class="cnt">0</span></h2><div class="list-empty">${sec.emptyText}</div></div>`;
@@ -1205,27 +1247,9 @@ function renderDetail(id){
             : `<div class="panel"><div class="list-empty">Nenhum registo confirmado para ${svc.name} nesta data.</div></div>`}
     </div>
   `;
+  flushCharts();
   const pdfBtn = document.getElementById('btnPDF');
   if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportPDF(svc, 'Resumo do dia '+fmtDataLong(dataSel.value), dataSel.value, nonEmpty, entry));
-}
-
-function donutSVG(segments, size, stroke){
-  size = size || 140; stroke = stroke || 16;
-  const r = (size - stroke)/2, c = 2*Math.PI*r, cx = size/2, cy = size/2;
-  const total = segments.reduce((a,s)=>a+s.value,0);
-  if(!total){
-    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--sf)" stroke-width="${stroke}"/></svg>`;
-  }
-  let acc = 0;
-  const arcs = segments.filter(s=>s.value>0).map(s=>{
-    const len = (s.value/total)*c;
-    const offset = -acc; acc += len;
-    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${stroke}" stroke-dasharray="${len} ${(c-len).toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
-  }).join('');
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--sf)" stroke-width="${stroke}"/>
-    ${arcs}
-  </svg>`;
 }
 
 function renderOverview(){
@@ -1250,28 +1274,36 @@ function renderOverview(){
   }catch(e){}
 
   // Donut 1: cobertura do dia (reportaram vs pendentes)
-  const coverageDonut = donutSVG([
-    {value:withData.length, color:'var(--gr)'}, {value:pendCount, color:'var(--br)'}
-  ]);
   const coveragePct = Math.round((withData.length/SERVICES.length)*100);
+  const covId = nextChartId();
+  queueChart(covId, {
+    type:'doughnut',
+    data:{ labels:['Reportaram','Pendentes'], datasets:[{ data:[withData.length, pendCount], backgroundColor:['#059669','#E2E8F0'], borderWidth:0 }] },
+    options: chartDoughnutOptions()
+  });
 
   // Donut 2: por categoria (nº de serviços que reportaram, por categoria)
   const catSegs = CATS.map(cat=>({
     cat, value: SERVICES.filter(s=>s.cat===cat.id && withData.find(w=>w.id===s.id)).length, color:cat.color
   }));
-  const catDonut = donutSVG(catSegs.map(s=>({value:s.value, color:s.color})));
+  const catId = nextChartId();
+  queueChart(catId, {
+    type:'doughnut',
+    data:{ labels:catSegs.map(s=>s.cat.label), datasets:[{ data:catSegs.map(s=>s.value), backgroundColor:catSegs.map(s=>s.color), borderWidth:0 }] },
+    options: chartDoughnutOptions()
+  });
 
   const donutsHTML = `
     <div class="donut-grid">
       <div class="donut-card">
-        <div class="donut-wrap">${coverageDonut}<div class="donut-center"><div class="dc-n">${coveragePct}%</div><div class="dc-l">Cobertura</div></div></div>
+        <div class="donut-wrap"><canvas id="${covId}"></canvas><div class="donut-center"><div class="dc-n">${coveragePct}%</div><div class="dc-l">Cobertura</div></div></div>
         <div class="donut-legend">
           <span><i style="background:var(--gr)"></i>Reportaram · ${withData.length}</span>
           <span><i style="background:var(--br)"></i>Pendentes · ${pendCount}</span>
         </div>
       </div>
       <div class="donut-card">
-        <div class="donut-wrap">${catDonut}<div class="donut-center"><div class="dc-n">${withData.length}</div><div class="dc-l">de ${SERVICES.length}</div></div></div>
+        <div class="donut-wrap"><canvas id="${catId}"></canvas><div class="donut-center"><div class="dc-n">${withData.length}</div><div class="dc-l">de ${SERVICES.length}</div></div></div>
         <div class="donut-legend">${catSegs.map(s=>`<span><i style="background:${s.color}"></i>${s.cat.label} · ${s.value}/${SERVICES.filter(x=>x.cat===s.cat.id).length}</span>`).join('')}</div>
       </div>
     </div>`;
@@ -1284,13 +1316,14 @@ function renderOverview(){
       const [label, value] = headline(svc.id, currentDataset[svc.id].snapshot);
       return {name:svc.name, color:svc.color, label, value:(typeof value==='number')?value:0};
     }).sort((a,b)=>b.value-a.value);
-    const max = Math.max(...withHl.map(x=>x.value), 1);
-    barsHTML = withHl.map(x=>`
-      <div class="bar-row ${x.value?'':'zero'}">
-        <div class="lbl">${x.name}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((x.value/max)*100)}%;background:${x.color};"></div></div>
-        <div class="val">${x.value}</div>
-      </div>`).join('');
+    const movId = nextChartId();
+    queueChart(movId, {
+      type:'bar',
+      data:{ labels: withHl.map(x=>x.name), datasets:[{ data: withHl.map(x=>x.value), backgroundColor: withHl.map(x=>x.color), borderRadius:5, maxBarThickness:22 }] },
+      options: chartBarOptions(function(ctx){ return ' '+withHl[ctx.dataIndex].label+': '+ctx.parsed.x; })
+    });
+    const h = Math.max(withHl.length*34+16, 90);
+    barsHTML = `<div style="position:relative;height:${h}px;"><canvas id="${movId}"></canvas></div>`;
   }
 
   const cardIcon = `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>`;
@@ -1321,6 +1354,7 @@ function renderOverview(){
     ${renderResumoGeral2(currentDataset)}
     <div class="panel"><h2>Serviços <span class="cnt">${SERVICES.length}</span></h2><div class="grid">${cardsHTML}</div></div>
   `;
+  flushCharts();
 }
 
 /* ══════════════════ AGREGAÇÃO SEMANAL/MENSAL ══════════════════ */
@@ -1404,6 +1438,7 @@ function renderDetailPeriod(id){
             : `<div class="panel"><div class="list-empty">Nenhum registo confirmado para ${svc.name} neste período.</div></div>`}
     </div>
   `;
+  flushCharts();
   const pdfBtn = document.getElementById('btnPDF');
   if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportPDF(svc, (currentPeriod==='week'?'Resumo semanal ':'Resumo mensal ')+periodRangeLabel(), currentPeriod+'_'+(currentPeriod==='week'?weekSel.value:monthSel.value), nonEmpty, null, `${reportedDays.length} de ${allDays.length} dias com registo`));
 }
@@ -1418,27 +1453,35 @@ function renderOverviewPeriod(){
   document.getElementById('statHora').textContent = totalSlots ? Math.round((filledSlots/totalSlots)*100)+'%' : '—';
   document.getElementById('statPend').textContent = pendCount;
 
-  const coverageDonut = donutSVG([
-    {value:withData.length, color:'var(--gr)'}, {value:pendCount, color:'var(--br)'}
-  ]);
   const coveragePct = Math.round((withData.length/SERVICES.length)*100);
+  const covId = nextChartId();
+  queueChart(covId, {
+    type:'doughnut',
+    data:{ labels:['Reportaram','Pendentes'], datasets:[{ data:[withData.length, pendCount], backgroundColor:['#059669','#E2E8F0'], borderWidth:0 }] },
+    options: chartDoughnutOptions()
+  });
 
   const catSegs = CATS.map(cat=>({
     cat, value: SERVICES.filter(s=>s.cat===cat.id && withData.find(w=>w.id===s.id)).length, color:cat.color
   }));
-  const catDonut = donutSVG(catSegs.map(s=>({value:s.value, color:s.color})));
+  const catId = nextChartId();
+  queueChart(catId, {
+    type:'doughnut',
+    data:{ labels:catSegs.map(s=>s.cat.label), datasets:[{ data:catSegs.map(s=>s.value), backgroundColor:catSegs.map(s=>s.color), borderWidth:0 }] },
+    options: chartDoughnutOptions()
+  });
 
   const donutsHTML = `
     <div class="donut-grid">
       <div class="donut-card">
-        <div class="donut-wrap">${coverageDonut}<div class="donut-center"><div class="dc-n">${coveragePct}%</div><div class="dc-l">Cobertura</div></div></div>
+        <div class="donut-wrap"><canvas id="${covId}"></canvas><div class="donut-center"><div class="dc-n">${coveragePct}%</div><div class="dc-l">Cobertura</div></div></div>
         <div class="donut-legend">
           <span><i style="background:var(--gr)"></i>Reportaram · ${withData.length}</span>
           <span><i style="background:var(--br)"></i>Pendentes · ${pendCount}</span>
         </div>
       </div>
       <div class="donut-card">
-        <div class="donut-wrap">${catDonut}<div class="donut-center"><div class="dc-n">${withData.length}</div><div class="dc-l">de ${SERVICES.length}</div></div></div>
+        <div class="donut-wrap"><canvas id="${catId}"></canvas><div class="donut-center"><div class="dc-n">${withData.length}</div><div class="dc-l">de ${SERVICES.length}</div></div></div>
         <div class="donut-legend">${catSegs.map(s=>`<span><i style="background:${s.color}"></i>${s.cat.label} · ${s.value}/${SERVICES.filter(x=>x.cat===s.cat.id).length}</span>`).join('')}</div>
       </div>
     </div>`;
@@ -1453,13 +1496,14 @@ function renderOverviewPeriod(){
       const total = days.reduce((a,d)=>a+(Number(headline(svc.id,d.snapshot)[1])||0),0);
       return {name:svc.name, color:svc.color, label, value: total};
     }).sort((a,b)=>b.value-a.value);
-    const max = Math.max(...withHl.map(x=>x.value), 1);
-    barsHTML = withHl.map(x=>`
-      <div class="bar-row ${x.value?'':'zero'}">
-        <div class="lbl">${x.name}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((x.value/max)*100)}%;background:${x.color};"></div></div>
-        <div class="val">${x.value}</div>
-      </div>`).join('');
+    const movId = nextChartId();
+    queueChart(movId, {
+      type:'bar',
+      data:{ labels: withHl.map(x=>x.name), datasets:[{ data: withHl.map(x=>x.value), backgroundColor: withHl.map(x=>x.color), borderRadius:5, maxBarThickness:22 }] },
+      options: chartBarOptions(function(ctx){ return ' '+withHl[ctx.dataIndex].label+': '+ctx.parsed.x; })
+    });
+    const h = Math.max(withHl.length*34+16, 90);
+    barsHTML = `<div style="position:relative;height:${h}px;"><canvas id="${movId}"></canvas></div>`;
   }
 
   const cardIcon = `<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>`;
@@ -1487,6 +1531,7 @@ function renderOverviewPeriod(){
     <div class="panel"><h2>Movimento por Serviço (total do período) <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="bars">${barsHTML}</div></div>
     <div class="panel"><h2>Todos os Serviços <span class="cnt">${SERVICES.length}</span></h2><div class="grid">${cardsHTML}</div></div>
   `;
+  flushCharts();
 }
 
 function render(){
