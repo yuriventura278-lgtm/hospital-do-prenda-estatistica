@@ -608,7 +608,9 @@ import {
     if(!stopInactivityWatch){
       stopInactivityWatch = startInactivityWatch(async function(){
         await logAuditEvent(user.uid, user.email, 'logout_inatividade');
-        signOut(auth);
+        try{ sessionStorage.clear(); }catch(e){}
+        await signOut(auth).catch(function(){});
+        window.location.reload();
       });
     }
   });

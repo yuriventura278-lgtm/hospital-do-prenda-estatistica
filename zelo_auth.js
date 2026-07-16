@@ -22,7 +22,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 minutos sem interação
+const INACTIVITY_WARNING_MS = 13 * 60 * 1000; // 13 minutos — mostra aviso de expiração
+const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 minutos sem interação — logout automático
 
 async function fetchUserProfile(uid) {
   try {
@@ -44,14 +45,69 @@ async function isFirstAdminNeeded() {
   }
 }
 
+function removeInactivityModal() {
+  const el = document.getElementById('zeloInactModal');
+  if (el) el.remove();
+}
+
+/** Cria (se ainda não existir) e mostra o aviso de sessão prestes a expirar.
+ *  onContinuar é chamado ao clicar em "Continuar sessão", para reiniciar a contagem. */
+function showInactivityModal(onContinuar) {
+  removeInactivityModal();
+  const overlay = document.createElement('div');
+  overlay.id = 'zeloInactModal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(13,27,62,.55);'
+    + 'backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;'
+    + 'font-family:Inter,Arial,sans-serif;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:16px;max-width:380px;width:100%;padding:28px 26px;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;">
+      <div style="width:52px;height:52px;border-radius:50%;background:#FFFBEB;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div style="font-size:1.02rem;font-weight:800;color:#0F172A;margin-bottom:8px;">Sessão prestes a expirar</div>
+      <p style="font-size:.85rem;color:#475569;line-height:1.55;margin:0 0 22px;">A sua sessão irá expirar em 2 minutos por inatividade. Deseja continuar?</p>
+      <button type="button" id="zeloInactContinuar" style="width:100%;background:#1A56DB;color:#fff;border:none;border-radius:10px;padding:13px;font-size:.92rem;font-weight:700;cursor:pointer;font-family:inherit;">Continuar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('zeloInactContinuar').addEventListener('click', function () {
+    removeInactivityModal();
+    onContinuar();
+  });
+}
+
+/** Vigia inactividade global (rato, teclado, scroll, toque). Aos 13 minutos mostra um
+ *  aviso com opção de continuar; sem resposta, aos 15 minutos chama onTimeout (logout).
+ *  Uma vez mostrado o aviso, só o botão "Continuar" reinicia a contagem — actividade
+ *  geral na página por trás do aviso não o dispensa sozinha. */
 function startInactivityWatch(onTimeout) {
-  let timer;
-  function reset() { clearTimeout(timer); timer = setTimeout(onTimeout, INACTIVITY_LIMIT_MS); }
+  let warnTimer, logoutTimer, avisoMostrado = false;
+
+  function limparTimers() { clearTimeout(warnTimer); clearTimeout(logoutTimer); }
+
+  function agendar() {
+    limparTimers();
+    avisoMostrado = false;
+    removeInactivityModal();
+    warnTimer = setTimeout(function () {
+      avisoMostrado = true;
+      showInactivityModal(agendar);
+    }, INACTIVITY_WARNING_MS);
+    logoutTimer = setTimeout(function () {
+      removeInactivityModal();
+      onTimeout();
+    }, INACTIVITY_LIMIT_MS);
+  }
+
+  function reset() {
+    if (avisoMostrado) return; // só o botão "Continuar" do aviso reinicia a partir daqui
+    agendar();
+  }
+
   ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
     window.addEventListener(evt, reset, { passive: true });
   });
-  reset();
-  return () => clearTimeout(timer);
+  agendar();
+  return function stop() { limparTimers(); removeInactivityModal(); };
 }
 
 async function logAuditEvent(uid, email, action, extra) {
