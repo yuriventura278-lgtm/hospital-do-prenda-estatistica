@@ -553,7 +553,7 @@ import {
 
   window.zeloLogout = function(){
     if(stopInactivityWatch){ stopInactivityWatch(); stopInactivityWatch=null; }
-    signOut(auth);
+    signOut(auth).catch(function(){}).then(function(){ window.location.reload(); });
   };
 
   onAuthStateChanged(auth, async function(user){
