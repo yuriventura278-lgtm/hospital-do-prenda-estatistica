@@ -1222,7 +1222,21 @@ window.addEventListener('DOMContentLoaded',function(){
   const iso=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
   fimEl.value=iso;
   let prev=iso;
-  fimEl.addEventListener('change',function(){ onDateChange(prev); prev=fimEl.value; });
+  let __dateChangeTimer=null;
+  fimEl.addEventListener('change',function(){
+    // Um <input type=date> dispara 'change' a cada segmento completado (dia,
+    // mês, ano) — sem esperar, cada um destes disparos limpava e recarregava
+    // o formulário de imediato, dando a sensação de não conseguir escolher
+    // bem a data. Espera que a pessoa pare de mexer antes de recarregar.
+    clearTimeout(__dateChangeTimer);
+    const valorDesteEvento=fimEl.value;
+    __dateChangeTimer=setTimeout(function(){
+      if(fimEl.value!==valorDesteEvento) return;
+      if(fimEl.value===prev) return;
+      onDateChange(prev);
+      prev=fimEl.value;
+    },450);
+  });
   __ddOpen().then(function(){ loadForDate(iso).then(function(){
     sincronizarHistoricoFirebase().then(checkMissingRecent);
   }); });
