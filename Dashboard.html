@@ -1056,16 +1056,17 @@ function procedimentoSections(s){
   };
   let totD=0, totN=0;
   const chartCats = PROC_CATS.map(c=>{ const t=catTotal(c.id); totD+=t.d; totN+=t.n; return {label:c.label, value:t.t}; });
+  // Lista TODOS os procedimentos do catálogo (PROC_CATS), incluindo os que
+  // estão a 0 — assim a visualização/PDF funciona como lista completa do
+  // serviço (o que foi e o que não foi feito), não só o que teve movimento.
   const items = [];
   subs.forEach(sb=>{
-    const subData = sub[sb.id];
-    if(!subData) return;
+    const subData = sub[sb.id] || {};
     PROC_CATS.forEach(c=>{
-      const cd = subData.cats && subData.cats[c.id];
-      if(!cd) return;
+      const cd = (subData.cats && subData.cats[c.id]) || {};
       c.names.forEach((name,i)=>{
         const d = num(cd.d && cd.d[i]), n = num(cd.n && cd.n[i]);
-        if(d||n) items.push({title:name, subtitle:(subs.length>1?sb.label+' · ':'')+c.label, meta:['Dia: '+d, 'Noite: '+n, 'Total: '+(d+n)], _t:d+n});
+        items.push({title:name, subtitle:(subs.length>1?sb.label+' · ':'')+c.label, meta:['Dia: '+d, 'Noite: '+n, 'Total: '+(d+n)], _t:d+n});
       });
     });
   });
