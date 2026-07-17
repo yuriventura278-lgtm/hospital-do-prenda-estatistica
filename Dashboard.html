@@ -197,6 +197,9 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
 .pdf-preview-cancel{background:#fff;border:1.5px solid var(--br2)!important;color:var(--tx2);flex:0 0 auto!important;min-width:100px!important;}
 #pdfPreviewBaixar{background:var(--nv);color:#fff;}
 #pdfPreviewBaixar:hover{background:var(--nv2);}
+.pdf-preview-copiar{background:#fff;border:1.5px solid var(--br2)!important;color:var(--nv);}
+.pdf-preview-copiar:hover{border-color:var(--nv)!important;}
+.pdf-preview-copiar.copied{background:#DCFCE7;border-color:#86EFAC!important;color:#166534;}
 @media(max-width:600px){
   .pdf-preview-overlay{padding:0;}
   .pdf-preview-box{max-width:none;height:100vh;border-radius:0;}
@@ -375,6 +378,7 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
     <div class="pdf-preview-body"><iframe id="pdfPreviewFrame" title="Pré-visualização do PDF"></iframe></div>
     <div class="pdf-preview-foot">
       <button class="pdf-preview-cancel" onclick="fecharModalPreviewPDF()">Fechar</button>
+      <button id="pdfPreviewCopiar" class="pdf-preview-copiar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</button>
       <button id="pdfPreviewBaixar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar PDF</button>
     </div>
   </div>
@@ -1936,8 +1940,9 @@ async function copiarParaClipboard(texto){
   }catch(e){ return false; }
 }
 
-async function copiarCampos(svc, sections, subtitleText, statusText){
-  const btn = document.getElementById('btnCopy');
+async function copiarCampos(svc, sections, subtitleText, statusText, btnId){
+  btnId = btnId || 'btnCopy';
+  const btn = document.getElementById(btnId);
   if(!btn) return;
   const texto = camposParaTexto(svc, sections, subtitleText, statusText);
   const ok = await copiarParaClipboard(texto);
@@ -1949,7 +1954,7 @@ async function copiarCampos(svc, sections, subtitleText, statusText){
   }else{
     alert('Não foi possível copiar automaticamente. Selecione e copie o texto manualmente.');
   }
-  setTimeout(()=>{ const b = document.getElementById('btnCopy'); if(b){ b.classList.remove('copied'); b.innerHTML = orig; } }, 1800);
+  setTimeout(()=>{ const b = document.getElementById(btnId); if(b){ b.classList.remove('copied'); b.innerHTML = orig; } }, 1800);
 }
 
 function pdfHexToRgb(hex){
@@ -2084,7 +2089,7 @@ async function visualizarAntesDeImprimir(svc, subtitleText, fileSuffix, sections
   btn.disabled = true; btn.textContent = 'A preparar pré-visualização…';
   try{
     const { pdf, fileName } = await buildPDFDocumento(svc, subtitleText, fileSuffix, sections, entry, coverageLabel);
-    abrirModalPreviewPDF(pdf, fileName);
+    abrirModalPreviewPDF(pdf, fileName, svc, sections, subtitleText, entry&&entry.savedAt?'Reportado às '+fmtHora(entry.savedAt):coverageLabel);
   }catch(e){
     console.error(e);
     alert('Não foi possível gerar a pré-visualização do PDF: '+e.message);
@@ -2094,14 +2099,16 @@ async function visualizarAntesDeImprimir(svc, subtitleText, fileSuffix, sections
 }
 
 var __pdfPreviewUrlAtual = null;
-function abrirModalPreviewPDF(pdf, fileName){
+function abrirModalPreviewPDF(pdf, fileName, svc, sections, subtitleText, statusText){
   const url = pdf.output('bloburl');
   __pdfPreviewUrlAtual = url;
   const overlay = document.getElementById('pdfPreviewOverlay');
   const iframe = document.getElementById('pdfPreviewFrame');
   const btnBaixar = document.getElementById('pdfPreviewBaixar');
+  const btnCopiar = document.getElementById('pdfPreviewCopiar');
   if(iframe) iframe.src = url;
   if(btnBaixar) btnBaixar.onclick = function(){ pdf.save(fileName); };
+  if(btnCopiar) btnCopiar.onclick = function(){ copiarCampos(svc, sections, subtitleText, statusText, 'pdfPreviewCopiar'); };
   if(overlay) overlay.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
