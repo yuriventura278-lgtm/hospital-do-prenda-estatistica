@@ -174,6 +174,26 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
 #btnCopy:disabled{opacity:.45;cursor:not-allowed;}
 #btnCopy.copied{background:#DCFCE7;border-color:#86EFAC;color:#166534;}
 
+/* ── MODAL DE PRÉ-VISUALIZAÇÃO DE PDF ────────────────────*/
+.pdf-preview-overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,.7);backdrop-filter:blur(6px);z-index:900;align-items:center;justify-content:center;padding:20px;}
+.pdf-preview-overlay.open{display:flex;}
+.pdf-preview-box{background:var(--sf);border-radius:var(--r2);width:100%;max-width:820px;height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;}
+.pdf-preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--br);background:#fff;flex-shrink:0;}
+.pdf-preview-head h3{font-size:.9rem;font-weight:800;color:var(--tx);}
+.pdf-preview-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--sf);color:var(--tx2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;}
+.pdf-preview-close:hover{background:var(--br);}
+.pdf-preview-body{flex:1;min-height:0;background:#525659;}
+.pdf-preview-body iframe{width:100%;height:100%;border:none;display:block;}
+.pdf-preview-foot{display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--br);background:#fff;flex-wrap:wrap;flex-shrink:0;}
+.pdf-preview-foot button{flex:1;min-width:120px;padding:11px 16px;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;border:none;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px;}
+.pdf-preview-cancel{background:#fff;border:1.5px solid var(--br2)!important;color:var(--tx2);flex:0 0 auto!important;min-width:100px!important;}
+#pdfPreviewBaixar{background:var(--nv);color:#fff;}
+#pdfPreviewBaixar:hover{background:var(--nv2);}
+@media(max-width:600px){
+  .pdf-preview-overlay{padding:0;}
+  .pdf-preview-box{max-width:none;height:100vh;border-radius:0;}
+}
+
 /* ── MONITOR DE PROCEDIMENTOS ────────────────────────────*/
 .monitor-hero{display:flex;align-items:flex-start;gap:12px;background:linear-gradient(120deg,var(--nv) 0%,#D97706 190%);
   border-radius:var(--r2);padding:18px 20px;margin-bottom:18px;color:#fff;box-shadow:0 8px 20px rgba(13,27,62,.18);}
@@ -336,6 +356,20 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
   </div>
   <div id="content"><div class="loading" id="zeloContentLoading" style="visibility:hidden;">A carregar…</div></div>
 </main>
+
+<div class="pdf-preview-overlay" id="pdfPreviewOverlay" onclick="if(event.target===this) fecharModalPreviewPDF();">
+  <div class="pdf-preview-box">
+    <div class="pdf-preview-head">
+      <h3>Pré-visualização do PDF</h3>
+      <button class="pdf-preview-close" onclick="fecharModalPreviewPDF()" title="Fechar" aria-label="Fechar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="pdf-preview-body"><iframe id="pdfPreviewFrame" title="Pré-visualização do PDF"></iframe></div>
+    <div class="pdf-preview-foot">
+      <button class="pdf-preview-cancel" onclick="fecharModalPreviewPDF()">Fechar</button>
+      <button id="pdfPreviewBaixar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar PDF</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ══════════════════ CATÁLOGO DE SERVIÇOS ══════════════════ */
@@ -1301,7 +1335,7 @@ function renderDetail(id){
         <div style="display:flex;align-items:center;gap:10px;">
           <span class="dh-status ${has?'ok':'empty'}">${has?'Reportado às '+fmtHora(entry.savedAt):'Sem registo'}</span>
           ${svc.cat==='procedimentos' ? `<button id="btnCopy" ${has?'':'disabled'} title="Copiar os campos preenchidos"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</button>` : ''}
-          <button id="btnPDF" ${has?'':'disabled'}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button>
+          <button id="btnPDF" ${has?'':'disabled'}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${svc.cat==='procedimentos'?'Visualizar':'PDF'}</button>
         </div>
       </div>
     </div>
@@ -1312,7 +1346,8 @@ function renderDetail(id){
   `;
   flushCharts();
   const pdfBtn = document.getElementById('btnPDF');
-  if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportPDF(svc, 'Resumo do dia '+fmtDataLong(dataSel.value), dataSel.value, nonEmpty, entry));
+  const pdfAction = svc.cat==='procedimentos' ? visualizarAntesDeImprimir : exportPDF;
+  if(pdfBtn) pdfBtn.addEventListener('click', ()=>pdfAction(svc, 'Resumo do dia '+fmtDataLong(dataSel.value), dataSel.value, nonEmpty, entry));
   const copyBtn = document.getElementById('btnCopy');
   if(copyBtn) copyBtn.addEventListener('click', ()=>copiarCampos(svc, nonEmpty, 'Resumo do dia '+fmtDataLong(dataSel.value), entry&&entry.savedAt?'Reportado às '+fmtHora(entry.savedAt):''));
 }
@@ -1498,7 +1533,7 @@ function renderDetailPeriod(id){
         <div style="display:flex;align-items:center;gap:10px;">
           <span class="dh-status ${reportedDays.length?'ok':'empty'}">${reportedDays.length?'Dados agregados':'Sem registos no período'}</span>
           ${svc.cat==='procedimentos' ? `<button id="btnCopy" ${reportedDays.length?'':'disabled'} title="Copiar os campos preenchidos"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</button>` : ''}
-          <button id="btnPDF" ${reportedDays.length?'':'disabled'}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button>
+          <button id="btnPDF" ${reportedDays.length?'':'disabled'}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${svc.cat==='procedimentos'?'Visualizar':'PDF'}</button>
         </div>
       </div>
     </div>
@@ -1509,7 +1544,8 @@ function renderDetailPeriod(id){
   `;
   flushCharts();
   const pdfBtn = document.getElementById('btnPDF');
-  if(pdfBtn) pdfBtn.addEventListener('click', ()=>exportPDF(svc, (currentPeriod==='week'?'Resumo semanal ':'Resumo mensal ')+periodRangeLabel(), currentPeriod+'_'+(currentPeriod==='week'?weekSel.value:monthSel.value), nonEmpty, null, `${reportedDays.length} de ${allDays.length} dias com registo`));
+  const pdfAction = svc.cat==='procedimentos' ? visualizarAntesDeImprimir : exportPDF;
+  if(pdfBtn) pdfBtn.addEventListener('click', ()=>pdfAction(svc, (currentPeriod==='week'?'Resumo semanal ':'Resumo mensal ')+periodRangeLabel(), currentPeriod+'_'+(currentPeriod==='week'?weekSel.value:monthSel.value), nonEmpty, null, `${reportedDays.length} de ${allDays.length} dias com registo`));
   const copyBtn = document.getElementById('btnCopy');
   if(copyBtn) copyBtn.addEventListener('click', ()=>copiarCampos(svc, nonEmpty, (currentPeriod==='week'?'Resumo semanal ':'Resumo mensal ')+periodRangeLabel(), `${reportedDays.length} de ${allDays.length} dias com registo`));
 }
@@ -1829,12 +1865,7 @@ function pdfHexToRgb(hex){
   return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
 }
 
-async function exportPDF(svc, subtitleText, fileSuffix, sections, entry, coverageLabel){
-  const btn = document.getElementById('btnPDF');
-  if(!btn) return;
-  const orig = btn.innerHTML;
-  btn.disabled = true; btn.textContent = 'A gerar PDF…';
-  try{
+async function buildPDFDocumento(svc, subtitleText, fileSuffix, sections, entry, coverageLabel){
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
     const PW = 210, PH = 297, ML = 14, MR = 14, MT = 14;
@@ -1935,7 +1966,17 @@ async function exportPDF(svc, subtitleText, fileSuffix, sections, entry, coverag
       pdf.text('Pág. '+p+' / '+nPages, PW-MR, PH-5, {align:'right'});
     }
 
-    pdf.save('resumo_'+svc.id+'_'+fileSuffix+'.pdf');
+    return { pdf, fileName: 'resumo_'+svc.id+'_'+fileSuffix+'.pdf' };
+}
+
+async function exportPDF(svc, subtitleText, fileSuffix, sections, entry, coverageLabel){
+  const btn = document.getElementById('btnPDF');
+  if(!btn) return;
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.textContent = 'A gerar PDF…';
+  try{
+    const { pdf, fileName } = await buildPDFDocumento(svc, subtitleText, fileSuffix, sections, entry, coverageLabel);
+    pdf.save(fileName);
   }catch(e){
     console.error(e);
     alert('Não foi possível gerar o PDF: '+e.message);
@@ -1944,6 +1985,48 @@ async function exportPDF(svc, subtitleText, fileSuffix, sections, entry, coverag
   }
 }
 
+async function visualizarAntesDeImprimir(svc, subtitleText, fileSuffix, sections, entry, coverageLabel){
+  const btn = document.getElementById('btnPDF');
+  if(!btn) return;
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.textContent = 'A preparar pré-visualização…';
+  try{
+    const { pdf, fileName } = await buildPDFDocumento(svc, subtitleText, fileSuffix, sections, entry, coverageLabel);
+    abrirModalPreviewPDF(pdf, fileName);
+  }catch(e){
+    console.error(e);
+    alert('Não foi possível gerar a pré-visualização do PDF: '+e.message);
+  }finally{
+    btn.disabled = false; btn.innerHTML = orig;
+  }
+}
+
+var __pdfPreviewUrlAtual = null;
+function abrirModalPreviewPDF(pdf, fileName){
+  const url = pdf.output('bloburl');
+  __pdfPreviewUrlAtual = url;
+  const overlay = document.getElementById('pdfPreviewOverlay');
+  const iframe = document.getElementById('pdfPreviewFrame');
+  const btnBaixar = document.getElementById('pdfPreviewBaixar');
+  if(iframe) iframe.src = url;
+  if(btnBaixar) btnBaixar.onclick = function(){ pdf.save(fileName); };
+  if(overlay) overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function fecharModalPreviewPDF(){
+  const overlay = document.getElementById('pdfPreviewOverlay');
+  const iframe = document.getElementById('pdfPreviewFrame');
+  if(overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  if(iframe) iframe.src = 'about:blank';
+  if(__pdfPreviewUrlAtual){ try{ URL.revokeObjectURL(__pdfPreviewUrlAtual); }catch(e){} __pdfPreviewUrlAtual = null; }
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    const overlay = document.getElementById('pdfPreviewOverlay');
+    if(overlay && overlay.classList.contains('open')) fecharModalPreviewPDF();
+  }
+});
 if(window.__fbReady === undefined){
   window.addEventListener('zelo-dashboard-fb-ready', load, {once:true});
 }else{
