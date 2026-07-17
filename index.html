@@ -432,7 +432,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 import {
   auth, db, ref, get, onValue, query, orderByChild, limitToLast,
   fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
-  onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
+  setPersistence, browserLocalPersistence, browserSessionPersistence,
   startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
   touchLastAccess, escapeHtml
 } from './zelo_auth.js';
@@ -569,6 +569,13 @@ import {
     captchaBox.classList.remove('show');
     hideGate();
     window.zeloAuthInfo = { role: perfil.role || 'funcionario', permissoes: perfil.permissoes || {}, nome: perfil.nome || user.email, email: user.email || '' };
+    // O iframe do Dashboard só começa a carregar agora, depois de autenticado. Antes
+    // disto, se carregasse desde o início da página, o seu próprio verificador de
+    // sessão (zelo_pagegate.js) não recebia confirmação da página-mãe a tempo (porque
+    // ainda não tínhamos entrado) e ao fim de 4s forçava um reload de toda a página —
+    // exatamente o "reiniciar sozinho" que interrompia a escrita das credenciais.
+    var zeloDashIfr = document.getElementById('zeloDashIframe');
+    if(zeloDashIfr && !zeloDashIfr.src) zeloDashIfr.src = 'Dashboard.html';
     if(typeof window.zeloEnviarAuthParaIframe === 'function') window.zeloEnviarAuthParaIframe();
     if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
     if(typeof window.zeloApplyPermissoes === 'function') window.zeloApplyPermissoes(perfil.role || 'funcionario', perfil.permissoes || {});
@@ -584,17 +591,11 @@ import {
     }
   }
 
-  // ── 1. Verifica sessão — uma única vez, em silêncio, ao abrir a página ──
-  // O formulário já está visível por padrão (sem ecrã de carregamento nem
-  // texto de "a verificar"). Se já existir sessão, entra-se diretamente; caso
-  // contrário não há nada a fazer, o formulário já lá está.
-  var verificacaoInicialFeita = false;
-  var unsubscribeVerificacaoInicial = onAuthStateChanged(auth, function(user){
-    if(verificacaoInicialFeita) return;
-    verificacaoInicialFeita = true;
-    if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
-    if(user){ completarLogin(user); }
-  });
+  // ── 1. Nenhuma verificação de sessão ao abrir a página ──────────────────
+  // O formulário está sempre visível e nunca se tenta entrar sozinho em
+  // segundo plano: isso já causou o sistema a "reiniciar" a meio de escrever
+  // (uma sessão antiga a resolver-se silenciosamente e a trocar o ecrã sem
+  // aviso). A verificação só arranca quando o utilizador clica em "Entrar".
 
   // ── 2. Enquanto o utilizador escreve: nada disto corre — sem novas verificações,
   //       sem bloquear campos. Só o clique em "Entrar" (abaixo) reactiva o sistema. ──
@@ -1006,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
       <div class="zelo-panel">
         <h2>Movimento &amp; Estatística</h2>
-        <iframe src="Dashboard.html" class="zelo-dash-iframe" title="Dashboard detalhado" id="zeloDashIframe" loading="lazy"></iframe>
+        <iframe class="zelo-dash-iframe" title="Dashboard detalhado" id="zeloDashIframe" loading="lazy"></iframe>
       </div>
 
       <div class="zelo-row-2">

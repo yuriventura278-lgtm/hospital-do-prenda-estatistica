@@ -300,7 +300,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <script type="module">
 import {
   auth, fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
-  onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
+  setPersistence, browserLocalPersistence, browserSessionPersistence,
   startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
   touchLastAccess
 } from './zelo_auth.js';
@@ -403,14 +403,6 @@ import {
   // não) e desliga-se logo de seguida — não fica à escuta continuamente. Um
   // limite de segurança (2s) garante que, mesmo com rede lenta, o formulário
   // aparece e para de "verificar" em vez de ficar preso indefinidamente.
-  var verificacaoInicialFeita = false;
-  var unsubscribeVerificacaoInicial = onAuthStateChanged(auth, function(user){
-    if(verificacaoInicialFeita) return;
-    verificacaoInicialFeita = true;
-    if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
-    if(user){ completarLogin(user); }
-  });
-
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     if(btn.disabled) return;
