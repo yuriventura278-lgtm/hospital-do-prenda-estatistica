@@ -39,20 +39,31 @@
 </script>
 <script>
 (function(){
-  // Rede de segurança independente do módulo acima: numa ligação muito lenta,
-  // os próprios ficheiros do SDK do Firebase (importados nesse módulo) podem
-  // demorar muito ou nunca chegar a carregar — e nesse caso o módulo nem chega
-  // a correr, ficando o "A carregar indicadores…" preso indefinidamente sem
-  // qualquer explicação. Este script simples (sem imports, corre já) força,
-  // ao fim de alguns segundos, uma mensagem clara com opção de tentar de novo.
+  // Rede de segurança independente do módulo acima: cobre tanto a hipótese dos
+  // ficheiros do SDK do Firebase nunca chegarem a carregar como a consulta aos
+  // dados demorar muito, sem depender de nenhum dos dois já ter corrido. Segue
+  // a mesma sequência do resto do sistema: nada nos primeiros 300ms (evita o
+  // "flash" para ligações rápidas), mensagem genérica até 1s, mensagem
+  // específica da fase depois disso, e um aviso claro com "Tentar novamente"
+  // se ultrapassar 12s — em vez de ficar preso em silêncio.
+  var elId = 'zeloContentLoading';
   setTimeout(function(){
-    if (window.__fbReady === undefined) {
-      var el = document.getElementById('content');
-      if (el) {
-        el.innerHTML = '<div class="panel"><div class="list-empty">Não foi possível carregar os dados — a ligação à internet pode estar muito lenta ou instável.<br/><button onclick="window.location.reload()" style="margin-top:10px;padding:8px 16px;border-radius:8px;border:1px solid var(--br);background:var(--sf);color:var(--tx);cursor:pointer;font-weight:600;font-family:inherit;font-size:.8rem;">Tentar novamente</button></div></div>';
-      }
+    if (window.__zeloContentResolvido) return;
+    var el = document.getElementById(elId);
+    if (el) el.style.visibility = 'visible';
+  }, 300);
+  setTimeout(function(){
+    if (window.__zeloContentResolvido) return;
+    var el = document.getElementById(elId);
+    if (el) el.textContent = 'A carregar indicadores…';
+  }, 1000);
+  setTimeout(function(){
+    if (window.__zeloContentResolvido) return;
+    var contentEl = document.getElementById('content');
+    if (contentEl) {
+      contentEl.innerHTML = '<div class="panel"><div class="list-empty">O carregamento está a demorar mais do que o normal — a ligação à internet pode estar muito lenta ou instável.<br/><button onclick="window.location.reload()" style="margin-top:10px;padding:8px 16px;border-radius:8px;border:1px solid var(--br);background:var(--sf);color:var(--tx);cursor:pointer;font-weight:600;font-family:inherit;font-size:.8rem;">Tentar novamente</button></div></div>';
     }
-  }, 6000);
+  }, 12000);
 })();
 </script>
 <style>
@@ -323,7 +334,7 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
   <div class="fb-warn" id="fbWarn">
     ⚠ Não foi possível ligar ao Firebase (ou as permissões de leitura ainda não foram activadas). Verifique a ligação à internet e as regras do Realtime Database.
   </div>
-  <div id="content"><div class="loading">A carregar indicadores…</div></div>
+  <div id="content"><div class="loading" id="zeloContentLoading" style="visibility:hidden;">A carregar…</div></div>
 </main>
 
 <script>
@@ -1694,6 +1705,7 @@ function iniciarResumoAutomatico(elId, atual, dates, period){
 }
 
 function render(){
+  window.__zeloContentResolvido = true;
   if(currentTab==='proc_monitor'){ renderProcMonitor(); return; }
   if(currentPeriod==='day'){
     if(currentTab==='overview') renderOverview();

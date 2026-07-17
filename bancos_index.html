@@ -244,14 +244,14 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   @keyframes zafSpin{to{transform:rotate(360deg)}}
   #zeloAuthGate .zaf-spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:zafSpin .6s linear infinite;display:inline-block;}
   @media(max-width:380px){#zeloAuthGate .zaf-card{padding:30px 22px 22px;}}
-  #zeloAuthLoading{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  #zeloAuthLoading{display:flex;flex-direction:column;align-items:center;gap:14px;visibility:hidden;}
   #zeloAuthLoading .zaf-loading-spin{width:40px;height:40px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#22D3EE;animation:zafLoadingSpin .8s linear infinite;}
   #zeloAuthLoading span{color:#C7D2E8;font-size:.8rem;font-family:'Inter',-apple-system,sans-serif;}
   @keyframes zafLoadingSpin{to{transform:rotate(360deg);}}
 </style>
 <div id="zeloAuthLoading">
   <div class="zaf-loading-spin"></div>
-  <span>A verificar sessão…</span>
+  <span id="zeloAuthLoadingTxt">A carregar…</span>
 </div>
 <form id="zeloAuthForm" class="zaf-card" onsubmit="return false;" style="display:none;">
     <div class="zaf-brandmark">
@@ -305,6 +305,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
     </a>
   </form>
 </div>
+<script src="zelo_loading.js"></script>
 <script type="module">
 import {
   auth, fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
@@ -355,6 +356,7 @@ import {
   });
 
   function hideGate(){
+    if(loadingCtrl) loadingCtrl.concluido();
     htmlEl.style.overflow=prevOverflow;
     gate.style.transition='opacity .25s ease';
     gate.style.opacity='0';
@@ -362,6 +364,7 @@ import {
   }
 
   function showAuthForm(){
+    if(loadingCtrl) loadingCtrl.concluido();
     var loading = document.getElementById('zeloAuthLoading');
     if(loading) loading.style.display = 'none';
     form.style.display = '';
@@ -376,6 +379,7 @@ import {
   // Aplica um login bem-sucedido — quer venha de uma sessão já existente ao abrir
   // a página, quer venha do submit do formulário — e arranca o sistema.
   async function completarLogin(user){
+    if(loadingCtrl) loadingCtrl.fase('A preparar o ambiente…');
     var perfil = await fetchUserProfile(user.uid);
     if(!perfil || perfil.ativo === false){
       showAuthForm();
@@ -414,6 +418,11 @@ import {
   // não) e desliga-se logo de seguida — não fica à escuta continuamente. Um
   // limite de segurança (2s) garante que, mesmo com rede lenta, o formulário
   // aparece e para de "verificar" em vez de ficar preso indefinidamente.
+  var loadingCtrl = window.zeloLoadingFaseado ? window.zeloLoadingFaseado.iniciar(
+    document.getElementById('zeloAuthLoading'),
+    document.getElementById('zeloAuthLoadingTxt'),
+    { generico: 'A carregar…', fase: 'A verificar sessão…' }
+  ) : null;
   var verificacaoInicialFeita = false;
   var unsubscribeVerificacaoInicial = onAuthStateChanged(auth, function(user){
     if(verificacaoInicialFeita) return;
