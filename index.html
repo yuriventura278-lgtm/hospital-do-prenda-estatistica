@@ -591,6 +591,11 @@ import {
     // exatamente o "reiniciar sozinho" que interrompia a escrita das credenciais.
     var zeloDashIfr = document.getElementById('zeloDashIframe');
     if(zeloDashIfr && !zeloDashIfr.src) zeloDashIfr.src = 'Dashboard.html';
+    if(typeof ajustarAlturaDashboard === 'function'){
+      ajustarAlturaDashboard();
+      setTimeout(ajustarAlturaDashboard, 300);
+      window.addEventListener('load', ajustarAlturaDashboard);
+    }
     if(typeof window.zeloEnviarAuthParaIframe === 'function') window.zeloEnviarAuthParaIframe();
     if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
     if(typeof window.zeloApplyPermissoes === 'function') window.zeloApplyPermissoes(perfil.role || 'funcionario', perfil.permissoes || {});
@@ -918,6 +923,20 @@ window.zeloDashboardInit = function(role){
 // Passa a sessão já autenticada para o iframe do Dashboard — evita que o iframe
 // (contexto isolado) tenha de detetar a sessão do Firebase Auth por si próprio,
 // o que por vezes falha e mostrava um ecrã de login duplicado dentro do painel.
+// Ajusta a altura do iframe do Dashboard para caber exactamente no espaço
+// disponível do ecrã (viewport - o que está acima dele), em vez de uma altura
+// fixa por adivinhação — garante que preenche o ecrã todo em computador,
+// seja qual for a altura real do cabeçalho/título nesse momento.
+function ajustarAlturaDashboard(){
+  var ifr = document.getElementById('zeloDashIframe');
+  if(!ifr) return;
+  if(window.innerWidth <= 860){ ifr.style.height = ''; return; }
+  var topNoDocumento = ifr.getBoundingClientRect().top + window.scrollY;
+  var altura = window.innerHeight - topNoDocumento - 24;
+  ifr.style.height = Math.max(altura, 640) + 'px';
+}
+window.addEventListener('resize', ajustarAlturaDashboard);
+
 window.zeloEnviarAuthParaIframe = function(){
   if(!window.zeloAuthInfo) return;
   var ifr = document.getElementById('zeloDashIframe');
