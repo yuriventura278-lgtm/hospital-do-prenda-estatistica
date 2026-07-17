@@ -181,8 +181,13 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 }
 
 /* ── NOVO LAYOUT: TOPBAR + MENU LATERAL + DASHBOARD ─────── */
+/* Topo e menu lateral fixos ao ecrã (como em bloco_operatorio_registo_diario.html)
+   — só a área de conteúdo principal desloca; assim o Dashboard ocupa sempre o
+   ecrã inicial todo, sem ter de disputar espaço com um cabeçalho/menu que
+   também rolasse com a página. */
+:root{--zelo-topbar-h:58px;--zelo-sidebar-w:224px;}
 .zelo-shell{display:flex;flex-direction:column;min-height:100vh;}
-.zelo-topbar{background:var(--nv);color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 2px 14px rgba(0,0,0,.2);flex-wrap:wrap;position:relative;z-index:1600;}
+.zelo-topbar{background:var(--nv);color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 2px 14px rgba(0,0,0,.2);flex-wrap:wrap;position:fixed;top:0;left:0;right:0;z-index:1600;}
 .zelo-topbar .tb-left{display:flex;align-items:center;gap:14px;min-width:0;}
 .zelo-menu-toggle{display:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:7px 9px;cursor:pointer;flex-shrink:0;transition:background .15s,border-color .15s;}
 .zelo-menu-toggle:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);}
@@ -217,8 +222,8 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .tb-user-menu a:hover, .tb-user-menu button:hover{background:var(--sf);}
 .tb-user-menu .sair{color:#DC2626;border-top:1px solid var(--br);margin-top:2px;}
 
-.zelo-body{display:flex;flex:1;min-height:0;}
-.zelo-sidebar{width:224px;flex-shrink:0;background:#fff;border-right:1px solid var(--br);padding:20px 12px;}
+.zelo-body{flex:1;min-height:0;padding-top:var(--zelo-topbar-h);}
+.zelo-sidebar{position:fixed;top:var(--zelo-topbar-h);left:0;bottom:0;width:var(--zelo-sidebar-w);z-index:1500;background:#fff;border-right:1px solid var(--br);padding:20px 12px;overflow-y:auto;}
 .sb-section-label{font-size:.62rem;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;padding:0 12px;margin-bottom:8px;}
 .sb-nav{display:flex;flex-direction:column;gap:2px;}
 .sb-link{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:var(--tx2);text-decoration:none;font-size:.82rem;font-weight:600;cursor:pointer;background:none;border:none;border-left:3px solid transparent;text-align:left;width:100%;font-family:'Inter',sans-serif;transition:background .14s,color .14s,border-color .14s;position:relative;}
@@ -228,7 +233,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-link.active{background:var(--blxt);color:var(--bl);border-left-color:var(--bl);font-weight:700;}
 .sb-link:focus-visible{outline:2.5px solid var(--cy);outline-offset:-2px;}
 
-.zelo-main{flex:1;min-width:0;padding:24px 26px 40px;max-width:none;margin:0;}
+.zelo-main{min-width:0;padding:24px 26px 40px;max-width:none;margin:0 0 0 var(--zelo-sidebar-w);}
 .zelo-main-inner{max-width:1100px;}
 .zelo-page-title{font-size:1.3rem;font-weight:800;color:var(--tx);margin-bottom:18px;}
 .zelo-panel-dash{margin:-24px -26px 16px;width:calc(100% + 52px);max-width:none;border:none;border-radius:0;box-shadow:none;padding:0;background:transparent;}
@@ -252,7 +257,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .qa-btn:hover{border-color:var(--bl);color:var(--bl);background:var(--blxt);transform:translateY(-1px);}
 .qa-btn:active{transform:translateY(0);}
 
-.zelo-footer{background:var(--nv);color:#C7D2E8;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 26px;}
+.zelo-footer{background:var(--nv);color:#C7D2E8;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 26px;margin-left:var(--zelo-sidebar-w);}
 .zf-brand{display:flex;align-items:center;gap:10px;}
 .zf-brand img{width:30px;height:30px;border-radius:7px;flex-shrink:0;}
 .zf-name{font-size:.8rem;font-weight:800;color:#fff;letter-spacing:.03em;}
@@ -262,8 +267,10 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 @media(max-width:860px){
   .zelo-menu-toggle{display:flex;align-items:center;justify-content:center;}
   .tb-search{display:none;}
-  .zelo-sidebar{position:fixed;top:0;left:0;bottom:0;z-index:1500;transform:translateX(-100%);transition:transform .2s ease;box-shadow:0 0 40px rgba(0,0,0,.25);overflow-y:auto;}
+  .zelo-sidebar{transform:translateX(-100%);transition:transform .2s ease;box-shadow:0 0 40px rgba(0,0,0,.25);}
   .zelo-sidebar.open{transform:translateX(0);}
+  .zelo-main{margin-left:0;}
+  .zelo-footer{margin-left:0;}
   .tb-title{display:none;}
   .zelo-dash-iframe{height:700px;}
   .zelo-footer{flex-direction:column;align-items:flex-start;}
