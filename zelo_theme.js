@@ -70,12 +70,29 @@
     document.body.appendChild(btn);
   }
 
+  // Dentro de um iframe (ex: Dashboard.html embutido no index.html) o tema já
+  // é controlado pela página-mãe — não faz sentido um segundo botão flutuante
+  // ali dentro, só o da página principal. O iframe continua a aplicar o tema
+  // (para o seu próprio conteúdo ficar com as cores certas), só não mostra
+  // botão próprio.
+  var embedded = window.self !== window.top;
+
   var guardado = localStorage.getItem(STORAGE_KEY) || 'light';
   aplicarTema(guardado);
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { criarBotao(); aplicarTema(guardado); });
-  } else {
-    criarBotao();
+  if (!embedded) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { criarBotao(); aplicarTema(guardado); });
+    } else {
+      criarBotao();
+    }
   }
+
+  // Mantém os dois em sincronia: ao mudar o tema numa página, o 'storage'
+  // event dispara automaticamente nas outras páginas/frames da mesma origem
+  // (nunca na própria que fez a alteração), incluindo entre a página-mãe e o
+  // iframe do Dashboard.
+  window.addEventListener('storage', function (e) {
+    if (e.key === STORAGE_KEY) aplicarTema(e.newValue || 'light');
+  });
 })();

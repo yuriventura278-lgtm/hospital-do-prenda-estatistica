@@ -108,8 +108,15 @@ main{max-width:1180px;margin:0 auto;padding:22px 20px 70px;}
 
 /* ── PANEL / CARD SHELL ───────────────────────────────── */
 .panel{background:#fff;border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--s1);padding:20px 20px 16px;margin-bottom:18px;}
-.panel h2{font-size:.88rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.panel h2{font-size:.88rem;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
 .panel h2 .cnt{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tx3);background:var(--sf);border-radius:100px;padding:2px 9px;font-weight:500;}
+.panel .meta{font-size:.7rem;color:var(--tx3);font-family:'DM Mono',monospace;margin-bottom:14px;}
+.ai-summary{display:flex;align-items:flex-start;gap:8px;background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:10px 12px;margin-bottom:14px;font-size:.8rem;color:var(--tx2);line-height:1.4;}
+.ai-summary b{color:var(--tx);}
+.ai-summary.up{border-color:rgba(5,150,105,.35);}
+.ai-summary.down{border-color:rgba(220,38,38,.35);}
+.ai-summary .arrow-up{color:var(--gr);font-weight:700;}
+.ai-summary .arrow-down{color:var(--rd);font-weight:700;}
 .sec-divider{display:flex;align-items:center;gap:12px;margin:26px 0 14px;min-width:0;}
 .sec-divider span{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--nv);white-space:normal;overflow-wrap:break-word;}
 .sec-divider::after{content:'';flex:1;height:1.5px;background:var(--br2);}
@@ -1172,15 +1179,16 @@ function selectTab(id){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
-function sectionHTML(sec, accent){
+function sectionHTML(sec, accent, metaLabel){
+  const metaHTML = metaLabel ? `<div class="meta">${metaLabel}</div>` : '';
   if(sec.type==='stats'){
     if(!sec.items.length) return '';
-    return `<div class="panel"><h2>${sec.title}</h2><div class="stats-grid">${sec.items.map(it=>`
+    return `<div class="panel"><h2>${sec.title}</h2>${metaHTML}<div class="stats-grid">${sec.items.map(it=>`
       <div class="stat-tile ${it.value?'':'zero'}"><div class="v">${it.value}</div><div class="l">${it.label}</div></div>
     `).join('')}</div></div>`;
   }
   if(sec.type==='chart'){
-    if(!sec.items.length) return `<div class="panel"><h2>${sec.title}</h2><div class="list-empty">Sem dados registados.</div></div>`;
+    if(!sec.items.length) return `<div class="panel"><h2>${sec.title}</h2>${metaHTML}<div class="list-empty">Sem dados registados.</div></div>`;
     const chartId = nextChartId();
     queueChart(chartId, {
       type:'bar',
@@ -1188,7 +1196,7 @@ function sectionHTML(sec, accent){
       options: chartBarOptions()
     });
     const h = Math.max(sec.items.length*34+16, 90);
-    return `<div class="panel"><h2>${sec.title}</h2><div style="position:relative;height:${h}px;"><canvas id="${chartId}"></canvas></div></div>`;
+    return `<div class="panel"><h2>${sec.title}</h2>${metaHTML}<div style="position:relative;height:${h}px;"><canvas id="${chartId}"></canvas></div></div>`;
   }
   if(sec.type==='list'){
     if(!sec.items || !sec.items.length) return `<div class="panel"><h2>${sec.title} <span class="cnt">0</span></h2><div class="list-empty">${sec.emptyText}</div></div>`;
@@ -1243,7 +1251,7 @@ function renderDetail(id){
       </div>
     </div>
     <div id="detailBody" style="--accent:${svc.color};">
-      ${has ? (nonEmpty.length ? nonEmpty.map(sec=>sectionHTML(sec, svc.color)).join('') : `<div class="panel"><div class="list-empty">Registo confirmado, mas sem dados preenchidos.</div></div>`)
+      ${has ? (nonEmpty.length ? nonEmpty.map(sec=>sectionHTML(sec, svc.color, fmtDataLong(dataSel.value)+' · Atualizado às '+fmtHora(entry.savedAt))).join('') : `<div class="panel"><div class="list-empty">Registo confirmado, mas sem dados preenchidos.</div></div>`)
             : `<div class="panel"><div class="list-empty">Nenhum registo confirmado para ${svc.name} nesta data.</div></div>`}
     </div>
   `;
@@ -1309,6 +1317,7 @@ function renderOverview(){
     </div>`;
 
   let barsHTML;
+  let totalAtualMovimento = 0;
   if(!withData.length){
     barsHTML = `<div class="list-empty">Nenhum registo confirmado para esta data ainda.</div>`;
   }else{
@@ -1316,6 +1325,7 @@ function renderOverview(){
       const [label, value] = headline(svc.id, currentDataset[svc.id].snapshot);
       return {name:svc.name, color:svc.color, label, value:(typeof value==='number')?value:0};
     }).sort((a,b)=>b.value-a.value);
+    totalAtualMovimento = withHl.reduce((a,x)=>a+x.value, 0);
     const movId = nextChartId();
     queueChart(movId, {
       type:'bar',
@@ -1346,8 +1356,8 @@ function renderOverview(){
   }).join('');
 
   contentEl.innerHTML = `
-    <div class="panel"><h2>Cobertura do Dia</h2>${donutsHTML}</div>
-    <div class="panel"><h2>Movimento por Serviço <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="bars">${barsHTML}</div></div>
+    <div class="panel"><h2>Cobertura do Dia</h2><div class="meta">${fmtDataLong(dataSel.value)}</div>${donutsHTML}</div>
+    <div class="panel"><h2>Movimento por Serviço <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="meta">${fmtDataLong(dataSel.value)}</div><div id="movSummary"></div><div class="bars">${barsHTML}</div></div>
     <div class="sec-divider"><span>Resumo Geral do Dia</span></div>
     ${renderResumoGeral(currentDataset)}
     <div class="sec-divider"><span>Laboratório, Imagiologia, Consulta Externa e Fisioterapia</span></div>
@@ -1355,6 +1365,7 @@ function renderOverview(){
     <div class="panel"><h2>Serviços <span class="cnt">${SERVICES.length}</span></h2><div class="grid">${cardsHTML}</div></div>
   `;
   flushCharts();
+  if(withData.length) iniciarResumoAutomatico('movSummary', totalAtualMovimento, previousRangeFor('day', [dataSel.value]), 'day');
 }
 
 /* ══════════════════ AGREGAÇÃO SEMANAL/MENSAL ══════════════════ */
@@ -1434,7 +1445,7 @@ function renderDetailPeriod(id){
       </div>
     </div>
     <div id="detailBody" style="--accent:${svc.color};">
-      ${reportedDays.length ? (nonEmpty.length ? nonEmpty.map(sec=>sectionHTML(sec, svc.color)).join('') : `<div class="panel"><div class="list-empty">Registos confirmados, mas sem dados preenchidos.</div></div>`)
+      ${reportedDays.length ? (nonEmpty.length ? nonEmpty.map(sec=>sectionHTML(sec, svc.color, periodRangeLabel()+' · '+reportedDays.length+' de '+allDays.length+' dias com registo')).join('') : `<div class="panel"><div class="list-empty">Registos confirmados, mas sem dados preenchidos.</div></div>`)
             : `<div class="panel"><div class="list-empty">Nenhum registo confirmado para ${svc.name} neste período.</div></div>`}
     </div>
   `;
@@ -1487,6 +1498,7 @@ function renderOverviewPeriod(){
     </div>`;
 
   let barsHTML;
+  let totalAtualMovimento = 0;
   if(!withData.length){
     barsHTML = `<div class="list-empty">Nenhum registo confirmado neste período ainda.</div>`;
   }else{
@@ -1496,6 +1508,7 @@ function renderOverviewPeriod(){
       const total = days.reduce((a,d)=>a+(Number(headline(svc.id,d.snapshot)[1])||0),0);
       return {name:svc.name, color:svc.color, label, value: total};
     }).sort((a,b)=>b.value-a.value);
+    totalAtualMovimento = withHl.reduce((a,x)=>a+x.value, 0);
     const movId = nextChartId();
     queueChart(movId, {
       type:'bar',
@@ -1527,11 +1540,69 @@ function renderOverviewPeriod(){
   }).join('');
 
   contentEl.innerHTML = `
-    <div class="panel"><h2>Cobertura do Período</h2>${donutsHTML}</div>
-    <div class="panel"><h2>Movimento por Serviço (total do período) <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="bars">${barsHTML}</div></div>
+    <div class="panel"><h2>Cobertura do Período</h2><div class="meta">${periodRangeLabel()}</div>${donutsHTML}</div>
+    <div class="panel"><h2>Movimento por Serviço (total do período) <span class="cnt">${withData.length} de ${SERVICES.length}</span></h2><div class="meta">${periodRangeLabel()}</div><div id="movSummary"></div><div class="bars">${barsHTML}</div></div>
     <div class="panel"><h2>Todos os Serviços <span class="cnt">${SERVICES.length}</span></h2><div class="grid">${cardsHTML}</div></div>
   `;
   flushCharts();
+  if(withData.length) iniciarResumoAutomatico('movSummary', totalAtualMovimento, previousRangeFor(currentPeriod, currentRange), currentPeriod);
+}
+
+/* ══════════════════ RESUMO AUTOMÁTICO (comparação com período anterior) ══════════════════ */
+function shiftDateISO(dateStr, offsetDays){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+offsetDays);
+  return d.toISOString().slice(0,10);
+}
+function previousMonthStr(monthStr){
+  const [y,m] = monthStr.split('-').map(Number);
+  const d = new Date(y, m-2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function previousRangeFor(period, range){
+  if(period==='day') return [shiftDateISO(range[0], -1)];
+  if(period==='week') return range.map(d=>shiftDateISO(d, -7));
+  return monthToRange(previousMonthStr(monthSel.value));
+}
+function labelPeriodoAnterior(period){
+  if(period==='day') return 'ontem';
+  if(period==='week') return 'a semana anterior';
+  return 'o mês anterior';
+}
+async function fetchTotalMovimento(dates){
+  if(!window.__fbGet) return 0;
+  const totals = await Promise.all(SERVICES.map(async svc=>{
+    let t = 0;
+    for(const date of dates){
+      try{
+        const entry = await window.__fbGet((svc.fbPrefix||'registos')+'/'+(svc.slug||svc.id)+'/'+date);
+        if(entry && entry.snapshot) t += (Number(headline(svc.id, entry.snapshot)[1])||0);
+      }catch(e){}
+    }
+    return t;
+  }));
+  return totals.reduce((a,b)=>a+b,0);
+}
+function comparativoHTML(atual, anterior, period){
+  if(!atual && !anterior) return '';
+  if(!anterior){
+    return `<div class="ai-summary"><span>Sem registos em <b>${labelPeriodoAnterior(period)}</b> para comparar — total atual: <b>${atual}</b>.</span></div>`;
+  }
+  const delta = atual - anterior;
+  const pct = Math.round(Math.abs(delta/anterior)*100);
+  if(delta===0) return `<div class="ai-summary"><span>Sem alteração face a <b>${labelPeriodoAnterior(period)}</b> — total mantém-se em <b>${atual}</b>.</span></div>`;
+  const dir = delta>0 ? 'up' : 'down';
+  const seta = delta>0 ? '<span class="arrow-up">↑</span>' : '<span class="arrow-down">↓</span>';
+  const verbo = delta>0 ? 'aumento' : 'diminuição';
+  return `<div class="ai-summary ${dir}">${seta}<span>Houve um <b>${verbo} de ${pct}%</b> face a ${labelPeriodoAnterior(period)} (${anterior} → ${atual}).</span></div>`;
+}
+function iniciarResumoAutomatico(elId, atual, dates, period){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  fetchTotalMovimento(dates).then(anterior=>{
+    const elAtual = document.getElementById(elId);
+    if(elAtual) elAtual.innerHTML = comparativoHTML(atual, anterior, period);
+  }).catch(()=>{});
 }
 
 function render(){
