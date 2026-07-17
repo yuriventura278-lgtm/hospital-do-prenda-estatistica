@@ -37,6 +37,24 @@
   }
   window.dispatchEvent(new CustomEvent('zelo-dashboard-fb-ready'));
 </script>
+<script>
+(function(){
+  // Rede de segurança independente do módulo acima: numa ligação muito lenta,
+  // os próprios ficheiros do SDK do Firebase (importados nesse módulo) podem
+  // demorar muito ou nunca chegar a carregar — e nesse caso o módulo nem chega
+  // a correr, ficando o "A carregar indicadores…" preso indefinidamente sem
+  // qualquer explicação. Este script simples (sem imports, corre já) força,
+  // ao fim de alguns segundos, uma mensagem clara com opção de tentar de novo.
+  setTimeout(function(){
+    if (window.__fbReady === undefined) {
+      var el = document.getElementById('content');
+      if (el) {
+        el.innerHTML = '<div class="panel"><div class="list-empty">Não foi possível carregar os dados — a ligação à internet pode estar muito lenta ou instável.<br/><button onclick="window.location.reload()" style="margin-top:10px;padding:8px 16px;border-radius:8px;border:1px solid var(--br);background:var(--sf);color:var(--tx);cursor:pointer;font-weight:600;font-family:inherit;font-size:.8rem;">Tentar novamente</button></div></div>';
+      }
+    }
+  }, 6000);
+})();
+</script>
 <style>
 :root{
   --nv:#0D1B3E;--nv2:#122754;--nv3:#0a3a66;--bl:#1A56DB;--cy:#0EA5E9;--cyl:#22D3EE;
