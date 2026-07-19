@@ -105,6 +105,10 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 .hdr-date input[type=date]{background:var(--surface);border:1px solid var(--border);color:var(--text);
   font-family:var(--font-body);font-size:.68rem;padding:4px 8px;border-radius:4px;outline:none;cursor:pointer;}
 .hdr-date input[type=date]:focus{border-color:var(--accent);}
+.zelo-dmy{display:inline-flex;align-items:center;gap:3px;}
+.zelo-dmy select{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:var(--font-body);font-size:.68rem;padding:4px 6px;border-radius:4px;outline:none;cursor:pointer;}
+.zelo-dmy select:focus{border-color:var(--accent);}
 .date-disp{font-size:.66rem;color:var(--accent);font-family:var(--font-head);font-weight:600;white-space:nowrap;}
 .btn-h{padding:5px 11px;border-radius:4px;cursor:pointer;font-family:var(--font-head);font-size:.57rem;
   font-weight:600;letter-spacing:.4px;text-transform:uppercase;transition:all .13s;white-space:nowrap;border:none;
@@ -894,6 +898,77 @@ function showToast(msg) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
 }
+
+// ════════════════════════════════════════════════════════════
+//  ZELO — seletor de data Dia/Mês/Ano
+//  Um <input type=date> nativo mostra os segmentos na ordem do idioma do
+//  sistema operativo/browser da pessoa a usar, não da página — por isso
+//  escolher um dia podia acabar por selecionar outra data sem se perceber.
+//  Substitui cada campo por 3 selects que fixam sempre Dia/Mês/Ano,
+//  mantendo o input original (agora escondido, mesmo id) como fonte de
+//  verdade — todo o código já existente que lê/escreve .value ou ouve
+//  'change' nesse id continua a funcionar sem alterações.
+// ════════════════════════════════════════════════════════════
+function zeloConverterDataDMY(id){
+  const input = document.getElementById(id);
+  if(!input || input.dataset.zeloDmyDone) return;
+  input.dataset.zeloDmyDone = '1';
+  const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  function diasNoMes(mes,ano){ return new Date(ano,mes,0).getDate(); }
+  const original = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+  const wrap = document.createElement('span');
+  wrap.className = 'zelo-dmy';
+  const selD = document.createElement('select'); selD.setAttribute('aria-label','Dia');
+  const selM = document.createElement('select'); selM.setAttribute('aria-label','Mês');
+  const selA = document.createElement('select'); selA.setAttribute('aria-label','Ano');
+  selM.innerHTML = MESES_PT.map((n,i)=>'<option value="'+(i+1)+'">'+n+'</option>').join('');
+  const anoAtual = new Date().getFullYear();
+  const anos = []; for(let a=anoAtual-5;a<=anoAtual+1;a++) anos.push(a);
+  selA.innerHTML = anos.map(a=>'<option value="'+a+'">'+a+'</option>').join('');
+  function popularDias(mes,ano,diaSel){
+    const max = diasNoMes(mes,ano);
+    const opts = []; for(let d=1;d<=max;d++) opts.push(d);
+    selD.innerHTML = opts.map(d=>'<option value="'+d+'">'+String(d).padStart(2,'0')+'</option>').join('');
+    selD.value = String(Math.min(diaSel||1,max));
+  }
+  function syncFromInput(){
+    const iso = original.get.call(input);
+    if(!iso){ popularDias(Number(selM.value)||1, Number(selA.value)||anoAtual, 1); return; }
+    const partes = iso.split('-').map(Number);
+    const ano = partes[0], mes = partes[1], dia = partes[2];
+    selM.value = String(mes); selA.value = String(ano);
+    popularDias(mes,ano,dia);
+  }
+  let timer = null;
+  function onSelectChange(){
+    popularDias(Number(selM.value), Number(selA.value), Number(selD.value));
+    const iso = selA.value+'-'+String(selM.value).padStart(2,'0')+'-'+String(selD.value).padStart(2,'0');
+    clearTimeout(timer);
+    timer = setTimeout(function(){
+      if(original.get.call(input) === iso) return;
+      original.set.call(input, iso);
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+      input.dispatchEvent(new Event('change',{bubbles:true}));
+    }, 400);
+  }
+  selD.addEventListener('change', onSelectChange);
+  selM.addEventListener('change', onSelectChange);
+  selA.addEventListener('change', onSelectChange);
+  Object.defineProperty(input,'value',{
+    get(){ return original.get.call(this); },
+    set(v){ original.set.call(this,v); syncFromInput(); },
+    configurable:true
+  });
+  syncFromInput();
+  input.type = 'hidden';
+  wrap.appendChild(selD);
+  wrap.appendChild(document.createTextNode('/'));
+  wrap.appendChild(selM);
+  wrap.appendChild(document.createTextNode('/'));
+  wrap.appendChild(selA);
+  input.insertAdjacentElement('afterend', wrap);
+}
+['regDate','rpt-day-date','sem-start','sem-end','cmp-a-start','cmp-a-end','cmp-b-start','cmp-b-end'].forEach(zeloConverterDataDMY);
 
 // ════════════════════════════════════════════════════════════
 //  DATE INIT  ★ usa hora LOCAL (não UTC) — evita desvio de fuso horário
