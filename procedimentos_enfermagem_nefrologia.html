@@ -129,10 +129,37 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 .hdr-date input[type=date]{background:var(--surface);border:1px solid var(--border);color:var(--text);
   font-family:var(--font-body);font-size:.68rem;padding:4px 8px;border-radius:4px;outline:none;cursor:pointer;}
 .hdr-date input[type=date]:focus{border-color:var(--accent);}
-.zelo-dmy{display:inline-flex;align-items:center;gap:3px;}
-.zelo-dmy select{background:var(--surface);border:1px solid var(--border);color:var(--text);
-  font-family:var(--font-body);font-size:.68rem;padding:4px 6px;border-radius:4px;outline:none;cursor:pointer;}
-.zelo-dmy select:focus{border-color:var(--accent);}
+.zdp-wrap{position:relative;display:inline-block;}
+.zdp-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:var(--font-body);font-size:.68rem;padding:4px 9px;border-radius:4px;outline:none;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;}
+.zdp-btn:hover,.zdp-btn:focus{border-color:var(--accent);}
+.zdp-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:500;background:var(--surface);
+  border:1px solid var(--border);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.18);
+  padding:10px;width:230px;display:none;}
+.zdp-pop.open{display:block;}
+.zdp-hdr{display:flex;align-items:center;gap:4px;margin-bottom:8px;}
+.zdp-nav{background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--text);
+  font-size:.8rem;line-height:1;padding:3px 7px;font-family:var(--font-body);}
+.zdp-nav:hover{border-color:var(--accent);color:var(--accent);}
+.zdp-mes-sel{flex:1.4;}
+.zdp-ano-sel{flex:1;}
+.zdp-mes-sel,.zdp-ano-sel{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:var(--font-body);font-size:.66rem;padding:3px 4px;border-radius:4px;outline:none;cursor:pointer;min-width:0;}
+.zdp-dows{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}
+.zdp-dow{font-size:.58rem;color:var(--muted);text-align:center;padding:2px 0;font-weight:700;}
+.zdp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;}
+.zdp-day{font-size:.7rem;text-align:center;padding:6px 0;border-radius:5px;cursor:pointer;
+  background:none;border:none;color:var(--text);font-family:var(--font-body);}
+.zdp-day:hover{background:var(--accent);color:#fff;}
+.zdp-day.other{opacity:.3;cursor:default;}
+.zdp-day.other:hover{background:none;color:var(--text);}
+.zdp-day.today{box-shadow:inset 0 0 0 1.5px var(--accent);}
+.zdp-day.selected{background:var(--accent);color:#fff;font-weight:700;}
+.zdp-today{width:100%;margin-top:8px;padding:6px;background:none;border:1px dashed var(--border);
+  border-radius:6px;color:var(--accent);font-family:var(--font-head);font-size:.62rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;cursor:pointer;}
+.zdp-today:hover{border-color:var(--accent);background:var(--accent-tint);}
 .date-disp{font-size:.66rem;color:var(--accent);font-family:var(--font-head);font-weight:600;white-space:nowrap;}
 .btn-h{padding:5px 11px;border-radius:4px;cursor:pointer;font-family:var(--font-head);font-size:.57rem;
   font-weight:600;letter-spacing:.4px;text-transform:uppercase;transition:all .13s;white-space:nowrap;border:none;
@@ -950,60 +977,134 @@ function showToast(msg) {
 }
 
 // ════════════════════════════════════════════════════════════
-//  ZELO — seletor de data Dia/Mês/Ano
+//  ZELO — seletor de data com calendário (caixa a abrir), Dia/Mês/Ano
 //  Um <input type=date> nativo mostra os segmentos na ordem do idioma do
 //  sistema operativo/browser da pessoa a usar, não da página — por isso
 //  escolher um dia podia acabar por selecionar outra data sem se perceber.
-//  Substitui cada campo por 3 selects que fixam sempre Dia/Mês/Ano,
-//  mantendo o input original (agora escondido, mesmo id) como fonte de
-//  verdade — todo o código já existente que lê/escreve .value ou ouve
-//  'change' nesse id continua a funcionar sem alterações.
+//  Substitui cada campo por um botão (mostra sempre "17 Jul 2026") que abre
+//  uma caixa com um calendário — mês/ano para saltar rápido, mais a grelha
+//  de dias para escolher. O input original (agora escondido, mesmo id)
+//  continua a ser a fonte de verdade — todo o código já existente que
+//  lê/escreve .value ou ouve 'change' nesse id continua a funcionar sem
+//  alterações.
 // ════════════════════════════════════════════════════════════
 function zeloConverterDataDMY(id){
   const input = document.getElementById(id);
   if(!input || input.dataset.zeloDmyDone) return;
   input.dataset.zeloDmyDone = '1';
-  const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const MESES_ABR = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const DOW = ['D','S','T','Q','Q','S','S'];
   function diasNoMes(mes,ano){ return new Date(ano,mes,0).getDate(); }
+  function isoHoje(){ const t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
   const original = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+
   const wrap = document.createElement('span');
-  wrap.className = 'zelo-dmy';
-  const selD = document.createElement('select'); selD.setAttribute('aria-label','Dia');
-  const selM = document.createElement('select'); selM.setAttribute('aria-label','Mês');
-  const selA = document.createElement('select'); selA.setAttribute('aria-label','Ano');
-  selM.innerHTML = MESES_PT.map((n,i)=>'<option value="'+(i+1)+'">'+n+'</option>').join('');
+  wrap.className = 'zdp-wrap';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'zdp-btn';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="zdp-btn-txt">—</span>';
+  const btnTxt = btn.querySelector('.zdp-btn-txt');
+
+  const pop = document.createElement('div');
+  pop.className = 'zdp-pop';
+  pop.innerHTML =
+    '<div class="zdp-hdr">'
+    + '<button type="button" class="zdp-nav" data-nav="-1">‹</button>'
+    + '<select class="zdp-mes-sel"></select>'
+    + '<select class="zdp-ano-sel"></select>'
+    + '<button type="button" class="zdp-nav" data-nav="1">›</button>'
+    + '</div>'
+    + '<div class="zdp-dows">' + DOW.map(function(d){ return '<span class="zdp-dow">'+d+'</span>'; }).join('') + '</div>'
+    + '<div class="zdp-grid"></div>'
+    + '<button type="button" class="zdp-today">Hoje</button>';
+
+  const mesSel = pop.querySelector('.zdp-mes-sel');
+  const anoSel = pop.querySelector('.zdp-ano-sel');
+  const grid = pop.querySelector('.zdp-grid');
+  mesSel.innerHTML = MESES_PT.map(function(n,i){ return '<option value="'+(i+1)+'">'+n+'</option>'; }).join('');
   const anoAtual = new Date().getFullYear();
   const anos = []; for(let a=anoAtual-5;a<=anoAtual+1;a++) anos.push(a);
-  selA.innerHTML = anos.map(a=>'<option value="'+a+'">'+a+'</option>').join('');
-  function popularDias(mes,ano,diaSel){
-    const max = diasNoMes(mes,ano);
-    const opts = []; for(let d=1;d<=max;d++) opts.push(d);
-    selD.innerHTML = opts.map(d=>'<option value="'+d+'">'+String(d).padStart(2,'0')+'</option>').join('');
-    selD.value = String(Math.min(diaSel||1,max));
+  anoSel.innerHTML = anos.map(function(a){ return '<option value="'+a+'">'+a+'</option>'; }).join('');
+
+  let viewYear = anoAtual, viewMonth = new Date().getMonth()+1;
+  let selectedIso = '';
+
+  function fmtBtn(iso){
+    if(!iso) return '—';
+    const p = iso.split('-').map(Number);
+    return String(p[2]).padStart(2,'0')+' '+MESES_ABR[p[1]-1]+' '+p[0];
   }
+  function renderGrid(){
+    mesSel.value = String(viewMonth);
+    anoSel.value = String(viewYear);
+    const startDow = new Date(viewYear, viewMonth-1, 1).getDay();
+    const totalDays = diasNoMes(viewMonth, viewYear);
+    const mesAnt = viewMonth-1<1 ? 12 : viewMonth-1;
+    const anoMesAnt = viewMonth-1<1 ? viewYear-1 : viewYear;
+    const prevTotalDays = diasNoMes(mesAnt, anoMesAnt);
+    const todayIso = isoHoje();
+    let html = '';
+    for(let i=startDow-1;i>=0;i--){
+      html += '<button type="button" class="zdp-day other" tabindex="-1">'+(prevTotalDays-i)+'</button>';
+    }
+    for(let d=1; d<=totalDays; d++){
+      const iso = viewYear+'-'+String(viewMonth).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      let cls = 'zdp-day';
+      if(iso===todayIso) cls += ' today';
+      if(iso===selectedIso) cls += ' selected';
+      html += '<button type="button" class="'+cls+'" data-iso="'+iso+'">'+d+'</button>';
+    }
+    const trailing = (7 - ((startDow+totalDays) % 7)) % 7;
+    for(let d=1; d<=trailing; d++){
+      html += '<button type="button" class="zdp-day other" tabindex="-1">'+d+'</button>';
+    }
+    grid.innerHTML = html;
+  }
+  function onClickFora(e){ if(!wrap.contains(e.target)) fechar(); }
+  function abrir(){
+    if(selectedIso){ const p=selectedIso.split('-').map(Number); viewYear=p[0]; viewMonth=p[1]; }
+    renderGrid();
+    pop.classList.add('open');
+    setTimeout(function(){ document.addEventListener('mousedown', onClickFora, true); }, 0);
+  }
+  function fechar(){
+    pop.classList.remove('open');
+    document.removeEventListener('mousedown', onClickFora, true);
+  }
+  function escolher(iso){
+    selectedIso = iso;
+    btnTxt.textContent = fmtBtn(iso);
+    fechar();
+    if(original.get.call(input) === iso) return;
+    original.set.call(input, iso);
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    input.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+  btn.addEventListener('click', function(){ pop.classList.contains('open') ? fechar() : abrir(); });
+  mesSel.addEventListener('change', function(){ viewMonth = Number(mesSel.value); renderGrid(); });
+  anoSel.addEventListener('change', function(){ viewYear = Number(anoSel.value); renderGrid(); });
+  pop.addEventListener('click', function(e){
+    const navBtn = e.target.closest('.zdp-nav');
+    if(navBtn){
+      viewMonth += Number(navBtn.dataset.nav);
+      if(viewMonth<1){ viewMonth=12; viewYear--; }
+      if(viewMonth>12){ viewMonth=1; viewYear++; }
+      renderGrid();
+      return;
+    }
+    const dayBtn = e.target.closest('.zdp-day');
+    if(dayBtn && dayBtn.dataset.iso){ escolher(dayBtn.dataset.iso); return; }
+    if(e.target.closest('.zdp-today')){ escolher(isoHoje()); }
+  });
+
   function syncFromInput(){
     const iso = original.get.call(input);
-    if(!iso){ popularDias(Number(selM.value)||1, Number(selA.value)||anoAtual, 1); return; }
-    const partes = iso.split('-').map(Number);
-    const ano = partes[0], mes = partes[1], dia = partes[2];
-    selM.value = String(mes); selA.value = String(ano);
-    popularDias(mes,ano,dia);
+    selectedIso = iso || '';
+    btnTxt.textContent = fmtBtn(iso);
+    if(iso){ const p=iso.split('-').map(Number); viewYear=p[0]; viewMonth=p[1]; }
   }
-  let timer = null;
-  function onSelectChange(){
-    popularDias(Number(selM.value), Number(selA.value), Number(selD.value));
-    const iso = selA.value+'-'+String(selM.value).padStart(2,'0')+'-'+String(selD.value).padStart(2,'0');
-    clearTimeout(timer);
-    timer = setTimeout(function(){
-      if(original.get.call(input) === iso) return;
-      original.set.call(input, iso);
-      input.dispatchEvent(new Event('input',{bubbles:true}));
-      input.dispatchEvent(new Event('change',{bubbles:true}));
-    }, 400);
-  }
-  selD.addEventListener('change', onSelectChange);
-  selM.addEventListener('change', onSelectChange);
-  selA.addEventListener('change', onSelectChange);
   Object.defineProperty(input,'value',{
     get(){ return original.get.call(this); },
     set(v){ original.set.call(this,v); syncFromInput(); },
@@ -1011,11 +1112,8 @@ function zeloConverterDataDMY(id){
   });
   syncFromInput();
   input.type = 'hidden';
-  wrap.appendChild(selD);
-  wrap.appendChild(document.createTextNode('/'));
-  wrap.appendChild(selM);
-  wrap.appendChild(document.createTextNode('/'));
-  wrap.appendChild(selA);
+  wrap.appendChild(btn);
+  wrap.appendChild(pop);
   input.insertAdjacentElement('afterend', wrap);
 }
 ['regDate','rpt-day-date','sem-start','sem-end','cmp-a-start','cmp-a-end','cmp-b-start','cmp-b-end'].forEach(zeloConverterDataDMY);
