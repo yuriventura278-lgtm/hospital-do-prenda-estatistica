@@ -1556,9 +1556,9 @@ async function procCopiarSelecionados(specId){
   if(!checks.length) return;
   const specLabel = (SPECIALTIES.find(s => s.id===specId) || {}).label || specId;
   const linhas = checks.map(c => {
-    const dv = parseInt(document.getElementById(c.dataset.dia)?.value)||0;
-    const nv = parseInt(document.getElementById(c.dataset.noite)?.value)||0;
-    return '- ' + c.dataset.name + ': Dia ' + dv + ', Noite ' + nv + ', Total ' + (dv+nv);
+    const dRaw = (document.getElementById(c.dataset.dia)?.value || '').trim();
+    const nRaw = (document.getElementById(c.dataset.noite)?.value || '').trim();
+    return '- ' + c.dataset.name + ': Dia ' + dRaw + ', Noite ' + nRaw;
   });
   const texto = 'Procedimentos — ' + specLabel + ' — ' + fmtDate(currentLoadedDate) + '\n' + linhas.join('\n');
   try{
