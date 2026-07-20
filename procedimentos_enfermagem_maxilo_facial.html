@@ -8,6 +8,30 @@
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
 <script>zeloRequestPersistentStorage();</script>
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyB72sUTmo7x1gOiNQfn112Na2MvX82kZ4E",
+    authDomain: "hospital-do-prenda-1de35.firebaseapp.com",
+    databaseURL: "https://hospital-do-prenda-1de35-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "hospital-do-prenda-1de35",
+    storageBucket: "hospital-do-prenda-1de35.firebasestorage.app",
+    messagingSenderId: "991683012968",
+    appId: "1:991683012968:web:f86ae42cd1cbe8bc71cedd"
+  };
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
+    window.__fbReady = false;
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Procedimentos — Maxilo Facial</title>
@@ -761,6 +785,33 @@ const SPECIALTIES = [
   { id:'maxilo', label:'Maxilo Facial', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-tooth"/></svg>' },
 ];
 
+// ── ZELO — ligação ao Firebase para a Monitorização de Procedimentos do
+// Dashboard (registos_enf/<slug>/<data>) — segue o mesmo esquema (sub →
+// cats → {d[],n[]}) já usado pelo Dashboard.html, para que os registos
+// apareçam lá sem alterações ao Dashboard.
+const FB_SLUG = 'maxilo_facial';
+function buildFirebaseSnapshot(){
+  const sub = {};
+  SPECIALTIES.forEach(sp=>{
+    if(sp.id === 'medicina' || sp.id === 'bloco_op') return; // calculado — não enviar
+    const cats = {};
+    CATEGORIES.forEach(cat=>{
+      const d = [], n = [];
+      cat.procs.forEach(proc=>{
+        const elD = document.getElementById(iid(sp.id,'dia',cat.id,proc));
+        const elN = document.getElementById(iid(sp.id,'noite',cat.id,proc));
+        d.push(elD && elD.value.trim()!=='' ? (parseInt(elD.value)||0) : 0);
+        n.push(elN && elN.value.trim()!=='' ? (parseInt(elN.value)||0) : 0);
+      });
+      cats[cat.id] = {d,n};
+    });
+    const notesD = document.getElementById('notes-dia-'+sp.id);
+    const notesN = document.getElementById('notes-noite-'+sp.id);
+    sub[sp.id] = {cats, notesD: notesD ? notesD.value : '', notesN: notesN ? notesN.value : ''};
+  });
+  return {sub};
+}
+
 // ── Grupos para placar dos totais ──
 // Usa sempre os IDs consolidados (leitura): medicina e bloco_op
 // Os componentes (med_homem/mulher, bloco_urgente/electiva) são ignorados nos totais
@@ -1191,6 +1242,7 @@ function persist(date) {
     });
   });
   _storageSet(storageKey(d), JSON.stringify(data));
+  if(window.zeloQueueWrite) zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + d, {savedAt: new Date().toISOString(), snapshot: buildFirebaseSnapshot()});
   setSyncInfo('<svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Guardado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
 }
 
