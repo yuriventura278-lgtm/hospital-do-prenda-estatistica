@@ -105,10 +105,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
             <select id="cCargo"></select>
           </div>
           <div class="field"><label for="cRole">Papel</label>
-            <select id="cRole">
-              <option value="funcionario">Funcionário</option>
-              <option value="admin">Administrador</option>
-            </select>
+            <select id="cRole"></select>
           </div>
           <div class="field"><button type="submit" class="btn-primary" id="createBtn" style="width:100%;">+ Criar utilizador</button></div>
         </div>
@@ -128,8 +125,6 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
         <input type="text" id="userSearch" placeholder="Pesquisar por nome ou email…" style="flex:1;min-width:180px;padding:9px 12px;border:1.5px solid var(--br);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:.84rem;"/>
         <select id="userFilterRole" style="padding:9px 12px;border:1.5px solid var(--br);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:.84rem;">
           <option value="">Todos os papéis</option>
-          <option value="admin">Administrador</option>
-          <option value="funcionario">Funcionário</option>
         </select>
         <select id="userFilterAtivo" style="padding:9px 12px;border:1.5px solid var(--br);border-radius:var(--r);font-family:'Inter',sans-serif;font-size:.84rem;">
           <option value="">Todos os estados</option>
@@ -221,6 +216,38 @@ function cargoOptionsHtml(selecionado){
   }).join('');
 }
 document.getElementById('cCargo').innerHTML = cargoOptionsHtml();
+
+// Papéis — Administrador continua a ser o caso especial com acesso total
+// (ver hasModuleAccess em zelo_auth.js); os restantes são só rótulos por
+// agora, geridos com o mesmo sistema de Permissões por módulo já existente.
+// 'Funcionário' fica como valor genérico de retaguarda (contas antigas sem
+// papel definido continuam a cair aqui).
+const ROLES = [
+  { value: 'admin', label: 'Administrador' },
+  { value: 'direcao', label: 'Direção' },
+  { value: 'supervisor', label: 'Supervisor' },
+  { value: 'chefe_servico', label: 'Chefe de Serviço' },
+  { value: 'enfermeiro_chefe', label: 'Enfermeiro-Chefe' },
+  { value: 'medico', label: 'Médico' },
+  { value: 'enfermeiro', label: 'Enfermeiro' },
+  { value: 'tdt', label: 'TDT' },
+  { value: 'secretario', label: 'Secretário' },
+  { value: 'funcionario', label: 'Funcionário' },
+];
+function roleLabel(role){
+  const r = ROLES.find(function(x){ return x.value === (role || 'funcionario'); });
+  return r ? r.label : 'Funcionário';
+}
+function roleOptionsHtml(selecionado){
+  const val = selecionado || 'funcionario';
+  return ROLES.map(function(r){
+    return '<option value="' + r.value + '" ' + (r.value === val ? 'selected' : '') + '>' + r.label + '</option>';
+  }).join('');
+}
+document.getElementById('cRole').innerHTML = roleOptionsHtml('funcionario');
+document.getElementById('userFilterRole').insertAdjacentHTML('beforeend', ROLES.map(function(r){
+  return '<option value="' + r.value + '">' + r.label + '</option>';
+}).join(''));
 
 const MODULES = [
   { key: 'servicos', label: 'Relatório Diário (Serviços)', items: [
@@ -429,7 +456,7 @@ const EXPORT_USER_COLS = ['Nome','Email','Cargo','Papel','Estado','Criado em','�
 function linhaExportUser(u){
   return [
     u.nome||'', u.email||'', u.cargo||'',
-    u.role==='admin'?'Administrador':'Funcionário',
+    roleLabel(u.role),
     u.ativo===false?'Inativo':'Ativo',
     u.criadoEm ? new Date(u.criadoEm).toLocaleString('pt-PT') : '',
     u.ultimoAcesso ? new Date(u.ultimoAcesso).toLocaleString('pt-PT') : '—',
@@ -528,7 +555,7 @@ function renderAudit(auditObj){
     const label = AUDIT_LABELS[ev.action] || ev.action || '—';
     const detalhes = [];
     if(ev.alvoEmail) detalhes.push('Alvo: ' + escapeHtml(ev.alvoEmail));
-    if(ev.novoRole) detalhes.push('Novo papel: ' + (ev.novoRole === 'admin' ? 'Administrador' : 'Funcionário'));
+    if(ev.novoRole) detalhes.push('Novo papel: ' + roleLabel(ev.novoRole));
     if(ev.novoCargo !== undefined) detalhes.push('Novo cargo: ' + (escapeHtml(ev.novoCargo) || '—'));
     if(ev.erro) detalhes.push('Erro: ' + escapeHtml(ev.erro));
     return `
@@ -559,14 +586,13 @@ function renderUsersTable(entries){
       <td>${escapeHtml(u.nome) || '—'}</td>
       <td>${escapeHtml(u.email) || '—'}</td>
       <td><select class="cargo-select" data-uid="${uid}" style="padding:5px 7px;border:1.5px solid var(--br);border-radius:7px;font-family:'Inter',sans-serif;font-size:.78rem;">${cargoOptionsHtml(u.cargo)}</select></td>
-      <td><span class="pill ${u.role === 'admin' ? 'admin' : 'funcionario'}">${u.role === 'admin' ? 'Administrador' : 'Funcionário'}</span></td>
+      <td><select class="role-select" data-uid="${uid}" style="padding:5px 7px;border:1.5px solid var(--br);border-radius:7px;font-family:'Inter',sans-serif;font-size:.78rem;">${roleOptionsHtml(u.role)}</select></td>
       <td><span class="pill ${u.ativo === false ? 'inativo' : 'ativo'}">${u.ativo === false ? 'Inativo' : 'Ativo'}</span></td>
       <td>${fmtDate(u.criadoEm)}</td>
       <td>${fmtDate(u.ultimoAcesso)}</td>
       <td>
         <div class="row-actions">
           <button class="btn-sm" data-action="permissoes" data-uid="${uid}">Permissões</button>
-          <button class="btn-sm" data-action="toggle-role" data-uid="${uid}">${u.role === 'admin' ? 'Tornar Funcionário' : 'Tornar Admin'}</button>
           <button class="btn-sm" data-action="toggle-ativo" data-uid="${uid}">${u.ativo === false ? 'Reativar' : 'Desativar'}</button>
           <button class="btn-sm danger" data-action="eliminar" data-uid="${uid}" data-email="${escapeHtml(u.email)}">Eliminar</button>
         </div>
@@ -582,7 +608,7 @@ function applyUserFilters(){
   let entries = Object.entries(currentUsersCache);
   entries = entries.filter(([uid, u]) => {
     const matchQ = !q || (u.nome||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q);
-    const matchRole = !roleFilter || (u.role === roleFilter) || (roleFilter === 'funcionario' && u.role !== 'admin');
+    const matchRole = !roleFilter || (u.role === roleFilter) || (roleFilter === 'funcionario' && !u.role);
     const isAtivo = u.ativo !== false;
     const matchAtivo = !ativoFilter || (ativoFilter === 'ativo' ? isAtivo : !isAtivo);
     return matchQ && matchRole && matchAtivo;
@@ -609,11 +635,31 @@ function countActiveAdmins(excludeUid){
 }
 
 usersBody.addEventListener('change', async function(e){
-  const sel = e.target.closest('select.cargo-select');
-  if(!sel) return;
-  const uid = sel.dataset.uid;
-  await update(ref(db, 'users/' + uid), { cargo: sel.value });
-  await logAuditEvent(currentUid, currentEmail, 'alterar_cargo', { alvoUid: uid, novoCargo: sel.value });
+  const cargoSel = e.target.closest('select.cargo-select');
+  if(cargoSel){
+    const uid = cargoSel.dataset.uid;
+    await update(ref(db, 'users/' + uid), { cargo: cargoSel.value });
+    await logAuditEvent(currentUid, currentEmail, 'alterar_cargo', { alvoUid: uid, novoCargo: cargoSel.value });
+    return;
+  }
+  const roleSel = e.target.closest('select.role-select');
+  if(roleSel){
+    const uid = roleSel.dataset.uid;
+    const novoRole = roleSel.value;
+    const snap = await get(ref(db, 'users/' + uid));
+    if(!snap.exists()) return;
+    const u = snap.val();
+    if(u.role === 'admin' && novoRole !== 'admin' && u.ativo !== false && countActiveAdmins(uid) === 0){
+      alert('Não é possível remover o acesso de Administrador: este é o único Administrador ativo do sistema.');
+      roleSel.value = u.role;
+      return;
+    }
+    if(uid === currentUid && novoRole !== 'admin' && u.role === 'admin'){
+      if(!confirm('Vais remover o teu próprio acesso de Administrador. Continuar?')){ roleSel.value = u.role; return; }
+    }
+    await update(ref(db, 'users/' + uid), { role: novoRole });
+    await logAuditEvent(currentUid, currentEmail, 'alterar_papel', { alvoUid: uid, alvoEmail: u.email, novoRole });
+  }
 });
 usersBody.addEventListener('click', async function(e){
   const btn = e.target.closest('button[data-action]');
@@ -627,18 +673,6 @@ usersBody.addEventListener('click', async function(e){
   if(action === 'permissoes'){
     openPermModal(uid, u.permissoes, u.nome || u.email, u.role);
     return;
-  }
-  if(action === 'toggle-role'){
-    const novoRole = u.role === 'admin' ? 'funcionario' : 'admin';
-    if(u.role === 'admin' && novoRole !== 'admin' && u.ativo !== false && countActiveAdmins(uid) === 0){
-      alert('Não é possível remover o acesso de Administrador: este é o único Administrador ativo do sistema.');
-      return;
-    }
-    if(uid === currentUid && novoRole !== 'admin'){
-      if(!confirm('Vais remover o teu próprio acesso de Administrador. Continuar?')) return;
-    }
-    await update(ref(db, 'users/' + uid), { role: novoRole });
-    await logAuditEvent(currentUid, currentEmail, 'alterar_papel', { alvoUid: uid, alvoEmail: u.email, novoRole });
   }
   if(action === 'toggle-ativo'){
     const novoAtivo = u.ativo === false ? true : false;
