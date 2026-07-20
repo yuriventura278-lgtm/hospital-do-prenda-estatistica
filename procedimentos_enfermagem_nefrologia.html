@@ -229,15 +229,27 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 
 /* PROC TABLE */
 .proc-table{width:100%;border-collapse:collapse;}
-.proc-table-head{display:grid;grid-template-columns:1fr 82px 82px 64px;gap:0;
+.proc-table-head{display:grid;grid-template-columns:26px 1fr 82px 82px 64px;gap:0;
   padding:5px 8px;border-bottom:1px solid var(--border);margin-bottom:4px;}
 .proc-table-head span{font-family:var(--font-head);font-size:.46rem;font-weight:600;text-transform:uppercase;
   letter-spacing:1.5px;text-align:center;color:var(--muted);
   display:flex;align-items:center;justify-content:center;gap:3px;}
 .proc-table-head .ph-name{text-align:left;justify-content:flex-start;}
 .proc-table-head .ph-dia{color:var(--accent);}
-.proc-row{display:grid;grid-template-columns:1fr 82px 82px 64px;gap:0;align-items:center;
+.proc-row{display:grid;grid-template-columns:26px 1fr 82px 82px 64px;gap:0;align-items:center;
   border-bottom:1px solid var(--border);transition:background .1s;}
+.proc-chk-cell{display:flex;align-items:center;justify-content:center;padding:3px 0;}
+.proc-row-chk,.sel-all-chk{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;}
+.sel-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;padding:0 2px;}
+.sel-all{display:flex;align-items:center;gap:6px;font-family:var(--font-head);font-size:.66rem;
+  font-weight:700;color:var(--text);cursor:pointer;}
+.sel-count{color:var(--muted);font-weight:600;}
+.btn-sel{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:var(--font-head);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+  padding:6px 12px;border-radius:6px;cursor:pointer;}
+.btn-sel:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sel.danger:hover{border-color:var(--danger);color:var(--danger);}
+.btn-sel[disabled]{opacity:.45;cursor:default;pointer-events:none;}
 .proc-row:hover{background:oklch(98.5% 0.003 230);}
 .proc-row:last-child{border-bottom:none;}
 .proc-name{padding:5px 8px;font-size:.87rem;font-family:var(--font-head);font-weight:400;
@@ -1510,6 +1522,89 @@ function recalcTotal(specId) {
 }
 
 // ════════════════════════════════════════════════════════════
+//  SELECIONAR PREENCHIDOS + COPIAR / ELIMINAR EM MASSA
+// ════════════════════════════════════════════════════════════
+function procRowChecks(specId){
+  return Array.from(document.querySelectorAll('.proc-row-chk[data-spec="'+specId+'"]'));
+}
+function procAtualizarContagem(specId){
+  const checks = procRowChecks(specId);
+  const marcados = checks.filter(c => c.checked).length;
+  const countEl = document.getElementById('sel-count-'+specId);
+  if(countEl) countEl.textContent = marcados + (marcados===1 ? ' selecionado' : ' selecionados');
+  const btnCopiar = document.getElementById('btn-copiar-'+specId);
+  const btnEliminar = document.getElementById('btn-eliminar-'+specId);
+  if(btnCopiar) btnCopiar.disabled = marcados===0;
+  if(btnEliminar) btnEliminar.disabled = marcados===0;
+  const selAll = document.querySelector('.sel-all-chk[data-spec="'+specId+'"]');
+  if(selAll){ selAll.checked = checks.length>0 && marcados===checks.length; selAll.indeterminate = marcados>0 && marcados<checks.length; }
+}
+function procSelecionarPreenchidos(specId){
+  const checks = procRowChecks(specId);
+  let marcados = 0;
+  checks.forEach(c => {
+    const dEl = document.getElementById(c.dataset.dia);
+    const nEl = document.getElementById(c.dataset.noite);
+    const preenchido = (dEl && dEl.value.trim()!=='') || (nEl && nEl.value.trim()!=='');
+    c.checked = preenchido;
+    if(preenchido) marcados++;
+  });
+  procAtualizarContagem(specId);
+  showToast(marcados>0 ? (marcados + (marcados===1?' procedimento preenchido selecionado':' procedimentos preenchidos selecionados')) : 'Nenhum procedimento preenchido para selecionar');
+}
+async function procCopiarSelecionados(specId){
+  const checks = procRowChecks(specId).filter(c => c.checked);
+  if(!checks.length) return;
+  const specLabel = (SPECIALTIES.find(s => s.id===specId) || {}).label || specId;
+  const linhas = checks.map(c => {
+    const dv = parseInt(document.getElementById(c.dataset.dia)?.value)||0;
+    const nv = parseInt(document.getElementById(c.dataset.noite)?.value)||0;
+    return '- ' + c.dataset.name + ': Dia ' + dv + ', Noite ' + nv + ', Total ' + (dv+nv);
+  });
+  const texto = 'Procedimentos — ' + specLabel + ' — ' + fmtDate(currentLoadedDate) + '\n' + linhas.join('\n');
+  try{
+    await navigator.clipboard.writeText(texto);
+    showToast('Copiado ' + checks.length + (checks.length===1?' procedimento':' procedimentos') + ' para a área de transferência');
+  }catch(e){
+    showToast('Não foi possível copiar — tente novamente');
+  }
+}
+function procEliminarSelecionados(specId){
+  const checks = procRowChecks(specId).filter(c => c.checked);
+  if(!checks.length) return;
+  if(!confirm('Eliminar os valores de ' + checks.length + (checks.length===1?' procedimento selecionado':' procedimentos selecionados') + '? Esta ação não pode ser desfeita.')) return;
+  checks.forEach(c => {
+    const dEl = document.getElementById(c.dataset.dia);
+    const nEl = document.getElementById(c.dataset.noite);
+    if(dEl) dEl.value = '';
+    if(nEl) nEl.value = '';
+    c.checked = false;
+  });
+  recalc(specId);
+  autoSave();
+  procAtualizarContagem(specId);
+  showToast('Eliminados ' + checks.length + (checks.length===1?' procedimento':' procedimentos'));
+}
+document.addEventListener('change', function(e){
+  const chk = e.target.closest('.proc-row-chk');
+  if(chk){ procAtualizarContagem(chk.dataset.spec); return; }
+  const selAll = e.target.closest('.sel-all-chk');
+  if(selAll){
+    procRowChecks(selAll.dataset.spec).forEach(c => { c.checked = selAll.checked; });
+    procAtualizarContagem(selAll.dataset.spec);
+  }
+});
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  const specId = btn.dataset.spec;
+  if(!specId) return;
+  if(btn.dataset.action === 'sel-preenchidos') procSelecionarPreenchidos(specId);
+  if(btn.dataset.action === 'copiar-sel') procCopiarSelecionados(specId);
+  if(btn.dataset.action === 'eliminar-sel') procEliminarSelecionados(specId);
+});
+
+// ════════════════════════════════════════════════════════════
 //  BUILD UI
 // ════════════════════════════════════════════════════════════
 let activeSpecId = SPECIALTIES[0].id;
@@ -1566,9 +1661,19 @@ function buildUI() {
     // No tabs — unified view
     html += ``;
 
+    if(!isReadonly){
+      html += `<div class="sel-toolbar">
+        <label class="sel-all"><input type="checkbox" class="sel-all-chk" data-spec="${sp.id}"/> <span class="sel-count" id="sel-count-${sp.id}">0 selecionados</span></label>
+        <button type="button" class="btn-sel" data-action="sel-preenchidos" data-spec="${sp.id}">Selecionar preenchidos</button>
+        <button type="button" class="btn-sel" data-action="copiar-sel" data-spec="${sp.id}" id="btn-copiar-${sp.id}" disabled>Copiar</button>
+        <button type="button" class="btn-sel danger" data-action="eliminar-sel" data-spec="${sp.id}" id="btn-eliminar-${sp.id}" disabled>Eliminar</button>
+      </div>`;
+    }
+
     // Unified pane — single table with Dia | Noite | Total columns
     html += `<div class="card">
       <div class="proc-table-head">
+        <span></span>
         <span class="ph-name">Procedimento</span>
         <span class="ph-dia"><svg class="svc-icon" aria-hidden="true"><use href="#i-sun"/></svg> Dia</span>
         <span class="ph-noite"><svg class="svc-icon" aria-hidden="true"><use href="#i-moon"/></svg> Noite</span>
@@ -1603,6 +1708,20 @@ function buildUI() {
 
       const row = document.createElement('div');
       row.className = 'proc-row';
+
+      const cellChk = document.createElement('div');
+      cellChk.className = 'proc-chk-cell';
+      if(!isReadonly){
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.className = 'proc-row-chk';
+        chk.dataset.spec = sp.id;
+        chk.dataset.dia = k;
+        chk.dataset.noite = kN;
+        chk.dataset.name = proc;
+        cellChk.appendChild(chk);
+      }
+      row.appendChild(cellChk);
 
       const nameDiv = document.createElement('div');
       nameDiv.className = 'proc-name';
