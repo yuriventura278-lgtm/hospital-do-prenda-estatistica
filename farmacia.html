@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Farmácia — ZELO · Sistema Estatístico e Gestão de Ocorrências</title>
+<style>
+:root{--navy:#0b2a4a;--navy2:#0d3b66;--navy3:#123f6e;--cyan:#12b3c7;--cyanS:#e2f6f9;--cyanD:#0a8fa0;
+--bg:#f2f6fa;--ink:#12283d;--mut:#5b7185;--line:#dce7f0;--ok:#1c9e5a;--warn:#e0a800;--bad:#d64545;--r:14px;--sh:0 6px 18px rgba(11,42,74,.10)}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Segoe UI',system-ui,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+button{font-family:inherit;cursor:pointer;border:none}
+input,select,textarea{font-family:inherit;font-size:15px}
+#splash{position:fixed;inset:0;background:linear-gradient(160deg,var(--navy) 0%,var(--navy2) 55%,#0e4d7a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s}
+#splash.hide{opacity:0;pointer-events:none}
+.spl-ring{width:150px;height:150px;position:relative;margin-bottom:26px}
+.spl-ring svg{transform:rotate(-90deg)}
+.spl-ring .track{fill:none;stroke:rgba(255,255,255,.14);stroke-width:8}
+.spl-ring .bar{fill:none;stroke:var(--cyan);stroke-width:8;stroke-linecap:round;stroke-dasharray:414;stroke-dashoffset:414;transition:stroke-dashoffset .3s}
+.spl-ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:700}
+.spl-logo{font-size:44px;font-weight:800;color:#fff;letter-spacing:10px;text-indent:10px}
+.spl-logo span{color:var(--cyan)}
+.spl-sub{color:#bcd7ea;font-size:12.5px;letter-spacing:2.5px;margin-top:8px;text-transform:uppercase;text-align:center;padding:0 24px}
+.spl-inst{color:#7fa8c7;font-size:11.5px;margin-top:26px;text-align:center;line-height:1.7}
+#app{display:none;min-height:100%;padding-bottom:76px}
+#app.on{display:block}
+header.top{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:12px 16px 11px;position:sticky;top:0;z-index:50;box-shadow:0 3px 12px rgba(11,42,74,.25)}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand .logo{width:40px;height:40px;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.brand-tx{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.brand-tx b{font-size:20px;letter-spacing:4px;font-weight:800}
+.brand-tx b i{color:var(--cyan);font-style:normal}
+.brand-tx small{font-size:10px;color:#a9c8de;letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap}
+.brand-tx .inst{font-size:9.5px;color:#7fa8c7;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-date{font-size:11.5px;color:#bcd7ea;text-align:right;line-height:1.35;flex-shrink:0}
+.mod-title{margin-top:10px;font-size:13px;color:#cfe6f2;letter-spacing:1.2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.mod-title::before{content:"";width:18px;height:3px;background:var(--cyan);border-radius:2px}
+nav.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:60;box-shadow:0 -4px 14px rgba(11,42,74,.08)}
+nav.bottom button{flex:1;background:none;padding:9px 2px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--mut);font-weight:600}
+nav.bottom button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+nav.bottom button.act{color:var(--cyanD)}
+main{padding:14px 14px 20px;max-width:980px;margin:0 auto}
+.view{display:none;animation:fadein .25s}
+.view.on{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+h2.sec{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin:18px 2px 10px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:14px 14px 12px;position:relative;overflow:hidden}
+.card::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--cyan)}
+.card.k-warn::after{background:var(--warn)}.card.k-bad::after{background:var(--bad)}.card.k-ok::after{background:var(--ok)}
+.card .lb{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+.card .vl{font-size:26px;font-weight:800;color:var(--navy2);margin-top:4px}
+.card .hint{font-size:11px;color:var(--mut);margin-top:2px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.tools input,.tools select{flex:1;min-width:125px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.tools input:focus,.tools select:focus,textarea:focus{outline:2px solid var(--cyan);outline-offset:1px}
+.btn{padding:10px 15px;border-radius:10px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--navy2);color:#fff}.btn-c{background:var(--cyan);color:#fff}
+.btn-g{background:#eaf1f7;color:var(--navy2)}.btn-d{background:var(--bad);color:#fff}
+.sumbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:var(--cyanS);color:var(--cyanD);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700}
+.chip.n{background:#eef2f6;color:var(--mut)}
+.tblwrap{background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+thead th{background:var(--navy2);color:#fff;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;padding:10px;text-align:left;cursor:pointer;user-select:none;white-space:nowrap}
+tbody td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+tbody tr:nth-child(even){background:#f8fbfd}
+td.num{text-align:right;font-weight:600}
+.tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
+.tag.ok{background:#e3f6ec;color:var(--ok)}.tag.warn{background:#fdf3d7;color:#9a7500}
+.tag.bad{background:#fbe4e4;color:var(--bad)}.tag.n{background:#eef2f6;color:var(--mut)}
+.rowbtns{display:flex;gap:5px}
+.ic{width:32px;height:32px;border-radius:8px;background:#eaf1f7;color:var(--navy2);display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+.ic.del{background:#fbe4e4;color:var(--bad)}
+.empty{padding:40px 20px;text-align:center;color:var(--mut)}
+.empty .big{font-size:38px;margin-bottom:8px}
+.foot{padding:9px 12px;font-size:12px;color:var(--mut);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+footer.pagefoot{margin:28px 2px 6px;padding:16px 14px 4px;border-top:1px solid var(--line);text-align:center;color:var(--mut);font-size:11.5px;line-height:1.8}
+footer.pagefoot .pf-b{font-size:13px;font-weight:800;letter-spacing:3px;color:var(--navy2)}
+footer.pagefoot .pf-b i{color:var(--cyanD);font-style:normal}
+footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(--cyanD);border-radius:999px;padding:2px 10px;font-size:10.5px;font-weight:700;margin-top:4px}
+.ovl{position:fixed;inset:0;background:rgba(9,28,48,.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
+@media(min-width:640px){.ovl{align-items:center}}
+.ovl.on{display:flex}
+.modal{background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 18px 24px}
+@media(min-width:640px){.modal{border-radius:18px}}
+.modal h3{font-size:17px;color:var(--navy2);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.modal h3 .x{background:#eef2f6;border-radius:8px;width:32px;height:32px;font-size:16px;color:var(--mut)}
+.fld{margin-bottom:11px}
+.fld label{display:block;font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.fld input,.fld select,.fld textarea{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+.fld2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mact{display:flex;gap:10px;margin-top:16px}
+.mact .btn{flex:1;justify-content:center;padding:13px}
+#toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:11px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;transition:.3s;z-index:10000;box-shadow:0 8px 20px rgba(11,42,74,.35);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--ok)}#toast.bad{background:var(--bad)}
+.mov{background:#fff;border-radius:12px;box-shadow:var(--sh);padding:11px 13px;margin-bottom:9px;display:flex;gap:11px;align-items:center}
+.mov .dot{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex-shrink:0}
+.mov.in .dot{background:#e3f6ec;color:var(--ok)}.mov.out .dot{background:#fbe4e4;color:var(--bad)}
+.mov .info{flex:1;min-width:0}
+.mov .info b{font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mov .info small{color:var(--mut);font-size:11.5px}
+.mov .q{font-weight:800;font-size:15px}
+.mov.in .q{color:var(--ok)}.mov.out .q{color:var(--bad)}
+#rPerInputs{display:contents}
+.rin{flex:1;min-width:110px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+#printArea{display:none}
+@media print{
+ body>*{display:none!important}
+ #printArea{display:block!important;font-size:11px}
+ #printArea .ph1{font-size:16px;font-weight:800;color:#0d3b66}
+ #printArea .ph2{font-size:10px;color:#333;margin:3px 0 12px;line-height:1.5}
+ #printArea table{width:100%;min-width:0;border-collapse:collapse}
+ #printArea th{background:#0d3b66;color:#fff;padding:5px 6px;font-size:9.5px;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ #printArea td{padding:4px 6px;border-bottom:1px solid #ccc;font-size:9.5px}
+ #printArea .pf{margin-top:10px;font-size:9px;color:#666}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="spl-ring">
+    <svg width="150" height="150" viewBox="0 0 150 150">
+      <circle class="track" cx="75" cy="75" r="66"></circle>
+      <circle class="bar" id="splBar" cx="75" cy="75" r="66"></circle>
+    </svg>
+    <div class="pct" id="splPct">0%</div>
+  </div>
+  <div class="spl-logo">ZEL<span>O</span></div>
+  <div class="spl-sub">Sistema Estatístico e Gestão de Ocorrências</div>
+  <div class="spl-inst">República de Angola · Ministério da Saúde<br>Hospital do Prenda · Secção de Farmácia</div>
+</div>
+
+<div id="app">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+          <defs>
+            <linearGradient id="lgZ" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#4da3ff"/><stop offset="1" stop-color="#19d3e6"/>
+            </linearGradient>
+          </defs>
+          <rect x="1" y="1" width="46" height="46" rx="12" fill="url(#lgZ)" opacity=".18"/>
+          <circle cx="24" cy="24" r="17" fill="none" stroke="url(#lgZ)" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="88 19" transform="rotate(-50 24 24)"/>
+          <path d="M16 16h15l-14 16h15" fill="none" stroke="url(#lgZ)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="brand-tx">
+          <b>ZEL<i>O</i></b>
+          <small>Secção de Farmácia</small>
+          <div class="inst">Hospital do Prenda · Ministério da Saúde</div>
+        </div>
+      </div>
+      <div class="top-date" id="hdrDate"></div>
+    </div>
+    <div class="mod-title" id="hdrMod">Painel Geral</div>
+  </header>
+
+  <main>
+    <section class="view on" id="v-dash">
+      <div class="grid">
+        <div class="card"><div class="lb">Produtos registados</div><div class="vl" id="dTot">—</div><div class="hint">catálogo activo</div></div>
+        <div class="card k-ok"><div class="lb">Entradas hoje</div><div class="vl" id="dIn">—</div><div class="hint" id="dInQ"></div></div>
+        <div class="card k-bad"><div class="lb">Saídas hoje</div><div class="vl" id="dOut">—</div><div class="hint" id="dOutQ"></div></div>
+        <div class="card k-warn"><div class="lb">Stock baixo</div><div class="vl" id="dLow">—</div><div class="hint">abaixo do mínimo</div></div>
+        <div class="card k-bad"><div class="lb">Esgotados</div><div class="vl" id="dZero">—</div><div class="hint">stock a zero</div></div>
+        <div class="card k-warn"><div class="lb">Validade próxima</div><div class="vl" id="dVal">—</div><div class="hint">lotes ≤ 90 dias ou vencidos</div></div>
+      </div>
+      <h2 class="sec">Movimento dos últimos 7 dias</h2>
+      <div class="card" style="margin-bottom:4px"><div id="dChart" style="overflow-x:auto"></div></div>
+      <h2 class="sec">Alertas de stock</h2>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Descrição</th><th>Classe</th><th>Stock</th><th>Mínimo</th><th>Estado</th></tr></thead>
+        <tbody id="dAlerts"></tbody>
+      </table></div>
+      <h2 class="sec">Controlo de validade</h2>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Produto</th><th>Lote</th><th>Validade</th><th>Dias</th><th>Estado</th></tr></thead>
+        <tbody id="dVals"></tbody>
+      </table></div>
+      <h2 class="sec">Últimos movimentos</h2>
+      <div id="dMovs"></div>
+    </section>
+
+    <section class="view" id="v-prod">
+      <div class="tools">
+        <input type="search" id="pSearch" placeholder="Pesquisar descrição, código, código de barras…">
+        <select id="pClasse"><option value="">Todas as classes</option></select>
+        <button class="btn btn-c" id="btnNovoProd">＋ Novo</button>
+        <button class="btn btn-g" id="btnPdfProd">🖨 Imprimir</button>
+      </div>
+      <div class="sumbar" id="pSum"></div>
+      <div class="tblwrap"><table id="pTable">
+        <thead><tr>
+          <th data-k="codigo">Código</th><th data-k="descricao">Descrição</th><th data-k="classe">Classe</th>
+          <th data-k="apresentacao">Apresent.</th><th data-k="unidade">Unidade</th>
+          <th data-k="stock" style="text-align:right">Stock</th><th>Estado</th><th>Ações</th>
+        </tr></thead>
+        <tbody id="pBody"></tbody>
+      </table>
+      <div class="foot"><span id="pFoot"></span><span>ZELO · Secção de Farmácia</span></div></div>
+    </section>
+
+    <section class="view" id="v-lot">
+      <div class="tools">
+        <input type="search" id="lSearch" placeholder="Pesquisar produto ou lote…">
+        <select id="lFiltro">
+          <option value="">Todos os lotes</option>
+          <option value="disp">Com disponível</option>
+          <option value="alerta">Validade em alerta</option>
+          <option value="vencido">Vencidos</option>
+        </select>
+        <button class="btn btn-g" id="btnPdfLot">🖨 Imprimir</button>
+      </div>
+      <div class="sumbar" id="lSum"></div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Produto</th><th>Lote</th><th>Validade</th><th style="text-align:right">Recebido</th><th style="text-align:right">Saído</th><th style="text-align:right">Disponível</th><th>Estado</th></tr></thead>
+        <tbody id="lBody"></tbody>
+      </table>
+      <div class="foot"><span id="lFoot"></span><span>FEFO — validade mais próxima primeiro</span></div></div>
+    </section>
+
+    <section class="view" id="v-dia">
+      <div class="tools">
+        <input type="date" id="gData" style="flex:1;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px">
+        <button class="btn btn-g" id="btnDiaHoje">Hoje</button>
+        <button class="btn btn-g" id="btnPdfDia">🖨 Imprimir</button>
+      </div>
+      <div class="grid" style="margin-bottom:12px">
+        <div class="card k-ok"><div class="lb">Entradas</div><div class="vl" id="gIn">—</div><div class="hint" id="gInQ"></div></div>
+        <div class="card k-bad"><div class="lb">Saídas</div><div class="vl" id="gOut">—</div><div class="hint" id="gOutQ"></div></div>
+        <div class="card k-warn"><div class="lb">Ajustes</div><div class="vl" id="gAj">—</div><div class="hint">correcções de inventário</div></div>
+      </div>
+      <div class="sumbar" id="gSum"></div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Hora</th><th>Tipo</th><th>Produto</th><th style="text-align:right">Qtd</th><th>Lote</th><th>Destino/Fornecedor</th><th>Paciente</th><th>Responsável</th></tr></thead>
+        <tbody id="gBody"></tbody>
+      </table>
+      <div class="foot"><span id="gFoot"></span><span>Registo diário de movimentos</span></div></div>
+    </section>
+
+    <section class="view" id="v-mov">
+      <div class="tools">
+        <button class="btn btn-p" id="btnEntrada" style="flex:1;justify-content:center">▲ Registar Entrada</button>
+        <button class="btn btn-d" id="btnSaida" style="flex:1;justify-content:center">▼ Registar Saída</button>
+        <button class="btn btn-g" id="btnAjuste" style="flex:1;justify-content:center">⇄ Ajuste</button>
+      </div>
+      <div class="tools">
+        <input type="date" id="mData" style="flex:1;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px">
+        <select id="mTipo" style="flex:1"><option value="">Entradas e saídas</option><option value="entrada">Só entradas</option><option value="saida">Só saídas</option><option value="ajuste">Só ajustes</option></select>
+        <input type="search" id="mSearch" placeholder="Produto, paciente, processo, serviço…" style="flex:1.4">
+        <button class="btn btn-g" id="btnPdfMov">🖨 Imprimir</button>
+      </div>
+      <div class="sumbar" id="mSum"></div>
+      <div id="mList"></div>
+    </section>
+
+    <section class="view" id="v-rel">
+      <div class="card" style="margin-bottom:12px">
+        <div class="lb">Relatório de movimento</div>
+        <div class="vl" id="rMes" style="font-size:20px">—</div>
+        <div class="hint">Entradas, saídas e stock apurados a partir dos registos diários</div>
+      </div>
+      <div class="tools">
+        <select id="rPer" style="flex:1.2">
+          <option value="diario">Diário</option>
+          <option value="semanal">Semanal</option>
+          <option value="mensal" selected>Mensal</option>
+          <option value="trimestral">Trimestral</option>
+          <option value="semestral">Semestral</option>
+          <option value="anual">Anual</option>
+        </select>
+        <span id="rPerInputs"></span>
+      </div>
+      <div class="tools">
+        <select id="rTipo" style="flex:1.3">
+          <option value="prod">Movimento por produto</option>
+          <option value="serv">Consumo por serviço</option>
+          <option value="top">Mais utilizados</option>
+          <option value="menos">Menos utilizados</option>
+        </select>
+        <select id="rClasse" style="flex:1"><option value="">Todas as classes</option></select>
+        <button class="btn btn-g" id="btnPdfRel">🖨 Imprimir</button>
+      </div>
+      <div class="sumbar" id="rSum"></div>
+      <div class="tblwrap"><table>
+        <thead id="rHead"></thead>
+        <tbody id="rBody"></tbody>
+      </table></div>
+    </section>
+
+    <footer class="pagefoot">
+      <div class="pf-b">ZEL<i>O</i></div>
+      <div>Sistema Estatístico e Gestão de Ocorrências</div>
+      <div>República de Angola · Ministério da Saúde · Hospital do Prenda</div>
+      <div>Secção de Farmácia · <span id="ftAno"></span></div>
+      <span class="pf-tag">Dados guardados neste dispositivo</span>
+    </footer>
+  </main>
+
+  <nav class="bottom">
+    <button class="act" data-v="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Painel</button>
+    <button data-v="dia"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/><path d="M9 16l2 2 4-4"/></svg>Diário</button>
+    <button data-v="mov"><svg viewBox="0 0 24 24"><path d="M7 4v13M7 17l-3-3M7 17l3-3"/><path d="M17 20V7M17 7l-3 3M17 7l3 3"/></svg>Movimentos</button>
+    <button data-v="prod"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>Produtos</button>
+    <button data-v="lot"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v4l-8 4-8-4V7l8-4z"/><path d="M4 13v4l8 4 8-4v-4"/></svg>Lotes</button>
+    <button data-v="rel"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Relatório</button>
+  </nav>
+</div>
+
+<div class="ovl" id="ovlProd">
+  <div class="modal">
+    <h3><span id="mpTitle">Novo produto</span><button class="x" data-close="ovlProd">✕</button></h3>
+    <div class="fld"><label>Descrição *</label><input id="fpDesc" maxlength="80"></div>
+    <div class="fld2">
+      <div class="fld"><label>Classe *</label><input id="fpClasse" list="dlClasses" maxlength="50"><datalist id="dlClasses"></datalist></div>
+      <div class="fld"><label>Apresentação</label><select id="fpApres"><option>Injectáveis</option><option>Solutos</option><option>Gastáveis</option><option>Comprimidos</option><option>Géis/Pomadas</option><option>Dispositivos</option><option>Testes</option><option>Outros</option></select></div>
+    </div>
+    <div class="fld2">
+      <div class="fld"><label>Unidade</label><select id="fpUnid"><option>Amp</option><option>Frs</option><option>Pcs</option><option>Cx</option><option>Comp</option></select></div>
+      <div class="fld"><label>Stock mínimo</label><input id="fpMin" type="number" min="0" inputmode="numeric"></div>
+    </div>
+    <div class="fld"><label id="fpStockLb">Stock inicial</label><input id="fpStock" type="number" min="0" inputmode="numeric"></div>
+    <div class="fld2">
+      <div class="fld"><label>Stock máximo</label><input id="fpMax" type="number" min="0" inputmode="numeric"></div>
+      <div class="fld"><label>Stock segurança</label><input id="fpSeg" type="number" min="0" inputmode="numeric"></div>
+    </div>
+    <div class="fld2">
+      <div class="fld"><label>Código de barras</label><input id="fpCodB" maxlength="30" inputmode="numeric"></div>
+      <div class="fld"><label>Necessita receita</label><select id="fpRec"><option>Não</option><option>Sim</option></select></div>
+    </div>
+    <div class="fld2">
+      <div class="fld"><label>Fabricante</label><input id="fpFab" maxlength="50"></div>
+      <div class="fld"><label>Fornecedor</label><input id="fpForn" maxlength="50"></div>
+    </div>
+    <div class="fld"><label>Estado</label><select id="fpEst"><option>Ativo</option><option>Inativo</option></select></div>
+    <div class="mact">
+      <button class="btn btn-g" data-close="ovlProd">Cancelar</button>
+      <button class="btn btn-p" id="fpSave">Guardar produto</button>
+    </div>
+  </div>
+</div>
+
+<div class="ovl" id="ovlMov">
+  <div class="modal">
+    <h3><span id="mmTitle">Registar entrada</span><button class="x" data-close="ovlMov">✕</button></h3>
+    <div class="fld"><label>Produto *</label>
+      <input id="fmBusca" placeholder="Escrever para pesquisar…" autocomplete="off">
+      <select id="fmProd" size="5" style="width:100%;margin-top:6px;border:1.5px solid var(--line);border-radius:10px;padding:6px"></select>
+    </div>
+    <div class="fld2">
+      <div class="fld"><label>Quantidade *</label><input id="fmQtd" type="number" min="1" inputmode="numeric"></div>
+      <div class="fld"><label>Data</label><input id="fmData" type="date"></div>
+    </div>
+    <div class="fld2" id="fmLoteWrap">
+      <div class="fld"><label>Lote</label><input id="fmLote" maxlength="30"></div>
+      <div class="fld"><label>Validade</label><input id="fmVal" type="month"></div>
+    </div>
+    <div class="fld" id="fmFornWrap"><label>Fornecedor</label><input id="fmForn" list="dlForn" maxlength="60"><datalist id="dlForn"></datalist></div>
+    <div class="fld" id="fmLoteSWrap"><label>Lote a dispensar (FEFO)</label><select id="fmLoteS"></select></div>
+    <div class="fld2" id="fmAjWrap">
+      <div class="fld"><label>Direcção</label><select id="fmAjDir"><option value="entrada">Aumentar stock</option><option value="saida">Diminuir stock</option></select></div>
+      <div class="fld"><label>Motivo</label><select id="fmAjMot"><option>Inventário físico</option><option>Correcção de registo</option><option>Perda/Dano</option><option>Produto vencido</option><option>Transferência</option><option>Outro</option></select></div>
+    </div>
+    <div class="fld" id="fmDestWrap"><label>Serviço de destino</label>
+      <select id="fmDest"><option></option><option>Banco de Urgência</option><option>Bloco Operatório</option><option>UCI</option><option>Medicina Interna</option><option>Consulta Externa</option><option>Laboratório</option><option>Imagiologia</option><option>Hemoterapia</option><option>Fisioterapia</option><option>Nefrologia</option><option>Enfermagem</option><option>Outro</option></select></div>
+    <div class="fld" id="fmDispWrap"><label>Tipo de dispensa</label>
+      <select id="fmDisp"><option>Serviço hospitalar</option><option>Receita</option><option>Paciente internado</option><option>Urgência</option></select></div>
+    <div class="fld2" id="fmPacWrap">
+      <div class="fld"><label>Paciente</label><input id="fmPac" maxlength="60"></div>
+      <div class="fld"><label>N.º processo</label><input id="fmProc" maxlength="20"></div>
+    </div>
+    <div class="fld"><label>Farmacêutico / Responsável</label><input id="fmResp" maxlength="50"></div>
+    <div class="fld"><label>Observações</label><textarea id="fmObs" rows="2" maxlength="200"></textarea></div>
+    <div class="mact">
+      <button class="btn btn-g" data-close="ovlMov">Cancelar</button>
+      <button class="btn btn-p" id="fmSave">Guardar movimento</button>
+    </div>
+  </div>
+</div>
+
+<div class="ovl" id="ovlConf">
+  <div class="modal" style="max-width:400px">
+    <h3><span>Confirmar</span><button class="x" data-close="ovlConf">✕</button></h3>
+    <p id="confMsg" style="color:var(--mut);line-height:1.5"></p>
+    <div class="mact">
+      <button class="btn btn-g" data-close="ovlConf">Cancelar</button>
+      <button class="btn btn-d" id="confYes">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===== CATÁLOGO DE FÁRMACOS E MATERIAIS [classe, descrição, apresentação, unidade] ===== */
+var CATALOGO=[
+["Indutores","Propofol","Injectáveis","Amp"],["Indutores","Ketamina","Injectáveis","Amp"],
+["Indutores","Etomidato","Injectáveis","Amp"],["Indutores","Tiopental","Injectáveis","Amp"],
+["Relaxantes musculares","Vencuronio","Injectáveis","Amp"],["Relaxantes musculares","Rocuronio","Injectáveis","Amp"],
+["Relaxantes musculares","Suxametonio","Injectáveis","Amp"],["Relaxantes musculares","Atracurio","Injectáveis","Amp"],
+["Reversores","Neostigmina","Injectáveis","Amp"],["Reversores","Flumazenil","Injectáveis","Amp"],
+["Reversores","Naloxona","Injectáveis","Amp"],
+["Halogénados","Isoflurano","Injectáveis","Frs"],["Halogénados","Sevoflurano","Injectáveis","Frs"],
+["Anestésicos locais","Bupivacaína hip.","Injectáveis","Amp"],["Anestésicos locais","Bupivacaína Iso","Injectáveis","Amp"],
+["Anestésicos locais","Lidocaína","Injectáveis","Amp"],
+["Benzodiazepínicos","Midazolam","Injectáveis","Amp"],["Benzodiazepínicos","Diazepam","Injectáveis","Amp"],
+["Benzodiazepínicos","Haloperidol 5mg","Injectáveis","Amp"],
+["Vasodilatação/Vasoativas","Adrenalina","Injectáveis","Amp"],["Vasodilatação/Vasoativas","Noradrenalina","Injectáveis","Amp"],
+["Vasodilatação/Vasoativas","Efedrina","Injectáveis","Amp"],["Vasodilatação/Vasoativas","Atropina","Injectáveis","Amp"],
+["Anti-Eméticos","Ondansetrom","Injectáveis","Amp"],["Anti-Eméticos","Metoclopramida","Injectáveis","Amp"],
+["Analgésicos","Paracetamol inj.","Injectáveis","Frs"],["Analgésicos","Tramadol","Injectáveis","Amp"],
+["Analgésicos","Nolotil","Injectáveis","Amp"],["Analgésicos","Fentanil","Injectáveis","Amp"],
+["Analgésicos","Dipirona 2,5mg","Injectáveis","Amp"],["Analgésicos","Diclofenac 75mg","Injectáveis","Amp"],
+["Outras classes","Cloreto potássio","Injectáveis","Amp"],["Outras classes","Ácido aminocaproico","Injectáveis","Amp"],
+["Outras classes","Ácido tranexâmico","Injectáveis","Amp"],["Outras classes","Sulfato Magnésio","Injectáveis","Amp"],
+["Outras classes","Gluconato cálcio 10% 10ml","Injectáveis","Amp"],["Outras classes","Bicarbonato de sódio","Injectáveis","Amp"],
+["Outras classes","Amiodarona","Injectáveis","Amp"],["Outras classes","Digoxina 0,25mg","Injectáveis","Amp"],
+["Anti-Maláricos inj.","Artemether 80mg","Injectáveis","Amp"],["Anti-Maláricos inj.","Artesunato 60mg","Injectáveis","Amp"],
+["Anti-Maláricos inj.","Artesunato 120mg","Injectáveis","Amp"],["Anti-Maláricos inj.","Artesunato 180mg","Injectáveis","Amp"],
+["Antibióticos","Amoxicilina 1g","Injectáveis","Amp"],["Antibióticos","Amox + Ácido Clavul. 1g","Injectáveis","Amp"],
+["Antibióticos","Ampicilina 1g","Injectáveis","Amp"],["Antibióticos","Ceftriaxona 1g","Injectáveis","Amp"],
+["Antibióticos","Cefepime 1g","Injectáveis","Amp"],["Antibióticos","Cefazolina 1g","Injectáveis","Amp"],
+["Antibióticos","Clindamicina 300mg","Injectáveis","Amp"],["Antibióticos","Ciprofloxacina 100ml","Injectáveis","Frs"],
+["Antibióticos","Ceftazidima 1g","Injectáveis","Amp"],["Antibióticos","Gentamicina 80mg","Injectáveis","Amp"],
+["Antibióticos","Levofloxacina 0,5% 100ml","Injectáveis","Frs"],["Antibióticos","Metronidazol 100ml","Injectáveis","Frs"],
+["Antibióticos","Meropen 1g","Injectáveis","Amp"],["Antibióticos","Penicilina procaína 1.200","Injectáveis","Amp"],
+["Antibióticos","Piperacilina 1g","Injectáveis","Amp"],["Antibióticos","Vancomicina 1g","Injectáveis","Amp"],
+["Anti-Hipertensivos","Furosemida 40mg","Injectáveis","Amp"],["Anti-Hipertensivos","Labetalol 20mg","Injectáveis","Amp"],
+["Anti-Hipertensivos","Hidralazina 20mg","Injectáveis","Amp"],["Anti-Hipertensivos","Nitroglicerina","Injectáveis","Amp"],
+["Anti-Hipertensivos","Dinidrato isossorbido 10mg","Injectáveis","Amp"],
+["Soros e Soluções","Fisiológico 500ml","Solutos","Frs"],["Soros e Soluções","Lactato Ringer 500ml","Solutos","Frs"],
+["Soros e Soluções","Glucofisiológico 500ml","Solutos","Frs"],["Soros e Soluções","Dextrose 5% 500ml","Solutos","Frs"],
+["Soros e Soluções","Dextrose 10% 500ml","Solutos","Frs"],["Soros e Soluções","Dextrose 30% 500ml","Solutos","Frs"],
+["Soros e Soluções","Dextrose 50% 20ml","Solutos","Frs"],["Soros e Soluções","Gelafundil 500ml","Solutos","Frs"],
+["Soros e Soluções","Albumina Humana 20ml","Solutos","Frs"],["Soros e Soluções","Manitol 10% 250ml","Solutos","Frs"],
+["Soros e Soluções","Manitol 20% 100ml","Solutos","Frs"],["Soros e Soluções","Iodopovidona 10% 100ml","Solutos","Frs"],
+["Soros e Soluções","Água oxigenada 250ml","Solutos","Frs"],["Soros e Soluções","Soluto Dakim 1L","Solutos","Frs"],
+["Soros e Soluções","Clorexidina 1L","Solutos","Frs"],["Soros e Soluções","Benzil benzoato 500ml","Solutos","Frs"],
+["Géis e Pomadas","Diclofenac gel 100mg","Géis/Pomadas","Pcs"],["Géis e Pomadas","Neomicina + Bacitracina 30g","Géis/Pomadas","Pcs"],
+["Géis e Pomadas","Lidogel 30g","Géis/Pomadas","Pcs"],["Géis e Pomadas","Óleo para massagem 250ml","Géis/Pomadas","Pcs"],
+["Géis e Pomadas","Gel para ecografia 250ml","Géis/Pomadas","Pcs"],
+["Dispositivos Médicos","Glucómetro","Dispositivos","Pcs"],["Dispositivos Médicos","Tiras para Glicémia","Dispositivos","Pcs"],
+["Dispositivos Médicos","Bomba salbutamol","Dispositivos","Pcs"],
+["Vitaminas","Complexo B","Injectáveis","Amp"],["Vitaminas","Vit. C 500mg","Injectáveis","Amp"],
+["Vitaminas","Vit. B6","Injectáveis","Amp"],["Vitaminas","Vit. B1","Injectáveis","Amp"],
+["Materiais Gastáveis","Adesivos 10x10cm","Gastáveis","Pcs"],["Materiais Gastáveis","Adesivos perfurado 18x5cm","Gastáveis","Pcs"],
+["Materiais Gastáveis","Agulha espinal 22","Gastáveis","Pcs"],["Materiais Gastáveis","Agulha espinal 25","Gastáveis","Pcs"],
+["Materiais Gastáveis","Algalia n.º 14 ch","Gastáveis","Pcs"],["Materiais Gastáveis","Algalia n.º 16 ch","Gastáveis","Pcs"],
+["Materiais Gastáveis","Algalia n.º 18 ch","Gastáveis","Pcs"],["Materiais Gastáveis","Algalia n.º 20 ch","Gastáveis","Pcs"],
+["Materiais Gastáveis","Algodão 500g","Gastáveis","Pcs"],["Materiais Gastáveis","Avental branco","Gastáveis","Pcs"],
+["Materiais Gastáveis","Bata cirurgia","Gastáveis","Pcs"],["Materiais Gastáveis","Bata descartável","Gastáveis","Pcs"],
+["Materiais Gastáveis","Bolsas de sangue","Gastáveis","Pcs"],["Materiais Gastáveis","Borboleta n.º 22","Gastáveis","Pcs"],
+["Materiais Gastáveis","Branula n.º 14","Gastáveis","Pcs"],["Materiais Gastáveis","Branula n.º 16","Gastáveis","Pcs"],
+["Materiais Gastáveis","Branula n.º 18","Gastáveis","Pcs"],["Materiais Gastáveis","Branula n.º 20","Gastáveis","Pcs"],
+["Materiais Gastáveis","Branula n.º 22","Gastáveis","Pcs"],["Materiais Gastáveis","Chave de três passes","Gastáveis","Pcs"],
+["Materiais Gastáveis","Caixas perfura-cortantes","Gastáveis","Pcs"],["Materiais Gastáveis","Campos cirúrgicos 150x100","Gastáveis","Pcs"],
+["Materiais Gastáveis","Cânula de guedel n.º 3","Gastáveis","Pcs"],["Materiais Gastáveis","Cânula de guedel n.º 4","Gastáveis","Pcs"],
+["Materiais Gastáveis","Cânula de guedel n.º 5","Gastáveis","Pcs"],["Materiais Gastáveis","Cobre sapatos","Gastáveis","Pcs"],
+["Materiais Gastáveis","Compressas gazes 20x20cm","Gastáveis","Pcs"],["Materiais Gastáveis","Escova cirúrgica","Gastáveis","Pcs"],
+["Materiais Gastáveis","Espátula madeira","Gastáveis","Pcs"],["Materiais Gastáveis","Fios sutura n.º 0/1","Gastáveis","Pcs"],
+["Materiais Gastáveis","Fios sutura n.º 1/1","Gastáveis","Pcs"],["Materiais Gastáveis","Fios sutura n.º 2/0","Gastáveis","Pcs"],
+["Materiais Gastáveis","Fios sutura traumático","Gastáveis","Pcs"],["Materiais Gastáveis","Fios sutura vicril atraumático","Gastáveis","Pcs"],
+["Materiais Gastáveis","Gesso 15x5cm","Gastáveis","Pcs"],["Materiais Gastáveis","Gesso 20x10cm","Gastáveis","Pcs"],
+["Materiais Gastáveis","Lâmina bisturi 20","Gastáveis","Pcs"],["Materiais Gastáveis","Lâmina bisturi 22","Gastáveis","Pcs"],
+["Materiais Gastáveis","Lâmina bisturi 24","Gastáveis","Pcs"],["Materiais Gastáveis","Ligaduras gazes 10x10cm","Gastáveis","Pcs"],
+["Materiais Gastáveis","Ligaduras de gazes 15x5cm","Gastáveis","Pcs"],["Materiais Gastáveis","Luvas cirúrgicas 7","Gastáveis","Pcs"],
+["Materiais Gastáveis","Luvas cirúrgicas 7.5","Gastáveis","Pcs"],["Materiais Gastáveis","Luvas cirúrgicas 8","Gastáveis","Pcs"],
+["Materiais Gastáveis","Luvas procedimentos","Gastáveis","Pcs"],["Materiais Gastáveis","Máscara de Oxigénio","Gastáveis","Pcs"],
+["Materiais Gastáveis","Máscara cirúrgica","Gastáveis","Pcs"],["Materiais Gastáveis","Peça de gaze 90x100M","Gastáveis","Pcs"],
+["Materiais Gastáveis","Pipetas Amarelas","Gastáveis","Pcs"],["Materiais Gastáveis","Rolo papel marquesa","Gastáveis","Pcs"],
+["Materiais Gastáveis","Sacos cadáveres adulto","Gastáveis","Pcs"],["Materiais Gastáveis","Sacos colostomia 500ml","Gastáveis","Pcs"],
+["Materiais Gastáveis","Sacos urina 500ml","Gastáveis","Pcs"],["Materiais Gastáveis","Seringa 2cc","Gastáveis","Pcs"],
+["Materiais Gastáveis","Seringa 3cc","Gastáveis","Pcs"],["Materiais Gastáveis","Seringa 5cc","Gastáveis","Pcs"],
+["Materiais Gastáveis","Seringa 10cc","Gastáveis","Pcs"],["Materiais Gastáveis","Seringa 20cc","Gastáveis","Pcs"],
+["Materiais Gastáveis","Seringa 60cc","Gastáveis","Pcs"],["Materiais Gastáveis","Sistema de sangue","Gastáveis","Pcs"],
+["Materiais Gastáveis","Sistema soro","Gastáveis","Pcs"],["Materiais Gastáveis","Sonda de aspiração 14","Gastáveis","Pcs"],
+["Materiais Gastáveis","Sonda de aspiração 16","Gastáveis","Pcs"],["Materiais Gastáveis","Sonda de aspiração 18","Gastáveis","Pcs"],
+["Materiais Gastáveis","Sonda nasogástrica 14","Gastáveis","Pcs"],["Materiais Gastáveis","Sonda nasogástrica 16","Gastáveis","Pcs"],
+["Materiais Gastáveis","Sonda nasogástrica 18","Gastáveis","Pcs"],["Materiais Gastáveis","Toucas azul","Gastáveis","Pcs"],
+["Materiais Gastáveis","Tubos endotraqueal 7","Gastáveis","Pcs"],["Materiais Gastáveis","Tubos endotraqueal 7.5","Gastáveis","Pcs"],
+["Materiais Gastáveis","Tubos DTA","Gastáveis","Pcs"],["Materiais Gastáveis","Tubos endotraqueal 8","Gastáveis","Pcs"],
+["Testes Diversos","Teste HIV","Testes","Pcs"],["Testes Diversos","Teste HBS","Testes","Pcs"],
+["Testes Diversos","Teste Sífilis","Testes","Pcs"],["Testes Diversos","Teste HCV","Testes","Pcs"],
+["Insulinas","Insulina rápida","Injectáveis","Amp"],["Insulinas","Insulina lenta","Injectáveis","Amp"],
+["Protetores Gástricos","Omeprazol 40mg","Injectáveis","Amp"],["Protetores Gástricos","Ranitidina 50mg","Injectáveis","Amp"],
+["Protetores Gástricos","Cimetidina 150mg","Injectáveis","Amp"],
+["Corticoides","Hidrocortisona 100mg","Injectáveis","Amp"],["Corticoides","Metilprednisolona","Injectáveis","Amp"],
+["Corticoides","Prednisolona 5mg","Injectáveis","Amp"],["Corticoides","Kenakort 80mg","Injectáveis","Amp"],
+["Anti-Alérgicos","Prometazina 50mg","Injectáveis","Amp"],
+["Anti-Eméticos","Metoclopramida (reforço)","Injectáveis","Amp"]
+];
+
+/* ===== ESTADO GLOBAL ===== */
+var state={produtos:[],movimentos:[],view:"dash",filtro:{q:"",classe:"",sortK:"codigo",sortDir:1},movTipo:null,editId:null};
+var mLimit=100;
+
+/* ===== BASE DE DADOS (compatível com a v4: zelo_farmacia_v3) ===== */
+var DB_NAME="zelo_farmacia_v3",DB_VER=1,db=null;
+function dbOpen(cb){
+  var req=indexedDB.open(DB_NAME,DB_VER);
+  req.onupgradeneeded=function(e){
+    var d=e.target.result;
+    if(!d.objectStoreNames.contains("produtos"))d.createObjectStore("produtos",{keyPath:"id",autoIncrement:true});
+    if(!d.objectStoreNames.contains("movimentos"))d.createObjectStore("movimentos",{keyPath:"id",autoIncrement:true});
+  };
+  req.onsuccess=function(e){db=e.target.result;cb();};
+  req.onerror=function(){
+    var inst=document.querySelector("#splash .spl-inst");
+    if(inst)inst.innerHTML="⚠ Não foi possível abrir a base de dados local.<br>Verifique se o navegador permite armazenamento (IndexedDB)<br>e recarregue a página.";
+    toast("Erro ao abrir a base de dados.","bad");
+  };
+}
+function dbAll(store,cb){
+  var out=[],c=db.transaction(store,"readonly").objectStore(store).openCursor();
+  c.onsuccess=function(e){var cur=e.target.result;if(cur){out.push(cur.value);cur.continue();}else cb(out);};
+}
+function dbPut(store,obj,cb){
+  var r=db.transaction(store,"readwrite").objectStore(store).put(obj);
+  r.onsuccess=function(e){if(cb)cb(e.target.result);};
+}
+function dbDel(store,id,cb){
+  var r=db.transaction(store,"readwrite").objectStore(store).delete(id);
+  r.onsuccess=function(){if(cb)cb();};
+}
+function pad4(n){return("0000"+n).slice(-4);}
+var SEQ_KEY="zelo_farm_seq";
+function nextCodigo(){
+  /* contador persistente: um código nunca é reutilizado, mesmo após eliminar o produto com o número mais alto */
+  var max=state.produtos.reduce(function(a,p){return Math.max(a,+String(p.codigo||"").slice(3)||0);},0);
+  var seq=+localStorage.getItem(SEQ_KEY)||0;
+  var n=Math.max(max,seq)+1;
+  try{localStorage.setItem(SEQ_KEY,n);}catch(e){}
+  return"ZL-"+pad4(n);
+}
+function seed(cb){
+  dbAll("produtos",function(ps){
+    if(ps.length){cb();return;}
+    var tx=db.transaction("produtos","readwrite").objectStore("produtos");
+    CATALOGO.forEach(function(r,idx){
+      tx.put({codigo:"ZL-"+pad4(idx+1),classe:r[0],descricao:r[1],apresentacao:r[2],unidade:r[3],
+        stockMin:0,stock:0,estado:"Ativo",criado:new Date().toISOString()});
+    });
+    tx.transaction.oncomplete=function(){
+      try{localStorage.setItem(SEQ_KEY,Math.max(+localStorage.getItem(SEQ_KEY)||0,CATALOGO.length));}catch(e){}
+      cb();
+    };
+  });
+}
+
+/* ===== UTIL ===== */
+function $(id){return document.getElementById(id);}
+function fmt(n){return(n||0).toLocaleString("pt-PT");}
+function hoje(){return isoLocal(new Date());}
+function pad2(n){return("0"+n).slice(-2);}
+function isoLocal(d){return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());}
+function fmtPt(iso){var p=iso.split("-");return p[2]+"/"+p[1]+"/"+p[0];}
+function dtHora(iso){var d=new Date(iso);return d.toLocaleDateString("pt-PT")+" "+d.toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"});}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+var MESES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+var toastT=null;
+function toast(msg,tipo){
+  var t=$("toast");t.textContent=msg;t.className="on "+(tipo||"");
+  clearTimeout(toastT);toastT=setTimeout(function(){t.className="";},2600);
+}
+function stTag(p){
+  if(p.estado==="Inativo")return'<span class="tag n">Inativo</span>';
+  if(p.stock<=0)return'<span class="tag bad">Esgotado</span>';
+  if(p.stock<=p.stockMin)return'<span class="tag warn">Baixo</span>';
+  return'<span class="tag ok">Normal</span>';
+}
+function diasVal(v){
+  if(!v)return null;
+  var p=v.split("-");
+  /* válido até ao fim do último dia do mês: compara com o início do mês seguinte */
+  return Math.floor((new Date(+p[0],+p[1],1)-new Date())/86400000);
+}
+function valTag(d){
+  if(d<0)return'<span class="tag bad">Vencido</span>';
+  if(d<=30)return'<span class="tag bad">Alerta 30d</span>';
+  if(d<=90)return'<span class="tag warn">Alerta 90d</span>';
+  if(d<=180)return'<span class="tag warn">Alerta 180d</span>';
+  return'<span class="tag ok">OK</span>';
+}
+
+/* ===== IMPRESSÃO (Imprimir → Guardar como PDF) ===== */
+function imprimir(titulo,head,rows){
+  var pa=$("printArea");
+  pa.innerHTML='<div class="ph1">ZELO — Secção de Farmácia · '+esc(titulo)+'</div>'+
+    '<div class="ph2">República de Angola · Ministério da Saúde · Hospital do Prenda<br>Emitido em '+new Date().toLocaleString("pt-PT")+' · '+rows.length+' registos</div>'+
+    '<table><thead><tr>'+head.map(function(h){return"<th>"+esc(h)+"</th>";}).join("")+'</tr></thead><tbody>'+
+    rows.map(function(r){return"<tr>"+r.map(function(c){return"<td>"+esc(c)+"</td>";}).join("")+"</tr>";}).join("")+
+    '</tbody></table><div class="pf">ZELO — Sistema Estatístico e Gestão de Ocorrências</div>';
+  setTimeout(function(){window.print();},100);
+}
+
+/* ===== RENDER MANAGER ===== */
+var TITULOS={dash:"Painel Geral",dia:"Registo Diário",prod:"Registo de Produtos",lot:"Gestão de Lotes",mov:"Entradas e Saídas",rel:"Relatórios · Diário a Anual"};
+function render(){
+  renderHeader();
+  if(state.view==="dash")renderDash();
+  if(state.view==="dia")renderDia();
+  if(state.view==="prod")renderProdutos();
+  if(state.view==="lot")renderLotes();
+  if(state.view==="mov")renderMovimentos();
+  if(state.view==="rel")renderRelatorio();
+}
+function renderHeader(){
+  $("hdrMod").textContent=TITULOS[state.view];
+  var d=new Date();
+  $("hdrDate").innerHTML=d.toLocaleDateString("pt-PT",{weekday:"short",day:"2-digit",month:"short",year:"numeric"})+"<br>"+d.toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"});
+}
+
+/* ===== PAINEL ===== */
+function renderDash(){
+  var ps=state.produtos,ms=state.movimentos,h=hoje();
+  var mh=ms.filter(function(m){return m.data===h&&!m.ajuste;});
+  var ent=mh.filter(function(m){return m.tipo==="entrada";});
+  var sai=mh.filter(function(m){return m.tipo==="saida";});
+  $("dTot").textContent=fmt(ps.length);
+  $("dIn").textContent=fmt(ent.length);
+  $("dInQ").textContent=fmt(ent.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
+  $("dOut").textContent=fmt(sai.length);
+  $("dOutQ").textContent=fmt(sai.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
+  var act=ps.filter(function(p){return p.estado!=="Inativo";});
+  var low=act.filter(function(p){return p.stock>0&&p.stock<=p.stockMin;});
+  $("dLow").textContent=fmt(low.length);
+  $("dZero").textContent=fmt(act.filter(function(p){return p.stock<=0;}).length);
+  renderChart7();renderValidades();
+  var al=low.slice().sort(function(a,b){return(a.stock/(a.stockMin||1))-(b.stock/(b.stockMin||1));}).slice(0,8);
+  $("dAlerts").innerHTML=al.length?al.map(function(p){
+    return"<tr><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td class='num'>"+fmt(p.stock)+"</td><td class='num'>"+fmt(p.stockMin)+"</td><td>"+stTag(p)+"</td></tr>";
+  }).join(""):"<tr><td colspan='5' class='empty'>Sem alertas de stock.</td></tr>";
+  var ult=ms.slice().sort(function(a,b){return b.registado<a.registado?-1:1;}).slice(0,6);
+  $("dMovs").innerHTML=ult.length?ult.map(movCard).join(""):"<div class='empty'><div class='big'>📦</div>Nenhum movimento registado.<br>Use o separador Movimentos para registar a primeira entrada.</div>";
+}
+function renderChart7(){
+  var arr=[],base=new Date();
+  for(var i=6;i>=0;i--){
+    var d=new Date(base);d.setDate(base.getDate()-i);
+    var iso=isoLocal(d),e=0,s=0;
+    state.movimentos.forEach(function(m){if(m.data===iso&&!m.ajuste){if(m.tipo==="entrada")e+=m.qtd;else s+=m.qtd;}});
+    arr.push({lbl:pad2(d.getDate())+"/"+pad2(d.getMonth()+1),e:e,s:s});
+  }
+  var max=arr.reduce(function(a,x){return Math.max(a,x.e,x.s);},0)||1;
+  var W=7*46+14,H=140,ch=H-24;
+  var sv='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="min-width:'+W+'px;display:block">';
+  arr.forEach(function(x,i){
+    var x0=10+i*46;
+    var he=Math.round(x.e/max*(ch-14)),hs=Math.round(x.s/max*(ch-14));
+    sv+='<rect x="'+x0+'" y="'+(ch-he)+'" width="14" height="'+(he||2)+'" rx="3" fill="#1c9e5a" opacity="'+(x.e?"1":".18")+'"></rect>';
+    sv+='<rect x="'+(x0+17)+'" y="'+(ch-hs)+'" width="14" height="'+(hs||2)+'" rx="3" fill="#d64545" opacity="'+(x.s?"1":".18")+'"></rect>';
+    sv+='<text x="'+(x0+15)+'" y="'+(H-8)+'" font-size="9" fill="#5b7185" text-anchor="middle">'+x.lbl+'</text>';
+  });
+  sv+='</svg>';
+  $("dChart").innerHTML='<div style="display:flex;gap:14px;font-size:11.5px;color:var(--mut);margin-bottom:6px"><span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#1c9e5a;margin-right:5px"></span>Entradas</span><span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#d64545;margin-right:5px"></span>Saídas</span></div>'+sv;
+}
+function lotesDetalhe(){
+  var map={};
+  state.movimentos.forEach(function(m){
+    if(!m.lote)return;
+    var k=m.produtoId+"|"+m.lote;
+    if(!map[k])map[k]={produtoId:m.produtoId,lote:m.lote,validade:"",rec:0,sai:0};
+    if(m.tipo==="entrada"){map[k].rec+=m.qtd;if(m.validade)map[k].validade=m.validade;}
+    else map[k].sai+=m.qtd;
+  });
+  return Object.keys(map).map(function(k){
+    var l=map[k];l.disp=l.rec-l.sai;l.dias=diasVal(l.validade);return l;
+  }).sort(function(a,b){return(a.validade||"9999")<(b.validade||"9999")?-1:1;});
+}
+function renderValidades(){
+  var todos=lotesDetalhe().filter(function(l){return l.dias!==null&&l.disp>0;});
+  $("dVal").textContent=fmt(todos.filter(function(l){return l.dias<=90;}).length);
+  var ls=todos.filter(function(l){return l.dias<=180;}).slice(0,10);
+  $("dVals").innerHTML=ls.length?ls.map(function(l){
+    var p=state.produtos.find(function(x){return x.id===l.produtoId;})||{};
+    var pt=l.validade.split("-");
+    return"<tr><td>"+esc(p.descricao||"—")+"</td><td>"+esc(l.lote)+"</td><td>"+MESES[+pt[1]-1].slice(0,3)+" "+pt[0]+"</td><td class='num'>"+(l.dias<0?"—":fmt(l.dias))+"</td><td>"+valTag(l.dias)+"</td></tr>";
+  }).join(""):"<tr><td colspan='5' class='empty'>Sem lotes com validade a menos de 180 dias. Registe a validade nas entradas para activar o controlo.</td></tr>";
+}
+function movCard(m){
+  var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
+  var inn=m.tipo==="entrada";
+  return"<div class='mov "+(inn?"in":"out")+"'><div class='dot'>"+(m.ajuste?"⇄":(inn?"▲":"▼"))+"</div><div class='info'><b>"+esc(p.descricao||"—")+(m.ajuste?" · Ajuste":"")+"</b><small>"+dtHora(m.registado)+(m.motivo?" · "+esc(m.motivo):"")+(m.destino?" · "+esc(m.destino):"")+(m.paciente?" · "+esc(m.paciente)+(m.processo?" ("+esc(m.processo)+")":""):"")+(m.fornecedor?" · "+esc(m.fornecedor):"")+(m.lote?" · Lote "+esc(m.lote):"")+"</small></div><div class='q'>"+(inn?"+":"−")+fmt(m.qtd)+"</div></div>";
+}
+
+/* ===== PRODUTOS ===== */
+function classesUnicas(){
+  var s={};state.produtos.forEach(function(p){s[p.classe]=1;});
+  return Object.keys(s).sort();
+}
+function fillClasses(){
+  var op='<option value="">Todas as classes</option>'+classesUnicas().map(function(c){return'<option value="'+esc(c)+'">'+esc(c)+'</option>';}).join("");
+  $("pClasse").innerHTML=op;$("rClasse").innerHTML=op;
+  $("dlClasses").innerHTML=classesUnicas().map(function(c){return'<option value="'+esc(c)+'">';}).join("");
+  $("pClasse").value=state.filtro.classe;
+}
+function prodFiltrados(){
+  var q=state.filtro.q.toLowerCase(),c=state.filtro.classe;
+  var arr=state.produtos.filter(function(p){
+    if(c&&p.classe!==c)return false;
+    if(q&&(p.descricao+" "+p.codigo+" "+p.classe+" "+(p.codBarras||"")).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+  var k=state.filtro.sortK,d=state.filtro.sortDir;
+  arr.sort(function(a,b){
+    var va=a[k],vb=b[k];
+    if(typeof va==="string")return va.localeCompare(vb,"pt")*d;
+    return(va-vb)*d;
+  });
+  return arr;
+}
+function renderProdutos(){
+  fillClasses();
+  var arr=prodFiltrados();
+  var low=arr.filter(function(p){return p.stock>0&&p.stock<=p.stockMin;}).length;
+  var zero=arr.filter(function(p){return p.stock<=0;}).length;
+  $("pSum").innerHTML='<span class="chip">Total: '+fmt(arr.length)+'</span><span class="chip n">Stock baixo: '+fmt(low)+'</span><span class="chip n">Esgotados: '+fmt(zero)+'</span>';
+  $("pBody").innerHTML=arr.length?arr.map(function(p){
+    return"<tr><td>"+esc(p.codigo)+"</td><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td>"+esc(p.apresentacao)+"</td><td>"+esc(p.unidade)+"</td><td class='num'>"+fmt(p.stock)+"</td><td>"+stTag(p)+"</td><td><div class='rowbtns'><button class='ic' data-edit='"+p.id+"' title='Editar'>✏</button><button class='ic del' data-del='"+p.id+"' title='Eliminar'>🗑</button></div></td></tr>";
+  }).join(""):"<tr><td colspan='8'><div class='empty'><div class='big'>📂</div>Nenhum produto encontrado com estes critérios.</div></td></tr>";
+  $("pFoot").textContent="A mostrar "+fmt(arr.length)+" de "+fmt(state.produtos.length)+" produtos";
+}
+
+/* ===== LOTES ===== */
+function lotesFiltrados(){
+  var q=($("lSearch").value||"").toLowerCase(),f=$("lFiltro").value;
+  return lotesDetalhe().filter(function(l){
+    var p=state.produtos.find(function(x){return x.id===l.produtoId;})||{};
+    if(q&&((p.descricao||"")+" "+l.lote).toLowerCase().indexOf(q)<0)return false;
+    if(f==="disp"&&l.disp<=0)return false;
+    if(f==="alerta"&&!(l.dias!==null&&l.dias>=0&&l.dias<=180))return false;
+    if(f==="vencido"&&!(l.dias!==null&&l.dias<0))return false;
+    return true;
+  });
+}
+function renderLotes(){
+  var arr=lotesFiltrados(),todos=lotesDetalhe();
+  var venc=todos.filter(function(l){return l.dias!==null&&l.dias<0&&l.disp>0;}).length;
+  var al=todos.filter(function(l){return l.dias!==null&&l.dias>=0&&l.dias<=90&&l.disp>0;}).length;
+  $("lSum").innerHTML='<span class="chip">Lotes: '+fmt(arr.length)+'</span><span class="chip n">Vencidos c/ stock: '+fmt(venc)+'</span><span class="chip n">Alerta 90d: '+fmt(al)+'</span>';
+  $("lBody").innerHTML=arr.length?arr.map(function(l){
+    var p=state.produtos.find(function(x){return x.id===l.produtoId;})||{};
+    return"<tr><td>"+esc(p.descricao||"—")+"</td><td>"+esc(l.lote)+"</td><td>"+(l.validade||"—")+"</td><td class='num'>"+fmt(l.rec)+"</td><td class='num'>"+fmt(l.sai)+"</td><td class='num'>"+fmt(l.disp)+"</td><td>"+(l.validade?valTag(l.dias):'<span class="tag n">s/ validade</span>')+"</td></tr>";
+  }).join(""):"<tr><td colspan='7'><div class='empty'><div class='big'>📂</div>Nenhum lote registado. Os lotes criam-se automaticamente ao registar entradas com o campo Lote preenchido.</div></td></tr>";
+  $("lFoot").textContent="A mostrar "+fmt(arr.length)+" lotes";
+}
+
+/* ===== REGISTO DIÁRIO ===== */
+function movsDia(d){
+  return state.movimentos.filter(function(m){return m.data===d;})
+    .sort(function(a,b){return a.registado<b.registado?-1:1;});
+}
+function tipoLbl(m){return m.ajuste?"Ajuste ("+(m.tipo==="entrada"?"+":"−")+")":(m.tipo==="entrada"?"Entrada":"Saída");}
+function renderDia(){
+  var d=$("gData").value||hoje();
+  $("gData").value=d;
+  var arr=movsDia(d);
+  var ent=arr.filter(function(m){return m.tipo==="entrada"&&!m.ajuste;});
+  var sai=arr.filter(function(m){return m.tipo==="saida"&&!m.ajuste;});
+  var aj=arr.filter(function(m){return m.ajuste;});
+  $("gIn").textContent=fmt(ent.length);
+  $("gInQ").textContent=fmt(ent.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
+  $("gOut").textContent=fmt(sai.length);
+  $("gOutQ").textContent=fmt(sai.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
+  $("gAj").textContent=fmt(aj.length);
+  var servs={};
+  sai.forEach(function(m){if(m.destino)servs[m.destino]=1;});
+  $("gSum").innerHTML='<span class="chip">'+fmtPt(d)+'</span><span class="chip n">Registos: '+fmt(arr.length)+'</span><span class="chip n">Serviços atendidos: '+fmt(Object.keys(servs).length)+'</span>';
+  $("gBody").innerHTML=arr.length?arr.map(function(m){
+    var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
+    var hora=new Date(m.registado).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"});
+    var pac=m.paciente?(esc(m.paciente)+(m.processo?" ("+esc(m.processo)+")":"")):"—";
+    return"<tr><td>"+hora+"</td><td>"+tipoLbl(m)+"</td><td>"+esc(p.descricao||"—")+"</td><td class='num'>"+fmt(m.qtd)+"</td><td>"+esc(m.lote||"—")+"</td><td>"+esc(m.destino||m.fornecedor||m.motivo||"—")+"</td><td>"+pac+"</td><td>"+esc(m.responsavel||"—")+"</td></tr>";
+  }).join(""):"<tr><td colspan='8'><div class='empty'><div class='big'>📋</div>Nenhum movimento registado em "+fmtPt(d)+".</div></td></tr>";
+  $("gFoot").textContent="Registo diário de "+fmtPt(d)+" · "+fmt(arr.length)+" registos";
+}
+
+/* ===== MOVIMENTOS ===== */
+function movsFiltrados(){
+  var d=$("mData").value,t=$("mTipo").value,q=($("mSearch").value||"").toLowerCase();
+  return state.movimentos.filter(function(m){
+    if(d&&m.data!==d)return false;
+    if(t==="ajuste"){if(!m.ajuste)return false;}
+    else if(t&&(m.tipo!==t||m.ajuste))return false;
+    if(q){
+      var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
+      var blob=((p.descricao||"")+" "+(p.codigo||"")+" "+(m.paciente||"")+" "+(m.processo||"")+" "+(m.destino||"")+" "+(m.dispensa||"")+" "+(m.lote||"")+" "+(m.fornecedor||"")+" "+(m.responsavel||"")).toLowerCase();
+      if(blob.indexOf(q)<0)return false;
+    }
+    return true;
+  });
+}
+function renderMovimentos(){
+  var arr=movsFiltrados().sort(function(a,b){return b.registado<a.registado?-1:1;});
+  var e=arr.filter(function(m){return m.tipo==="entrada"&&!m.ajuste;}).reduce(function(a,m){return a+m.qtd;},0);
+  var s=arr.filter(function(m){return m.tipo==="saida"&&!m.ajuste;}).reduce(function(a,m){return a+m.qtd;},0);
+  var aj=arr.filter(function(m){return m.ajuste;}).length;
+  $("mSum").innerHTML='<span class="chip">Registos: '+fmt(arr.length)+'</span><span class="chip n">Entradas: '+fmt(e)+'</span><span class="chip n">Saídas: '+fmt(s)+'</span><span class="chip n">Ajustes: '+fmt(aj)+'</span>';
+  var vis=arr.slice(0,mLimit);
+  $("mList").innerHTML=arr.length?vis.map(movCard).join("")+(arr.length>mLimit?'<button class="btn btn-g" id="btnMaisMov" style="width:100%;justify-content:center;margin-top:4px">Mostrar mais ('+fmt(arr.length-mLimit)+' restantes)</button>':""):"<div class='empty'><div class='big'>📂</div>Nenhum movimento para os critérios seleccionados.</div>";
+}
+
+/* ===== RELATÓRIOS POR PERÍODO ===== */
+var PER_INPUTS={
+  diario:'<input type="date" id="rD1" class="rin">',
+  semanal:'<input type="date" id="rD1" class="rin">',
+  mensal:'<input type="month" id="rM1" class="rin">',
+  trimestral:'<select id="rQ1" class="rin"><option value="1">1.º Trimestre</option><option value="2">2.º Trimestre</option><option value="3">3.º Trimestre</option><option value="4">4.º Trimestre</option></select><input type="number" id="rY1" class="rin" min="2020" max="2100">',
+  semestral:'<select id="rS1" class="rin"><option value="1">1.º Semestre</option><option value="2">2.º Semestre</option></select><input type="number" id="rY1" class="rin" min="2020" max="2100">',
+  anual:'<input type="number" id="rY1" class="rin" min="2020" max="2100">'
+};
+function perInit(){
+  $("rPerInputs").innerHTML=PER_INPUTS[$("rPer").value];
+  var now=new Date();
+  if($("rD1"))$("rD1").value=hoje();
+  if($("rM1"))$("rM1").value=hoje().slice(0,7);
+  if($("rY1"))$("rY1").value=now.getFullYear();
+  if($("rQ1"))$("rQ1").value=String(Math.floor(now.getMonth()/3)+1);
+  if($("rS1"))$("rS1").value=String(now.getMonth()<6?1:2);
+  var ins=document.querySelectorAll("#rPerInputs .rin");
+  for(var i=0;i<ins.length;i++){ins[i].addEventListener("change",renderRelatorio);}
+  renderRelatorio();
+}
+function rangeSel(){
+  var per=$("rPer").value,ini,fim,label,now=new Date();
+  if(per==="diario"){
+    var d=($("rD1")&&$("rD1").value)||hoje();ini=fim=d;label="Diário · "+fmtPt(d);
+  }else if(per==="semanal"){
+    var d0=new Date((($("rD1")&&$("rD1").value)||hoje())+"T12:00:00");
+    var dow=(d0.getDay()+6)%7;
+    var seg=new Date(d0);seg.setDate(d0.getDate()-dow);
+    var dom=new Date(seg);dom.setDate(seg.getDate()+6);
+    ini=isoLocal(seg);fim=isoLocal(dom);
+    label="Semanal · "+fmtPt(ini)+" a "+fmtPt(fim);
+  }else if(per==="mensal"){
+    var m=($("rM1")&&$("rM1").value)||hoje().slice(0,7),pm=m.split("-");
+    ini=m+"-01";fim=m+"-"+pad2(new Date(+pm[0],+pm[1],0).getDate());
+    label="Mensal · "+MESES[+pm[1]-1]+" "+pm[0];
+  }else if(per==="trimestral"){
+    var q=+($("rQ1")&&$("rQ1").value||1),y=+($("rY1")&&$("rY1").value)||now.getFullYear();
+    var m2=q*3;
+    ini=y+"-"+pad2((q-1)*3+1)+"-01";fim=y+"-"+pad2(m2)+"-"+pad2(new Date(y,m2,0).getDate());
+    label=q+".º Trimestre · "+y;
+  }else if(per==="semestral"){
+    var s=+($("rS1")&&$("rS1").value||1),y2=+($("rY1")&&$("rY1").value)||now.getFullYear();
+    ini=y2+"-"+(s===1?"01":"07")+"-01";fim=y2+"-"+(s===1?"06-30":"12-31");
+    label=s+".º Semestre · "+y2;
+  }else{
+    var y3=+($("rY1")&&$("rY1").value)||now.getFullYear();
+    ini=y3+"-01-01";fim=y3+"-12-31";label="Anual · "+y3;
+  }
+  return{ini:ini,fim:fim,label:label};
+}
+function movRange(pid,tipo,r){
+  return state.movimentos.filter(function(m){
+    return m.tipo===tipo&&!m.ajuste&&m.produtoId===pid&&m.data>=r.ini&&m.data<=r.fim;
+  }).reduce(function(a,m){return a+m.qtd;},0);
+}
+function relData(){
+  var r=rangeSel(),tipo=$("rTipo").value,c=$("rClasse").value;
+  var prods=state.produtos.filter(function(p){return(!c||p.classe===c)&&p.estado!=="Inativo";});
+  var byId={};prods.forEach(function(p){byId[p.id]=p;});
+  var movs=state.movimentos.filter(function(m){return m.data>=r.ini&&m.data<=r.fim&&byId[m.produtoId];});
+  var out={r:r,tipo:tipo};
+  if(tipo==="serv"){
+    var map={};
+    movs.forEach(function(m){
+      if(m.tipo!=="saida"||m.ajuste)return;
+      var k=m.destino||"(sem serviço)";
+      if(!map[k])map[k]={n:0,q:0};
+      map[k].n++;map[k].q+=m.qtd;
+    });
+    var arr=Object.keys(map).map(function(k){return{s:k,n:map[k].n,q:map[k].q};}).sort(function(a,b){return b.q-a.q;});
+    out.head=["Serviço","Dispensas","Quantidade"];out.num=[1,2];
+    out.rows=arr.map(function(x){return[x.s,fmt(x.n),fmt(x.q)];});
+    out.chips=["Serviços: "+fmt(arr.length),"Dispensas: "+fmt(arr.reduce(function(a,x){return a+x.n;},0)),"Quantidade: "+fmt(arr.reduce(function(a,x){return a+x.q;},0))];
+  }else if(tipo==="top"||tipo==="menos"){
+    var sums={};
+    movs.forEach(function(m){if(m.tipo==="saida"&&!m.ajuste)sums[m.produtoId]=(sums[m.produtoId]||0)+m.qtd;});
+    var arr2=prods.map(function(p){return{p:p,q:sums[p.id]||0};});
+    arr2.sort(function(a,b){return tipo==="top"?b.q-a.q:a.q-b.q;});
+    if(tipo==="top")arr2=arr2.filter(function(x){return x.q>0;});
+    arr2=arr2.slice(0,30);
+    out.head=["#","Produto","Classe","Saídas","Un."];out.num=[3];
+    out.rows=arr2.map(function(x,i){return[String(i+1),x.p.descricao,x.p.classe,fmt(x.q),x.p.unidade];});
+    out.chips=[(tipo==="top"?"Mais utilizados (top 30)":"Menos utilizados (30)"),"Total saídas: "+fmt(arr2.reduce(function(a,x){return a+x.q;},0))];
+  }else{
+    var linhas=prods.map(function(p){
+      return{p:p,ent:movRange(p.id,"entrada",r),sai:movRange(p.id,"saida",r)};
+    });
+    var tE=linhas.reduce(function(a,x){return a+x.ent;},0);
+    var tS=linhas.reduce(function(a,x){return a+x.sai;},0);
+    var com=linhas.filter(function(x){return x.ent||x.sai;}).length;
+    out.head=["Descrição","Classe","Entradas","Saídas","Stock","Un."];out.num=[2,3,4];
+    out.rows=linhas.map(function(x){return[x.p.descricao,x.p.classe,fmt(x.ent),fmt(x.sai),fmt(x.p.stock),x.p.unidade];});
+    out.chips=["Com movimento: "+fmt(com),"Entradas: "+fmt(tE),"Saídas: "+fmt(tS)];
+  }
+  return out;
+}
+function renderRelatorio(){
+  var d=relData();
+  $("rMes").textContent=d.r.label;
+  $("rSum").innerHTML=d.chips.map(function(c,i){return'<span class="chip'+(i?" n":"")+'">'+esc(c)+'</span>';}).join("");
+  $("rHead").innerHTML="<tr>"+d.head.map(function(h,i){return"<th"+(d.num.indexOf(i)>=0?' style="text-align:right"':"")+">"+esc(h)+"</th>";}).join("")+"</tr>";
+  $("rBody").innerHTML=d.rows.length?d.rows.map(function(row){
+    return"<tr>"+row.map(function(cell,i){return"<td"+(d.num.indexOf(i)>=0?" class='num'":"")+">"+esc(cell)+"</td>";}).join("")+"</tr>";
+  }).join(""):"<tr><td colspan='"+d.head.length+"'><div class='empty'><div class='big'>📂</div>Sem dados para o período seleccionado.</div></td></tr>";
+}
+
+/* ===== NAVEGAÇÃO ===== */
+var navBtns=document.querySelectorAll("nav.bottom button");
+for(var nb=0;nb<navBtns.length;nb++){
+  navBtns[nb].addEventListener("click",function(){
+    for(var j=0;j<navBtns.length;j++){navBtns[j].classList.remove("act");}
+    this.classList.add("act");
+    state.view=this.dataset.v;
+    var vs=document.querySelectorAll(".view");
+    for(var k=0;k<vs.length;k++){vs[k].classList.remove("on");}
+    $("v-"+state.view).classList.add("on");
+    render();
+  });
+}
+
+/* ===== MODAIS ===== */
+function openOvl(id){$(id).classList.add("on");}
+function closeOvl(id){$(id).classList.remove("on");}
+document.addEventListener("click",function(e){
+  var c=e.target.closest("[data-close]");
+  if(c)closeOvl(c.dataset.close);
+});
+
+/* ===== PRODUTO: NOVO / EDITAR / ELIMINAR ===== */
+$("btnNovoProd").addEventListener("click",function(){
+  state.editId=null;
+  $("mpTitle").textContent="Novo produto";
+  ["fpDesc","fpClasse","fpMin","fpStock","fpMax","fpSeg","fpCodB","fpFab","fpForn"].forEach(function(i){$(i).value="";});
+  $("fpApres").value="Injectáveis";$("fpUnid").value="Amp";$("fpRec").value="Não";$("fpEst").value="Ativo";
+  $("fpStock").disabled=false;$("fpStockLb").textContent="Stock inicial";
+  openOvl("ovlProd");
+});
+$("pBody").addEventListener("click",function(e){
+  var ed=e.target.closest("[data-edit]"),dl=e.target.closest("[data-del]");
+  if(ed){
+    var p=state.produtos.find(function(x){return x.id===+ed.dataset.edit;});
+    if(!p)return;
+    state.editId=p.id;
+    $("mpTitle").textContent="Editar · "+p.codigo;
+    $("fpDesc").value=p.descricao;$("fpClasse").value=p.classe;
+    $("fpApres").value=p.apresentacao;$("fpUnid").value=p.unidade;
+    $("fpMin").value=p.stockMin;$("fpStock").value=p.stock;
+    $("fpStock").disabled=true;$("fpStockLb").textContent="Stock actual (alterar via Movimentos)";
+    $("fpMax").value=p.stockMax||"";$("fpSeg").value=p.stockSeg||"";
+    $("fpCodB").value=p.codBarras||"";$("fpRec").value=p.receita||"Não";
+    $("fpFab").value=p.fabricante||"";$("fpForn").value=p.fornecedor||"";
+    $("fpEst").value=p.estado||"Ativo";
+    openOvl("ovlProd");
+  }
+  if(dl){
+    var p2=state.produtos.find(function(x){return x.id===+dl.dataset.del;});
+    if(!p2)return;
+    $("confMsg").textContent="Eliminar o produto “"+p2.descricao+"” ("+p2.codigo+")? Os movimentos associados serão mantidos no histórico.";
+    $("confYes").onclick=function(){
+      dbDel("produtos",p2.id,function(){
+        state.produtos=state.produtos.filter(function(x){return x.id!==p2.id;});
+        closeOvl("ovlConf");toast("Produto eliminado.","ok");render();
+      });
+    };
+    openOvl("ovlConf");
+  }
+});
+$("fpSave").addEventListener("click",function(){
+  var desc=$("fpDesc").value.trim(),classe=$("fpClasse").value.trim();
+  if(!desc||!classe){toast("Preencha a descrição e a classe.","bad");return;}
+  var obj;
+  if(state.editId){
+    obj=state.produtos.find(function(x){return x.id===state.editId;});
+    if(!obj){toast("Produto não encontrado.","bad");return;}
+  }else{
+    obj={codigo:nextCodigo(),criado:new Date().toISOString()};
+  }
+  obj.descricao=desc;obj.classe=classe;
+  obj.apresentacao=$("fpApres").value;obj.unidade=$("fpUnid").value;
+  obj.stockMin=+($("fpMin").value||0);
+  /* em edição o stock só muda por movimentos/ajustes — preserva a rastreabilidade */
+  if(!state.editId)obj.stock=+($("fpStock").value||0);
+  obj.stockMax=+($("fpMax").value||0);obj.stockSeg=+($("fpSeg").value||0);
+  obj.codBarras=$("fpCodB").value.trim();obj.receita=$("fpRec").value;
+  obj.fabricante=$("fpFab").value.trim();obj.fornecedor=$("fpForn").value.trim();
+  obj.estado=$("fpEst").value;
+  dbPut("produtos",obj,function(id){
+    if(!state.editId){obj.id=id;state.produtos.push(obj);}
+    closeOvl("ovlProd");toast("Produto guardado com sucesso.","ok");render();
+  });
+});
+
+/* ===== MOVIMENTO ===== */
+function movEhSaida(){
+  return state.movTipo==="saida"||(state.movTipo==="ajuste"&&$("fmAjDir").value==="saida");
+}
+function abrirMov(tipo){
+  state.movTipo=tipo;
+  $("mmTitle").textContent=tipo==="entrada"?"Registar entrada":tipo==="saida"?"Registar saída":"Ajuste de inventário";
+  $("fmLoteWrap").style.display=tipo==="entrada"?"grid":"none";
+  $("fmFornWrap").style.display=tipo==="entrada"?"block":"none";
+  $("fmLoteSWrap").style.display=tipo==="saida"?"block":"none";
+  $("fmDestWrap").style.display=tipo==="saida"?"block":"none";
+  $("fmDispWrap").style.display=tipo==="saida"?"block":"none";
+  $("fmPacWrap").style.display=tipo==="saida"?"grid":"none";
+  $("fmAjWrap").style.display=tipo==="ajuste"?"grid":"none";
+  ["fmBusca","fmQtd","fmLote","fmVal","fmForn","fmPac","fmProc","fmResp","fmObs"].forEach(function(i){$(i).value="";});
+  $("fmDest").value="";$("fmDisp").value="Serviço hospitalar";$("fmData").value=hoje();
+  $("fmAjDir").value="entrada";
+  var fs={};
+  state.movimentos.forEach(function(m){if(m.fornecedor)fs[m.fornecedor]=1;});
+  state.produtos.forEach(function(p){if(p.fornecedor)fs[p.fornecedor]=1;});
+  $("dlForn").innerHTML=Object.keys(fs).sort().map(function(f){return'<option value="'+esc(f)+'">';}).join("");
+  fillProdSelect("");
+  fillLoteSaida();
+  openOvl("ovlMov");
+}
+function fillProdSelect(q){
+  q=q.toLowerCase();
+  var arr=state.produtos.filter(function(p){
+    if(p.estado==="Inativo")return false;
+    return!q||(p.descricao+" "+p.codigo+" "+(p.codBarras||"")).toLowerCase().indexOf(q)>=0;
+  }).slice(0,60);
+  $("fmProd").innerHTML=arr.map(function(p){
+    return'<option value="'+p.id+'">'+esc(p.descricao)+" · "+esc(p.codigo)+" · Stock "+fmt(p.stock)+"</option>";
+  }).join("");
+}
+function fillLoteSaida(){
+  if(!movEhSaida()){$("fmLoteS").innerHTML="";return;}
+  var pid=+$("fmProd").value;
+  var ls=lotesDetalhe().filter(function(l){return l.produtoId===pid&&l.disp>0;});
+  $("fmLoteS").innerHTML='<option value="">(sem lote)</option>'+ls.map(function(l){
+    var venc=l.dias!==null&&l.dias<0;
+    return'<option value="'+esc(l.lote)+'">'+esc(l.lote)+(l.validade?" · val. "+l.validade:"")+(venc?" · ⚠ VENCIDO":"")+" · disp. "+fmt(l.disp)+"</option>";
+  }).join("");
+}
+$("fmProd").addEventListener("change",fillLoteSaida);
+$("fmAjDir").addEventListener("change",function(){
+  /* no ajuste de saída mostra o selector de lote para o abate atingir o lote certo (ex.: produto vencido) */
+  $("fmLoteSWrap").style.display=movEhSaida()?"block":"none";
+  fillLoteSaida();
+});
+$("fmBusca").addEventListener("input",function(){fillProdSelect(this.value);fillLoteSaida();});
+$("btnEntrada").addEventListener("click",function(){abrirMov("entrada");});
+$("btnSaida").addEventListener("click",function(){abrirMov("saida");});
+$("btnAjuste").addEventListener("click",function(){abrirMov("ajuste");});
+$("fmSave").addEventListener("click",function(){
+  var pid=+$("fmProd").value,qtd=+$("fmQtd").value;
+  if(!pid){toast("Seleccione um produto.","bad");return;}
+  if(!qtd||qtd<1||qtd%1!==0){toast("Indique uma quantidade válida (número inteiro).","bad");return;}
+  var p=state.produtos.find(function(x){return x.id===pid;});
+  if(!p){toast("Produto não encontrado.","bad");return;}
+  var tipo=state.movTipo,ajuste=false,motivo="";
+  if(tipo==="ajuste"){ajuste=true;tipo=$("fmAjDir").value;motivo=$("fmAjMot").value;}
+  var lote=tipo==="saida"?$("fmLoteS").value:(tipo==="entrada"?$("fmLote").value.trim():"");
+  if(tipo==="saida"){
+    if(qtd>p.stock){toast("Stock insuficiente. Disponível: "+fmt(p.stock)+".","bad");return;}
+    if(lote){
+      var ld=lotesDetalhe().find(function(l){return l.produtoId===pid&&l.lote===lote;});
+      if(ld&&qtd>ld.disp){toast("O lote "+lote+" só tem "+fmt(ld.disp)+" disponíveis.","bad");return;}
+      if(ld&&!ajuste&&ld.dias!==null&&ld.dias<0){toast("Lote vencido — não pode ser dispensado. Abata-o com Ajuste › Produto vencido.","bad");return;}
+    }
+  }
+  var m={tipo:tipo,ajuste:ajuste,motivo:motivo,produtoId:pid,qtd:qtd,
+    data:$("fmData").value||hoje(),
+    lote:lote,validade:tipo==="entrada"&&!ajuste?$("fmVal").value:"",
+    fornecedor:tipo==="entrada"&&!ajuste?$("fmForn").value.trim():"",
+    destino:tipo==="saida"&&!ajuste?$("fmDest").value:"",
+    dispensa:tipo==="saida"&&!ajuste?$("fmDisp").value:"",
+    paciente:tipo==="saida"&&!ajuste?$("fmPac").value.trim():"",
+    processo:tipo==="saida"&&!ajuste?$("fmProc").value.trim():"",
+    responsavel:$("fmResp").value.trim(),
+    obs:$("fmObs").value.trim(),registado:new Date().toISOString()};
+  /* transacção única: movimento e stock gravam juntos ou nada é alterado */
+  var delta=(tipo==="entrada"?qtd:-qtd);
+  p.stock+=delta;
+  var tx=db.transaction(["movimentos","produtos"],"readwrite");
+  tx.objectStore("movimentos").put(m).onsuccess=function(e){m.id=e.target.result;};
+  tx.objectStore("produtos").put(p);
+  tx.oncomplete=function(){
+    state.movimentos.push(m);
+    closeOvl("ovlMov");
+    toast(ajuste?"Ajuste registado com sucesso.":(tipo==="entrada"?"Entrada registada com sucesso.":"Saída registada com sucesso."),"ok");
+    render();
+  };
+  tx.onabort=function(){
+    p.stock-=delta;
+    toast("Erro ao gravar o movimento. Nada foi alterado.","bad");
+  };
+});
+
+/* ===== FILTROS ===== */
+var searchT=null;
+$("pSearch").addEventListener("input",function(){
+  clearTimeout(searchT);var v=this.value;
+  searchT=setTimeout(function(){state.filtro.q=v;renderProdutos();},180);
+});
+$("pClasse").addEventListener("change",function(){state.filtro.classe=this.value;renderProdutos();});
+document.querySelector("#pTable thead").addEventListener("click",function(e){
+  var th=e.target.closest("th[data-k]");if(!th)return;
+  var k=th.dataset.k;
+  if(state.filtro.sortK===k)state.filtro.sortDir*=-1;
+  else{state.filtro.sortK=k;state.filtro.sortDir=1;}
+  renderProdutos();
+});
+function movReset(){mLimit=100;renderMovimentos();}
+$("mData").addEventListener("change",movReset);
+$("mTipo").addEventListener("change",movReset);
+var mSearchT=null;
+$("mSearch").addEventListener("input",function(){clearTimeout(mSearchT);mSearchT=setTimeout(movReset,180);});
+$("mList").addEventListener("click",function(e){
+  if(e.target&&e.target.id==="btnMaisMov"){mLimit+=100;renderMovimentos();}
+});
+$("gData").addEventListener("change",renderDia);
+$("btnDiaHoje").addEventListener("click",function(){$("gData").value=hoje();renderDia();});
+$("lSearch").addEventListener("input",function(){renderLotes();});
+$("lFiltro").addEventListener("change",renderLotes);
+$("rClasse").addEventListener("change",renderRelatorio);
+$("rTipo").addEventListener("change",renderRelatorio);
+$("rPer").addEventListener("change",perInit);
+
+/* ===== IMPRESSÃO DOS RELATÓRIOS ===== */
+$("btnPdfProd").addEventListener("click",function(){
+  var arr=prodFiltrados();
+  imprimir("Lista de Produtos e Stock",
+    ["Código","Descrição","Classe","Apresent.","Stock","Un.","Estado"],
+    arr.map(function(p){
+      var est=p.estado==="Inativo"?"Inativo":(p.stock<=0?"Esgotado":(p.stock<=p.stockMin?"Baixo":"Normal"));
+      return[p.codigo,p.descricao,p.classe,p.apresentacao,fmt(p.stock),p.unidade,est];
+    }));
+});
+$("btnPdfLot").addEventListener("click",function(){
+  imprimir("Gestão de Lotes",
+    ["Produto","Lote","Validade","Recebido","Saído","Disponível","Estado"],
+    lotesFiltrados().map(function(l){
+      var p=state.produtos.find(function(x){return x.id===l.produtoId;})||{};
+      var est=!l.validade?"s/ validade":l.dias<0?"Vencido":l.dias<=30?"Alerta 30d":l.dias<=90?"Alerta 90d":l.dias<=180?"Alerta 180d":"OK";
+      return[p.descricao||"—",l.lote,l.validade||"—",fmt(l.rec),fmt(l.sai),fmt(l.disp),est];
+    }));
+});
+$("btnPdfDia").addEventListener("click",function(){
+  var d=$("gData").value||hoje();
+  imprimir("Registo Diário · "+fmtPt(d),
+    ["Hora","Tipo","Produto","Qtd","Lote","Dest./Fornec.","Paciente","Responsável"],
+    movsDia(d).map(function(m){
+      var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
+      var pac=m.paciente?(m.paciente+(m.processo?" ("+m.processo+")":"")):"—";
+      return[new Date(m.registado).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"}),tipoLbl(m),p.descricao||"—",fmt(m.qtd),m.lote||"—",m.destino||m.fornecedor||m.motivo||"—",pac,m.responsavel||"—"];
+    }));
+});
+$("btnPdfMov").addEventListener("click",function(){
+  var d=$("mData").value;
+  var arr=movsFiltrados().sort(function(a,b){return a.registado<b.registado?-1:1;});
+  imprimir("Movimentos de Stock"+(d?" · "+fmtPt(d):""),
+    ["Data","Tipo","Produto","Qtd","Lote","Dest./Fornec.","Paciente","Responsável"],
+    arr.map(function(m){
+      var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
+      var pac=m.paciente?(m.paciente+(m.processo?" ("+m.processo+")":"")):"—";
+      return[fmtPt(m.data),m.ajuste?"Ajuste":(m.tipo==="entrada"?"Entrada":"Saída"),p.descricao||"—",fmt(m.qtd),m.lote||"—",m.destino||m.fornecedor||"—",pac,m.responsavel||"—"];
+    }));
+});
+$("btnPdfRel").addEventListener("click",function(){
+  var d=relData();
+  var nomes={prod:"Movimento por Produto",serv:"Consumo por Serviço",top:"Produtos Mais Utilizados",menos:"Produtos Menos Utilizados"};
+  imprimir(nomes[d.tipo]+" · "+d.r.label,d.head,d.rows);
+});
+
+/* ===== ARRANQUE ===== */
+function boot(){
+  var bar=$("splBar"),lbl=$("splPct");
+  function setP(v){bar.style.strokeDashoffset=414-(414*v/100);lbl.textContent=v+"%";}
+  setP(8);
+  if(navigator.storage&&navigator.storage.persist){try{navigator.storage.persist();}catch(e){}}
+  dbOpen(function(){
+    setP(35);
+    seed(function(){
+      setP(60);
+      dbAll("produtos",function(ps){
+        state.produtos=ps;
+        setP(80);
+        dbAll("movimentos",function(ms){
+          state.movimentos=ms;
+          setP(100);
+          setTimeout(function(){
+            $("splash").classList.add("hide");
+            $("app").classList.add("on");
+            $("mData").value=hoje();
+            $("gData").value=hoje();
+            $("ftAno").textContent=new Date().getFullYear();
+            perInit();
+            render();
+            setInterval(renderHeader,30000);
+          },450);
+        });
+      });
+    });
+  });
+}
+boot();
+})();
+</script>
+</body>
+</html>
