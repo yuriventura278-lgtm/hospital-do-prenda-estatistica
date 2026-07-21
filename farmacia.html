@@ -103,6 +103,9 @@ tbody td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13.5px;v
 tbody tr:nth-child(even){background:#f8fbfd}
 #pBody tr{cursor:pointer}
 #pBody tr.sel,#pBody tr.sel:nth-child(even){background:#dff3f7;box-shadow:inset 3px 0 0 var(--cyan)}
+#pBody tr.grp,#pBody tr.grp:nth-child(even){background:#e8eef6;cursor:default}
+#pBody tr.grp td{color:var(--navy2);font-weight:800;font-size:11.5px;text-transform:uppercase;letter-spacing:.8px;border-top:2px solid #c3d4e4;padding:8px 10px}
+#pBody tr.grp td small{color:var(--mut);font-weight:600;text-transform:none;letter-spacing:0}
 td.num{text-align:right;font-weight:600}
 .tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .tag.ok{background:#e3f6ec;color:var(--ok)}.tag.warn{background:#fdf3d7;color:#9a7500}
@@ -1025,20 +1028,42 @@ function fillClasses(){
   $("dlClasses").innerHTML=classesUnicas().map(function(c){return'<option value="'+esc(c)+'">';}).join("");
   $("pClasse").value=state.filtro.classe;
 }
+function classeOrdem(){
+  /* ordem-mestra das classes: primeira aparição no catálogo (igual ao Plano de Consumo Mensal) */
+  var ord={},i=0;
+  state.produtos.slice().sort(function(a,b){return(a.id||0)-(b.id||0);}).forEach(function(p){
+    if(!(p.classe in ord))ord[p.classe]=i++;
+  });
+  return ord;
+}
 function prodFiltrados(){
-  var q=state.filtro.q.toLowerCase(),c=state.filtro.classe;
+  var q=state.filtro.q.toLowerCase(),c=state.filtro.classe,k=state.filtro.sortK,d=state.filtro.sortDir;
   var arr=state.produtos.filter(function(p){
     if(c&&p.classe!==c)return false;
     if(q&&(p.descricao+" "+p.codigo+" "+p.classe+" "+(p.codBarras||"")).toLowerCase().indexOf(q)<0)return false;
     return true;
   });
-  var k=state.filtro.sortK,d=state.filtro.sortDir;
+  var ord=classeOrdem();
   arr.sort(function(a,b){
     var va=a[k],vb=b[k];
-    if(typeof va==="string")return va.localeCompare(vb,"pt")*d;
-    return(va-vb)*d;
+    var cmp=typeof va==="string"?va.localeCompare(vb,"pt")*d:(va-vb)*d;
+    if(k==="classe"&&cmp===0)cmp=a.descricao.localeCompare(b.descricao,"pt");
+    return cmp;
   });
+  /* agrupa por classe (secções, como no Plano de Consumo Mensal); a ordem dos grupos segue o
+     catálogo, excepto quando se ordena explicitamente pela coluna Classe */
+  if(k!=="classe"){
+    arr.sort(function(a,b){return(ord[a.classe]||0)-(ord[b.classe]||0);});
+  }
   return arr;
+}
+function prodAgrupados(arr){
+  var out=[],prev=null;
+  arr.forEach(function(p){
+    if(p.classe!==prev){out.push({grp:p.classe});prev=p.classe;}
+    out.push(p);
+  });
+  return out;
 }
 function renderProdutos(){
   fillClasses();
@@ -1046,9 +1071,15 @@ function renderProdutos(){
   var low=arr.filter(function(p){return p.stock>0&&p.stock<=p.stockMin;}).length;
   var zero=arr.filter(function(p){return p.stock<=0&&mv[p.id];}).length;
   $("pSum").innerHTML='<span class="chip">Total: '+fmt(arr.length)+'</span><span class="chip n">Stock baixo: '+fmt(low)+'</span><span class="chip n">Esgotados: '+fmt(zero)+'</span>';
-  $("pBody").innerHTML=arr.length?arr.map(function(p){
-    return"<tr data-id='"+p.id+"'"+(p.id===state.selId?" class='sel'":"")+"><td>"+esc(p.codigo)+"</td><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td>"+esc(p.apresentacao)+"</td><td>"+esc(p.unidade)+"</td><td class='num'>"+fmt(p.stock)+"</td><td>"+stTag(p,mv[p.id])+"</td><td><div class='rowbtns'><button class='ic' data-edit='"+p.id+"' title='Editar'>"+ICO.pencil+"</button><button class='ic del' data-del='"+p.id+"' title='Eliminar'>"+ICO.trash+"</button></div></td></tr>";
-  }).join(""):"<tr><td colspan='8'><div class='empty'><div class='big'>"+ICO.folder+"</div>Nenhum produto encontrado com estes critérios.</div></td></tr>";
+  if(!arr.length){
+    $("pBody").innerHTML="<tr><td colspan='8'><div class='empty'><div class='big'>"+ICO.folder+"</div>Nenhum produto encontrado com estes critérios.</div></td></tr>";
+  }else{
+    var contagem={};arr.forEach(function(p){contagem[p.classe]=(contagem[p.classe]||0)+1;});
+    $("pBody").innerHTML=prodAgrupados(arr).map(function(p){
+      if(p.grp!=null)return"<tr class='grp'><td colspan='8'>"+esc(p.grp)+" <small>("+fmt(contagem[p.grp])+")</small></td></tr>";
+      return"<tr data-id='"+p.id+"'"+(p.id===state.selId?" class='sel'":"")+"><td>"+esc(p.codigo)+"</td><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td>"+esc(p.apresentacao)+"</td><td>"+esc(p.unidade)+"</td><td class='num'>"+fmt(p.stock)+"</td><td>"+stTag(p,mv[p.id])+"</td><td><div class='rowbtns'><button class='ic' data-edit='"+p.id+"' title='Editar'>"+ICO.pencil+"</button><button class='ic del' data-del='"+p.id+"' title='Eliminar'>"+ICO.trash+"</button></div></td></tr>";
+    }).join("");
+  }
   $("pFoot").textContent="A mostrar "+fmt(arr.length)+" de "+fmt(state.produtos.length)+" produtos";
 }
 
@@ -1734,12 +1765,20 @@ $("btnPdfProd").addEventListener("click",function(){
   var low=arr.filter(function(p){return p.stock>0&&p.stock<=p.stockMin;}).length;
   var zero=arr.filter(function(p){return p.stock<=0&&mv[p.id];}).length;
   var un=arr.reduce(function(a,p){return a+(p.stock||0);},0);
-  imprimir("Lista de Produtos e Stock",
-    ["Código","Descrição","Classe","Apresent.","Stock","Un.","Estado"],
-    arr.map(function(p){
-      var est=p.estado==="Inativo"?"Inativo":(p.stock<=0?(mv[p.id]?"Esgotado":"Sem stock"):(p.stock<=p.stockMin?"Baixo":"Normal"));
-      return[p.codigo,p.descricao,p.classe,p.apresentacao,fmt(p.stock),p.unidade,est];
-    }),
+  /* organizado por secções de classe, tal como o Plano de Consumo Mensal */
+  var classes=[],vistos={};
+  arr.forEach(function(p){if(!vistos[p.classe]){vistos[p.classe]=1;classes.push(p.classe);}});
+  var secoes=classes.map(function(cl){
+    var itens=arr.filter(function(p){return p.classe===cl;});
+    var uS=itens.reduce(function(a,p){return a+(p.stock||0);},0);
+    return{titulo:cl+" ("+itens.length+" · "+fmt(uS)+" unid.)",
+      head:["Código","Descrição","Apresent.","Stock","Un.","Estado"],
+      rows:itens.map(function(p){
+        var est=p.estado==="Inativo"?"Inativo":(p.stock<=0?(mv[p.id]?"Esgotado":"Sem stock"):(p.stock<=p.stockMin?"Baixo":"Normal"));
+        return[p.codigo,p.descricao,p.apresentacao,fmt(p.stock),p.unidade,est];
+      })};
+  });
+  imprimirSec("Lista de Produtos e Stock",secoes,arr.length,
     {chips:["Produtos: "+fmt(arr.length),"Unidades em stock: "+fmt(un),"Stock baixo: "+fmt(low),"Esgotados: "+fmt(zero)],sign:true});
 });
 $("btnPdfLot").addEventListener("click",function(){
