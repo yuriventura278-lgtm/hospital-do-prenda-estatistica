@@ -32,7 +32,7 @@ input,select,textarea{font-family:inherit;font-size:15px}
 header.top{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:12px 16px 11px;position:sticky;top:0;z-index:50;box-shadow:0 3px 12px rgba(11,42,74,.25)}
 .top-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand .logo{width:40px;height:40px;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.brand .logo{width:40px;height:40px;flex-shrink:0;border-radius:9px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
 .brand-tx{display:flex;flex-direction:column;line-height:1.15;min-width:0}
 .brand-tx b{font-size:20px;letter-spacing:4px;font-weight:800}
 .brand-tx b i{color:var(--cyan);font-style:normal}
@@ -48,7 +48,7 @@ header.top{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#ff
 #drawer{position:fixed;top:0;bottom:0;left:0;width:284px;max-width:86vw;background:#fff;z-index:95;transform:translateX(-105%);transition:transform .25s;box-shadow:6px 0 24px rgba(11,42,74,.25);display:flex;flex-direction:column;overflow-y:auto}
 #drawer.on{transform:none}
 .drw-head{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:16px;display:flex;align-items:center;gap:10px}
-.drw-head .logo{width:36px;height:36px;flex-shrink:0}
+.drw-head .logo{width:36px;height:36px;flex-shrink:0;border-radius:8px}
 .drw-head .t b{font-size:17px;letter-spacing:3px;font-weight:800;display:block}
 .drw-head .t b i{color:var(--cyan);font-style:normal}
 .drw-head .t small{font-size:10px;color:#a9c8de;letter-spacing:1px;text-transform:uppercase}
@@ -155,6 +155,11 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
  #printArea td{padding:4px 6px;border-bottom:1px solid #ccc;font-size:9.5px}
  #printArea .psec{margin:14px 0 5px;font-size:11px;font-weight:800;color:#0d3b66;border-left:4px solid #12b3c7;padding-left:7px}
  #printArea .pnada{font-size:9.5px;color:#777;margin:2px 0 6px}
+ #printArea .pchips{margin:4px 0 10px}
+ #printArea .pchip{display:inline-block;border:1px solid #0d3b66;border-radius:999px;padding:2px 10px;font-size:9.5px;color:#0d3b66;font-weight:700;margin:0 5px 4px 0}
+ #printArea tr.ptot td{font-weight:800;border-top:2px solid #0d3b66;border-bottom:none;background:#eef4f9;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ #printArea .psign{display:flex;gap:28px;margin-top:34px;page-break-inside:avoid}
+ #printArea .psign div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:9.5px;text-align:center;color:#333}
  #printArea .pf{margin-top:10px;font-size:9px;color:#666}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -180,16 +185,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
     <div class="top-row">
       <button id="menuBtn" aria-label="Abrir menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <div class="brand">
-        <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
-          <defs>
-            <linearGradient id="lgZ" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#4da3ff"/><stop offset="1" stop-color="#19d3e6"/>
-            </linearGradient>
-          </defs>
-          <rect x="1" y="1" width="46" height="46" rx="12" fill="url(#lgZ)" opacity=".18"/>
-          <circle cx="24" cy="24" r="17" fill="none" stroke="url(#lgZ)" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="88 19" transform="rotate(-50 24 24)"/>
-          <path d="M16 16h15l-14 16h15" fill="none" stroke="url(#lgZ)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <img class="logo" alt="ZELO" src="data:image/webp;base64,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">
         <div class="brand-tx">
           <b>ZEL<i>O</i></b>
           <small>Secção de Farmácia</small>
@@ -205,6 +201,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
     <section class="view on" id="v-dash">
       <div class="grid">
         <div class="card"><div class="lb">Produtos registados</div><div class="vl" id="dTot">—</div><div class="hint">catálogo activo</div></div>
+        <div class="card k-ok"><div class="lb">Unidades em stock</div><div class="vl" id="dStockU">—</div><div class="hint">total que ficou disponível</div></div>
         <div class="card k-ok"><div class="lb">Entradas hoje</div><div class="vl" id="dIn">—</div><div class="hint" id="dInQ"></div></div>
         <div class="card k-bad"><div class="lb">Saídas hoje</div><div class="vl" id="dOut">—</div><div class="hint" id="dOutQ"></div></div>
         <div class="card k-warn"><div class="lb">Stock baixo</div><div class="vl" id="dLow">—</div><div class="hint">abaixo do mínimo</div></div>
@@ -275,6 +272,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
         <div class="card k-ok"><div class="lb">Entradas</div><div class="vl" id="gIn">—</div><div class="hint" id="gInQ"></div></div>
         <div class="card k-bad"><div class="lb">Saídas</div><div class="vl" id="gOut">—</div><div class="hint" id="gOutQ"></div></div>
         <div class="card k-warn"><div class="lb">Ajustes</div><div class="vl" id="gAj">—</div><div class="hint">correcções de inventário</div></div>
+        <div class="card"><div class="lb">Ficaram em stock</div><div class="vl" id="gStock">—</div><div class="hint">unidades no fim do dia</div></div>
       </div>
       <div class="sumbar" id="gSum"></div>
       <h2 class="sec">Secção 1 · Entradas</h2>
@@ -366,11 +364,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
 <div id="drawerOvl"></div>
 <div id="drawer">
   <div class="drw-head">
-    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
-      <rect x="1" y="1" width="46" height="46" rx="12" fill="url(#lgZ)" opacity=".18"/>
-      <circle cx="24" cy="24" r="17" fill="none" stroke="url(#lgZ)" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="88 19" transform="rotate(-50 24 24)"/>
-      <path d="M16 16h15l-14 16h15" fill="none" stroke="url(#lgZ)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+    <img class="logo" alt="ZELO" src="data:image/webp;base64,UklGRmIKAABXRUJQVlA4IFYKAABwKwCdASpwAHAAPmEskUckIiGhJzdLWIAMCWwAt3oBfoHN9gG8z+M3sqWf/Fb1dRvl/dD+d//c/6r2Z/oj2AP1x6XfmE/ZH9kvev9EP+T9QD+lf8frTfQg8uP91vhj/tP/C/cj2hLof4doItrjgqYH6WiZL/7v835/fpz2Dv1362Xowft2vcAY92MX8B1LjZuzzRR1VlBn4vpW3wHToOBxJ7V2pt7yqeCgf5wGX4bFNbG/+/vjGBP1FUCvJTiB62KTNonD1uhKG9aW5KalS72VSylBkdysxrUnAlNPRGQC0vrMCaIrgy2R1ROSDMktCCbkkLpwlOAn2sm8KJv0eTDuO+FfNYsRWBot05+VL2lK1WhQ7MA8imj8L27MuXahh1W+S9GA1GLcqFUCXo8sMJ6/8uxg+jvniurR/+g/XbNlld+g2qnjz5JcCX3zeLMuzNvCBDu5GP/VXjyIXv0vyDvxJfqAAAD+/3YqGBDT7Hhyg9f302DkbsO+8OPuunhmIrzRdqBYGxRn4OmY6Kafdf41/4PPq/8JFqH7/RHa8+cHDpksO+YBm7OX4599iQYWbh32dS7madk7m8nj9rq979dpxx0ztWKUslUXd7jrTlDtZ3SmMqcPPQHi3BCBzRqMVAqnuGHVm5AVhTCT7LqSE5TqruE7lTgNo8Xnc38/EZvGCeOuQ02DX8zIKCpokFBwzW09O6iimE+kWqi9zcACflO9iz6YMriaujNEI4EsX7GEmoF3WG+3MxH4ohHv3rIzGxBCi6dLiI6Ky6PX+cJh052MbvvnyocVkMu+myoZIm8jh8Rkvl/4I19JXGpoBzHx/um2BbdqLwxv5kPfO6nJwjxd6iSJ2MPWDh+xLoBFk90iCkowF1CrdAAZyf7iJ39QdAThy8jQnUkYb2zj0tWdg9mGfom7mvrrB4zhWjak3o7SAYllb6fgXcRBFCowwKEPS//caSCKVHci9aZrjW+lvsH/b25dSuFf7kUa766x+6unej6fFS6RRKj0VyYxSjuUsf/6twqjaksfmJO01ByyvPo5CtXRcyBw6osFgpmqJR5W0c5hiBXQuXO9g8e7asCQZgRIGdwMNOsj8xW5dIJfZeVfYBMGeGcXXJkNV+hGXF9sOSVmwCBQKkULKA/RikudrTTLr7NibADFqGchM6jZZUrATN4xXmi3e174X89K9I53llHx0rGZv+tO245R9bNqpipcIivZ/H3c2Nhank+njjLaeEPNa5eL4Ne65T/tIHkDfqCXAGs2aune4x/EjLbImPRsUaYhlKfnN9JGqqOZkO045WkAu/O3s93Wnm7yzyzIVMilgxbxbOobZTUcJjsTlvcPw6zPWcJJ8AXSSkm6wDk6aUV0GqxLIOM5QN8lEBmG6mnws8z8aXmM04U9TgaN2ke7/wL64Zqut+GnjYhtCj4x/bxk1KFRrM34iRNrO4JxAY86tgnWrDeENiSAtm3BHG28ZCecnJJB/5r8RCjLmCJQK7UqHXnPLdyHv1rnjMFzHPVIrCe6YqzjUizo/F0z5N/d4LF0vFTa5Utd6E9U5h1lDrBN5r24dWIaugaZR601sqLCq7fu2IONfvHZD+xgXuGYhVVDOAa/v/gDd8NiVdCJMtW9/pfy4jdU/VsGQuKOpPnNGHL9sROEkGKxp26Ec0Q3bXxiQwx94zKRNWkQelag9hrmgTWrPleRx/eiwFLvSuTFBH5nU/PerU/ZFO5oRSK2TQ3CqVfTWbppdkgUO5R1bZq8ivfc5mEiGVJsyjMd5eeV4cX1/TCTJhfyrUFu3saw/I2WPGsqPv1hDGAXZqqEflVWilMSMKGfPHDABKaEvO7UDXYzrLLRpx9Vvr8aCletSUI+zB1gDqamZKmw7mTRwhKPJRWqlMUG53M5e4PmZHiV1/TK6uah3uK8/MBpq3Fs5DdYQO+O7opZBF2lAq3/JYuOEhZZRMgcT699DT6w87DyoVwPKUkcC948zSScITCaINvCKF2xXM3E3E2RJCg/1jrDaUp1UWg/euOPeyNO1ulDrT8jCld+0K+hV3QEVTbyahUC2CW4WqiXNQ+BsV/Sz9rbQmhMQ9u8GHpecNESSyGc0Ov++kt44eM9H6J6jno+u3EKV76Y1rLwUWV30m0TPBU84YO+bSglrczGxC1DzgSRMraqWBRMp3aSMQyXNuGKfn7ZFQDU0edoLkyyo90uEUqdxoRAYkUsHBETIyJebgA+rtWSKpUS7mheCOUSg/lmdFX33gFsZtYEqwU52PdKkCSK5Hc8OeFHD2zUZGOxquypoxdMt0zJeK7cOjJ0kMn1vRraP3TW+gChTGUmUv2ksX+IlmuQZT4bAxrQXo2Oziaq0IM1PaPoQjV/nES5m4WFwL3B3qrg4gpJ6kA/iCA+womZ3cAxgS8tl6sdoCqtReQgIvwWSlTP6j7C7A/5QQkboCUIwgoo55yCs3lbtSvuj29tpjA8pN33G6VTMlCbBaGcH+Pw8bmzTyTNuY2C9TTdg/zMH0f7/T3cULdajbAq/v+McFYyltRPja4RjkJFV9pSeJUKY8iBzkjdC5qURy1uAhV/qZsgP3G4eObhPnzFwiZ2vkS3fyZ9o+pbJQcoCEqxcYnuiracIuu8aZGTNGCvw8GdOfXGFPyDZf6KuTZDkdL/VSNclox8kdBRZ/TpR+/dghYwKwrNgfoKOAAxOAUDkmVO82RRgkpaBdbQWfH/J33Kpdsh9F7OPk5hIfdzQ9KwqdsUDj91QnSYVLXWn7OQ++ATYrMDB/3E7Wi020/n42IF22/+/IRD/1c4U2qfDzLA3Tw3Ni+O+BbB4TVYaeYeAe2jcRwvFOaFT7Y8pLRWhV5Zx5tsGuYOnbMX5sgcnDiL7fZTKGBimUe8rJksh8XghP/p3kUHlKNf4SIykUJGaJdCfW8AaIU4ACFDVZMdbFIGYDCNeV0XXoRxJo/Iu4kBPFYyRrsmZ9YjVWJfAJ9zYYZZmceIrpkE3yWu4wjG7u9jI14l8E+nlwLR06cH7xWZfB4u5ySVXmUkHn72zbbTV/wUnOGCfwkYx3ZF14D3AEI8+5t6OtUUvvY/00SxpNatmtt9RC6FezoG0jWG1arBksx3PKsHV+KE4jf1qsojUql9LTepMuCLBkjs3kVeTQM/WFbDe9LN0OU3Z2Yf8CXKT6uJWn8iQsnECnpm9ayVWEaY0Q5wa70No8y4WZPlLmty06ENGxbUaWNhwn/48MZ8lOtj0ZQKKTDcXYfn5qbd3+DPSfr77a2oiVuDYQJ8SvFLyUK6UWvqqLRE6OqsZBZ1GX1oemvGutgt+3MMHanESk6np+cvztkkDn1SK91Q/HjO77IqX38a52P/6RB/BuZxHMYOb/1JuPkON7apy80f2jC87VvOaKjf0Mkk/zy1g51z7Cqyh4pKyecujgGFvzwblgDsTU3w0PUbl9qIj61UpAkHEDcfDp4gbJ6QB8MsQPguSp8WStBZL5zg08Jhat43zwzZ9ILD0iQ91RT8Dp2DOIdVcKtfy5vo6rJa/rHst+Wr1gAAAAA=">
     <div class="t"><b>ZEL<i>O</i></b><small>Secção de Farmácia</small></div>
     <button class="x" id="drwClose" aria-label="Fechar menu">✕</button>
   </div>
@@ -890,25 +884,40 @@ function csvStr(rows){
 }
 
 /* ===== IMPRESSÃO (Imprimir → Guardar como PDF) ===== */
-function imprimir(titulo,head,rows){
+function pChips(chips){
+  return chips&&chips.length?'<div class="pchips">'+chips.map(function(c){return'<span class="pchip">'+esc(c)+'</span>';}).join("")+'</div>':"";
+}
+function pTabela(head,rows,totais){
+  var corpo=rows.map(function(r){return"<tr>"+r.map(function(c){return"<td>"+esc(c)+"</td>";}).join("")+"</tr>";}).join("");
+  if(totais)corpo+="<tr class='ptot'>"+totais.map(function(c){return"<td>"+esc(c)+"</td>";}).join("")+"</tr>";
+  return'<table><thead><tr>'+head.map(function(h){return"<th>"+esc(h)+"</th>";}).join("")+'</tr></thead><tbody>'+corpo+'</tbody></table>';
+}
+function pAssin(on){
+  return on?'<div class="psign"><div>Elaborado por</div><div>Conferido por</div><div>Aprovado por</div></div>':"";
+}
+function imprimir(titulo,head,rows,opts){
+  opts=opts||{};
   var pa=$("printArea");
   pa.innerHTML='<div class="ph1">ZELO — Secção de Farmácia · '+esc(titulo)+'</div>'+
     '<div class="ph2">Emitido em '+new Date().toLocaleString("pt-PT")+' · '+rows.length+' registos</div>'+
-    '<table><thead><tr>'+head.map(function(h){return"<th>"+esc(h)+"</th>";}).join("")+'</tr></thead><tbody>'+
-    rows.map(function(r){return"<tr>"+r.map(function(c){return"<td>"+esc(c)+"</td>";}).join("")+"</tr>";}).join("")+
-    '</tbody></table><div class="pf">ZELO — Sistema Estatístico e Gestão de Ocorrências</div>';
+    pChips(opts.chips)+
+    pTabela(head,rows,opts.totais)+
+    pAssin(opts.sign)+
+    '<div class="pf">ZELO — Sistema Estatístico e Gestão de Ocorrências</div>';
   setTimeout(function(){window.print();},100);
 }
-function imprimirSec(titulo,secoes,totalRegistos){
+function imprimirSec(titulo,secoes,totalRegistos,opts){
+  opts=opts||{};
   var pa=$("printArea");
   pa.innerHTML='<div class="ph1">ZELO — Secção de Farmácia · '+esc(titulo)+'</div>'+
     '<div class="ph2">Emitido em '+new Date().toLocaleString("pt-PT")+' · '+totalRegistos+' registos</div>'+
+    pChips(opts.chips)+
     secoes.map(function(s){
       var t='<div class="psec">'+esc(s.titulo)+'</div>';
       if(!s.rows.length)return t+'<div class="pnada">Sem registos nesta secção.</div>';
-      return t+'<table><thead><tr>'+s.head.map(function(h){return"<th>"+esc(h)+"</th>";}).join("")+'</tr></thead><tbody>'+
-        s.rows.map(function(r){return"<tr>"+r.map(function(c){return"<td>"+esc(c)+"</td>";}).join("")+"</tr>";}).join("")+'</tbody></table>';
+      return t+pTabela(s.head,s.rows,s.totais);
     }).join("")+
+    pAssin(opts.sign)+
     '<div class="pf">ZELO — Sistema Estatístico e Gestão de Ocorrências</div>';
   setTimeout(function(){window.print();},100);
 }
@@ -937,6 +946,7 @@ function renderDash(){
   var ent=mh.filter(function(m){return m.tipo==="entrada";});
   var sai=mh.filter(function(m){return m.tipo==="saida";});
   $("dTot").textContent=fmt(ps.length);
+  $("dStockU").textContent=fmt(ps.reduce(function(a,p){return a+(p.stock||0);},0));
   $("dIn").textContent=fmt(ent.length);
   $("dInQ").textContent=fmt(ent.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
   $("dOut").textContent=fmt(sai.length);
@@ -1098,6 +1108,10 @@ function renderDia(){
   $("gOut").textContent=fmt(s.sai.length);
   $("gOutQ").textContent=fmt(s.sai.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
   $("gAj").textContent=fmt(s.aj.length);
+  var totalStock=state.produtos.reduce(function(a,p){return a+(p.stock||0);},0);
+  var depois=0;
+  state.movimentos.forEach(function(m){if(m.data>d)depois+=(m.tipo==="entrada"?m.qtd:-m.qtd);});
+  $("gStock").textContent=fmt(totalStock-depois);
   var servs={};
   s.sai.forEach(function(m){if(m.destino)servs[m.destino]=1;});
   $("gSum").innerHTML='<span class="chip">'+fmtPt(d)+'</span><span class="chip n">Registos: '+fmt(s.todos.length)+'</span><span class="chip n">Serviços atendidos: '+fmt(Object.keys(servs).length)+'</span>';
@@ -1210,9 +1224,11 @@ function relData(){
       map[k].n++;map[k].q+=m.qtd;
     });
     var arr=Object.keys(map).map(function(k){return{s:k,n:map[k].n,q:map[k].q};}).sort(function(a,b){return b.q-a.q;});
+    var tN=arr.reduce(function(a,x){return a+x.n;},0),tQ=arr.reduce(function(a,x){return a+x.q;},0);
     out.head=["Serviço","Dispensas","Quantidade"];out.num=[1,2];
     out.rows=arr.map(function(x){return[x.s,fmt(x.n),fmt(x.q)];});
-    out.chips=["Serviços: "+fmt(arr.length),"Dispensas: "+fmt(arr.reduce(function(a,x){return a+x.n;},0)),"Quantidade: "+fmt(arr.reduce(function(a,x){return a+x.q;},0))];
+    out.totais=["TOTAIS",fmt(tN),fmt(tQ)];
+    out.chips=["Serviços: "+fmt(arr.length),"Dispensas: "+fmt(tN),"Quantidade: "+fmt(tQ)];
   }else if(tipo==="top"||tipo==="menos"){
     var sums={};
     movs.forEach(function(m){if(m.tipo==="saida"&&!m.ajuste)sums[m.produtoId]=(sums[m.produtoId]||0)+m.qtd;});
@@ -1222,17 +1238,31 @@ function relData(){
     arr2=arr2.slice(0,30);
     out.head=["#","Produto","Classe","Saídas","Un."];out.num=[3];
     out.rows=arr2.map(function(x,i){return[String(i+1),x.p.descricao,x.p.classe,fmt(x.q),x.p.unidade];});
+    out.totais=["","TOTAL","",fmt(arr2.reduce(function(a,x){return a+x.q;},0)),""];
     out.chips=[(tipo==="top"?"Mais utilizados (top 30)":"Menos utilizados (30)"),"Total saídas: "+fmt(arr2.reduce(function(a,x){return a+x.q;},0))];
   }else{
-    var linhas=prods.map(function(p){
-      return{p:p,ent:movRange(p.id,"entrada",r),sai:movRange(p.id,"saida",r)};
+    /* mapa de movimento: existência inicial + entradas − saídas ± ajustes = existência final */
+    var apos={},ajp={};
+    state.movimentos.forEach(function(m){
+      if(!byId[m.produtoId])return;
+      var dlt=(m.tipo==="entrada"?m.qtd:-m.qtd);
+      if(m.data>r.fim)apos[m.produtoId]=(apos[m.produtoId]||0)+dlt;
+      else if(m.data>=r.ini&&m.ajuste)ajp[m.produtoId]=(ajp[m.produtoId]||0)+dlt;
     });
-    var tE=linhas.reduce(function(a,x){return a+x.ent;},0);
-    var tS=linhas.reduce(function(a,x){return a+x.sai;},0);
-    var com=linhas.filter(function(x){return x.ent||x.sai;}).length;
-    out.head=["Descrição","Classe","Entradas","Saídas","Stock","Un."];out.num=[2,3,4];
-    out.rows=linhas.map(function(x){return[x.p.descricao,x.p.classe,fmt(x.ent),fmt(x.sai),fmt(x.p.stock),x.p.unidade];});
-    out.chips=["Com movimento: "+fmt(com),"Entradas: "+fmt(tE),"Saídas: "+fmt(tS)];
+    var linhas=prods.map(function(p){
+      var ent=movRange(p.id,"entrada",r),sai=movRange(p.id,"saida",r);
+      var aj=ajp[p.id]||0;
+      var fim=p.stock-(apos[p.id]||0);
+      return{p:p,ini:fim-ent+sai-aj,ent:ent,sai:sai,aj:aj,fim:fim};
+    });
+    var tI=0,tE=0,tS=0,tA=0,tF=0,com=0;
+    linhas.forEach(function(x){tI+=x.ini;tE+=x.ent;tS+=x.sai;tA+=x.aj;tF+=x.fim;if(x.ent||x.sai||x.aj)com++;});
+    out.head=["Descrição","Classe","Exist. inicial","Entradas","Saídas","Ajustes","Exist. final","Un."];out.num=[2,3,4,5,6];
+    out.rows=linhas.map(function(x){
+      return[x.p.descricao,x.p.classe,fmt(x.ini),fmt(x.ent),fmt(x.sai),(x.aj>0?"+":"")+fmt(x.aj),fmt(x.fim),x.p.unidade];
+    });
+    out.totais=["TOTAIS","",fmt(tI),fmt(tE),fmt(tS),(tA>0?"+":"")+fmt(tA),fmt(tF),""];
+    out.chips=["Com movimento: "+fmt(com),"Entraram: "+fmt(tE),"Saíram: "+fmt(tS),"Ficaram: "+fmt(tF)];
   }
   return out;
 }
@@ -1701,21 +1731,28 @@ $("bkpCsvMov").addEventListener("click",function(){
 /* ===== IMPRESSÃO DOS RELATÓRIOS ===== */
 $("btnPdfProd").addEventListener("click",function(){
   var arr=prodFiltrados(),mv=prodsComMov();
+  var low=arr.filter(function(p){return p.stock>0&&p.stock<=p.stockMin;}).length;
+  var zero=arr.filter(function(p){return p.stock<=0&&mv[p.id];}).length;
+  var un=arr.reduce(function(a,p){return a+(p.stock||0);},0);
   imprimir("Lista de Produtos e Stock",
     ["Código","Descrição","Classe","Apresent.","Stock","Un.","Estado"],
     arr.map(function(p){
       var est=p.estado==="Inativo"?"Inativo":(p.stock<=0?(mv[p.id]?"Esgotado":"Sem stock"):(p.stock<=p.stockMin?"Baixo":"Normal"));
       return[p.codigo,p.descricao,p.classe,p.apresentacao,fmt(p.stock),p.unidade,est];
-    }));
+    }),
+    {chips:["Produtos: "+fmt(arr.length),"Unidades em stock: "+fmt(un),"Stock baixo: "+fmt(low),"Esgotados: "+fmt(zero)],sign:true});
 });
 $("btnPdfLot").addEventListener("click",function(){
+  var ls=lotesFiltrados();
+  var venc=ls.filter(function(l){return l.dias!==null&&l.dias<0&&l.disp>0;}).length;
   imprimir("Gestão de Lotes",
     ["Produto","Lote","Validade","Recebido","Saído","Disponível","Estado"],
-    lotesFiltrados().map(function(l){
+    ls.map(function(l){
       var p=state.produtos.find(function(x){return x.id===l.produtoId;})||{};
       var est=!l.validade?"s/ validade":l.dias<0?"Vencido":l.dias<=30?"Alerta 30d":l.dias<=90?"Alerta 90d":l.dias<=180?"Alerta 180d":"OK";
       return[p.descricao||"—",l.lote,l.validade||"—",fmt(l.rec),fmt(l.sai),fmt(l.disp),est];
-    }));
+    }),
+    {chips:["Lotes: "+fmt(ls.length),"Vencidos c/ stock: "+fmt(venc),"Disponível total: "+fmt(ls.reduce(function(a,l){return a+l.disp;},0))],sign:true});
 });
 $("btnPdfDia").addEventListener("click",function(){
   var d=$("gData").value||hoje();
@@ -1732,7 +1769,11 @@ $("btnPdfDia").addEventListener("click",function(){
     {titulo:"Secção 3 · Ajustes de inventário ("+s.aj.length+")",
      head:["N.º","Hora","Produto","Qtd","Lote","Motivo","Responsável"],
      rows:s.aj.map(function(m,i){return[String(i+1),movHora(m),movProd(m),(m.tipo==="entrada"?"+":"−")+fmt(m.qtd),m.lote||"—",m.motivo||"—",m.responsavel||"—"];})}
-  ],s.todos.length);
+  ],s.todos.length,
+  {chips:["Entraram: "+fmt(s.ent.reduce(function(a,m){return a+m.qtd;},0))+" unid.",
+          "Saíram: "+fmt(s.sai.reduce(function(a,m){return a+m.qtd;},0))+" unid.",
+          "Ajustes: "+fmt(s.aj.length),
+          "Registos: "+fmt(s.todos.length)],sign:true});
 });
 $("btnPdfMov").addEventListener("click",function(){
   var d=$("mData").value;
@@ -1743,12 +1784,16 @@ $("btnPdfMov").addEventListener("click",function(){
       var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
       var pac=m.paciente?(m.paciente+(m.processo?" ("+m.processo+")":"")):"—";
       return[fmtPt(m.data),m.ajuste?"Ajuste":(m.tipo==="entrada"?"Entrada":"Saída"),p.descricao||"—",fmt(m.qtd),m.lote||"—",m.destino||m.fornecedor||"—",pac,m.responsavel||"—"];
-    }));
+    }),
+    {chips:["Registos: "+fmt(arr.length),
+            "Entraram: "+fmt(arr.filter(function(m){return m.tipo==="entrada"&&!m.ajuste;}).reduce(function(a,m){return a+m.qtd;},0))+" unid.",
+            "Saíram: "+fmt(arr.filter(function(m){return m.tipo==="saida"&&!m.ajuste;}).reduce(function(a,m){return a+m.qtd;},0))+" unid.",
+            "Ajustes: "+fmt(arr.filter(function(m){return m.ajuste;}).length)],sign:true});
 });
 $("btnPdfRel").addEventListener("click",function(){
   var d=relData();
-  var nomes={prod:"Movimento por Produto",serv:"Consumo por Serviço",top:"Produtos Mais Utilizados",menos:"Produtos Menos Utilizados"};
-  imprimir(nomes[d.tipo]+" · "+d.r.label,d.head,d.rows);
+  var nomes={prod:"Mapa de Movimento por Produto",serv:"Consumo por Serviço",top:"Produtos Mais Utilizados",menos:"Produtos Menos Utilizados"};
+  imprimir(nomes[d.tipo]+" · "+d.r.label,d.head,d.rows,{chips:d.chips,totais:d.totais,sign:true});
 });
 
 /* ===== ARRANQUE ===== */
