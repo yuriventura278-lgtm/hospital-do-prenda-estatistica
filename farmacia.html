@@ -11,6 +11,10 @@
 html,body{height:100%}
 body{font-family:'Segoe UI',system-ui,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
 button{font-family:inherit;cursor:pointer;border:none}
+.svgi{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.ic .svgi{width:15px;height:15px}
+.mov .dot .svgi{width:19px;height:19px;stroke-width:2.4}
+.empty .big .svgi{width:46px;height:46px;stroke-width:1.4;stroke:#9db4c6}
 input,select,textarea{font-family:inherit;font-size:15px}
 #splash{position:fixed;inset:0;background:linear-gradient(160deg,var(--navy) 0%,var(--navy2) 55%,#0e4d7a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .5s}
 #splash.hide{opacity:0;pointer-events:none}
@@ -227,8 +231,8 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
       <div class="tools">
         <input type="search" id="pSearch" placeholder="Pesquisar descrição, código, código de barras…">
         <select id="pClasse"><option value="">Todas as classes</option></select>
-        <button class="btn btn-c" id="btnNovoProd">＋ Novo</button>
-        <button class="btn btn-g" id="btnPdfProd">🖨 Imprimir</button>
+        <button class="btn btn-c" id="btnNovoProd"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo</button>
+        <button class="btn btn-g" id="btnPdfProd"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>Imprimir</button>
       </div>
       <div class="sumbar" id="pSum"></div>
       <div class="tblwrap"><table id="pTable">
@@ -251,7 +255,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
           <option value="alerta">Validade em alerta</option>
           <option value="vencido">Vencidos</option>
         </select>
-        <button class="btn btn-g" id="btnPdfLot">🖨 Imprimir</button>
+        <button class="btn btn-g" id="btnPdfLot"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>Imprimir</button>
       </div>
       <div class="sumbar" id="lSum"></div>
       <div class="tblwrap"><table>
@@ -265,7 +269,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
       <div class="tools">
         <input type="date" id="gData" style="flex:1;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px">
         <button class="btn btn-g" id="btnDiaHoje">Hoje</button>
-        <button class="btn btn-g" id="btnPdfDia">🖨 Imprimir</button>
+        <button class="btn btn-g" id="btnPdfDia"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>Imprimir</button>
       </div>
       <div class="grid" style="margin-bottom:12px">
         <div class="card k-ok"><div class="lb">Entradas</div><div class="vl" id="gIn">—</div><div class="hint" id="gInQ"></div></div>
@@ -293,15 +297,15 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
 
     <section class="view" id="v-mov">
       <div class="tools">
-        <button class="btn btn-p" id="btnEntrada" style="flex:1;justify-content:center">▲ Registar Entrada</button>
-        <button class="btn btn-d" id="btnSaida" style="flex:1;justify-content:center">▼ Registar Saída</button>
-        <button class="btn btn-g" id="btnAjuste" style="flex:1;justify-content:center">⇄ Ajuste</button>
+        <button class="btn btn-p" id="btnEntrada" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Registar Entrada</button>
+        <button class="btn btn-d" id="btnSaida" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>Registar Saída</button>
+        <button class="btn btn-g" id="btnAjuste" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h13M14 4l3 3-3 3"/><path d="M20 17H7M10 14l-3 3 3 3"/></svg>Ajuste</button>
       </div>
       <div class="tools">
         <input type="date" id="mData" style="flex:1;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px">
         <select id="mTipo" style="flex:1"><option value="">Entradas e saídas</option><option value="entrada">Só entradas</option><option value="saida">Só saídas</option><option value="ajuste">Só ajustes</option></select>
         <input type="search" id="mSearch" placeholder="Produto, paciente, processo, serviço…" style="flex:1.4">
-        <button class="btn btn-g" id="btnPdfMov">🖨 Imprimir</button>
+        <button class="btn btn-g" id="btnPdfMov"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>Imprimir</button>
       </div>
       <div class="sumbar" id="mSum"></div>
       <div id="mList"></div>
@@ -332,7 +336,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
           <option value="menos">Menos utilizados</option>
         </select>
         <select id="rClasse" style="flex:1"><option value="">Todas as classes</option></select>
-        <button class="btn btn-g" id="btnPdfRel">🖨 Imprimir</button>
+        <button class="btn btn-g" id="btnPdfRel"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>Imprimir</button>
       </div>
       <div class="sumbar" id="rSum"></div>
       <div class="tblwrap"><table>
@@ -480,9 +484,9 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
     </p>
     <h2 class="sec" style="margin:8px 2px 4px">Backup geral · base de dados completa</h2>
     <div class="tools" style="margin:0 0 6px">
-      <button class="btn btn-p" id="bkpCriar" style="flex:1;justify-content:center">💾 Criar backup agora</button>
-      <button class="btn btn-c" id="bkpExport" style="flex:1;justify-content:center">⭳ Exportar ficheiro</button>
-      <button class="btn btn-g" id="bkpImport" style="flex:1;justify-content:center">⭱ Importar / Restaurar</button>
+      <button class="btn btn-p" id="bkpCriar" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Criar backup agora</button>
+      <button class="btn btn-c" id="bkpExport" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>Exportar ficheiro</button>
+      <button class="btn btn-g" id="bkpImport" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5M12 3v12"/></svg>Importar / Restaurar</button>
     </div>
     <h2 class="sec" style="margin:10px 2px 4px">Backup mensal · movimentos do mês</h2>
     <p style="color:var(--mut);font-size:11.5px;line-height:1.5;margin:0 0 6px">
@@ -490,13 +494,13 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
     </p>
     <div class="tools" style="margin:0 0 6px">
       <input type="month" id="bkpMes" style="flex:1.2;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px">
-      <button class="btn btn-p" id="bkpMesCriar" style="flex:1;justify-content:center">💾 Guardar mês</button>
-      <button class="btn btn-c" id="bkpMesExp" style="flex:1;justify-content:center">⭳ Transferir mês</button>
+      <button class="btn btn-p" id="bkpMesCriar" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Guardar mês</button>
+      <button class="btn btn-c" id="bkpMesExp" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>Transferir mês</button>
     </div>
     <h2 class="sec" style="margin:10px 2px 4px">Exportar dados (CSV / Excel)</h2>
     <div class="tools" style="margin:0 0 4px">
-      <button class="btn btn-g" id="bkpCsvProd" style="flex:1;justify-content:center">📄 CSV Produtos</button>
-      <button class="btn btn-g" id="bkpCsvMov" style="flex:1;justify-content:center">📄 CSV Movimentos</button>
+      <button class="btn btn-g" id="bkpCsvProd" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>CSV Produtos</button>
+      <button class="btn btn-g" id="bkpCsvMov" style="flex:1;justify-content:center"><svg class="svgi" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>CSV Movimentos</button>
     </div>
     <h2 class="sec" style="margin:14px 2px 4px">Histórico de backups</h2>
     <div id="bkpList"></div>
@@ -645,7 +649,7 @@ function dbOpen(cb){
   req.onsuccess=function(e){db=e.target.result;cb();};
   req.onerror=function(){
     var inst=document.querySelector("#splash .spl-inst");
-    if(inst)inst.innerHTML="⚠ Não foi possível abrir a base de dados local.<br>Verifique se o navegador permite armazenamento (IndexedDB)<br>e recarregue a página.";
+    if(inst)inst.innerHTML="Não foi possível abrir a base de dados local.<br>Verifique se o navegador permite armazenamento (IndexedDB)<br>e recarregue a página.";
     toast("Erro ao abrir a base de dados.","bad");
   };
 }
@@ -695,6 +699,17 @@ function isoLocal(d){return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.
 function fmtPt(iso){var p=iso.split("-");return p[2]+"/"+p[1]+"/"+p[0];}
 function dtHora(iso){var d=new Date(iso);return d.toLocaleDateString("pt-PT")+" "+d.toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"});}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+var ICO={
+ up:'<svg class="svgi" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+ down:'<svg class="svgi" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
+ swap:'<svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h13M14 4l3 3-3 3"/><path d="M20 17H7M10 14l-3 3 3 3"/></svg>',
+ pencil:'<svg class="svgi" viewBox="0 0 24 24"><path d="M17 3l4 4L8 20l-5 1 1-5L17 3z"/></svg>',
+ trash:'<svg class="svgi" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2"/><path d="M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14M10 11v6M14 11v6"/></svg>',
+ restore:'<svg class="svgi" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/></svg>',
+ dl:'<svg class="svgi" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>',
+ box:'<svg class="svgi" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>',
+ folder:'<svg class="svgi" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'
+};
 var MESES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 var toastT=null;
 function toast(msg,tipo){
@@ -819,9 +834,9 @@ function renderBkpList(){
     bs.sort(function(a,b){return a.criado<b.criado?1:-1;});
     $("bkpList").innerHTML=bs.length?bs.map(function(b){
       return'<div class="bk"><div class="bk-i"><b>'+dtHora(b.criado)+'</b><small>'+esc(b.tipo)+' · '+fmt(b.nProd)+' produtos · '+fmt(b.nMov)+' movimentos · '+tamStr(b.tam)+'</small></div><div class="rowbtns">'+
-        '<button class="ic" data-bres="'+b.id+'" title="Restaurar">↺</button>'+
-        '<button class="ic" data-bdl="'+b.id+'" title="Transferir para o computador">⭳</button>'+
-        '<button class="ic del" data-bdel="'+b.id+'" title="Eliminar">🗑</button></div></div>';
+        '<button class="ic" data-bres="'+b.id+'" title="Restaurar">'+ICO.restore+'</button>'+
+        '<button class="ic" data-bdl="'+b.id+'" title="Transferir para o computador">'+ICO.dl+'</button>'+
+        '<button class="ic del" data-bdel="'+b.id+'" title="Eliminar">'+ICO.trash+'</button></div></div>';
     }).join(""):'<div class="empty" style="padding:16px">Ainda sem backups guardados.<br>Crie o primeiro com o botão acima.</div>';
   });
 }
@@ -852,7 +867,7 @@ function aplicarRestauro(d,depois){
 }
 function pedirRestauro(v,origem){
   $("confMsg").innerHTML="Restaurar o backup"+(v.criado?" de <b>"+dtHora(v.criado)+"</b>":"")+" ("+origem+")?<br>"+
-    "✔ "+fmt(v.nProd)+" produtos · ✔ "+fmt(v.nMov)+" movimentos · integridade verificada.<br><br>"+
+    "✓ "+fmt(v.nProd)+" produtos · ✓ "+fmt(v.nMov)+" movimentos · integridade verificada.<br><br>"+
     "Os dados actuais serão substituídos. É criado um backup de segurança antes do restauro.";
   $("confYes").textContent="Restaurar";
   $("confYes").onclick=function(){
@@ -937,7 +952,7 @@ function renderDash(){
     return"<tr><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td class='num'>"+fmt(p.stock)+"</td><td class='num'>"+fmt(p.stockMin)+"</td><td>"+stTag(p)+"</td></tr>";
   }).join(""):"<tr><td colspan='5' class='empty'>Sem alertas de stock.</td></tr>";
   var ult=ms.slice().sort(function(a,b){return b.registado<a.registado?-1:1;}).slice(0,6);
-  $("dMovs").innerHTML=ult.length?ult.map(movCard).join(""):"<div class='empty'><div class='big'>📦</div>Nenhum movimento registado.<br>Use o separador Movimentos para registar a primeira entrada.</div>";
+  $("dMovs").innerHTML=ult.length?ult.map(movCard).join(""):"<div class='empty'><div class='big'>"+ICO.box+"</div>Nenhum movimento registado.<br>Use o separador Movimentos para registar a primeira entrada.</div>";
 }
 function renderChart7(){
   var arr=[],base=new Date();
@@ -986,7 +1001,7 @@ function renderValidades(){
 function movCard(m){
   var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
   var inn=m.tipo==="entrada";
-  return"<div class='mov "+(inn?"in":"out")+"'><div class='dot'>"+(m.ajuste?"⇄":(inn?"▲":"▼"))+"</div><div class='info'><b>"+esc(p.descricao||"—")+(m.ajuste?" · Ajuste":"")+"</b><small>"+dtHora(m.registado)+(m.motivo?" · "+esc(m.motivo):"")+(m.destino?" · "+esc(m.destino):"")+(m.paciente?" · "+esc(m.paciente)+(m.processo?" ("+esc(m.processo)+")":""):"")+(m.fornecedor?" · "+esc(m.fornecedor):"")+(m.lote?" · Lote "+esc(m.lote):"")+"</small></div><div class='q'>"+(inn?"+":"−")+fmt(m.qtd)+"</div></div>";
+  return"<div class='mov "+(inn?"in":"out")+"'><div class='dot'>"+(m.ajuste?ICO.swap:(inn?ICO.up:ICO.down))+"</div><div class='info'><b>"+esc(p.descricao||"—")+(m.ajuste?" · Ajuste":"")+"</b><small>"+dtHora(m.registado)+(m.motivo?" · "+esc(m.motivo):"")+(m.destino?" · "+esc(m.destino):"")+(m.paciente?" · "+esc(m.paciente)+(m.processo?" ("+esc(m.processo)+")":""):"")+(m.fornecedor?" · "+esc(m.fornecedor):"")+(m.lote?" · Lote "+esc(m.lote):"")+"</small></div><div class='q'>"+(inn?"+":"−")+fmt(m.qtd)+"</div></div>";
 }
 
 /* ===== PRODUTOS ===== */
@@ -1022,8 +1037,8 @@ function renderProdutos(){
   var zero=arr.filter(function(p){return p.stock<=0&&mv[p.id];}).length;
   $("pSum").innerHTML='<span class="chip">Total: '+fmt(arr.length)+'</span><span class="chip n">Stock baixo: '+fmt(low)+'</span><span class="chip n">Esgotados: '+fmt(zero)+'</span>';
   $("pBody").innerHTML=arr.length?arr.map(function(p){
-    return"<tr data-id='"+p.id+"'"+(p.id===state.selId?" class='sel'":"")+"><td>"+esc(p.codigo)+"</td><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td>"+esc(p.apresentacao)+"</td><td>"+esc(p.unidade)+"</td><td class='num'>"+fmt(p.stock)+"</td><td>"+stTag(p,mv[p.id])+"</td><td><div class='rowbtns'><button class='ic' data-edit='"+p.id+"' title='Editar'>✏</button><button class='ic del' data-del='"+p.id+"' title='Eliminar'>🗑</button></div></td></tr>";
-  }).join(""):"<tr><td colspan='8'><div class='empty'><div class='big'>📂</div>Nenhum produto encontrado com estes critérios.</div></td></tr>";
+    return"<tr data-id='"+p.id+"'"+(p.id===state.selId?" class='sel'":"")+"><td>"+esc(p.codigo)+"</td><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td>"+esc(p.apresentacao)+"</td><td>"+esc(p.unidade)+"</td><td class='num'>"+fmt(p.stock)+"</td><td>"+stTag(p,mv[p.id])+"</td><td><div class='rowbtns'><button class='ic' data-edit='"+p.id+"' title='Editar'>"+ICO.pencil+"</button><button class='ic del' data-del='"+p.id+"' title='Eliminar'>"+ICO.trash+"</button></div></td></tr>";
+  }).join(""):"<tr><td colspan='8'><div class='empty'><div class='big'>"+ICO.folder+"</div>Nenhum produto encontrado com estes critérios.</div></td></tr>";
   $("pFoot").textContent="A mostrar "+fmt(arr.length)+" de "+fmt(state.produtos.length)+" produtos";
 }
 
@@ -1047,7 +1062,7 @@ function renderLotes(){
   $("lBody").innerHTML=arr.length?arr.map(function(l){
     var p=state.produtos.find(function(x){return x.id===l.produtoId;})||{};
     return"<tr><td>"+esc(p.descricao||"—")+"</td><td>"+esc(l.lote)+"</td><td>"+(l.validade||"—")+"</td><td class='num'>"+fmt(l.rec)+"</td><td class='num'>"+fmt(l.sai)+"</td><td class='num'>"+fmt(l.disp)+"</td><td>"+(l.validade?valTag(l.dias):'<span class="tag n">s/ validade</span>')+"</td></tr>";
-  }).join(""):"<tr><td colspan='7'><div class='empty'><div class='big'>📂</div>Nenhum lote registado. Os lotes criam-se automaticamente ao registar entradas com o campo Lote preenchido.</div></td></tr>";
+  }).join(""):"<tr><td colspan='7'><div class='empty'><div class='big'>"+ICO.folder+"</div>Nenhum lote registado. Os lotes criam-se automaticamente ao registar entradas com o campo Lote preenchido.</div></td></tr>";
   $("lFoot").textContent="A mostrar "+fmt(arr.length)+" lotes";
 }
 
@@ -1121,7 +1136,7 @@ function renderMovimentos(){
   var aj=arr.filter(function(m){return m.ajuste;}).length;
   $("mSum").innerHTML='<span class="chip">Registos: '+fmt(arr.length)+'</span><span class="chip n">Entradas: '+fmt(e)+'</span><span class="chip n">Saídas: '+fmt(s)+'</span><span class="chip n">Ajustes: '+fmt(aj)+'</span>';
   var vis=arr.slice(0,mLimit);
-  $("mList").innerHTML=arr.length?vis.map(movCard).join("")+(arr.length>mLimit?'<button class="btn btn-g" id="btnMaisMov" style="width:100%;justify-content:center;margin-top:4px">Mostrar mais ('+fmt(arr.length-mLimit)+' restantes)</button>':""):"<div class='empty'><div class='big'>📂</div>Nenhum movimento para os critérios seleccionados.</div>";
+  $("mList").innerHTML=arr.length?vis.map(movCard).join("")+(arr.length>mLimit?'<button class="btn btn-g" id="btnMaisMov" style="width:100%;justify-content:center;margin-top:4px">Mostrar mais ('+fmt(arr.length-mLimit)+' restantes)</button>':""):"<div class='empty'><div class='big'>"+ICO.folder+"</div>Nenhum movimento para os critérios seleccionados.</div>";
 }
 
 /* ===== RELATÓRIOS POR PERÍODO ===== */
@@ -1228,7 +1243,7 @@ function renderRelatorio(){
   $("rHead").innerHTML="<tr>"+d.head.map(function(h,i){return"<th"+(d.num.indexOf(i)>=0?' style="text-align:right"':"")+">"+esc(h)+"</th>";}).join("")+"</tr>";
   $("rBody").innerHTML=d.rows.length?d.rows.map(function(row){
     return"<tr>"+row.map(function(cell,i){return"<td"+(d.num.indexOf(i)>=0?" class='num'":"")+">"+esc(cell)+"</td>";}).join("")+"</tr>";
-  }).join(""):"<tr><td colspan='"+d.head.length+"'><div class='empty'><div class='big'>📂</div>Sem dados para o período seleccionado.</div></td></tr>";
+  }).join(""):"<tr><td colspan='"+d.head.length+"'><div class='empty'><div class='big'>"+ICO.folder+"</div>Sem dados para o período seleccionado.</div></td></tr>";
 }
 
 /* ===== NAVEGAÇÃO ===== */
@@ -1401,7 +1416,7 @@ function fillLoteSaida(){
   var ls=lotesDetalhe().filter(function(l){return l.produtoId===pid&&l.disp>0;});
   $("fmLoteS").innerHTML='<option value="">(sem lote)</option>'+ls.map(function(l){
     var venc=l.dias!==null&&l.dias<0;
-    return'<option value="'+esc(l.lote)+'">'+esc(l.lote)+(l.validade?" · val. "+l.validade:"")+(venc?" · ⚠ VENCIDO":"")+" · disp. "+fmt(l.disp)+"</option>";
+    return'<option value="'+esc(l.lote)+'">'+esc(l.lote)+(l.validade?" · val. "+l.validade:"")+(venc?" · VENCIDO":"")+" · disp. "+fmt(l.disp)+"</option>";
   }).join("");
 }
 $("fmProd").addEventListener("change",fillLoteSaida);
