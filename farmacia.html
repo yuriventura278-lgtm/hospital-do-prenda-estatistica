@@ -37,6 +37,25 @@ header.top{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#ff
 .top-date{font-size:11.5px;color:#bcd7ea;text-align:right;line-height:1.35;flex-shrink:0}
 .mod-title{margin-top:10px;font-size:13px;color:#cfe6f2;letter-spacing:1.2px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .mod-title::before{content:"";width:18px;height:3px;background:var(--cyan);border-radius:2px}
+#menuBtn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);border-radius:10px;width:40px;height:40px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+#menuBtn svg{width:21px;height:21px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round}
+#drawerOvl{position:fixed;inset:0;background:rgba(9,28,48,.5);z-index:90;opacity:0;pointer-events:none;transition:opacity .25s}
+#drawerOvl.on{opacity:1;pointer-events:auto}
+#drawer{position:fixed;top:0;bottom:0;left:0;width:284px;max-width:86vw;background:#fff;z-index:95;transform:translateX(-105%);transition:transform .25s;box-shadow:6px 0 24px rgba(11,42,74,.25);display:flex;flex-direction:column;overflow-y:auto}
+#drawer.on{transform:none}
+.drw-head{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:16px;display:flex;align-items:center;gap:10px}
+.drw-head .logo{width:36px;height:36px;flex-shrink:0}
+.drw-head .t b{font-size:17px;letter-spacing:3px;font-weight:800;display:block}
+.drw-head .t b i{color:var(--cyan);font-style:normal}
+.drw-head .t small{font-size:10px;color:#a9c8de;letter-spacing:1px;text-transform:uppercase}
+.drw-head .x{margin-left:auto;background:rgba(255,255,255,.14);border-radius:8px;width:32px;height:32px;color:#fff;font-size:15px}
+.drw-sec{font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);font-weight:700;padding:14px 16px 6px}
+.drw-it{display:flex;align-items:center;gap:12px;width:100%;background:none;padding:12px 16px;font-size:14px;color:var(--ink);text-align:left;font-weight:600}
+.drw-it svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.drw-it:active{background:#eef4f9}
+.drw-it.act{background:var(--cyanS);color:var(--cyanD);box-shadow:inset 3px 0 0 var(--cyan)}
+.drw-it .bdg{margin-left:auto;font-size:16px;color:var(--mut)}
+.drw-foot{margin-top:auto;padding:14px 16px;font-size:10.5px;color:var(--mut);border-top:1px solid var(--line);line-height:1.6}
 nav.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:60;box-shadow:0 -4px 14px rgba(11,42,74,.08)}
 nav.bottom button{flex:1;background:none;padding:9px 2px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--mut);font-weight:600}
 nav.bottom button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -118,6 +137,8 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
  #printArea table{width:100%;min-width:0;border-collapse:collapse}
  #printArea th{background:#0d3b66;color:#fff;padding:5px 6px;font-size:9.5px;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
  #printArea td{padding:4px 6px;border-bottom:1px solid #ccc;font-size:9.5px}
+ #printArea .psec{margin:14px 0 5px;font-size:11px;font-weight:800;color:#0d3b66;border-left:4px solid #12b3c7;padding-left:7px}
+ #printArea .pnada{font-size:9.5px;color:#777;margin:2px 0 6px}
  #printArea .pf{margin-top:10px;font-size:9px;color:#666}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -141,6 +162,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
 <div id="app">
   <header class="top">
     <div class="top-row">
+      <button id="menuBtn" aria-label="Abrir menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <div class="brand">
         <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
           <defs>
@@ -239,9 +261,20 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
         <div class="card k-warn"><div class="lb">Ajustes</div><div class="vl" id="gAj">—</div><div class="hint">correcções de inventário</div></div>
       </div>
       <div class="sumbar" id="gSum"></div>
+      <h2 class="sec">Secção 1 · Entradas</h2>
       <div class="tblwrap"><table>
-        <thead><tr><th>Hora</th><th>Tipo</th><th>Produto</th><th style="text-align:right">Qtd</th><th>Lote</th><th>Destino/Fornecedor</th><th>Paciente</th><th>Responsável</th></tr></thead>
-        <tbody id="gBody"></tbody>
+        <thead><tr><th>N.º</th><th>Hora</th><th>Produto</th><th style="text-align:right">Qtd</th><th>Lote</th><th>Validade</th><th>Fornecedor</th><th>Responsável</th></tr></thead>
+        <tbody id="gBodyE"></tbody>
+      </table></div>
+      <h2 class="sec">Secção 2 · Saídas / Dispensas</h2>
+      <div class="tblwrap"><table>
+        <thead><tr><th>N.º</th><th>Hora</th><th>Produto</th><th style="text-align:right">Qtd</th><th>Lote</th><th>Serviço destino</th><th>Paciente</th><th>Responsável</th></tr></thead>
+        <tbody id="gBodyS"></tbody>
+      </table></div>
+      <h2 class="sec">Secção 3 · Ajustes de inventário</h2>
+      <div class="tblwrap"><table>
+        <thead><tr><th>N.º</th><th>Hora</th><th>Produto</th><th style="text-align:right">Qtd</th><th>Lote</th><th>Motivo</th><th>Responsável</th></tr></thead>
+        <tbody id="gBodyA"></tbody>
       </table>
       <div class="foot"><span id="gFoot"></span><span>Registo diário de movimentos</span></div></div>
     </section>
@@ -312,6 +345,32 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
     <button data-v="lot"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v4l-8 4-8-4V7l8-4z"/><path d="M4 13v4l8 4 8-4v-4"/></svg>Lotes</button>
     <button data-v="rel"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Relatório</button>
   </nav>
+</div>
+
+<div id="drawerOvl"></div>
+<div id="drawer">
+  <div class="drw-head">
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+      <rect x="1" y="1" width="46" height="46" rx="12" fill="url(#lgZ)" opacity=".18"/>
+      <circle cx="24" cy="24" r="17" fill="none" stroke="url(#lgZ)" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="88 19" transform="rotate(-50 24 24)"/>
+      <path d="M16 16h15l-14 16h15" fill="none" stroke="url(#lgZ)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="t"><b>ZEL<i>O</i></b><small>Secção de Farmácia</small></div>
+    <button class="x" id="drwClose" aria-label="Fechar menu">✕</button>
+  </div>
+  <div class="drw-sec">Navegação</div>
+  <button class="drw-it act" data-nav="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Painel Geral</button>
+  <button class="drw-it" data-nav="dia"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/><path d="M9 16l2 2 4-4"/></svg>Registo Diário</button>
+  <button class="drw-it" data-nav="mov"><svg viewBox="0 0 24 24"><path d="M7 4v13M7 17l-3-3M7 17l3-3"/><path d="M17 20V7M17 7l-3 3M17 7l3 3"/></svg>Entradas e Saídas</button>
+  <button class="drw-it" data-nav="prod"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>Produtos</button>
+  <button class="drw-it" data-nav="lot"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v4l-8 4-8-4V7l8-4z"/><path d="M4 13v4l8 4 8-4v-4"/></svg>Gestão de Lotes</button>
+  <button class="drw-it" data-nav="rel"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Relatórios</button>
+  <div class="drw-sec">Administração · Registos</div>
+  <button class="drw-it" id="drwNovoProd"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Registar novo produto<span class="bdg">›</span></button>
+  <button class="drw-it" id="drwEntrada"><svg viewBox="0 0 24 24"><path d="M12 19V5M12 5l-5 5M12 5l5 5"/></svg>Registar entrada<span class="bdg">›</span></button>
+  <button class="drw-it" id="drwSaida"><svg viewBox="0 0 24 24"><path d="M12 5v14M12 19l-5-5M12 19l5-5"/></svg>Registar saída<span class="bdg">›</span></button>
+  <button class="drw-it" id="drwAjuste"><svg viewBox="0 0 24 24"><path d="M4 7h13M17 7l-3-3M17 7l-3 3"/><path d="M20 17H7M7 17l3-3M7 17l3 3"/></svg>Ajuste de inventário<span class="bdg">›</span></button>
+  <div class="drw-foot">ZELO · Sistema Estatístico e Gestão de Ocorrências<br>Secção de Farmácia</div>
 </div>
 
 <div class="ovl" id="ovlProd">
@@ -608,6 +667,19 @@ function imprimir(titulo,head,rows){
     '</tbody></table><div class="pf">ZELO — Sistema Estatístico e Gestão de Ocorrências</div>';
   setTimeout(function(){window.print();},100);
 }
+function imprimirSec(titulo,secoes,totalRegistos){
+  var pa=$("printArea");
+  pa.innerHTML='<div class="ph1">ZELO — Secção de Farmácia · '+esc(titulo)+'</div>'+
+    '<div class="ph2">Emitido em '+new Date().toLocaleString("pt-PT")+' · '+totalRegistos+' registos</div>'+
+    secoes.map(function(s){
+      var t='<div class="psec">'+esc(s.titulo)+'</div>';
+      if(!s.rows.length)return t+'<div class="pnada">Sem registos nesta secção.</div>';
+      return t+'<table><thead><tr>'+s.head.map(function(h){return"<th>"+esc(h)+"</th>";}).join("")+'</tr></thead><tbody>'+
+        s.rows.map(function(r){return"<tr>"+r.map(function(c){return"<td>"+esc(c)+"</td>";}).join("")+"</tr>";}).join("")+'</tbody></table>';
+    }).join("")+
+    '<div class="pf">ZELO — Sistema Estatístico e Gestão de Ocorrências</div>';
+  setTimeout(function(){window.print();},100);
+}
 
 /* ===== RENDER MANAGER ===== */
 var TITULOS={dash:"Painel Geral",dia:"Registo Diário",prod:"Registo de Produtos",lot:"Gestão de Lotes",mov:"Entradas e Saídas",rel:"Relatórios · Diário a Anual"};
@@ -768,28 +840,46 @@ function movsDia(d){
     .sort(function(a,b){return a.registado<b.registado?-1:1;});
 }
 function tipoLbl(m){return m.ajuste?"Ajuste ("+(m.tipo==="entrada"?"+":"−")+")":(m.tipo==="entrada"?"Entrada":"Saída");}
+function movHora(m){return new Date(m.registado).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"});}
+function movProd(m){return(state.produtos.find(function(x){return x.id===m.produtoId;})||{}).descricao||"—";}
+function diaSecoes(d){
+  var arr=movsDia(d);
+  return{
+    todos:arr,
+    ent:arr.filter(function(m){return m.tipo==="entrada"&&!m.ajuste;}),
+    sai:arr.filter(function(m){return m.tipo==="saida"&&!m.ajuste;}),
+    aj:arr.filter(function(m){return m.ajuste;})
+  };
+}
+function secRows(arr,cols,vazio,nCols){
+  if(!arr.length)return"<tr><td colspan='"+nCols+"'><div class='empty' style='padding:18px'>"+vazio+"</div></td></tr>";
+  return arr.map(function(m,i){
+    return"<tr><td class='num'>"+(i+1)+"</td>"+cols(m).map(function(c,ci){return"<td"+(ci===2?" class='num'":"")+">"+c+"</td>";}).join("")+"</tr>";
+  }).join("");
+}
 function renderDia(){
   var d=$("gData").value||hoje();
   $("gData").value=d;
-  var arr=movsDia(d);
-  var ent=arr.filter(function(m){return m.tipo==="entrada"&&!m.ajuste;});
-  var sai=arr.filter(function(m){return m.tipo==="saida"&&!m.ajuste;});
-  var aj=arr.filter(function(m){return m.ajuste;});
-  $("gIn").textContent=fmt(ent.length);
-  $("gInQ").textContent=fmt(ent.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
-  $("gOut").textContent=fmt(sai.length);
-  $("gOutQ").textContent=fmt(sai.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
-  $("gAj").textContent=fmt(aj.length);
+  var s=diaSecoes(d);
+  $("gIn").textContent=fmt(s.ent.length);
+  $("gInQ").textContent=fmt(s.ent.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
+  $("gOut").textContent=fmt(s.sai.length);
+  $("gOutQ").textContent=fmt(s.sai.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
+  $("gAj").textContent=fmt(s.aj.length);
   var servs={};
-  sai.forEach(function(m){if(m.destino)servs[m.destino]=1;});
-  $("gSum").innerHTML='<span class="chip">'+fmtPt(d)+'</span><span class="chip n">Registos: '+fmt(arr.length)+'</span><span class="chip n">Serviços atendidos: '+fmt(Object.keys(servs).length)+'</span>';
-  $("gBody").innerHTML=arr.length?arr.map(function(m){
-    var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
-    var hora=new Date(m.registado).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"});
+  s.sai.forEach(function(m){if(m.destino)servs[m.destino]=1;});
+  $("gSum").innerHTML='<span class="chip">'+fmtPt(d)+'</span><span class="chip n">Registos: '+fmt(s.todos.length)+'</span><span class="chip n">Serviços atendidos: '+fmt(Object.keys(servs).length)+'</span>';
+  $("gBodyE").innerHTML=secRows(s.ent,function(m){
+    return[movHora(m),esc(movProd(m)),fmt(m.qtd),esc(m.lote||"—"),m.validade||"—",esc(m.fornecedor||"—"),esc(m.responsavel||"—")];
+  },"Sem entradas em "+fmtPt(d)+".",8);
+  $("gBodyS").innerHTML=secRows(s.sai,function(m){
     var pac=m.paciente?(esc(m.paciente)+(m.processo?" ("+esc(m.processo)+")":"")):"—";
-    return"<tr><td>"+hora+"</td><td>"+tipoLbl(m)+"</td><td>"+esc(p.descricao||"—")+"</td><td class='num'>"+fmt(m.qtd)+"</td><td>"+esc(m.lote||"—")+"</td><td>"+esc(m.destino||m.fornecedor||m.motivo||"—")+"</td><td>"+pac+"</td><td>"+esc(m.responsavel||"—")+"</td></tr>";
-  }).join(""):"<tr><td colspan='8'><div class='empty'><div class='big'>📋</div>Nenhum movimento registado em "+fmtPt(d)+".</div></td></tr>";
-  $("gFoot").textContent="Registo diário de "+fmtPt(d)+" · "+fmt(arr.length)+" registos";
+    return[movHora(m),esc(movProd(m)),fmt(m.qtd),esc(m.lote||"—"),esc(m.destino||"—"),pac,esc(m.responsavel||"—")];
+  },"Sem saídas em "+fmtPt(d)+".",8);
+  $("gBodyA").innerHTML=secRows(s.aj,function(m){
+    return[movHora(m),esc(movProd(m)),(m.tipo==="entrada"?"+":"−")+fmt(m.qtd),esc(m.lote||"—"),esc(m.motivo||"—"),esc(m.responsavel||"—")];
+  },"Sem ajustes em "+fmtPt(d)+".",7);
+  $("gFoot").textContent="Registo diário de "+fmtPt(d)+" · "+fmt(s.todos.length)+" registos";
 }
 
 /* ===== MOVIMENTOS ===== */
@@ -926,17 +1016,33 @@ function renderRelatorio(){
 
 /* ===== NAVEGAÇÃO ===== */
 var navBtns=document.querySelectorAll("nav.bottom button");
-for(var nb=0;nb<navBtns.length;nb++){
-  navBtns[nb].addEventListener("click",function(){
-    for(var j=0;j<navBtns.length;j++){navBtns[j].classList.remove("act");}
-    this.classList.add("act");
-    state.view=this.dataset.v;
-    var vs=document.querySelectorAll(".view");
-    for(var k=0;k<vs.length;k++){vs[k].classList.remove("on");}
-    $("v-"+state.view).classList.add("on");
-    render();
-  });
+var drwNavBtns=document.querySelectorAll("#drawer [data-nav]");
+function goView(v){
+  state.view=v;
+  for(var j=0;j<navBtns.length;j++)navBtns[j].classList.toggle("act",navBtns[j].dataset.v===v);
+  for(var d=0;d<drwNavBtns.length;d++)drwNavBtns[d].classList.toggle("act",drwNavBtns[d].dataset.nav===v);
+  var vs=document.querySelectorAll(".view");
+  for(var k=0;k<vs.length;k++)vs[k].classList.remove("on");
+  $("v-"+v).classList.add("on");
+  render();
 }
+for(var nb=0;nb<navBtns.length;nb++){
+  navBtns[nb].addEventListener("click",function(){goView(this.dataset.v);});
+}
+
+/* ===== MENU LATERAL ===== */
+function abrirMenu(){$("drawer").classList.add("on");$("drawerOvl").classList.add("on");}
+function fecharMenu(){$("drawer").classList.remove("on");$("drawerOvl").classList.remove("on");}
+$("menuBtn").addEventListener("click",abrirMenu);
+$("drwClose").addEventListener("click",fecharMenu);
+$("drawerOvl").addEventListener("click",fecharMenu);
+for(var dn=0;dn<drwNavBtns.length;dn++){
+  drwNavBtns[dn].addEventListener("click",function(){goView(this.dataset.nav);fecharMenu();});
+}
+$("drwNovoProd").addEventListener("click",function(){fecharMenu();goView("prod");$("btnNovoProd").click();});
+$("drwEntrada").addEventListener("click",function(){fecharMenu();goView("mov");abrirMov("entrada");});
+$("drwSaida").addEventListener("click",function(){fecharMenu();goView("mov");abrirMov("saida");});
+$("drwAjuste").addEventListener("click",function(){fecharMenu();goView("mov");abrirMov("ajuste");});
 
 /* ===== MODAIS ===== */
 function openOvl(id){$(id).classList.add("on");}
@@ -1160,13 +1266,20 @@ $("btnPdfLot").addEventListener("click",function(){
 });
 $("btnPdfDia").addEventListener("click",function(){
   var d=$("gData").value||hoje();
-  imprimir("Registo Diário · "+fmtPt(d),
-    ["Hora","Tipo","Produto","Qtd","Lote","Dest./Fornec.","Paciente","Responsável"],
-    movsDia(d).map(function(m){
-      var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
-      var pac=m.paciente?(m.paciente+(m.processo?" ("+m.processo+")":"")):"—";
-      return[new Date(m.registado).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"}),tipoLbl(m),p.descricao||"—",fmt(m.qtd),m.lote||"—",m.destino||m.fornecedor||m.motivo||"—",pac,m.responsavel||"—"];
-    }));
+  var s=diaSecoes(d);
+  imprimirSec("Registo Diário · "+fmtPt(d),[
+    {titulo:"Secção 1 · Entradas ("+s.ent.length+")",
+     head:["N.º","Hora","Produto","Qtd","Lote","Validade","Fornecedor","Responsável"],
+     rows:s.ent.map(function(m,i){return[String(i+1),movHora(m),movProd(m),fmt(m.qtd),m.lote||"—",m.validade||"—",m.fornecedor||"—",m.responsavel||"—"];})},
+    {titulo:"Secção 2 · Saídas / Dispensas ("+s.sai.length+")",
+     head:["N.º","Hora","Produto","Qtd","Lote","Serviço destino","Paciente","Responsável"],
+     rows:s.sai.map(function(m,i){
+       var pac=m.paciente?(m.paciente+(m.processo?" ("+m.processo+")":"")):"—";
+       return[String(i+1),movHora(m),movProd(m),fmt(m.qtd),m.lote||"—",m.destino||"—",pac,m.responsavel||"—"];})},
+    {titulo:"Secção 3 · Ajustes de inventário ("+s.aj.length+")",
+     head:["N.º","Hora","Produto","Qtd","Lote","Motivo","Responsável"],
+     rows:s.aj.map(function(m,i){return[String(i+1),movHora(m),movProd(m),(m.tipo==="entrada"?"+":"−")+fmt(m.qtd),m.lote||"—",m.motivo||"—",m.responsavel||"—"];})}
+  ],s.todos.length);
 });
 $("btnPdfMov").addEventListener("click",function(){
   var d=$("mData").value;
