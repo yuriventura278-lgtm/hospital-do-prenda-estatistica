@@ -56,6 +56,15 @@ header.top{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#ff
 .drw-it.act{background:var(--cyanS);color:var(--cyanD);box-shadow:inset 3px 0 0 var(--cyan)}
 .drw-it .bdg{margin-left:auto;font-size:16px;color:var(--mut)}
 .drw-foot{margin-top:auto;padding:14px 16px;font-size:10.5px;color:var(--mut);border-top:1px solid var(--line);line-height:1.6}
+.bk{display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.bk:last-child{border-bottom:none}
+.bk-i{flex:1;min-width:0}
+.bk-i b{font-size:13.5px;display:block}
+.bk-i small{color:var(--mut);font-size:11px}
+.keys{width:100%;border-collapse:collapse}
+.keys td{padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.keys td:first-child{white-space:nowrap;width:1%}
+kbd{background:#eef2f6;border:1px solid var(--line);border-bottom-width:2.5px;border-radius:6px;padding:2px 7px;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--navy2)}
 nav.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:60;box-shadow:0 -4px 14px rgba(11,42,74,.08)}
 nav.bottom button{flex:1;background:none;padding:9px 2px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--mut);font-weight:600}
 nav.bottom button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -88,6 +97,8 @@ table{width:100%;border-collapse:collapse;min-width:640px}
 thead th{background:var(--navy2);color:#fff;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;padding:10px;text-align:left;cursor:pointer;user-select:none;white-space:nowrap}
 tbody td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
 tbody tr:nth-child(even){background:#f8fbfd}
+#pBody tr{cursor:pointer}
+#pBody tr.sel,#pBody tr.sel:nth-child(even){background:#dff3f7;box-shadow:inset 3px 0 0 var(--cyan)}
 td.num{text-align:right;font-weight:600}
 .tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .tag.ok{background:#e3f6ec;color:var(--ok)}.tag.warn{background:#fdf3d7;color:#9a7500}
@@ -105,6 +116,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
 .ovl{position:fixed;inset:0;background:rgba(9,28,48,.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
 @media(min-width:640px){.ovl{align-items:center}}
 .ovl.on{display:flex}
+#ovlConf{z-index:300}
 .modal{background:#fff;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px 18px 24px}
 @media(min-width:640px){.modal{border-radius:18px}}
 .modal h3{font-size:17px;color:var(--navy2);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
@@ -370,6 +382,9 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
   <button class="drw-it" id="drwEntrada"><svg viewBox="0 0 24 24"><path d="M12 19V5M12 5l-5 5M12 5l5 5"/></svg>Registar entrada<span class="bdg">›</span></button>
   <button class="drw-it" id="drwSaida"><svg viewBox="0 0 24 24"><path d="M12 5v14M12 19l-5-5M12 19l5-5"/></svg>Registar saída<span class="bdg">›</span></button>
   <button class="drw-it" id="drwAjuste"><svg viewBox="0 0 24 24"><path d="M4 7h13M17 7l-3-3M17 7l-3 3"/><path d="M20 17H7M7 17l3-3M7 17l3 3"/></svg>Ajuste de inventário<span class="bdg">›</span></button>
+  <div class="drw-sec">Sistema</div>
+  <button class="drw-it" id="drwBackup"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 7.7-8 9-4.8-1.3-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>Cópia de segurança<span class="bdg">›</span></button>
+  <button class="drw-it" id="drwKeys"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M18 14h.01M9 14h6"/></svg>Atalhos de teclado<span class="bdg">›</span></button>
   <div class="drw-foot">ZELO · Sistema Estatístico e Gestão de Ocorrências<br>Secção de Farmácia</div>
 </div>
 
@@ -401,6 +416,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
     <div class="fld"><label>Estado</label><select id="fpEst"><option>Ativo</option><option>Inativo</option></select></div>
     <div class="mact">
       <button class="btn btn-g" data-close="ovlProd">Cancelar</button>
+      <button class="btn btn-d" id="fpDel" style="display:none">Eliminar</button>
       <button class="btn btn-p" id="fpSave">Guardar produto</button>
     </div>
   </div>
@@ -452,6 +468,47 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
       <button class="btn btn-g" data-close="ovlConf">Cancelar</button>
       <button class="btn btn-d" id="confYes">Eliminar</button>
     </div>
+  </div>
+</div>
+
+<div class="ovl" id="ovlBkp">
+  <div class="modal">
+    <h3><span>Cópia de segurança</span><button class="x" data-close="ovlBkp">✕</button></h3>
+    <p style="color:var(--mut);font-size:12.5px;line-height:1.55;margin-bottom:12px">
+      Backup automático diário e a cada 30 registos. São mantidas as últimas <b>10 versões</b> neste dispositivo.
+      Transfira regularmente um ficheiro para o computador ou disco externo — se o dispositivo avariar, basta importar o ficheiro para recuperar tudo.
+    </p>
+    <div class="tools" style="margin:0 0 6px">
+      <button class="btn btn-p" id="bkpCriar" style="flex:1;justify-content:center">💾 Criar backup agora</button>
+      <button class="btn btn-c" id="bkpExport" style="flex:1;justify-content:center">⭳ Exportar ficheiro</button>
+      <button class="btn btn-g" id="bkpImport" style="flex:1;justify-content:center">⭱ Importar / Restaurar</button>
+    </div>
+    <div class="tools" style="margin:0 0 4px">
+      <button class="btn btn-g" id="bkpCsvProd" style="flex:1;justify-content:center">📄 CSV Produtos</button>
+      <button class="btn btn-g" id="bkpCsvMov" style="flex:1;justify-content:center">📄 CSV Movimentos</button>
+    </div>
+    <h2 class="sec" style="margin:14px 2px 4px">Histórico de backups</h2>
+    <div id="bkpList"></div>
+    <input type="file" id="bkpFile" accept=".json,application/json" style="display:none">
+  </div>
+</div>
+
+<div class="ovl" id="ovlKeys">
+  <div class="modal" style="max-width:480px">
+    <h3><span>Atalhos de teclado</span><button class="x" data-close="ovlKeys">✕</button></h3>
+    <table class="keys">
+      <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>Guardar o formulário aberto · sem formulário, cria um backup</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td><td>Desfazer a última operação (produto ou movimento)</td></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Navegar nas linhas da tabela de Produtos</td></tr>
+      <tr><td><kbd>Enter</kbd> / <kbd>F2</kbd></td><td>Editar o produto seleccionado</td></tr>
+      <tr><td><kbd>Delete</kbd></td><td>Eliminar o produto seleccionado</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>C</kbd></td><td>Copiar a linha seleccionada · nos campos, copiar texto (nativo)</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>V</kbd> / <kbd>X</kbd></td><td>Colar / cortar nos campos de texto (nativo)</td></tr>
+      <tr><td><kbd>Duplo clique</kbd></td><td>Abrir o produto para editar, actualizar ou eliminar</td></tr>
+      <tr><td><kbd>/</kbd> ou <kbd>Ctrl</kbd> + <kbd>F</kbd></td><td>Ir para a pesquisa da vista actual</td></tr>
+      <tr><td><kbd>Tab</kbd></td><td>Avançar para o campo seguinte nos formulários</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Fechar janelas e o menu</td></tr>
+    </table>
   </div>
 </div>
 
@@ -561,17 +618,18 @@ var CATALOGO=[
 ];
 
 /* ===== ESTADO GLOBAL ===== */
-var state={produtos:[],movimentos:[],view:"dash",filtro:{q:"",classe:"",sortK:"codigo",sortDir:1},movTipo:null,editId:null};
+var state={produtos:[],movimentos:[],view:"dash",filtro:{q:"",classe:"",sortK:"codigo",sortDir:1},movTipo:null,editId:null,selId:null,undo:[]};
 var mLimit=100;
 
 /* ===== BASE DE DADOS (compatível com a v4: zelo_farmacia_v3) ===== */
-var DB_NAME="zelo_farmacia_v3",DB_VER=1,db=null;
+var DB_NAME="zelo_farmacia_v3",DB_VER=2,db=null;
 function dbOpen(cb){
   var req=indexedDB.open(DB_NAME,DB_VER);
   req.onupgradeneeded=function(e){
     var d=e.target.result;
     if(!d.objectStoreNames.contains("produtos"))d.createObjectStore("produtos",{keyPath:"id",autoIncrement:true});
     if(!d.objectStoreNames.contains("movimentos"))d.createObjectStore("movimentos",{keyPath:"id",autoIncrement:true});
+    if(!d.objectStoreNames.contains("backups"))d.createObjectStore("backups",{keyPath:"id",autoIncrement:true});
   };
   req.onsuccess=function(e){db=e.target.result;cb();};
   req.onerror=function(){
@@ -655,6 +713,119 @@ function valTag(d){
   if(d<=90)return'<span class="tag warn">Alerta 90d</span>';
   if(d<=180)return'<span class="tag warn">Alerta 180d</span>';
   return'<span class="tag ok">OK</span>';
+}
+
+/* ===== CÓPIA DE SEGURANÇA ===== */
+var BKP_MAX=10,ALT_KEY="zelo_farm_alt";
+function hash32(s){
+  var h=0x811c9dc5;
+  for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h+(h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24))>>>0;}
+  return("0000000"+h.toString(16)).slice(-8);
+}
+function tamStr(n){return n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":(n/1048576).toFixed(1)+" MB";}
+function criarBackup(tipo,cb){
+  var body=JSON.stringify({produtos:state.produtos,movimentos:state.movimentos});
+  var b={criado:new Date().toISOString(),tipo:tipo,nProd:state.produtos.length,nMov:state.movimentos.length,tam:body.length,hash:hash32(body),body:body};
+  dbPut("backups",b,function(id){
+    b.id=id;
+    podarBackups(function(){
+      if($("ovlBkp").classList.contains("on"))renderBkpList();
+      if(cb)cb(b);
+    });
+  });
+}
+function podarBackups(cb){
+  dbAll("backups",function(bs){
+    bs.sort(function(a,b){return a.criado<b.criado?-1:1;});
+    var extra=bs.length-BKP_MAX,n=0;
+    if(extra<=0){if(cb)cb();return;}
+    for(var i=0;i<extra;i++)dbDel("backups",bs[i].id,function(){if(++n>=extra&&cb)cb();});
+  });
+}
+function bumpAlt(){
+  var n=(+localStorage.getItem(ALT_KEY)||0)+1;
+  if(n>=30){n=0;criarBackup("Automático");}
+  try{localStorage.setItem(ALT_KEY,n);}catch(e){}
+}
+function autoBackupBoot(){
+  if(!state.movimentos.length)return;
+  dbAll("backups",function(bs){
+    var ult="";
+    bs.forEach(function(b){if(b.tipo==="Automático"&&b.criado>ult)ult=b.criado;});
+    if(!ult||new Date()-new Date(ult)>86400000)criarBackup("Automático");
+  });
+}
+function descarregar(nome,conteudo,mime){
+  var blob=new Blob([conteudo],{type:mime||"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=nome;
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},400);
+}
+function ficheiroBackup(b){
+  return'{"app":"zelo_farmacia","v":1,"criado":"'+b.criado+'","tipo":"'+b.tipo+'","nProd":'+b.nProd+',"nMov":'+b.nMov+',"hash":"'+b.hash+'","dados":'+b.body+'}';
+}
+function nomeBackup(b){
+  return"zelo_farmacia_backup_"+b.criado.slice(0,10).replace(/-/g,"_")+"_"+b.criado.slice(11,16).replace(":","")+".json";
+}
+function renderBkpList(){
+  dbAll("backups",function(bs){
+    bs.sort(function(a,b){return a.criado<b.criado?1:-1;});
+    $("bkpList").innerHTML=bs.length?bs.map(function(b){
+      return'<div class="bk"><div class="bk-i"><b>'+dtHora(b.criado)+'</b><small>'+esc(b.tipo)+' · '+fmt(b.nProd)+' produtos · '+fmt(b.nMov)+' movimentos · '+tamStr(b.tam)+'</small></div><div class="rowbtns">'+
+        '<button class="ic" data-bres="'+b.id+'" title="Restaurar">↺</button>'+
+        '<button class="ic" data-bdl="'+b.id+'" title="Transferir para o computador">⭳</button>'+
+        '<button class="ic del" data-bdel="'+b.id+'" title="Eliminar">🗑</button></div></div>';
+    }).join(""):'<div class="empty" style="padding:16px">Ainda sem backups guardados.<br>Crie o primeiro com o botão acima.</div>';
+  });
+}
+function validarBackup(txt){
+  var f;
+  try{f=JSON.parse(txt);}catch(e){return{erro:"O ficheiro não é um backup válido (JSON ilegível)."};}
+  var d=f&&f.app==="zelo_farmacia"?f.dados:(f&&f.produtos&&f.movimentos?f:null);
+  if(!d||!Array.isArray(d.produtos)||!Array.isArray(d.movimentos))return{erro:"Estrutura inválida — o ficheiro não contém produtos e movimentos."};
+  if(f.hash&&hash32(JSON.stringify({produtos:d.produtos,movimentos:d.movimentos}))!==f.hash)
+    return{erro:"Ficheiro corrompido — a verificação de integridade falhou. Não é possível restaurar."};
+  for(var i=0;i<d.produtos.length;i++){var p=d.produtos[i];if(typeof p.id!=="number"||typeof p.descricao!=="string")return{erro:"Ficheiro corrompido — registo de produto inválido."};}
+  return{dados:d,criado:f.criado||"",nProd:d.produtos.length,nMov:d.movimentos.length};
+}
+function aplicarRestauro(d,depois){
+  var tx=db.transaction(["produtos","movimentos"],"readwrite");
+  var sp=tx.objectStore("produtos"),sm=tx.objectStore("movimentos");
+  sp.clear();sm.clear();
+  d.produtos.forEach(function(p){sp.put(p);});
+  d.movimentos.forEach(function(m){sm.put(m);});
+  tx.oncomplete=function(){
+    state.produtos=d.produtos.slice();
+    state.movimentos=d.movimentos.slice();
+    state.undo=[];
+    render();
+    if(depois)depois();
+  };
+  tx.onabort=function(){toast("Erro ao restaurar. Os dados actuais não foram alterados.","bad");};
+}
+function pedirRestauro(v,origem){
+  $("confMsg").innerHTML="Restaurar o backup"+(v.criado?" de <b>"+dtHora(v.criado)+"</b>":"")+" ("+origem+")?<br>"+
+    "✔ "+fmt(v.nProd)+" produtos · ✔ "+fmt(v.nMov)+" movimentos · integridade verificada.<br><br>"+
+    "Os dados actuais serão substituídos. É criado um backup de segurança antes do restauro.";
+  $("confYes").textContent="Restaurar";
+  $("confYes").onclick=function(){
+    criarBackup("Antes de restaurar",function(){
+      aplicarRestauro(v.dados,function(){
+        closeOvl("ovlConf");closeOvl("ovlBkp");
+        toast("Backup restaurado com sucesso.","ok");
+      });
+    });
+  };
+  openOvl("ovlConf");
+}
+function csvStr(rows){
+  return"﻿"+rows.map(function(r){
+    return r.map(function(c){
+      c=String(c==null?"":c);
+      return(/[";\n]/.test(c))?'"'+c.replace(/"/g,'""')+'"':c;
+    }).join(";");
+  }).join("\r\n");
 }
 
 /* ===== IMPRESSÃO (Imprimir → Guardar como PDF) ===== */
@@ -805,7 +976,7 @@ function renderProdutos(){
   var zero=arr.filter(function(p){return p.stock<=0&&mv[p.id];}).length;
   $("pSum").innerHTML='<span class="chip">Total: '+fmt(arr.length)+'</span><span class="chip n">Stock baixo: '+fmt(low)+'</span><span class="chip n">Esgotados: '+fmt(zero)+'</span>';
   $("pBody").innerHTML=arr.length?arr.map(function(p){
-    return"<tr><td>"+esc(p.codigo)+"</td><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td>"+esc(p.apresentacao)+"</td><td>"+esc(p.unidade)+"</td><td class='num'>"+fmt(p.stock)+"</td><td>"+stTag(p,mv[p.id])+"</td><td><div class='rowbtns'><button class='ic' data-edit='"+p.id+"' title='Editar'>✏</button><button class='ic del' data-del='"+p.id+"' title='Eliminar'>🗑</button></div></td></tr>";
+    return"<tr data-id='"+p.id+"'"+(p.id===state.selId?" class='sel'":"")+"><td>"+esc(p.codigo)+"</td><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td>"+esc(p.apresentacao)+"</td><td>"+esc(p.unidade)+"</td><td class='num'>"+fmt(p.stock)+"</td><td>"+stTag(p,mv[p.id])+"</td><td><div class='rowbtns'><button class='ic' data-edit='"+p.id+"' title='Editar'>✏</button><button class='ic del' data-del='"+p.id+"' title='Eliminar'>🗑</button></div></td></tr>";
   }).join(""):"<tr><td colspan='8'><div class='empty'><div class='big'>📂</div>Nenhum produto encontrado com estes critérios.</div></td></tr>";
   $("pFoot").textContent="A mostrar "+fmt(arr.length)+" de "+fmt(state.produtos.length)+" produtos";
 }
@@ -1059,45 +1230,70 @@ $("btnNovoProd").addEventListener("click",function(){
   ["fpDesc","fpClasse","fpMin","fpStock","fpMax","fpSeg","fpCodB","fpFab","fpForn"].forEach(function(i){$(i).value="";});
   $("fpApres").value="Injectáveis";$("fpUnid").value="Amp";$("fpRec").value="Não";$("fpEst").value="Ativo";
   $("fpStock").disabled=false;$("fpStockLb").textContent="Stock inicial";
+  $("fpDel").style.display="none";
   openOvl("ovlProd");
 });
+function abrirEdicaoProduto(id){
+  var p=state.produtos.find(function(x){return x.id===id;});
+  if(!p)return;
+  state.editId=p.id;
+  $("mpTitle").textContent="Editar · "+p.codigo;
+  $("fpDesc").value=p.descricao;$("fpClasse").value=p.classe;
+  $("fpApres").value=p.apresentacao;$("fpUnid").value=p.unidade;
+  $("fpMin").value=p.stockMin;$("fpStock").value=p.stock;
+  $("fpStock").disabled=true;$("fpStockLb").textContent="Stock actual (alterar via Movimentos)";
+  $("fpMax").value=p.stockMax||"";$("fpSeg").value=p.stockSeg||"";
+  $("fpCodB").value=p.codBarras||"";$("fpRec").value=p.receita||"Não";
+  $("fpFab").value=p.fabricante||"";$("fpForn").value=p.fornecedor||"";
+  $("fpEst").value=p.estado||"Ativo";
+  $("fpDel").style.display="";
+  openOvl("ovlProd");
+}
+function pedirEliminarProduto(p){
+  $("confMsg").textContent="Eliminar o produto “"+p.descricao+"” ("+p.codigo+")? Os movimentos associados serão mantidos no histórico. Pode desfazer com Ctrl+Z.";
+  $("confYes").textContent="Eliminar";
+  $("confYes").onclick=function(){
+    dbDel("produtos",p.id,function(){
+      state.produtos=state.produtos.filter(function(x){return x.id!==p.id;});
+      state.undo.push({t:"delProd",p:p});
+      if(state.selId===p.id)state.selId=null;
+      bumpAlt();
+      closeOvl("ovlConf");closeOvl("ovlProd");toast("Produto eliminado. Ctrl+Z para desfazer.","ok");render();
+    });
+  };
+  openOvl("ovlConf");
+}
 $("pBody").addEventListener("click",function(e){
   var ed=e.target.closest("[data-edit]"),dl=e.target.closest("[data-del]");
-  if(ed){
-    var p=state.produtos.find(function(x){return x.id===+ed.dataset.edit;});
-    if(!p)return;
-    state.editId=p.id;
-    $("mpTitle").textContent="Editar · "+p.codigo;
-    $("fpDesc").value=p.descricao;$("fpClasse").value=p.classe;
-    $("fpApres").value=p.apresentacao;$("fpUnid").value=p.unidade;
-    $("fpMin").value=p.stockMin;$("fpStock").value=p.stock;
-    $("fpStock").disabled=true;$("fpStockLb").textContent="Stock actual (alterar via Movimentos)";
-    $("fpMax").value=p.stockMax||"";$("fpSeg").value=p.stockSeg||"";
-    $("fpCodB").value=p.codBarras||"";$("fpRec").value=p.receita||"Não";
-    $("fpFab").value=p.fabricante||"";$("fpForn").value=p.fornecedor||"";
-    $("fpEst").value=p.estado||"Ativo";
-    openOvl("ovlProd");
-  }
+  if(ed){abrirEdicaoProduto(+ed.dataset.edit);return;}
   if(dl){
     var p2=state.produtos.find(function(x){return x.id===+dl.dataset.del;});
-    if(!p2)return;
-    $("confMsg").textContent="Eliminar o produto “"+p2.descricao+"” ("+p2.codigo+")? Os movimentos associados serão mantidos no histórico.";
-    $("confYes").onclick=function(){
-      dbDel("produtos",p2.id,function(){
-        state.produtos=state.produtos.filter(function(x){return x.id!==p2.id;});
-        closeOvl("ovlConf");toast("Produto eliminado.","ok");render();
-      });
-    };
-    openOvl("ovlConf");
+    if(p2)pedirEliminarProduto(p2);
+    return;
   }
+  var tr=e.target.closest("tr[data-id]");
+  if(tr){
+    state.selId=+tr.dataset.id;
+    var rs=document.querySelectorAll("#pBody tr[data-id]");
+    for(var i=0;i<rs.length;i++)rs[i].classList.toggle("sel",rs[i]===tr);
+  }
+});
+$("pBody").addEventListener("dblclick",function(e){
+  var tr=e.target.closest("tr[data-id]");
+  if(tr)abrirEdicaoProduto(+tr.dataset.id);
+});
+$("fpDel").addEventListener("click",function(){
+  var p=state.produtos.find(function(x){return x.id===state.editId;});
+  if(p)pedirEliminarProduto(p);
 });
 $("fpSave").addEventListener("click",function(){
   var desc=$("fpDesc").value.trim(),classe=$("fpClasse").value.trim();
   if(!desc||!classe){toast("Preencha a descrição e a classe.","bad");return;}
-  var obj;
+  var obj,antes=null;
   if(state.editId){
     obj=state.produtos.find(function(x){return x.id===state.editId;});
     if(!obj){toast("Produto não encontrado.","bad");return;}
+    antes=JSON.parse(JSON.stringify(obj));
   }else{
     obj={codigo:nextCodigo(),criado:new Date().toISOString()};
   }
@@ -1111,7 +1307,9 @@ $("fpSave").addEventListener("click",function(){
   obj.fabricante=$("fpFab").value.trim();obj.fornecedor=$("fpForn").value.trim();
   obj.estado=$("fpEst").value;
   dbPut("produtos",obj,function(id){
-    if(!state.editId){obj.id=id;state.produtos.push(obj);}
+    if(!state.editId){obj.id=id;state.produtos.push(obj);state.undo.push({t:"novoProd",id:id});}
+    else state.undo.push({t:"editProd",antes:antes});
+    bumpAlt();
     closeOvl("ovlProd");toast("Produto guardado com sucesso.","ok");render();
   });
 });
@@ -1205,6 +1403,8 @@ $("fmSave").addEventListener("click",function(){
   tx.objectStore("produtos").put(p);
   tx.oncomplete=function(){
     state.movimentos.push(m);
+    state.undo.push({t:"mov",m:m,pid:pid,delta:delta});
+    bumpAlt();
     closeOvl("ovlMov");
     toast(ajuste?"Ajuste registado com sucesso.":(tipo==="entrada"?"Entrada registada com sucesso.":"Saída registada com sucesso."),"ok");
     render();
@@ -1213,6 +1413,115 @@ $("fmSave").addEventListener("click",function(){
     p.stock-=delta;
     toast("Erro ao gravar o movimento. Nada foi alterado.","bad");
   };
+});
+
+/* ===== DESFAZER (Ctrl+Z) ===== */
+function desfazer(){
+  var u=state.undo.pop();
+  if(!u){toast("Nada para desfazer.");return;}
+  if(u.t==="novoProd"){
+    dbDel("produtos",u.id,function(){
+      state.produtos=state.produtos.filter(function(x){return x.id!==u.id;});
+      if(state.selId===u.id)state.selId=null;
+      toast("Criação de produto anulada.","ok");render();
+    });
+  }else if(u.t==="editProd"){
+    dbPut("produtos",u.antes,function(){
+      var i=state.produtos.findIndex(function(x){return x.id===u.antes.id;});
+      if(i>=0)state.produtos[i]=u.antes;
+      toast("Edição de produto anulada.","ok");render();
+    });
+  }else if(u.t==="delProd"){
+    dbPut("produtos",u.p,function(){
+      state.produtos.push(u.p);
+      toast("Produto “"+u.p.descricao+"” recuperado.","ok");render();
+    });
+  }else if(u.t==="mov"){
+    var p=state.produtos.find(function(x){return x.id===u.pid;});
+    var tx=db.transaction(["movimentos","produtos"],"readwrite");
+    tx.objectStore("movimentos").delete(u.m.id);
+    if(p){p.stock-=u.delta;tx.objectStore("produtos").put(p);}
+    tx.oncomplete=function(){
+      state.movimentos=state.movimentos.filter(function(x){return x.id!==u.m.id;});
+      toast("Movimento anulado e stock reposto.","ok");render();
+    };
+    tx.onabort=function(){if(p)p.stock+=u.delta;state.undo.push(u);toast("Não foi possível desfazer.","bad");};
+  }
+}
+
+/* ===== TECLADO ===== */
+function copiarTexto(t){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){toast("Linha copiada.","ok");},function(){toast("Não foi possível copiar.","bad");});
+  }else{
+    var ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();
+    try{document.execCommand("copy");toast("Linha copiada.","ok");}catch(e){toast("Não foi possível copiar.","bad");}
+    ta.remove();
+  }
+}
+function copiarSel(){
+  var p=state.produtos.find(function(x){return x.id===state.selId;});
+  if(!p){toast("Seleccione uma linha primeiro.");return;}
+  copiarTexto([p.codigo,p.descricao,p.classe,p.apresentacao,p.unidade,p.stock].join("\t"));
+}
+function moverSel(dir){
+  var arr=prodFiltrados();
+  if(!arr.length)return;
+  var i=arr.findIndex(function(p){return p.id===state.selId;});
+  i=i<0?(dir>0?0:arr.length-1):Math.min(arr.length-1,Math.max(0,i+dir));
+  state.selId=arr[i].id;
+  renderProdutos();
+  var tr=document.querySelector("#pBody tr.sel");
+  if(tr&&tr.scrollIntoView)tr.scrollIntoView({block:"nearest"});
+}
+function ovlAberto(){
+  if($("ovlConf").classList.contains("on"))return $("ovlConf");
+  var os=document.querySelectorAll(".ovl.on");
+  return os.length?os[os.length-1]:null;
+}
+document.addEventListener("keydown",function(e){
+  var ae=document.activeElement,tag=ae?ae.tagName:"";
+  var typing=tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT";
+  var mod=e.ctrlKey||e.metaKey;
+  if(e.key==="Escape"){
+    var o=ovlAberto();
+    if(o){closeOvl(o.id);return;}
+    if($("drawer").classList.contains("on")){fecharMenu();return;}
+    if(typing)ae.blur();
+    return;
+  }
+  if(mod&&(e.key==="s"||e.key==="S")){
+    e.preventDefault();
+    var o2=ovlAberto();
+    if(o2&&o2.id==="ovlProd"){$("fpSave").click();}
+    else if(o2&&o2.id==="ovlMov"){$("fmSave").click();}
+    else criarBackup("Manual",function(){toast("Backup criado (Ctrl+S).","ok");});
+    return;
+  }
+  if(mod&&(e.key==="z"||e.key==="Z")&&!typing){e.preventDefault();desfazer();return;}
+  if(mod&&(e.key==="f"||e.key==="F")){
+    var s={prod:"pSearch",lot:"lSearch",mov:"mSearch"}[state.view];
+    if(s&&!ovlAberto()){e.preventDefault();$(s).focus();}
+    return;
+  }
+  if(typing||ovlAberto())return;
+  if(e.key==="/"){
+    var s2={prod:"pSearch",lot:"lSearch",mov:"mSearch"}[state.view];
+    if(s2){e.preventDefault();$(s2).focus();}
+    return;
+  }
+  if(state.view!=="prod")return;
+  if(e.key==="ArrowDown"){e.preventDefault();moverSel(1);}
+  else if(e.key==="ArrowUp"){e.preventDefault();moverSel(-1);}
+  else if((e.key==="Enter"||e.key==="F2")&&state.selId){e.preventDefault();abrirEdicaoProduto(state.selId);}
+  else if(e.key==="Delete"&&state.selId){
+    var p=state.produtos.find(function(x){return x.id===state.selId;});
+    if(p)pedirEliminarProduto(p);
+  }
+  else if(mod&&(e.key==="c"||e.key==="C")&&state.selId){
+    var selTxt=window.getSelection&&String(window.getSelection());
+    if(!selTxt){e.preventDefault();copiarSel();}
+  }
 });
 
 /* ===== FILTROS ===== */
@@ -1244,6 +1553,75 @@ $("lFiltro").addEventListener("change",renderLotes);
 $("rClasse").addEventListener("change",renderRelatorio);
 $("rTipo").addEventListener("change",renderRelatorio);
 $("rPer").addEventListener("change",perInit);
+
+/* ===== CÓPIA DE SEGURANÇA: EVENTOS ===== */
+$("drwBackup").addEventListener("click",function(){fecharMenu();renderBkpList();openOvl("ovlBkp");});
+$("drwKeys").addEventListener("click",function(){fecharMenu();openOvl("ovlKeys");});
+$("bkpCriar").addEventListener("click",function(){
+  criarBackup("Manual",function(){toast("Backup criado com sucesso.","ok");});
+});
+$("bkpExport").addEventListener("click",function(){
+  criarBackup("Manual",function(b){
+    descarregar(nomeBackup(b),ficheiroBackup(b),"application/json");
+    toast("Ficheiro de backup transferido.","ok");
+  });
+});
+$("bkpImport").addEventListener("click",function(){$("bkpFile").value="";$("bkpFile").click();});
+$("bkpFile").addEventListener("change",function(){
+  var f=this.files[0];
+  if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    var v=validarBackup(String(r.result));
+    if(v.erro){toast(v.erro,"bad");return;}
+    pedirRestauro(v,"ficheiro "+f.name);
+  };
+  r.onerror=function(){toast("Não foi possível ler o ficheiro.","bad");};
+  r.readAsText(f);
+});
+$("bkpList").addEventListener("click",function(e){
+  var res=e.target.closest("[data-bres]"),dl=e.target.closest("[data-bdl]"),del=e.target.closest("[data-bdel]");
+  var id=res?+res.dataset.bres:dl?+dl.dataset.bdl:del?+del.dataset.bdel:0;
+  if(!id)return;
+  dbAll("backups",function(bs){
+    var b=null;
+    bs.forEach(function(x){if(x.id===id)b=x;});
+    if(!b)return;
+    if(dl){
+      descarregar(nomeBackup(b),ficheiroBackup(b),"application/json");
+      toast("Backup transferido para o computador.","ok");
+    }else if(res){
+      var d;
+      try{d=JSON.parse(b.body);}catch(err){toast("Backup corrompido — não é possível restaurar.","bad");return;}
+      if(!d||!Array.isArray(d.produtos)||!Array.isArray(d.movimentos)){toast("Backup corrompido — não é possível restaurar.","bad");return;}
+      pedirRestauro({dados:d,criado:b.criado,nProd:b.nProd,nMov:b.nMov},"histórico deste dispositivo");
+    }else if(del){
+      $("confMsg").textContent="Eliminar o backup de "+dtHora(b.criado)+" ("+esc(b.tipo)+")?";
+      $("confYes").textContent="Eliminar";
+      $("confYes").onclick=function(){
+        dbDel("backups",id,function(){closeOvl("ovlConf");renderBkpList();toast("Backup eliminado.","ok");});
+      };
+      openOvl("ovlConf");
+    }
+  });
+});
+$("bkpCsvProd").addEventListener("click",function(){
+  var rows=[["Código","Descrição","Classe","Apresentação","Unidade","Stock","Stock mínimo","Stock máximo","Código de barras","Fabricante","Fornecedor","Estado"]];
+  state.produtos.forEach(function(p){
+    rows.push([p.codigo,p.descricao,p.classe,p.apresentacao,p.unidade,p.stock,p.stockMin,p.stockMax||"",p.codBarras||"",p.fabricante||"",p.fornecedor||"",p.estado]);
+  });
+  descarregar("zelo_farmacia_produtos_"+hoje()+".csv",csvStr(rows),"text/csv;charset=utf-8");
+  toast("CSV de produtos transferido.","ok");
+});
+$("bkpCsvMov").addEventListener("click",function(){
+  var rows=[["Data","Hora","Tipo","Ajuste","Motivo","Código","Produto","Quantidade","Lote","Validade","Fornecedor","Serviço destino","Dispensa","Paciente","N.º processo","Responsável","Observações"]];
+  state.movimentos.slice().sort(function(a,b){return a.registado<b.registado?-1:1;}).forEach(function(m){
+    var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
+    rows.push([fmtPt(m.data),movHora(m),m.tipo==="entrada"?"Entrada":"Saída",m.ajuste?"Sim":"Não",m.motivo||"",p.codigo||"",p.descricao||"",m.qtd,m.lote||"",m.validade||"",m.fornecedor||"",m.destino||"",m.dispensa||"",m.paciente||"",m.processo||"",m.responsavel||"",m.obs||""]);
+  });
+  descarregar("zelo_farmacia_movimentos_"+hoje()+".csv",csvStr(rows),"text/csv;charset=utf-8");
+  toast("CSV de movimentos transferido.","ok");
+});
 
 /* ===== IMPRESSÃO DOS RELATÓRIOS ===== */
 $("btnPdfProd").addEventListener("click",function(){
@@ -1322,6 +1700,7 @@ function boot(){
             $("ftAno").textContent=new Date().getFullYear();
             perInit();
             render();
+            autoBackupBoot();
             setInterval(renderHeader,30000);
           },450);
         });
