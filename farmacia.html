@@ -109,6 +109,12 @@ tbody tr:nth-child(even){background:#f8fbfd}
 #pBody tr.grp .grpAdd{margin-left:10px;background:var(--cyan);color:#06303f;border-radius:7px;padding:4px 11px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;gap:5px;letter-spacing:.3px;text-transform:none;vertical-align:middle;cursor:pointer}
 #pBody tr.grp .grpAdd:active{transform:scale(.96)}
 #pBody tr.grp .grpAdd .svgi{width:13px;height:13px;stroke-width:3}
+#plBody tr.grp,#plBody tr.grp:nth-child(even){background:linear-gradient(135deg,var(--navy),var(--navy2));cursor:default}
+#plBody tr.grp td{color:#fff;font-weight:800;font-size:12.5px;text-transform:uppercase;letter-spacing:.9px;padding:11px 12px;border-top:3px solid var(--cyan);border-bottom:none}
+#plBody tr.grp td small{color:#bcd7ea;font-weight:700;text-transform:none;letter-spacing:0}
+.planoq{width:90px;padding:7px 9px;border:1.5px solid var(--line);border-radius:8px;text-align:right;font-weight:700;color:var(--navy2);background:#fff}
+.planoq:focus{outline:2px solid var(--cyan);outline-offset:1px;border-color:var(--cyan)}
+.planoq::placeholder{color:#c3d0dc;font-weight:400}
 td.num{text-align:right;font-weight:600}
 .tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .tag.ok{background:#e3f6ec;color:var(--ok)}.tag.warn{background:#fdf3d7;color:#9a7500}
@@ -355,6 +361,29 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
       </table></div>
     </section>
 
+    <section class="view" id="v-plano">
+      <div class="card" style="margin-bottom:12px">
+        <div class="lb">Plano de consumo mensal</div>
+        <div class="vl" id="plMesLbl" style="font-size:20px">—</div>
+        <div class="hint">Quantidade de cada fármaco/material que a farmácia irá necessitar, organizada por classe</div>
+      </div>
+      <div class="tools">
+        <input type="month" id="plMes" style="flex:1;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px">
+        <button class="btn btn-g" id="plCopiar">Copiar mês anterior</button>
+        <button class="btn btn-p" id="plGuardar"><svg class="svgi" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Guardar</button>
+        <button class="btn btn-g" id="btnPdfPlano"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>Imprimir / PDF</button>
+      </div>
+      <div class="tools">
+        <input type="search" id="plSearch" placeholder="Pesquisar descrição, código ou classe…">
+      </div>
+      <div class="sumbar" id="plSum"></div>
+      <div class="tblwrap"><table>
+        <thead><tr><th>Código</th><th>Descrição</th><th>Classe</th><th>Apresent.</th><th>Un.</th><th style="text-align:right">Qtd. necessária</th></tr></thead>
+        <tbody id="plBody"></tbody>
+      </table>
+      <div class="foot"><span id="plFoot"></span><span>Plano de Consumo Mensal</span></div></div>
+    </section>
+
     <footer class="pagefoot">
       <div class="pf-b">ZEL<i>O</i></div>
       <div>Sistema Estatístico e Gestão de Ocorrências</div>
@@ -387,6 +416,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
   <button class="drw-it" data-nav="prod"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>Produtos</button>
   <button class="drw-it" data-nav="lot"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v4l-8 4-8-4V7l8-4z"/><path d="M4 13v4l8 4 8-4v-4"/></svg>Gestão de Lotes</button>
   <button class="drw-it" data-nav="rel"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Relatórios</button>
+  <button class="drw-it" data-nav="plano"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v4h8V3M8 12h8M8 16h5"/></svg>Plano de Consumo Mensal</button>
   <div class="drw-sec">Administração · Registos</div>
   <button class="drw-it" id="drwNovoProd"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Registar novo produto<span class="bdg">›</span></button>
   <button class="drw-it" id="drwEntrada"><svg viewBox="0 0 24 24"><path d="M12 19V5M12 5l-5 5M12 5l5 5"/></svg>Registar entrada<span class="bdg">›</span></button>
@@ -639,11 +669,11 @@ var CATALOGO=[
 ];
 
 /* ===== ESTADO GLOBAL ===== */
-var state={produtos:[],movimentos:[],view:"dash",filtro:{q:"",classe:"",sortK:"codigo",sortDir:1},movTipo:null,editId:null,selId:null,undo:[]};
+var state={produtos:[],movimentos:[],view:"dash",filtro:{q:"",classe:"",sortK:"codigo",sortDir:1},movTipo:null,editId:null,selId:null,undo:[],planoMes:null,planoItens:{}};
 var mLimit=100;
 
 /* ===== BASE DE DADOS (compatível com a v4: zelo_farmacia_v3) ===== */
-var DB_NAME="zelo_farmacia_v3",DB_VER=2,db=null;
+var DB_NAME="zelo_farmacia_v3",DB_VER=3,db=null;
 function dbOpen(cb){
   var req=indexedDB.open(DB_NAME,DB_VER);
   req.onupgradeneeded=function(e){
@@ -651,6 +681,7 @@ function dbOpen(cb){
     if(!d.objectStoreNames.contains("produtos"))d.createObjectStore("produtos",{keyPath:"id",autoIncrement:true});
     if(!d.objectStoreNames.contains("movimentos"))d.createObjectStore("movimentos",{keyPath:"id",autoIncrement:true});
     if(!d.objectStoreNames.contains("backups"))d.createObjectStore("backups",{keyPath:"id",autoIncrement:true});
+    if(!d.objectStoreNames.contains("planos"))d.createObjectStore("planos",{keyPath:"mes"});
   };
   req.onsuccess=function(e){db=e.target.result;cb();};
   req.onerror=function(){
@@ -670,6 +701,10 @@ function dbPut(store,obj,cb){
 function dbDel(store,id,cb){
   var r=db.transaction(store,"readwrite").objectStore(store).delete(id);
   r.onsuccess=function(){if(cb)cb();};
+}
+function dbGet(store,key,cb){
+  var r=db.transaction(store,"readonly").objectStore(store).get(key);
+  r.onsuccess=function(e){cb(e.target.result);};
 }
 function pad4(n){return("0000"+n).slice(-4);}
 var SEQ_KEY="zelo_farm_seq";
@@ -936,7 +971,7 @@ function imprimirSec(titulo,secoes,totalRegistos,opts){
 }
 
 /* ===== RENDER MANAGER ===== */
-var TITULOS={dash:"Painel Geral",dia:"Registo Diário",prod:"Registo de Produtos",lot:"Gestão de Lotes",mov:"Entradas e Saídas",rel:"Relatórios · Diário a Anual"};
+var TITULOS={dash:"Painel Geral",dia:"Registo Diário",prod:"Registo de Produtos",lot:"Gestão de Lotes",mov:"Entradas e Saídas",rel:"Relatórios · Diário a Anual",plano:"Plano de Consumo Mensal"};
 function render(){
   renderHeader();
   if(state.view==="dash")renderDash();
@@ -945,6 +980,7 @@ function render(){
   if(state.view==="lot")renderLotes();
   if(state.view==="mov")renderMovimentos();
   if(state.view==="rel")renderRelatorio();
+  if(state.view==="plano")renderPlano();
 }
 function renderHeader(){
   $("hdrMod").textContent=TITULOS[state.view];
@@ -1326,6 +1362,116 @@ function renderRelatorio(){
   }).join(""):"<tr><td colspan='"+d.head.length+"'><div class='empty'><div class='big'>"+ICO.folder+"</div>Sem dados para o período seleccionado.</div></td></tr>";
 }
 
+/* ===== PLANO DE CONSUMO MENSAL ===== */
+function mesAnt(mes){
+  var p=mes.split("-"),d=new Date(+p[0],+p[1]-2,1);
+  return d.getFullYear()+"-"+pad2(d.getMonth()+1);
+}
+function planoProdutos(q){
+  var arr=state.produtos.filter(function(p){return p.estado!=="Inativo";});
+  if(q){
+    q=q.toLowerCase();
+    arr=arr.filter(function(p){return(p.descricao+" "+p.codigo+" "+p.classe).toLowerCase().indexOf(q)>=0;});
+  }
+  var ord=classeOrdem();
+  arr.sort(function(a,b){return(ord[a.classe]||0)-(ord[b.classe]||0)||a.id-b.id;});
+  return arr;
+}
+function planoTotais(){
+  var n=0,tot=0;
+  for(var k in state.planoItens){var v=+state.planoItens[k]||0;if(v>0){n++;tot+=v;}}
+  return{n:n,tot:tot};
+}
+function atualizarPlanoResumo(){
+  var mes=state.planoMes||hoje().slice(0,7),t=planoTotais(),lbl=mesLabel(mes);
+  $("plMesLbl").textContent=lbl;
+  $("plSum").innerHTML='<span class="chip">'+esc(lbl)+'</span><span class="chip n">Itens planeados: '+fmt(t.n)+'</span><span class="chip n">Quantidade total: '+fmt(t.tot)+'</span>';
+  $("plFoot").textContent="Plano de "+lbl+" · "+fmt(t.n)+" de "+fmt(state.produtos.length)+" itens com quantidade definida";
+}
+function renderPlanoTabela(){
+  var q=($("plSearch").value||"").trim();
+  var arr=planoProdutos(q);
+  if(!arr.length){
+    $("plBody").innerHTML="<tr><td colspan='6'><div class='empty'><div class='big'>"+ICO.folder+"</div>Nenhum produto encontrado com estes critérios.</div></td></tr>";
+  }else{
+    var contagem={};arr.forEach(function(p){contagem[p.classe]=(contagem[p.classe]||0)+1;});
+    $("plBody").innerHTML=prodAgrupados(arr).map(function(p){
+      if(p.grp!=null)return"<tr class='grp'><td colspan='6'>"+esc(p.grp)+" <small>("+fmt(contagem[p.grp])+")</small></td></tr>";
+      var v=state.planoItens[p.id];
+      return"<tr><td>"+esc(p.codigo)+"</td><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td>"+esc(p.apresentacao)+"</td><td>"+esc(p.unidade)+"</td><td class='num'><input class='planoq' type='number' min='0' step='1' inputmode='numeric' placeholder='0' data-pid='"+p.id+"' value='"+(v==null?"":v)+"'></td></tr>";
+    }).join("");
+  }
+  atualizarPlanoResumo();
+}
+function planoGuardar(cb){
+  var mes=state.planoMes||$("plMes").value||hoje().slice(0,7);
+  dbPut("planos",{mes:mes,itens:state.planoItens,atualizado:new Date().toISOString()},function(){if(cb)cb();});
+}
+var planoSaveT=null;
+function planoSaveDebounced(){
+  clearTimeout(planoSaveT);
+  planoSaveT=setTimeout(function(){planoGuardar();},700);
+}
+function renderPlano(){
+  var mes=$("plMes").value||state.planoMes||hoje().slice(0,7);
+  $("plMes").value=mes;
+  if(state.planoMes===mes){renderPlanoTabela();return;}
+  state.planoMes=mes;
+  dbGet("planos",mes,function(rec){
+    state.planoItens=(rec&&rec.itens)?rec.itens:{};
+    if(state.view==="plano")renderPlanoTabela();
+  });
+}
+$("plBody").addEventListener("input",function(e){
+  var inp=e.target.closest(".planoq");
+  if(!inp)return;
+  var pid=inp.dataset.pid,v=inp.value;
+  if(v==="")delete state.planoItens[pid];
+  else state.planoItens[pid]=Math.max(0,Math.floor(+v||0));
+  atualizarPlanoResumo();
+  planoSaveDebounced();
+});
+$("plMes").addEventListener("change",function(){
+  clearTimeout(planoSaveT);
+  planoGuardar(function(){renderPlano();});
+});
+var plSearchT=null;
+$("plSearch").addEventListener("input",function(){
+  clearTimeout(plSearchT);
+  plSearchT=setTimeout(function(){renderPlanoTabela();},180);
+});
+$("plGuardar").addEventListener("click",function(){
+  clearTimeout(planoSaveT);
+  planoGuardar(function(){toast("Plano de "+mesLabel(state.planoMes)+" guardado.","ok");});
+});
+$("plCopiar").addEventListener("click",function(){
+  var ant=mesAnt(state.planoMes||$("plMes").value||hoje().slice(0,7));
+  dbGet("planos",ant,function(rec){
+    if(!rec||!rec.itens||!Object.keys(rec.itens).length){toast("Sem plano guardado em "+mesLabel(ant)+".","bad");return;}
+    var copia={};
+    for(var k in rec.itens)copia[k]=rec.itens[k];
+    state.planoItens=copia;
+    renderPlanoTabela();
+    planoSaveDebounced();
+    toast("Copiado o plano de "+mesLabel(ant)+".","ok");
+  });
+});
+$("btnPdfPlano").addEventListener("click",function(){
+  var arr=planoProdutos(($("plSearch").value||"").trim());
+  var classes=[],vistos={};
+  arr.forEach(function(p){if(!vistos[p.classe]){vistos[p.classe]=1;classes.push(p.classe);}});
+  var t=planoTotais();
+  var secoes=classes.map(function(cl){
+    var itens=arr.filter(function(p){return p.classe===cl;});
+    var subtot=itens.reduce(function(a,p){return a+(+state.planoItens[p.id]||0);},0);
+    return{titulo:cl+" ("+itens.length+" itens · "+fmt(subtot)+" unid. planeadas)",
+      head:["Código","Descrição","Apresentação","Quantidade","Un."],
+      rows:itens.map(function(p){return[p.codigo,p.descricao,p.apresentacao,fmt(+state.planoItens[p.id]||0),p.unidade];})};
+  });
+  imprimirSec("Plano de Consumo Mensal · "+mesLabel(state.planoMes||$("plMes").value),secoes,arr.length,
+    {chips:["Itens planeados: "+fmt(t.n),"Quantidade total: "+fmt(t.tot)],sign:true});
+});
+
 /* ===== NAVEGAÇÃO ===== */
 var navBtns=document.querySelectorAll("nav.bottom button");
 var drwNavBtns=document.querySelectorAll("#drawer [data-nav]");
@@ -1640,18 +1786,19 @@ document.addEventListener("keydown",function(e){
     var o2=ovlAberto();
     if(o2&&o2.id==="ovlProd"){$("fpSave").click();}
     else if(o2&&o2.id==="ovlMov"){$("fmSave").click();}
+    else if(!o2&&state.view==="plano"){$("plGuardar").click();}
     else criarBackup("Manual",function(){toast("Backup criado (Ctrl+S).","ok");});
     return;
   }
   if(mod&&(e.key==="z"||e.key==="Z")&&!typing){e.preventDefault();desfazer();return;}
   if(mod&&(e.key==="f"||e.key==="F")){
-    var s={prod:"pSearch",lot:"lSearch",mov:"mSearch"}[state.view];
+    var s={prod:"pSearch",lot:"lSearch",mov:"mSearch",plano:"plSearch"}[state.view];
     if(s&&!ovlAberto()){e.preventDefault();$(s).focus();}
     return;
   }
   if(typing||ovlAberto())return;
   if(e.key==="/"){
-    var s2={prod:"pSearch",lot:"lSearch",mov:"mSearch"}[state.view];
+    var s2={prod:"pSearch",lot:"lSearch",mov:"mSearch",plano:"plSearch"}[state.view];
     if(s2){e.preventDefault();$(s2).focus();}
     return;
   }
@@ -1884,6 +2031,7 @@ function boot(){
             $("app").classList.add("on");
             $("mData").value=hoje();
             $("gData").value=hoje();
+            $("plMes").value=hoje().slice(0,7);
             $("ftAno").textContent=new Date().getFullYear();
             perInit();
             render();
