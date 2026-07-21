@@ -103,9 +103,12 @@ tbody td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13.5px;v
 tbody tr:nth-child(even){background:#f8fbfd}
 #pBody tr{cursor:pointer}
 #pBody tr.sel,#pBody tr.sel:nth-child(even){background:#dff3f7;box-shadow:inset 3px 0 0 var(--cyan)}
-#pBody tr.grp,#pBody tr.grp:nth-child(even){background:#e8eef6;cursor:default}
-#pBody tr.grp td{color:var(--navy2);font-weight:800;font-size:11.5px;text-transform:uppercase;letter-spacing:.8px;border-top:2px solid #c3d4e4;padding:8px 10px}
-#pBody tr.grp td small{color:var(--mut);font-weight:600;text-transform:none;letter-spacing:0}
+#pBody tr.grp,#pBody tr.grp:nth-child(even){background:linear-gradient(135deg,var(--navy),var(--navy2));cursor:default}
+#pBody tr.grp td{color:#fff;font-weight:800;font-size:12.5px;text-transform:uppercase;letter-spacing:.9px;padding:11px 12px;border-top:3px solid var(--cyan);border-bottom:none}
+#pBody tr.grp td small{color:#bcd7ea;font-weight:700;text-transform:none;letter-spacing:0;margin-right:10px}
+#pBody tr.grp .grpAdd{margin-left:10px;background:var(--cyan);color:#06303f;border-radius:7px;padding:4px 11px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;gap:5px;letter-spacing:.3px;text-transform:none;vertical-align:middle;cursor:pointer}
+#pBody tr.grp .grpAdd:active{transform:scale(.96)}
+#pBody tr.grp .grpAdd .svgi{width:13px;height:13px;stroke-width:3}
 td.num{text-align:right;font-weight:600}
 .tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .tag.ok{background:#e3f6ec;color:var(--ok)}.tag.warn{background:#fdf3d7;color:#9a7500}
@@ -203,7 +206,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
   <main>
     <section class="view on" id="v-dash">
       <div class="grid">
-        <div class="card"><div class="lb">Produtos registados</div><div class="vl" id="dTot">—</div><div class="hint">catálogo activo</div></div>
+        <div class="card"><div class="lb">Produtos registados</div><div class="vl" id="dTot">—</div><div class="hint" id="dTotHint">catálogo activo</div></div>
         <div class="card k-ok"><div class="lb">Unidades em stock</div><div class="vl" id="dStockU">—</div><div class="hint">total que ficou disponível</div></div>
         <div class="card k-ok"><div class="lb">Entradas hoje</div><div class="vl" id="dIn">—</div><div class="hint" id="dInQ"></div></div>
         <div class="card k-bad"><div class="lb">Saídas hoje</div><div class="vl" id="dOut">—</div><div class="hint" id="dOutQ"></div></div>
@@ -269,6 +272,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
       <div class="tools">
         <input type="date" id="gData" style="flex:1;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px">
         <button class="btn btn-g" id="btnDiaHoje">Hoje</button>
+        <button class="btn btn-c" id="btnDiaNovoProd"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo produto/fármaco/material</button>
         <button class="btn btn-g" id="btnPdfDia"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>Imprimir</button>
       </div>
       <div class="grid" style="margin-bottom:12px">
@@ -278,6 +282,11 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
         <div class="card"><div class="lb">Ficaram em stock</div><div class="vl" id="gStock">—</div><div class="hint">unidades no fim do dia</div></div>
       </div>
       <div class="sumbar" id="gSum"></div>
+      <h2 class="sec">Novos produtos, fármacos e materiais registados</h2>
+      <div class="tblwrap"><table>
+        <thead><tr><th>N.º</th><th>Código</th><th>Descrição</th><th>Classe</th><th>Apresent.</th><th style="text-align:right">Stock inicial</th><th>Un.</th></tr></thead>
+        <tbody id="gBodyN"></tbody>
+      </table></div>
       <h2 class="sec">Secção 1 · Entradas</h2>
       <div class="tblwrap"><table>
         <thead><tr><th>N.º</th><th>Hora</th><th>Produto</th><th style="text-align:right">Qtd</th><th>Lote</th><th>Validade</th><th>Fornecedor</th><th>Responsável</th></tr></thead>
@@ -705,7 +714,8 @@ var ICO={
  restore:'<svg class="svgi" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/></svg>',
  dl:'<svg class="svgi" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>',
  box:'<svg class="svgi" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>',
- folder:'<svg class="svgi" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'
+ folder:'<svg class="svgi" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+ plus:'<svg class="svgi" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
 };
 var MESES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 var toastT=null;
@@ -949,6 +959,8 @@ function renderDash(){
   var ent=mh.filter(function(m){return m.tipo==="entrada";});
   var sai=mh.filter(function(m){return m.tipo==="saida";});
   $("dTot").textContent=fmt(ps.length);
+  var novosHoje=ps.filter(function(p){return p.criado&&p.criado.slice(0,10)===h;}).length;
+  $("dTotHint").textContent=novosHoje?fmt(novosHoje)+" novo(s) hoje · catálogo activo":"catálogo activo";
   $("dStockU").textContent=fmt(ps.reduce(function(a,p){return a+(p.stock||0);},0));
   $("dIn").textContent=fmt(ent.length);
   $("dInQ").textContent=fmt(ent.reduce(function(a,m){return a+m.qtd;},0))+" unidades";
@@ -1076,7 +1088,7 @@ function renderProdutos(){
   }else{
     var contagem={};arr.forEach(function(p){contagem[p.classe]=(contagem[p.classe]||0)+1;});
     $("pBody").innerHTML=prodAgrupados(arr).map(function(p){
-      if(p.grp!=null)return"<tr class='grp'><td colspan='8'>"+esc(p.grp)+" <small>("+fmt(contagem[p.grp])+")</small></td></tr>";
+      if(p.grp!=null)return"<tr class='grp'><td colspan='8'>"+esc(p.grp)+" <small>("+fmt(contagem[p.grp])+")</small><button class='grpAdd' data-addclasse=\""+esc(p.grp)+"\">"+ICO.plus+"Adicionar item</button></td></tr>";
       return"<tr data-id='"+p.id+"'"+(p.id===state.selId?" class='sel'":"")+"><td>"+esc(p.codigo)+"</td><td>"+esc(p.descricao)+"</td><td>"+esc(p.classe)+"</td><td>"+esc(p.apresentacao)+"</td><td>"+esc(p.unidade)+"</td><td class='num'>"+fmt(p.stock)+"</td><td>"+stTag(p,mv[p.id])+"</td><td><div class='rowbtns'><button class='ic' data-edit='"+p.id+"' title='Editar'>"+ICO.pencil+"</button><button class='ic del' data-del='"+p.id+"' title='Eliminar'>"+ICO.trash+"</button></div></td></tr>";
     }).join("");
   }
@@ -1117,17 +1129,21 @@ function movHora(m){return new Date(m.registado).toLocaleTimeString("pt-PT",{hou
 function movProd(m){return(state.produtos.find(function(x){return x.id===m.produtoId;})||{}).descricao||"—";}
 function diaSecoes(d){
   var arr=movsDia(d);
+  var novos=state.produtos.filter(function(p){return p.criado&&p.criado.slice(0,10)===d;})
+    .sort(function(a,b){return a.criado<b.criado?-1:1;});
   return{
     todos:arr,
+    novos:novos,
     ent:arr.filter(function(m){return m.tipo==="entrada"&&!m.ajuste;}),
     sai:arr.filter(function(m){return m.tipo==="saida"&&!m.ajuste;}),
     aj:arr.filter(function(m){return m.ajuste;})
   };
 }
-function secRows(arr,cols,vazio,nCols){
+function secRows(arr,cols,vazio,nCols,numIdx){
+  numIdx=numIdx||[2];
   if(!arr.length)return"<tr><td colspan='"+nCols+"'><div class='empty' style='padding:18px'>"+vazio+"</div></td></tr>";
   return arr.map(function(m,i){
-    return"<tr><td class='num'>"+(i+1)+"</td>"+cols(m).map(function(c,ci){return"<td"+(ci===2?" class='num'":"")+">"+c+"</td>";}).join("")+"</tr>";
+    return"<tr><td class='num'>"+(i+1)+"</td>"+cols(m).map(function(c,ci){return"<td"+(numIdx.indexOf(ci)>=0?" class='num'":"")+">"+c+"</td>";}).join("")+"</tr>";
   }).join("");
 }
 function renderDia(){
@@ -1145,7 +1161,10 @@ function renderDia(){
   $("gStock").textContent=fmt(totalStock-depois);
   var servs={};
   s.sai.forEach(function(m){if(m.destino)servs[m.destino]=1;});
-  $("gSum").innerHTML='<span class="chip">'+fmtPt(d)+'</span><span class="chip n">Registos: '+fmt(s.todos.length)+'</span><span class="chip n">Serviços atendidos: '+fmt(Object.keys(servs).length)+'</span>';
+  $("gSum").innerHTML='<span class="chip">'+fmtPt(d)+'</span><span class="chip n">Registos: '+fmt(s.todos.length)+'</span><span class="chip n">Serviços atendidos: '+fmt(Object.keys(servs).length)+'</span><span class="chip n">Novos itens do catálogo: '+fmt(s.novos.length)+'</span>';
+  $("gBodyN").innerHTML=secRows(s.novos,function(p){
+    return[esc(p.codigo),esc(p.descricao),esc(p.classe),esc(p.apresentacao),fmt(p.stock),esc(p.unidade)];
+  },"Sem novos produtos, fármacos ou materiais registados em "+fmtPt(d)+".",7,[4]);
   $("gBodyE").innerHTML=secRows(s.ent,function(m){
     return[movHora(m),esc(movProd(m)),fmt(m.qtd),esc(m.lote||"—"),m.validade||"—",esc(m.fornecedor||"—"),esc(m.responsavel||"—")];
   },"Sem entradas em "+fmtPt(d)+".",8);
@@ -1346,15 +1365,18 @@ document.addEventListener("click",function(e){
 });
 
 /* ===== PRODUTO: NOVO / EDITAR / ELIMINAR ===== */
-$("btnNovoProd").addEventListener("click",function(){
+function abrirNovoProduto(classePreset){
   state.editId=null;
-  $("mpTitle").textContent="Novo produto";
+  $("mpTitle").textContent=classePreset?"Novo item · "+classePreset:"Novo produto";
   ["fpDesc","fpClasse","fpMin","fpStock","fpMax","fpSeg","fpCodB","fpFab","fpForn"].forEach(function(i){$(i).value="";});
   $("fpApres").value="Injectáveis";$("fpUnid").value="Amp";$("fpRec").value="Não";$("fpEst").value="Ativo";
   $("fpStock").disabled=false;$("fpStockLb").textContent="Stock inicial";
   $("fpDel").style.display="none";
+  if(classePreset)$("fpClasse").value=classePreset;
   openOvl("ovlProd");
-});
+  $("fpDesc").focus();
+}
+$("btnNovoProd").addEventListener("click",function(){abrirNovoProduto();});
 function abrirEdicaoProduto(id){
   var p=state.produtos.find(function(x){return x.id===id;});
   if(!p)return;
@@ -1386,7 +1408,8 @@ function pedirEliminarProduto(p){
   openOvl("ovlConf");
 }
 $("pBody").addEventListener("click",function(e){
-  var ed=e.target.closest("[data-edit]"),dl=e.target.closest("[data-del]");
+  var ed=e.target.closest("[data-edit]"),dl=e.target.closest("[data-del]"),ac=e.target.closest("[data-addclasse]");
+  if(ac){abrirNovoProduto(ac.dataset.addclasse);return;}
   if(ed){abrirEdicaoProduto(+ed.dataset.edit);return;}
   if(dl){
     var p2=state.produtos.find(function(x){return x.id===+dl.dataset.del;});
@@ -1670,6 +1693,7 @@ $("mList").addEventListener("click",function(e){
 });
 $("gData").addEventListener("change",renderDia);
 $("btnDiaHoje").addEventListener("click",function(){$("gData").value=hoje();renderDia();});
+$("btnDiaNovoProd").addEventListener("click",function(){abrirNovoProduto();});
 $("lSearch").addEventListener("input",function(){renderLotes();});
 $("lFiltro").addEventListener("change",renderLotes);
 $("rClasse").addEventListener("change",renderRelatorio);
@@ -1797,6 +1821,9 @@ $("btnPdfDia").addEventListener("click",function(){
   var d=$("gData").value||hoje();
   var s=diaSecoes(d);
   imprimirSec("Registo Diário · "+fmtPt(d),[
+    {titulo:"Novos produtos, fármacos e materiais registados ("+s.novos.length+")",
+     head:["N.º","Código","Descrição","Classe","Apresent.","Stock inicial","Un."],
+     rows:s.novos.map(function(p,i){return[String(i+1),p.codigo,p.descricao,p.classe,p.apresentacao,fmt(p.stock),p.unidade];})},
     {titulo:"Secção 1 · Entradas ("+s.ent.length+")",
      head:["N.º","Hora","Produto","Qtd","Lote","Validade","Fornecedor","Responsável"],
      rows:s.ent.map(function(m,i){return[String(i+1),movHora(m),movProd(m),fmt(m.qtd),m.lote||"—",m.validade||"—",m.fornecedor||"—",m.responsavel||"—"];})},
@@ -1809,7 +1836,8 @@ $("btnPdfDia").addEventListener("click",function(){
      head:["N.º","Hora","Produto","Qtd","Lote","Motivo","Responsável"],
      rows:s.aj.map(function(m,i){return[String(i+1),movHora(m),movProd(m),(m.tipo==="entrada"?"+":"−")+fmt(m.qtd),m.lote||"—",m.motivo||"—",m.responsavel||"—"];})}
   ],s.todos.length,
-  {chips:["Entraram: "+fmt(s.ent.reduce(function(a,m){return a+m.qtd;},0))+" unid.",
+  {chips:["Novos itens do catálogo: "+fmt(s.novos.length),
+          "Entraram: "+fmt(s.ent.reduce(function(a,m){return a+m.qtd;},0))+" unid.",
           "Saíram: "+fmt(s.sai.reduce(function(a,m){return a+m.qtd;},0))+" unid.",
           "Ajustes: "+fmt(s.aj.length),
           "Registos: "+fmt(s.todos.length)],sign:true});
