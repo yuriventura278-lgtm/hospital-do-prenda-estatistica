@@ -478,11 +478,22 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
       Backup automático diário e a cada 30 registos. São mantidas as últimas <b>10 versões</b> neste dispositivo.
       Transfira regularmente um ficheiro para o computador ou disco externo — se o dispositivo avariar, basta importar o ficheiro para recuperar tudo.
     </p>
+    <h2 class="sec" style="margin:8px 2px 4px">Backup geral · base de dados completa</h2>
     <div class="tools" style="margin:0 0 6px">
       <button class="btn btn-p" id="bkpCriar" style="flex:1;justify-content:center">💾 Criar backup agora</button>
       <button class="btn btn-c" id="bkpExport" style="flex:1;justify-content:center">⭳ Exportar ficheiro</button>
       <button class="btn btn-g" id="bkpImport" style="flex:1;justify-content:center">⭱ Importar / Restaurar</button>
     </div>
+    <h2 class="sec" style="margin:10px 2px 4px">Backup mensal · movimentos do mês</h2>
+    <p style="color:var(--mut);font-size:11.5px;line-height:1.5;margin:0 0 6px">
+      Arquivo do mês escolhido (produtos + movimentos desse mês). Criado também automaticamente no início de cada mês, com o mês anterior. São mantidas <b>12 versões mensais</b>.
+    </p>
+    <div class="tools" style="margin:0 0 6px">
+      <input type="month" id="bkpMes" style="flex:1.2;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px">
+      <button class="btn btn-p" id="bkpMesCriar" style="flex:1;justify-content:center">💾 Guardar mês</button>
+      <button class="btn btn-c" id="bkpMesExp" style="flex:1;justify-content:center">⭳ Transferir mês</button>
+    </div>
+    <h2 class="sec" style="margin:10px 2px 4px">Exportar dados (CSV / Excel)</h2>
     <div class="tools" style="margin:0 0 4px">
       <button class="btn btn-g" id="bkpCsvProd" style="flex:1;justify-content:center">📄 CSV Produtos</button>
       <button class="btn btn-g" id="bkpCsvMov" style="flex:1;justify-content:center">📄 CSV Movimentos</button>
@@ -716,7 +727,7 @@ function valTag(d){
 }
 
 /* ===== CÓPIA DE SEGURANÇA ===== */
-var BKP_MAX=10,ALT_KEY="zelo_farm_alt";
+var BKP_MAX=10,BKP_MAX_MES=12,ALT_KEY="zelo_farm_alt",MES_KEY="zelo_farm_bkpmes";
 function hash32(s){
   var h=0x811c9dc5;
   for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h+(h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24))>>>0;}
@@ -734,12 +745,38 @@ function criarBackup(tipo,cb){
     });
   });
 }
+function ehMensal(b){return String(b.tipo||"").indexOf("Mensal")===0;}
 function podarBackups(cb){
   dbAll("backups",function(bs){
     bs.sort(function(a,b){return a.criado<b.criado?-1:1;});
-    var extra=bs.length-BKP_MAX,n=0;
-    if(extra<=0){if(cb)cb();return;}
-    for(var i=0;i<extra;i++)dbDel("backups",bs[i].id,function(){if(++n>=extra&&cb)cb();});
+    var gerais=bs.filter(function(b){return!ehMensal(b);});
+    var mensais=bs.filter(ehMensal);
+    var del=[];
+    if(gerais.length>BKP_MAX)del=del.concat(gerais.slice(0,gerais.length-BKP_MAX));
+    if(mensais.length>BKP_MAX_MES)del=del.concat(mensais.slice(0,mensais.length-BKP_MAX_MES));
+    if(!del.length){if(cb)cb();return;}
+    var n=0;
+    del.forEach(function(b){dbDel("backups",b.id,function(){if(++n>=del.length&&cb)cb();});});
+  });
+}
+function mesLabel(mes){var pm=mes.split("-");return MESES[+pm[1]-1]+" "+pm[0];}
+function backupMensal(mes,download,auto,cb){
+  var movs=state.movimentos.filter(function(m){return m.data.slice(0,7)===mes;});
+  if(!movs.length&&!auto){toast("Sem movimentos em "+mesLabel(mes)+" — nada para arquivar.","bad");return;}
+  if(!movs.length){if(cb)cb();return;}
+  var body=JSON.stringify({produtos:state.produtos,movimentos:movs});
+  var b={criado:new Date().toISOString(),tipo:"Mensal · "+mesLabel(mes)+(auto?" (Automático)":""),
+    nProd:state.produtos.length,nMov:movs.length,tam:body.length,hash:hash32(body),body:body};
+  dbPut("backups",b,function(id){
+    b.id=id;
+    podarBackups(function(){
+      if($("ovlBkp").classList.contains("on"))renderBkpList();
+      if(download){
+        descarregar("zelo_farmacia_backup_mensal_"+mes.replace("-","_")+".json",ficheiroBackup(b),"application/json");
+        toast("Backup mensal de "+mesLabel(mes)+" transferido.","ok");
+      }else if(!auto)toast("Backup mensal de "+mesLabel(mes)+" guardado no histórico.","ok");
+      if(cb)cb(b);
+    });
   });
 }
 function bumpAlt(){
@@ -748,6 +785,15 @@ function bumpAlt(){
   try{localStorage.setItem(ALT_KEY,n);}catch(e){}
 }
 function autoBackupBoot(){
+  /* backup mensal automático: na primeira abertura de cada mês arquiva o mês anterior */
+  var mesAtual=hoje().slice(0,7);
+  if(localStorage.getItem(MES_KEY)!==mesAtual){
+    var d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);
+    var mesAnt=d.getFullYear()+"-"+pad2(d.getMonth()+1);
+    backupMensal(mesAnt,false,true,function(){
+      try{localStorage.setItem(MES_KEY,mesAtual);}catch(e){}
+    });
+  }
   if(!state.movimentos.length)return;
   dbAll("backups",function(bs){
     var ult="";
@@ -1555,7 +1601,21 @@ $("rTipo").addEventListener("change",renderRelatorio);
 $("rPer").addEventListener("change",perInit);
 
 /* ===== CÓPIA DE SEGURANÇA: EVENTOS ===== */
-$("drwBackup").addEventListener("click",function(){fecharMenu();renderBkpList();openOvl("ovlBkp");});
+$("drwBackup").addEventListener("click",function(){
+  fecharMenu();renderBkpList();
+  if(!$("bkpMes").value)$("bkpMes").value=hoje().slice(0,7);
+  openOvl("ovlBkp");
+});
+$("bkpMesCriar").addEventListener("click",function(){
+  var m=$("bkpMes").value;
+  if(!m){toast("Escolha o mês a arquivar.","bad");return;}
+  backupMensal(m,false,false);
+});
+$("bkpMesExp").addEventListener("click",function(){
+  var m=$("bkpMes").value;
+  if(!m){toast("Escolha o mês a arquivar.","bad");return;}
+  backupMensal(m,true,false);
+});
 $("drwKeys").addEventListener("click",function(){fecharMenu();openOvl("ovlKeys");});
 $("bkpCriar").addEventListener("click",function(){
   criarBackup("Manual",function(){toast("Backup criado com sucesso.","ok");});
