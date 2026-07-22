@@ -444,8 +444,8 @@ function ensureScript(url, checkFn, cb){
 }
 function ensureExcelLib(cb){ ensureScript('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js', function(){ return !!window.XLSX; }, cb); }
 function ensurePdfLibs(cb){
-  ensureScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', function(){ return !!(window.jspdf && window.jspdf.jsPDF); }, function(){
-    ensureScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js', function(){ return !!window.__zeloAutotableLoaded; }, function(){
+  ensureScript('vendor/jspdf.umd.min.js', function(){ return !!(window.jspdf && window.jspdf.jsPDF); }, function(){
+    ensureScript('vendor/jspdf.plugin.autotable.min.js', function(){ return !!window.__zeloAutotableLoaded; }, function(){
       window.__zeloAutotableLoaded = true;
       cb();
     });

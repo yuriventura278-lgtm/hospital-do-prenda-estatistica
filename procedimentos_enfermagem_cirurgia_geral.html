@@ -14,14 +14,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Procedimentos — Cirurgia Geral</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/jspdf.plugin.autotable.min.js"></script>
 <!-- Excel: tenta 4 CDNs em cascata para garantir carregamento -->
 <script>
 (function(){
   var tried=0;
   var cdns=[
-    'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx-js-style.min.js',
+    'vendor/xlsx-js-style.min.js',
     'https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx-js-style.min.js',
     'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js',
     'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
@@ -3834,7 +3834,7 @@ function _cjs(cb) {
   _cjsCbs.push(cb);
   if (_cjsCbs.length > 1) return;
   var s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+  s.src = 'vendor/chart.umd.min.js';
   s.onload = function() { _cjsReady = true; _cjsCbs.forEach(function(f){f();}); _cjsCbs = []; };
   document.head.appendChild(s);
 }
@@ -4140,7 +4140,7 @@ function exportBdExcel() {
   if(typeof XLSX === 'undefined'){
     showToast('⏳ A carregar biblioteca Excel...');
     var fallbacks=[
-      'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx-js-style.min.js',
+      'vendor/xlsx-js-style.min.js',
       'https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx-js-style.min.js',
       'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js',
       'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
