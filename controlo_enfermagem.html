@@ -11,28 +11,7 @@
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
-  const firebaseConfig = {
-    apiKey: "AIzaSyB72sUTmo7x1gOiNQfn112Na2MvX82kZ4E",
-    authDomain: "hospital-do-prenda-1de35.firebaseapp.com",
-    databaseURL: "https://hospital-do-prenda-1de35-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "hospital-do-prenda-1de35",
-    storageBucket: "hospital-do-prenda-1de35.firebasestorage.app",
-    messagingSenderId: "991683012968",
-    appId: "1:991683012968:web:f86ae42cd1cbe8bc71cedd"
-  };
-  try{
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
-    window.__fbReady = true;
-  }catch(e){
-    console.warn('Firebase indisponível.', e);
-    window.__fbReady = false;
-  }
-</script>
+<script type="module" src="zelo_firebase.js"></script>
 <style>
 :root{
   --bg:#0a1628;
