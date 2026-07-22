@@ -1,0 +1,87 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      ".read": "(auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin') || !data.exists()",
+
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && !root.child('users').exists()))",
+
+        ".validate": "newData.hasChildren(['role', 'ativo'])",
+
+        "role":     { ".validate": "newData.isString() && (newData.val() === 'admin' || newData.val() === 'funcionario' || newData.val() === 'supervisor')" },
+        "ativo":    { ".validate": "newData.isBoolean()" },
+        "nome":     { ".validate": "newData.isString()" },
+        "email":    { ".validate": "newData.isString()" },
+        "cargo":    { ".validate": "newData.isString()" },
+        "criadoEm": { ".validate": "newData.isNumber()" },
+        "permissoes": { ".validate": true },
+
+        "ultimoAcesso": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+
+    "registos": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('ativo').val() === true",
+
+      "$servico": {
+        "$data": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('ativo').val() === true",
+          ".validate": "newData.hasChildren()"
+        }
+      }
+    },
+
+    "registos_enf": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('ativo').val() === true",
+
+      "$servico": {
+        "$data": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('ativo').val() === true",
+          ".validate": "newData.hasChildren()"
+        }
+      }
+    },
+
+    "audit_log": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+
+      "$key": {
+        ".write": "auth != null && !data.exists()",
+        ".validate": "newData.hasChildren(['action', 'ts'])"
+      }
+    },
+
+    "user_activity": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+
+        "$key": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists()",
+          ".validate": "newData.hasChildren(['action', 'ts'])"
+        }
+      }
+    },
+
+    "login_attempts": {
+      ".read": true,
+
+      "$emailKey": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['count'])",
+
+        "count":        { ".validate": "newData.isNumber()" },
+        "firstAttempt": { ".validate": "newData.isNumber()" },
+        "lastAttempt":  { ".validate": "newData.isNumber()" },
+        "$outro":       { ".validate": false }
+      }
+    }
+  }
+}
