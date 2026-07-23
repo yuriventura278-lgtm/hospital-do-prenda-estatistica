@@ -314,6 +314,7 @@ main{max-width:1180px;margin:0 auto;padding:26px 20px 80px;}
 
 <div class="topbar">
   <div class="dep">Dashboard · Resumo do Dia</div>
+  <div class="note" id="turnoClock" style="font-weight:700;"></div>
   <div class="sync-status" id="syncStatus" title="Estado da sincronização com o Firebase"><span class="sync-dot" id="syncDot"></span><span id="syncStatusTxt">A sincronizar…</span></div>
   <div class="note"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span class="long">Só visualização — sem edição aqui</span></div>
 </div>
@@ -789,7 +790,12 @@ function tablePanel(title, headerCols, rows, totalRow){
 function renderResumoGeral(dataset){
   const present = RESUMO_SERVICES.filter(rs=>dataset[rs.id] && dataset[rs.id].snapshot);
   if(!present.length){
-    return `<div class="panel"><h2>Resumo Geral do Dia</h2><div class="list-empty">Nenhum dos serviços do resumo geral tem registo confirmado nesta data.</div></div>`;
+    return `<div class="panel"><h2>Resumo Geral do Dia</h2><div class="list-empty" style="padding:34px 20px;">
+      <div style="font-size:1.6rem;margin-bottom:8px;">🗒️</div>
+      <div style="font-weight:700;color:var(--tx);margin-bottom:4px;">Ainda sem registos hoje</div>
+      <div style="margin-bottom:14px;">Nenhum dos serviços do resumo geral tem registo confirmado nesta data.</div>
+      <a href="servicos.html" style="display:inline-block;padding:9px 18px;border-radius:8px;background:var(--bl);color:#fff;text-decoration:none;font-weight:600;font-size:.82rem;">Comece por preencher o Relatório Diário</a>
+    </div></div>`;
   }
   const rows = present.map(rs=>({rs, s:dataset[rs.id].snapshot}));
 
@@ -936,7 +942,12 @@ const RESUMO_SERVICES_2 = [
 function renderResumoGeral2(dataset){
   const present = RESUMO_SERVICES_2.filter(rs=>dataset[rs.id] && dataset[rs.id].snapshot);
   if(!present.length){
-    return `<div class="panel"><h2>Resumo Geral do Dia — Laboratório, Imagiologia, Consulta Externa e Fisioterapia</h2><div class="list-empty">Nenhum destes serviços tem registo confirmado nesta data.</div></div>`;
+    return `<div class="panel"><h2>Resumo Geral do Dia — Laboratório, Imagiologia, Consulta Externa e Fisioterapia</h2><div class="list-empty" style="padding:34px 20px;">
+      <div style="font-size:1.6rem;margin-bottom:8px;">🗒️</div>
+      <div style="font-weight:700;color:var(--tx);margin-bottom:4px;">Ainda sem registos hoje</div>
+      <div style="margin-bottom:14px;">Nenhum destes serviços tem registo confirmado nesta data.</div>
+      <a href="servicos.html" style="display:inline-block;padding:9px 18px;border-radius:8px;background:var(--bl);color:#fff;text-decoration:none;font-weight:600;font-size:.82rem;">Comece por preencher o Relatório Diário</a>
+    </div></div>`;
   }
   const labS = dataset.laboratorio_clinico && dataset.laboratorio_clinico.snapshot;
   const imgS = dataset.imagiologia && dataset.imagiologia.snapshot;
@@ -2136,6 +2147,17 @@ if(window.__fbReady === undefined){
 }else{
   load();
 }
+function renderTurnoClock(){
+  const el = document.getElementById('turnoClock');
+  if(!el) return;
+  const now = new Date();
+  const h = now.getHours();
+  const turno = (h>=7&&h<15) ? 'Turno da Manhã' : (h>=15&&h<23) ? 'Turno da Tarde' : 'Turno da Noite';
+  const hora = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  el.textContent = turno+' · '+hora;
+}
+renderTurnoClock();
+setInterval(renderTurnoClock, 30000);
 </script>
 <script src="zelo_theme.js"></script>
 </body>
