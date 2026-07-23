@@ -462,6 +462,7 @@ header{background:linear-gradient(135deg,#0B1730 0%,#0D3A5C 55%,#0891B2 100%);po
 .ps-logo{width:20px;height:20px;border-radius:50%;overflow:hidden;border:1.5px solid rgba(255,255,255,.3);flex-shrink:0;background:#0C3A5C;}
 .ps-logo img{width:100%;height:100%;object-fit:cover;}
 .pl{font-size:.58rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.4);white-space:nowrap;}
+.as-ind{font-size:.6rem;font-weight:600;color:rgba(255,255,255,.5);white-space:nowrap;font-family:'DM Mono',monospace;}
 .pt{flex:1;height:5px;background:rgba(255,255,255,.12);border-radius:100px;overflow:hidden;}
 #pf{height:100%;background:linear-gradient(90deg,#67E8F9,#38BDF8);width:0%;transition:width .4s ease;border-radius:100px;}
 #pp{font-family:'DM Mono',monospace;font-size:.72rem;color:#67E8F9;min-width:36px;text-align:right;font-weight:600;}
@@ -736,6 +737,7 @@ function closeSplash(){
     <span class="pl">Progresso</span>
     <div class="pt"><div id="pf"></div></div>
     <span id="pp">0%</span>
+    <span class="as-ind" id="autosave-ind"></span>
     <div id="turno-pill"></div>
   </div>
 </header>
@@ -1348,9 +1350,16 @@ function buildSnapshot(){
     incData:JSON.parse(JSON.stringify(incData)),
   };
 }
+function zeloMostrarGuardadoAs(){
+  var el=document.getElementById('autosave-ind');
+  if(!el)return;
+  var now=new Date();
+  el.textContent='Guardado às '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+}
 function ss(){
   try{const _d=(typeof gv==='function')?gv('data'):'';if(_d)__ddSave(_d,buildSnapshot());}catch(e){}
-  try{localStorage.setItem('img_v3',JSON.stringify(buildSnapshot()));}catch(e){}}
+  try{localStorage.setItem('img_v3',JSON.stringify(buildSnapshot()));}catch(e){}
+  zeloMostrarGuardadoAs();}
 function applyRows(pfx,servicos,rows){
   const byName={};
   (rows||[]).forEach(r=>{byName[r.s]=r;});

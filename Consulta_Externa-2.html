@@ -69,6 +69,7 @@ header{background:linear-gradient(135deg,#0B1730 0%,#162E6B 55%,#1A56DB 100%);po
 .ht p{font-size:.68rem;color:rgba(255,255,255,.5);margin-top:3px;}
 .ps{background:rgba(0,0,0,.25);padding:7px 16px;display:flex;align-items:center;gap:10px;}
 .pl{font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.45);white-space:nowrap;}
+.as-ind{font-size:.6rem;font-weight:600;color:rgba(255,255,255,.5);white-space:nowrap;font-family:'DM Mono',monospace;}
 .pt{flex:1;height:5px;background:rgba(255,255,255,.12);border-radius:100px;overflow:hidden;}
 #pf{height:100%;background:linear-gradient(90deg,#34D399,#60A5FA);width:0%;transition:width .4s ease;border-radius:100px;}
 #pp{font-family:'DM Mono',monospace;font-size:.72rem;color:#60A5FA;min-width:36px;text-align:right;font-weight:600;}
@@ -288,6 +289,7 @@ function closeSplash(){
     <span class="pl">Progresso</span>
     <div class="pt"><div id="pf"></div></div>
     <span id="pp">0%</span>
+    <span class="as-ind" id="autosave-ind"></span>
   </div>
 </header>
 
@@ -1445,8 +1447,15 @@ if(!gv('data')){
 }
 
 // ── STORAGE ──────────────────────────────────────────────
+function zeloMostrarGuardadoAs(){
+  var el=document.getElementById('autosave-ind');
+  if(!el)return;
+  var now=new Date();
+  el.textContent='Guardado às '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+}
 function ss(){
   try{const _d=(typeof gv==='function')?gv('data'):'';if(_d)__ddSave(_d,buildSnapshot());}catch(e){}
+  zeloMostrarGuardadoAs();
   
   try{
     const snap=buildSnapshot();
