@@ -267,13 +267,37 @@ function escapeHtml(str) {
 }
 
 // Verifica acesso a um módulo (ou a um item específico dentro dele).
-// permissoes[mod] pode ser: ausente/true/'editar'/'leitura' = módulo acessível;
-// false = módulo todo bloqueado;
+// Acesso por omissão de cada perfil aos módulos, usado apenas quando o
+// utilizador não tem uma permissão explícita configurada (em Permissões, no
+// admin_utilizadores.html) para esse módulo — uma permissão explícita
+// continua sempre a ganhar a este valor por omissão.
+// Módulos existentes: estatistica, informacoes_zelo, movimento_mensal,
+// procedimentos_enfermagem, servicos, sistemas_independentes.
+const ROLE_DEFAULT_PERMISSOES = {
+  direcao:          { estatistica:'leitura', servicos:'leitura', procedimentos_enfermagem:'leitura', movimento_mensal:'leitura', sistemas_independentes:'leitura', informacoes_zelo:true },
+  supervisor:       { estatistica:'leitura', servicos:'leitura', procedimentos_enfermagem:'leitura', movimento_mensal:'leitura', sistemas_independentes:'leitura', informacoes_zelo:true },
+  chefe_servico:    { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:'leitura', sistemas_independentes:'leitura', informacoes_zelo:true },
+  enfermeiro_chefe: { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:'leitura', informacoes_zelo:true },
+  medico:           { estatistica:false, servicos:true, procedimentos_enfermagem:'leitura', movimento_mensal:false, sistemas_independentes:'leitura', informacoes_zelo:true },
+  enfermeiro:       { estatistica:false, servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
+  tdt:              { estatistica:false, servicos:false, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:true, informacoes_zelo:true },
+  secretario:       { estatistica:false, servicos:'leitura', procedimentos_enfermagem:false, movimento_mensal:true, sistemas_independentes:false, informacoes_zelo:true },
+  funcionario:      { estatistica:true, servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:true, informacoes_zelo:true },
+};
+
+function roleDefaultPermForModule(role, mod) {
+  const tabela = ROLE_DEFAULT_PERMISSOES[role] || ROLE_DEFAULT_PERMISSOES.funcionario;
+  return tabela[mod];
+}
+
+// permissoes[mod] pode ser: ausente (usa a omissão do perfil, ver acima)/
+// true/'editar'/'leitura' = módulo acessível; false = módulo todo bloqueado;
 // objeto {itemSlug: false, ..., _nivel?: 'leitura'} = bloqueio item a item
 // (ausência no objeto = permitido), com nível opcional (por omissão 'editar').
 function hasModuleAccess(role, permissoes, mod, itemSlug) {
   if (role === 'admin') return true;
-  const modPerm = permissoes ? permissoes[mod] : undefined;
+  let modPerm = permissoes ? permissoes[mod] : undefined;
+  if (modPerm === undefined) modPerm = roleDefaultPermForModule(role, mod);
   if (modPerm === false) return false;
   if (modPerm === true || modPerm === undefined || modPerm === null || modPerm === 'editar' || modPerm === 'leitura') return true;
   if (typeof modPerm === 'object') {
@@ -287,7 +311,8 @@ function hasModuleAccess(role, permissoes, mod, itemSlug) {
 // Administradores têm sempre nível 'editar'.
 function getModuleAccessLevel(role, permissoes, mod) {
   if (role === 'admin') return 'editar';
-  const modPerm = permissoes ? permissoes[mod] : undefined;
+  let modPerm = permissoes ? permissoes[mod] : undefined;
+  if (modPerm === undefined) modPerm = roleDefaultPermForModule(role, mod);
   if (modPerm === 'leitura') return 'leitura';
   if (modPerm && typeof modPerm === 'object' && modPerm._nivel === 'leitura') return 'leitura';
   return 'editar';
@@ -299,7 +324,7 @@ export {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess, getModuleAccessLevel
+  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES
 };
 
 window.ZeloAuth = {
@@ -308,5 +333,5 @@ window.ZeloAuth = {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess, getModuleAccessLevel
+  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES
 };

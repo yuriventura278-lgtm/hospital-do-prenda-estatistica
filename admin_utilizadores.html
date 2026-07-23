@@ -183,7 +183,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <script type="module">
 import {
   auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
-  fetchUserProfile, onAuthStateChanged, signOut, logAuditEvent, escapeHtml
+  fetchUserProfile, onAuthStateChanged, signOut, logAuditEvent, escapeHtml, ROLE_DEFAULT_PERMISSOES
 } from './zelo_auth.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signOut as secondarySignOut, deleteUser } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
@@ -354,10 +354,14 @@ function openPermModal(uid, permissoes, nome, role){
     return;
   }
   saveBtn.style.display = '';
+  const roleDefaults = ROLE_DEFAULT_PERMISSOES[role] || ROLE_DEFAULT_PERMISSOES.funcionario || {};
   list.innerHTML = MODULES.map(function(m){
-    const modPerm = permissoes ? permissoes[m.key] : undefined;
+    let modPerm = permissoes ? permissoes[m.key] : undefined;
+    const isDefault = modPerm === undefined;
+    if(isDefault) modPerm = roleDefaults[m.key];
     const modOn = modPerm !== false;
     const nivelAtual = (modPerm === 'leitura' || (modPerm && typeof modPerm === 'object' && modPerm._nivel === 'leitura')) ? 'leitura' : 'editar';
+    const defaultTag = isDefault ? ' <span style="font-weight:500;color:var(--tx3);text-transform:none;letter-spacing:0;">(padrão do papel — ainda não personalizado)</span>' : '';
     const nivelHtml = '<div class="perm-nivel" data-mod-nivel="' + m.key + '" style="margin-left:28px;margin-top:6px;display:' + (modOn ? 'flex' : 'none') + ';gap:14px;">' +
       '<label style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--tx2);cursor:pointer;"><input type="radio" name="nivel-' + m.key + '" class="perm-nivel-radio" data-mod="' + m.key + '" value="editar" ' + (nivelAtual==='editar'?'checked':'') + ' style="width:auto;accent-color:var(--bl);"/> Editar</label>' +
       '<label style="display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--tx2);cursor:pointer;"><input type="radio" name="nivel-' + m.key + '" class="perm-nivel-radio" data-mod="' + m.key + '" value="leitura" ' + (nivelAtual==='leitura'?'checked':'') + ' style="width:auto;accent-color:var(--bl);"/> Só leitura</label>' +
@@ -380,7 +384,7 @@ function openPermModal(uid, permissoes, nome, role){
     }
     return '<div class="perm-mod-block">' +
       '<label style="display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--tx2);font-weight:700;cursor:pointer;">' +
-        '<input type="checkbox" class="perm-mod-check" data-mod="' + m.key + '" ' + (modOn ? 'checked' : '') + ' style="width:auto;accent-color:var(--bl);"/>' + escapeHtml(m.label) +
+        '<input type="checkbox" class="perm-mod-check" data-mod="' + m.key + '" ' + (modOn ? 'checked' : '') + ' style="width:auto;accent-color:var(--bl);"/>' + escapeHtml(m.label) + defaultTag +
       '</label>' +
       nivelHtml +
       itemsHtml +

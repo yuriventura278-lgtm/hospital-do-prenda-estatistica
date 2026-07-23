@@ -474,8 +474,9 @@ import {
   fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
-  touchLastAccess, escapeHtml
+  touchLastAccess, escapeHtml, hasModuleAccess
 } from './zelo_auth.js';
+window.__zeloHasModuleAccess = hasModuleAccess;
 
 (function(){
   var gate=document.getElementById('zeloAuthGate');
@@ -1155,10 +1156,9 @@ window.zeloApplyRole = function(role){
   if(qa) qa.style.display = (role === 'admin') ? 'flex' : 'none';
 };
 window.zeloApplyPermissoes = function(role, permissoes){
-  var isAdmin = role === 'admin';
   document.querySelectorAll('.sb-link[data-module]').forEach(function(link){
     var mod = link.dataset.module;
-    var permitido = isAdmin ? true : (permissoes ? (permissoes[mod] !== false) : true);
+    var permitido = window.__zeloHasModuleAccess(role, permissoes, mod);
     link.style.display = permitido ? '' : 'none';
   });
 };
