@@ -1314,6 +1314,7 @@ function _showHistorico(hist){
   else{
     window._histCache=hist;
     html='<div style="display:flex;flex-direction:column;gap:8px;">'+hist.map((h,i)=>{
+      if(h.deleted)return '';
       const s=h.snapshot||{};let tU=0,tI=0,tP=0;
       if(s.exameData)Object.values(s.exameData).forEach(v=>{tU+=v.urg||0;tI+=v.int||0;});
       if(s.positivoData)Object.values(s.positivoData).forEach(v=>{tP+=(v.urg||0)+(v.int||0);});
@@ -1341,18 +1342,32 @@ function restaurarHistorico(i){
   applySnapshot(h.snapshot||h);ss();closeModal();
   window.scrollTo({top:0,behavior:'smooth'});toast('\u2713 Registo carregado!');
 }
+function zeloAuditarEliminacao(modulo,chave,autor){
+  if(!window.__fbReady||!window.__fbSet)return;
+  try{
+    var key=Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    window.__fbSet('audit_log/'+key,{action:'eliminar_registo',modulo:modulo,chave:chave||null,email:autor||null,ts:Date.now(),dataHora:new Date().toISOString()}).catch(function(){});
+  }catch(e){}
+}
 function apagarHistorico(i){
-  if(!confirm('Apagar este registo?'))return;
+  if(!confirm('Apagar este registo? Deixa de aparecer na lista, mas fica registado quem eliminou.'))return;
   var h=window._histCache&&window._histCache[i];
   if(!h)return;
   var key=h.data||(h.snapshot&&h.snapshot.data);
   if(!key)return;
-  idbDelete('hist',key).catch(function(){});
+  var autor=sessionStorage.getItem('zeloEmail')||'desconhecido';
+  var quando=new Date().toISOString();
+  h.deleted=true;h.deletedAt=quando;h.deletedBy=autor;
+  idbPut('hist',h).catch(function(){});
   try{
     var ls=JSON.parse(localStorage.getItem('lab_banco_v1_hist')||'[]');
-    ls=ls.filter(function(x){return(x.snapshot||x).data!==key;});
+    ls=ls.map(function(x){
+      if((x.snapshot||x).data===key){x.deleted=true;x.deletedAt=quando;x.deletedBy=autor;}
+      return x;
+    });
     localStorage.setItem('lab_banco_v1_hist',JSON.stringify(ls));
   }catch(e){}
+  zeloAuditarEliminacao('laboratorio_clinico',key,autor);
   historicoRegisto();toast('Registo apagado.');
 }
 document.getElementById('ov2').addEventListener('click',e=>{if(e.target===document.getElementById('ov2'))closeValid();});

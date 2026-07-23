@@ -1013,6 +1013,7 @@ function historicoRegisto(){
     document.getElementById('mo2-sub').textContent=hist.length+' registo(s) guardado(s)';
     document.getElementById('mo2-body').innerHTML='<div style="display:flex;flex-direction:column;gap:8px;">'+
       hist.map((h,i)=>{
+        if(h.deleted)return '';
         const [y,m,d]=h.data.split('-');
         const intTot=h.snapshot.intVals?Object.values(h.snapshot.intVals).reduce((s,v)=>s+(parseInt(v)||0),0):0;
         const extTot=parseInt(h.snapshot.extTotal)||0;
@@ -1028,17 +1029,30 @@ function historicoRegisto(){
     document.getElementById('ov2').style.display='flex';
   }catch(e){toast('Erro ao carregar histórico.');}
 }
-function apagarHistorico(i){
-  if(!confirm('Eliminar este registo do histórico? Esta acção não pode ser desfeita.'))return;
+function zeloAuditarEliminacao(modulo,chave,autor){
+  if(!window.__fbReady||!window.__fbSet)return;
+  try{
+    const key=Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    window.__fbSet('audit_log/'+key,{action:'eliminar_registo',modulo,chave:chave||null,email:autor||null,ts:Date.now(),dataHora:new Date().toISOString()}).catch(()=>{});
+  }catch(e){}
+}
+async function apagarHistorico(i){
+  if(!confirm('Eliminar este registo do histórico? Deixa de aparecer na lista, mas fica registado quem eliminou.'))return;
   try{
     const hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');
     const h=hist[i];
     if(!h){toast('Registo não encontrado.');return;}
-    hist.splice(i,1);
+    const autor=sessionStorage.getItem('zeloEmail')||'desconhecido';
+    const quando=new Date().toISOString();
+    h.deleted=true;h.deletedAt=quando;h.deletedBy=autor;
     localStorage.setItem(HIST_KEY,JSON.stringify(hist));
     const d=h.data||(h.snapshot&&h.snapshot.data);
     if(d&&window.__fbReady&&window.__fbSet){
-      window.__fbSet(FB_PATH+'/'+d,null).catch(e=>console.warn('Firebase: falha ao eliminar registo remoto.',e));
+      try{
+        const remoto=window.__fbGet?await window.__fbGet(FB_PATH+'/'+d):null;
+        await window.__fbSet(FB_PATH+'/'+d,Object.assign({},remoto,{deleted:true,deletedAt:quando,deletedBy:autor}));
+      }catch(e){console.warn('Firebase: falha ao marcar eliminação remota.',e);}
+      zeloAuditarEliminacao('psicologia_clinica',d,autor);
     }
     toast('✓ Registo eliminado.');
     historicoRegisto();

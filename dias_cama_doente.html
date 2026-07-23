@@ -746,7 +746,7 @@ function closeModal(){document.getElementById('ov').classList.remove('open');}
 // ─── HISTÓRICO ───────────────────────────────────────────────────────
 async function abrirHistorico(){
   document.getElementById('ov-hist').classList.add('open');
-  const todos=await dbAll();
+  const todos=(await dbAll()).filter(r=>!r.deleted);
   const body=document.getElementById('hist-body');
   if(!todos.length){body.innerHTML='<div style="text-align:center;padding:30px;color:var(--tx3);">Ainda não há registos guardados.</div>';return;}
   body.innerHTML=todos.map((r,i)=>{
@@ -788,8 +788,11 @@ async function carregarHist(data){
 }
 
 async function eliminarHist(data){
-  if(!confirm('Eliminar este registo definitivamente?')) return;
-  await dbDel(data);
+  if(!confirm('Eliminar este registo? Deixa de aparecer na lista, mas fica registado quem eliminou.')) return;
+  const r=await dbGet(data);
+  if(!r){toast('Registo não encontrado.');return;}
+  r.deleted=true;r.deletedAt=new Date().toISOString();r.deletedBy=sessionStorage.getItem('zeloEmail')||'desconhecido';
+  await dbPut(r);
   toast('Registo eliminado.');
   abrirHistorico();
 }

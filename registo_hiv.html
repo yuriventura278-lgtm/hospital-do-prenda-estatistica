@@ -637,6 +637,7 @@ function historico(){
   if(!hist.length){html='<div style="text-align:center;padding:24px;color:var(--tx3);">Nenhum registo guardado.</div>';}
   else{
     html='<div style="display:flex;flex-direction:column;gap:8px;">'+hist.map((h,i)=>{
+      if(h.deleted)return '';
       const s=h.snapshot||{};
       let tf=0,tm=0,pf=0,pm=0;
       if(s.dados){FAIXAS.forEach((_,fi)=>{tf+=s.dados.testados?.[fi+'_f']||0;tm+=s.dados.testados?.[fi+'_m']||0;pf+=s.dados.positivos?.[fi+'_f']||0;pm+=s.dados.positivos?.[fi+'_m']||0;});}
@@ -662,7 +663,15 @@ function carregarHistorico(i){
   try{const hist=JSON.parse(localStorage.getItem('hiv_reg_v1_hist')||'[]');const h=hist[i];if(!h)return;if(!confirm('Carregar este registo?'))return;applySnapshot(h.snapshot);ss();closeModal();window.scrollTo({top:0,behavior:'smooth'});toast('Registo carregado!');}catch(e){}
 }
 function apagarHistorico(i){
-  try{if(!confirm('Apagar este registo?'))return;const hist=JSON.parse(localStorage.getItem('hiv_reg_v1_hist')||'[]');hist.splice(i,1);localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));historico();toast('Apagado.');}catch(e){}
+  try{
+    if(!confirm('Apagar este registo?'))return;
+    const hist=JSON.parse(localStorage.getItem('hiv_reg_v1_hist')||'[]');
+    const h=hist[i];
+    if(!h)return;
+    h.deleted=true;h.deletedAt=new Date().toISOString();h.deletedBy=sessionStorage.getItem('zeloEmail')||'desconhecido';
+    localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));
+    historico();toast('Apagado.');
+  }catch(e){}
 }
 document.getElementById('ov2').addEventListener('click',e=>{if(e.target===document.getElementById('ov2'))closeValid();});
 document.getElementById('ov3').addEventListener('click',e=>{if(e.target===document.getElementById('ov3'))closePost();});

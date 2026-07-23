@@ -1067,7 +1067,7 @@ async function historicoRegisto(){
       req.onerror=()=>res([]);
     });
   }catch(e){dias=[];}
-  dias=dias.filter(s=>s.data && s.data!=='__draft__').sort((a,b)=>b.data.localeCompare(a.data));
+  dias=dias.filter(s=>s.data && s.data!=='__draft__' && !s.deleted).sort((a,b)=>b.data.localeCompare(a.data));
   const fmtD=v=>{try{return new Date(v+'T00:00:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});}catch(e){return v;}};
   document.getElementById('mh-sub').textContent = dias.length + ' registo(s) guardado(s)';
   document.getElementById('mh-body').innerHTML = dias.length ? dias.map(s=>{
@@ -1100,14 +1100,35 @@ function carregarDoHistorico(dataKey){
     };
   });
 }
+function zeloAuditarEliminacao(modulo,chave,autor){
+  if(!window.__fbReady||!window.__fbSet)return;
+  try{
+    const key=Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    window.__fbSet('audit_log/'+key,{action:'eliminar_registo',modulo,chave:chave||null,email:autor||null,ts:Date.now(),dataHora:new Date().toISOString()}).catch(()=>{});
+  }catch(e){}
+}
 function apagarHistorico(dataKey){
-  if(!confirm('Eliminar este registo do histórico? Esta acção não pode ser desfeita.'))return;
+  if(!confirm('Eliminar este registo do histórico? Deixa de aparecer na lista, mas fica registado quem eliminou.'))return;
+  const autor=sessionStorage.getItem('zeloEmail')||'desconhecido';
+  const quando=new Date().toISOString();
   openDB().then(db=>{
     const tx=db.transaction(STORE,'readwrite');
-    tx.objectStore(STORE).delete(dataKey);
-    tx.oncomplete=()=>{
+    const store=tx.objectStore(STORE);
+    const req=store.get(dataKey);
+    req.onsuccess=()=>{
+      const snap=req.result;
+      if(snap){
+        snap.deleted=true;snap.deletedAt=quando;snap.deletedBy=autor;
+        store.put(snap);
+      }
+    };
+    tx.oncomplete=async ()=>{
       if(window.__fbReady && window.__fbSet){
-        window.__fbSet(FB_PATH+'/'+dataKey,null).catch(e=>console.warn('Firebase: falha ao eliminar registo remoto.',e));
+        try{
+          const remoto=window.__fbGet?await window.__fbGet(FB_PATH+'/'+dataKey):null;
+          await window.__fbSet(FB_PATH+'/'+dataKey,Object.assign({},remoto,{deleted:true,deletedAt:quando,deletedBy:autor}));
+        }catch(e){console.warn('Firebase: falha ao marcar eliminação remota.',e);}
+        zeloAuditarEliminacao('bloco_operatorio',dataKey,autor);
       }
       toast('✓ Registo eliminado.');
       historicoRegisto();
