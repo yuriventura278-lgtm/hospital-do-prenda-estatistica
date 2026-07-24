@@ -224,8 +224,9 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 
 .zelo-body{flex:1;min-height:0;padding-top:var(--zelo-topbar-h);}
 .zelo-sidebar{position:fixed;top:var(--zelo-topbar-h);left:0;bottom:0;width:var(--zelo-sidebar-w);z-index:1500;background:#fff;border-right:1px solid var(--br);padding:22px 14px;overflow-y:auto;}
-.sb-section-label{font-size:.64rem;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.09em;padding:0 12px;margin-bottom:12px;}
-.sb-nav{display:flex;flex-direction:column;gap:3px;}
+.sb-section-label{font-size:.64rem;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.09em;padding:0 12px;margin-bottom:8px;}
+.sb-nav{display:flex;flex-direction:column;gap:18px;}
+.sb-group{display:flex;flex-direction:column;gap:3px;}
 .sb-link{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:11px;color:var(--tx2);text-decoration:none;font-size:.84rem;font-weight:600;cursor:pointer;background:none;border:none;border-left:3px solid transparent;text-align:left;width:100%;font-family:'Inter',sans-serif;transition:background .14s,color .14s,border-color .14s;position:relative;}
 .sb-link .sb-ic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--sf);color:var(--tx3);transition:background .14s,color .14s;}
 .sb-link .sb-badge{margin-left:auto;min-width:20px;height:18px;border-radius:9px;background:#E2E8F0;color:#64748B;font-size:.62rem;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;padding:0 6px;}
@@ -1057,37 +1058,47 @@ document.addEventListener('DOMContentLoaded', function(){
 
   <div class="zelo-body">
     <aside class="zelo-sidebar" id="zeloSidebar">
-      <div class="sb-section-label">Menu</div>
       <nav class="sb-nav" id="zeloSidebarNav">
-        <a href="index.html" class="sb-link active">
-          <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
-          <span>Dashboard</span>
-        </a>
-        <a href="servicos.html" class="sb-link" data-module="servicos">
-          <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
-          <span>Relatório Diário</span>
-          <span class="sb-badge" id="sbBadgeServicos" style="display:none;">0</span>
-        </a>
-        <a href="procedimentos_enfermagem_index.html" class="sb-link" data-module="procedimentos_enfermagem">
-          <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
-          <span>Procedimentos de Enfermagem</span>
-        </a>
-        <a href="movimento_mensal.html" class="sb-link" data-module="movimento_mensal">
-          <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
-          <span>Movimento Hospitalar</span>
-        </a>
-        <a href="sistemas_independentes.html" class="sb-link" data-module="sistemas_independentes">
-          <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
-          <span>Sistemas Independentes</span>
-        </a>
-        <a href="Estatistica.html" class="sb-link" data-module="estatistica">
-          <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-          <span>Estatística</span>
-        </a>
-        <a href="informacoes_zelo.html" class="sb-link" data-module="informacoes_zelo">
-          <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
-          <span>Informações do ZELO</span>
-        </a>
+        <div class="sb-group">
+          <a href="index.html" class="sb-link active">
+            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
+            <span>Dashboard</span>
+          </a>
+        </div>
+        <div class="sb-group">
+          <div class="sb-section-label">Registo Diário</div>
+          <a href="servicos.html" class="sb-link" data-module="servicos">
+            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+            <span>Relatório Diário</span>
+            <span class="sb-badge" id="sbBadgeServicos" style="display:none;">0</span>
+          </a>
+          <a href="procedimentos_enfermagem_index.html" class="sb-link" data-module="procedimentos_enfermagem">
+            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+            <span>Procedimentos de Enfermagem</span>
+          </a>
+        </div>
+        <div class="sb-group">
+          <div class="sb-section-label">Análise</div>
+          <a href="movimento_mensal.html" class="sb-link" data-module="movimento_mensal">
+            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
+            <span>Movimento Hospitalar</span>
+          </a>
+          <a href="Estatistica.html" class="sb-link" data-module="estatistica">
+            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+            <span>Estatística</span>
+          </a>
+        </div>
+        <div class="sb-group">
+          <div class="sb-section-label">Sistema</div>
+          <a href="sistemas_independentes.html" class="sb-link" data-module="sistemas_independentes">
+            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+            <span>Sistemas Independentes</span>
+          </a>
+          <a href="informacoes_zelo.html" class="sb-link" data-module="informacoes_zelo">
+            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+            <span>Informações do ZELO</span>
+          </a>
+        </div>
       </nav>
     </aside>
 
@@ -1182,9 +1193,17 @@ document.getElementById('zeloUserChipBtn').addEventListener('click', function(){
 });
 document.getElementById('zeloSidebarSearch').addEventListener('input', function(){
   var q = this.value.trim().toLowerCase();
-  document.querySelectorAll('#zeloSidebarNav .sb-link').forEach(function(link){
-    var txt = (link.textContent || '').trim().toLowerCase();
-    link.style.display = (!q || txt.includes(q)) ? '' : 'none';
+  document.querySelectorAll('#zeloSidebarNav .sb-group').forEach(function(group){
+    var algumVisivel = false;
+    group.querySelectorAll('.sb-link').forEach(function(link){
+      var txt = (link.textContent || '').trim().toLowerCase();
+      var visivel = !q || txt.includes(q);
+      link.style.display = visivel ? '' : 'none';
+      if(visivel) algumVisivel = true;
+    });
+    var label = group.querySelector('.sb-section-label');
+    if(label) label.style.display = algumVisivel ? '' : 'none';
+    group.style.display = algumVisivel ? '' : 'none';
   });
 });
 </script>
