@@ -1,8 +1,10 @@
 {
   "//": "Regras de segurança PROPOSTAS para o Firebase Realtime Database do ZELO.",
   "// nota_1": "Este ficheiro não é aplicado automaticamente - tem de ser copiado para Firebase Console > Realtime Database > Regras (ou via 'firebase deploy --only database', se um dia usarem o Firebase CLI). Não tenho acesso às regras hoje em produção, por isso isto é um PONTO DE PARTIDA para rever, não uma cópia do que já existe.",
-  "// nota_2": "Objetivo mínimo: nada é público. Toda a leitura/escrita exige sessão Firebase Auth válida (auth != null) - hoje, as restrições por perfil (admin/médico/enfermeiro/...) só existem no browser (zelo_auth.js/zelo_pagegate.js); qualquer pessoa com sessão válida e a consola do browser aberta pode contornar essas restrições e ler ou escrever em qualquer módulo, porque o servidor (Firebase) não as aplica. As regras abaixo fecham a porta de fora (visitantes sem sessão) mas NÃO replicam ainda a matriz fina de permissões por papel - isso ficaria para uma segunda fase, se decidirem que vale o investimento.",
+  "// nota_2": "Objetivo mínimo: nada é público. Toda a leitura/escrita exige sessão Firebase Auth válida (auth != null) - hoje, as restrições por perfil (admin/médico/enfermeiro/...) só existem no browser (zelo_auth.js/zelo_pagegate.js); qualquer pessoa com sessão válida e a consola do browser aberta pode contornar essas restrições e ler ou escrever em qualquer módulo, porque o servidor (Firebase) não as aplica.",
   "// nota_3": "audit_log/user_activity/login_attempts só podem ser lidos por administradores (root/users/$uid/role == 'admin'), porque contêm registo de quem fez o quê.",
+  "// nota_4_fase2": "'registos_enf' (módulo procedimentos_enfermagem) já reflete aqui a mesma regra de ROLE_DEFAULT_PERMISSOES do zelo_auth.js: bloqueia escrita para tdt/secretario (que têm procedimentos_enfermagem:false por omissão), a não ser que o admin tenha dado uma exceção explícita em users/$uid/permissoes/procedimentos_enfermagem = true. Isto é o mais fino que dá para ir SEM mudar a estrutura de dados.",
+  "// nota_5_limitacao": "'registos' (módulo servicos) NÃO pode ser dividido por papel da mesma forma: vários Sistemas Independentes (bloco_operatorio, laboratorio_clinico, imagiologia, consulta_externa, psicologia_clinica) gravam no MESMO caminho 'registos/<id>' que os bancos normais de servicos - o servidor não consegue distinguir os dois módulos só pelo caminho. Para fechar esta parte também, seria preciso primeiro separar esses Sistemas Independentes para um prefixo próprio (ex: 'sistemas_independentes/<id>') - não fiz essa mudança de dados sem falar convosco primeiro, por ser mais arriscada.",
   "rules": {
     ".read": false,
     ".write": false,
@@ -21,7 +23,7 @@
 
     "registos_enf": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('permissoes').child('procedimentos_enfermagem').val() === true || (!root.child('users').child(auth.uid).child('permissoes').child('procedimentos_enfermagem').exists() && root.child('users').child(auth.uid).child('role').val() !== 'tdt' && root.child('users').child(auth.uid).child('role').val() !== 'secretario'))"
     },
 
     "audit_log": {
