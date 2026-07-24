@@ -1,44 +1,87 @@
 {
-  "//": "Regras de segurança PROPOSTAS para o Firebase Realtime Database do ZELO.",
-  "// nota_1": "Este ficheiro não é aplicado automaticamente - tem de ser copiado para Firebase Console > Realtime Database > Regras (ou via 'firebase deploy --only database', se um dia usarem o Firebase CLI). Não tenho acesso às regras hoje em produção, por isso isto é um PONTO DE PARTIDA para rever, não uma cópia do que já existe.",
-  "// nota_2": "Objetivo mínimo: nada é público. Toda a leitura/escrita exige sessão Firebase Auth válida (auth != null) - hoje, as restrições por perfil (admin/médico/enfermeiro/...) só existem no browser (zelo_auth.js/zelo_pagegate.js); qualquer pessoa com sessão válida e a consola do browser aberta pode contornar essas restrições e ler ou escrever em qualquer módulo, porque o servidor (Firebase) não as aplica.",
-  "// nota_3": "audit_log/user_activity/login_attempts só podem ser lidos por administradores (root/users/$uid/role == 'admin'), porque contêm registo de quem fez o quê.",
-  "// nota_4_fase2": "'registos_enf' (módulo procedimentos_enfermagem) já reflete aqui a mesma regra de ROLE_DEFAULT_PERMISSOES do zelo_auth.js: bloqueia escrita para tdt/secretario (que têm procedimentos_enfermagem:false por omissão), a não ser que o admin tenha dado uma exceção explícita em users/$uid/permissoes/procedimentos_enfermagem = true. Isto é o mais fino que dá para ir SEM mudar a estrutura de dados.",
-  "// nota_5_limitacao": "'registos' (módulo servicos) NÃO pode ser dividido por papel da mesma forma: vários Sistemas Independentes (bloco_operatorio, laboratorio_clinico, imagiologia, consulta_externa, psicologia_clinica) gravam no MESMO caminho 'registos/<id>' que os bancos normais de servicos - o servidor não consegue distinguir os dois módulos só pelo caminho. Para fechar esta parte também, seria preciso primeiro separar esses Sistemas Independentes para um prefixo próprio (ex: 'sistemas_independentes/<id>') - não fiz essa mudança de dados sem falar convosco primeiro, por ser mais arriscada.",
   "rules": {
     ".read": false,
     ".write": false,
 
     "users": {
-      ".read": "auth != null",
+      ".read": "(auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin') || !data.exists()",
+
       "$uid": {
-        ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || (auth.uid === $uid && !root.child('users').exists()))",
+
+        ".validate": "newData.hasChildren(['role', 'ativo'])",
+
+        "role":     { ".validate": "newData.isString() && (newData.val() === 'admin' || newData.val() === 'direcao' || newData.val() === 'supervisor' || newData.val() === 'chefe_servico' || newData.val() === 'enfermeiro_chefe' || newData.val() === 'medico' || newData.val() === 'enfermeiro' || newData.val() === 'tdt' || newData.val() === 'secretario' || newData.val() === 'funcionario')" },
+        "ativo":    { ".validate": "newData.isBoolean()" },
+        "nome":     { ".validate": "newData.isString()" },
+        "email":    { ".validate": "newData.isString()" },
+        "cargo":    { ".validate": "newData.isString()" },
+        "criadoEm": { ".validate": "newData.isNumber()" },
+        "permissoes": { ".validate": true },
+
+        "ultimoAcesso": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isNumber()"
+        }
       }
     },
 
     "registos": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      ".read": "auth != null && root.child('users').child(auth.uid).child('ativo').val() === true",
+
+      "$servico": {
+        "$data": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('ativo').val() === true",
+          ".validate": "newData.hasChildren()"
+        }
+      }
     },
 
     "registos_enf": {
-      ".read": "auth != null",
-      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'admin' || root.child('users').child(auth.uid).child('permissoes').child('procedimentos_enfermagem').val() === true || (!root.child('users').child(auth.uid).child('permissoes').child('procedimentos_enfermagem').exists() && root.child('users').child(auth.uid).child('role').val() !== 'tdt' && root.child('users').child(auth.uid).child('role').val() !== 'secretario'))"
+      ".read": "auth != null && root.child('users').child(auth.uid).child('ativo').val() === true",
+
+      "$servico": {
+        "$data": {
+          ".write": "auth != null && root.child('users').child(auth.uid).child('ativo').val() === true",
+          ".validate": "newData.hasChildren()"
+        }
+      }
     },
 
     "audit_log": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
-      ".write": "auth != null"
+
+      "$key": {
+        ".write": "auth != null && !data.exists()",
+        ".validate": "newData.hasChildren(['action', 'ts'])"
+      }
     },
 
     "user_activity": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
-      ".write": "auth != null"
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+
+        "$key": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists()",
+          ".validate": "newData.hasChildren(['action', 'ts'])"
+        }
+      }
     },
 
     "login_attempts": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
-      ".write": "auth != null"
+      ".read": true,
+
+      "$emailKey": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['count'])",
+
+        "count":        { ".validate": "newData.isNumber()" },
+        "firstAttempt": { ".validate": "newData.isNumber()" },
+        "lastAttempt":  { ".validate": "newData.isNumber()" },
+        "$outro":       { ".validate": false }
+      }
     }
   }
 }
