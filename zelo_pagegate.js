@@ -1,10 +1,11 @@
 // ZELO — proteção de página com sessão Firebase real (verifica módulo + item específico)
-import { auth, fetchUserProfile, onAuthStateChanged, hasModuleAccess, getModuleAccessLevel } from './zelo_auth.js';
+import { auth, fetchUserProfile, onAuthStateChanged, hasModuleAccess, getModuleAccessLevel, startInactivityWatch, signOut } from './zelo_auth.js';
 
 var moduleKey = window.ZELO_MODULE || null;
 var itemKey = window.ZELO_ITEM || null;
 var embedded = window.self !== window.top;
 var resolvido = false;
+var stopInactivityWatch = null;
 
 // Bloqueia a edição da página inteira quando o utilizador só tem permissão de leitura
 // naquele módulo — evita ter de alterar cada página de banco/procedimento uma a uma.
@@ -29,7 +30,7 @@ function aplicarModoLeitura(){
   }
 }
 
-function aplicarAcesso(role, permissoes){
+function aplicarAcesso(role, permissoes, uid){
   resolvido = true;
   if (moduleKey && !hasModuleAccess(role, permissoes || {}, moduleKey, itemKey)) {
     showBlockedScreen();
@@ -38,6 +39,21 @@ function aplicarAcesso(role, permissoes){
   document.documentElement.style.visibility = 'visible';
   if (moduleKey && getModuleAccessLevel(role, permissoes || {}, moduleKey) === 'leitura') {
     aplicarModoLeitura();
+  }
+  // Só na sessão real desta página (não na embutida em iframe, que já depende da
+  // página-mãe): vigia inatividade/sessão máxima/8h e, a cada 2min, reconfirma que a
+  // conta continua activa — sem isto, estas ~50 páginas de registo (onde os
+  // profissionais passam a maior parte do tempo) nunca tinham qualquer limite de
+  // sessão, ao contrário do ecrã de login principal. Também reage caso o
+  // administrador altere o papel/permissões enquanto a página está aberta,
+  // recarregando para aplicar de imediato o novo nível de acesso.
+  if (!embedded && uid && !stopInactivityWatch) {
+    stopInactivityWatch = startInactivityWatch(async function(){
+      try { await signOut(auth); } catch (e) {}
+      window.location.replace('index.html');
+    }, uid, { role: role, permissoes: permissoes || {} }, function(){
+      window.location.reload();
+    });
   }
   window.dispatchEvent(new CustomEvent('zelo-gate-ready', {
     detail: { role: role, permissoes: permissoes || {} }
@@ -99,7 +115,7 @@ onAuthStateChanged(auth, async function (user) {
   sessionStorage.setItem('zeloNome', perfil.nome || user.email);
   sessionStorage.setItem('zeloEmail', user.email || '');
   sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
-  aplicarAcesso(perfil.role || 'funcionario', perfil.permissoes || {});
+  aplicarAcesso(perfil.role || 'funcionario', perfil.permissoes || {}, user.uid);
 });
 
 window.ZeloShowBlocked = showBlockedScreen;

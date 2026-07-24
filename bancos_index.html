@@ -447,7 +447,9 @@ import {
         try{ sessionStorage.clear(); }catch(e){}
         await signOut(auth).catch(function(){});
         window.location.reload();
-      }, user.uid);
+      }, user.uid, { role: perfil.role || 'funcionario', permissoes: perfil.permissoes || {} }, function(){
+        window.location.reload();
+      });
     }
   }
 

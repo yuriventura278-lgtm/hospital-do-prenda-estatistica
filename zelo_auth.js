@@ -114,8 +114,15 @@ function marcarInicioSessao() {
  *    caso de um administrador desactivar o utilizador enquanto a sessão está aberta.
  *  - Ao voltar a ficar visível (ecrã bloqueado, separador em segundo plano,
  *    computador em suspensão), recalcula a inactividade pelo tempo real decorrido
- *    em vez de confiar apenas no temporizador, que pode atrasar-se nesses casos. */
-function startInactivityWatch(onTimeout, uid) {
+ *    em vez de confiar apenas no temporizador, que pode atrasar-se nesses casos.
+ *
+ *  permissoesSnapshot/onPermissoesChange (opcionais, retrocompatíveis — chamadores
+ *  antigos que só passam onTimeout/uid mantêm o comportamento de sempre): permitem
+ *  detetar, na mesma reconfirmação a cada 2min, que o administrador alterou o papel
+ *  ou as permissões do utilizador (não só que a conta foi desativada) e reagir sem
+ *  esperar por um novo login — por exemplo recarregando a página para que o novo
+ *  nível de acesso (bloqueado / só leitura / total) passe a ser aplicado de imediato. */
+function startInactivityWatch(onTimeout, uid, permissoesSnapshot, onPermissoesChange) {
   let warnTimer, logoutTimer, avisoMostrado = false, lastActivityAt = Date.now();
   const loginAt = marcarInicioSessao();
 
@@ -158,6 +165,16 @@ function startInactivityWatch(onTimeout, uid) {
         clearInterval(revalidateTimer);
         removeInactivityModal();
         onTimeout();
+        return;
+      }
+      if (permissoesSnapshot && onPermissoesChange) {
+        const mudouPapel = (perfil.role || 'funcionario') !== (permissoesSnapshot.role || 'funcionario');
+        const mudouPermissoes = JSON.stringify(perfil.permissoes || {}) !== JSON.stringify(permissoesSnapshot.permissoes || {});
+        if (mudouPapel || mudouPermissoes) {
+          clearInterval(revalidateTimer);
+          removeInactivityModal();
+          onPermissoesChange(perfil);
+        }
       }
     }
   }, REVALIDATE_INTERVAL_MS);
