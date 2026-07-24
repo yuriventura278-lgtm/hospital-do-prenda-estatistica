@@ -75,6 +75,12 @@ main{max-width:900px;margin:0 auto;padding:26px 20px 60px;}
 .dash-sub{font-size:.78rem;color:#DCE9FF;margin-top:3px;line-height:1.5;}
 .dash-arrow{flex-shrink:0;color:#fff;opacity:.85;}
 @media(max-width:560px){.dash-cta{padding:15px 16px;gap:12px;}.dash-sub{display:none;}}
+
+.trend-row{display:flex;align-items:center;gap:10px;padding:6px 0;}
+.trend-row .tr-label{font-size:.72rem;color:var(--tx2);width:110px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.trend-row .tr-bar-wrap{flex:1;background:var(--sf);border-radius:4px;height:16px;overflow:hidden;}
+.trend-row .tr-bar{height:100%;border-radius:4px;transition:width .5s ease;min-width:3px;}
+.trend-row .tr-val{font-family:'DM Mono',monospace;font-size:.76rem;font-weight:700;color:var(--tx);width:40px;text-align:right;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -117,7 +123,14 @@ main{max-width:900px;margin:0 auto;padding:26px 20px 60px;}
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
 
-  <div class="sec-title">Resumos Mensais em PDF</div>
+  <div class="sec-title" style="margin-top:30px;">Tendências</div>
+  <div class="hero-note" style="background:#fff;border:1px solid var(--br);color:var(--tx2);margin-top:0;margin-bottom:16px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span>Evolução mês-a-mês dos totais já calculados pelo resumo automático, por categoria de serviço. Aparece a partir do primeiro mês fechado pelo sistema.</span>
+  </div>
+  <div id="trends-content"><div class="loading">A carregar tendências…</div></div>
+
+  <div class="sec-title" style="margin-top:30px;">Resumos Mensais em PDF</div>
   <div class="hero-note" style="background:#fff;border:1px solid var(--br);color:var(--tx2);margin-bottom:16px;margin-top:0;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
     <span>No dia 2 de cada mês, um processo automático gera sozinho o resumo em PDF do mês anterior e guarda-o aqui — sem precisar que ninguém abra o sistema. Em seguida, o histórico confirmado desse mês é removido do Firebase, mantendo o sistema sempre leve.</span>
@@ -156,7 +169,67 @@ function emptyState(){
     <p>Ainda não há nenhum resumo mensal gerado. O primeiro relatório aparece aqui automaticamente após o fecho do primeiro mês completo de uso do sistema.</p>
   </div></div>`;
 }
+
+const TREND_CAT_ORDER = ['cirurgicas','internamento','diagnostico','ambulatorio','procedimentos'];
+const TREND_CAT_COLORS = {cirurgicas:'#DC2626', internamento:'#7C3AED', diagnostico:'#0EA5E9', ambulatorio:'#059669', procedimentos:'#D97706'};
+
+async function loadTrends(){
+  const el = document.getElementById('trends-content');
+  try{
+    const res = await fetch('relatorios/index.json', {cache:'no-store'});
+    if(!res.ok) throw new Error('sem índice');
+    const list = await res.json();
+    const withData = (Array.isArray(list) ? list : []).filter(i => i && i.dataFile).sort((a,b) => a.ym.localeCompare(b.ym)).slice(-12);
+    if(!withData.length){ el.innerHTML = trendsEmptyState(); return; }
+    const months = (await Promise.all(withData.map(async item => {
+      try{
+        const r = await fetch('relatorios/' + encodeURIComponent(item.dataFile), {cache:'no-store'});
+        if(!r.ok) return null;
+        return await r.json();
+      }catch(e){ return null; }
+    }))).filter(Boolean);
+    if(!months.length){ el.innerHTML = trendsEmptyState(); return; }
+    el.innerHTML = renderTrends(months);
+  }catch(e){
+    el.innerHTML = trendsEmptyState();
+  }
+}
+
+function renderTrends(months){
+  const catIds = new Set();
+  months.forEach(m => Object.keys(m.categorias || {}).forEach(c => catIds.add(c)));
+  const ids = TREND_CAT_ORDER.filter(c => catIds.has(c));
+  if(!ids.length) return trendsEmptyState();
+  return ids.map(c => {
+    const label = (months.find(m => m.categorias && m.categorias[c]) || {categorias:{}}).categorias[c].label || c;
+    const max = Math.max(1, ...months.map(m => (m.categorias[c] && m.categorias[c].total) || 0));
+    const color = TREND_CAT_COLORS[c] || 'var(--bl)';
+    const rows = months.map(m => {
+      const v = (m.categorias[c] && m.categorias[c].total) || 0;
+      const pct = Math.round(100 * v / max);
+      return `<div class="trend-row">
+        <span class="tr-label">${escapeHtml(m.label || m.ym)}</span>
+        <div class="tr-bar-wrap"><div class="tr-bar" style="width:${pct}%;background:${color};"></div></div>
+        <span class="tr-val">${v}</span>
+      </div>`;
+    }).join('');
+    return `<div class="panel"><h2>${escapeHtml(label)}</h2>${rows}</div>`;
+  }).join('');
+}
+
+function trendsEmptyState(){
+  return `<div class="panel"><div class="empty-state">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    <p>Ainda não há dados suficientes para mostrar tendências. Aparecem aqui automaticamente a partir do primeiro resumo mensal gerado pelo sistema.</p>
+  </div></div>`;
+}
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 load();
+loadTrends();
 </script>
 <script src="zelo_theme.js"></script>
 </body>

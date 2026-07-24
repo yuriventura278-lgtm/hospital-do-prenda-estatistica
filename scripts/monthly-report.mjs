@@ -728,13 +728,45 @@ async function main(){
   await browser.close();
   console.log('PDF gerado em', pdfPath);
 
+  // ── Dados estruturados do mês (para a secção "Tendências" do Estatística.html) ──
+  // Mesmos totais já calculados acima para o PDF, só que persistidos em JSON para
+  // poderem ser lidos e comparados mês-a-mês por qualquer página do sistema.
+  const categorias = {};
+  for(const [catId, cat] of Object.entries(CATS)){
+    const items = perService.filter(s => s.cat === catId);
+    categorias[catId] = {
+      label: cat.label,
+      total: items.reduce((a, s) => a + s.headlineTotal, 0),
+    };
+  }
+  const urgenciaTotal = URGENCIA_ROWS.reduce((acc, r) => {
+    const a = urgenciaAgg[r.id];
+    acc.atendimentos += a.idMen + a.idMai;
+    acc.altas += a.altas;
+    acc.falecidos += a.falecidos;
+    return acc;
+  }, {atendimentos: 0, altas: 0, falecidos: 0});
+  const dataOut = {
+    ym, label: monthLabel, generatedAt: new Date().toISOString(),
+    categorias,
+    servicos: perService.map(s => ({
+      id: s.id, name: s.name, cat: s.cat,
+      headlineTotal: s.headlineTotal, headlineLabel: s.headlineLabel,
+      daysReported: s.daysReported, daysInMonth: s.daysInMonth,
+    })),
+    urgenciaTotal,
+    diagTop5: diagTop20.slice(0, 5),
+  };
+  fs.writeFileSync(`relatorios/${ym}.json`, JSON.stringify(dataOut, null, 2));
+  console.log(`Dados estruturados guardados em relatorios/${ym}.json`);
+
   const indexPath = 'relatorios/index.json';
   let index = [];
   if(fs.existsSync(indexPath)){
     try{ index = JSON.parse(fs.readFileSync(indexPath, 'utf-8')); }catch(e){ index = []; }
   }
   index = index.filter(entry => entry.ym !== ym);
-  index.push({ym, label: monthLabel, file: `${ym}.pdf`, generatedAt: new Date().toISOString()});
+  index.push({ym, label: monthLabel, file: `${ym}.pdf`, dataFile: `${ym}.json`, generatedAt: new Date().toISOString()});
   index.sort((a, b) => b.ym.localeCompare(a.ym));
   fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
   console.log('Índice actualizado em', indexPath);
