@@ -293,6 +293,12 @@ html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
   border-radius:5px;font-size:.62rem;color:var(--muted);font-family:var(--font-head);
   letter-spacing:.3px;display:flex;align-items:flex-start;gap:7px;}
 
+/* ATRASO — aviso de preenchimento em falta */
+.atraso-banner{display:none;align-items:center;gap:9px;margin-bottom:16px;padding:11px 15px;
+  background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.35);border-radius:7px;
+  color:var(--warn);font-family:var(--font-head);font-size:.76rem;font-weight:700;}
+.atraso-banner .svc-icon{width:15px;height:15px;flex-shrink:0;color:var(--warn);}
+
 /* REPORTS */
 .rpt-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
 .rpt-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:3px;
@@ -617,6 +623,10 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
   </aside>
 
   <main class="main-content">
+    <div class="atraso-banner" id="atraso-banner">
+      <svg class="svc-icon" aria-hidden="true"><use href="#i-info"/></svg>
+      <span id="atraso-banner-text"></span>
+    </div>
     <!-- Specialty sections built by JS -->
     <div id="spec-sections"></div>
 
@@ -830,6 +840,37 @@ const SPECIALTIES = [
 // cats → {d[],n[]}) já usado pelo Dashboard.html, para que os registos
 // apareçam lá sem alterações ao Dashboard.
 const FB_SLUG = 'nefrologia';
+
+// ── Aviso de preenchimento em atraso ──────────────────────
+// Verifica se o último dia útil (segunda a sexta, sem contar hoje) tem
+// registo guardado no Firebase para este serviço; se não tiver, mostra um
+// aviso discreto no topo da página. Não substitui o Controlo de
+// Enfermagem (que vê todos os serviços) — é só um lembrete local, por
+// serviço, para quem está a usar esta página.
+function diaUtilAnterior(){
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  while(d.getDay() === 0 || d.getDay() === 6){ d.setDate(d.getDate() - 1); }
+  return d;
+}
+async function verificarPreenchimentoAtrasado(){
+  if(!window.__fbReady || !window.__fbGet) return;
+  try{
+    const dia = diaUtilAnterior();
+    const y = dia.getFullYear(), m = String(dia.getMonth()+1).padStart(2,'0'), dd = String(dia.getDate()).padStart(2,'0');
+    const dateKey = y + '-' + m + '-' + dd;
+    const reg = await window.__fbGet('registos_enf/' + FB_SLUG + '/' + dateKey);
+    if(!reg || !reg.snapshot){
+      const banner = document.getElementById('atraso-banner');
+      const txt = document.getElementById('atraso-banner-text');
+      if(banner && txt){
+        txt.textContent = 'O registo de ' + dd + '/' + m + '/' + y + ' ainda não foi submetido.';
+        banner.style.display = 'flex';
+      }
+    }
+  }catch(e){ /* falha silenciosa — não bloqueia a página */ }
+}
+setTimeout(verificarPreenchimentoAtrasado, 1200);
 function buildFirebaseSnapshot(){
   const sub = {};
   SPECIALTIES.forEach(sp=>{
