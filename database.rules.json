@@ -1,0 +1,42 @@
+{
+  "//": "Regras de segurança PROPOSTAS para o Firebase Realtime Database do ZELO.",
+  "// nota_1": "Este ficheiro não é aplicado automaticamente - tem de ser copiado para Firebase Console > Realtime Database > Regras (ou via 'firebase deploy --only database', se um dia usarem o Firebase CLI). Não tenho acesso às regras hoje em produção, por isso isto é um PONTO DE PARTIDA para rever, não uma cópia do que já existe.",
+  "// nota_2": "Objetivo mínimo: nada é público. Toda a leitura/escrita exige sessão Firebase Auth válida (auth != null) - hoje, as restrições por perfil (admin/médico/enfermeiro/...) só existem no browser (zelo_auth.js/zelo_pagegate.js); qualquer pessoa com sessão válida e a consola do browser aberta pode contornar essas restrições e ler ou escrever em qualquer módulo, porque o servidor (Firebase) não as aplica. As regras abaixo fecham a porta de fora (visitantes sem sessão) mas NÃO replicam ainda a matriz fina de permissões por papel - isso ficaria para uma segunda fase, se decidirem que vale o investimento.",
+  "// nota_3": "audit_log/user_activity/login_attempts só podem ser lidos por administradores (root/users/$uid/role == 'admin'), porque contêm registo de quem fez o quê.",
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && ($uid === auth.uid || root.child('users').child(auth.uid).child('role').val() === 'admin')"
+      }
+    },
+
+    "registos": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "registos_enf": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+
+    "audit_log": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null"
+    },
+
+    "user_activity": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null"
+    },
+
+    "login_attempts": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null"
+    }
+  }
+}
