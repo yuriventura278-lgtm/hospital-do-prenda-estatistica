@@ -223,18 +223,22 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 
 /* PROC TABLE */
 .proc-table{width:100%;border-collapse:collapse;}
-.proc-table-head{display:grid;grid-template-columns:30px 1fr 82px 82px 64px;gap:0;
+.proc-table-head{display:grid;grid-template-columns:1fr 82px 82px 64px;gap:0;
   padding:5px 8px;border-bottom:1px solid var(--border);margin-bottom:4px;}
 .proc-table-head span{font-family:var(--font-head);font-size:.46rem;font-weight:600;text-transform:uppercase;
   letter-spacing:1.5px;text-align:center;color:var(--muted);
   display:flex;align-items:center;justify-content:center;gap:3px;}
 .proc-table-head .ph-name{text-align:left;justify-content:flex-start;}
 .proc-table-head .ph-dia{color:var(--accent);}
-.proc-row{display:grid;grid-template-columns:30px 1fr 82px 82px 64px;gap:0;align-items:center;
+.proc-row{display:grid;grid-template-columns:1fr 82px 82px 64px;gap:0;align-items:center;
   border-bottom:1px solid var(--border);transition:background .1s;min-height:40px;}
 .proc-row:nth-child(even){background:oklch(99.2% 0.002 230);}
 html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
-.proc-chk-cell{display:flex;align-items:center;justify-content:center;padding:3px 0;}
+.proc-chk-cell{display:none;align-items:center;justify-content:center;padding:3px 0;}
+.sel-mode .proc-table-head,.sel-mode .proc-row{grid-template-columns:30px 1fr 82px 82px 64px;}
+.sel-mode .proc-chk-cell{display:flex;}
+.sel-toolbar .sel-mode-only{display:none;}
+.sel-mode .sel-toolbar .sel-mode-only{display:flex;}
 .proc-row-chk,.sel-all-chk{width:20px;height:20px;accent-color:var(--accent);cursor:pointer;}
 .sel-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding:8px 12px;
   background:var(--surface2);border:1px solid var(--border);border-radius:8px;transition:background .15s,border-color .15s;}
@@ -392,6 +396,12 @@ html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
 .mbtn.cancel:hover{color:var(--text);}
 .mbtn.confirm{background:var(--danger);color:#fff;}
 .mbtn.confirm:hover{opacity:.85;}
+.backup-opts{display:flex;flex-direction:column;gap:8px;}
+.bopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:6px;
+  border:1px solid var(--border);background:var(--bg);cursor:pointer;text-align:left;width:100%;}
+.bopt:hover{border-color:var(--accent,#1A56DB);background:var(--surface);}
+.bopt strong{font-family:var(--font-head);font-size:.78rem;font-weight:700;color:var(--text);}
+.bopt span{font-family:var(--font-head);font-size:.66rem;color:var(--muted);}
 
 /* SAVE BAR */
 .save-bar{position:fixed;bottom:0;left:var(--nav-w);right:0;height:44px;z-index:50;
@@ -597,7 +607,6 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     <button class="btn-h btn-out email" onclick="acaoEmail()" title="Enviar PDF por Email"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Email</button>
     <button class="btn-h btn-out pdf" onclick="exportPDF()"><svg class="svc-icon" aria-hidden="true"><use href="#i-pdf"/></svg> PDF</button>
     <button class="btn-h btn-out bk" onclick="openBackup()"><svg class="svc-icon" aria-hidden="true"><use href="#i-download"/></svg> Backup</button>
-    <button class="btn-h btn-out" onclick="exportBdExcel()" title="Exportar Base de Dados Excel completa" style="color:#047857;border-color:#bbf7d0;background:#f0fdf4;font-weight:700;">📊 BD Excel</button>
     <button class="btn-h btn-out rs" onclick="document.getElementById('restoreInput').click()"><svg class="svc-icon" aria-hidden="true"><use href="#i-upload"/></svg> Restaurar</button>
     <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="restoreFromFile(this)">
   </div>
@@ -823,6 +832,39 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     <div class="modal-btns">
       <button class="mbtn cancel" onclick="closeRestoreModal()">Cancelar</button>
       <button class="mbtn confirm" id="confirmRestoreBtn">Restaurar</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP OPTIONS MODAL -->
+<div class="modal-overlay" id="backupModal">
+  <div class="modal-box">
+    <h3>Exportar Backup</h3>
+    <p>Escolhe o que queres exportar.</p>
+    <div class="backup-opts">
+      <button class="bopt" onclick="doBackupDiario()">
+        <strong>Diário</strong><span id="bopt-diario-sub">Só o dia atualmente aberto</span>
+      </button>
+      <button class="bopt" onclick="toggleBackupSemanaPicker()">
+        <strong>Semanal</strong><span>Escolher uma semana</span>
+      </button>
+      <button class="bopt" onclick="toggleBackupMesPicker()">
+        <strong>Mensal</strong><span>Escolher um mês</span>
+      </button>
+      <button class="bopt" onclick="doBackupGeral()">
+        <strong>Geral</strong><span>Todos os registos guardados</span>
+      </button>
+    </div>
+    <div id="backupSemanaPicker" style="display:none;margin-top:12px;display:flex;gap:8px;align-items:center;">
+      <input type="date" id="backupSemanaInput" style="flex:1;padding:8px;border-radius:4px;border:1px solid var(--border);font-family:var(--font-head);"/>
+      <button class="mbtn confirm" onclick="doBackupSemanal()">Exportar</button>
+    </div>
+    <div id="backupMesPicker" style="display:none;margin-top:12px;display:flex;gap:8px;align-items:center;">
+      <input type="month" id="backupMesInput" style="flex:1;padding:8px;border-radius:4px;border:1px solid var(--border);font-family:var(--font-head);"/>
+      <button class="mbtn confirm" onclick="doBackupMensal()">Exportar</button>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn cancel" onclick="closeBackupModal()">Fechar</button>
     </div>
   </div>
 </div>
@@ -1637,11 +1679,23 @@ document.addEventListener('change', function(e){
     procAtualizarContagem(selAll.dataset.spec);
   }
 });
+function procToggleSelMode(specId){
+  const sec = document.getElementById('sec-spec-' + specId);
+  const btn = document.getElementById('btn-toggle-sel-' + specId);
+  if(!sec || !btn) return;
+  const ativo = sec.classList.toggle('sel-mode');
+  btn.textContent = ativo ? 'Cancelar seleção' : 'Selecionar';
+  if(!ativo){
+    procRowChecks(specId).forEach(c => { c.checked = false; });
+    procAtualizarContagem(specId);
+  }
+}
 document.addEventListener('click', function(e){
   const btn = e.target.closest('[data-action]');
   if(!btn) return;
   const specId = btn.dataset.spec;
   if(!specId) return;
+  if(btn.dataset.action === 'toggle-sel-mode') procToggleSelMode(specId);
   if(btn.dataset.action === 'sel-preenchidos') procSelecionarPreenchidos(specId);
   if(btn.dataset.action === 'copiar-sel') procCopiarSelecionados(specId);
   if(btn.dataset.action === 'eliminar-sel') procEliminarSelecionados(specId);
@@ -1706,10 +1760,11 @@ function buildUI() {
 
     if(!isReadonly){
       html += `<div class="sel-toolbar" id="sel-toolbar-${sp.id}">
-        <label class="sel-all"><input type="checkbox" class="sel-all-chk" data-spec="${sp.id}"/> <span class="sel-count" id="sel-count-${sp.id}">0 selecionados</span></label>
-        <button type="button" class="btn-sel" data-action="sel-preenchidos" data-spec="${sp.id}">Selecionar preenchidos</button>
-        <button type="button" class="btn-sel" data-action="copiar-sel" data-spec="${sp.id}" id="btn-copiar-${sp.id}" disabled>Copiar</button>
-        <button type="button" class="btn-sel danger" data-action="eliminar-sel" data-spec="${sp.id}" id="btn-eliminar-${sp.id}" disabled>Eliminar</button>
+        <button type="button" class="btn-sel" data-action="toggle-sel-mode" data-spec="${sp.id}" id="btn-toggle-sel-${sp.id}">Selecionar</button>
+        <label class="sel-all sel-mode-only"><input type="checkbox" class="sel-all-chk" data-spec="${sp.id}"/> <span class="sel-count" id="sel-count-${sp.id}">0 selecionados</span></label>
+        <button type="button" class="btn-sel sel-mode-only" data-action="sel-preenchidos" data-spec="${sp.id}">Selecionar preenchidos</button>
+        <button type="button" class="btn-sel sel-mode-only" data-action="copiar-sel" data-spec="${sp.id}" id="btn-copiar-${sp.id}" disabled>Copiar</button>
+        <button type="button" class="btn-sel danger sel-mode-only" data-action="eliminar-sel" data-spec="${sp.id}" id="btn-eliminar-${sp.id}" disabled>Eliminar</button>
       </div>`;
     }
 
@@ -2179,18 +2234,82 @@ function loadComparacao() {
 //  BACKUP / RESTORE
 // ════════════════════════════════════════════════════════════
 function openBackup() {
+  document.getElementById('bopt-diario-sub').textContent = 'Só o dia atualmente aberto (' + fmtDate(currentLoadedDate) + ')';
+  document.getElementById('backupSemanaPicker').style.display = 'none';
+  document.getElementById('backupSemanaInput').value = currentLoadedDate;
+  document.getElementById('backupMesPicker').style.display = 'none';
+  document.getElementById('backupMesInput').value = currentLoadedDate.slice(0,7);
+  document.getElementById('backupModal').classList.add('open');
+}
+function closeBackupModal() {
+  document.getElementById('backupModal').classList.remove('open');
+}
+document.getElementById('backupModal').addEventListener('click', function(e){
+  if(e.target===this) closeBackupModal();
+});
+
+// Extrai os últimos 8 dígitos (YYYYMMDD) do fim da chave, seja enf5_YYYYMMDD ou enf4_specId_turno_YYYYMMDD
+function _keyDateStr(k) {
+  const m = k.match(/(\d{8})$/);
+  return m ? m[1] : null;
+}
+function _collectBackupData(filterFn) {
   const all = {};
   _storageKeys('enf5_').concat(_storageKeys('enf4_')).forEach(function(k) {
+    if (!filterFn(k)) return;
     try { all[k] = JSON.parse(_storageGet(k)); } catch(e){}
   });
+  return all;
+}
+function _downloadBackup(all, suffix) {
+  if (Object.keys(all).length === 0) { showToast('⚠️ Sem dados para exportar neste período.'); return; }
   const blob = new Blob([JSON.stringify({version:'5',exported:new Date().toISOString(),data:all},null,2)],{type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `backup_procedimentos_${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `backup_procedimentos_${suffix}.json`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('⬇️ Backup exportado com sucesso!');
+  closeBackupModal();
+}
+function doBackupDiario() {
+  const dateStr = currentLoadedDate.replace(/-/g,'');
+  const all = _collectBackupData(k => _keyDateStr(k) === dateStr);
+  _downloadBackup(all, 'diario_' + currentLoadedDate);
+}
+function toggleBackupSemanaPicker() {
+  document.getElementById('backupMesPicker').style.display = 'none';
+  const el = document.getElementById('backupSemanaPicker');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+function doBackupSemanal() {
+  const val = document.getElementById('backupSemanaInput').value; // "YYYY-MM-DD" — qualquer dia dentro da semana
+  if (!val) { showToast('⚠️ Escolhe um dia dentro da semana.'); return; }
+  const base = new Date(val + 'T00:00:00');
+  const dow = (base.getDay() + 6) % 7; // segunda=0 … domingo=6
+  const inicio = new Date(base); inicio.setDate(base.getDate() - dow);
+  const fim = new Date(inicio); fim.setDate(inicio.getDate() + 6);
+  const yyyymmdd = d => d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+  const ini8 = yyyymmdd(inicio), fim8 = yyyymmdd(fim);
+  const all = _collectBackupData(k => { const d = _keyDateStr(k); return d && d >= ini8 && d <= fim8; });
+  _downloadBackup(all, 'semanal_' + ini8 + '_' + fim8);
+}
+function toggleBackupMesPicker() {
+  document.getElementById('backupSemanaPicker').style.display = 'none';
+  const el = document.getElementById('backupMesPicker');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+function doBackupMensal() {
+  const val = document.getElementById('backupMesInput').value; // "YYYY-MM"
+  if (!val) { showToast('⚠️ Escolhe um mês.'); return; }
+  const mesStr = val.replace('-','');
+  const all = _collectBackupData(k => { const d = _keyDateStr(k); return d && d.slice(0,6) === mesStr; });
+  _downloadBackup(all, 'mensal_' + val);
+}
+function doBackupGeral() {
+  const all = _collectBackupData(() => true);
+  _downloadBackup(all, 'geral_' + new Date().toISOString().split('T')[0]);
 }
 
 let _pendingRestore = null;
@@ -4203,272 +4322,7 @@ function toggleTheme() {
 var BD_MESES  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 var BD_DIASEM = ['Domingo','Segunda-Feira','Terça-Feira','Quarta-Feira','Quinta-Feira','Sexta-Feira','Sábado'];
 
-function exportBdExcel() {
-  if(typeof XLSX === 'undefined'){
-    showToast('⏳ A carregar biblioteca Excel...');
-    var fallbacks=[
-      'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx-js-style.min.js',
-      'https://unpkg.com/xlsx-js-style@1.2.0/dist/xlsx-js-style.min.js',
-      'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js',
-      'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
-    ];
-    function tryFallback(i){
-      if(i>=fallbacks.length){ showToast('❌ Sem internet – não foi possível carregar Excel'); return; }
-      var s=document.createElement('script'); s.src=fallbacks[i];
-      s.onload=function(){ setTimeout(exportBdExcel,300); };
-      s.onerror=function(){ tryFallback(i+1); };
-      document.head.appendChild(s);
-    }
-    tryFallback(0);
-    return;
-  }
 
-  // 1 ── Recolher datas únicas (enf5_ tem prioridade sobre enf4_)
-  var dateMap = {};
-  _storageKeys('enf5_').concat(_storageKeys('enf4_')).forEach(function(k){
-    if(!k) return;
-    var ds = null;
-    if(k.startsWith('enf5_'))      ds = k.slice(5);
-    else if(k.startsWith('enf4_')) ds = k.slice(5);
-    if(!ds || !/^\d{8}$/.test(ds)) return;
-    if(!dateMap[ds] || k.startsWith('enf5_')) dateMap[ds] = k;
-  });
-  var sortedDates = Object.keys(dateMap).sort();
-  if(!sortedDates.length){ showToast('⚠️ Sem dados guardados para exportar'); return; }
-
-  // Serviços a exportar: usa IDs consolidados (medicina, bloco_op) e exclui os componentes individuais
-  var EXPORT_SPECS = SPECIALTIES.filter(function(s){ return !SKIP_IDS.has(s.id); });
-
-  // 2 ── Ler localStorage e calcular total por serviço/data
-  // Para medicina → lê med_homem + med_mulher; para bloco_op → lê bloco_urgente + bloco_electiva
-  var rawData = {};
-  EXPORT_SPECS.forEach(function(sp){ rawData[sp.id] = {d:[], n:[]}; });
-
-  sortedDates.forEach(function(ds){
-    var parsed = null;
-    try{ parsed = JSON.parse(_storageGet(dateMap[ds]) || 'null'); }catch(e){}
-    EXPORT_SPECS.forEach(function(sp){
-      var spD=0, spN=0;
-      var srcIds = SRC_MAP[sp.id] || [sp.id];
-      srcIds.forEach(function(sid){
-        var spData = parsed && parsed.specs && parsed.specs[sid];
-        if(spData){
-          CATEGORIES.forEach(function(cat){ cat.procs.forEach(function(proc){
-            var k2 = pKey(cat.id,proc);
-            spD += (spData.dia   && spData.dia[k2]  ) ? parseInt(spData.dia[k2])||0   : 0;
-            spN += (spData.noite && spData.noite[k2]) ? parseInt(spData.noite[k2])||0 : 0;
-          }); });
-        }
-      });
-      rawData[sp.id].d.push(spD);
-      rawData[sp.id].n.push(spN);
-    });
-  });
-
-  // 3 ── Paleta de estilos
-  var C = { navy:'1B3A6B', navyDark:'0F2347', blue1:'DBEAFE', blue2:'EEF4FB',
-    white:'FFFFFF', text:'111827', textBd:'1B3A6B', muted:'6B7280',
-    border:'D1D5DB', borderB:'BFDBFE', green:'D1FAE5', greenBd:'86EFAC',
-    greenDark:'166534', red:'FEE2E2', redBd:'FCA5A5', redDark:'991B1B',
-    amber:'FEF3C7', amberBd:'FDE68A', amberDark:'92400E' };
-  var bdr = function(c){ return { top:{style:'thin',color:{rgb:c}}, bottom:{style:'thin',color:{rgb:c}},
-    left:{style:'thin',color:{rgb:c}}, right:{style:'thin',color:{rgb:c}} }; };
-  var sH  = function(al,bg){ bg=bg||C.navy; return { font:{bold:true,color:{rgb:C.white},sz:9,name:'Calibri'},
-    fill:{patternType:'solid',fgColor:{rgb:bg}}, alignment:{horizontal:al||'center',vertical:'center'}, border:bdr(C.navyDark) }; };
-  var sDH = function(){ return { font:{bold:true,color:{rgb:C.textBd},sz:8,name:'Calibri'},
-    fill:{patternType:'solid',fgColor:{rgb:C.blue1}}, alignment:{horizontal:'center',vertical:'center'}, border:bdr(C.borderB) }; };
-  var sNH = function(){ return { font:{bold:true,color:{rgb:C.muted},sz:8,name:'Calibri'},
-    fill:{patternType:'solid',fgColor:{rgb:'E2E8F0'}}, alignment:{horizontal:'center',vertical:'center'}, border:bdr('CBD5E1') }; };
-  var sTH = function(){ return { font:{bold:true,color:{rgb:C.textBd},sz:8,name:'Calibri'},
-    fill:{patternType:'solid',fgColor:{rgb:'C7D7F5'}}, alignment:{horizontal:'center',vertical:'center'}, border:bdr(C.borderB) }; };
-  var sT  = function(bg,bold){ return { font:{sz:9,name:'Calibri',bold:!!bold,color:{rgb:bold?C.textBd:C.text}},
-    fill:{patternType:'solid',fgColor:{rgb:bg}}, alignment:{horizontal:'left',vertical:'center'}, border:bdr(bg===C.white?C.border:C.borderB) }; };
-  var sN  = function(bg,bold,col){ return { font:{sz:9,name:'Calibri',bold:!!bold,color:{rgb:col||(bold?C.textBd:C.text)}},
-    fill:{patternType:'solid',fgColor:{rgb:bg}}, alignment:{horizontal:'center',vertical:'center'}, border:bdr(bg===C.white?C.border:C.borderB) }; };
-  var sG  = function(){ return { font:{bold:true,sz:10,name:'Calibri',color:{rgb:C.white}},
-    fill:{patternType:'solid',fgColor:{rgb:C.navy}}, alignment:{horizontal:'center',vertical:'center'}, border:bdr(C.navyDark) }; };
-  var sGrp= function(bg,bd,col){ return { font:{bold:true,sz:9,name:'Calibri',color:{rgb:col}},
-    fill:{patternType:'solid',fgColor:{rgb:bg}}, alignment:{horizontal:'center',vertical:'center'}, border:bdr(bd) }; };
-
-  // ════════════════════════════════════════════════════════
-  // FOLHA 1 — Resumo por Serviço (pivot: serviços × datas)
-  //   Colunas: Serviço | Dia1_Total | Dia2_Total | … | TOTAL GERAL
-  // ════════════════════════════════════════════════════════
-  var ws1Data = [];
-
-  // Cabeçalho — linha de datas
-  var hdr1 = [{ v:'Serviço', t:'s', s:sH('left') }];
-  sortedDates.forEach(function(ds){
-    var fmt = ds.slice(6,8)+'/'+ds.slice(4,6)+'/'+ds.slice(0,4);
-    hdr1.push({ v:fmt, t:'s', s:sDH() });
-  });
-  hdr1.push({ v:'TOTAL', t:'s', s:sH('center') });
-  ws1Data.push(hdr1);
-
-  // Linhas por serviço
-  var toggle=0;
-  EXPORT_SPECS.forEach(function(sp){
-    var bg = toggle===0 ? C.white : C.blue2; toggle=1-toggle;
-    var row = [{ v:sp.label, t:'s', s:sT(bg,false) }];
-    var spTot = 0;
-    sortedDates.forEach(function(ds,i){
-      var tot = rawData[sp.id].d[i] + rawData[sp.id].n[i];
-      spTot += tot;
-      row.push({ v:tot, t:'n', s:sN(bg,false) });
-    });
-    row.push({ v:spTot, t:'n', s:sN(C.blue1,true,'1B3A6B') });
-    ws1Data.push(row);
-  });
-
-  // Linha TOTAL POR DIA
-  var totRow1 = [{ v:'TOTAL / DIA', t:'s', s:sH('left') }];
-  var grandGrand1 = 0;
-  sortedDates.forEach(function(ds,i){
-    var dayTot = 0;
-    EXPORT_SPECS.forEach(function(sp){ dayTot += rawData[sp.id].d[i] + rawData[sp.id].n[i]; });
-    grandGrand1 += dayTot;
-    totRow1.push({ v:dayTot, t:'n', s:sN(C.blue1,true,'1B3A6B') });
-  });
-  totRow1.push({ v:grandGrand1, t:'n', s:sG() });
-  ws1Data.push(totRow1);
-
-  // Subtotais por grupo
-  ws1Data.push([]);
-  ws1Data.push([{ v:'SUBTOTAIS POR GRUPO', t:'s', s:sH('left') }]);
-  // Subtotais por grupo — usa IDs consolidados (medicina=med_h+med_m; bloco_op=bloco_u+bloco_e)
-  // rawData já tem os valores correctos pois foi calculado via SRC_MAP
-  var gruposCfg = [
-    { label:'🏥 Consulta Externa + Hosp. Dia',  ids:GRUPO_AMB, bg:C.green,  bd:C.greenBd,  col:C.greenDark },
-    { label:'🛏 Internamentos',                   ids:GRUPO_INT, bg:C.blue1,  bd:C.borderB,  col:C.textBd   },
-    { label:'🚨 Banco de Urgência',               ids:GRUPO_URG, bg:C.red,    bd:C.redBd,    col:C.redDark  }
-  ];
-  gruposCfg.forEach(function(g){
-    var row = [{ v:g.label, t:'s', s:sGrp(g.bg,g.bd,g.col) }];
-    var gTot = 0;
-    sortedDates.forEach(function(ds,i){
-      var dayTot = 0;
-      g.ids.forEach(function(id){ if(rawData[id]){ dayTot+=rawData[id].d[i]+rawData[id].n[i]; } });
-      gTot += dayTot;
-      row.push({ v:dayTot, t:'n', s:sGrp(g.bg,g.bd,g.col) });
-    });
-    row.push({ v:gTot, t:'n', s:sGrp(g.bg,g.bd,g.col) });
-    ws1Data.push(row);
-  });
-
-  var ws1 = XLSX.utils.aoa_to_sheet(ws1Data);
-  var cols1 = [{wch:30}];
-  sortedDates.forEach(function(){ cols1.push({wch:11}); });
-  cols1.push({wch:14});
-  ws1['!cols'] = cols1;
-  ws1['!rows'] = [{hpt:22}];
-  ws1['!freeze'] = { xSplit:1, ySplit:1 };
-
-  // ════════════════════════════════════════════════════════
-  // FOLHA 2 — Detalhe Dia / Noite por data
-  //   Colunas: Serviço | Data_Dia | Data_Noite | Data_Total | … | TOTAL
-  // ════════════════════════════════════════════════════════
-  var ws2Data = [];
-
-  // Cabeçalho (3 colunas por data)
-  var hdr2 = [{ v:'Serviço', t:'s', s:sH('left') }];
-  sortedDates.forEach(function(ds){
-    var fmt = ds.slice(6,8)+'/'+ds.slice(4,6)+'/'+ds.slice(0,4);
-    hdr2.push({ v:fmt+' Dia',   t:'s', s:sDH() });
-    hdr2.push({ v:fmt+' Noite', t:'s', s:sNH() });
-    hdr2.push({ v:fmt+' Total', t:'s', s:sTH() });
-  });
-  hdr2.push({ v:'TOTAL GERAL', t:'s', s:sH('center') });
-  ws2Data.push(hdr2);
-
-  // Linhas por serviço
-  toggle=0;
-  EXPORT_SPECS.forEach(function(sp){
-    var bg = toggle===0 ? C.white : C.blue2; toggle=1-toggle;
-    var row = [{ v:sp.label, t:'s', s:sT(bg,false) }];
-    var spTot = 0;
-    sortedDates.forEach(function(ds,i){
-      var d = rawData[sp.id].d[i], n = rawData[sp.id].n[i];
-      row.push({ v:d, t:'n', s:sN(bg,false,'1A56DB') });
-      row.push({ v:n, t:'n', s:sN(bg,false,'475569') });
-      row.push({ v:d+n, t:'n', s:sN(bg,true) });
-      spTot += d+n;
-    });
-    row.push({ v:spTot, t:'n', s:sG() });
-    ws2Data.push(row);
-  });
-
-  // Linha TOTAL
-  var totRow2 = [{ v:'TOTAL / DIA', t:'s', s:sH('left') }];
-  var grandGrand2 = 0;
-  sortedDates.forEach(function(ds,i){
-    var dd=0, dn=0;
-    EXPORT_SPECS.forEach(function(sp){ dd+=rawData[sp.id].d[i]; dn+=rawData[sp.id].n[i]; });
-    totRow2.push({ v:dd, t:'n', s:sN(C.blue1,true,'1A56DB') });
-    totRow2.push({ v:dn, t:'n', s:sN('E2E8F0',true,'475569') });
-    totRow2.push({ v:dd+dn, t:'n', s:sN(C.blue1,true,'1B3A6B') });
-    grandGrand2 += dd+dn;
-  });
-  totRow2.push({ v:grandGrand2, t:'n', s:sG() });
-  ws2Data.push(totRow2);
-
-  var ws2 = XLSX.utils.aoa_to_sheet(ws2Data);
-  var cols2 = [{wch:30}];
-  sortedDates.forEach(function(){ cols2.push({wch:9}); cols2.push({wch:9}); cols2.push({wch:9}); });
-  cols2.push({wch:14});
-  ws2['!cols'] = cols2;
-  ws2['!rows'] = [{hpt:22}];
-  ws2['!freeze'] = { xSplit:1, ySplit:1 };
-
-  // ════════════════════════════════════════════════════════
-  // FOLHA 3 — Base de Dados (uma linha por serviço por dia)
-  // ════════════════════════════════════════════════════════
-  var ws3Data = [];
-  ws3Data.push([
-    {v:'Data',t:'s',s:sH('center')},{v:'Dia',t:'s',s:sH('center')},
-    {v:'Mês',t:'s',s:sH('left')},{v:'Ano',t:'s',s:sH('center')},
-    {v:'Dia Semana',t:'s',s:sH('left')},{v:'Serviço',t:'s',s:sH('left')},
-    {v:'Grupo',t:'s',s:sH('center')},{v:'Total Dia',t:'s',s:sH('center')},
-    {v:'Total Noite',t:'s',s:sH('center')},{v:'Total',t:'s',s:sH('center')}
-  ]);
-  toggle=0;
-  sortedDates.forEach(function(ds,di){
-    var dtFmt=ds.slice(6,8)+'/'+ds.slice(4,6)+'/'+ds.slice(0,4);
-    var dNum=parseInt(ds.slice(6,8)), mNum=parseInt(ds.slice(4,6)), yNum=parseInt(ds.slice(0,4));
-    var dtObj=new Date(yNum,mNum-1,dNum);
-    var bg=toggle===0?C.white:C.blue2; toggle=1-toggle;
-    EXPORT_SPECS.forEach(function(sp){
-      var d=rawData[sp.id].d[di], n=rawData[sp.id].n[di];
-      var grp=GRUPO_AMB.includes(sp.id)?'Ambulatório':GRUPO_URG.includes(sp.id)?'Urgência':
-              GRUPO_INT.includes(sp.id)?'Internamento':'Outro';
-      ws3Data.push([
-        {v:dtFmt,t:'s',s:sN(bg,false)},{v:dNum,t:'n',s:sN(bg,false)},
-        {v:BD_MESES[mNum],t:'s',s:sT(bg,false)},{v:yNum,t:'n',s:sN(bg,false)},
-        {v:BD_DIASEM[dtObj.getDay()],t:'s',s:sT(bg,false)},{v:sp.label,t:'s',s:sT(bg,false)},
-        {v:grp,t:'s',s:sN(bg,false)},{v:d,t:'n',s:sN(bg,false,'1A56DB')},
-        {v:n,t:'n',s:sN(bg,false,'475569')},{v:d+n,t:'n',s:sN(bg,true)}
-      ]);
-    });
-  });
-  var ws3=XLSX.utils.aoa_to_sheet(ws3Data);
-  ws3['!cols']=[{wch:11},{wch:5},{wch:12},{wch:6},{wch:15},{wch:26},{wch:14},{wch:10},{wch:10},{wch:10}];
-  ws3['!rows']=[{hpt:20}];
-  ws3['!freeze']={xSplit:0,ySplit:1};
-  ws3['!autofilter']={ref:'A1:J1'};
-
-  // 6 ── Workbook e download
-  var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws1, 'Resumo por Serviço');
-  XLSX.utils.book_append_sheet(wb, ws2, 'Detalhe Dia-Noite');
-  XLSX.utils.book_append_sheet(wb, ws3, 'Base de Dados');
-
-  var td=new Date();
-  var fname='BD_Procedimentos_HPrend_'+td.getFullYear()+String(td.getMonth()+1).padStart(2,'0')+String(td.getDate()).padStart(2,'0')+'.xlsx';
-  XLSX.writeFile(wb, fname);
-
-  showToast('✅ Excel exportado — '+sortedDates.length+' dias · '+EXPORT_SPECS.length+' serviços · 3 folhas');
-}
-
-// Excel apenas exportado manualmente via botão — não dispara ao guardar
 
 // ════ FIM BASE DE DADOS EXCEL ════
 
