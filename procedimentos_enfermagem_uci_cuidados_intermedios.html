@@ -237,11 +237,13 @@ html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
 .proc-chk-cell{display:flex;align-items:center;justify-content:center;padding:3px 0;}
 .proc-row-chk,.sel-all-chk{width:20px;height:20px;accent-color:var(--accent);cursor:pointer;}
 .sel-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding:8px 12px;
-  background:var(--accent-tint);border:1px solid var(--accent-ring);border-radius:8px;}
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;transition:background .15s,border-color .15s;}
+.sel-toolbar.has-selection{background:var(--accent-tint);border-color:var(--accent-ring);}
 .sel-all{display:flex;align-items:center;gap:6px;font-family:var(--font-head);font-size:.66rem;
   font-weight:700;color:var(--text);cursor:pointer;}
-.sel-count{color:var(--accent);font-weight:700;background:var(--surface);border:1px solid var(--accent-ring);
-  border-radius:100px;padding:2px 9px;font-size:.62rem;}
+.sel-count{color:var(--muted);font-weight:700;background:var(--surface);border:1px solid var(--border);
+  border-radius:100px;padding:2px 9px;font-size:.62rem;transition:color .15s,border-color .15s;}
+.sel-toolbar.has-selection .sel-count{color:var(--accent);border-color:var(--accent-ring);}
 .btn-sel{background:var(--surface);border:1px solid var(--border);color:var(--text);
   font-family:var(--font-head);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
   padding:6px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
@@ -1530,6 +1532,8 @@ function procAtualizarContagem(specId){
   const marcados = checks.filter(c => c.checked).length;
   const countEl = document.getElementById('sel-count-'+specId);
   if(countEl) countEl.textContent = marcados + (marcados===1 ? ' selecionado' : ' selecionados');
+  const toolbarEl = document.getElementById('sel-toolbar-'+specId);
+  if(toolbarEl) toolbarEl.classList.toggle('has-selection', marcados>0);
   const btnCopiar = document.getElementById('btn-copiar-'+specId);
   const btnEliminar = document.getElementById('btn-eliminar-'+specId);
   if(btnCopiar) btnCopiar.disabled = marcados===0;
@@ -1660,7 +1664,7 @@ function buildUI() {
     html += ``;
 
     if(!isReadonly){
-      html += `<div class="sel-toolbar">
+      html += `<div class="sel-toolbar" id="sel-toolbar-${sp.id}">
         <label class="sel-all"><input type="checkbox" class="sel-all-chk" data-spec="${sp.id}"/> <span class="sel-count" id="sel-count-${sp.id}">0 selecionados</span></label>
         <button type="button" class="btn-sel" data-action="sel-preenchidos" data-spec="${sp.id}">Selecionar preenchidos</button>
         <button type="button" class="btn-sel" data-action="copiar-sel" data-spec="${sp.id}" id="btn-copiar-${sp.id}" disabled>Copiar</button>
