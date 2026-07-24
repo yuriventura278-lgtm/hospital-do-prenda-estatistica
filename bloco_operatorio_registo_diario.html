@@ -147,7 +147,7 @@ function initKeyboardNav(){
     --oftalmo: #1a9b8e;
     --text: #16213d;
     --muted: #6b7689;
-    --muted2: #97a1b3;
+    --muted2: #64748b;
     --sidebar-w: 244px;
     --header-h: 70px;
     --font-head: 'Manrope', 'Inter', sans-serif;
@@ -285,6 +285,15 @@ function initKeyboardNav(){
     font-weight: 700;
   }
   .nav-item.active .nav-dot { opacity: 1; }
+  .nav-item .nav-ic {
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface3); color: var(--muted2);
+    transition: background .16s, color .16s;
+  }
+  .nav-item:hover .nav-ic { background: #fff; color: var(--muted); }
+  .nav-item.active .nav-ic { background: currentColor; }
+  .nav-item.active .nav-ic svg { stroke: #fff; }
   .nav-item[data-section="cirurgias"].active { border-left-color: var(--blue); color: var(--blue); background: linear-gradient(90deg, rgba(33,84,217,0.08), rgba(33,84,217,0.02)); }
   .nav-item[data-section="cirurgias"].active .nav-dot { background: var(--blue); }
   .nav-item[data-section="anestesia"].active { border-left-color: var(--anest); color: var(--anest); background: linear-gradient(90deg, rgba(139,92,246,0.08), rgba(139,92,246,0.02)); }
@@ -1103,10 +1112,6 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
       <label>Data</label>
       <input type="date" id="regDate">
     </div>
-    <div class="sync-indicator" title="Os dados são guardados apenas neste dispositivo">
-      <div class="sync-dot synced" id="fb-auto-dot"></div>
-      <span class="sync-label" id="fb-auto-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Armazenamento local</span>
-    </div>
     <a class="btn-header" href="index.html" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Início</a>
     <button class="btn-header" onclick="openBackup()" style="display:inline-flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Backup · Email · Imprimir</button>
     <button class="btn-header" onclick="exportPDF()" style="display:inline-flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Exportar PDF</button>
@@ -1120,25 +1125,25 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ── SIDEBAR ── -->
   <aside class="sidebar">
     <div class="sidebar-section-label">Registos</div>
-    <div class="nav-item active" data-section="cirurgias"><span class="nav-dot"></span>🩺 Cirurgias do Dia</div>
+    <div class="nav-item active" data-section="cirurgias"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span>Cirurgias do Dia</div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">Anestesias</div>
-    <div class="nav-item" data-section="anestesia"><span class="nav-dot"></span>💜 Anestesias</div>
+    <div class="nav-item" data-section="anestesia"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg></span>Anestesias</div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">Outros</div>
-    <div class="nav-item" data-section="suspensas"><span class="nav-dot"></span>🟠 Suspensas</div>
-    <div class="nav-item" data-section="obtidos"><span class="nav-dot"></span><svg width="7" height="7" viewBox="0 0 8 8" style="display:inline-block;vertical-align:middle;margin-right:4px;flex-shrink:0;"><circle cx="4" cy="4" r="4" fill="#149e6c"/></svg>Obtidos</div>
+    <div class="nav-item" data-section="suspensas"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg></span>Suspensas</div>
+    <div class="nav-item" data-section="obtidos"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>Obtidos</div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">Análise</div>
-    <div class="nav-item" data-section="resumo"><span class="nav-dot"></span>📊 Resumo Geral</div>
-    <div class="nav-item" data-section="estatisticas"><span class="nav-dot"></span>📈 Estatísticas</div>
+    <div class="nav-item" data-section="resumo"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Resumo Geral</div>
+    <div class="nav-item" data-section="estatisticas"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>Estatísticas</div>
     <div class="sidebar-section-label" style="margin-top:4px;">Histórico</div>
-    <div class="nav-item" data-section="hist_diario"><span class="nav-dot"></span>📄 Diário</div>
-    <div class="nav-item" data-section="hist_semanal"><span class="nav-dot"></span>📆 Semanal</div>
-    <div class="nav-item" data-section="hist_mensal"><span class="nav-dot"></span>🗓 Mensal</div>
-    <div class="nav-item" data-section="hist_trimestral"><span class="nav-dot"></span>📁 Trimestral</div>
-    <div class="nav-item" data-section="hist_semestral"><span class="nav-dot"></span>📂 Semestral</div>
-    <div class="nav-item" data-section="hist_anual"><span class="nav-dot"></span>📅 Anual</div>
+    <div class="nav-item" data-section="hist_diario"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>Diário</div>
+    <div class="nav-item" data-section="hist_semanal"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Semanal</div>
+    <div class="nav-item" data-section="hist_mensal"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>Mensal</div>
+    <div class="nav-item" data-section="hist_trimestral"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>Trimestral</div>
+    <div class="nav-item" data-section="hist_semestral"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></span>Semestral</div>
+    <div class="nav-item" data-section="hist_anual"><span class="nav-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg></span>Anual</div>
   </aside>
 
   <!-- ── MAIN CONTENT ── -->
@@ -1148,7 +1153,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ URGENTE ══ -->
   <div class="section active" id="cirurgias">
     <div class="section-header">
-      <span class="section-badge badge-urgent" style="background:rgba(33,84,217,0.1);color:var(--blue);border-color:rgba(33,84,217,0.22);">🩺 Cirurgias</span>
+      <span class="section-badge" style="background:rgba(33,84,217,0.1);color:var(--blue);border-color:rgba(33,84,217,0.22);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>Cirurgias</span>
       <h2 class="section-title">Cirurgias Realizadas no Dia</h2>
     </div>
     <div class="card urgent">
@@ -1312,7 +1317,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ ANESTESIA (UNIFICADA) ══ -->
   <div class="section" id="anestesia">
     <div class="section-header">
-      <span class="section-badge badge-anest">💜 Anestesia</span>
+      <span class="section-badge badge-anest"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>Anestesia</span>
       <h2 class="section-title">Técnicas Anestésicas Aplicadas</h2>
     </div>
     <div class="card anest">
@@ -1330,7 +1335,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ SUSPENSAS ══ -->
   <div class="section" id="suspensas">
     <div class="section-header">
-      <span class="section-badge badge-suspended">🟠 Suspensas</span>
+      <span class="section-badge badge-suspended"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>Suspensas</span>
       <h2 class="section-title">Cirurgias Suspensas</h2>
     </div>
     <div class="card suspended">
@@ -1404,7 +1409,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ RESUMO GERAL ══ -->
   <div class="section" id="resumo">
     <div class="section-header">
-      <span class="section-badge badge-resumo">📊 Resumo</span>
+      <span class="section-badge badge-resumo"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Resumo</span>
       <h2 class="section-title">Resumo Geral do Dia</h2>
     </div>
     <!-- Sub-tabs -->
@@ -1501,7 +1506,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ HISTÓRICO DIÁRIO ══ -->
   <div class="section" id="hist_diario">
     <div class="section-header">
-      <span class="section-badge" style="background:rgba(0,212,170,0.12);color:var(--accent);border:1px solid rgba(0,212,170,0.3);">📄 Diário</span>
+      <span class="section-badge" style="background:rgba(0,212,170,0.12);color:var(--accent);border:1px solid rgba(0,212,170,0.3);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Diário</span>
       <h2 class="section-title">Relatório Diário</h2>
     </div>
     <div class="period-controls">
@@ -1521,7 +1526,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ HISTÓRICO SEMANAL ══ -->
   <div class="section" id="hist_semanal">
     <div class="section-header">
-      <span class="section-badge" style="background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.3);">📆 Semanal</span>
+      <span class="section-badge" style="background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.3);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Semanal</span>
       <h2 class="section-title">Relatório Semanal</h2>
     </div>
     <div class="period-controls">
@@ -1542,7 +1547,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ HISTÓRICO MENSAL ══ -->
   <div class="section" id="hist_mensal">
     <div class="section-header">
-      <span class="section-badge" style="background:rgba(167,139,250,0.12);color:var(--anest);border:1px solid rgba(167,139,250,0.3);">🗓 Mensal</span>
+      <span class="section-badge" style="background:rgba(167,139,250,0.12);color:var(--anest);border:1px solid rgba(167,139,250,0.3);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Mensal</span>
       <h2 class="section-title">Relatório Mensal</h2>
     </div>
     <div class="period-controls">
@@ -1562,7 +1567,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ HISTÓRICO TRIMESTRAL ══ -->
   <div class="section" id="hist_trimestral">
     <div class="section-header">
-      <span class="section-badge" style="background:rgba(245,158,11,0.12);color:var(--transfer);border:1px solid rgba(245,158,11,0.3);">📁 Trimestral</span>
+      <span class="section-badge" style="background:rgba(245,158,11,0.12);color:var(--transfer);border:1px solid rgba(245,158,11,0.3);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Trimestral</span>
       <h2 class="section-title">Relatório Trimestral</h2>
     </div>
     <div class="period-controls">
@@ -1584,7 +1589,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ HISTÓRICO SEMESTRAL ══ -->
   <div class="section" id="hist_semestral">
     <div class="section-header">
-      <span class="section-badge" style="background:rgba(251,146,60,0.12);color:var(--suspended);border:1px solid rgba(251,146,60,0.3);">📂 Semestral</span>
+      <span class="section-badge" style="background:rgba(251,146,60,0.12);color:var(--suspended);border:1px solid rgba(251,146,60,0.3);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>Semestral</span>
       <h2 class="section-title">Relatório Semestral</h2>
     </div>
     <div class="period-controls">
@@ -1606,7 +1611,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ HISTÓRICO ANUAL ══ -->
   <div class="section" id="hist_anual">
     <div class="section-header">
-      <span class="section-badge" style="background:rgba(255,77,109,0.12);color:var(--urgent);border:1px solid rgba(255,77,109,0.3);">📅 Anual</span>
+      <span class="section-badge" style="background:rgba(255,77,109,0.12);color:var(--urgent);border:1px solid rgba(255,77,109,0.3);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>Anual</span>
       <h2 class="section-title">Relatório Anual</h2>
     </div>
     <div class="period-controls">
@@ -1626,7 +1631,7 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
   <!-- ══ ESTATÍSTICAS ══ -->
   <div class="section" id="estatisticas">
     <div class="section-header">
-      <span class="section-badge" style="background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.3);">📈 Estatísticas</span>
+      <span class="section-badge" style="background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.3);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Estatísticas</span>
       <h2 class="section-title">Análise Estatística</h2>
     </div>
 
