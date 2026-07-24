@@ -14,7 +14,13 @@ function aplicarModoLeitura(){
     banner.textContent = '🔒 Modo só de leitura — não é possível guardar alterações neste módulo.';
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999997;background:#92400E;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.8rem;font-weight:700;padding:9px 12px;';
     document.body.insertBefore(banner, document.body.firstChild);
-    document.querySelectorAll('input, select, textarea, button').forEach(function(el){ el.disabled = true; });
+    // Sair (zeloLogout) nunca deve ficar bloqueado — ficar só de leitura num módulo
+    // não pode impedir o utilizador de terminar a sessão.
+    document.querySelectorAll('input, select, textarea, button').forEach(function(el){
+      var onclick = el.getAttribute('onclick') || '';
+      if (onclick.indexOf('zeloLogout') !== -1) return;
+      el.disabled = true;
+    });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bloquear);
