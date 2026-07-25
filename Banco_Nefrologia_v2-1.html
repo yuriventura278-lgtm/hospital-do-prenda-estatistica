@@ -699,11 +699,30 @@ function ss(){
     const s=buildSnapshot();
     if(s.data){
       localStorage.setItem('nefro_v1_'+s.data,JSON.stringify(s));
+      localStorage.setItem('nefro_v1_savedAt_'+s.data,new Date().toISOString());
       localStorage.setItem('nefro_v1_last',s.data);
       enviarParaFirebase(s.data, s);
     }
   }catch(e){}
   calcTotais();
+}
+
+// Ao abrir a página, verifica se outro dispositivo guardou entretanto uma
+// versão mais recente do dia atualmente aberto — sem isto, o formulário só
+// mostrava sempre a última gravação feita a partir deste dispositivo.
+async function sincronizarComFirebase(){
+  if(!window.__fbReady || !window.__fbGet) return;
+  try{
+    const dataAbertaEl=document.getElementById('data');
+    const dataAberta=dataAbertaEl?dataAbertaEl.value:'';
+    if(!dataAberta) return;
+    const remoto = await window.__fbGet(FB_PATH+'/'+dataAberta);
+    if(!remoto || !remoto.snapshot) return;
+    const localSavedAt=localStorage.getItem('nefro_v1_savedAt_'+dataAberta);
+    if(localSavedAt && new Date(localSavedAt) >= new Date(remoto.savedAt)) return;
+    applySnapshot(remoto.snapshot);
+    ss();
+  }catch(e){ console.warn('Firebase: falha ao verificar versão mais recente de outros dispositivos.', e); }
 }
 
 function applySnapshot(s){
@@ -1151,6 +1170,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     }
   }catch(e){}
   calcTotais();
+  sincronizarComFirebase();
 });
 </script>
 <script src="zelo_theme.js"></script>

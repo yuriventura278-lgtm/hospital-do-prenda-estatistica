@@ -1486,13 +1486,25 @@ function sincronizarHistoricoFirebase(){
     let hist=[]; try{hist=JSON.parse(localStorage.getItem('lab_banco_v1_hist')||'[]');}catch(e){hist=[];}
     const porData={};
     hist.forEach(function(h){ const d=(h.snapshot||h).data; if(d) porData[d]=h; });
+    const dataAbertaEl=document.getElementById('data');
+    const dataAberta=dataAbertaEl?dataAbertaEl.value:'';
+    let dataAbertaAtualizada=null;
     Object.values(remoto).forEach(function(r){
       const d = r && r.snapshot && r.snapshot.data; if(!d) return;
       const atual = porData[d];
-      if(!atual || new Date(r.savedAt) > new Date((atual.savedAt))) porData[d]={data:d,savedAt:r.savedAt,snapshot:r.snapshot};
+      if(!atual || new Date(r.savedAt) > new Date((atual.savedAt))){
+        porData[d]={data:d,savedAt:r.savedAt,snapshot:r.snapshot};
+        if(d===dataAberta) dataAbertaAtualizada=porData[d];
+      }
     });
     const merged = Object.values(porData).sort(function(a,b){return new Date(b.savedAt)-new Date(a.savedAt);}).slice(0,90);
     localStorage.setItem('lab_banco_v1_hist', JSON.stringify(merged));
+    // Se outro dispositivo guardou uma versão mais recente do dia atualmente
+    // aberto, e não há rascunho local por guardar desse dia, actualiza o ecrã
+    // já com essa versão e guarda-a logo localmente.
+    if(dataAbertaAtualizada && !localStorage.getItem('lab_banco_v1_draft_'+dataAberta)){
+      try{ applySnapshot(dataAbertaAtualizada.snapshot); ss(); }catch(e){}
+    }
   }).catch(function(e){ console.warn('Firebase: falha ao sincronizar histórico de outros dispositivos.', e); });
 }
 window.addEventListener('DOMContentLoaded', sincronizarHistoricoFirebase);

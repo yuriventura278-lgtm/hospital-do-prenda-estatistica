@@ -947,13 +947,27 @@ async function sincronizarHistoricoFirebase(){
     let hist=[]; try{hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}catch(e){hist=[];}
     const porData={};
     hist.forEach(h=>{ const d=h && (h.data||(h.snapshot&&h.snapshot.data)); if(d) porData[d]=h; });
+    const dataAbertaEl=document.getElementById('data');
+    const dataAberta=dataAbertaEl?dataAbertaEl.value:'';
+    let novoParaDataAberta=null;
     Object.values(remoto).forEach(r=>{
       const d = r && r.snapshot && r.snapshot.data; if(!d) return;
       const atual = porData[d];
-      if(!atual || new Date(r.savedAt) > new Date(atual.savedAt)) porData[d]={data:d,savedAt:r.savedAt,snapshot:r.snapshot};
+      if(!atual || new Date(r.savedAt) > new Date(atual.savedAt)){
+        porData[d]={data:d,savedAt:r.savedAt,snapshot:r.snapshot};
+        if(d===dataAberta) novoParaDataAberta=porData[d];
+      }
     });
     const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt)).slice(0,60);
     localStorage.setItem(HIST_KEY, JSON.stringify(merged));
+    // Se outro dispositivo guardou entretanto o dia atualmente aberto,
+    // actualizar a cópia local usada por "Carregar" e mostrar o aviso — sem
+    // substituir o formulário sem confirmação do utilizador.
+    if(novoParaDataAberta){
+      try{ idbSave(novoParaDataAberta.snapshot); }catch(e){}
+      const av=document.getElementById('data-aviso');
+      if(av) av.style.display='block';
+    }
   }catch(e){ console.warn('Firebase: falha ao sincronizar histórico de outros dispositivos.', e); }
 }
 window.addEventListener('DOMContentLoaded', sincronizarHistoricoFirebase);

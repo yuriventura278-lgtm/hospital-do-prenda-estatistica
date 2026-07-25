@@ -3690,13 +3690,26 @@ async function sincronizarHistoricoFirebase(){
     let hist=[]; try{hist=JSON.parse(localStorage.getItem('med_int_v1_hist')||'[]');}catch(e){hist=[];}
     const porData={};
     hist.forEach(h=>{ if(h && h.snapshot && h.snapshot.data) porData[h.snapshot.data]=h; });
+    const dataAberta=(typeof gv==='function')?gv('data'):'';
+    let dataAbertaAtualizada=null;
     Object.values(remoto).forEach(r=>{
       const d = r && r.snapshot && r.snapshot.data; if(!d) return;
       const atual = porData[d];
-      if(!atual || new Date(r.savedAt) > new Date(atual.savedAt)) porData[d]=r;
+      if(!atual || new Date(r.savedAt) > new Date(atual.savedAt)){
+        porData[d]=r;
+        if(d===dataAberta) dataAbertaAtualizada=r;
+      }
     });
     const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt)).slice(0,30);
     localStorage.setItem('med_int_v1_hist', JSON.stringify(merged));
+    // Se outro dispositivo guardou uma versão mais recente do dia atualmente
+    // aberto, e não há edições locais por guardar, actualiza o ecrã já com
+    // essa versão e guarda-a logo localmente — nunca perde dados nem
+    // sobrescreve um rascunho activo.
+    if(dataAbertaAtualizada && !localStorage.getItem(DRAFT_KEY)){
+      applySnapshot(dataAbertaAtualizada.snapshot);
+      ss();
+    }
   }catch(e){ console.warn('Firebase: falha ao sincronizar histórico de outros dispositivos.', e); }
 }
 window.addEventListener('DOMContentLoaded', sincronizarHistoricoFirebase);

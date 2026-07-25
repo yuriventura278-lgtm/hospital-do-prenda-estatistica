@@ -1937,6 +1937,15 @@ async function sincronizarHistoricoFirebase(){
     });
     const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt)).slice(0,30);
     localStorage.setItem('img_v3_h', JSON.stringify(merged));
+    // Re-verificar o aviso do dia aberto — a verificação inicial corre antes
+    // desta sincronização terminar, por isso pode não ver ainda um registo
+    // guardado entretanto por outro dispositivo.
+    try{
+      const d=(typeof gv==='function')?gv('data'):'';
+      const existe=d && merged.some(h=>(h.snapshot||{}).data===d);
+      const av=document.getElementById('data-aviso');
+      if(av) av.style.display=existe?'block':'none';
+    }catch(e){}
   }catch(e){ console.warn('Firebase: falha ao sincronizar histórico de outros dispositivos.', e); }
 }
 window.addEventListener('DOMContentLoaded', sincronizarHistoricoFirebase);
