@@ -4,6 +4,10 @@
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='procedimentos_enfermagem';</script>
 <script type="module" src="zelo_pagegate.js"></script>
+<script type="module">
+  import { hasModuleAccess } from './zelo_auth.js';
+  window.hasModuleAccess = hasModuleAccess;
+</script>
 <script src="zelo_pagegate_watchdog.js"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
@@ -122,12 +126,23 @@ const ICONS = {
 };
 function svcIcon(name){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||ICONS.activity}</svg>`; }
 
-document.getElementById('pickerGrid').innerHTML = SERVICOS.map(s=>`
-  <a class="picker-card" href="${s.arquivo}" style="background:linear-gradient(120deg,var(--nv) 0%,${s.cor} 160%);">
-    <div class="ic">${svcIcon(s.icon)}</div>
-    <div class="nm">${s.nome}</div>
-  </a>
-`).join('');
+// Mostra só os serviços a que o utilizador tem acesso — antes mostrava sempre
+// os 10, mesmo quando o administrador restringiu a apenas alguns.
+function renderPicker(role, permissoes){
+  const podeVer = typeof window.hasModuleAccess === 'function'
+    ? s => window.hasModuleAccess(role || 'funcionario', permissoes || {}, 'procedimentos_enfermagem', s.slug)
+    : () => true; // segurança: se a verificação ainda não carregou, não esconde nada
+  document.getElementById('pickerGrid').innerHTML = SERVICOS.filter(podeVer).map(s=>`
+    <a class="picker-card" href="${s.arquivo}" style="background:linear-gradient(120deg,var(--nv) 0%,${s.cor} 160%);">
+      <div class="ic">${svcIcon(s.icon)}</div>
+      <div class="nm">${s.nome}</div>
+    </a>
+  `).join('');
+}
+renderPicker(sessionStorage.getItem('zeloRole'), JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'));
+window.addEventListener('zelo-gate-ready', function(ev){
+  renderPicker(ev.detail.role, ev.detail.permissoes);
+});
 </script>
 
 <script src="zelo_theme.js"></script>

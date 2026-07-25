@@ -346,6 +346,8 @@ import {
   touchLastAccess, hasModuleAccess, getModuleAccessLevel
 } from './zelo_auth.js';
 
+window.hasModuleAccess = hasModuleAccess;
+
 (function(){
   var gate=document.getElementById('zeloAuthGate');
   var form=document.getElementById('zeloAuthForm');
@@ -472,7 +474,7 @@ import {
     if(getModuleAccessLevel(perfil.role || 'funcionario', perfil.permissoes || {}, 'servicos') === 'leitura'){
       aplicarModoLeitura();
     }
-    if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
+    if(typeof window.render === 'function') window.render();
     if(!stopInactivityWatch){
       stopInactivityWatch = startInactivityWatch(async function(){
         await logAuditEvent(user.uid, user.email, 'logout_inatividade');
@@ -743,10 +745,46 @@ const SERVICOS = [
 
 const main = document.getElementById('main');
 
+// Slug de item usado nas permissões (admin_utilizadores.html, módulo "servicos"),
+// para cada ficheiro de banco desta página — permite esconder cartões a que o
+// utilizador não tem acesso, em vez de mostrar sempre a lista completa.
+const FILE_TO_ITEM = {
+  'Cirurgia_Geral.html': 'cirurgia_geral',
+  'Ortopedia.html': 'ortopedia',
+  'Neurocirurgia.html': 'neurocirurgia',
+  'Cirurgia_Maxilo_Facial.html': 'maxilo_facial',
+  'Oftalmologia.html': 'oftalmologia',
+  'Otorrinolaringologia.html': 'otorrinolaringologia',
+  'Bloco_Operatorio.html': 'bloco_operatorio',
+  'banco_medicina_interna_v2-2-1-2-1.html': 'medicina_interna',
+  'Banco_Nefrologia_v2-1.html': 'nefrologia',
+  'banco_uci_v1-3-1-1.html': 'uci_cuidados_intermedios',
+  'banco_fisioterapia_v1-1-1.html': 'fisioterapia',
+  'Laboratório_Clínico.html': 'laboratorio_clinico',
+  'Imagiologia.html': 'imagiologia',
+  'Hemoterapia.html': 'hemoterapia',
+  'Consulta_Externa-2.html': 'consulta_externa',
+  'psicologia_clinica_hp-1-3-1.html': 'psicologia_clinica',
+  'Supervisao_Hospital.html': 'supervisao_hospital',
+  'Supervisao_Serviclean.html': 'supervisao_serviclean',
+  'Supervisao_Maqueiros.html': 'supervisao_maqueiros',
+};
+
+function itemVisivel(it){
+  if(!it.links || !it.links.length) return true; // sem link próprio — só informativo
+  const item = FILE_TO_ITEM[it.links[0].file];
+  if(!item || typeof window.hasModuleAccess !== 'function') return true; // sem mapa/verificação: nunca esconder
+  const role = sessionStorage.getItem('zeloRole') || 'funcionario';
+  let permissoes = {};
+  try{ permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'); }catch(e){}
+  return window.hasModuleAccess(role, permissoes, 'servicos', item);
+}
+
 function render(){
   main.innerHTML = '';
   SERVICOS.forEach(cat=>{
-    const items = cat.items;
+    const items = cat.items.filter(itemVisivel);
+    if(!items.length) return;
     const sec = document.createElement('section');
     sec.className = 'cat';
     sec.id = `cat-${cat.id}`;
@@ -787,6 +825,7 @@ function render(){
     main.appendChild(sec);
   });
 }
+window.render = render;
 function filterServicos(q){
   q = q.trim().toLowerCase();
   let anyVisible = false;

@@ -235,6 +235,20 @@ import {
   touchLastAccess, hasModuleAccess, getModuleAccessLevel
 } from './zelo_auth.js';
 
+window.hasModuleAccess = hasModuleAccess;
+
+// Esconde os cartões a que o utilizador não tem acesso — antes mostrava sempre
+// os 10 sistemas, mesmo quando o administrador restringiu a apenas alguns.
+function aplicarFiltroSistemas(role, permissoes){
+  document.querySelectorAll('.dash-cta[data-item]').forEach(function(card){
+    const mod = card.dataset.mod, item = card.dataset.item;
+    const pode = hasModuleAccess(role || 'funcionario', permissoes || {}, mod, item);
+    card.style.display = pode ? '' : 'none';
+  });
+}
+window.aplicarFiltroSistemas = aplicarFiltroSistemas;
+aplicarFiltroSistemas(sessionStorage.getItem('zeloRole'), JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'));
+
 (function(){
   var gate=document.getElementById('zeloAuthGate');
   var form=document.getElementById('zeloAuthForm');
@@ -361,7 +375,7 @@ import {
     if(getModuleAccessLevel(perfil.role || 'funcionario', perfil.permissoes || {}, 'sistemas_independentes') === 'leitura'){
       aplicarModoLeitura();
     }
-    if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
+    aplicarFiltroSistemas(perfil.role || 'funcionario', perfil.permissoes || {});
     if(!stopInactivityWatch){
       stopInactivityWatch = startInactivityWatch(async function(){
         await logAuditEvent(user.uid, user.email, 'logout_inatividade');
@@ -486,7 +500,7 @@ import {
 </div>
 
 <main>
-  <a class="dash-cta" href="procedimentos_enfermagem_geral.html" style="background:linear-gradient(120deg,var(--nv) 0%,#059669 130%);box-shadow:0 10px 28px rgba(5,150,105,.28);">
+  <a class="dash-cta" href="procedimentos_enfermagem_geral.html" data-mod="procedimentos_enfermagem" data-item="geral" style="background:linear-gradient(120deg,var(--nv) 0%,#059669 130%);box-shadow:0 10px 28px rgba(5,150,105,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Procedimentos de Enfermagem <span>· Geral</span></div>
@@ -496,7 +510,7 @@ import {
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
 
-  <a class="dash-cta" href="controlo_enfermagem.html" style="background:linear-gradient(120deg,var(--nv) 0%,#0D9488 130%);box-shadow:0 10px 28px rgba(13,148,136,.28);">
+  <a class="dash-cta" href="controlo_enfermagem.html" data-mod="sistemas_independentes" data-item="controlo_enfermagem" style="background:linear-gradient(120deg,var(--nv) 0%,#0D9488 130%);box-shadow:0 10px 28px rgba(13,148,136,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Controlo de Enfermagem <span>· Entregas Diárias</span></div>
@@ -506,7 +520,7 @@ import {
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
 
-  <a class="dash-cta" href="bloco_operatorio_registo_diario.html" style="background:linear-gradient(120deg,var(--nv) 0%,#B91C1C 130%);box-shadow:0 10px 28px rgba(185,28,28,.28);">
+  <a class="dash-cta" href="bloco_operatorio_registo_diario.html" data-mod="sistemas_independentes" data-item="bloco_operatorio_registo_diario" style="background:linear-gradient(120deg,var(--nv) 0%,#B91C1C 130%);box-shadow:0 10px 28px rgba(185,28,28,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Bloco Operatório <span>· Registo Diário</span></div>
@@ -516,7 +530,7 @@ import {
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
 
-  <a class="dash-cta" href="laboratorio_geral.html" style="background:linear-gradient(120deg,var(--nv) 0%,#0EA5E9 130%);box-shadow:0 10px 28px rgba(14,165,233,.28);">
+  <a class="dash-cta" href="laboratorio_geral.html" data-mod="sistemas_independentes" data-item="laboratorio_geral" style="background:linear-gradient(120deg,var(--nv) 0%,#0EA5E9 130%);box-shadow:0 10px 28px rgba(14,165,233,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.3a2 2 0 0 1-.3 1L4 18a2 2 0 0 0 1.7 3h12.6a2 2 0 0 0 1.7-3l-4.7-8.7a2 2 0 0 1-.3-1V2"/><path d="M6 9h12"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Laboratório <span>· Geral</span></div>
@@ -526,7 +540,7 @@ import {
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
 
-  <a class="dash-cta" href="imagiologia_radiologia_geral.html" style="background:linear-gradient(120deg,var(--nv) 0%,#7C3AED 130%);box-shadow:0 10px 28px rgba(124,58,237,.28);">
+  <a class="dash-cta" href="imagiologia_radiologia_geral.html" data-mod="sistemas_independentes" data-item="imagiologia_radiologia_geral" style="background:linear-gradient(120deg,var(--nv) 0%,#7C3AED 130%);box-shadow:0 10px 28px rgba(124,58,237,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="4"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Imagiologia <span>· Radiologia Geral</span></div>
@@ -535,7 +549,7 @@ import {
     <span class="sys-badge">Sistema</span>
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
-  <a class="dash-cta" href="consulta_externa_geral.html" style="background:linear-gradient(120deg,var(--nv) 0%,#0891B2 130%);box-shadow:0 10px 28px rgba(8,145,178,.28);">
+  <a class="dash-cta" href="consulta_externa_geral.html" data-mod="sistemas_independentes" data-item="consulta_externa_geral" style="background:linear-gradient(120deg,var(--nv) 0%,#0891B2 130%);box-shadow:0 10px 28px rgba(8,145,178,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Consulta Externa <span>· Geral</span></div>
@@ -545,7 +559,7 @@ import {
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
 
-  <a class="dash-cta" href="controlo_faltas_gepedema.html" style="background:linear-gradient(120deg,var(--nv) 0%,#D97706 130%);box-shadow:0 10px 28px rgba(217,119,6,.28);">
+  <a class="dash-cta" href="controlo_faltas_gepedema.html" data-mod="sistemas_independentes" data-item="controlo_faltas_gepedema" style="background:linear-gradient(120deg,var(--nv) 0%,#D97706 130%);box-shadow:0 10px 28px rgba(217,119,6,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Controlo de Faltas <span>· GEPE/DEMA</span></div>
@@ -555,7 +569,7 @@ import {
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
 
-  <a class="dash-cta" href="dias_cama_doente.html" style="background:linear-gradient(120deg,var(--nv) 0%,#DB2777 130%);box-shadow:0 10px 28px rgba(219,39,119,.28);">
+  <a class="dash-cta" href="dias_cama_doente.html" data-mod="sistemas_independentes" data-item="dias_cama_doente" style="background:linear-gradient(120deg,var(--nv) 0%,#DB2777 130%);box-shadow:0 10px 28px rgba(219,39,119,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8V6a2 2 0 0 1 2-2h3"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Dias-Cama &amp; Dias-Doente <span>· Geral</span></div>
@@ -565,7 +579,7 @@ import {
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
 
-  <a class="dash-cta" href="registo_hiv.html" style="background:linear-gradient(120deg,var(--nv) 0%,#DC2626 130%);box-shadow:0 10px 28px rgba(220,38,38,.28);">
+  <a class="dash-cta" href="registo_hiv.html" data-mod="sistemas_independentes" data-item="registo_hiv" style="background:linear-gradient(120deg,var(--nv) 0%,#DC2626 130%);box-shadow:0 10px 28px rgba(220,38,38,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Registo VIH <span>· Geral</span></div>
@@ -575,7 +589,7 @@ import {
     <div class="dash-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></svg></div>
   </a>
 
-  <a class="dash-cta" href="hemoterapia.html" style="background:linear-gradient(120deg,var(--nv) 0%,#BE123C 130%);box-shadow:0 10px 28px rgba(190,18,60,.28);">
+  <a class="dash-cta" href="hemoterapia.html" data-mod="sistemas_independentes" data-item="hemoterapia" style="background:linear-gradient(120deg,var(--nv) 0%,#BE123C 130%);box-shadow:0 10px 28px rgba(190,18,60,.28);">
     <div class="dash-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69s-5.5 6.16-5.5 10.31a5.5 5.5 0 0 0 11 0c0-4.15-5.5-10.31-5.5-10.31Z"/></svg></div>
     <div class="dash-text">
       <div class="dash-title">Hemoterapia <span>· Banco de Sangue</span></div>
