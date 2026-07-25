@@ -9,6 +9,22 @@
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
 <script>zeloRequestPersistentStorage();</script>
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
+    window.__fbReady = false;
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#122F52">
@@ -2460,6 +2476,22 @@ CE.Registo = (function(){
     });
   }
 
+  /* ---------- Sincronização com o Firebase (só escrita/leitura pontual, sem tempo real) ----------
+     Depois de gravar localmente, reenvia todas as sessões desse dia para o Firebase —
+     mantém o dia inteiro coerente lá, mesmo quando há várias especialidades/sessões
+     guardadas para a mesma data. Falha em silêncio (zeloQueueWrite já trata do reenvio
+     automático se estiver offline); nunca bloqueia nem desfaz a gravação local. */
+  async function _fbSyncConsultaExterna(data){
+    if (typeof zeloQueueWrite !== 'function') return;
+    try{
+      var sessoes = (await CE.Store.getAllSessoes()).filter(function(s){ return s.data === data; });
+      await zeloQueueWrite('registos_sistemas_locais/consulta_externa/' + data, {
+        savedAt: new Date().toISOString(),
+        snapshot: { sessoes: sessoes }
+      });
+    }catch(e){ console.warn('ZELO: falha ao sincronizar Consulta Externa com o Firebase', e); }
+  }
+
   /* ---------- Guardar Especialidade do Dia (só no Resumo) ---------- */
   async function guardarEspecialidadeDia(){
     var especialidade = document.getElementById('f-especialidade').value;
@@ -2530,6 +2562,7 @@ CE.Registo = (function(){
       clearDraft();
       carregarCachePatologias();
       toast('✓ Especialidade do dia guardada com ' + totalDoentes + ' doente(s).');
+      _fbSyncConsultaExterna(sessao.data);
       if (CE.atualizarIndicadoresEspecialidades) CE.atualizarIndicadoresEspecialidades();
       sessaoAtualId = null;
       carregandoSessaoExistente = true;

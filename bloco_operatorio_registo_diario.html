@@ -9,6 +9,22 @@
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
 <script>zeloRequestPersistentStorage();</script>
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
+    window.__fbReady = false;
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bloco Operatório — Registo Diário</title>
@@ -3159,6 +3175,21 @@ function loadFromStorage() {
   } catch(e) { console.error('Load error', e); }
 }
 
+// Sincronização com o Firebase (só na gravação explícita, não no auto-save
+// silencioso) — reenvia o snapshot do dia carregado. Falha em silêncio;
+// zeloQueueWrite já trata do reenvio automático se estiver offline.
+async function _fbSyncBlocoOperatorio(date){
+  if (typeof zeloQueueWrite !== 'function' || !date) return;
+  try{
+    const raw = safeGet(storageKey(date));
+    if (!raw) return;
+    await zeloQueueWrite('registos_sistemas_locais/bloco_operatorio/' + date, {
+      savedAt: new Date().toISOString(),
+      snapshot: JSON.parse(raw)
+    });
+  }catch(e){ console.warn('ZELO: falha ao sincronizar Bloco Operatório com o Firebase', e); }
+}
+
 // ── Save ──
 function saveAll() {
   // Bug #4 fix: only add the NEW delta to globalOb (prevents double-counting on repeated saves)
@@ -3166,6 +3197,7 @@ function saveAll() {
   globalOb += (dayOb - savedDayOb);
   savedDayOb = dayOb;
   persist(currentLoadedDate); // ★ guardar sempre na data carregada actualmente
+  _fbSyncBlocoOperatorio(currentLoadedDate);
   document.getElementById('ob-total-geral-big').textContent = globalOb;
   renderObtidos();
   // Update save status date display

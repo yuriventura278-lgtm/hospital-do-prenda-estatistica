@@ -14,6 +14,7 @@ const CATS = {
   diagnostico: {label: 'Diagnóstico & Laboratório', color: '#0EA5E9'},
   ambulatorio: {label: 'Ambulatório & Saúde Mental', color: '#059669'},
   procedimentos: {label: 'Procedimentos de Enfermagem', color: '#D97706'},
+  sistemas_locais: {label: 'Sistemas Locais', color: '#0D9488'},
 };
 
 const SERVICES = [
@@ -32,6 +33,18 @@ const SERVICES = [
   {id:'imagiologia', name:'Imagiologia', cat:'diagnostico'},
   {id:'consulta_externa', name:'Consulta Externa', cat:'ambulatorio'},
   {id:'psicologia_clinica', name:'Psicologia Clínica', cat:'ambulatorio'},
+];
+
+// Sistemas Locais — versões agregadas/gerais (não por serviço) ligadas ao
+// Firebase à parte (registos_sistemas_locais/<id>), distintas dos bancos por
+// especialidade acima (ex: bloco_operatorio aqui é bloco_operatorio_registo_diario.html,
+// não Bloco_Operatorio.html — estruturas de dados diferentes, ver dayMetrics()).
+const LOCAL_SERVICES = [
+  {id:'local_consulta_externa', name:'Consulta Externa · Geral', cat:'sistemas_locais', fbPrefix:'registos_sistemas_locais', slug:'consulta_externa'},
+  {id:'local_bloco_operatorio', name:'Bloco Operatório · Registo Diário', cat:'sistemas_locais', fbPrefix:'registos_sistemas_locais', slug:'bloco_operatorio'},
+  {id:'local_laboratorio', name:'Laboratório · Geral', cat:'sistemas_locais', fbPrefix:'registos_sistemas_locais', slug:'laboratorio'},
+  {id:'local_imagiologia', name:'Imagiologia · Radiologia Geral', cat:'sistemas_locais', fbPrefix:'registos_sistemas_locais', slug:'imagiologia'},
+  {id:'local_hemoterapia', name:'Hemoterapia · Banco de Sangue', cat:'sistemas_locais', fbPrefix:'registos_sistemas_locais', slug:'hemoterapia'},
 ];
 
 // Procedimentos de Enfermagem (registos_enf/<slug>) — namespace próprio no Firebase porque
@@ -54,7 +67,7 @@ const PROC_LABELS = {
 const PROC_SERVICES = Object.entries(PROC_LABELS).map(([slug, name])=>(
   {id:'proc_'+slug, name, cat:'procedimentos', slug, fbPrefix:'registos_enf'}
 ));
-const ALL_SERVICES = [...SERVICES, ...PROC_SERVICES];
+const ALL_SERVICES = [...SERVICES, ...PROC_SERVICES, ...LOCAL_SERVICES];
 
 function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
 function saved(arr){ return Array.isArray(arr) ? arr.filter(x=>x && x.saved) : []; }
@@ -318,6 +331,38 @@ function dayMetrics(id, s){
       const t = Object.values(s.intVals||{}).reduce((a,v)=>a+num(v),0) + num(s.extTotal);
       return {headline: t, secondary: {'Externos': num(s.extTotal)}};
     }
+    // ── Sistemas Locais (registos_sistemas_locais/<slug>) — snapshots agregados,
+    // não por doente/registo individual (ver LOCAL_SERVICES acima). ──
+    case 'local_consulta_externa': {
+      const sessoes = s.sessoes || [];
+      const soma = campo => sessoes.reduce((a,x)=>a+num(x && x[campo]), 0);
+      return {headline: soma('totalDoentes'), secondary: {
+        'Agendados': soma('agendados'), 'Realizadas': soma('realizadas'), 'Canceladas': soma('canceladas'),
+      }};
+    }
+    case 'local_bloco_operatorio': {
+      const surg = s.surgeries || {};
+      const urg = (surg.urg||[]).length, ele = (surg.elet||[]).length, sus = (s.suspList||[]).length;
+      const obitos = (s.obtList||[]).reduce((a,o)=>a+num(o&&o.qty),0);
+      return {headline: urg+ele, secondary: {'Urgentes': urg, 'Electivas': ele, 'Suspensas': sus, 'Óbitos': obitos}};
+    }
+    case 'local_laboratorio': {
+      const tEx = Object.values(s.exames||{}).reduce((a,v)=>a+num(v),0);
+      const tPos = Object.values(s.positivos||{}).reduce((a,v)=>a+num(v),0);
+      return {headline: tEx, secondary: {'Positivos': tPos}};
+    }
+    case 'local_imagiologia': {
+      const tTac = Object.values(s.tac||{}).reduce((a,v)=>a+num(v),0);
+      const tEco = Object.values(s.eco||{}).reduce((a,v)=>a+num(v),0);
+      const tRx = Object.values(s.rx||{}).reduce((a,v)=>a+num(v),0);
+      return {headline: tTac+tEco+tRx, secondary: {'TAC': tTac, 'ECO': tEco, 'RX': tRx}};
+    }
+    case 'local_hemoterapia': {
+      const transf = s.transfusoes||{}, doad = s.doadores||{}, prov = s.provas||{};
+      const tTransf = Object.values(transf).reduce((a,v)=>a+num(v),0);
+      const tDoad = Object.values(doad).reduce((a,v)=>a+num(v),0);
+      return {headline: tTransf, secondary: {'Doadores': tDoad, 'Colhido': num(prov.colhido), 'Consumido': num(prov.consumido)}};
+    }
     default: // Cirurgia Geral, Ortopedia, Neurocirurgia, Maxilo Facial, Oftalmologia, Otorrino, Medicina Interna
       return {headline: num(s.pacTotal), secondary: {'Altas': num(s.altas), 'Óbitos': saved(s.obitData).length}};
   }
@@ -345,6 +390,8 @@ const HEADLINE_LABEL = {
   bloco_operatorio: 'Cirurgias', uci: 'Internados', nefrologia: 'Hemodiálise',
   fisioterapia: 'Atendimentos', laboratorio_clinico: 'Exames', imagiologia: 'Exames',
   consulta_externa: 'Consultas', psicologia_clinica: 'Atendidos',
+  local_consulta_externa: 'Doentes', local_bloco_operatorio: 'Cirurgias',
+  local_laboratorio: 'Exames', local_imagiologia: 'Exames', local_hemoterapia: 'Unidades transfundidas',
 };
 function headlineLabel(id){ if(id.startsWith('proc_')) return 'Procedimentos'; return HEADLINE_LABEL[id] || 'Pacientes'; }
 
