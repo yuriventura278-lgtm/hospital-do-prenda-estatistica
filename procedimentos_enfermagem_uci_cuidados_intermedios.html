@@ -237,6 +237,8 @@ html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
 .proc-chk-cell{display:none;align-items:center;justify-content:center;padding:3px 0;}
 .sel-mode .proc-table-head,.sel-mode .proc-row{grid-template-columns:30px 1fr 82px 82px 64px;}
 .sel-mode .proc-chk-cell{display:flex;}
+.proc-table-head .proc-chk-cell{display:none;}
+.sel-mode .proc-table-head .proc-chk-cell{display:flex;}
 .sel-toolbar .sel-mode-only{display:none;}
 .sel-mode .sel-toolbar .sel-mode-only{display:flex;}
 .proc-row-chk,.sel-all-chk{width:20px;height:20px;accent-color:var(--accent);cursor:pointer;}
@@ -259,7 +261,7 @@ html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
 .proc-name{padding:8px 8px;font-size:.87rem;font-family:var(--font-head);font-weight:400;
   color:var(--text);line-height:1.35;}
 .proc-cell{padding:6px 5px;display:flex;flex-direction:column;align-items:center;gap:1px;}
-.proc-cell input[type=number]{width:70px;background:var(--surface);border:1px solid var(--border);
+.proc-cell input[type=number]{width:100%;max-width:70px;background:var(--surface);border:1px solid var(--border);
   border-radius:4px;color:var(--text);font-family:var(--font-body);font-size:.9rem;font-weight:400;
   padding:4px 2px;outline:none;text-align:center;-moz-appearance:textfield;transition:border-color .12s;}
 .proc-cell input[type=number]::-webkit-outer-spin-button,
@@ -271,7 +273,7 @@ html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
   box-shadow:inset 0 0 0 1px var(--accent);}
 .proc-row,.proc-name,.proc-table-head{user-select:none;}
 .proc-total-val{font-size:.92rem;font-weight:600;color:var(--accent);text-align:center;
-  min-width:40px;font-family:var(--font-body);background:var(--accent-tint);
+  min-width:0;width:100%;box-sizing:border-box;font-family:var(--font-body);background:var(--accent-tint);
   border:1px solid var(--accent-ring);border-radius:6px;padding:5px 4px;display:block;}
 
 /* TOTAL BAR */
@@ -422,6 +424,16 @@ html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
   .main-content{margin-left:0;}
   .save-bar{left:0;}
   .spec-totals{display:none;}
+}
+
+@media(max-width:480px){
+  .proc-table-head,.proc-row{grid-template-columns:1fr 54px 54px 46px;}
+  .sel-mode .proc-table-head,.sel-mode .proc-row{grid-template-columns:24px 1fr 54px 54px 46px;}
+  .proc-table-head span{font-size:.4rem;letter-spacing:.5px;gap:1px;padding:0 1px;}
+  .proc-name{padding:7px 4px;font-size:.78rem;}
+  .proc-cell{padding:4px 2px;}
+  .proc-cell input[type=number]{max-width:48px;font-size:.76rem;padding:4px 1px;}
+  .proc-total-val{font-size:.72rem;padding:5px 2px;}
 }
 
 /* DARK MODE */
@@ -1771,7 +1783,7 @@ function buildUI() {
     // Unified pane — single table with Dia | Noite | Total columns
     html += `<div class="card">
       <div class="proc-table-head">
-        <span></span>
+        <span class="proc-chk-cell"></span>
         <span class="ph-name">Procedimento</span>
         <span class="ph-dia"><svg class="svc-icon" aria-hidden="true"><use href="#i-sun"/></svg> Dia</span>
         <span class="ph-noite"><svg class="svc-icon" aria-hidden="true"><use href="#i-moon"/></svg> Noite</span>
