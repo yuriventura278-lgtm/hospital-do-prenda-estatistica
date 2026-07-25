@@ -539,12 +539,14 @@ function buildTransferTablesHTML(transferencias){
   const hasAny = [recebidasPorHospital, recebidasPorEspecialidade, efetuadasPorHospital, efetuadasPorEspecialidade].some(a=>a && a.length);
   if(!hasAny) return '';
 
+  // Nota: mostra SEMPRE a lista completa (sem limite de linhas) — um relatório
+  // mensal não deve ocultar hospitais/especialidades só por estarem mais abaixo.
   const miniTable = (title, rows, color) => rows.length ? `
     <div style="flex:1;min-width:0;">
-      <div style="font-size:9.5px;font-weight:700;color:#0F172A;margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;">${esc(title)}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:9.5px;">
+      <div style="font-size:10px;font-weight:700;color:#0F172A;margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em;">${esc(title)} <span style="color:#94A3B8;font-weight:600;">(${rows.length})</span></div>
+      <table style="width:100%;border-collapse:collapse;font-size:10px;">
         <tbody>
-          ${rows.slice(0,10).map((r,i)=>`<tr style="background:${i%2===0?'#FAFBFF':'#fff'};">
+          ${rows.map((r,i)=>`<tr style="background:${i%2===0?'#FAFBFF':'#fff'};">
             <td style="padding:4px 6px;border-bottom:1px solid #E2E8F0;">${esc(r.label)}</td>
             <td style="padding:4px 6px;border-bottom:1px solid #E2E8F0;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${color};">${r.qty}</td>
           </tr>`).join('')}
@@ -582,27 +584,43 @@ function buildTransferTablesHTML(transferencias){
 function buildReportHTML(monthLabel, perService, ym, extra){
   const {urgenciaAgg, diagTop20, transferencias} = extra || {};
   const totalDaysReported = perService.reduce((a,s)=>a+s.daysReported, 0);
-  const groups = Object.entries(CATS).map(([catId, cat])=>{
+  const catEntries = Object.entries(CATS).filter(([catId]) => perService.some(s=>s.cat===catId));
+
+  // Índice rápido no topo — categoria, nº de serviços e total do mês, para
+  // se perceber tudo o que o relatório contém sem folhear página a página.
+  const indice = catEntries.map(([catId, cat])=>{
     const items = perService.filter(s=>s.cat===catId);
-    if(!items.length) return '';
+    const total = items.reduce((a,s)=>a+s.headlineTotal, 0);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.1);">
+      <span style="width:9px;height:9px;border-radius:3px;background:${cat.color};display:inline-block;flex-shrink:0;"></span>
+      <span style="flex:1;font-size:10.5px;color:#DCE9FF;">${esc(cat.label)}</span>
+      <span style="font-size:9px;color:#8CA0C6;">${items.length} serviço(s)</span>
+      <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:#fff;min-width:32px;text-align:right;">${total}</span>
+    </div>`;
+  }).join('');
+
+  const groups = catEntries.map(([catId, cat])=>{
+    const items = perService.filter(s=>s.cat===catId);
+    const catTotal = items.reduce((a,s)=>a+s.headlineTotal, 0);
     return `
-      <section style="margin-bottom:22px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-          <span style="width:24px;height:3px;border-radius:2px;background:${cat.color};display:inline-block;"></span>
-          <h2 style="font-size:13px;font-weight:700;color:#0F172A;margin:0;">${esc(cat.label)}</h2>
+      <section style="margin-bottom:26px;break-inside:avoid-page;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid ${cat.color};">
+          <span style="width:28px;height:28px;border-radius:8px;background:${cat.color};flex-shrink:0;"></span>
+          <h2 style="font-size:15px;font-weight:800;color:#0F172A;margin:0;flex:1;">${esc(cat.label)}</h2>
+          <span style="font-size:10px;color:#64748B;">${items.length} serviço(s) · total ${catTotal}</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
           ${items.map(s=>`
-            <div style="border:1px solid #E2E8F0;border-radius:10px;padding:12px 14px;background:#fff;break-inside:avoid;">
-              <div style="font-size:12px;font-weight:700;color:#0F172A;margin-bottom:6px;">${esc(s.name)}</div>
+            <div style="border:1px solid #E2E8F0;border-left:4px solid ${cat.color};border-radius:10px;padding:13px 15px;background:#fff;break-inside:avoid;">
+              <div style="font-size:13px;font-weight:700;color:#0F172A;margin-bottom:7px;">${esc(s.name)}</div>
               <div style="display:flex;align-items:baseline;gap:6px;">
-                <span style="font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:${cat.color};">${s.headlineTotal}</span>
-                <span style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">${esc(s.headlineLabel)} · mês</span>
+                <span style="font-family:'DM Mono',monospace;font-size:25px;font-weight:700;color:${cat.color};">${s.headlineTotal}</span>
+                <span style="font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">${esc(s.headlineLabel)} · mês</span>
               </div>
-              <div style="font-size:10px;color:#64748B;margin-top:4px;">${s.daysReported} dia(s) reportado(s) de ${s.daysInMonth}</div>
+              <div style="font-size:10.5px;color:#64748B;margin-top:5px;">${s.daysReported} dia(s) reportado(s) de ${s.daysInMonth}</div>
               ${Object.keys(s.secondaryTotals).length ? `
-                <div style="display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid #F1F5F9;flex-wrap:wrap;">
-                  ${Object.entries(s.secondaryTotals).map(([k,v])=>`<div style="font-size:10px;color:#334155;"><b style="font-family:'DM Mono',monospace;font-size:12px;">${v}</b><br/>${esc(k)}</div>`).join('')}
+                <div style="display:flex;gap:12px;margin-top:9px;padding-top:9px;border-top:1px solid #F1F5F9;flex-wrap:wrap;">
+                  ${Object.entries(s.secondaryTotals).map(([k,v])=>`<div style="font-size:10.5px;color:#334155;"><b style="font-family:'DM Mono',monospace;font-size:13px;">${v}</b><br/>${esc(k)}</div>`).join('')}
                 </div>` : ''}
             </div>
           `).join('')}
@@ -614,30 +632,49 @@ function buildReportHTML(monthLabel, perService, ym, extra){
 <html lang="pt-AO"><head><meta charset="UTF-8"/>
 <style>
   *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:26px 30px;color:#0F172A;}
-  header{background:#0D1B3E;color:#fff;padding:18px 22px;border-radius:12px;margin-bottom:22px;}
-  header .org{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#22D3EE;}
-  header h1{font-size:18px;margin:4px 0 2px;}
-  header p{font-size:11px;color:#C7D2E8;margin:0;}
-  .stats{display:flex;gap:26px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15);}
-  .stats div{}
-  .stats .n{font-family:'DM Mono',monospace;font-size:16px;font-weight:700;}
-  .stats .l{font-size:9px;color:#8CA0C6;text-transform:uppercase;letter-spacing:.05em;}
-  footer{margin-top:20px;padding-top:12px;border-top:1px solid #E2E8F0;font-size:9px;color:#94A3B8;text-align:center;}
+  body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0 30px 30px;color:#0F172A;}
+  header{background:linear-gradient(135deg,#0D1B3E 0%,#122754 100%);color:#fff;padding:22px 24px;border-radius:12px;margin-bottom:26px;}
+  header .top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;}
+  header .org{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#22D3EE;font-weight:700;}
+  header h1{font-size:21px;margin:5px 0 3px;}
+  header p{font-size:12px;color:#C7D2E8;margin:0;}
+  header .badge{flex-shrink:0;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);color:#fff;
+    font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 11px;border-radius:100px;white-space:nowrap;}
+  .stats{display:flex;gap:30px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.15);}
+  .stats .n{font-family:'DM Mono',monospace;font-size:18px;font-weight:700;}
+  .stats .l{font-size:9.5px;color:#8CA0C6;text-transform:uppercase;letter-spacing:.05em;}
+  .indice{margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15);}
+  .indice-title{font-size:9px;color:#8CA0C6;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;}
+  footer{margin-top:26px;padding-top:14px;border-top:2px solid #E2E8F0;}
+  footer .conf{font-size:10px;font-weight:700;color:#0F172A;text-align:center;}
+  footer .meta{font-size:9px;color:#94A3B8;text-align:center;margin-top:4px;}
 </style></head>
 <body>
   <header>
-    <div class="org">Hospital do Prenda · Departamento de Estatística Médica</div>
-    <h1>Resumo Mensal de Todos os Serviços</h1>
-    <p>${esc(monthLabel)}</p>
+    <div class="top-row">
+      <div>
+        <div class="org">Hospital do Prenda · Departamento de Estatística Médica</div>
+        <h1>Resumo Mensal de Todos os Serviços</h1>
+        <p>${esc(monthLabel)}</p>
+      </div>
+      <span class="badge">Confidencial · Uso Interno</span>
+    </div>
     <div class="stats">
       <div><div class="n">${perService.length}</div><div class="l">Serviços</div></div>
       <div><div class="n">${totalDaysReported}</div><div class="l">Dias com registo (total)</div></div>
+      <div><div class="n">${catEntries.length}</div><div class="l">Categorias</div></div>
+    </div>
+    <div class="indice">
+      <div class="indice-title">Índice deste relatório</div>
+      ${indice}
     </div>
   </header>
   ${urgenciaAgg ? buildUrgenciaSectionHTML(urgenciaAgg, diagTop20 || [], transferencias) : ''}
   ${groups}
-  <footer>Gerado automaticamente pelo sistema no dia 2 do mês seguinte · Hospital do Prenda · Uso interno · Luanda, Angola</footer>
+  <footer>
+    <div class="conf">Documento confidencial · Uso interno do Hospital do Prenda · Não distribuir</div>
+    <div class="meta">Gerado automaticamente pelo sistema no dia 2 do mês seguinte · Luanda, Angola · ${esc(new Date().toISOString())}</div>
+  </footer>
 </body></html>`;
 }
 
@@ -765,12 +802,27 @@ async function main(){
   fs.mkdirSync('relatorios', {recursive: true});
   const pdfPath = `relatorios/${ym}.pdf`;
 
+  // Cabeçalho e rodapé fixos em TODAS as páginas do PDF (não só na primeira),
+  // via a API própria do Chromium para isso — o <header>/<footer> dentro do
+  // HTML acima ficam só na primeira/última página do conteúdo fluido.
+  const headerTemplate = `
+    <div style="width:100%;font-size:8px;color:#64748B;padding:0 10mm;display:flex;justify-content:space-between;align-items:center;font-family:Arial,Helvetica,sans-serif;">
+      <span style="font-weight:700;color:#0D1B3E;">Hospital do Prenda &middot; Estatística Médica</span>
+      <span>${esc(monthLabel)} &middot; Confidencial</span>
+    </div>`;
+  const footerTemplate = `
+    <div style="width:100%;font-size:8px;color:#94A3B8;padding:4px 10mm 0;display:flex;justify-content:space-between;align-items:center;font-family:Arial,Helvetica,sans-serif;border-top:1px solid #E2E8F0;">
+      <span>Uso interno &middot; Não distribuir</span>
+      <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
+    </div>`;
+
   const browser = await chromium.launch();
   const page = await browser.newPage();
   await page.setContent(html, {waitUntil: 'load'});
   await page.pdf({
     path: pdfPath, format: 'A4', printBackground: true,
-    margin: {top: '10mm', bottom: '10mm', left: '10mm', right: '10mm'},
+    displayHeaderFooter: true, headerTemplate, footerTemplate,
+    margin: {top: '18mm', bottom: '14mm', left: '10mm', right: '10mm'},
   });
   await browser.close();
   console.log('PDF gerado em', pdfPath);
