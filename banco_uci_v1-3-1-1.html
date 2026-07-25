@@ -588,6 +588,7 @@ const DRAFT_KEY='uci_v1_draft';
 const FB_PATH = 'registos/uci';
 function enviarParaFirebase(dataHoje, registo){
   if(!dataHoje) return;
+  if(typeof zeloTemAcessoEdicao === 'function' && !zeloTemAcessoEdicao()) return;
   var __autor = {nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null};
   var __registoComAutor = Object.assign({}, registo, {criadoPor: __autor});
   if(window.zeloQueueWrite){
@@ -596,6 +597,14 @@ function enviarParaFirebase(dataHoje, registo){
     window.__fbSet(FB_PATH+'/'+dataHoje, __registoComAutor)
       .catch(e=>console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e));
   }
+}
+function zeloTemAcessoEdicao(){
+  try{
+    if(!window.ZeloAuth || !window.ZELO_MODULE) return true;
+    var role = sessionStorage.getItem('zeloRole') || 'funcionario';
+    var permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes')||'{}');
+    return window.ZeloAuth.getModuleAccessLevel(role, permissoes, window.ZELO_MODULE) !== 'leitura';
+  }catch(e){ return true; }
 }
 async function sincronizarHistoricoFirebase(){
   if(!window.__fbReady || !window.__fbGet) return;
@@ -623,7 +632,9 @@ async function sincronizarHistoricoFirebase(){
     // essa versão e guarda-a logo localmente.
     if(dataAbertaAtualizada && !localStorage.getItem(DRAFT_KEY)){
       applySnapshot(dataAbertaAtualizada.snap);
-      ss();
+      // Só quem tem acesso de edição a este módulo grava localmente/publica
+      // de volta no Firebase — leitores só vêem os dados actualizados no ecrã.
+      if(zeloTemAcessoEdicao()) ss();
     }
   }catch(e){ console.warn('Firebase: falha ao sincronizar histórico de outros dispositivos.', e); }
 }

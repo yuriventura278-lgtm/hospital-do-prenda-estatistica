@@ -1470,6 +1470,7 @@ function ls(){/* Formulário começa vazio — usar carregarDoDia() */}
 const FB_PATH = 'registos/laboratorio_clinico';
 function enviarParaFirebase(dataHoje, registo){
   if(!dataHoje) return;
+  if(typeof zeloTemAcessoEdicao === 'function' && !zeloTemAcessoEdicao()) return;
   var __autor = {nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null};
   var __registoComAutor = Object.assign({}, registo, {criadoPor: __autor});
   if(window.zeloQueueWrite){
@@ -1478,6 +1479,14 @@ function enviarParaFirebase(dataHoje, registo){
     window.__fbSet(FB_PATH+'/'+dataHoje, __registoComAutor)
       .catch(function(e){console.warn('Firebase: falha ao enviar registo (fica salvo localmente na mesma).', e);});
   }
+}
+function zeloTemAcessoEdicao(){
+  try{
+    if(!window.ZeloAuth || !window.ZELO_MODULE) return true;
+    var role = sessionStorage.getItem('zeloRole') || 'funcionario';
+    var permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes')||'{}');
+    return window.ZeloAuth.getModuleAccessLevel(role, permissoes, window.ZELO_MODULE) !== 'leitura';
+  }catch(e){ return true; }
 }
 function sincronizarHistoricoFirebase(){
   if(!window.__fbReady || !window.__fbGet) return;
@@ -1503,7 +1512,10 @@ function sincronizarHistoricoFirebase(){
     // aberto, e não há rascunho local por guardar desse dia, actualiza o ecrã
     // já com essa versão e guarda-a logo localmente.
     if(dataAbertaAtualizada && !localStorage.getItem('lab_banco_v1_draft_'+dataAberta)){
-      try{ applySnapshot(dataAbertaAtualizada.snapshot); ss(); }catch(e){}
+      try{
+        applySnapshot(dataAbertaAtualizada.snapshot);
+        if(zeloTemAcessoEdicao()) ss();
+      }catch(e){}
     }
   }).catch(function(e){ console.warn('Firebase: falha ao sincronizar histórico de outros dispositivos.', e); });
 }

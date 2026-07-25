@@ -536,6 +536,7 @@ const FB_PATH = 'registos/bloco_operatorio';
 let __fbSaveTimer=null;
 function enviarParaFirebase(dataHoje, snap){
   if(!dataHoje || dataHoje==='__draft__') return;
+  if(typeof zeloTemAcessoEdicao === 'function' && !zeloTemAcessoEdicao()) return;
   clearTimeout(__fbSaveTimer);
   __fbSaveTimer=setTimeout(()=>{
     var __payload = {savedAt:new Date().toISOString(), snapshot:snap, criadoPor:{nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null}};
@@ -582,8 +583,18 @@ async function sincronizarComFirebase(){
     if(localSavedAt && new Date(localSavedAt) >= new Date(remoto.savedAt)) return;
     applySnapshot(remoto.snapshot);
     renderAll();upd();
-    ss();
+    // Só quem tem acesso de edição a este módulo grava localmente/publica de
+    // volta no Firebase — leitores só vêem os dados actualizados no ecrã.
+    if(zeloTemAcessoEdicao()) ss();
   }catch(e){ console.warn('Firebase: falha ao verificar versão mais recente de outros dispositivos.', e); }
+}
+function zeloTemAcessoEdicao(){
+  try{
+    if(!window.ZeloAuth || !window.ZELO_MODULE) return true;
+    var role = sessionStorage.getItem('zeloRole') || 'funcionario';
+    var permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes')||'{}');
+    return window.ZeloAuth.getModuleAccessLevel(role, permissoes, window.ZELO_MODULE) !== 'leitura';
+  }catch(e){ return true; }
 }
 function applySnapshot(s){
   try{
