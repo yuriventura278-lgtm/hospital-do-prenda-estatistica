@@ -1591,8 +1591,10 @@ function procAtualizarContagem(specId){
   const toolbarEl = document.getElementById('sel-toolbar-'+specId);
   if(toolbarEl) toolbarEl.classList.toggle('has-selection', marcados>0);
   const btnCopiar = document.getElementById('btn-copiar-'+specId);
+  const btnPdf = document.getElementById('btn-pdf-'+specId);
   const btnEliminar = document.getElementById('btn-eliminar-'+specId);
   if(btnCopiar) btnCopiar.disabled = marcados===0;
+  if(btnPdf) btnPdf.disabled = marcados===0;
   if(btnEliminar) btnEliminar.disabled = marcados===0;
   const selAll = document.querySelector('.sel-all-chk[data-spec="'+specId+'"]');
   if(selAll){ selAll.checked = checks.length>0 && marcados===checks.length; selAll.indeterminate = marcados>0 && marcados<checks.length; }
@@ -1643,6 +1645,67 @@ function procEliminarSelecionados(specId){
   procAtualizarContagem(specId);
   showToast('Eliminados ' + checks.length + (checks.length===1?' procedimento':' procedimentos'));
 }
+function procExportarSelecionadosPDF(specId){
+  const checks = procRowChecks(specId).filter(c => c.checked);
+  if(!checks.length) return;
+  const { jsPDF } = window.jspdf;
+  if(!jsPDF){ showToast('❌ Biblioteca PDF não carregada'); return; }
+  const specLabel = (SPECIALTIES.find(s => s.id===specId) || {}).label || specId;
+  const date = currentLoadedDate;
+  const [y,m,d] = date.split('-');
+  const dateStr = `${d}/${m}/${y}`;
+  const now = new Date();
+  const geradoEm = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const PW = doc.internal.pageSize.getWidth();
+  const PH = doc.internal.pageSize.getHeight();
+  const ML = 13, MR = 13, CW = PW-ML-MR;
+
+  doc.setFillColor(10,25,60); doc.rect(0,0,PW,28,'F');
+  try{ doc.addImage(LOGO_B64,'PNG',ML,5,18,18); }catch(e){}
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(255);
+  doc.text('ZELO', ML+22, 12);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text('Procedimentos Selecionados — ' + specLabel, ML+22, 18);
+  doc.text(`Data: ${dateStr}  |  Gerado: ${geradoEm}`, ML+22, 24);
+  doc.setTextColor(0);
+
+  let cy = 34;
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(60);
+  doc.text(checks.length + ' de ' + procRowChecks(specId).length + ' procedimentos selecionados', ML, cy);
+  cy += 6;
+
+  const rows = checks.map(c => {
+    const dv = parseInt(document.getElementById(c.dataset.dia)?.value)||0;
+    const nv = parseInt(document.getElementById(c.dataset.noite)?.value)||0;
+    return [c.dataset.name, dv, nv, dv+nv];
+  });
+  const totD = rows.reduce((a,r)=>a+r[1],0);
+  const totN = rows.reduce((a,r)=>a+r[2],0);
+  rows.push(['TOTAL SELECIONADO', totD, totN, totD+totN]);
+
+  doc.autoTable({startY:cy,
+    head:[['Procedimento','Turno Dia','Turno Noite','Total']],
+    body:rows,
+    margin:{left:ML,right:MR},
+    styles:{fontSize:8.5,cellPadding:2.5},
+    headStyles:{fillColor:[20,60,120],textColor:255,fontStyle:'bold'},
+    columnStyles:{0:{halign:'left',cellWidth:CW*.58},1:{halign:'center'},2:{halign:'center'},3:{halign:'center',fontStyle:'bold'}},
+    alternateRowStyles:{fillColor:[240,245,255]},
+    didParseCell(d){ if(d.row.index===rows.length-1){ d.cell.styles.fontStyle='bold'; d.cell.styles.fillColor=[210,225,245]; } }
+  });
+
+  const totalPag = doc.internal.getNumberOfPages();
+  for(let i=1;i<=totalPag;i++){
+    doc.setPage(i);
+    doc.setDrawColor(180); doc.setLineWidth(.3); doc.line(ML,PH-11,PW-MR,PH-11);
+    doc.setFontSize(7); doc.setTextColor(120); doc.setFont('helvetica','normal');
+    doc.text(`ZELO  |  Procedimentos de Enfermagem — ${specLabel}  |  ${dateStr}  |  Pág. ${i}/${totalPag}`,ML,PH-6);
+    doc.setTextColor(0);
+  }
+  doc.save(`Procedimentos_Selecionados_${specLabel.replace(/[^A-Za-z0-9]+/g,'_')}_${date}.pdf`);
+  showToast('✓ PDF de ' + checks.length + (checks.length===1?' procedimento exportado':' procedimentos exportados'));
+}
 document.addEventListener('change', function(e){
   const chk = e.target.closest('.proc-row-chk');
   if(chk){ procAtualizarContagem(chk.dataset.spec); return; }
@@ -1671,6 +1734,7 @@ document.addEventListener('click', function(e){
   if(btn.dataset.action === 'toggle-sel-mode') procToggleSelMode(specId);
   if(btn.dataset.action === 'sel-preenchidos') procSelecionarPreenchidos(specId);
   if(btn.dataset.action === 'copiar-sel') procCopiarSelecionados(specId);
+  if(btn.dataset.action === 'pdf-sel') procExportarSelecionadosPDF(specId);
   if(btn.dataset.action === 'eliminar-sel') procEliminarSelecionados(specId);
 });
 
@@ -1737,6 +1801,7 @@ function buildUI() {
         <label class="sel-all sel-mode-only"><input type="checkbox" class="sel-all-chk" data-spec="${sp.id}"/> <span class="sel-count" id="sel-count-${sp.id}">0 selecionados</span></label>
         <button type="button" class="btn-sel sel-mode-only" data-action="sel-preenchidos" data-spec="${sp.id}">Selecionar preenchidos</button>
         <button type="button" class="btn-sel sel-mode-only" data-action="copiar-sel" data-spec="${sp.id}" id="btn-copiar-${sp.id}" disabled>Copiar</button>
+        <button type="button" class="btn-sel sel-mode-only" data-action="pdf-sel" data-spec="${sp.id}" id="btn-pdf-${sp.id}" disabled>Exportar PDF</button>
         <button type="button" class="btn-sel danger sel-mode-only" data-action="eliminar-sel" data-spec="${sp.id}" id="btn-eliminar-${sp.id}" disabled>Eliminar</button>
       </div>`;
     }
@@ -2519,16 +2584,21 @@ function exportPDF() {
     { label:'Banco de Urgência',          ids:['banco_urg'],               cor:'red'   },
     { label:'Nefrologia',                 ids:['nefrologia'],              cor:'blue'  }
   ];
+  var __algumServicoComDados = false;
   RELATORIO_SERVICOS.forEach(function(svc){
     var g = aggregateByGroup(svc.ids);
     if(g.grandD + g.grandN === 0) return;
+    __algumServicoComDados = true;
     doc.addPage(); cy = 14;
     var cs = COLOR_SETS[svc.cor] || COLOR_SETS.blue;
     cy = drawProcTable(cy, g.procD, g.procN, g.grandD, g.grandN,
       'PROCEDIMENTOS — ' + svc.label.toUpperCase(),
       cs[0], cs[1], cs[2], cs[3]);
   });
-  doc.addPage(); cy = 14;
+  // Só força nova página se algum serviço já desenhou algo acima — caso
+  // contrário (dia sem nenhum registo) mantém tudo na página 1, em vez de
+  // deixá-la quase vazia antes de uma secção "Total Geral" também vazia.
+  if(__algumServicoComDados){ doc.addPage(); cy = 14; }
 
   // ══════════════════════════════════════════════
   //  TOTAL GERAL — TODOS OS SERVIÇOS (ordem de preenchimento)
@@ -2563,10 +2633,10 @@ function exportPDF() {
     doc.setPage(i);
     doc.setDrawColor(180); doc.setLineWidth(.3); doc.line(ML,PH-11,PW-MR,PH-11);
     doc.setFontSize(7); doc.setTextColor(120); doc.setFont('helvetica','normal');
-    doc.text(`ZELO  |  Procedimentos de Enfermagem  |  ${dateStr}  |  Pág. ${i}/${total}`,ML,PH-6);
+    doc.text(`ZELO  |  Procedimentos de Enfermagem — Todos os Serviços  |  ${dateStr}  |  Pág. ${i}/${total}`,ML,PH-6);
     doc.setTextColor(0);
   }
-  doc.save(`Procedimentos_${date}.pdf`);
+  doc.save(`Procedimentos_TodosServicos_${date}.pdf`);
   showToast('PDF exportado com sucesso!');
 }
 
