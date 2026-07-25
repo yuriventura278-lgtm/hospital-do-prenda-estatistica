@@ -35,6 +35,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
 <title>Estatística · Dashboard & Resumos Mensais · Hospital do Prenda</title>
 <link rel="icon" type="image/png" href="icons/logo.png"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
 <style>
@@ -108,6 +109,17 @@ main{max-width:900px;margin:0 auto;padding:26px 20px 60px;}
 .trend-row .tr-bar-wrap{flex:1;background:var(--sf);border-radius:4px;height:16px;overflow:hidden;}
 .trend-row .tr-bar{height:100%;border-radius:4px;transition:width .5s ease;min-width:3px;}
 .trend-row .tr-val{font-family:'DM Mono',monospace;font-size:.76rem;font-weight:700;color:var(--tx);width:40px;text-align:right;flex-shrink:0;}
+
+.trend-chart-wrap{position:relative;height:230px;margin-bottom:8px;}
+.graf-cat-title{font-size:.8rem;font-weight:800;color:var(--tx);margin:18px 0 10px;display:flex;align-items:center;gap:8px;}
+.graf-cat-title .dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.graf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:8px;}
+.graf-card{background:#fff;border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--s1);padding:14px 14px 10px;}
+.graf-card .gc-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.graf-card .gc-title{font-size:.78rem;font-weight:700;color:var(--tx);}
+.graf-card .gc-dl{flex-shrink:0;display:flex;align-items:center;gap:4px;background:var(--sf);border:1px solid var(--br);color:var(--tx2);padding:5px 9px;border-radius:8px;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.graf-card .gc-dl:hover{border-color:var(--bl);color:var(--bl);}
+.graf-card .gc-chart-wrap{position:relative;height:150px;}
 </style>
 </head>
 <body>
@@ -156,6 +168,13 @@ main{max-width:900px;margin:0 auto;padding:26px 20px 60px;}
     <span>Evolução mês-a-mês dos totais já calculados pelo resumo automático, por categoria de serviço. Aparece a partir do primeiro mês fechado pelo sistema.</span>
   </div>
   <div id="trends-content"><div class="loading">A carregar tendências…</div></div>
+
+  <div class="sec-title" style="margin-top:30px;">Gráficos</div>
+  <div class="hero-note" style="background:#fff;border:1px solid var(--br);color:var(--tx2);margin-top:0;margin-bottom:16px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span>Um gráfico por serviço, com o total mensal dos últimos 12 meses fechados. Cada gráfico pode ser descarregado em PNG, individualmente.</span>
+  </div>
+  <div id="graficos-content"><div class="loading">A carregar gráficos…</div></div>
 
   <div class="sec-title" style="margin-top:30px;">Resumos Mensais em PDF</div>
   <div class="hero-note" style="background:#fff;border:1px solid var(--br);color:var(--tx2);margin-bottom:16px;margin-top:0;">
@@ -209,25 +228,31 @@ function emptyState(){
   </div></div>`;
 }
 
-const TREND_CAT_ORDER = ['cirurgicas','internamento','diagnostico','ambulatorio','procedimentos'];
-const TREND_CAT_COLORS = {cirurgicas:'#DC2626', internamento:'#7C3AED', diagnostico:'#0EA5E9', ambulatorio:'#059669', procedimentos:'#D97706'};
+const TREND_CAT_ORDER = ['cirurgicas','internamento','diagnostico','ambulatorio','procedimentos','sistemas_locais'];
+const TREND_CAT_COLORS = {cirurgicas:'#DC2626', internamento:'#7C3AED', diagnostico:'#0EA5E9', ambulatorio:'#059669', procedimentos:'#D97706', sistemas_locais:'#0D9488'};
+window.__zeloCharts = {}; // chartKey -> instância Chart.js, para o download em PNG
 
 async function loadTrends(){
   const el = document.getElementById('trends-content');
   const backupEl = document.getElementById('backup-content');
+  const graficosEl = document.getElementById('graficos-content');
   try{
     const list = await window.fetchRelatorioJSON('relatorios/index.json');
     const withData = (Array.isArray(list) ? list : []).filter(i => i && i.dataFile).sort((a,b) => a.ym.localeCompare(b.ym)).slice(-12);
-    if(!withData.length){ el.innerHTML = trendsEmptyState(); backupEl.innerHTML = backupEmptyState(); return; }
+    if(!withData.length){ el.innerHTML = trendsEmptyState(); backupEl.innerHTML = backupEmptyState(); graficosEl.innerHTML = graficosEmptyState(); return; }
     const months = (await Promise.all(withData.map(item =>
       window.fetchRelatorioJSON('relatorios/' + item.dataFile)
     ))).filter(Boolean);
-    if(!months.length){ el.innerHTML = trendsEmptyState(); backupEl.innerHTML = backupEmptyState(); return; }
+    if(!months.length){ el.innerHTML = trendsEmptyState(); backupEl.innerHTML = backupEmptyState(); graficosEl.innerHTML = graficosEmptyState(); return; }
     el.innerHTML = renderTrends(months);
+    initTrendsChart(months);
     backupEl.innerHTML = renderBackups(months);
+    graficosEl.innerHTML = renderGraficos(months);
+    initGraficos(months);
   }catch(e){
     el.innerHTML = trendsEmptyState();
     backupEl.innerHTML = backupEmptyState();
+    graficosEl.innerHTML = graficosEmptyState();
   }
 }
 
@@ -236,7 +261,10 @@ function renderTrends(months){
   months.forEach(m => Object.keys(m.categorias || {}).forEach(c => catIds.add(c)));
   const ids = TREND_CAT_ORDER.filter(c => catIds.has(c));
   if(!ids.length) return trendsEmptyState();
-  return ids.map(c => {
+  const chartHtml = (typeof window.Chart !== 'undefined')
+    ? `<div class="panel"><h2>Comparação mês-a-mês, por categoria</h2><div class="trend-chart-wrap"><canvas id="trends-combined-chart"></canvas></div></div>`
+    : '';
+  const rowsHtml = ids.map(c => {
     const label = (months.find(m => m.categorias && m.categorias[c]) || {categorias:{}}).categorias[c].label || c;
     const max = Math.max(1, ...months.map(m => (m.categorias[c] && m.categorias[c].total) || 0));
     const color = TREND_CAT_COLORS[c] || 'var(--bl)';
@@ -251,12 +279,120 @@ function renderTrends(months){
     }).join('');
     return `<div class="panel"><h2>${escapeHtml(label)}</h2>${rows}</div>`;
   }).join('');
+  return chartHtml + rowsHtml;
+}
+
+function initTrendsChart(months){
+  if(typeof window.Chart === 'undefined') return;
+  const canvas = document.getElementById('trends-combined-chart');
+  if(!canvas) return;
+  const catIds = new Set();
+  months.forEach(m => Object.keys(m.categorias || {}).forEach(c => catIds.add(c)));
+  const ids = TREND_CAT_ORDER.filter(c => catIds.has(c));
+  if(!ids.length) return;
+  const labels = months.map(m => m.label || m.ym);
+  const datasets = ids.map(c => {
+    const label = (months.find(m => m.categorias && m.categorias[c]) || {categorias:{}}).categorias[c].label || c;
+    const color = TREND_CAT_COLORS[c] || '#1A56DB';
+    return {
+      label, data: months.map(m => (m.categorias[c] && m.categorias[c].total) || 0),
+      borderColor: color, backgroundColor: color, tension: .25, borderWidth: 2, pointRadius: 3,
+    };
+  });
+  if(window.__zeloCharts['trends']) window.__zeloCharts['trends'].destroy();
+  window.__zeloCharts['trends'] = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10.5 } } } },
+      scales: { y: { beginAtZero: true } },
+    },
+  });
 }
 
 function trendsEmptyState(){
   return `<div class="panel"><div class="empty-state">
     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
     <p>Ainda não há dados suficientes para mostrar tendências. Aparecem aqui automaticamente a partir do primeiro resumo mensal gerado pelo sistema.</p>
+  </div></div>`;
+}
+
+/* ── Gráficos por serviço ── */
+function renderGraficos(months){
+  if(typeof window.Chart === 'undefined') return graficosEmptyState();
+  const porServico = {}; // serviceId -> {name, cat, values:[{label,total}]}
+  months.forEach(m => {
+    (m.servicos || []).forEach(s => {
+      if(!porServico[s.id]) porServico[s.id] = { name: s.name, cat: s.cat, values: [] };
+      porServico[s.id].values.push({ label: m.label || m.ym, total: s.headlineTotal || 0 });
+    });
+  });
+  const ids = Object.keys(porServico);
+  if(!ids.length) return graficosEmptyState();
+  const cats = TREND_CAT_ORDER.filter(c => ids.some(id => porServico[id].cat === c));
+  return cats.map(c => {
+    const catLabel = (months.flatMap(m => m.categorias && m.categorias[c] ? [m.categorias[c].label] : []))[0] || c;
+    const color = TREND_CAT_COLORS[c] || '#1A56DB';
+    const svcIds = ids.filter(id => porServico[id].cat === c);
+    const cards = svcIds.map(id => `
+      <div class="graf-card">
+        <div class="gc-hdr">
+          <span class="gc-title">${escapeHtml(porServico[id].name)}</span>
+          <button type="button" class="gc-dl" onclick="window.zeloBaixarGraficoPNG('${id}','${escapeHtml(porServico[id].name).replace(/'/g,"\\'")}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PNG</button>
+        </div>
+        <div class="gc-chart-wrap"><canvas id="graf-chart-${id}"></canvas></div>
+      </div>`).join('');
+    return `<div class="graf-cat-title"><span class="dot" style="background:${color};"></span>${escapeHtml(catLabel)}</div><div class="graf-grid">${cards}</div>`;
+  }).join('');
+}
+
+function initGraficos(months){
+  if(typeof window.Chart === 'undefined') return;
+  const porServico = {};
+  months.forEach(m => {
+    (m.servicos || []).forEach(s => {
+      if(!porServico[s.id]) porServico[s.id] = { name: s.name, cat: s.cat, values: [] };
+      porServico[s.id].values.push({ label: m.label || m.ym, total: s.headlineTotal || 0 });
+    });
+  });
+  Object.keys(porServico).forEach(id => {
+    const canvas = document.getElementById('graf-chart-' + id);
+    if(!canvas) return;
+    const color = TREND_CAT_COLORS[porServico[id].cat] || '#1A56DB';
+    const chartKey = 'graf-' + id;
+    if(window.__zeloCharts[chartKey]) window.__zeloCharts[chartKey].destroy();
+    window.__zeloCharts[chartKey] = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: porServico[id].values.map(v => v.label),
+        datasets: [{ label: 'Total mensal', data: porServico[id].values.map(v => v.total), backgroundColor: color, borderRadius: 4 }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } },
+      },
+    });
+  });
+}
+
+window.zeloBaixarGraficoPNG = function(id, nome){
+  const chart = window.__zeloCharts['graf-' + id];
+  if(!chart) return;
+  const url = chart.toBase64Image('image/png', 1);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'grafico_' + (nome || id).replace(/[^A-Za-z0-9]+/g,'_') + '.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
+
+function graficosEmptyState(){
+  return `<div class="panel"><div class="empty-state">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    <p>Ainda não há dados suficientes para mostrar gráficos. Aparecem aqui automaticamente a partir do primeiro resumo mensal gerado pelo sistema.</p>
   </div></div>`;
 }
 
