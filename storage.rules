@@ -1,0 +1,26 @@
+rules_version = '2';
+
+// ZELO — regras do Firebase Storage.
+//
+// Os relatórios mensais em PDF e o arquivo bruto por serviço (cópia de
+// segurança) são dados confidenciais do hospital. Só podem ser lidos por
+// quem tem sessão iniciada no ZELO (Firebase Authentication) — nunca
+// publicamente. A escrita é sempre feita pelo processo automático mensal,
+// através da Firebase Admin SDK (que ignora estas regras), por isso o
+// cliente (browser) nunca tem permissão para escrever aqui.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /relatorios/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /arquivo/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    // Tudo o resto: negado por omissão.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

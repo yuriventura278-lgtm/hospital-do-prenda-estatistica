@@ -5,6 +5,32 @@
 <script>window.ZELO_MODULE='estatistica';</script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
+<script type="module">
+  // Os relatórios mensais e o arquivo de dados vivem no Firebase Storage, atrás
+  // do login do ZELO (ver storage.rules) — nunca no repositório público do
+  // GitHub. Expostos em window para serem chamados a partir dos onclick dos
+  // cartões, gerados dinamicamente pelo script mais abaixo.
+  import { fetchRelatorioJSON, abrirRelatorioPDF, baixarRelatorioFicheiro } from './zelo_relatorios.js';
+  window.fetchRelatorioJSON = fetchRelatorioJSON;
+  window.zeloAbrirPDF = function(path){
+    abrirRelatorioPDF(path).catch(function(e){
+      console.warn('ZELO: falha ao abrir PDF', e);
+      alert('Não foi possível abrir o PDF. Verifique a sua sessão e a ligação à internet.');
+    });
+  };
+  window.zeloBaixarPDF = function(path, nome){
+    baixarRelatorioFicheiro(path, nome, 'application/pdf').catch(function(e){
+      console.warn('ZELO: falha ao descarregar PDF', e);
+      alert('Não foi possível descarregar o PDF.');
+    });
+  };
+  window.zeloBaixarJSON = function(path, nome){
+    baixarRelatorioFicheiro(path, nome, 'application/json').catch(function(e){
+      console.warn('ZELO: falha ao descarregar JSON', e);
+      alert('Não foi possível descarregar o ficheiro.');
+    });
+  };
+</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
 <title>Estatística · Dashboard & Resumos Mensais · Hospital do Prenda</title>
@@ -157,21 +183,19 @@ main{max-width:900px;margin:0 auto;padding:26px 20px 60px;}
 async function load(){
   const contentEl = document.getElementById('content');
   try{
-    const res = await fetch('relatorios/index.json', {cache:'no-store'});
-    if(!res.ok) throw new Error('sem índice');
-    const list = await res.json();
+    const list = await window.fetchRelatorioJSON('relatorios/index.json');
     if(!Array.isArray(list) || !list.length){
       contentEl.innerHTML = emptyState();
       return;
     }
     contentEl.innerHTML = `<div class="list">${list.map(item=>`
-      <div class="rep-card" onclick="window.open('relatorios/${encodeURIComponent(item.file)}','_blank','noopener')" style="cursor:pointer;">
+      <div class="rep-card" onclick="window.zeloAbrirPDF('relatorios/${item.file}')" style="cursor:pointer;">
         <div class="rep-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
         <div class="rep-text">
           <div class="l1">${item.label || item.ym}</div>
           <div class="l2">${item.file}</div>
         </div>
-        <a class="rep-dl" href="relatorios/${encodeURIComponent(item.file)}" download="${item.file}" onclick="event.stopPropagation();" title="Descarregar PDF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a>
+        <a class="rep-dl" href="javascript:void(0)" onclick="event.stopPropagation();window.zeloBaixarPDF('relatorios/${item.file}','${item.file}')" title="Descarregar PDF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</a>
       </div>
     `).join('')}</div>`;
   }catch(e){
@@ -192,18 +216,12 @@ async function loadTrends(){
   const el = document.getElementById('trends-content');
   const backupEl = document.getElementById('backup-content');
   try{
-    const res = await fetch('relatorios/index.json', {cache:'no-store'});
-    if(!res.ok) throw new Error('sem índice');
-    const list = await res.json();
+    const list = await window.fetchRelatorioJSON('relatorios/index.json');
     const withData = (Array.isArray(list) ? list : []).filter(i => i && i.dataFile).sort((a,b) => a.ym.localeCompare(b.ym)).slice(-12);
     if(!withData.length){ el.innerHTML = trendsEmptyState(); backupEl.innerHTML = backupEmptyState(); return; }
-    const months = (await Promise.all(withData.map(async item => {
-      try{
-        const r = await fetch('relatorios/' + encodeURIComponent(item.dataFile), {cache:'no-store'});
-        if(!r.ok) return null;
-        return await r.json();
-      }catch(e){ return null; }
-    }))).filter(Boolean);
+    const months = (await Promise.all(withData.map(item =>
+      window.fetchRelatorioJSON('relatorios/' + item.dataFile)
+    ))).filter(Boolean);
     if(!months.length){ el.innerHTML = trendsEmptyState(); backupEl.innerHTML = backupEmptyState(); return; }
     el.innerHTML = renderTrends(months);
     backupEl.innerHTML = renderBackups(months);
@@ -250,13 +268,13 @@ function renderBackups(months){
       <h2>${escapeHtml(m.label || m.ym)}</h2>
       <div class="list">
         ${m.arquivo.map(a => `
-          <div class="rep-card" onclick="window.open('${escapeHtml(a.file)}','_blank','noopener')" style="cursor:pointer;">
+          <div class="rep-card" onclick="window.zeloBaixarJSON('${a.file}','${a.id}_${m.ym}.json')" style="cursor:pointer;">
             <div class="rep-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
             <div class="rep-text">
               <div class="l1">${escapeHtml(a.name)}</div>
               <div class="l2">${a.daysReported} dia(s) registado(s) · JSON</div>
             </div>
-            <a class="rep-dl" href="${escapeHtml(a.file)}" download onclick="event.stopPropagation();" title="Descarregar JSON"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>JSON</a>
+            <a class="rep-dl" href="javascript:void(0)" onclick="event.stopPropagation();window.zeloBaixarJSON('${a.file}','${a.id}_${m.ym}.json')" title="Descarregar JSON"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>JSON</a>
           </div>
         `).join('')}
       </div>
@@ -278,11 +296,15 @@ function mostrarGatilhoAdmin(role){
   const el = document.getElementById('admin-report-trigger');
   if(el) el.style.display = (role === 'admin') ? 'flex' : 'none';
 }
-mostrarGatilhoAdmin(sessionStorage.getItem('zeloRole'));
-window.addEventListener('zelo-gate-ready', e => mostrarGatilhoAdmin(e.detail && e.detail.role));
 
-load();
-loadTrends();
+// Os relatórios e o arquivo vivem agora no Firebase Storage, atrás do login —
+// só é seguro lê-los depois de o gate confirmar uma sessão real (nunca antes,
+// ao contrário do antigo fetch() directo ao repositório público).
+window.addEventListener('zelo-gate-ready', e => {
+  mostrarGatilhoAdmin(e.detail && e.detail.role);
+  load();
+  loadTrends();
+});
 </script>
 <script src="zelo_theme.js"></script>
 </body>

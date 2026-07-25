@@ -7,6 +7,7 @@ import { chromium } from 'playwright';
 import fs from 'fs';
 
 const DATABASE_URL = 'https://hospital-do-prenda-1de35-default-rtdb.europe-west1.firebasedatabase.app';
+const STORAGE_BUCKET = 'hospital-do-prenda-1de35.firebasestorage.app';
 
 const CATS = {
   cirurgicas: {label: 'Especialidades Cirúrgicas', color: '#DC2626'},
@@ -687,8 +688,32 @@ async function main(){
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: DATABASE_URL,
+    storageBucket: STORAGE_BUCKET,
   });
   const db = admin.database();
+  const bucket = admin.storage().bucket();
+
+  // O PDF e o arquivo bruto já não são publicados no repositório GitHub (que é
+  // público) — passam a viver no Firebase Storage, atrás das mesmas regras de
+  // segurança que só deixam ler quem tem sessão iniciada no ZELO (ver
+  // storage.rules). Estes 3 auxiliares substituem as antigas leituras/escritas
+  // em disco por leituras/escritas equivalentes no Storage.
+  async function storageReadJSON(path, fallback){
+    try{
+      const [buf] = await bucket.file(path).download();
+      return JSON.parse(buf.toString('utf-8'));
+    }catch(e){
+      if(e && e.code === 404) return fallback;
+      console.warn(`Aviso: falha ao ler ${path} do Storage (${e && e.message}); a usar valor por omissão.`);
+      return fallback;
+    }
+  }
+  async function storageWriteJSON(path, obj){
+    await bucket.file(path).save(JSON.stringify(obj, null, 2), {contentType: 'application/json', resumable: false});
+  }
+  async function storageUploadFile(localPath, destPath, contentType){
+    await bucket.upload(localPath, {destination: destPath, metadata: {contentType}});
+  }
 
   const {year, month} = getTargetMonth(); // month é 0-based, mês ANTERIOR ao actual
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -697,10 +722,9 @@ async function main(){
 
   console.log(`A gerar resumo de ${monthLabel} (${ym})…`);
 
-  // Arquivo local dos dados em bruto — guardado ANTES da limpeza, para nunca perder o
-  // detalhe dia-a-dia depois de o Firebase ser esvaziado. Fica organizado por mês/prefixo/serviço.
-  const archiveDir = `arquivo/${ym}`;
-  fs.mkdirSync('arquivo', {recursive: true});
+  // Arquivo dos dados em bruto — guardado ANTES da limpeza, para nunca perder o
+  // detalhe dia-a-dia depois de o Firebase ser esvaziado. Fica organizado por
+  // mês/prefixo/serviço, directamente no Firebase Storage.
   const archivedServices = [];
 
   const perService = [];
@@ -752,15 +776,13 @@ async function main(){
     }
 
     if(monthEntries.length){
-      const subDir = `${archiveDir}/${prefix}`;
-      fs.mkdirSync(subDir, {recursive: true});
       const semNomes = monthEntries.map(([date, rec]) => {
         const limpo = Object.assign({}, rec);
         if(limpo && limpo.snapshot) limpo.snapshot = stripNomesDoentes(limpo.snapshot);
         return [date, limpo];
       });
       const raw = Object.fromEntries(semNomes.sort((a, b) => a[0].localeCompare(b[0])));
-      fs.writeFileSync(`${subDir}/${fbId}.json`, JSON.stringify(raw, null, 2));
+      await storageWriteJSON(`arquivo/${ym}/${prefix}/${fbId}.json`, raw);
       archivedServices.push({id: svc.id, name: svc.name, cat: svc.cat, prefix, fbId, daysReported: monthEntries.length});
     }
 
@@ -772,23 +794,19 @@ async function main(){
   }
 
   if(archivedServices.length){
-    fs.writeFileSync(`${archiveDir}/index.json`, JSON.stringify({
+    await storageWriteJSON(`arquivo/${ym}/index.json`, {
       ym, label: monthLabel, generatedAt: new Date().toISOString(), services: archivedServices,
-    }, null, 2));
+    });
   }
 
-  const archiveIndexPath = 'arquivo/index.json';
-  let archiveIndex = [];
-  if(fs.existsSync(archiveIndexPath)){
-    try{ archiveIndex = JSON.parse(fs.readFileSync(archiveIndexPath, 'utf-8')); }catch(e){ archiveIndex = []; }
-  }
+  let archiveIndex = await storageReadJSON('arquivo/index.json', []);
   archiveIndex = archiveIndex.filter(entry => entry.ym !== ym);
   if(archivedServices.length){
     archiveIndex.push({ym, label: monthLabel, servicesCount: archivedServices.length, generatedAt: new Date().toISOString()});
     archiveIndex.sort((a, b) => b.ym.localeCompare(a.ym));
   }
-  fs.writeFileSync(archiveIndexPath, JSON.stringify(archiveIndex, null, 2));
-  console.log(`Arquivo local de ${ym} guardado em ${archiveDir}/ (${archivedServices.length} serviço(s) com dados).`);
+  await storageWriteJSON('arquivo/index.json', archiveIndex);
+  console.log(`Arquivo de ${ym} guardado no Firebase Storage (${archivedServices.length} serviço(s) com dados).`);
 
   const diagTop20 = mergeDiagCounts(diagRaw).slice(0, 20);
   const transferencias = {
@@ -825,7 +843,9 @@ async function main(){
     margin: {top: '18mm', bottom: '14mm', left: '10mm', right: '10mm'},
   });
   await browser.close();
-  console.log('PDF gerado em', pdfPath);
+  await storageUploadFile(pdfPath, `relatorios/${ym}.pdf`, 'application/pdf');
+  fs.rmSync('relatorios', {recursive: true, force: true});
+  console.log(`PDF gerado e publicado no Firebase Storage em relatorios/${ym}.pdf`);
 
   // ── Dados estruturados do mês (para a secção "Tendências" do Estatística.html) ──
   // Mesmos totais já calculados acima para o PDF, só que persistidos em JSON para
@@ -863,19 +883,15 @@ async function main(){
       file: `arquivo/${ym}/${s.prefix}/${s.fbId}.json`,
     })),
   };
-  fs.writeFileSync(`relatorios/${ym}.json`, JSON.stringify(dataOut, null, 2));
-  console.log(`Dados estruturados guardados em relatorios/${ym}.json`);
+  await storageWriteJSON(`relatorios/${ym}.json`, dataOut);
+  console.log(`Dados estruturados publicados no Firebase Storage em relatorios/${ym}.json`);
 
-  const indexPath = 'relatorios/index.json';
-  let index = [];
-  if(fs.existsSync(indexPath)){
-    try{ index = JSON.parse(fs.readFileSync(indexPath, 'utf-8')); }catch(e){ index = []; }
-  }
+  let index = await storageReadJSON('relatorios/index.json', []);
   index = index.filter(entry => entry.ym !== ym);
   index.push({ym, label: monthLabel, file: `${ym}.pdf`, dataFile: `${ym}.json`, generatedAt: new Date().toISOString()});
   index.sort((a, b) => b.ym.localeCompare(a.ym));
-  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
-  console.log('Índice actualizado em', indexPath);
+  await storageWriteJSON('relatorios/index.json', index);
+  console.log('Índice actualizado no Firebase Storage em relatorios/index.json');
 
   if(process.env.SKIP_CLEANUP === 'true'){
     console.log('SKIP_CLEANUP=true — histórico do Firebase NÃO foi apagado (modo de teste).');

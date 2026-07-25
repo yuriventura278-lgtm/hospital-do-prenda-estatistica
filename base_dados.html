@@ -29,6 +29,20 @@
     window.__fbReady = false;
   }
 </script>
+<script type="module">
+  // Os relatórios mensais e o arquivo de dados vivem no Firebase Storage, atrás
+  // do login do ZELO (ver storage.rules) — nunca no repositório público do
+  // GitHub.
+  import { fetchRelatorioJSON, abrirRelatorioPDF, baixarRelatorioFicheiro } from './zelo_relatorios.js';
+  window.fetchRelatorioJSON = fetchRelatorioJSON;
+  window.zeloAbrirPDF = function(path){
+    abrirRelatorioPDF(path).catch(function(e){
+      console.warn('ZELO: falha ao abrir PDF', e);
+      alert('Não foi possível abrir o PDF. Verifique a sua sessão e a ligação à internet.');
+    });
+  };
+  window.zeloBaixarRelatorioFicheiro = baixarRelatorioFicheiro;
+</script>
 <style>
 :root{
   --nv:#0D1B3E;--nv2:#122754;--nv3:#0a3a66;--bl:#1A56DB;--cy:#0EA5E9;--cyl:#22D3EE;
@@ -506,12 +520,11 @@ function ensureScript(url, checkFn, cb){
 }
 function ensureExcelLib(cb){ ensureScript('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js', function(){ return !!window.XLSX; }, cb); }
 
-async function fetchJsonSeguro(url){
-  try{
-    const res = await fetch(url, {cache:'no-store'});
-    if(!res.ok) return null;
-    return await res.json();
-  }catch(e){ return null; }
+// Os relatórios e o arquivo já não são ficheiros públicos do GitHub Pages —
+// vivem no Firebase Storage, atrás do login (ver zelo_relatorios.js).
+async function fetchJsonSeguro(path){
+  if(typeof window.fetchRelatorioJSON !== 'function') return null;
+  return await window.fetchRelatorioJSON(path);
 }
 
 // Converte um valor (número, texto, objeto ou array aninhado) numa célula de
@@ -616,7 +629,7 @@ async function carregarEstadoBaseDados(){
   list.classList.remove('zbd-empty');
   list.innerHTML = arquivoIdx.map(function(a){
     const rel = relatoriosByYm[a.ym];
-    const pdfLink = rel ? '<a href="relatorios/' + rel.file + '" target="_blank" rel="noopener">Ver PDF</a>' : '';
+    const pdfLink = rel ? '<a href="javascript:void(0)" onclick="window.zeloAbrirPDF(\'relatorios/' + rel.file + '\')">Ver PDF</a>' : '';
     return '<div class="zbd-mes-item">' +
       '<span class="zbd-mes-nome">' + a.label + ' <span style="color:var(--tx3);font-weight:400;">(' + a.servicesCount + ' serviços)</span></span>' +
       '<span class="zbd-mes-acoes">' + pdfLink + '<button onclick="exportarArquivoMesExcel(\'' + a.ym + '\',\'' + a.label + '\',this)">Exportar Excel</button></span>' +
@@ -672,7 +685,14 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   }
   await atualizarEstatisticas();
   await render();
-  carregarEstadoBaseDados();
+  // Os relatórios/arquivo agora exigem sessão autenticada no Storage — se o
+  // gate ainda não confirmou a sessão nesta navegação, esperar por isso em
+  // vez de tentar ler antes de tempo (o que falharia silenciosamente).
+  if(sessionStorage.getItem('zeloRole')){
+    carregarEstadoBaseDados();
+  }else{
+    window.addEventListener('zelo-gate-ready', function(){ carregarEstadoBaseDados(); }, {once:true});
+  }
   carregarEstadoArmazenamento();
 
   // Sincronização automática em segundo plano se a cópia local nunca foi feita
