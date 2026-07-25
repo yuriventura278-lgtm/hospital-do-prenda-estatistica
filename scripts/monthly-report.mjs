@@ -803,6 +803,13 @@ async function main(){
     })),
     urgenciaTotal,
     diagTop5: diagTop20.slice(0, 5),
+    // Cópia de segurança mensal por serviço/página — aponta para o arquivo em bruto
+    // (já escrito acima em arquivo/<ym>/<prefix>/<fbId>.json, nomes de doentes já
+    // removidos) para poder ser descarregado directamente a partir do Estatística.html.
+    arquivo: archivedServices.map(s => ({
+      id: s.id, name: s.name, cat: s.cat, daysReported: s.daysReported,
+      file: `arquivo/${ym}/${s.prefix}/${s.fbId}.json`,
+    })),
   };
   fs.writeFileSync(`relatorios/${ym}.json`, JSON.stringify(dataOut, null, 2));
   console.log(`Dados estruturados guardados em relatorios/${ym}.json`);

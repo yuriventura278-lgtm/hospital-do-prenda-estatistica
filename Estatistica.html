@@ -137,6 +137,13 @@ main{max-width:900px;margin:0 auto;padding:26px 20px 60px;}
     <span>No dia 2 de cada mês, um processo automático gera sozinho o resumo em PDF do mês anterior e guarda-o aqui — sem precisar que ninguém abra o sistema. Em seguida, o histórico confirmado desse mês é removido do Firebase, mantendo o sistema sempre leve.</span>
   </div>
   <div id="content"><div class="loading">A carregar relatórios…</div></div>
+
+  <div class="sec-title" style="margin-top:30px;">Cópia de Segurança Mensal (JSON por Serviço)</div>
+  <div class="hero-note" style="background:#fff;border:1px solid var(--br);color:var(--tx2);margin-bottom:16px;margin-top:0;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span>Um ficheiro JSON por serviço/página, com todos os registos diários em bruto desse mês (sem nomes de doentes). Fica guardado aqui para sempre, mesmo depois da limpeza mensal do Firebase — é a cópia de segurança oficial.</span>
+  </div>
+  <div id="backup-content"><div class="loading">A carregar cópias de segurança…</div></div>
 </main>
 
 <script>
@@ -176,12 +183,13 @@ const TREND_CAT_COLORS = {cirurgicas:'#DC2626', internamento:'#7C3AED', diagnost
 
 async function loadTrends(){
   const el = document.getElementById('trends-content');
+  const backupEl = document.getElementById('backup-content');
   try{
     const res = await fetch('relatorios/index.json', {cache:'no-store'});
     if(!res.ok) throw new Error('sem índice');
     const list = await res.json();
     const withData = (Array.isArray(list) ? list : []).filter(i => i && i.dataFile).sort((a,b) => a.ym.localeCompare(b.ym)).slice(-12);
-    if(!withData.length){ el.innerHTML = trendsEmptyState(); return; }
+    if(!withData.length){ el.innerHTML = trendsEmptyState(); backupEl.innerHTML = backupEmptyState(); return; }
     const months = (await Promise.all(withData.map(async item => {
       try{
         const r = await fetch('relatorios/' + encodeURIComponent(item.dataFile), {cache:'no-store'});
@@ -189,10 +197,12 @@ async function loadTrends(){
         return await r.json();
       }catch(e){ return null; }
     }))).filter(Boolean);
-    if(!months.length){ el.innerHTML = trendsEmptyState(); return; }
+    if(!months.length){ el.innerHTML = trendsEmptyState(); backupEl.innerHTML = backupEmptyState(); return; }
     el.innerHTML = renderTrends(months);
+    backupEl.innerHTML = renderBackups(months);
   }catch(e){
     el.innerHTML = trendsEmptyState();
+    backupEl.innerHTML = backupEmptyState();
   }
 }
 
@@ -222,6 +232,34 @@ function trendsEmptyState(){
   return `<div class="panel"><div class="empty-state">
     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
     <p>Ainda não há dados suficientes para mostrar tendências. Aparecem aqui automaticamente a partir do primeiro resumo mensal gerado pelo sistema.</p>
+  </div></div>`;
+}
+
+function renderBackups(months){
+  const withArquivo = months.filter(m => Array.isArray(m.arquivo) && m.arquivo.length).slice().reverse();
+  if(!withArquivo.length) return backupEmptyState();
+  return `<div class="list">${withArquivo.map(m => `
+    <div class="panel" style="margin-bottom:12px;">
+      <h2>${escapeHtml(m.label || m.ym)}</h2>
+      <div class="list">
+        ${m.arquivo.map(a => `
+          <div class="rep-card" onclick="window.open('${escapeHtml(a.file)}','_blank','noopener')" style="cursor:pointer;">
+            <div class="rep-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            <div class="rep-text">
+              <div class="l1">${escapeHtml(a.name)}</div>
+              <div class="l2">${a.daysReported} dia(s) registado(s) · JSON</div>
+            </div>
+            <a class="rep-dl" href="${escapeHtml(a.file)}" download onclick="event.stopPropagation();" title="Descarregar JSON"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>JSON</a>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+function backupEmptyState(){
+  return `<div class="panel"><div class="empty-state">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <p>Ainda não há cópias de segurança mensais disponíveis. Aparecem aqui automaticamente a partir do primeiro resumo mensal gerado pelo sistema (meses gerados antes desta funcionalidade não têm cópia retroactiva).</p>
   </div></div>`;
 }
 
