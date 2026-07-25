@@ -229,6 +229,12 @@ main{max-width:1040px;margin:0 auto;padding:22px 20px 70px;}
     <p class="zbd-note">A limpeza mensal corre automaticamente todo o dia 2. Para a correr manualmente antes disso (por exemplo, para testar), um Administrador com acesso ao repositório GitHub pode fazê-lo em Actions → "Relatório mensal e limpeza do histórico" → Run workflow.</p>
     <a href="https://github.com/yuriventura278-lgtm/hospital-do-prenda-estatistica/actions/workflows/relatorio-mensal.yml" target="_blank" rel="noopener" class="zbd-btn">Abrir no GitHub Actions</a>
   </div>
+
+  <div class="zbd-panel">
+    <h2>Backup Completo do Sistema</h2>
+    <p class="zbd-note">Descarrega num único ficheiro JSON tudo o que está guardado neste aparelho (todos os bancos, Procedimentos de Enfermagem e Sistemas Locais) — a cópia de segurança mais completa disponível. Clica em "Sincronizar agora" primeiro para garantir que inclui os registos mais recentes.</p>
+    <button class="zbd-btn" id="btnBackupCompleto" onclick="doBackupCompletoSistema()" style="border:none;cursor:pointer;">Descarregar Backup Completo (JSON)</button>
+  </div>
 </div>
 
 <main>
@@ -278,9 +284,17 @@ const PROC_LABELS = {
   hospital_dia:'Hospital de Dia', consulta_externa:'Consulta Externa',
 };
 const PROC_SERVICES = Object.entries(PROC_LABELS).map(([slug,name])=>({id:slug, name, cat:'procedimentos'}));
+const LOCAL_SERVICES = [
+  {id:'consulta_externa', name:'Consulta Externa · Geral', cat:'sistemas_locais'},
+  {id:'bloco_operatorio', name:'Bloco Operatório · Registo Diário', cat:'sistemas_locais'},
+  {id:'laboratorio', name:'Laboratório · Geral', cat:'sistemas_locais'},
+  {id:'imagiologia', name:'Imagiologia · Radiologia Geral', cat:'sistemas_locais'},
+  {id:'hemoterapia', name:'Hemoterapia · Banco de Sangue', cat:'sistemas_locais'},
+];
 const ALL_SERVICES = [
   ...BANK_SERVICES.map(s=>({...s, prefix:'registos'})),
   ...PROC_SERVICES.map(s=>({...s, prefix:'registos_enf'})),
+  ...LOCAL_SERVICES.map(s=>({...s, prefix:'registos_sistemas_locais'})),
 ];
 
 /* ══════════════════ INDEXEDDB (via ZeloDB — ligação única reutilizável) ══════════════════ */
@@ -297,6 +311,7 @@ function ddGetByDateRange(startStr,endStr){
   return zdb.queryByIndex(STORE, 'byDate', IDBKeyRange.bound(startStr,endStr), { limit: Infinity });
 }
 function ddCountAll(){ return zdb.count(STORE); }
+function ddGetAll(){ return zdb.getAll(STORE); }
 
 /* ══════════════════ SINCRONIZAÇÃO COM O FIREBASE ══════════════════ */
 const LAST_SYNC_KEY='zelo_basedados_lastsync';
@@ -608,6 +623,56 @@ async function exportarArquivoMesExcel(ym, label, btn){
   }catch(e){
     console.error(e);
     alert('Não foi possível gerar o Excel.');
+    btn.textContent = original;
+  }
+}
+
+/** Descarrega TUDO o que está guardado localmente (IndexedDB desta página) num
+ *  único ficheiro JSON — bancos, Procedimentos de Enfermagem e Sistemas Locais,
+ *  reconstruído na mesma forma do Firebase (prefixo/serviço/data) para ser
+ *  fácil de inspeccionar ou, no futuro, re-importar. */
+async function doBackupCompletoSistema(){
+  const btn = document.getElementById('btnBackupCompleto');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'A preparar backup…';
+  try{
+    await ddOpen();
+    const registos = await ddGetAll();
+    if(!registos.length){
+      alert('Ainda não há nenhum registo guardado localmente. Clica em "Sincronizar agora" primeiro.');
+      return;
+    }
+    const servicos = {};
+    let totalRegistos = 0;
+    registos.forEach(function(r){
+      const chaveServico = r.prefix + '/' + r.serviceId;
+      if(!servicos[chaveServico]) servicos[chaveServico] = {};
+      servicos[chaveServico][r.date] = { savedAt: r.savedAt, snapshot: r.snapshot };
+      totalRegistos++;
+    });
+    const backup = {
+      sistema: 'ZELO',
+      geradoEm: new Date().toISOString(),
+      totalServicos: Object.keys(servicos).length,
+      totalRegistos,
+      servicos,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'zelo_backup_completo_' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
+    toast('✓ Backup completo descarregado (' + totalRegistos + ' registo(s)).');
+  }catch(e){
+    console.error(e);
+    alert('Não foi possível gerar o backup completo.');
+  }finally{
+    btn.disabled = false;
     btn.textContent = original;
   }
 }
