@@ -3183,12 +3183,44 @@ async function _fbSyncBlocoOperatorio(date){
   try{
     const raw = safeGet(storageKey(date));
     if (!raw) return;
+    const savedAt = new Date().toISOString();
     await zeloQueueWrite('registos_sistemas_locais/bloco_operatorio/' + date, {
-      savedAt: new Date().toISOString(),
+      savedAt: savedAt,
       snapshot: JSON.parse(raw)
     });
+    _fbBaselineSavedAt[date] = savedAt; // é a nossa própria gravação — não avisar sobre ela
   }catch(e){ console.warn('ZELO: falha ao sincronizar Bloco Operatório com o Firebase', e); }
 }
+
+// ── Aviso de dados mais recentes noutro dispositivo ──────────────────────
+// Sem sincronização em tempo real (decisão para poupar o plano gratuito do
+// Firebase), verifica de vez em quando se alguém guardou dados mais
+// recentes para o dia aberto e avisa — sem recarregar sozinho, para nunca
+// perder alterações locais por gravar.
+const _fbBaselineSavedAt = {};
+function _fbMostrarAvisoNovosDados(){
+  if (document.getElementById('fb-novos-dados-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'fb-novos-dados-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#1A56DB;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
+  banner.innerHTML = '<span>🔄 Outro utilizador guardou dados mais recentes para este dia.</span>' +
+    '<button type="button" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>';
+  banner.querySelector('button').onclick = () => window.location.reload();
+  document.body.insertBefore(banner, document.body.firstChild);
+}
+async function _fbVerificarNovosDados(){
+  if (!window.__fbReady || !window.__fbGet || !currentLoadedDate) return;
+  const date = currentLoadedDate;
+  try{
+    const reg = await window.__fbGet('registos_sistemas_locais/bloco_operatorio/' + date);
+    const remoto = reg && reg.savedAt;
+    if (!remoto) return;
+    const base = _fbBaselineSavedAt[date];
+    if (base === undefined){ _fbBaselineSavedAt[date] = remoto; return; }
+    if (remoto > base){ _fbBaselineSavedAt[date] = remoto; _fbMostrarAvisoNovosDados(); }
+  }catch(e){ /* falha silenciosa — não bloqueia a página */ }
+}
+setInterval(_fbVerificarNovosDados, 120000);
 
 // ── Save ──
 function saveAll() {
