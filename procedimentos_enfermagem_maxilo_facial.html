@@ -2532,23 +2532,14 @@ function construirPDF() {
   var RELATORIO_SERVICOS = [
     { label:'Maxilo Facial',              ids:['maxilo'],                  cor:'blue'  }
   ];
-  RELATORIO_SERVICOS.forEach(function(svc){
-    var g = aggregateByGroup(svc.ids);
-    if(g.grandD + g.grandN === 0) return;
-    doc.addPage(); cy = 14;
-    var cs = COLOR_SETS[svc.cor] || COLOR_SETS.blue;
-    cy = drawProcTable(cy, g.procD, g.procN, g.grandD, g.grandN,
-      'PROCEDIMENTOS — ' + svc.label.toUpperCase(),
-      cs[0], cs[1], cs[2], cs[3]);
-  });
-  doc.addPage(); cy = 14;
-
   // ══════════════════════════════════════════════
-  //  TOTAL GERAL — TODOS OS SERVIÇOS (ordem de preenchimento)
+  //  PROCEDIMENTOS DO DIA — tabela única (esta página já é de um único
+  //  serviço, por isso já não duplica "por serviço" + "total geral")
   // ══════════════════════════════════════════════
+  var cs = COLOR_SETS[RELATORIO_SERVICOS[0].cor] || COLOR_SETS.blue;
   cy = drawProcTable(cy, procD, procN, grandD, grandN,
-    'TOTAL DE PROCEDIMENTOS — TODOS OS SERVIÇOS',
-    [20,60,120],[20,60,120],[240,245,255],[210,225,245]);
+    'PROCEDIMENTOS DO DIA — ' + RELATORIO_SERVICOS[0].label.toUpperCase(),
+    cs[0], cs[1], cs[2], cs[3]);
 
   // ── Totais por categoria ──
   if(cy > PH-40){ doc.addPage(); cy=14; }
@@ -2576,14 +2567,14 @@ function construirPDF() {
     doc.setPage(i);
     doc.setDrawColor(180); doc.setLineWidth(.3); doc.line(ML,PH-11,PW-MR,PH-11);
     doc.setFontSize(7); doc.setTextColor(120); doc.setFont('helvetica','normal');
-    doc.text(`ZELO  |  Procedimentos de Enfermagem  |  ${dateStr}  |  Pág. ${i}/${total}`,ML,PH-6);
+    doc.text(`ZELO  |  Procedimentos de Enfermagem — ${RELATORIO_SERVICOS[0].label}  |  ${dateStr}  |  Pág. ${i}/${total}`,ML,PH-6);
     doc.setTextColor(0);
   }
   return doc;
 }
 
 function pdfFileName(date){
-  return `Procedimentos_${date}.pdf`;
+  return `Procedimentos_Maxilo_Facial_${date}.pdf`;
 }
 
 function exportPDF() {
