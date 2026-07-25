@@ -136,6 +136,13 @@ main{max-width:900px;margin:0 auto;padding:26px 20px 60px;}
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
     <span>No dia 2 de cada mês, um processo automático gera sozinho o resumo em PDF do mês anterior e guarda-o aqui — sem precisar que ninguém abra o sistema. Em seguida, o histórico confirmado desse mês é removido do Firebase, mantendo o sistema sempre leve.</span>
   </div>
+  <a id="admin-report-trigger" href="https://github.com/yuriventura278-lgtm/hospital-do-prenda-estatistica/actions/workflows/relatorio-mensal.yml" target="_blank" rel="noopener" class="rep-card" style="display:none;margin-bottom:16px;cursor:pointer;">
+    <div class="rep-ic" style="background:#EEF2FF;color:#4338CA;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+    <div class="rep-text">
+      <div class="l1">Gerar relatório mensal agora</div>
+      <div class="l2">Abre o GitHub Actions · requer sessão de administrador do GitHub</div>
+    </div>
+  </a>
   <div id="content"><div class="loading">A carregar relatórios…</div></div>
 
   <div class="sec-title" style="margin-top:30px;">Cópia de Segurança Mensal (JSON por Serviço)</div>
@@ -266,6 +273,13 @@ function backupEmptyState(){
 function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+function mostrarGatilhoAdmin(role){
+  const el = document.getElementById('admin-report-trigger');
+  if(el) el.style.display = (role === 'admin') ? 'flex' : 'none';
+}
+mostrarGatilhoAdmin(sessionStorage.getItem('zeloRole'));
+window.addEventListener('zelo-gate-ready', e => mostrarGatilhoAdmin(e.detail && e.detail.role));
 
 load();
 loadTrends();
