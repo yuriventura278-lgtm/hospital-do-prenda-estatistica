@@ -1862,11 +1862,25 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
           <div class="bk-desc">Carrega um ficheiro JSON de backup anteriormente exportado</div>
         </div>
       </button>
-      <button class="backup-btn" onclick="reenviarTudoParaFirebase()">
+      <button class="backup-btn" id="btn-admin-reenviar-tudo" onclick="reenviarTudoParaFirebase()" style="display:none;">
         <span class="bk-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
         <div class="bk-info">
           <div class="bk-name">Reenviar Tudo para o Firebase</div>
-          <div class="bk-desc">Envia todos os dias guardados neste dispositivo para o Firebase (útil após corrigir a sincronização)</div>
+          <div class="bk-desc">Envia todos os dias guardados neste dispositivo para o Firebase (útil após corrigir a sincronização) — só administradores</div>
+        </div>
+      </button>
+      <button class="backup-btn" id="btn-admin-ler-tudo" onclick="lerTudoDoFirebaseManual()" style="display:none;">
+        <span class="bk-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+        <div class="bk-info">
+          <div class="bk-name">Ler Tudo do Firebase</div>
+          <div class="bk-desc">Lê todo o histórico guardado no Firebase por outros dispositivos e instala neste dispositivo — só administradores</div>
+        </div>
+      </button>
+      <button class="backup-btn" id="btn-admin-atualizar-dia" onclick="atualizarDiaDoFirebase()" style="display:none;">
+        <span class="bk-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
+        <div class="bk-info">
+          <div class="bk-name">Atualizar Este Dia do Firebase</div>
+          <div class="bk-desc">Vai buscar ao Firebase os dados mais recentes só do dia aberto, sem recarregar a página — só administradores</div>
         </div>
       </button>
     </div>
@@ -3296,6 +3310,10 @@ async function _fbSyncBlocoOperatorio(date){
 // sincronização, para os dias antigos (só locais) passarem a existir lá
 // também.
 async function reenviarTudoParaFirebase(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+    return;
+  }
   if (typeof zeloTemAcessoEdicao === 'function' && !zeloTemAcessoEdicao()){
     if (typeof showToast === 'function') showToast('Sem permissão de edição');
     return;
@@ -3348,6 +3366,60 @@ async function _fbReplicarTudo(){
     }
     if (aplicados > 0) console.info('ZELO: réplica local do Bloco Operatório actualizada — ' + aplicados + ' dia(s).');
   }catch(e){ console.warn('ZELO: falha na réplica completa do Bloco Operatório.', e); }
+}
+
+// Versão manual da réplica completa (botão "Ler Tudo do Firebase") — a mesma
+// lógica de _fbReplicarTudo(), mas com feedback visual (toast) e chamada por
+// pedido explícito do utilizador, em vez de correr silenciosamente ao abrir
+// a página.
+async function lerTudoDoFirebaseManual(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+    return;
+  }
+  if (!window.__fbReady){
+    if (typeof showToast === 'function') showToast('Firebase indisponível de momento');
+    return;
+  }
+  if (typeof showToast === 'function') showToast('A ler todo o histórico do Firebase…');
+  await _fbReplicarTudo();
+  if (typeof showToast === 'function') showToast('Histórico atualizado a partir do Firebase.');
+}
+
+// Actualiza só o dia actualmente aberto com o que estiver guardado no
+// Firebase — sem recarregar a página. Ao contrário da aplicação automática
+// (que só acontece no momento seguro, ao abrir o dia), esta é uma acção
+// explícita do utilizador, por isso avisa antes de substituir o que possa
+// estar por gravar no ecrã.
+async function atualizarDiaDoFirebase(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+    return;
+  }
+  if (!window.__fbReady || !window.__fbGet){
+    if (typeof showToast === 'function') showToast('Firebase indisponível de momento');
+    return;
+  }
+  const date = currentLoadedDate;
+  if (!date) return;
+  if (!confirm('Vai substituir os dados deste dia pelos mais recentes guardados no Firebase. Alterações não guardadas neste ecrã serão perdidas. Continuar?')) return;
+  try{
+    const reg = await window.__fbGet('registos_sistemas_locais/bloco_operatorio/' + date);
+    if (!reg || !reg.snapshot){
+      if (typeof showToast === 'function') showToast('Não há dados no Firebase para este dia.');
+      return;
+    }
+    safeSet(storageKey(date), JSON.stringify(reg.snapshot));
+    try{ localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, reg.savedAt); }catch(e){}
+    _fbUltimoEnvioSavedAt[date] = reg.savedAt; // evita que o listener em tempo real reaja ao mesmo valor
+    _popularFormularioDoDia(reg.snapshot);
+    const banner = document.getElementById('fb-novos-dados-banner');
+    if (banner) banner.remove();
+    if (typeof showToast === 'function') showToast('Dia atualizado com os dados mais recentes do Firebase.');
+  }catch(e){
+    console.warn('ZELO: falha ao atualizar o dia a partir do Firebase.', e);
+    if (typeof showToast === 'function') showToast('Falha ao atualizar — tente novamente.');
+  }
 }
 
 // ── Sincronização em tempo real ───────────────────────────────────────────
@@ -4251,6 +4323,12 @@ function viewDailySummary() {
 
 // ── BACKUP ──
 function openBackup() {
+  // Botões de sincronização em massa com o Firebase — só para administradores
+  const ehAdmin = sessionStorage.getItem('zeloRole') === 'admin';
+  ['btn-admin-reenviar-tudo', 'btn-admin-ler-tudo', 'btn-admin-atualizar-dia'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = ehAdmin ? '' : 'none';
+  });
   document.getElementById('backup-modal').classList.add('open');
 }
 function closeBackup() {
