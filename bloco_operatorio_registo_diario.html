@@ -2038,6 +2038,9 @@ function _idbInit() {
       if (typeof setSyncState === 'function') setSyncState('synced', 'Dados locais carregados');
       // Assim que o IndexedDB está pronto, recarrega o dia em tela com os dados reais
       if (typeof loadFromStorage === 'function') loadFromStorage();
+      // Réplica completa do histórico do Firebase — corre em segundo plano,
+      // não bloqueia o ecrã que já está visível com o dia actual.
+      if (typeof _fbReplicarTudo === 'function') _fbReplicarTudo();
     })
     .catch(err => {
       console.error('IndexedDB indisponível — a usar apenas memória/localStorage como reserva:', err);
@@ -3316,6 +3319,35 @@ async function reenviarTudoParaFirebase(){
     if (typeof showToast === 'function' && (done % 5 === 0 || done === keys.length)) showToast(`A enviar ${done}/${keys.length}…`);
   }
   if (typeof showToast === 'function') showToast(`Concluído: ${done} dia(s) enviados para o Firebase.`);
+}
+
+// Réplica local completa: ao abrir a página, descarrega TODO o histórico
+// deste módulo guardado no Firebase (não só o dia aberto) e aplica
+// localmente qualquer dia em falta ou desactualizado — para que este
+// dispositivo, mesmo sem nunca ter aberto um dia em particular, já o tenha
+// disponível localmente (histórico, estatísticas, etc.) e continue a
+// funcionar normalmente sem Internet. Corre em segundo plano, sem bloquear
+// o carregamento do dia actual.
+async function _fbReplicarTudo(){
+  if (!window.__fbReady || !window.__fbGet) return;
+  try{
+    const todos = await window.__fbGet('registos_sistemas_locais/bloco_operatorio');
+    if (!todos) return;
+    let aplicados = 0;
+    for (const date of Object.keys(todos)){
+      const entry = todos[date];
+      const savedAt = entry && entry.savedAt;
+      if (!savedAt || !entry.snapshot) continue;
+      let localSavedAt = null;
+      try{ localSavedAt = localStorage.getItem(_FB_BO_SAVEDAT_PREFIX + date); }catch(e){}
+      if (localSavedAt && localSavedAt >= savedAt) continue; // já temos esta versão (ou mais recente)
+      safeSet(storageKey(date), JSON.stringify(entry.snapshot));
+      try{ localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+      aplicados++;
+      if (date === currentLoadedDate) _popularFormularioDoDia(entry.snapshot);
+    }
+    if (aplicados > 0) console.info('ZELO: réplica local do Bloco Operatório actualizada — ' + aplicados + ' dia(s).');
+  }catch(e){ console.warn('ZELO: falha na réplica completa do Bloco Operatório.', e); }
 }
 
 // ── Sincronização em tempo real ───────────────────────────────────────────
