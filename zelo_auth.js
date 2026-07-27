@@ -299,6 +299,7 @@ const ROLE_DEFAULT_PERMISSOES = {
   enfermeiro:       { estatistica:false, servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
   tdt:              { estatistica:false, servicos:false, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:true, informacoes_zelo:true },
   secretario:       { estatistica:false, servicos:'leitura', procedimentos_enfermagem:false, movimento_mensal:true, sistemas_independentes:false, informacoes_zelo:true },
+  tecnico_farmacia: { estatistica:false, servicos:false, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:true, informacoes_zelo:true },
   funcionario:      { estatistica:true, servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:true, informacoes_zelo:true },
 };
 
