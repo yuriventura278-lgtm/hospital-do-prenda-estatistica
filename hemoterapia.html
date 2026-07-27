@@ -1176,10 +1176,12 @@ function collectData(){
 
 async function persistData(date){
   collectData();
-  const payload=JSON.parse(JSON.stringify({...currentData,date:date||currentData.date||todayKey()}));
+  const targetDate = date||currentData.date||todayKey();
+  const payload=JSON.parse(JSON.stringify({...currentData,date:targetDate}));
   try{
     await DB.put(payload);
     setSyncInfo('<svg class="ic"><use href="#ic-check"/></svg> Guardado '+new Date().toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"}),"ok");
+    _fbSyncHemoterapia(targetDate); // sincronizar com o Firebase em TODAS as gravações, não só no botão Guardar
   }catch(err){
     console.error("Erro ao gravar:",err);
     setSyncInfo('<svg class="ic"><use href="#ic-alert"/></svg> Falha ao gravar — tentando novamente…',"error");
@@ -1303,7 +1305,6 @@ async function saveAllData(){
   btns.forEach(b=>b.disabled=false);
   toast('Dados guardados com sucesso',"success");
   renderHistory();
-  _fbSyncHemoterapia(date);
 }
 
 // Guarda ao sair ou ao esconder a aba (mobile-safe). IndexedDB não garante
