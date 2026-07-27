@@ -12,13 +12,14 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
     window.__fbReady = true;
   }catch(e){
     console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
@@ -3170,6 +3171,7 @@ function persist(date) {
   data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   const ok = safeSet(storageKey(targetDate), JSON.stringify(data));
   setSyncState(ok ? 'synced' : 'error', ok ? ('Guardado localmente ' + _timeNow()) : 'Erro ao guardar!');
+  if (ok) _fbSyncBlocoOperatorio(targetDate); // sincronizar com o Firebase em TODAS as gravações, não só no botão Guardar
   return ok;
 }
 
@@ -3210,69 +3212,81 @@ function loadFromStorage() {
   if (!raw) {
     // No data for this day — clear everything so previous day doesn't bleed in
     clearDayState();
+    _fbEscutarDia(currentLoadedDate);
     return;
   }
   try {
-    const data = JSON.parse(raw);
-    SPECIALTIES.forEach(sp => {
-      const el  = document.getElementById(`urg-spec-${specKey(sp)}`);
-      const el2 = document.getElementById(`elet-spec-${specKey(sp)}`);
-      if (el)  el.value  = data.urgSpecs?.[specKey(sp)]  || 0;
-      if (el2) el2.value = data.eletSpecs?.[specKey(sp)] || 0;
-    });
-    updateSpecTotal('urg'); updateSpecTotal('elet');
-    ANESTHESIA_TYPES.forEach(t => {
-      const el  = document.getElementById(`urg-anest-${specKey(t)}`);
-      const el2 = document.getElementById(`elet-anest-${specKey(t)}`);
-      if (el)  el.value  = data.urgAnest?.[specKey(t)]  || 0;
-      if (el2) el2.value = data.eletAnest?.[specKey(t)] || 0;
-    });
-    updateAnestTotal('urg'); updateAnestTotal('elet');
-
-    surgeries.urg  = data.surgeries?.urg  || [];
-    surgeries.elet = data.surgeries?.elet || [];
-    suspList.length = 0; (data.suspList || []).forEach(s => suspList.push(s));
-    obtList.length  = 0; (data.obtList  || []).forEach(o => obtList.push(o));
-    globalOb = data.globalOb || 0;
-    savedDayOb = data.savedDayOb || 0;
-
-    renderSurgeries('urg');
-    renderSurgeries('elet');
-    recalcSpecsAndGender('urg');
-    recalcSpecsAndGender('elet');
-    recalcAnest('urg');
-    recalcAnest('elet');
-    renderSurgeriesCombined();
-    renderAnestDash();
-    recalcCombinedSpecsAndGender();
-    renderSuspensas();
-    renderObtidos();
+    _popularFormularioDoDia(JSON.parse(raw));
   } catch(e) { console.error('Load error', e); }
+  _fbEscutarDia(currentLoadedDate);
+}
+
+// Preenche o formulário do dia a partir de um objecto de dados já
+// desserializado (localStorage/IndexedDB local, ou um snapshot recebido do
+// Firebase) — extraído de loadFromStorage() para poder ser reutilizado
+// quando chega uma versão mais recente doutro dispositivo, sem recursão.
+function _popularFormularioDoDia(data) {
+  SPECIALTIES.forEach(sp => {
+    const el  = document.getElementById(`urg-spec-${specKey(sp)}`);
+    const el2 = document.getElementById(`elet-spec-${specKey(sp)}`);
+    if (el)  el.value  = data.urgSpecs?.[specKey(sp)]  || 0;
+    if (el2) el2.value = data.eletSpecs?.[specKey(sp)] || 0;
+  });
+  updateSpecTotal('urg'); updateSpecTotal('elet');
+  ANESTHESIA_TYPES.forEach(t => {
+    const el  = document.getElementById(`urg-anest-${specKey(t)}`);
+    const el2 = document.getElementById(`elet-anest-${specKey(t)}`);
+    if (el)  el.value  = data.urgAnest?.[specKey(t)]  || 0;
+    if (el2) el2.value = data.eletAnest?.[specKey(t)] || 0;
+  });
+  updateAnestTotal('urg'); updateAnestTotal('elet');
+
+  surgeries.urg  = data.surgeries?.urg  || [];
+  surgeries.elet = data.surgeries?.elet || [];
+  suspList.length = 0; (data.suspList || []).forEach(s => suspList.push(s));
+  obtList.length  = 0; (data.obtList  || []).forEach(o => obtList.push(o));
+  globalOb = data.globalOb || 0;
+  savedDayOb = data.savedDayOb || 0;
+
+  renderSurgeries('urg');
+  renderSurgeries('elet');
+  recalcSpecsAndGender('urg');
+  recalcSpecsAndGender('elet');
+  recalcAnest('urg');
+  recalcAnest('elet');
+  renderSurgeriesCombined();
+  renderAnestDash();
+  recalcCombinedSpecsAndGender();
+  renderSuspensas();
+  renderObtidos();
 }
 
 // Sincronização com o Firebase (só na gravação explícita, não no auto-save
 // silencioso) — reenvia o snapshot do dia carregado. Falha em silêncio;
 // zeloQueueWrite já trata do reenvio automático se estiver offline.
+const _FB_BO_SAVEDAT_PREFIX = 'bloco_fb_savedAt_';
+const _fbUltimoEnvioSavedAt = {};
 async function _fbSyncBlocoOperatorio(date){
   if (typeof zeloQueueWrite !== 'function' || !date) return;
   try{
     const raw = safeGet(storageKey(date));
     if (!raw) return;
     const savedAt = new Date().toISOString();
+    _fbUltimoEnvioSavedAt[date] = savedAt; // é a nossa própria gravação — não avisar sobre ela
     await zeloQueueWrite('registos_sistemas_locais/bloco_operatorio/' + date, {
       savedAt: savedAt,
       snapshot: JSON.parse(raw)
     });
-    _fbBaselineSavedAt[date] = savedAt; // é a nossa própria gravação — não avisar sobre ela
+    try{ localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
   }catch(e){ console.warn('ZELO: falha ao sincronizar Bloco Operatório com o Firebase', e); }
 }
 
-// ── Aviso de dados mais recentes noutro dispositivo ──────────────────────
-// Sem sincronização em tempo real (decisão para poupar o plano gratuito do
-// Firebase), verifica de vez em quando se alguém guardou dados mais
-// recentes para o dia aberto e avisa — sem recarregar sozinho, para nunca
-// perder alterações locais por gravar.
-const _fbBaselineSavedAt = {};
+// ── Sincronização em tempo real ───────────────────────────────────────────
+// No momento seguro (primeira escuta ao abrir um dia, antes de qualquer
+// edição local nesta sessão), aplica automaticamente dados mais recentes
+// vindos doutro dispositivo. Para qualquer alteração SEGUINTE enquanto o
+// mesmo dia continua aberto, apenas mostra um aviso — nunca substitui
+// silenciosamente o que o utilizador possa estar a editar.
 function _fbMostrarAvisoNovosDados(){
   if (document.getElementById('fb-novos-dados-banner')) return;
   const banner = document.createElement('div');
@@ -3283,19 +3297,33 @@ function _fbMostrarAvisoNovosDados(){
   banner.querySelector('button').onclick = () => window.location.reload();
   document.body.insertBefore(banner, document.body.firstChild);
 }
-async function _fbVerificarNovosDados(){
-  if (!window.__fbReady || !window.__fbGet || !currentLoadedDate) return;
-  const date = currentLoadedDate;
-  try{
-    const reg = await window.__fbGet('registos_sistemas_locais/bloco_operatorio/' + date);
-    const remoto = reg && reg.savedAt;
-    if (!remoto) return;
-    const base = _fbBaselineSavedAt[date];
-    if (base === undefined){ _fbBaselineSavedAt[date] = remoto; return; }
-    if (remoto > base){ _fbBaselineSavedAt[date] = remoto; _fbMostrarAvisoNovosDados(); }
-  }catch(e){ /* falha silenciosa — não bloqueia a página */ }
+let _fbCancelarEscuta = null;
+function _fbEscutarDia(date){
+  if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
+  const el = document.getElementById('fb-novos-dados-banner');
+  if (el) el.remove();
+  if (!window.__fbReady || !window.__fbListen || !date) return;
+  let primeira = true;
+  _fbCancelarEscuta = window.__fbListen('registos_sistemas_locais/bloco_operatorio/' + date, function(remoto){
+    const savedAt = remoto && remoto.savedAt;
+    if (!savedAt || !remoto.snapshot){ primeira = false; return; }
+    if (savedAt === _fbUltimoEnvioSavedAt[date]){ primeira = false; return; }
+    if (primeira){
+      primeira = false;
+      let localSavedAt = null;
+      try{ localSavedAt = localStorage.getItem(_FB_BO_SAVEDAT_PREFIX + date); }catch(e){}
+      if (localSavedAt && localSavedAt >= savedAt) return;
+      if (date !== currentLoadedDate) return;
+      try{
+        safeSet(storageKey(date), JSON.stringify(remoto.snapshot));
+        try{ localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+        if (date === currentLoadedDate){ _popularFormularioDoDia(remoto.snapshot); }
+      }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes do Bloco Operatório.', e); }
+      return;
+    }
+    _fbMostrarAvisoNovosDados();
+  });
 }
-setInterval(_fbVerificarNovosDados, 120000);
 
 // ── Save ──
 function saveAll() {
@@ -3304,7 +3332,6 @@ function saveAll() {
   globalOb += (dayOb - savedDayOb);
   savedDayOb = dayOb;
   persist(currentLoadedDate); // ★ guardar sempre na data carregada actualmente
-  _fbSyncBlocoOperatorio(currentLoadedDate);
   document.getElementById('ob-total-geral-big').textContent = globalOb;
   renderObtidos();
   // Update save status date display
