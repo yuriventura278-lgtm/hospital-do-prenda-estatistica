@@ -1862,6 +1862,13 @@ tr.kb-focus{outline:2px solid #2154d9;outline-offset:-2px;background:rgba(33,84,
           <div class="bk-desc">Carrega um ficheiro JSON de backup anteriormente exportado</div>
         </div>
       </button>
+      <button class="backup-btn" onclick="reenviarTudoParaFirebase()">
+        <span class="bk-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
+        <div class="bk-info">
+          <div class="bk-name">Reenviar Tudo para o Firebase</div>
+          <div class="bk-desc">Envia todos os dias guardados neste dispositivo para o Firebase (útil após corrigir a sincronização)</div>
+        </div>
+      </button>
     </div>
 
     <!-- EMAIL -->
@@ -3279,6 +3286,36 @@ async function _fbSyncBlocoOperatorio(date){
     });
     try{ localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
   }catch(e){ console.warn('ZELO: falha ao sincronizar Bloco Operatório com o Firebase', e); }
+}
+
+// Reenvio em massa: percorre todos os dias guardados neste dispositivo e
+// envia cada um para o Firebase — útil depois de corrigir um problema de
+// sincronização, para os dias antigos (só locais) passarem a existir lá
+// também.
+async function reenviarTudoParaFirebase(){
+  if (typeof zeloTemAcessoEdicao === 'function' && !zeloTemAcessoEdicao()){
+    if (typeof showToast === 'function') showToast('Sem permissão de edição');
+    return;
+  }
+  if (!window.__fbReady){
+    if (typeof showToast === 'function') showToast('Firebase indisponível de momento');
+    return;
+  }
+  const keys = Object.keys(_idbCache).filter(k => k.startsWith('bloco_') && !k.startsWith('bloco_fb_savedAt_'));
+  if (!keys.length){
+    if (typeof showToast === 'function') showToast('Não há dias guardados localmente para enviar');
+    return;
+  }
+  if (!confirm(`Enviar ${keys.length} dia(s) guardados neste dispositivo para o Firebase?`)) return;
+  let done = 0;
+  if (typeof showToast === 'function') showToast(`A enviar 0/${keys.length}…`);
+  for (const k of keys){
+    const date = k.slice('bloco_'.length);
+    try{ await _fbSyncBlocoOperatorio(date); }catch(e){ console.warn('ZELO: falha ao reenviar', date, e); }
+    done++;
+    if (typeof showToast === 'function' && (done % 5 === 0 || done === keys.length)) showToast(`A enviar ${done}/${keys.length}…`);
+  }
+  if (typeof showToast === 'function') showToast(`Concluído: ${done} dia(s) enviados para o Firebase.`);
 }
 
 // ── Sincronização em tempo real ───────────────────────────────────────────

@@ -9,13 +9,14 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
     window.__fbReady = true;
   }catch(e){
     console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
@@ -1048,6 +1049,11 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
         <input type="file" accept=".json" style="display:none" onchange="importBackup(this)">
       </label>
     </div>
+    <div class="export-card">
+      <div class="export-icon"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div><div class="export-title">Reenviar p/ Firebase</div>
+      <div class="export-desc">Envia todos os dias guardados neste dispositivo para o Firebase</div>
+      <button class="btn btn-navy btn-sm" onclick="reenviarTudoParaFirebase()">Reenviar Tudo</button>
+    </div>
   </div>
 </div>
 
@@ -1509,27 +1515,31 @@ function collectCurrentData(){
   currentData.date=document.getElementById('data-registo').value;
 }
 
-// Sincronização com o Firebase (só na gravação explícita) — reenvia o
-// snapshot do dia carregado. Falha em silêncio; zeloQueueWrite já trata do
-// reenvio automático se estiver offline.
+// Sincronização com o Firebase — reenvia o snapshot do dia carregado. Falha
+// em silêncio; zeloQueueWrite já trata do reenvio automático se estiver
+// offline.
+const _FB_IMG_SAVEDAT_PREFIX = 'imag_fb_savedAt_';
+const _fbUltimoEnvioSavedAt = {};
 async function _fbSyncImagiologia(date, payload){
   if (typeof zeloQueueWrite !== 'function' || !date) return;
   try{
     const savedAt = new Date().toISOString();
+    _fbUltimoEnvioSavedAt[date] = savedAt; // é a nossa própria gravação — não avisar sobre ela
     await zeloQueueWrite('registos_sistemas_locais/imagiologia/' + date, {
       savedAt: savedAt,
       snapshot: payload
     });
-    _fbBaselineSavedAt[date] = savedAt; // é a nossa própria gravação — não avisar sobre ela
+    try{ localStorage.setItem(_FB_IMG_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
   }catch(e){ console.warn('ZELO: falha ao sincronizar Imagiologia com o Firebase', e); }
 }
 
-// ── Aviso de dados mais recentes noutro dispositivo ──────────────────────
-// Sem sincronização em tempo real (decisão para poupar o plano gratuito do
-// Firebase), verifica de vez em quando se alguém guardou dados mais
-// recentes para o dia aberto e avisa — sem recarregar sozinho, para nunca
-// perder alterações locais por gravar.
-const _fbBaselineSavedAt = {};
+// ── Sincronização em tempo real ───────────────────────────────────────────
+// No momento seguro (primeira escuta ao abrir um dia, antes de qualquer
+// edição local nesta sessão), aplica automaticamente dados mais recentes
+// vindos doutro dispositivo. Para qualquer alteração SEGUINTE enquanto o
+// mesmo dia continua aberto, apenas mostra um aviso — nunca substitui
+// silenciosamente o que o utilizador possa estar a editar.
+let _fbCancelarEscuta = null;
 function _fbMostrarAvisoNovosDados(){
   if (document.getElementById('fb-novos-dados-banner')) return;
   const banner = document.createElement('div');
@@ -1540,20 +1550,59 @@ function _fbMostrarAvisoNovosDados(){
   banner.querySelector('button').onclick = () => window.location.reload();
   document.body.insertBefore(banner, document.body.firstChild);
 }
-async function _fbVerificarNovosDados(){
-  if (!window.__fbReady || !window.__fbGet) return;
-  const date = currentData && currentData.date;
-  if (!date) return;
-  try{
-    const reg = await window.__fbGet('registos_sistemas_locais/imagiologia/' + date);
-    const remoto = reg && reg.savedAt;
-    if (!remoto) return;
-    const base = _fbBaselineSavedAt[date];
-    if (base === undefined){ _fbBaselineSavedAt[date] = remoto; return; }
-    if (remoto > base){ _fbBaselineSavedAt[date] = remoto; _fbMostrarAvisoNovosDados(); }
-  }catch(e){ /* falha silenciosa — não bloqueia a página */ }
+function _fbEscutarDia(date){
+  if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
+  const el = document.getElementById('fb-novos-dados-banner');
+  if (el) el.remove();
+  if (!window.__fbReady || !window.__fbListen || !date) return;
+  let primeira = true;
+  _fbCancelarEscuta = window.__fbListen('registos_sistemas_locais/imagiologia/' + date, function(remoto){
+    const savedAt = remoto && remoto.savedAt;
+    if (!savedAt || !remoto.snapshot){ primeira = false; return; }
+    if (savedAt === _fbUltimoEnvioSavedAt[date]){ primeira = false; return; }
+    if (primeira){
+      primeira = false;
+      let localSavedAt = null;
+      try{ localSavedAt = localStorage.getItem(_FB_IMG_SAVEDAT_PREFIX + date); }catch(e){}
+      if (localSavedAt && localSavedAt >= savedAt) return;
+      if (date !== (currentData && currentData.date)) return;
+      try{
+        localStorage.setItem(sk(date), JSON.stringify(remoto.snapshot));
+        try{ localStorage.setItem(_FB_IMG_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+        if (date === (currentData && currentData.date)){
+          currentData = { date, turno:'manha', techs:[], tac:{}, eco:{}, rx:{}, ...remoto.snapshot };
+          numTechs = Math.max(3, currentData.techs.length);
+          document.getElementById('turno-select').value = currentData.turno||'manha';
+          renderTechGrid(); renderTACTable(); renderECOTable(); renderRXTable(); updateKPIs();
+        }
+      }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes da Imagiologia.', e); }
+      return;
+    }
+    _fbMostrarAvisoNovosDados();
+  });
 }
-setInterval(_fbVerificarNovosDados, 120000);
+
+// Reenvio em massa: percorre todos os dias guardados neste dispositivo e
+// envia cada um para o Firebase — útil depois de corrigir um problema de
+// sincronização, para os dias antigos (só locais) passarem a existir lá
+// também.
+async function reenviarTudoParaFirebase(){
+  if (!window.__fbReady){ toast('Firebase indisponível de momento','error'); return; }
+  const dates = getSavedDates();
+  if (!dates.length){ toast('Não há dias guardados localmente para enviar','info'); return; }
+  if (!confirm('Enviar ' + dates.length + ' dia(s) guardados neste dispositivo para o Firebase?')) return;
+  let done = 0;
+  toast('A enviar 0/' + dates.length + '…','info');
+  for (const date of dates){
+    try{
+      const raw = localStorage.getItem(sk(date));
+      if (raw) await _fbSyncImagiologia(date, JSON.parse(raw));
+    }catch(e){ console.warn('ZELO: falha ao reenviar', date, e); }
+    done++;
+    if (done % 5 === 0 || done === dates.length) toast('A enviar ' + done + '/' + dates.length + '…','info');
+  }
+  toast('Concluído: ' + done + ' dia(s) enviados para o Firebase.','success');
+}
 
 function saveAllData(){
   collectCurrentData();
@@ -1581,6 +1630,7 @@ function loadDay(date){
   document.getElementById('turno-select').value=currentData.turno||'manha';
   document.getElementById('save-status-date').textContent=fmtDate(date);
   renderTechGrid(); renderTACTable(); renderECOTable(); renderRXTable(); updateKPIs();
+  _fbEscutarDia(date);
 }
 
 function clearForm(){

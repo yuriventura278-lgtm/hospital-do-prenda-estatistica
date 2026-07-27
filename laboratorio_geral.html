@@ -11,13 +11,14 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
     window.__fbReady = true;
   }catch(e){
     console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
@@ -832,6 +833,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
       <button class="nav-item" id="nav-bk-mes" onclick="backupMes()" title="Descarregar backup do mês seleccionado no Relatório Mensal"><span class="icon-svg" data-icon="download"></span> Backup Mês</button>
       <button class="nav-item" id="nav-bk-geral" onclick="backupGeral()" title="Descarregar backup completo de todos os dados"><span class="icon-svg" data-icon="download"></span> Backup Geral</button>
       <button class="nav-item" id="nav-bk-restaurar" onclick="document.getElementById('bk-file-inp').click()" title="Restaurar dados a partir de um ficheiro de backup JSON"><span class="icon-svg" data-icon="save"></span> Restaurar Backup</button>
+      <button class="nav-item" id="nav-bk-firebase" onclick="reenviarTudoParaFirebase()" title="Envia todos os dias guardados neste dispositivo para o Firebase"><span class="icon-svg" data-icon="download"></span> Reenviar p/ Firebase</button>
       <input type="file" id="bk-file-inp" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
     </div>
   </nav>
@@ -1848,6 +1850,7 @@ function loadDay(date) {
     cd = newData(date);
   }
   renderForm();
+  _fbEscutarDia(date);
 }
 
 // ─── BACKUP / EXPORTAÇÃO DE DADOS ───
@@ -2286,27 +2289,58 @@ function sendReportEmail() {
   showToast('info', 'A abrir a aplicação de email para '+EMAIL_ESTATISTICA+' com o resumo do dia — lembre-se de anexar o PDF');
 }
 
-// Sincronização com o Firebase (só na gravação explícita) — reenvia o
-// snapshot do dia carregado. Falha em silêncio; zeloQueueWrite já trata do
-// reenvio automático se estiver offline.
+// Sincronização com o Firebase — reenvia o snapshot do dia carregado. Falha
+// em silêncio; zeloQueueWrite já trata do reenvio automático se estiver
+// offline.
+const _FB_LAB_SAVEDAT_PREFIX = 'lab_fb_savedAt_';
+const _fbUltimoEnvioSavedAt = {};
 async function _fbSyncLaboratorio(date, data){
   if (typeof zeloQueueWrite !== 'function' || !date) return;
   try{
     const savedAt = new Date().toISOString();
+    _fbUltimoEnvioSavedAt[date] = savedAt; // é a nossa própria gravação — não avisar sobre ela
     await zeloQueueWrite('registos_sistemas_locais/laboratorio/' + date, {
       savedAt: savedAt,
       snapshot: data
     });
-    _fbBaselineSavedAt[date] = savedAt; // é a nossa própria gravação — não avisar sobre ela
+    try{ localStorage.setItem(_FB_LAB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
   }catch(e){ console.warn('ZELO: falha ao sincronizar Laboratório com o Firebase', e); }
 }
 
-// ── Aviso de dados mais recentes noutro dispositivo ──────────────────────
-// Sem sincronização em tempo real (decisão para poupar o plano gratuito do
-// Firebase), verifica de vez em quando se alguém guardou dados mais
-// recentes para o dia aberto e avisa — sem recarregar sozinho, para nunca
-// perder alterações locais por gravar.
-const _fbBaselineSavedAt = {};
+// Reenvio em massa: percorre todos os dias guardados neste dispositivo e
+// envia cada um para o Firebase — útil depois de corrigir um problema de
+// sincronização, para os dias antigos (só locais) passarem a existir lá
+// também.
+async function reenviarTudoParaFirebase(){
+  if (!window.__fbReady){ showToast('error', 'Firebase indisponível de momento'); return; }
+  const keys = [];
+  for (let i = 0; i < LS.length; i++){
+    const k = LS.key(i);
+    if (k && k.startsWith(SK_PREFIX)) keys.push(k);
+  }
+  if (!keys.length){ showToast('info', 'Não há dias guardados localmente para enviar'); return; }
+  if (!confirm('Enviar ' + keys.length + ' dia(s) guardados neste dispositivo para o Firebase?')) return;
+  let done = 0;
+  showToast('info', 'A enviar 0/' + keys.length + '…');
+  for (const k of keys){
+    const date = k.slice(SK_PREFIX.length);
+    try{
+      const raw = LS.getItem(k);
+      if (raw) await _fbSyncLaboratorio(date, JSON.parse(raw));
+    }catch(e){ console.warn('ZELO: falha ao reenviar', date, e); }
+    done++;
+    if (done % 5 === 0 || done === keys.length) showToast('info', 'A enviar ' + done + '/' + keys.length + '…');
+  }
+  showToast('success', 'Concluído: ' + done + ' dia(s) enviados para o Firebase.');
+}
+
+// ── Sincronização em tempo real ───────────────────────────────────────────
+// No momento seguro (primeira escuta ao abrir um dia, antes de qualquer
+// edição local nesta sessão), aplica automaticamente dados mais recentes
+// vindos doutro dispositivo. Para qualquer alteração SEGUINTE enquanto o
+// mesmo dia continua aberto, apenas mostra um aviso — nunca substitui
+// silenciosamente o que o utilizador possa estar a editar.
+let _fbCancelarEscuta = null;
 function _fbMostrarAvisoNovosDados(){
   if (document.getElementById('fb-novos-dados-banner')) return;
   const banner = document.createElement('div');
@@ -2317,19 +2351,32 @@ function _fbMostrarAvisoNovosDados(){
   banner.querySelector('button').onclick = () => window.location.reload();
   document.body.insertBefore(banner, document.body.firstChild);
 }
-async function _fbVerificarNovosDados(){
-  if (!window.__fbReady || !window.__fbGet || !currentDate) return;
-  const date = currentDate;
-  try{
-    const reg = await window.__fbGet('registos_sistemas_locais/laboratorio/' + date);
-    const remoto = reg && reg.savedAt;
-    if (!remoto) return;
-    const base = _fbBaselineSavedAt[date];
-    if (base === undefined){ _fbBaselineSavedAt[date] = remoto; return; }
-    if (remoto > base){ _fbBaselineSavedAt[date] = remoto; _fbMostrarAvisoNovosDados(); }
-  }catch(e){ /* falha silenciosa — não bloqueia a página */ }
+function _fbEscutarDia(date){
+  if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
+  const el = document.getElementById('fb-novos-dados-banner');
+  if (el) el.remove();
+  if (!window.__fbReady || !window.__fbListen || !date) return;
+  let primeira = true;
+  _fbCancelarEscuta = window.__fbListen('registos_sistemas_locais/laboratorio/' + date, function(remoto){
+    const savedAt = remoto && remoto.savedAt;
+    if (!savedAt || !remoto.snapshot){ primeira = false; return; }
+    if (savedAt === _fbUltimoEnvioSavedAt[date]){ primeira = false; return; }
+    if (primeira){
+      primeira = false;
+      let localSavedAt = null;
+      try{ localSavedAt = localStorage.getItem(_FB_LAB_SAVEDAT_PREFIX + date); }catch(e){}
+      if (localSavedAt && localSavedAt >= savedAt) return;
+      if (date !== currentDate) return;
+      try{
+        LS.setItem(sk(date), JSON.stringify(remoto.snapshot));
+        try{ localStorage.setItem(_FB_LAB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+        if (date === currentDate){ cd = {...newData(date), ...remoto.snapshot}; renderForm(); }
+      }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes do Laboratório.', e); }
+      return;
+    }
+    _fbMostrarAvisoNovosDados();
+  });
 }
-setInterval(_fbVerificarNovosDados, 120000);
 
 // ─── SAVE ───
 function saveAll() {
@@ -3782,6 +3829,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
         if(raw){ try{ cd={...newData(currentDate),...JSON.parse(raw)}; }catch(e){ cd=newData(currentDate); } }
       }catch(e){ console.error('Erro ao ler localStorage:', e); }
       renderForm();
+      _fbEscutarDia(currentDate);
       // Lembrete de cópia de segurança (>7 dias sem backup)
       setTimeout(function(){
         try{

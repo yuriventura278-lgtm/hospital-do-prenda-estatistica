@@ -867,6 +867,9 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
       <button class="bopt" onclick="doBackupGeral()">
         <strong>Geral</strong><span>Todos os registos guardados</span>
       </button>
+      <button class="bopt" onclick="reenviarTudoParaFirebase()">
+        <strong>Reenviar p/ Firebase</strong><span>Envia todos os dias guardados neste dispositivo</span>
+      </button>
     </div>
     <div id="backupSemanaPicker" style="display:none;margin-top:12px;display:flex;gap:8px;align-items:center;">
       <input type="date" id="backupSemanaInput" style="flex:1;padding:8px;border-radius:4px;border:1px solid var(--border);font-family:var(--font-head);"/>
@@ -1467,6 +1470,69 @@ function persist(date) {
 const _FB_SAVEDAT_PREFIX = 'proc_fb_savedAt_' + FB_SLUG + '_';
 const _fbUltimoEnvioSavedAt = {};
 let _fbCancelarEscuta = null;
+// Constrói o resumo agregado (sub) a partir de dados JÁ GUARDADOS (não do
+// DOM actual) — usado no reenvio em massa, para dias que não são o dia
+// actualmente aberto no ecrã.
+function _buildSubFromData(data){
+  const sub = {};
+  SPECIALTIES.forEach(sp=>{
+    if(sp.id === 'medicina' || sp.id === 'bloco_op') return;
+    const spData = data.specs?.[sp.id];
+    const cats = {};
+    CATEGORIES.forEach(cat=>{
+      const d = [], n = [];
+      cat.procs.forEach(proc=>{
+        const key = pKey(cat.id, proc);
+        const vd = spData?.dia?.[key];
+        const vn = spData?.noite?.[key];
+        d.push(vd === null || vd === undefined ? 0 : (parseInt(vd)||0));
+        n.push(vn === null || vn === undefined ? 0 : (parseInt(vn)||0));
+      });
+      cats[cat.id] = {d,n};
+    });
+    sub[sp.id] = {cats, notesD: spData?.notesDia || '', notesN: spData?.notesNoite || ''};
+  });
+  return sub;
+}
+async function _fbSyncArmazenado(date){
+  if (typeof zeloQueueWrite !== 'function' || !date) return;
+  const raw = _storageGet(storageKey(date));
+  if (!raw) return;
+  try{
+    const data = JSON.parse(raw);
+    const savedAt = new Date().toISOString();
+    _fbUltimoEnvioSavedAt[date] = savedAt;
+    await zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + date, {savedAt: savedAt, snapshot: {sub: _buildSubFromData(data), raw: data}});
+    try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+  }catch(e){ console.warn('ZELO: falha ao reenviar', date, e); }
+}
+// Reenvio em massa: percorre todos os dias guardados neste dispositivo e
+// envia cada um para o Firebase — útil depois de corrigir um problema de
+// sincronização, para os dias antigos (só locais) passarem a existir lá
+// também.
+async function reenviarTudoParaFirebase(){
+  if (!window.__fbReady){
+    if (typeof showToast === 'function') showToast('Firebase indisponível de momento');
+    return;
+  }
+  const keys = _storageKeys('enf5_');
+  if (!keys.length){
+    if (typeof showToast === 'function') showToast('Não há dias guardados localmente para enviar');
+    return;
+  }
+  if (!confirm('Enviar ' + keys.length + ' dia(s) guardados neste dispositivo para o Firebase?')) return;
+  let done = 0;
+  if (typeof showToast === 'function') showToast('A enviar 0/' + keys.length + '…');
+  for (const k of keys){
+    const raw8 = k.slice('enf5_'.length);
+    const date = raw8.slice(0,4) + '-' + raw8.slice(4,6) + '-' + raw8.slice(6,8);
+    try{ await _fbSyncArmazenado(date); }catch(e){ console.warn('ZELO: falha ao reenviar', date, e); }
+    done++;
+    if (typeof showToast === 'function' && (done % 5 === 0 || done === keys.length)) showToast('A enviar ' + done + '/' + keys.length + '…');
+  }
+  if (typeof showToast === 'function') showToast('Concluído: ' + done + ' dia(s) enviados para o Firebase.');
+}
+
 function _fbMostrarAvisoNovosDados(){
   if (document.getElementById('fb-novos-dados-banner')) return;
   const banner = document.createElement('div');
