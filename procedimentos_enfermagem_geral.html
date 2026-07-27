@@ -9,6 +9,23 @@
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
 <script>zeloRequestPersistentStorage();</script>
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
+    window.__fbReady = false;
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Procedimentos do Serviço de Todos os Serviços</title>
@@ -1388,6 +1405,8 @@ function autoSave() {
   }, 800);
 }
 
+const FB_SLUG = 'geral';
+
 // persist: lê o DOM e escreve no localStorage
 function persist(date) {
   const d = date || currentLoadedDate;
@@ -1409,7 +1428,59 @@ function persist(date) {
     });
   });
   _storageSet(storageKey(d), JSON.stringify(data));
+  if(window.zeloQueueWrite){
+    const _fbSavedAt = new Date().toISOString();
+    _fbUltimoEnvioSavedAt[d] = _fbSavedAt; // é a nossa própria gravação — não avisar sobre ela
+    zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + d, {savedAt: _fbSavedAt, snapshot: {raw: data}});
+    try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + d, _fbSavedAt); }catch(e){}
+  }
   setSyncInfo('<svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Guardado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
+}
+
+// ── Sincronização em tempo real ───────────────────────────────────────────
+// No momento seguro (primeira escuta ao abrir um dia, antes de qualquer
+// edição local nesta sessão), aplica automaticamente dados mais recentes
+// vindos doutro dispositivo. Para qualquer alteração SEGUINTE enquanto o
+// mesmo dia continua aberto, apenas mostra um aviso — nunca substitui
+// silenciosamente o que o utilizador possa estar a editar.
+const _FB_SAVEDAT_PREFIX = 'proc_fb_savedAt_' + FB_SLUG + '_';
+const _fbUltimoEnvioSavedAt = {};
+let _fbCancelarEscuta = null;
+function _fbMostrarAvisoNovosDados(){
+  if (document.getElementById('fb-novos-dados-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'fb-novos-dados-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#1A56DB;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
+  banner.innerHTML = '<span>🔄 Outro utilizador guardou dados mais recentes para este dia.</span>' +
+    '<button type="button" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>';
+  banner.querySelector('button').onclick = () => window.location.reload();
+  document.body.insertBefore(banner, document.body.firstChild);
+}
+function _fbEscutarDia(date){
+  if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
+  const el = document.getElementById('fb-novos-dados-banner');
+  if (el) el.remove();
+  if (!window.__fbReady || !window.__fbListen || !date) return;
+  let primeira = true;
+  _fbCancelarEscuta = window.__fbListen('registos_enf/' + FB_SLUG + '/' + date, function(remoto){
+    const savedAt = remoto && remoto.savedAt;
+    if (!savedAt || !remoto.snapshot || !remoto.snapshot.raw){ primeira = false; return; }
+    if (savedAt === _fbUltimoEnvioSavedAt[date]){ primeira = false; return; }
+    if (primeira){
+      primeira = false;
+      let localSavedAt = null;
+      try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
+      if (localSavedAt && localSavedAt >= savedAt) return;
+      if (date !== currentLoadedDate) return;
+      try{
+        _storageSet(storageKey(date), JSON.stringify(remoto.snapshot.raw));
+        try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+        if (date === currentLoadedDate){ _popularProcedimentos(remoto.snapshot.raw); }
+      }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes dos Procedimentos.', e); }
+      return;
+    }
+    _fbMostrarAvisoNovosDados();
+  });
 }
 
 // clearDayState: zera todos os inputs
@@ -1437,36 +1508,44 @@ function loadFromStorage() {
   if(!raw) {
     clearDayState();
     setSyncInfo('📭 Sem dados para esta data');
+    _fbEscutarDia(currentLoadedDate);
     return;
   }
   try {
-    const data = JSON.parse(raw);
-    SPECIALTIES.forEach(sp => {
-      if(sp.id === 'medicina' || sp.id === 'bloco_op') return;
-      const spData = data.specs?.[sp.id];
-      TURNOS.forEach(turno => {
-        CATEGORIES.forEach(cat => {
-          cat.procs.forEach(proc => {
-            const el = document.getElementById(iid(sp.id, turno, cat.id, proc));
-            if(el) {
-              const stored = spData?.[turno]?.[pKey(cat.id, proc)];
-              el.value = (stored === null || stored === undefined) ? '' : stored;
-            }
-          });
-        });
-        const notesEl = document.getElementById('notes-' + turno + '-' + sp.id);
-        const notesKey = 'notes' + turno.charAt(0).toUpperCase() + turno.slice(1);
-        if(notesEl) notesEl.value = spData?.[notesKey] || '';
-      });
-      recalc(sp.id);
-    });
-    recalcMedicina();
-    recalcBlocoOp();
+    _popularProcedimentos(JSON.parse(raw));
     setSyncInfo('✅ Carregado ' + fmtDate(currentLoadedDate));
   } catch(e) {
     console.error('Erro ao carregar dados:', e);
     clearDayState();
   }
+  _fbEscutarDia(currentLoadedDate);
+}
+
+// Preenche o formulário a partir de dados já desserializados (localStorage/
+// IndexedDB local, ou um snapshot recebido do Firebase) — extraído de
+// loadFromStorage() para poder ser reutilizado sem recursão.
+function _popularProcedimentos(data) {
+  SPECIALTIES.forEach(sp => {
+    if(sp.id === 'medicina' || sp.id === 'bloco_op') return;
+    const spData = data.specs?.[sp.id];
+    TURNOS.forEach(turno => {
+      CATEGORIES.forEach(cat => {
+        cat.procs.forEach(proc => {
+          const el = document.getElementById(iid(sp.id, turno, cat.id, proc));
+          if(el) {
+            const stored = spData?.[turno]?.[pKey(cat.id, proc)];
+            el.value = (stored === null || stored === undefined) ? '' : stored;
+          }
+        });
+      });
+      const notesEl = document.getElementById('notes-' + turno + '-' + sp.id);
+      const notesKey = 'notes' + turno.charAt(0).toUpperCase() + turno.slice(1);
+      if(notesEl) notesEl.value = spData?.[notesKey] || '';
+    });
+    recalc(sp.id);
+  });
+  recalcMedicina();
+  recalcBlocoOp();
 }
 
 // saveAll: guarda explicitamente + toast
