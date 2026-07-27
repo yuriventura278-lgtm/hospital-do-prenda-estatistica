@@ -12,13 +12,16 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    // Escuta em tempo real: cb é chamado de imediato com o valor actual e,
+    // depois, sempre que outro dispositivo altera este caminho — sem sondagem.
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
     window.__fbReady = true;
   }catch(e){
     console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
@@ -1174,7 +1177,6 @@ function dbClear(store,cb){
    Só quem tem acesso de edição ao módulo pode enviar dados; qualquer
    dispositivo com acesso lê sempre a versão mais recente ao abrir a página. */
 var ZELO_FB_PATH="registos_sistemas_locais/farmacia_central";
-var ZELO_FB_SAVEDAT_KEY="zelo_farm_fb_savedAt";
 function zeloTemAcessoEdicao(){
   try{
     if(!window.ZeloAuth||!window.ZELO_MODULE)return true;
@@ -1183,6 +1185,7 @@ function zeloTemAcessoEdicao(){
     return window.ZeloAuth.getModuleAccessLevel(role,permissoes,window.ZELO_MODULE)!=='leitura';
   }catch(e){return true;}
 }
+var zeloUltimoEnvioSavedAt=null;
 var zeloFbEnvioTimer=null;
 function zeloFbAgendarEnvio(){
   if(!zeloTemAcessoEdicao())return;
@@ -1194,10 +1197,9 @@ async function zeloFbEnviar(){
   var savedAt=new Date().toISOString();
   var corpo={savedAt:savedAt,snapshot:{produtos:state.produtos,movimentos:state.movimentos}};
   try{
+    zeloUltimoEnvioSavedAt=savedAt; // marca este envio para nos ignorarmos a nós próprios quando o listener ecoar
     if(typeof zeloQueueWrite==="function")await zeloQueueWrite(ZELO_FB_PATH,corpo);
     else if(window.__fbReady&&window.__fbSet)await window.__fbSet(ZELO_FB_PATH,corpo);
-    else return;
-    try{localStorage.setItem(ZELO_FB_SAVEDAT_KEY,savedAt);}catch(e){}
   }catch(e){console.warn('ZELO: falha ao sincronizar a farmácia com o Firebase.',e);}
 }
 function zeloFbAplicarSnapshot(snapshot,cb){
@@ -1218,23 +1220,30 @@ function zeloFbAplicarSnapshot(snapshot,cb){
     });
   });
 }
-// Ao abrir a página: se houver uma versão mais recente no Firebase (guardada
-// por outro dispositivo) do que a última que este dispositivo enviou/recebeu,
-// substitui os dados locais por essa versão antes de mostrar o ecrã.
-function zeloFbSincronizarNoArranque(cb){
-  if(!window.__fbReady||!window.__fbGet){cb();return;}
-  window.__fbGet(ZELO_FB_PATH).then(function(remoto){
-    if(!remoto||!remoto.snapshot){cb();return;}
-    var localSavedAt=localStorage.getItem(ZELO_FB_SAVEDAT_KEY);
-    if(localSavedAt&&new Date(localSavedAt)>=new Date(remoto.savedAt)){cb();return;}
+// Firebase é sempre a fonte oficial: escuta em tempo real (sem sondagem) e,
+// sempre que houver uma alteração — de qualquer dispositivo —, reescreve
+// totalmente o IndexedDB local com o snapshot recebido e actualiza o ecrã de
+// imediato, sem recarregar a página. Ignora o eco do que este próprio
+// dispositivo acabou de enviar (evita reescrever por cima de edições
+// seguintes ainda não enviadas).
+// cbPrimeira só é chamado uma vez, quando a primeira leitura (ou o timeout de
+// segurança) termina — usado para decidir quando mostrar o ecrã no arranque.
+// Todas as leituras seguintes (alterações feitas por qualquer dispositivo)
+// chamam aoAtualizar() de imediato, sem recarregar a página.
+function zeloFbIniciarEscutaTempoReal(cbPrimeira,aoAtualizar){
+  var resolvido=false;
+  function resolverPrimeira(){ if(!resolvido){resolvido=true; if(cbPrimeira)cbPrimeira();} }
+  if(!window.__fbReady||!window.__fbListen){ resolverPrimeira(); return; }
+  window.__fbListen(ZELO_FB_PATH,function(remoto){
+    if(!remoto||!remoto.snapshot){ resolverPrimeira(); return; }
+    if(remoto.savedAt===zeloUltimoEnvioSavedAt){ resolverPrimeira(); return; } // eco do nosso próprio envio
     zeloFbAplicarSnapshot(remoto.snapshot,function(){
-      try{localStorage.setItem(ZELO_FB_SAVEDAT_KEY,remoto.savedAt);}catch(e){}
-      cb();
+      zeloUltimoEnvioSavedAt=remoto.savedAt;
+      if(!resolvido){ resolverPrimeira(); }
+      else if(aoAtualizar){ aoAtualizar(); }
     });
-  }).catch(function(e){
-    console.warn('ZELO: falha ao verificar dados mais recentes da farmácia no Firebase.',e);
-    cb();
   });
+  setTimeout(resolverPrimeira,1500); // não bloquear o arranque se o Firebase demorar/estiver indisponível
 }
 function pad4(n){return("0000"+n).slice(-4);}
 var SEQ_KEY="zelo_farm_seq";
@@ -2713,7 +2722,7 @@ function boot(){
         dbAll("movimentos",function(ms){
           state.movimentos=ms;
           setP(90);
-          zeloFbSincronizarNoArranque(function(){
+          zeloFbIniciarEscutaTempoReal(function(){
             setP(100);
             setTimeout(function(){
               $("splash").classList.add("hide");
@@ -2725,10 +2734,11 @@ function boot(){
               render();
               autoBackupBoot();
               setInterval(renderHeader,30000);
-              setInterval(function(){
-                if(!document.hidden)zeloFbSincronizarNoArranque(function(){render();});
-              },120000);
             },450);
+          },function(){
+            // Alteração recebida de outro dispositivo depois do arranque —
+            // actualiza o ecrã de imediato, sem recarregar a página.
+            render();
           });
         });
       });
