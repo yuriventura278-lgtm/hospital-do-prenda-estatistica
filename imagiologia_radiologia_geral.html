@@ -1539,6 +1539,22 @@ async function _fbSyncImagiologia(date, payload){
 // vindos doutro dispositivo. Para qualquer alteração SEGUINTE enquanto o
 // mesmo dia continua aberto, apenas mostra um aviso — nunca substitui
 // silenciosamente o que o utilizador possa estar a editar.
+// O IndexedDB/armazenamento local costuma abrir muito mais depressa do que
+// o módulo do Firebase acaba de carregar da rede (sobretudo com Internet
+// lenta) — sem isto, a escuta em tempo real podia correr ANTES de
+// window.__fbReady ficar true e desistir para sempre nesta visita à
+// página, mesmo a Internet por fim respondendo. Espera até 10s por
+// window.__fbReady antes de desistir.
+function _fbEsperarPronto(timeoutMs){
+  return new Promise(resolve => {
+    if (window.__fbReady) { resolve(true); return; }
+    const inicio = Date.now();
+    const iv = setInterval(() => {
+      if (window.__fbReady) { clearInterval(iv); resolve(true); }
+      else if (Date.now() - inicio > (timeoutMs || 10000)) { clearInterval(iv); resolve(false); }
+    }, 150);
+  });
+}
 let _fbCancelarEscuta = null;
 function _fbMostrarAvisoNovosDados(){
   if (document.getElementById('fb-novos-dados-banner')) return;
@@ -1550,11 +1566,14 @@ function _fbMostrarAvisoNovosDados(){
   banner.querySelector('button').onclick = () => window.location.reload();
   document.body.insertBefore(banner, document.body.firstChild);
 }
-function _fbEscutarDia(date){
+async function _fbEscutarDia(date){
   if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
   const el = document.getElementById('fb-novos-dados-banner');
   if (el) el.remove();
-  if (!window.__fbReady || !window.__fbListen || !date) return;
+  if (!date) return;
+  const pronto = await _fbEsperarPronto();
+  if (!pronto || !window.__fbListen) return;
+  if (date !== (currentData && currentData.date)) return; // entretanto mudou de dia — a chamada mais recente trata da escuta
   let primeira = true;
   _fbCancelarEscuta = window.__fbListen('registos_sistemas_locais/imagiologia/' + date, function(remoto){
     const savedAt = remoto && remoto.savedAt;

@@ -1230,10 +1230,27 @@ function zeloFbAplicarSnapshot(snapshot,cb){
 // segurança) termina — usado para decidir quando mostrar o ecrã no arranque.
 // Todas as leituras seguintes (alterações feitas por qualquer dispositivo)
 // chamam aoAtualizar() de imediato, sem recarregar a página.
-function zeloFbIniciarEscutaTempoReal(cbPrimeira,aoAtualizar){
+// O IndexedDB local costuma abrir muito mais depressa do que o módulo do
+// Firebase acaba de carregar da rede (sobretudo com Internet lenta) — sem
+// isto, a função abaixo podia correr ANTES de window.__fbReady ficar true
+// e desistir de vez da escuta em tempo real nesta visita à página, mesmo
+// a Internet por fim respondendo. Espera até 10s por window.__fbReady
+// antes de desistir.
+function zeloFbEsperarPronto(timeoutMs){
+  return new Promise(function(resolve){
+    if(window.__fbReady){ resolve(true); return; }
+    var inicio=Date.now();
+    var iv=setInterval(function(){
+      if(window.__fbReady){ clearInterval(iv); resolve(true); }
+      else if(Date.now()-inicio>(timeoutMs||10000)){ clearInterval(iv); resolve(false); }
+    },150);
+  });
+}
+async function zeloFbIniciarEscutaTempoReal(cbPrimeira,aoAtualizar){
   var resolvido=false;
   function resolverPrimeira(){ if(!resolvido){resolvido=true; if(cbPrimeira)cbPrimeira();} }
-  if(!window.__fbReady||!window.__fbListen){ resolverPrimeira(); return; }
+  var pronto=await zeloFbEsperarPronto();
+  if(!pronto||!window.__fbListen){ resolverPrimeira(); return; }
   window.__fbListen(ZELO_FB_PATH,function(remoto){
     if(!remoto||!remoto.snapshot){ resolverPrimeira(); return; }
     if(remoto.savedAt===zeloUltimoEnvioSavedAt){ resolverPrimeira(); return; } // eco do nosso próprio envio

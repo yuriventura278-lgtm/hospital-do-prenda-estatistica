@@ -3346,8 +3346,25 @@ async function reenviarTudoParaFirebase(){
 // disponível localmente (histórico, estatísticas, etc.) e continue a
 // funcionar normalmente sem Internet. Corre em segundo plano, sem bloquear
 // o carregamento do dia actual.
+// O IndexedDB local costuma abrir muito mais depressa do que o módulo do
+// Firebase acaba de carregar da rede (sobretudo com Internet lenta) — sem
+// isto, esta função podia correr ANTES de window.__fbReady ficar true e
+// desistir para sempre nesta visita à página, mesmo a Internet por fim
+// respondendo. Espera até 10s por window.__fbReady antes de desistir.
+function _fbEsperarPronto(timeoutMs){
+  return new Promise(resolve => {
+    if (window.__fbReady) { resolve(true); return; }
+    const inicio = Date.now();
+    const iv = setInterval(() => {
+      if (window.__fbReady) { clearInterval(iv); resolve(true); }
+      else if (Date.now() - inicio > (timeoutMs || 10000)) { clearInterval(iv); resolve(false); }
+    }, 150);
+  });
+}
+
 async function _fbReplicarTudo(){
-  if (!window.__fbReady || !window.__fbGet) return;
+  const pronto = await _fbEsperarPronto();
+  if (!pronto || !window.__fbGet) return;
   try{
     const todos = await window.__fbGet('registos_sistemas_locais/bloco_operatorio');
     if (!todos) return;
@@ -3439,11 +3456,14 @@ function _fbMostrarAvisoNovosDados(){
   document.body.insertBefore(banner, document.body.firstChild);
 }
 let _fbCancelarEscuta = null;
-function _fbEscutarDia(date){
+async function _fbEscutarDia(date){
   if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
   const el = document.getElementById('fb-novos-dados-banner');
   if (el) el.remove();
-  if (!window.__fbReady || !window.__fbListen || !date) return;
+  if (!date) return;
+  const pronto = await _fbEsperarPronto();
+  if (!pronto || !window.__fbListen) return;
+  if (date !== currentLoadedDate) return; // entretanto mudou de dia — a chamada mais recente trata da escuta
   let primeira = true;
   _fbCancelarEscuta = window.__fbListen('registos_sistemas_locais/bloco_operatorio/' + date, function(remoto){
     const savedAt = remoto && remoto.savedAt;
