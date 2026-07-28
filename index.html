@@ -280,6 +280,8 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   color:var(--bl);text-decoration:none;border-radius:8px;}
 .sb-action-link::before{content:'';width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0;}
 .sb-action-link:hover{background:var(--blxt);}
+.sb-sis-link{display:block;padding:8px 6px 8px 30px;font-size:.76rem;color:var(--tx2);text-decoration:none;border-radius:9px;}
+.sb-sis-link:hover{background:var(--sf);color:var(--bl);}
 
 .zelo-main{min-width:0;padding:24px 26px 40px;max-width:none;margin:0 0 0 var(--zelo-sidebar-w);}
 .zelo-main-inner{max-width:1100px;}
@@ -1138,10 +1140,16 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
         <div class="sb-group">
           <div class="sb-section-label">Sistema</div>
-          <a href="sistemas_independentes.html" class="sb-link" data-module="sistemas_independentes">
-            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
-            <span>Sistemas Locais</span>
-          </a>
+          <div class="sb-link sb-parent" data-module="sistemas_independentes">
+            <button type="button" class="sb-parent-link" id="sbSistemasLabel">
+              <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+              <span>Sistemas Locais</span>
+            </button>
+            <button type="button" class="sb-toggle" id="sbSistemasToggle" aria-expanded="false" title="Mostrar sistemas">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <div class="sb-subtree" id="sbSistemasTree"></div>
           <a href="informacoes_zelo.html" class="sb-link" data-module="informacoes_zelo">
             <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
             <span>Informações do ZELO</span>
@@ -1221,6 +1229,7 @@ window.zeloApplyPermissoes = function(role, permissoes){
     link.style.display = permitido ? '' : 'none';
   });
   zeloAtualizarVisibilidadeArvoreServicos(role, permissoes);
+  zeloAtualizarVisibilidadeSistemasLocais(role, permissoes);
 };
 
 // ── Árvore de atalhos "Serviços" no menu lateral: categorias → serviços,
@@ -1356,6 +1365,41 @@ function zeloAlternarArvoreServicos(){
 // faz a mesma coisa: mostrar/esconder as categorias aqui mesmo.
 document.getElementById('sbServicosLabel').addEventListener('click', zeloAlternarArvoreServicos);
 document.getElementById('sbServicosToggle').addEventListener('click', zeloAlternarArvoreServicos);
+
+// ── Árvore de atalhos "Sistemas Locais": mesmo princípio dos Serviços --
+// o nome e a seta só mostram/escondem a lista aqui mesmo, nunca navegam
+// para sistemas_independentes.html; cada sistema é já o destino final,
+// sem sub-acções (Relatório/Procedimentos/Movimento) como os Serviços.
+function zeloConstruirArvoreSistemasLocais(){
+  var tree = document.getElementById('sbSistemasTree');
+  if(!tree || tree.dataset.built) return;
+  tree.dataset.built = '1';
+  var itens = window.SISTEMAS_LOCAIS_MENU || [];
+  tree.innerHTML = itens.map(function(s){
+    return '<a class="sb-sis-link" href="' + s.file + '" data-modulo="' + s.modulo + '"' +
+      (s.item ? ' data-item="' + s.item + '"' : '') + '>' + s.nome + '</a>';
+  }).join('');
+}
+zeloConstruirArvoreSistemasLocais();
+function zeloAtualizarVisibilidadeSistemasLocais(role, permissoes){
+  var tree = document.getElementById('sbSistemasTree');
+  if(!tree) return;
+  tree.querySelectorAll('.sb-sis-link').forEach(function(link){
+    var visivel = zeloAcaoVisivel({ modulo: link.dataset.modulo, item: link.dataset.item }, role, permissoes);
+    link.style.display = visivel ? '' : 'none';
+  });
+}
+zeloAtualizarVisibilidadeSistemasLocais(sessionStorage.getItem('zeloRole') || 'funcionario', JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'));
+function zeloAlternarArvoreSistemasLocais(){
+  var tree = document.getElementById('sbSistemasTree');
+  var btn = document.getElementById('sbSistemasToggle');
+  var abrir = !btn.classList.contains('open');
+  btn.classList.toggle('open', abrir);
+  btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  tree.classList.toggle('open', abrir);
+}
+document.getElementById('sbSistemasLabel').addEventListener('click', zeloAlternarArvoreSistemasLocais);
+document.getElementById('sbSistemasToggle').addEventListener('click', zeloAlternarArvoreSistemasLocais);
 document.getElementById('zeloMenuToggle').addEventListener('click', function(){
   document.getElementById('zeloSidebar').classList.toggle('open');
 });
