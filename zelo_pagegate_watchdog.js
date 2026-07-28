@@ -38,7 +38,6 @@
           '<div style="font-size:1.05rem;font-weight:700;color:#0D1B3E;margin-bottom:8px;">A sessão está a demorar mais que o normal</div>' +
           '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:22px;">Isto costuma resolver-se sozinho em ligações mais lentas — esta página continua a tentar em segundo plano. Se não entrar sozinho em breve, verifique a ligação à internet e desative bloqueadores de anúncios para este site.</div>' +
           '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
-            '<button onclick="location.reload()" style="padding:11px 22px;border-radius:10px;background:#0D1B3E;color:#fff;border:none;font-weight:600;font-size:.86rem;cursor:pointer;">Tentar novamente</button>' +
             '<a href="index.html" style="display:inline-block;padding:11px 22px;border-radius:10px;background:#F1F5F9;color:#0D1B3E;text-decoration:none;font-weight:600;font-size:.86rem;">Voltar ao Início</a>' +
           '</div>' +
         '</div>';
