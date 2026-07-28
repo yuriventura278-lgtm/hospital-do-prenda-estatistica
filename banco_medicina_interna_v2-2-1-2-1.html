@@ -3104,6 +3104,12 @@ async function gerarPDF(silencioso){
     // RODAPÉ em cada página
     // ════════════════════════════════════════════════════════
     const nPages=pdf.internal.getNumberOfPages();
+    const _lsWrap = document.getElementById('last-saved-status');
+    const _lsNome = document.getElementById('last-saved-name')?.textContent?.trim();
+    const _lsHora = document.getElementById('last-saved-time')?.textContent?.trim();
+    const registadoPorTxt = (_lsWrap && _lsWrap.style.display !== 'none' && _lsNome && _lsNome !== '—')
+      ? `Registado por: ${_lsNome} às ${_lsHora}`
+      : null;
     let zeloLogoSrc=null;
     try{
       const zi=document.querySelector('.ld img');
@@ -3130,6 +3136,7 @@ async function gerarPDF(silencioso){
       pdf.text(new Date().toLocaleDateString('pt-PT')+' · Dr. '+medicoPrincipal,PW/2,PH-5,{align:'center'});
       setTxt('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(8);
       pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});
+      if (registadoPorTxt) { setTxt('#93C5FD'); pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5); pdf.text(registadoPorTxt, PW/2, PH-14, { align: 'center' }); }
     }
 
     const nome=pdfFileName()+'.pdf';

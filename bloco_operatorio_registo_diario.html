@@ -5247,11 +5247,13 @@ function _buildAndPrintPeriodPDF(dates, title, filterType) {
 
   // ── Cabeçalho + Rodapé em todas as páginas ──
   const pageCount = doc.internal.getNumberOfPages();
+  const _exportadoPorTxtPeriodo = sessionStorage.getItem('zeloNome') ? `Documento exportado por: ${sessionStorage.getItem('zeloNome')}` : null;
   for(let i=1;i<=pageCount;i++){
     doc.setPage(i);
     drawPeriodHeader();
     doc.setFontSize(8);doc.setTextColor(150,150,150);
     doc.text('Hospital do Prenda · Luanda · Angola',15,doc.internal.pageSize.height-8);
+    if (_exportadoPorTxtPeriodo) doc.text(_exportadoPorTxtPeriodo, pageWHead/2, doc.internal.pageSize.height-8, {align:'center'});
     doc.text('Pág. '+i+'/'+pageCount,195,doc.internal.pageSize.height-8,{align:'right'});
   }
 

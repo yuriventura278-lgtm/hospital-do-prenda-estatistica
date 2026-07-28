@@ -1208,6 +1208,12 @@ function gerarPDF(silencioso){
 
   // Rodapé
   const totalPages=doc.internal.pages.length-1;
+  const _lsWrap = document.getElementById('last-saved-status');
+  const _lsNome = document.getElementById('last-saved-name')?.textContent?.trim();
+  const _lsHora = document.getElementById('last-saved-time')?.textContent?.trim();
+  const registadoPorTxt = (_lsWrap && _lsWrap.style.display !== 'none' && _lsNome && _lsNome !== '—')
+    ? `Registado por: ${_lsNome} às ${_lsHora}`
+    : null;
   let zeloLogoSrc=null;
   try{
     const zi=document.querySelector('.ld img');
@@ -1225,6 +1231,7 @@ function gerarPDF(silencioso){
     doc.setTextColor(147,197,253);doc.setFontSize(7);doc.setFont('helvetica','normal');
     doc.text(`Hospital do Prenda · Serviço de Fisioterapia · ${gv('data')||'—'}`,M+9,PH-5);
     doc.text(`Pág. ${p}/${totalPages}`,PW-M,PH-5,{align:'right'});
+    if (registadoPorTxt) { doc.setTextColor(147,197,253); doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.text(registadoPorTxt, PW/2, PH-5, { align: 'center' }); }
   }
 
   const fn=pdfFileName()+'.pdf';
