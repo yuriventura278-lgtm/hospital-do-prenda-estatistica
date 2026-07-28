@@ -1,5 +1,4 @@
 // ZELO — breadcrumb + atalho anterior/seguinte entre serviços do mesmo grupo.
-// Fonte de verdade: a mesma ordem/agrupamento usado em servicos.html.
 (function(){
   const GRUPOS = [
     { label: 'Especialidades Cirúrgicas', itens: [
@@ -50,7 +49,7 @@
     const crumb = `
       <a href="index.html">Início</a>
       <span class="znav-sep">›</span>
-      <a href="servicos.html">${grupo.label}</a>
+      <a href="index.html">${grupo.label}</a>
       <span class="znav-sep">›</span>
       <span class="znav-atual">${atual.nome}</span>
     `;

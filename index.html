@@ -253,7 +253,8 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-cat{margin:2px 0;}
 .sb-cat-row{display:flex;align-items:center;width:100%;}
 .sb-cat-link{display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:8px 6px 8px 30px;border-radius:9px;
-  color:var(--tx2);text-decoration:none;font-size:.76rem;font-weight:700;}
+  color:var(--tx2);text-decoration:none;font-size:.76rem;font-weight:700;
+  background:none;border:none;font-family:inherit;text-align:left;cursor:pointer;}
 .sb-cat-link:hover{background:var(--sf);color:var(--bl);}
 .sb-cat-icon{width:14px;height:14px;flex-shrink:0;color:var(--bl);}
 .sb-cat-count{margin-left:auto;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tx3);}
@@ -265,7 +266,8 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-svc-list{max-height:0;overflow:hidden;transition:max-height .22s ease;}
 .sb-svc-list.open{max-height:1600px;}
 .sb-svc-row{display:flex;align-items:center;width:100%;}
-.sb-svc-link{display:block;flex:1;min-width:0;padding:7px 6px 7px 48px;font-size:.74rem;color:var(--tx3);text-decoration:none;border-radius:8px;}
+.sb-svc-link{display:block;flex:1;min-width:0;padding:7px 6px 7px 48px;font-size:.74rem;color:var(--tx3);text-decoration:none;border-radius:8px;
+  background:none;border:none;font-family:inherit;text-align:left;cursor:pointer;}
 .sb-svc-link:hover{background:var(--sf);color:var(--bl);}
 .sb-svc-toggle{flex-shrink:0;width:20px;height:20px;margin-right:6px;border-radius:6px;background:none;border:none;color:var(--tx3);
   display:flex;align-items:center;justify-content:center;cursor:pointer;}
@@ -1277,7 +1279,7 @@ function zeloConstruirArvoreServicos(){
       var temAcoes = acoes.length > 0;
       return '<div class="sb-svc" data-svc-nome="' + svc.nome.replace(/"/g,'&quot;') + '">' +
         '<div class="sb-svc-row">' +
-          '<a class="sb-svc-link" href="servicos.html#svc-' + slug + '">' + svc.nome + '</a>' +
+          '<button type="button" class="sb-svc-link" data-svc-toggle="' + slug + '">' + svc.nome + '</button>' +
           (temAcoes ? '<button type="button" class="sb-svc-toggle" data-svc-toggle="' + slug + '" aria-expanded="false" title="Acesso rápido"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' : '') +
         '</div>' +
         (temAcoes ? '<div class="sb-action-list" data-svc-actions="' + slug + '">' + acoesHtml + '</div>' : '') +
@@ -1285,33 +1287,33 @@ function zeloConstruirArvoreServicos(){
     }).join('');
     html += '<div class="sb-cat" data-cat-id="' + cat.id + '">' +
       '<div class="sb-cat-row">' +
-        '<a class="sb-cat-link" href="servicos.html#cat-' + cat.id + '"><svg class="sb-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="sb-cat-count">' + itens.length + '</span></a>' +
+        '<button type="button" class="sb-cat-link" data-cat-toggle="' + cat.id + '"><svg class="sb-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="sb-cat-count">' + itens.length + '</span></button>' +
         '<button type="button" class="sb-cat-toggle" data-cat-toggle="' + cat.id + '" aria-expanded="false" title="Mostrar serviços"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' +
       '</div>' +
       '<div class="sb-svc-list" data-cat-list="' + cat.id + '">' + svcHtml + '</div>' +
     '</div>';
   });
   tree.innerHTML = html;
-  tree.querySelectorAll('[data-cat-toggle]').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var id = btn.dataset.catToggle;
-      var list = tree.querySelector('[data-cat-list="' + id + '"]');
-      var abrir = !btn.classList.contains('open');
-      btn.classList.toggle('open', abrir);
-      btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
-      if(list) list.classList.toggle('open', abrir);
+  // O nome (categoria/serviço) e a seta ao lado são dois elementos distintos
+  // que abrem a MESMA lista -- o estado "aberto" vive na própria lista, não
+  // em qualquer um dos botões, para os dois nunca poderem ficar dessincronizados.
+  function ligarAlternador(seletorBotoes, listaPrefixo, datasetKey){
+    tree.querySelectorAll(seletorBotoes).forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.dataset[datasetKey];
+        var list = tree.querySelector('[' + listaPrefixo + '="' + id + '"]');
+        if(!list) return;
+        var abrir = !list.classList.contains('open');
+        list.classList.toggle('open', abrir);
+        tree.querySelectorAll('[data-' + datasetKey.replace(/([A-Z])/g, '-$1').toLowerCase() + '="' + id + '"]').forEach(function(b){
+          b.classList.toggle('open', abrir);
+          b.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        });
+      });
     });
-  });
-  tree.querySelectorAll('[data-svc-toggle]').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var slug = btn.dataset.svcToggle;
-      var list = tree.querySelector('[data-svc-actions="' + slug + '"]');
-      var abrir = !btn.classList.contains('open');
-      btn.classList.toggle('open', abrir);
-      btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
-      if(list) list.classList.toggle('open', abrir);
-    });
-  });
+  }
+  ligarAlternador('[data-cat-toggle]', 'data-cat-list', 'catToggle');
+  ligarAlternador('[data-svc-toggle]', 'data-svc-actions', 'svcToggle');
 }
 function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){
   var tree = document.getElementById('sbServicosTree');
