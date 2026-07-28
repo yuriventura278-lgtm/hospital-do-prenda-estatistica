@@ -228,7 +228,21 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
       <div class="top-date" id="hdrDate"></div>
     </div>
     <div class="mod-title" id="hdrMod">Painel Geral</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px 8px;">
+      <span id="last-saved-status" style="display:none;font-size:.72rem;color:#64748B;white-space:nowrap;">Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></span>
+      <button type="button" id="ver-historico-btn" style="display:none;background:transparent;border:1px solid #CBD5E1;color:#334155;border-radius:6px;padding:4px 10px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;">Histórico</button>
+    </div>
   </header>
+
+<div id="historico-alteracoes-modal" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.72);backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;max-width:440px;width:100%;max-height:80vh;overflow:auto;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;font-size:1rem;color:#0D1B3E;">Histórico de alterações</h3>
+      <button id="fechar-historico-alteracoes-btn" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#64748B;">✕</button>
+    </div>
+    <div id="historico-alteracoes-lista"></div>
+  </div>
+</div>
 
   <main>
     <section class="view on" id="v-dash">
@@ -1195,13 +1209,92 @@ function zeloFbAgendarEnvio(){
 async function zeloFbEnviar(){
   if(!zeloTemAcessoEdicao())return;
   var savedAt=new Date().toISOString();
-  var corpo={savedAt:savedAt,snapshot:{produtos:state.produtos,movimentos:state.movimentos}};
+  var criadoPor={nome:sessionStorage.getItem('zeloNome')||null,email:sessionStorage.getItem('zeloEmail')||null};
+  var corpo={savedAt:savedAt,snapshot:{produtos:state.produtos,movimentos:state.movimentos},criadoPor:criadoPor};
   try{
     zeloUltimoEnvioSavedAt=savedAt; // marca este envio para nos ignorarmos a nós próprios quando o listener ecoar
     if(typeof zeloQueueWrite==="function")await zeloQueueWrite(ZELO_FB_PATH,corpo);
     else if(window.__fbReady&&window.__fbSet)await window.__fbSet(ZELO_FB_PATH,corpo);
+    _mostrarHoraGuardado(criadoPor.nome,savedAt);
+    _registarHistoricoAlteracao(savedAt);
   }catch(e){console.warn('ZELO: falha ao sincronizar a farmácia com o Firebase.',e);}
 }
+
+// ── Autoria e histórico de alterações (quem gravou, quando) ────────────────
+// Inventário contínuo, sem noção de "dia" -- o histórico regista as
+// gravações da farmácia como um todo, não por data.
+function _escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});
+}
+function _mostrarHoraGuardado(nome,quando){
+  var now=quando?new Date(quando):new Date();
+  var hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  var nameEl=document.getElementById('last-saved-name');
+  var timeEl=document.getElementById('last-saved-time');
+  var wrapEl=document.getElementById('last-saved-status');
+  if(nameEl)nameEl.textContent=nome||sessionStorage.getItem('zeloNome')||'Utilizador';
+  if(timeEl)timeEl.textContent=hhmm;
+  if(wrapEl)wrapEl.style.display='inline';
+  var histBtn=document.getElementById('ver-historico-btn');
+  if(histBtn)histBtn.style.display='inline-flex';
+}
+var _ULTIMO_HISTORICO_MS=2*60*1000;
+var _ultimoHistoricoTs=0;
+function _registarHistoricoAlteracao(savedAt){
+  if(typeof zeloQueueWrite!=="function")return;
+  var agora=Date.now();
+  if(_ultimoHistoricoTs&&(agora-_ultimoHistoricoTs)<_ULTIMO_HISTORICO_MS)return;
+  _ultimoHistoricoTs=agora;
+  var chave=savedAt.replace(/[.#$/\[\]]/g,'_');
+  zeloQueueWrite(ZELO_FB_PATH+'/historico/'+chave,{
+    nome:sessionStorage.getItem('zeloNome')||'Utilizador',
+    email:sessionStorage.getItem('zeloEmail')||null,
+    ts:savedAt,
+    resumo:'Guardou alterações na farmácia'
+  });
+}
+async function abrirHistoricoAlteracoes(){
+  var modal=document.getElementById('historico-alteracoes-modal');
+  var lista=document.getElementById('historico-alteracoes-lista');
+  if(!modal||!lista)return;
+  lista.innerHTML='<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">A carregar…</div>';
+  modal.style.display='flex';
+  if(!window.__fbGet){
+    lista.innerHTML='<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">Sincronização indisponível de momento.</div>';
+    return;
+  }
+  try{
+    var hist=await window.__fbGet(ZELO_FB_PATH+'/historico');
+    if(!hist){
+      lista.innerHTML='<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">Sem histórico registado.</div>';
+      return;
+    }
+    var entradas=Object.values(hist).sort(function(a,b){return new Date(b.ts)-new Date(a.ts);});
+    lista.innerHTML=entradas.map(function(e){
+      var d=new Date(e.ts);
+      var hhmm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      var dd=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+      return '<div style="padding:10px 4px;border-bottom:1px solid #F1F5F9;font-size:.84rem;">'+
+        '<strong>'+_escHtml(e.nome||'Utilizador')+'</strong> em '+dd+' às '+hhmm+
+        '<div style="color:#64748B;font-size:.78rem;margin-top:2px;">'+_escHtml(e.resumo||'')+'</div>'+
+      '</div>';
+    }).join('');
+  }catch(e){
+    lista.innerHTML='<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">Falha ao carregar o histórico.</div>';
+  }
+}
+function fecharHistoricoAlteracoes(){
+  var modal=document.getElementById('historico-alteracoes-modal');
+  if(modal)modal.style.display='none';
+}
+(function(){
+  var modal=document.getElementById('historico-alteracoes-modal');
+  if(modal)modal.addEventListener('click',function(e){ if(e.target===modal)fecharHistoricoAlteracoes(); });
+  var histBtn=document.getElementById('ver-historico-btn');
+  if(histBtn)histBtn.addEventListener('click',abrirHistoricoAlteracoes);
+  var fecharBtn=document.getElementById('fechar-historico-alteracoes-btn');
+  if(fecharBtn)fecharBtn.addEventListener('click',fecharHistoricoAlteracoes);
+})();
 function zeloFbAplicarSnapshot(snapshot,cb){
   var produtos=snapshot.produtos||[],movimentos=snapshot.movimentos||[];
   dbClear("produtos",function(){
@@ -1253,6 +1346,7 @@ async function zeloFbIniciarEscutaTempoReal(cbPrimeira,aoAtualizar){
   if(!pronto||!window.__fbListen){ resolverPrimeira(); return; }
   window.__fbListen(ZELO_FB_PATH,function(remoto){
     if(!remoto||!remoto.snapshot){ resolverPrimeira(); return; }
+    if(remoto.criadoPor) _mostrarHoraGuardado(remoto.criadoPor.nome, remoto.savedAt);
     if(remoto.savedAt===zeloUltimoEnvioSavedAt){ resolverPrimeira(); return; } // eco do nosso próprio envio
     zeloFbAplicarSnapshot(remoto.snapshot,function(){
       zeloUltimoEnvioSavedAt=remoto.savedAt;
