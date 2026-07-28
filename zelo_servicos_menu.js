@@ -125,6 +125,16 @@ const CATEGORIAS_SERVICOS = [
     icon: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>' },
 ];
 
+// Lista partilhada dos 5 sistemas locais (sistemas_independentes.html) — cada
+// um é um só acesso directo, sem sub-acções como os serviços clínicos acima.
+const SISTEMAS_LOCAIS_MENU = [
+  { nome: 'Procedimentos de Enfermagem · Geral', file: 'procedimentos_enfermagem_geral.html', modulo: 'procedimentos_enfermagem', item: 'geral' },
+  { nome: 'Controlo de Enfermagem · Entregas Diárias', file: 'controlo_enfermagem.html', modulo: 'sistemas_independentes', item: 'controlo_enfermagem' },
+  { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
+  { nome: 'Dias-Cama & Dias-Doente', file: 'dias_cama_doente.html', modulo: 'sistemas_independentes', item: 'dias_cama_doente' },
+  { nome: 'Registo VIH · Geral', file: 'registo_hiv.html', modulo: 'sistemas_independentes', item: 'registo_hiv' },
+];
+
 // Slug estável a partir do nome do serviço — usado como id do cartão em
 // servicos.html e como âncora (#svc-...) pelos atalhos do menu lateral em
 // index.html. Tem de ser a MESMA função nos dois ficheiros, daqui partilhada.
@@ -138,4 +148,5 @@ if (typeof window !== 'undefined') {
   window.SERVICOS_MENU = SERVICOS_MENU;
   window.CATEGORIAS_SERVICOS = CATEGORIAS_SERVICOS;
   window.zeloSlugifyServico = zeloSlugifyServico;
+  window.SISTEMAS_LOCAIS_MENU = SISTEMAS_LOCAIS_MENU;
 }
