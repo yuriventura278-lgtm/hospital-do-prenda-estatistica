@@ -127,24 +127,41 @@
         return (svc.movimento||[]).some(function(m){ return temAcesso(m.modulo); });
       });
       if(!visiveisCat.length) return;
-      var svcHtml = visiveisCat.map(function(svc){
-        var s = slug(svc.nome);
+      function acoesDoServico(svc){
         var acoes = [];
         (svc.relatorios||[]).forEach(function(r){ if(temAcesso(r.modulo, r.item)) acoes.push({ label: r.label, href: r.file }); });
         (svc.procedimentos||[]).forEach(function(p){ if(temAcesso(p.modulo, p.item)) acoes.push({ label: p.label, href: p.file }); });
         (svc.movimento||[]).forEach(function(m){ if(temAcesso(m.modulo)) acoes.push({ label: m.label, href: 'movimento_mensal.html?servico=' + m.slug }); });
-        var acoesHtml = acoes.map(function(a){
+        return acoes;
+      }
+      // Quando a categoria só tem um serviço, mostrar as suas ligações
+      // directamente sob a categoria -- caso contrário fica um nível extra
+      // ("Bloco Operatório" > "Bloco Operatório" > Relatório Diário) que
+      // parece um beco sem saída em vez de mais um nível para abrir.
+      var svcHtml;
+      if(visiveisCat.length === 1){
+        // Sem wrapper colapsável próprio -- a visibilidade já é controlada
+        // pelo toggle da categoria (o único nível que existe aqui).
+        svcHtml = acoesDoServico(visiveisCat[0]).map(function(a){
           return '<a class="zmf-action-link" href="' + a.href + '">' + a.label + '</a>';
         }).join('');
-        var temAcoes = acoes.length > 0;
-        return '<div class="zmf-svc" data-zmf-nome="' + svc.nome.toLowerCase() + '">' +
-          '<div class="zmf-svc-row">' +
-            '<button type="button" class="zmf-svc-link" data-zmf-svc-toggle="' + s + '">' + svc.nome + '</button>' +
-            (temAcoes ? '<button type="button" class="zmf-svc-toggle" data-zmf-svc-toggle="' + s + '" aria-expanded="false">' + ICON_CHEV + '</button>' : '') +
-          '</div>' +
-          (temAcoes ? '<div class="zmf-action-list" data-zmf-svc-actions="' + s + '">' + acoesHtml + '</div>' : '') +
-        '</div>';
-      }).join('');
+      } else {
+        svcHtml = visiveisCat.map(function(svc){
+          var s = slug(svc.nome);
+          var acoes = acoesDoServico(svc);
+          var acoesHtml = acoes.map(function(a){
+            return '<a class="zmf-action-link" href="' + a.href + '">' + a.label + '</a>';
+          }).join('');
+          var temAcoes = acoes.length > 0;
+          return '<div class="zmf-svc" data-zmf-nome="' + svc.nome.toLowerCase() + '">' +
+            '<div class="zmf-svc-row">' +
+              '<button type="button" class="zmf-svc-link" data-zmf-svc-toggle="' + s + '">' + svc.nome + '</button>' +
+              (temAcoes ? '<button type="button" class="zmf-svc-toggle" data-zmf-svc-toggle="' + s + '" aria-expanded="false">' + ICON_CHEV + '</button>' : '') +
+            '</div>' +
+            (temAcoes ? '<div class="zmf-action-list" data-zmf-svc-actions="' + s + '">' + acoesHtml + '</div>' : '') +
+          '</div>';
+        }).join('');
+      }
       html += '<div class="zmf-cat" data-zmf-cat="' + cat.id + '">' +
         '<div class="zmf-cat-row">' +
           '<button type="button" class="zmf-cat-link" data-zmf-cat-toggle="' + cat.id + '"><svg class="zmf-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="zmf-cat-count">' + visiveisCat.length + '</span></button>' +

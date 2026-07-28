@@ -1262,39 +1262,56 @@ function zeloConstruirArvoreServicos(){
     (porCategoria[catId] = porCategoria[catId] || []).push(svc);
   });
   var html = '';
+  function acoesDoServico(svc){
+    var acoes = [];
+    (svc.relatorios||[]).forEach(function(r){
+      acoes.push({ label: r.label, href: r.file, modulo: r.modulo, item: r.item });
+    });
+    (svc.procedimentos||[]).forEach(function(p){
+      acoes.push({ label: p.label, href: p.file, modulo: p.modulo, item: p.item });
+    });
+    (svc.movimento||[]).forEach(function(m){
+      acoes.push({ label: m.label, href: 'movimento_mensal.html?servico=' + m.slug, modulo: m.modulo, item: null });
+    });
+    return acoes;
+  }
+  function acoesHtmlDe(acoes){
+    return acoes.map(function(a){
+      return '<a class="sb-action-link" href="' + a.href + '" data-modulo="' + a.modulo + '"' +
+        (a.item ? ' data-item="' + a.item + '"' : '') + '>' + a.label + '</a>';
+    }).join('');
+  }
   cats.forEach(function(cat){
     var itens = porCategoria[cat.id];
     if(!itens || !itens.length) return;
-    var svcHtml = itens.map(function(svc){
-      var slug = slugify(svc.nome);
-      // Acesso rápido directo ao destino (Relatório(s) Diário(s) +
-      // Procedimentos de Enfermagem + Movimento Hospitalar) -- em vez de só
-      // saltar para o cartão em servicos.html e obrigar a mais um clique lá
-      // para escolher a acção.
-      var acoes = [];
-      (svc.relatorios||[]).forEach(function(r){
-        acoes.push({ label: r.label, href: r.file, modulo: r.modulo, item: r.item });
-      });
-      (svc.procedimentos||[]).forEach(function(p){
-        acoes.push({ label: p.label, href: p.file, modulo: p.modulo, item: p.item });
-      });
-      (svc.movimento||[]).forEach(function(m){
-        acoes.push({ label: m.label, href: 'movimento_mensal.html?servico=' + m.slug, modulo: m.modulo, item: null });
-      });
-      var acoesHtml = acoes.map(function(a){
-        return '<a class="sb-action-link" href="' + a.href + '" data-modulo="' + a.modulo + '"' +
-          (a.item ? ' data-item="' + a.item + '"' : '') + '>' + a.label + '</a>';
+    // Acesso rápido directo ao destino (Relatório(s) Diário(s) +
+    // Procedimentos de Enfermagem + Movimento Hospitalar) -- em vez de só
+    // saltar para o cartão em servicos.html e obrigar a mais um clique lá
+    // para escolher a acção.
+    var svcHtml;
+    if(itens.length === 1){
+      // Categoria com um único serviço (ex. Bloco Operatório, Farmácia) --
+      // mostrar as ligações directamente sob a categoria, sem um segundo
+      // nível "Bloco Operatório > Bloco Operatório" que parece não levar
+      // a lado nenhum. Sem wrapper colapsável próprio -- a visibilidade já
+      // é controlada pelo toggle da categoria (o único nível que existe aqui).
+      svcHtml = acoesHtmlDe(acoesDoServico(itens[0]));
+    } else {
+      svcHtml = itens.map(function(svc){
+        var slug = slugify(svc.nome);
+        var acoes = acoesDoServico(svc);
+        var acoesHtml = acoesHtmlDe(acoes);
+        var temAcoes = acoes.length > 0;
+        return '<div class="sb-svc" data-svc-nome="' + svc.nome.replace(/"/g,'&quot;') + '">' +
+          '<div class="sb-svc-row">' +
+            '<button type="button" class="sb-svc-link" data-svc-toggle="' + slug + '">' + svc.nome + '</button>' +
+            (temAcoes ? '<button type="button" class="sb-svc-toggle" data-svc-toggle="' + slug + '" aria-expanded="false" title="Acesso rápido"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' : '') +
+          '</div>' +
+          (temAcoes ? '<div class="sb-action-list" data-svc-actions="' + slug + '">' + acoesHtml + '</div>' : '') +
+        '</div>';
       }).join('');
-      var temAcoes = acoes.length > 0;
-      return '<div class="sb-svc" data-svc-nome="' + svc.nome.replace(/"/g,'&quot;') + '">' +
-        '<div class="sb-svc-row">' +
-          '<button type="button" class="sb-svc-link" data-svc-toggle="' + slug + '">' + svc.nome + '</button>' +
-          (temAcoes ? '<button type="button" class="sb-svc-toggle" data-svc-toggle="' + slug + '" aria-expanded="false" title="Acesso rápido"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' : '') +
-        '</div>' +
-        (temAcoes ? '<div class="sb-action-list" data-svc-actions="' + slug + '">' + acoesHtml + '</div>' : '') +
-      '</div>';
-    }).join('');
-    html += '<div class="sb-cat" data-cat-id="' + cat.id + '">' +
+    }
+    html += '<div class="sb-cat" data-cat-id="' + cat.id + '"' + (itens.length === 1 ? ' data-cat-flat="1"' : '') + '>' +
       '<div class="sb-cat-row">' +
         '<button type="button" class="sb-cat-link" data-cat-toggle="' + cat.id + '"><svg class="sb-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="sb-cat-count">' + itens.length + '</span></button>' +
         '<button type="button" class="sb-cat-toggle" data-cat-toggle="' + cat.id + '" aria-expanded="false" title="Mostrar serviços"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' +
@@ -1340,7 +1357,16 @@ function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){
     var toggle = svcEl.querySelector('.sb-svc-toggle');
     if(toggle) toggle.style.display = algumaAcaoVisivel ? '' : 'none';
   });
-  tree.querySelectorAll('.sb-cat').forEach(function(catEl){
+  tree.querySelectorAll('.sb-cat[data-cat-flat="1"]').forEach(function(catEl){
+    var algumaAcaoVisivel = false;
+    catEl.querySelectorAll('.sb-action-link').forEach(function(link){
+      var visivel = zeloAcaoVisivel({ modulo: link.dataset.modulo, item: link.dataset.item }, role, permissoes);
+      link.style.display = visivel ? '' : 'none';
+      if(visivel) algumaAcaoVisivel = true;
+    });
+    catEl.style.display = algumaAcaoVisivel ? '' : 'none';
+  });
+  tree.querySelectorAll('.sb-cat:not([data-cat-flat="1"])').forEach(function(catEl){
     var algumVisivel = false;
     catEl.querySelectorAll('.sb-svc').forEach(function(svcEl){
       var svc = porNome[svcEl.dataset.svcNome];
