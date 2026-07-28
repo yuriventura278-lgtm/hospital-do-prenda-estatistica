@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Psicologia — Atendimento & Estatística · Hospital do Prenda</title>
+<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --nv:#0D1B3E;--bl:#1A56DB;--bl2:#2563EB;--blt:#DBEAFE;--blxt:#EFF6FF;
+  --gr:#059669;--rd:#DC2626;--am:#D97706;--or:#EA580C;--pu:#7C3AED;--cy:#0891B2;--pk:#DB2777;
+  --sf:#F4F7FF;--br:#E2E8F0;--br2:#CBD5E1;
+  --tx:#0F172A;--tx2:#334155;--tx3:#64748B;
+  --r:10px;--r2:16px;
+  --s1:0 2px 10px rgba(13,27,62,.08);--s2:0 8px 28px rgba(13,27,62,.13);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;padding-bottom:40px;-webkit-font-smoothing:antialiased;font-size:15px;}
+header{background:linear-gradient(135deg,#0B1730 0%,#162E6B 55%,#1A56DB 100%);position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.35);}
+.hi{padding:14px 16px 12px;display:flex;align-items:center;gap:14px;max-width:1180px;margin:0 auto;}
+.ld{width:50px;height:50px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:7px;box-shadow:0 2px 8px rgba(0,0,0,.18);}
+.ld img{width:100%;height:100%;object-fit:contain;}
+.ht h1{font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.2;}
+.ht h1 em{font-style:normal;color:#93C5FD;}
+.ht p{font-size:.68rem;color:rgba(255,255,255,.55);margin-top:3px;}
+.home-btn{margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;color:#fff;text-decoration:none;font-size:.72rem;font-weight:600;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:7px 12px;border-radius:100px;white-space:nowrap;}
+/* TABS */
+.tabs{max-width:1180px;margin:0 auto;display:flex;gap:4px;padding:0 12px;background:rgba(0,0,0,.18);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:0 0 auto;padding:11px 16px;font-size:.8rem;font-weight:700;color:rgba(255,255,255,.55);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:7px;transition:all .15s;white-space:nowrap;}
+.tab.on{color:#fff;border-bottom-color:#60A5FA;}
+.tab:hover{color:#fff;}
+.wrap{max-width:1180px;margin:0 auto;padding:16px 12px;}
+.pane{display:none;}
+.pane.on{display:block;animation:fade .25s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.sec{background:#fff;border:1px solid var(--br);border-radius:var(--r2);margin-bottom:14px;overflow:hidden;box-shadow:var(--s1);}
+.sh{padding:13px 16px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--br);background:linear-gradient(90deg,var(--blxt),#fff 65%);}
+.si{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ibl{background:#DBEAFE;color:#1E40AF;}.igr{background:#DCFCE7;color:#166534;}.ipu{background:#EDE9FE;color:#5B21B6;}.iam{background:#FEF3C7;color:#92400E;}.ipk{background:#FCE7F3;color:#9D174D;}.icy{background:#CFFAFE;color:#0E7490;}
+.st h2{font-size:.78rem;font-weight:800;color:var(--bl);text-transform:uppercase;letter-spacing:.06em;}
+.st p{font-size:.68rem;color:var(--tx3);margin-top:2px;}
+.sb{padding:16px;}
+.f{margin-bottom:14px;}
+.f:last-child{margin-bottom:0;}
+label{font-size:.7rem;font-weight:700;color:var(--tx3);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.04em;}
+label .req{color:var(--rd);margin-left:2px;}
+input[type=text],input[type=number],input[type=date],input[type=search],textarea,select{
+  width:100%;padding:11px 13px;border:1.5px solid var(--br2);border-radius:var(--r);
+  font-size:.95rem;font-family:'Inter',sans-serif;color:var(--tx);background:#FAFBFF;line-height:1.5;
+  transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
+.grid{display:grid;gap:12px;}
+.g2{grid-template-columns:1fr 1fr;}.g3{grid-template-columns:1fr 1fr 1fr;}.g4{grid-template-columns:repeat(4,1fr);}
+.full{grid-column:1/-1;}
+@media(max-width:720px){.g2,.g3,.g4{grid-template-columns:1fr 1fr;}.hide-sm{display:none;}}
+@media(max-width:480px){.g3,.g4{grid-template-columns:1fr;}}
+.btn{padding:11px 16px;border:none;border-radius:var(--r);background:var(--bl);cursor:pointer;font-size:.85rem;font-weight:700;color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:'Inter',sans-serif;transition:opacity .13s,transform .13s;box-shadow:0 2px 8px rgba(26,86,219,.25);}
+.btn:hover{opacity:.9;}.btn:active{transform:scale(.97);}
+.btn.gr{background:var(--gr);box-shadow:0 2px 8px rgba(5,150,105,.25);}
+.btn.gray{background:#E2E8F0;color:#334155;box-shadow:none;}
+.btn.sm{padding:7px 11px;font-size:.72rem;}
+.btn.out{background:#fff;color:var(--bl);border:1.5px solid var(--blt);box-shadow:none;}
+.btn-wide{width:100%;padding:15px;font-size:.95rem;font-weight:800;border-radius:13px;}
+/* chips médicos */
+.chip{display:inline-flex;align-items:center;gap:8px;background:var(--blxt);border:1.5px solid var(--blt);border-radius:100px;padding:7px 8px 7px 13px;font-size:.82rem;font-weight:600;color:var(--nv);}
+.chip small{color:var(--tx3);font-weight:600;}
+.chip button{background:#fff;border:1px solid var(--br);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--rd);flex-shrink:0;}
+.chip.sel{background:var(--bl);color:#fff;border-color:var(--bl);}
+.chip.sel small{color:rgba(255,255,255,.8);}
+/* KPI */
+.kpi{background:#fff;border:1px solid var(--br);border-radius:14px;padding:14px 15px;box-shadow:var(--s1);}
+.kpi .kl{font-size:.66rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.kpi .kv{font-family:'DM Mono',monospace;font-size:2rem;font-weight:600;color:var(--nv);line-height:1;}
+.kpi .ks{font-size:.66rem;color:var(--tx3);margin-top:5px;}
+.kpi.b{border-left:4px solid var(--bl);}.kpi.g{border-left:4px solid var(--gr);}.kpi.p{border-left:4px solid var(--pu);}.kpi.a{border-left:4px solid var(--am);}.kpi.c{border-left:4px solid var(--cy);}.kpi.k{border-left:4px solid var(--pk);}
+/* tabela */
+.tbl-wrap{overflow-x:auto;}
+table.dt{width:100%;border-collapse:collapse;font-size:.85rem;}
+table.dt thead th{background:var(--nv);color:#fff;padding:9px 10px;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;text-align:left;white-space:nowrap;}
+table.dt tbody td{padding:8px 10px;border-bottom:1px solid var(--br);vertical-align:middle;}
+table.dt tbody tr:nth-child(even){background:#F8FAFF;}
+table.dt tbody tr:hover{background:#EFF6FF;}
+.tag{display:inline-block;padding:2px 8px;border-radius:100px;font-size:.68rem;font-weight:700;}
+.tag.m{background:#DBEAFE;color:#1E40AF;}.tag.f{background:#FCE7F3;color:#9D174D;}
+.del{background:none;border:none;color:var(--rd);cursor:pointer;padding:4px;}
+.empty{text-align:center;padding:34px 16px;color:var(--tx3);font-size:.85rem;}
+/* chart card */
+.chart-card{background:#fff;border:1px solid var(--br);border-radius:14px;box-shadow:var(--s1);overflow:hidden;}
+.cc-head{padding:12px 14px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.cc-head h3{font-size:.82rem;font-weight:800;color:var(--nv);flex:1;min-width:140px;}
+.cc-body{padding:14px;position:relative;height:300px;}
+.cc-actions{display:flex;gap:6px;}
+.cc-actions button{background:var(--blxt);border:1px solid var(--blt);color:var(--bl);border-radius:8px;padding:5px 9px;font-size:.68rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;}
+.cc-actions button:hover{background:var(--blt);}
+.sl{font-size:.68rem;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin:22px 0 12px;display:flex;align-items:center;gap:9px;}
+.sl::after{content:'';flex:1;height:1px;background:var(--br);}
+.sl svg{color:var(--bl);}
+/* menu cards */
+.mcard{background:#fff;border:1px solid var(--br);border-radius:16px;box-shadow:var(--s1);padding:18px;cursor:pointer;display:flex;gap:14px;align-items:flex-start;transition:all .15s;text-align:left;}
+.mcard:hover{border-color:var(--bl2);box-shadow:var(--s2);transform:translateY(-2px);}
+.mcard .mic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mcard h3{font-size:.98rem;font-weight:800;color:var(--nv);margin-bottom:4px;}
+.mcard p{font-size:.78rem;color:var(--tx3);line-height:1.5;}
+.mcard .arw{margin-left:auto;color:var(--br2);flex-shrink:0;align-self:center;}
+.mstat{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:11px 13px;}
+.mstat .ml{font-size:.62rem;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.05em;}
+.mstat .mv{font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:600;color:#fff;margin-top:3px;}
+/* toast */
+.tst{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(13,27,62,.96);color:#fff;padding:11px 20px;border-radius:100px;font-size:.84rem;font-weight:600;opacity:0;transition:all .25s;pointer-events:none;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.tst.on{opacity:1;transform:translateX(-50%) translateY(0);}
+.pill{display:inline-flex;align-items:center;gap:5px;background:var(--blxt);border:1px solid var(--blt);border-radius:100px;padding:4px 11px;font-size:.72rem;font-weight:700;color:var(--bl);}
+.period-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+.period-bar .f{margin-bottom:0;}
+.zelo-foot{background:linear-gradient(135deg,#0B1730 0%,#162E6B 55%,#1A56DB 100%);margin-top:24px;padding:16px 12px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.zelo-foot img{width:18px;height:18px;border-radius:6px;}
+.zelo-foot span{font-size:.66rem;font-weight:700;letter-spacing:.05em;font-family:'DM Mono',monospace;color:#fff;}
+.hint{font-size:.72rem;color:var(--tx3);margin-top:6px;line-height:1.5;}
+mark{background:#FEF08A;padding:0 2px;border-radius:3px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="hi">
+    <div class="ld"><img src="icons/logo.png" alt="ZELO" onerror="this.style.display='none'"/></div>
+    <div class="ht">
+      <h1>Psicologia — <em>Atendimento &amp; Estatística</em></h1>
+      <p>Hospital do Prenda · Registo diário de atendimentos e painel analítico</p>
+    </div>
+    <a href="index.html" class="home-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Início
+    </a>
+  </div>
+  <div class="tabs">
+    <button class="tab on" data-pane="menu" onclick="switchTab('menu')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Menu
+    </button>
+    <button class="tab" data-pane="atend" onclick="switchTab('atend')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      Atendimento
+    </button>
+    <button class="tab" data-pane="dash" onclick="switchTab('dash')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Dashboard
+    </button>
+    <button class="tab" data-pane="rel" onclick="switchTab('rel')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Relatórios
+    </button>
+    <button class="tab" data-pane="backup" onclick="switchTab('backup')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>
+      Cópia de Segurança
+    </button>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ============ PANE: MENU (Início) ============ -->
+<div class="pane on" id="pane-menu">
+  <div class="sec" style="background:linear-gradient(135deg,#0B1730,#1A56DB);border:none;color:#fff;">
+    <div class="sb" style="padding:20px;">
+      <h2 style="font-size:1.15rem;font-weight:800;color:#fff;">Bem-vindo ao Zelo · Psicologia</h2>
+      <p style="font-size:.82rem;color:rgba(255,255,255,.75);margin-top:6px;line-height:1.6;">Sistema de registo diário de atendimentos e estatística do serviço de Psicologia — Hospital do Prenda. Escolha uma área abaixo.</p>
+      <div class="grid g4" id="menu-stats" style="margin-top:16px;gap:10px;"></div>
+    </div>
+  </div>
+
+  <div class="grid g2" id="menu-cards"></div>
+</div>
+
+<!-- ============ PANE: ATENDIMENTO ============ -->
+<div class="pane" id="pane-atend">
+
+  <!-- Médicos -->
+  <div class="sec">
+    <div class="sh">
+      <div class="si igr"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+      <div class="st"><h2>Médicos / Psicólogos &amp; Consultórios</h2><p>Adicione os profissionais em atendimento e o nº do consultório</p></div>
+    </div>
+    <div class="sb">
+      <div class="grid g3" style="align-items:end;">
+        <div class="f full" style="margin-bottom:0;grid-column:1/-1;">
+          <div class="grid g3" style="align-items:end;">
+            <div class="f" style="margin-bottom:0;"><label>Nome do médico / psicólogo</label><input type="text" id="med-nome" placeholder="Ex.: Dra. Ana Cristina" onkeydown="if(event.key==='Enter'){event.preventDefault();addMedico();}"/></div>
+            <div class="f" style="margin-bottom:0;"><label>Consultório Nº</label><input type="text" id="med-cons" placeholder="Ex.: 3" onkeydown="if(event.key==='Enter'){event.preventDefault();addMedico();}"/></div>
+            <div class="f" style="margin-bottom:0;"><button class="btn btn-wide" onclick="addMedico()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Adicionar médico</button></div>
+          </div>
+        </div>
+      </div>
+      <div id="med-list" style="display:flex;flex-wrap:wrap;gap:9px;margin-top:14px;"></div>
+      <p class="hint">Clique num médico para seleccioná-lo como responsável do próximo atendimento.</p>
+    </div>
+  </div>
+
+  <!-- Novo atendimento -->
+  <div class="sec">
+    <div class="sh">
+      <div class="si ibl"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div>
+      <div class="st"><h2>Novo Atendimento</h2><p>Cada dia tem atendimento — registe cada paciente</p></div>
+    </div>
+    <div class="sb">
+      <div class="grid g4">
+        <div class="f"><label>Data<span class="req">*</span></label><input type="date" id="a-data"/></div>
+        <div class="f full" style="grid-column:span 3;"><label>Médico / Consultório<span class="req">*</span></label>
+          <select id="a-medico"><option value="">— seleccione o médico —</option></select>
+        </div>
+        <div class="f" style="grid-column:span 2;"><label>Nome do paciente<span class="req">*</span></label><input type="text" id="a-paciente" placeholder="Nome completo"/></div>
+        <div class="f"><label>Idade<span class="req">*</span></label><input type="number" id="a-idade" min="0" max="120" placeholder="anos" oninput="showFaixa()"/></div>
+        <div class="f"><label>Sexo<span class="req">*</span></label>
+          <select id="a-sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select>
+        </div>
+        <div class="f full" style="grid-column:span 2;"><label>Diagnóstico<span class="req">*</span> <span id="faixa-hint" class="pill" style="float:right;text-transform:none;letter-spacing:0;"></span></label>
+          <input type="search" id="a-diag" list="diag-list" placeholder="Escreva para pesquisar entre os diagnósticos..." autocomplete="off"/>
+          <datalist id="diag-list"></datalist>
+        </div>
+        <div class="f full" style="grid-column:span 2;"><label>Proveniência — morada do paciente<span class="req">*</span></label>
+          <input type="search" id="a-prov" list="prov-list" placeholder="Morada / bairro de residência do paciente..." autocomplete="off"/>
+          <datalist id="prov-list"></datalist>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
+        <button class="btn gr btn-wide" style="flex:1;" onclick="addAtendimento()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Registar atendimento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista do dia -->
+  <div class="sec">
+    <div class="sh">
+      <div class="si ipu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+      <div class="st"><h2>Atendimentos do dia</h2><p id="dia-sub">—</p></div>
+      <span class="pill" id="dia-count" style="margin-left:auto;">0</span>
+    </div>
+    <div class="sb" style="padding:0;">
+      <div class="tbl-wrap">
+        <table class="dt" id="tbl-dia">
+          <thead><tr><th>#</th><th>Paciente</th><th>Idade</th><th>Faixa</th><th>Sexo</th><th>Diagnóstico</th><th>Proveniência</th><th>Médico / Consult.</th><th></th></tr></thead>
+          <tbody id="tbody-dia"></tbody>
+        </table>
+      </div>
+      <div id="dia-empty" class="empty">Sem atendimentos registados para esta data.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ PANE: DASHBOARD ============ -->
+<div class="pane" id="pane-dash">
+  <div class="sec">
+    <div class="sh">
+      <div class="si iam"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="st"><h2>Período de análise</h2><p>Diário · semanal · mensal · trimestral · semestral · anual</p></div>
+    </div>
+    <div class="sb">
+      <div class="period-bar">
+        <div class="f"><label>Período</label>
+          <select id="d-periodo" onchange="renderDash()">
+            <option value="dia">Diário</option>
+            <option value="semana">Semanal</option>
+            <option value="mes" selected>Mensal</option>
+            <option value="trimestre">Trimestral</option>
+            <option value="semestre">Semestral</option>
+            <option value="ano">Anual</option>
+          </select>
+        </div>
+        <div class="f"><label>Data de referência</label><input type="date" id="d-ref" onchange="renderDash()"/></div>
+        <div class="f"><label>Filtrar diagnóstico</label><select id="d-fdiag" onchange="renderDash()"><option value="">Todos</option></select></div>
+        <div class="f"><label>&nbsp;</label><button class="btn out" onclick="renderDash()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Actualizar</button></div>
+        <div class="f" style="margin-left:auto;"><label>&nbsp;</label><button class="btn gr" onclick="exportRelatorioPDF()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Relatório PDF</button></div>
+      </div>
+      <div style="margin-top:12px;"><span class="pill" id="d-range">—</span></div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid g4" id="kpi-row" style="margin-bottom:14px;"></div>
+  <div class="grid g3" id="kpi-row2" style="margin-bottom:6px;"></div>
+
+  <div class="sl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Tendência</div>
+  <div class="chart-card" style="margin-bottom:14px;">
+    <div class="cc-head">
+      <h3>Tendência de atendimentos</h3>
+      <div class="f" style="margin:0;"><select id="t-gran" onchange="renderTendencia()" style="padding:6px 28px 6px 10px;font-size:.78rem;">
+        <option value="dia">Por dia (últimos 30)</option>
+        <option value="semana">Por semana (últimas 16)</option>
+        <option value="mes" selected>Por mês (últimos 12)</option>
+        <option value="ano">Por ano</option>
+      </select></div>
+      <div class="cc-actions"><button onclick="dlPNG('c-tend','Tendencia')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button onclick="dlPDF('c-tend','Tendência de atendimentos')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div>
+    </div>
+    <div class="cc-body"><canvas id="c-tend"></canvas></div>
+  </div>
+
+  <div class="sl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Distribuições gerais</div>
+  <div class="grid g2">
+    <div class="chart-card"><div class="cc-head"><h3>Sexo</h3><div class="cc-actions"><button onclick="dlPNG('c-sexo','Sexo')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button onclick="dlPDF('c-sexo','Atendimentos por sexo')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="cc-body"><canvas id="c-sexo"></canvas></div></div>
+    <div class="chart-card"><div class="cc-head"><h3>Menor de 15 vs 15 e mais</h3><div class="cc-actions"><button onclick="dlPNG('c-15','Idade15')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button onclick="dlPDF('c-15','Atendimentos < 15 vs ≥ 15')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="cc-body"><canvas id="c-15"></canvas></div></div>
+    <div class="chart-card"><div class="cc-head"><h3>Atendimentos por faixa etária</h3><div class="cc-actions"><button onclick="dlPNG('c-faixa','Faixa')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button onclick="dlPDF('c-faixa','Atendimentos por faixa etária')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="cc-body"><canvas id="c-faixa"></canvas></div></div>
+    <div class="chart-card"><div class="cc-head"><h3>Top diagnósticos</h3><div class="cc-actions"><button onclick="dlPNG('c-topdiag','TopDiagnosticos')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button onclick="dlPDF('c-topdiag','Top diagnósticos')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="cc-body"><canvas id="c-topdiag"></canvas></div></div>
+  </div>
+
+  <div class="sl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Diagnóstico por género e faixa etária</div>
+  <div class="grid g2">
+    <div class="chart-card"><div class="cc-head"><h3>Diagnóstico por género</h3><div class="cc-actions"><button onclick="dlPNG('c-dg','DiagGenero')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button onclick="dlPDF('c-dg','Diagnóstico por género')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="cc-body"><canvas id="c-dg"></canvas></div></div>
+    <div class="chart-card"><div class="cc-head"><h3>Diagnóstico por faixa etária</h3><div class="cc-actions"><button onclick="dlPNG('c-df','DiagFaixa')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button onclick="dlPDF('c-df','Diagnóstico por faixa etária')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="cc-body"><canvas id="c-df"></canvas></div></div>
+  </div>
+
+  <div class="sl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Proveniência por diagnóstico e faixa etária</div>
+  <div class="grid g2">
+    <div class="chart-card"><div class="cc-head"><h3>Proveniência por diagnóstico</h3><div class="cc-actions"><button onclick="dlPNG('c-pd','ProvDiag')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button onclick="dlPDF('c-pd','Proveniência por diagnóstico')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="cc-body"><canvas id="c-pd"></canvas></div></div>
+    <div class="chart-card"><div class="cc-head"><h3>Proveniência por faixa etária</h3><div class="cc-actions"><button onclick="dlPNG('c-pf','ProvFaixa')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>PNG</button><button onclick="dlPDF('c-pf','Proveniência por faixa etária')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="cc-body"><canvas id="c-pf"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ============ PANE: RELATÓRIOS (tabelas) ============ -->
+<div class="pane" id="pane-rel">
+  <div class="sec">
+    <div class="sh">
+      <div class="si ipk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div class="st"><h2>Relatórios em tabela</h2><p>Cruzamentos detalhados do período seleccionado no Dashboard</p></div>
+      <button class="btn out sm" style="margin-left:auto;" onclick="switchTab('dash')">Alterar período</button>
+    </div>
+    <div class="sb"><span class="pill" id="r-range">—</span> <span class="hint" style="display:inline;">Os relatórios usam o mesmo período do Dashboard.</span></div>
+  </div>
+
+  <div class="sl">Diagnóstico × Género × Faixa etária</div>
+  <div class="chart-card" style="margin-bottom:14px;"><div class="cc-head"><h3>Diagnóstico por género e faixa etária</h3><div class="cc-actions"><button onclick="dlTablePDF('t-dgf','Diagnóstico por género e faixa etária')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="tbl-wrap" style="padding:0;"><div id="t-dgf"></div></div></div>
+
+  <div class="sl">Proveniência × Diagnóstico</div>
+  <div class="chart-card" style="margin-bottom:14px;"><div class="cc-head"><h3>Proveniência por diagnóstico</h3><div class="cc-actions"><button onclick="dlTablePDF('t-pd','Proveniência por diagnóstico')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="tbl-wrap" style="padding:0;"><div id="t-pd"></div></div></div>
+
+  <div class="sl">Proveniência × Faixa etária</div>
+  <div class="chart-card" style="margin-bottom:14px;"><div class="cc-head"><h3>Proveniência por faixa etária</h3><div class="cc-actions"><button onclick="dlTablePDF('t-pf','Proveniência por faixa etária')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="tbl-wrap" style="padding:0;"><div id="t-pf"></div></div></div>
+
+  <div class="sl">Resumo por diagnóstico (&lt; 15 / ≥ 15)</div>
+  <div class="chart-card"><div class="cc-head"><h3>Diagnóstico · menor de 15 e 15+ · por sexo</h3><div class="cc-actions"><button onclick="dlTablePDF('t-res','Resumo por diagnóstico')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>PDF</button></div></div><div class="tbl-wrap" style="padding:0;"><div id="t-res"></div></div></div>
+</div>
+
+<!-- ============ PANE: CÓPIA DE SEGURANÇA ============ -->
+<div class="pane" id="pane-backup">
+  <div class="sec">
+    <div class="sh">
+      <div class="si icy"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg></div>
+      <div class="st"><h2>Cópia de Segurança</h2><p>Guarde e restaure os dados do serviço · ficheiro JSON</p></div>
+    </div>
+    <div class="sb">
+      <div class="grid g4" id="backup-stats" style="margin-bottom:16px;"></div>
+
+      <div class="sl" style="margin-top:4px;">Guardar cópia</div>
+      <p class="hint" style="margin-top:0;margin-bottom:10px;">Descarrega um ficheiro <strong>.json</strong> com todos os atendimentos, médicos e moradas. Guarde-o num local seguro (pen, e-mail, nuvem). Recomenda-se uma cópia ao final de cada dia.</p>
+      <button class="btn gr btn-wide" onclick="exportJSON()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descarregar cópia de segurança (JSON)</button>
+
+      <div class="sl">Restaurar cópia</div>
+      <p class="hint" style="margin-top:0;margin-bottom:10px;">Carrega um ficheiro de cópia anteriormente guardado. <strong>Substitui</strong> os dados atuais neste dispositivo.</p>
+      <button class="btn out btn-wide" onclick="document.getElementById('imp').click()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Importar / restaurar dados</button>
+      <input type="file" id="imp" accept="application/json" style="display:none" onchange="importJSON(event)"/>
+
+      <div class="sl">Outras opções</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn out sm" onclick="seedDemo()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6l2.1 2.1m0-12.8l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Adicionar dados de exemplo</button>
+        <button class="btn sm" style="background:#FEE2E2;color:#991B1B;box-shadow:none;" onclick="wipeAll()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>Apagar todos os dados</button>
+      </div>
+      <div style="margin-top:16px;background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:10px;padding:12px 14px;font-size:.78rem;color:#92400E;line-height:1.6;display:flex;gap:9px;align-items:flex-start;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Os dados são guardados <strong>neste dispositivo/navegador</strong>. Faça cópias de segurança regulares e não limpe os dados do navegador sem antes exportar.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<div class="zelo-foot"><img src="icons/logo.png" alt="ZELO" onerror="this.style.display='none'"/><span>ZELO · HOSPITAL DO PRENDA</span></div>
+<div class="tst" id="tst"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  DADOS DE REFERÊNCIA
+// ═══════════════════════════════════════════════════════════════════
+const DIAGNOSTICOS = [
+"Transtorno de Estresse pós-traumático","Depressão","Transtorno de comportamento","Transtorno de conduta",
+"HIV/SIDA","Hipertensão arterial + estresse","Dificuldade da aprendizagem","Ansiedade reativa",
+"Transtorno de Ansiedade","AVC","Ejaculação precoce","Transtorno erétil masculino","Diabetes / estresse",
+"Amputação dos membros superior","Hipertensão arterial / ansiedade","HIV/SIDA + depressão","Transtorno da Aprendizagem",
+"Transtorno Psicótico breve","Amputação dos membros inferior","HIV + hipertensão","Transtorno Factício","Desmaios",
+"Alcoolismo","Alcoolismo / dependência de drogas","Abuso de álcool","Abuso de drogas","Abuso de cannabis",
+"Transtornos de sono","Anorexia nervosa","Défice da atenção","Histeria de conversão","Labilidade emocional",
+"Transtorno bipolar","Paraplegia","Transtornos cognitivo","Transtorno delirante","Autismo","Transtorno de ajustamento",
+"Personalidade paranóica","Traumatismo craniano","Tumores malignos","Transtorno obsessivo compulsivo","Esquizofrenia",
+"Insuficiência renal","Hepatite","Bulimia nervosa","Défice da memória","Transtornos de pânico","Ataque de pânico",
+"Epilepsia","Histerectomia","Abuso sexual","Transtorno esquizoafetivo","Transtorno de sintomas somáticos",
+"Transtorno dismórfico corporal","Transtorno do controlo dos impulsos","Transtorno de ansiedade de doença",
+"Transtorno do espectro autista",
+"SFAC Problemas espirituais/religiosos","SFAC Luto mal elaborado","SFAC Jogo patológico","SFAC Tentativa de suicídio",
+"SFAC Não adesão ao tratamento","SFAC Simulação","SFAC Orientação aos familiares","SFAC Orientação ao casal",
+"SFAC Conflitos intra-pessoais","SFAC Conflitos inter-pessoais"
+];
+
+// Proveniência = morada / residência do paciente. Sugestões: bairros e municípios de Luanda.
+// A lista cresce automaticamente com cada nova morada registada.
+const PROVENIENCIAS_DEFAULT = [
+"Prenda","Maianga","Ingombota","Rangel","Sambizanga","Cazenga","Cacuaco","Viana","Kilamba Kiaxi","Belas",
+"Samba","Talatona","Golfe","Rocha Pinto","Cassenda","Vila Alice","Bairro Operário","Gamek","Camama","Benfica",
+"Palanca","Hoji Ya Henda","Kikolo","Zango","Mutamba","Nova Vida","Morro Bento","Patriota","Cacilhas"
+];
+
+// Faixas etárias solicitadas (0-4 incluída para não perder registos)
+const FAIXAS = ["0-4","5-9","10-14","15-24","25-44","45-64","65-74","75+"];
+function faixaDe(idade){
+  const a=parseInt(idade); if(isNaN(a))return "0-4";
+  if(a<=4)return"0-4"; if(a<=9)return"5-9"; if(a<=14)return"10-14"; if(a<=24)return"15-24";
+  if(a<=44)return"25-44"; if(a<=64)return"45-64"; if(a<=74)return"65-74"; return"75+";
+}
+const PALETTE=['#1A56DB','#059669','#D97706','#7C3AED','#DC2626','#0891B2','#DB2777','#65A30D','#EA580C','#4F46E5','#0D9488','#9333EA','#CA8A04','#E11D48','#2563EB','#16A34A'];
+
+// ═══════════════════════════════════════════════════════════════════
+//  ESTADO / PERSISTÊNCIA
+// ═══════════════════════════════════════════════════════════════════
+const K_ATEND='zelo_psico_atend_v1', K_MED='zelo_psico_medicos_v1', K_PROV='zelo_psico_prov_v1';
+let atendimentos = load(K_ATEND, []);
+let medicos      = load(K_MED, []);
+let provList     = load(K_PROV, PROVENIENCIAS_DEFAULT.slice());
+
+function load(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function save(){try{localStorage.setItem(K_ATEND,JSON.stringify(atendimentos));localStorage.setItem(K_MED,JSON.stringify(medicos));localStorage.setItem(K_PROV,JSON.stringify(provList));}catch(e){}}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+
+// ═══════════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function $(id){return document.getElementById(id);}
+function gv(id){return ($(id)||{}).value||'';}
+function toast(m){const t=$('tst');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600);}
+function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtBR(iso){if(!iso)return'';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════════════
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.pane===name));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+name));
+  if(name==='menu'){renderMenu();}
+  if(name==='dash'){renderDash();}
+  if(name==='rel'){renderRelatorios();}
+  if(name==='backup'){renderBackupStats();}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MENU (Início)
+// ═══════════════════════════════════════════════════════════════════
+const MENU_ITEMS=[
+  {tab:'atend',cls:'ibl',t:'Atendimento',d:'Registar médicos/consultórios e cada paciente atendido no dia (idade, sexo, diagnóstico, morada).',icon:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>'},
+  {tab:'dash',cls:'iam',t:'Dashboard',d:'Gráficos por período (diário a anual): sexo, faixa etária, <15 vs ≥15, diagnóstico por género/faixa, proveniência e tendência.',icon:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>'},
+  {tab:'rel',cls:'ipk',t:'Relatórios',d:'Tabelas cruzadas detalhadas: diagnóstico × género × faixa, proveniência × diagnóstico e × faixa. Exportáveis em PDF.',icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'},
+  {tab:'backup',cls:'icy',t:'Cópia de Segurança',d:'Guardar e restaurar todos os dados num ficheiro. Faça uma cópia ao final de cada dia.',icon:'<path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/>'}
+];
+function renderMenu(){
+  const t=todayISO();
+  const hoje=atendimentos.filter(a=>a.data===t).length;
+  const mes=atendimentos.filter(a=>a.data.slice(0,7)===t.slice(0,7)).length;
+  $('menu-stats').innerHTML=[
+    ['Atendimentos hoje',hoje],['Este mês',mes],['Total registado',atendimentos.length],['Médicos',medicos.length]
+  ].map(s=>`<div class="mstat"><div class="ml">${s[0]}</div><div class="mv">${s[1]}</div></div>`).join('');
+  $('menu-cards').innerHTML=MENU_ITEMS.map(m=>`<button class="mcard" onclick="switchTab('${m.tab}')">
+    <div class="mic ${m.cls}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${m.icon}</svg></div>
+    <div><h3>${m.t}</h3><p>${m.d}</p></div>
+    <svg class="arw" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>`).join('');
+}
+function renderBackupStats(){
+  const t=todayISO();
+  const el=$('backup-stats');if(!el)return;
+  el.innerHTML=[
+    kpi('b','Atendimentos',atendimentos.length,'no total'),
+    kpi('g','Médicos',medicos.length,'registados'),
+    kpi('p','Moradas',provList.length,'distintas'),
+    kpi('a','Último registo',atendimentos.length?fmtBR(atendimentos.map(a=>a.data).sort().slice(-1)[0]):'—','')
+  ].join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MÉDICOS
+// ═══════════════════════════════════════════════════════════════════
+let medicoSel=null;
+function addMedico(){
+  const nome=gv('med-nome').trim(), cons=gv('med-cons').trim();
+  if(!nome){toast('Indique o nome do médico');return;}
+  medicos.push({id:uid(),nome,cons});
+  $('med-nome').value='';$('med-cons').value='';
+  save();renderMedicos();fillMedicoSelect();toast('Médico adicionado');
+  $('med-nome').focus();
+}
+function removeMedico(id){
+  if(!confirm('Remover este médico?'))return;
+  medicos=medicos.filter(m=>m.id!==id);
+  if(medicoSel===id)medicoSel=null;
+  save();renderMedicos();fillMedicoSelect();
+}
+function renderMedicos(){
+  const box=$('med-list');
+  if(!medicos.length){box.innerHTML='<span class="hint">Nenhum médico adicionado ainda.</span>';return;}
+  box.innerHTML=medicos.map(m=>`<span class="chip ${medicoSel===m.id?'sel':''}" onclick="selMedico('${m.id}')">
+    <span>${esc(m.nome)}</span>${m.cons?`<small>· Consult. ${esc(m.cons)}</small>`:''}
+    <button onclick="event.stopPropagation();removeMedico('${m.id}')" title="Remover">×</button></span>`).join('');
+}
+function selMedico(id){
+  medicoSel=(medicoSel===id?null:id);
+  renderMedicos();
+  if(medicoSel){const m=medicos.find(x=>x.id===id);if(m)$('a-medico').value=id;}
+}
+function fillMedicoSelect(){
+  const sel=$('a-medico'),cur=sel.value;
+  sel.innerHTML='<option value="">— seleccione o médico —</option>'+medicos.map(m=>`<option value="${m.id}">${esc(m.nome)}${m.cons?' · Consult. '+esc(m.cons):''}</option>`).join('');
+  if(cur&&medicos.some(m=>m.id===cur))sel.value=cur;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DATALISTS
+// ═══════════════════════════════════════════════════════════════════
+function fillDatalists(){
+  $('diag-list').innerHTML=DIAGNOSTICOS.map(d=>`<option value="${esc(d)}">`).join('');
+  $('prov-list').innerHTML=provList.map(p=>`<option value="${esc(p)}">`).join('');
+}
+function showFaixa(){
+  const a=gv('a-idade');const h=$('faixa-hint');
+  if(a===''){h.textContent='';return;}
+  const f=faixaDe(a);h.textContent='Faixa '+f+(parseInt(a)<15?' · < 15':' · ≥ 15');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ATENDIMENTOS
+// ═══════════════════════════════════════════════════════════════════
+function addAtendimento(){
+  const data=gv('a-data'), medId=gv('a-medico'), pac=gv('a-paciente').trim(),
+        idade=gv('a-idade'), sexo=gv('a-sexo'), diag=gv('a-diag').trim(), prov=gv('a-prov').trim();
+  if(!data){toast('Indique a data');return;}
+  if(!medId){toast('Seleccione o médico');return;}
+  if(!pac){toast('Indique o nome do paciente');return;}
+  if(idade===''){toast('Indique a idade');return;}
+  if(!sexo){toast('Indique o sexo');return;}
+  if(!diag){toast('Indique o diagnóstico');return;}
+  if(!prov){toast('Indique a proveniência');return;}
+  const m=medicos.find(x=>x.id===medId)||{};
+  atendimentos.push({id:uid(),data,medId,medNome:m.nome||'',cons:m.cons||'',paciente:pac,idade:parseInt(idade),sexo,diag,prov});
+  // memorizar nova proveniência
+  if(!provList.includes(prov)){provList.push(prov);}
+  save();fillDatalists();
+  // limpar campos do paciente (mantém data e médico)
+  $('a-paciente').value='';$('a-idade').value='';$('a-sexo').value='';$('a-diag').value='';$('a-prov').value='';showFaixa();
+  renderDia();toast('Atendimento registado');
+  $('a-paciente').focus();
+}
+function removeAtend(id){
+  if(!confirm('Remover este atendimento?'))return;
+  atendimentos=atendimentos.filter(a=>a.id!==id);save();renderDia();
+}
+function renderDia(){
+  const data=gv('a-data')||todayISO();
+  const list=atendimentos.filter(a=>a.data===data).sort((a,b)=>a.id<b.id?-1:1);
+  $('dia-sub').textContent=fmtBR(data)+' · '+list.length+' atendimento(s)';
+  $('dia-count').textContent=list.length;
+  const tb=$('tbody-dia');
+  if(!list.length){tb.innerHTML='';$('dia-empty').style.display='block';return;}
+  $('dia-empty').style.display='none';
+  tb.innerHTML=list.map((a,i)=>`<tr>
+    <td>${i+1}</td>
+    <td><strong>${esc(a.paciente)}</strong></td>
+    <td>${a.idade}</td>
+    <td><span class="pill" style="padding:2px 8px;">${faixaDe(a.idade)}</span></td>
+    <td><span class="tag ${a.sexo==='M'?'m':'f'}">${a.sexo==='M'?'M':'F'}</span></td>
+    <td>${esc(a.diag)}</td>
+    <td>${esc(a.prov)}</td>
+    <td>${esc(a.medNome)}${a.cons?'<br><small style="color:#64748B;">Consult. '+esc(a.cons)+'</small>':''}</td>
+    <td><button class="del" onclick="removeAtend('${a.id}')" title="Remover"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></td>
+  </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PERÍODO
+// ═══════════════════════════════════════════════════════════════════
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const ys=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil((((t-ys)/86400000)+1)/7);}
+function computeRange(periodo,refISO){
+  const ref=new Date((refISO||todayISO())+'T12:00:00');
+  const y=ref.getFullYear(),mo=ref.getMonth(),da=ref.getDate();
+  let start,end,label;
+  if(periodo==='dia'){start=new Date(y,mo,da);end=new Date(y,mo,da);label='Dia '+fmtBR(refISO);}
+  else if(periodo==='semana'){const day=(ref.getDay()||7);start=new Date(y,mo,da-day+1);end=new Date(y,mo,da-day+7);label='Semana '+isoWeek(ref)+' · '+fmtBR(iso(start))+' a '+fmtBR(iso(end));}
+  else if(periodo==='mes'){start=new Date(y,mo,1);end=new Date(y,mo+1,0);label=start.toLocaleDateString('pt-PT',{month:'long',year:'numeric'});}
+  else if(periodo==='trimestre'){const q=Math.floor(mo/3);start=new Date(y,q*3,1);end=new Date(y,q*3+3,0);label=(q+1)+'º Trimestre '+y;}
+  else if(periodo==='semestre'){const s=mo<6?0:1;start=new Date(y,s*6,1);end=new Date(y,s*6+6,0);label=(s+1)+'º Semestre '+y;}
+  else{start=new Date(y,0,1);end=new Date(y,11,31);label='Ano '+y;}
+  return{start,end,label,startISO:iso(start),endISO:iso(end)};
+}
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function inRange(a,r){return a.data>=r.startISO&&a.data<=r.endISO;}
+function currentFiltered(){
+  const r=computeRange(gv('d-periodo'),gv('d-ref'));
+  const fdiag=gv('d-fdiag');
+  let list=atendimentos.filter(a=>inRange(a,r));
+  if(fdiag)list=list.filter(a=>a.diag===fdiag);
+  return{list,r,fdiag};
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════════════════
+const charts={};
+function mkChart(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg);}
+Chart.register({id:'whiteBg',beforeDraw:c=>{const x=c.ctx;x.save();x.globalCompositeOperation='destination-over';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.restore();}});
+Chart.defaults.font.family="'Inter',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.plugins.legend.labels.boxWidth=12;
+Chart.defaults.plugins.legend.labels.boxHeight=12;
+
+function fillDiagFilter(){
+  const sel=$('d-fdiag'),cur=sel.value;
+  const used=[...new Set(atendimentos.map(a=>a.diag))].sort();
+  sel.innerHTML='<option value="">Todos os diagnósticos</option>'+used.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  if(cur)sel.value=cur;
+}
+function countBy(list,keyFn){const m={};list.forEach(a=>{const k=keyFn(a);m[k]=(m[k]||0)+1;});return m;}
+function topN(mapObj,n){return Object.entries(mapObj).sort((a,b)=>b[1]-a[1]).slice(0,n);}
+
+function renderDash(){
+  if(!$('d-ref').value)$('d-ref').value=todayISO();
+  fillDiagFilter();
+  const{list,r}=currentFiltered();
+  $('d-range').textContent=r.label+' · '+list.length+' atendimento(s)';
+
+  // KPIs
+  const total=list.length;
+  const nM=list.filter(a=>a.sexo==='M').length, nF=list.filter(a=>a.sexo==='F').length;
+  const menor15=list.filter(a=>a.idade<15).length, maior15=total-menor15;
+  const nDiag=new Set(list.map(a=>a.diag)).size;
+  const nPac=new Set(list.map(a=>a.paciente.toLowerCase())).size;
+  const nMed=new Set(list.map(a=>a.medId)).size;
+  const pct=(x)=>total?Math.round(x/total*100)+'%':'0%';
+  $('kpi-row').innerHTML=[
+    kpi('b','Total atendimentos',total,'no período'),
+    kpi('g','Masculino',nM,pct(nM)),
+    kpi('k','Feminino',nF,pct(nF)),
+    kpi('p','Pacientes distintos',nPac,'')
+  ].join('');
+  $('kpi-row2').innerHTML=[
+    kpi('a','Menor de 15',menor15,pct(menor15)),
+    kpi('c','15 e mais',maior15,pct(maior15)),
+    kpi('b','Diagnósticos distintos',nDiag,nMed+' médico(s)')
+  ].join('');
+
+  renderTendencia();
+
+  // Sexo (doughnut)
+  mkChart('c-sexo',{type:'doughnut',data:{labels:['Masculino','Feminino'],datasets:[{data:[nM,nF],backgroundColor:['#1A56DB','#DB2777'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+
+  // <15 vs >=15
+  mkChart('c-15',{type:'doughnut',data:{labels:['Menor de 15','15 e mais'],datasets:[{data:[menor15,maior15],backgroundColor:['#D97706','#059669'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+
+  // Faixa etária (bar)
+  const porFaixa=FAIXAS.map(f=>list.filter(a=>faixaDe(a.idade)===f).length);
+  mkChart('c-faixa',{type:'bar',data:{labels:FAIXAS,datasets:[{label:'Atendimentos',data:porFaixa,backgroundColor:'#2563EB',borderRadius:5}]},options:barOpts()});
+
+  // Top diagnósticos (horizontal)
+  const td=topN(countBy(list,a=>a.diag),10);
+  mkChart('c-topdiag',{type:'bar',data:{labels:td.map(x=>x[0]),datasets:[{label:'Casos',data:td.map(x=>x[1]),backgroundColor:'#7C3AED',borderRadius:5}]},options:barOpts(true)});
+
+  // Diagnóstico por género (top 8 diag, datasets M/F)
+  const topDiag=topN(countBy(list,a=>a.diag),8).map(x=>x[0]);
+  mkChart('c-dg',{type:'bar',data:{labels:topDiag,datasets:[
+    {label:'Masculino',data:topDiag.map(d=>list.filter(a=>a.diag===d&&a.sexo==='M').length),backgroundColor:'#1A56DB',borderRadius:4},
+    {label:'Feminino',data:topDiag.map(d=>list.filter(a=>a.diag===d&&a.sexo==='F').length),backgroundColor:'#DB2777',borderRadius:4}
+  ]},options:barOpts(true,true)});
+
+  // Diagnóstico por faixa etária (x=faixa, stacked por top diag)
+  mkChart('c-df',{type:'bar',data:{labels:FAIXAS,datasets:topDiag.map((d,i)=>({label:d,data:FAIXAS.map(f=>list.filter(a=>a.diag===d&&faixaDe(a.idade)===f).length),backgroundColor:PALETTE[i%PALETTE.length]}))},options:stackOpts()});
+
+  // Proveniência por diagnóstico (x=prov top, stacked por top diag)
+  const topProv=topN(countBy(list,a=>a.prov),8).map(x=>x[0]);
+  mkChart('c-pd',{type:'bar',data:{labels:topProv,datasets:topDiag.slice(0,6).map((d,i)=>({label:d,data:topProv.map(p=>list.filter(a=>a.prov===p&&a.diag===d).length),backgroundColor:PALETTE[i%PALETTE.length]}))},options:stackOpts(true)});
+
+  // Proveniência por faixa etária (x=prov, stacked por faixa)
+  mkChart('c-pf',{type:'bar',data:{labels:topProv,datasets:FAIXAS.map((f,i)=>({label:f,data:topProv.map(p=>list.filter(a=>a.prov===p&&faixaDe(a.idade)===f).length),backgroundColor:PALETTE[i%PALETTE.length]}))},options:stackOpts(true)});
+}
+function kpi(cls,label,val,sub){return `<div class="kpi ${cls}"><div class="kl">${label}</div><div class="kv">${val}</div><div class="ks">${sub||'&nbsp;'}</div></div>`;}
+function barOpts(horizontal,legend){
+  return {responsive:true,maintainAspectRatio:false,indexAxis:horizontal?'y':'x',
+    plugins:{legend:{display:!!legend,position:'bottom'}},
+    scales:{
+      x:{grid:{display:!horizontal},ticks:{autoSkip:false,maxRotation:horizontal?0:60,font:{size:9}}},
+      y:{beginAtZero:true,ticks:{precision:0,font:{size:9}}}
+    }
+  };
+}
+function stackOpts(horizontal){
+  return {responsive:true,maintainAspectRatio:false,indexAxis:horizontal?'y':'x',
+    plugins:{legend:{position:'bottom',labels:{font:{size:9}}}},
+    scales:{
+      x:{stacked:true,ticks:{autoSkip:false,maxRotation:horizontal?0:55,font:{size:9}}},
+      y:{stacked:true,beginAtZero:true,ticks:{precision:0,font:{size:9}}}
+    }
+  };
+}
+
+function renderTendencia(){
+  const gran=gv('t-gran');
+  const fdiag=gv('d-fdiag');
+  let base=atendimentos.slice();
+  if(fdiag)base=base.filter(a=>a.diag===fdiag);
+  let labels=[],data=[];
+  const now=new Date();
+  if(gran==='dia'){
+    for(let i=29;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);const key=iso(d);labels.push(fmtBR(key).slice(0,5));data.push(base.filter(a=>a.data===key).length);}
+  }else if(gran==='semana'){
+    for(let i=15;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i*7);const wk=isoWeek(d);labels.push('S'+wk);const day=(d.getDay()||7);const s=iso(new Date(d.getFullYear(),d.getMonth(),d.getDate()-day+1));const e=iso(new Date(d.getFullYear(),d.getMonth(),d.getDate()-day+7));data.push(base.filter(a=>a.data>=s&&a.data<=e).length);}
+  }else if(gran==='mes'){
+    for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');labels.push(d.toLocaleDateString('pt-PT',{month:'short',year:'2-digit'}));data.push(base.filter(a=>a.data.slice(0,7)===key).length);}
+  }else{
+    const years=[...new Set(base.map(a=>a.data.slice(0,4)))].sort();
+    if(!years.length){years.push(String(now.getFullYear()));}
+    years.forEach(y=>{labels.push(y);data.push(base.filter(a=>a.data.slice(0,4)===y).length);});
+  }
+  mkChart('c-tend',{type:'line',data:{labels,datasets:[{label:'Atendimentos',data,borderColor:'#1A56DB',backgroundColor:'rgba(26,86,219,.12)',fill:true,tension:.3,pointRadius:3,pointBackgroundColor:'#1A56DB'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxRotation:60}},y:{beginAtZero:true,ticks:{precision:0}}}}});
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  RELATÓRIOS (tabelas cruzadas)
+// ═══════════════════════════════════════════════════════════════════
+function renderRelatorios(){
+  const{list,r}=currentFiltered();
+  $('r-range').textContent=r.label+' · '+list.length+' atendimento(s)';
+  const diags=[...new Set(list.map(a=>a.diag))].sort();
+  const provs=[...new Set(list.map(a=>a.prov))].sort();
+
+  // Diagnóstico × Género × Faixa
+  let h='<table class="dt"><thead><tr><th>Diagnóstico</th><th>M</th><th>F</th>'+FAIXAS.map(f=>'<th>'+f+'</th>').join('')+'<th>Total</th></tr></thead><tbody>';
+  diags.forEach(d=>{const sub=list.filter(a=>a.diag===d);
+    h+='<tr><td>'+esc(d)+'</td><td>'+sub.filter(a=>a.sexo==='M').length+'</td><td>'+sub.filter(a=>a.sexo==='F').length+'</td>'+
+       FAIXAS.map(f=>'<td>'+sub.filter(a=>faixaDe(a.idade)===f).length+'</td>').join('')+'<td><strong>'+sub.length+'</strong></td></tr>';});
+  h+=totalRow(list,FAIXAS)+'</tbody></table>';
+  $('t-dgf').innerHTML=diags.length?h:emptyTbl();
+
+  // Proveniência × Diagnóstico
+  let h2='<table class="dt"><thead><tr><th>Proveniência</th>'+diags.map(d=>'<th title="'+esc(d)+'">'+esc(d.length>18?d.slice(0,16)+'…':d)+'</th>').join('')+'<th>Total</th></tr></thead><tbody>';
+  provs.forEach(p=>{const sub=list.filter(a=>a.prov===p);
+    h2+='<tr><td><strong>'+esc(p)+'</strong></td>'+diags.map(d=>'<td>'+sub.filter(a=>a.diag===d).length+'</td>').join('')+'<td><strong>'+sub.length+'</strong></td></tr>';});
+  h2+='</tbody></table>';
+  $('t-pd').innerHTML=provs.length?h2:emptyTbl();
+
+  // Proveniência × Faixa
+  let h3='<table class="dt"><thead><tr><th>Proveniência</th>'+FAIXAS.map(f=>'<th>'+f+'</th>').join('')+'<th>< 15</th><th>≥ 15</th><th>Total</th></tr></thead><tbody>';
+  provs.forEach(p=>{const sub=list.filter(a=>a.prov===p);
+    h3+='<tr><td><strong>'+esc(p)+'</strong></td>'+FAIXAS.map(f=>'<td>'+sub.filter(a=>faixaDe(a.idade)===f).length+'</td>').join('')+
+        '<td>'+sub.filter(a=>a.idade<15).length+'</td><td>'+sub.filter(a=>a.idade>=15).length+'</td><td><strong>'+sub.length+'</strong></td></tr>';});
+  h3+='</tbody></table>';
+  $('t-pf').innerHTML=provs.length?h3:emptyTbl();
+
+  // Resumo por diagnóstico <15/>=15/sexo
+  let h4='<table class="dt"><thead><tr><th>Diagnóstico</th><th>&lt;15 M</th><th>&lt;15 F</th><th>≥15 M</th><th>≥15 F</th><th>Total</th></tr></thead><tbody>';
+  diags.forEach(d=>{const sub=list.filter(a=>a.diag===d);
+    h4+='<tr><td>'+esc(d)+'</td><td>'+sub.filter(a=>a.idade<15&&a.sexo==='M').length+'</td><td>'+sub.filter(a=>a.idade<15&&a.sexo==='F').length+
+        '</td><td>'+sub.filter(a=>a.idade>=15&&a.sexo==='M').length+'</td><td>'+sub.filter(a=>a.idade>=15&&a.sexo==='F').length+'</td><td><strong>'+sub.length+'</strong></td></tr>';});
+  h4+='</tbody></table>';
+  $('t-res').innerHTML=diags.length?h4:emptyTbl();
+}
+function totalRow(list,faixas){return '<tr style="background:#EFF6FF;font-weight:800;"><td><strong>TOTAL</strong></td><td>'+list.filter(a=>a.sexo==='M').length+'</td><td>'+list.filter(a=>a.sexo==='F').length+'</td>'+faixas.map(f=>'<td>'+list.filter(a=>faixaDe(a.idade)===f).length+'</td>').join('')+'<td><strong>'+list.length+'</strong></td></tr>';}
+function emptyTbl(){return '<div class="empty">Sem dados no período seleccionado.</div>';}
+
+// ═══════════════════════════════════════════════════════════════════
+//  EXPORTAÇÃO — imagem e PDF
+// ═══════════════════════════════════════════════════════════════════
+function dlPNG(canvasId,name){
+  const c=$(canvasId);if(!c)return;
+  const a=document.createElement('a');a.href=c.toDataURL('image/png',1);a.download='psicologia_'+name+'_'+todayISO()+'.png';a.click();
+  toast('Imagem descarregada');
+}
+function dlPDF(canvasId,title){
+  const c=$(canvasId);if(!c)return;
+  const{jsPDF}=window.jspdf;const pdf=new jsPDF('l','mm','a4');
+  const pw=pdf.internal.pageSize.getWidth();
+  pdf.setFillColor(13,27,62);pdf.rect(0,0,pw,20,'F');
+  pdf.setTextColor(255);pdf.setFontSize(13);pdf.text(title,10,10);
+  pdf.setFontSize(8);pdf.text('Hospital do Prenda · Psicologia · '+$('d-range').textContent,10,16);
+  const img=c.toDataURL('image/png',1);const iw=pw-20;const ih=iw*(c.height/c.width);
+  pdf.addImage(img,'PNG',10,28,iw,Math.min(ih,pdf.internal.pageSize.getHeight()-40));
+  pdf.save('psicologia_'+title.replace(/\s+/g,'_')+'_'+todayISO()+'.pdf');
+  toast('PDF gerado');
+}
+function dlTablePDF(divId,title){
+  const div=$(divId);if(!div)return;
+  const{jsPDF}=window.jspdf;const pdf=new jsPDF('l','mm','a4');
+  const pw=pdf.internal.pageSize.getWidth();
+  pdf.setFillColor(13,27,62);pdf.rect(0,0,pw,20,'F');
+  pdf.setTextColor(255);pdf.setFontSize(13);pdf.text(title,10,10);
+  pdf.setFontSize(8);pdf.text('Hospital do Prenda · Psicologia · '+$('r-range').textContent,10,16);
+  const table=div.querySelector('table');
+  if(!table){pdf.setTextColor(0);pdf.text('Sem dados.',10,30);pdf.save(title+'.pdf');return;}
+  let y=28;pdf.setTextColor(0);pdf.setFontSize(7);
+  const rows=[...table.querySelectorAll('tr')];
+  rows.forEach((tr,ri)=>{
+    const cells=[...tr.querySelectorAll('th,td')].map(td=>td.textContent.trim());
+    const colW=(pw-16)/cells.length;
+    if(ri===0){pdf.setFillColor(26,86,219);pdf.rect(8,y-4,pw-16,6,'F');pdf.setTextColor(255);}
+    else{pdf.setTextColor(20);if(ri%2===0){pdf.setFillColor(244,247,255);pdf.rect(8,y-4,pw-16,6,'F');}}
+    cells.forEach((c,ci)=>{pdf.text(String(c).slice(0,Math.floor(colW/1.6)),9+ci*colW,y);});
+    y+=6;if(y>pdf.internal.pageSize.getHeight()-10){pdf.addPage();y=15;}
+  });
+  pdf.save('psicologia_'+title.replace(/\s+/g,'_')+'_'+todayISO()+'.pdf');
+  toast('PDF gerado');
+}
+function exportRelatorioPDF(){
+  const{list,r}=currentFiltered();
+  const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');
+  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  pdf.setFillColor(13,27,62);pdf.rect(0,0,pw,26,'F');
+  pdf.setTextColor(255);pdf.setFontSize(15);pdf.text('Relatório de Psicologia',12,13);
+  pdf.setFontSize(9);pdf.text('Hospital do Prenda · '+r.label,12,20);
+  pdf.setFontSize(8);pdf.text('Gerado em '+fmtBR(todayISO()),pw-12,20,{align:'right'});
+  let y=36;pdf.setTextColor(20);
+  // KPIs
+  const nM=list.filter(a=>a.sexo==='M').length,nF=list.filter(a=>a.sexo==='F').length;
+  const m15=list.filter(a=>a.idade<15).length;
+  pdf.setFontSize(11);pdf.setTextColor(26,86,219);pdf.text('Resumo',12,y);y+=7;
+  pdf.setTextColor(20);pdf.setFontSize(9);
+  const kpis=[['Total de atendimentos',list.length],['Masculino',nM],['Feminino',nF],['Menor de 15',m15],['15 e mais',list.length-m15],['Diagnósticos distintos',new Set(list.map(a=>a.diag)).size]];
+  kpis.forEach(k=>{pdf.text('• '+k[0]+': '+k[1],14,y);y+=6;});
+  y+=4;
+  // gráficos principais
+  const graphs=[['c-tend','Tendência'],['c-faixa','Por faixa etária'],['c-dg','Diagnóstico por género'],['c-pd','Proveniência por diagnóstico']];
+  graphs.forEach(g=>{const c=$(g[0]);if(!c)return;
+    if(y>ph-70){pdf.addPage();y=15;}
+    pdf.setFontSize(10);pdf.setTextColor(26,86,219);pdf.text(g[1],12,y);y+=4;
+    const iw=pw-24,ih=iw*(c.height/c.width);pdf.addImage(c.toDataURL('image/png',1),'PNG',12,y,iw,ih);y+=ih+8;
+  });
+  pdf.save('Relatorio_Psicologia_'+r.label.replace(/\s+/g,'_')+'.pdf');
+  toast('Relatório PDF gerado');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  DADOS: exportar / importar / demo / limpar
+// ═══════════════════════════════════════════════════════════════════
+function exportJSON(){
+  const blob=new Blob([JSON.stringify({atendimentos,medicos,provList},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='psicologia_dados_'+todayISO()+'.json';a.click();
+  toast('Dados exportados');
+}
+function importJSON(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const rd=new FileReader();rd.onload=e=>{try{
+    const d=JSON.parse(e.target.result);
+    if(d.atendimentos)atendimentos=d.atendimentos;
+    if(d.medicos)medicos=d.medicos;
+    if(d.provList)provList=d.provList;
+    save();renderMedicos();fillMedicoSelect();fillDatalists();renderDia();
+    toast('Dados importados');
+  }catch(err){toast('Ficheiro inválido');}};
+  rd.readAsText(f);ev.target.value='';
+}
+function wipeAll(){
+  if(!confirm('Apagar TODOS os atendimentos, médicos e proveniências? Esta acção não pode ser anulada.'))return;
+  atendimentos=[];medicos=[];provList=PROVENIENCIAS_DEFAULT.slice();
+  save();renderMedicos();fillMedicoSelect();fillDatalists();renderDia();toast('Tudo apagado');
+}
+function seedDemo(){
+  if(atendimentos.length && !confirm('Já existem dados. Adicionar exemplos mesmo assim?'))return;
+  if(!medicos.length){medicos=[{id:uid(),nome:'Dra. Ana Cristina',cons:'1'},{id:uid(),nome:'Dr. Paulo Neves',cons:'2'}];}
+  const sexos=['M','F'],provs=PROVENIENCIAS_DEFAULT;
+  const now=new Date();
+  const nomes=['J. Silva','M. António','P. João','A. Manuel','C. Fernanda','L. Santos','R. Costa','T. Miguel','B. Sousa','F. Kiala','N. Domingos','E. Cardoso'];
+  for(let i=0;i<140;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-Math.floor(Math.random()*11),1+Math.floor(Math.random()*27));
+    const m=medicos[Math.floor(Math.random()*medicos.length)];
+    atendimentos.push({id:uid(),data:iso(d),medId:m.id,medNome:m.nome,cons:m.cons,
+      paciente:nomes[Math.floor(Math.random()*nomes.length)],
+      idade:2+Math.floor(Math.random()*84),sexo:sexos[Math.floor(Math.random()*2)],
+      diag:DIAGNOSTICOS[Math.floor(Math.random()*DIAGNOSTICOS.length)],
+      prov:provs[Math.floor(Math.random()*provs.length)]});
+  }
+  save();renderMedicos();fillMedicoSelect();fillDatalists();renderDia();toast('Dados de exemplo adicionados');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════════
+(function init(){
+  $('a-data').value=todayISO();
+  $('d-ref').value=todayISO();
+  $('a-data').addEventListener('change',renderDia);
+  renderMedicos();fillMedicoSelect();fillDatalists();renderDia();renderMenu();
+})();
+</script>
+</body>
+</html>
