@@ -262,9 +262,21 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-cat-toggle svg{transition:transform .18s ease;}
 .sb-cat-toggle.open svg{transform:rotate(90deg);}
 .sb-svc-list{max-height:0;overflow:hidden;transition:max-height .22s ease;}
-.sb-svc-list.open{max-height:900px;}
-.sb-svc-link{display:block;padding:7px 10px 7px 48px;font-size:.74rem;color:var(--tx3);text-decoration:none;border-radius:8px;}
+.sb-svc-list.open{max-height:1600px;}
+.sb-svc-row{display:flex;align-items:center;width:100%;}
+.sb-svc-link{display:block;flex:1;min-width:0;padding:7px 6px 7px 48px;font-size:.74rem;color:var(--tx3);text-decoration:none;border-radius:8px;}
 .sb-svc-link:hover{background:var(--sf);color:var(--bl);}
+.sb-svc-toggle{flex-shrink:0;width:20px;height:20px;margin-right:6px;border-radius:6px;background:none;border:none;color:var(--tx3);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.sb-svc-toggle:hover{background:var(--sf);color:var(--bl);}
+.sb-svc-toggle svg{transition:transform .18s ease;}
+.sb-svc-toggle.open svg{transform:rotate(90deg);}
+.sb-action-list{max-height:0;overflow:hidden;transition:max-height .2s ease;}
+.sb-action-list.open{max-height:300px;}
+.sb-action-link{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 66px;font-size:.7rem;font-weight:600;
+  color:var(--bl);text-decoration:none;border-radius:8px;}
+.sb-action-link::before{content:'';width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.sb-action-link:hover{background:var(--blxt);}
 
 .zelo-main{min-width:0;padding:24px 26px 40px;max-width:none;margin:0 0 0 var(--zelo-sidebar-w);}
 .zelo-main-inner{max-width:1100px;}
@@ -1213,9 +1225,14 @@ window.zeloApplyPermissoes = function(role, permissoes){
 // CATEGORIAS_SERVICOS) partilhados com servicos.html, e liga cada serviço a
 // uma âncora (#svc-...) nessa página em vez de tentar escolher uma das
 // várias acções possíveis (Relatório/Procedimentos/Movimento) por si só.
-function zeloServicoTemAcessoVisivel(svc, role, permissoes){
+function zeloAcaoVisivel(a, role, permissoes){
   var hasAccess = window.__zeloHasModuleAccess;
   if(typeof hasAccess !== 'function') return true; // ainda não carregou — não esconde nada por engano
+  return hasAccess(role, permissoes, a.modulo, a.item);
+}
+function zeloServicoTemAcessoVisivel(svc, role, permissoes){
+  var hasAccess = window.__zeloHasModuleAccess;
+  if(typeof hasAccess !== 'function') return true;
   function algum(lista){ return (lista||[]).some(function(a){ return hasAccess(role, permissoes, a.modulo, a.item); }); }
   if(algum(svc.relatorios) || algum(svc.procedimentos)) return true;
   return (svc.movimento||[]).some(function(m){ return hasAccess(role, permissoes, m.modulo); });
@@ -1237,7 +1254,29 @@ function zeloConstruirArvoreServicos(){
     var itens = porCategoria[cat.id];
     if(!itens || !itens.length) return;
     var svcHtml = itens.map(function(svc){
-      return '<a class="sb-svc-link" href="servicos.html#svc-' + slugify(svc.nome) + '" data-svc-nome="' + svc.nome.replace(/"/g,'&quot;') + '">' + svc.nome + '</a>';
+      var slug = slugify(svc.nome);
+      // Acesso rápido directo ao destino (Relatório(s) Diário(s) + Movimento
+      // Hospitalar) -- em vez de só saltar para o cartão em servicos.html e
+      // obrigar a mais um clique lá para escolher a acção.
+      var acoes = [];
+      (svc.relatorios||[]).forEach(function(r){
+        acoes.push({ label: r.label, href: r.file, modulo: r.modulo, item: r.item });
+      });
+      (svc.movimento||[]).forEach(function(m){
+        acoes.push({ label: m.label, href: 'movimento_mensal.html?servico=' + m.slug, modulo: m.modulo, item: null });
+      });
+      var acoesHtml = acoes.map(function(a){
+        return '<a class="sb-action-link" href="' + a.href + '" data-modulo="' + a.modulo + '"' +
+          (a.item ? ' data-item="' + a.item + '"' : '') + '>' + a.label + '</a>';
+      }).join('');
+      var temAcoes = acoes.length > 0;
+      return '<div class="sb-svc" data-svc-nome="' + svc.nome.replace(/"/g,'&quot;') + '">' +
+        '<div class="sb-svc-row">' +
+          '<a class="sb-svc-link" href="servicos.html#svc-' + slug + '">' + svc.nome + '</a>' +
+          (temAcoes ? '<button type="button" class="sb-svc-toggle" data-svc-toggle="' + slug + '" aria-expanded="false" title="Acesso rápido"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' : '') +
+        '</div>' +
+        (temAcoes ? '<div class="sb-action-list" data-svc-actions="' + slug + '">' + acoesHtml + '</div>' : '') +
+      '</div>';
     }).join('');
     html += '<div class="sb-cat" data-cat-id="' + cat.id + '">' +
       '<div class="sb-cat-row">' +
@@ -1258,6 +1297,16 @@ function zeloConstruirArvoreServicos(){
       if(list) list.classList.toggle('open', abrir);
     });
   });
+  tree.querySelectorAll('[data-svc-toggle]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var slug = btn.dataset.svcToggle;
+      var list = tree.querySelector('[data-svc-actions="' + slug + '"]');
+      var abrir = !btn.classList.contains('open');
+      btn.classList.toggle('open', abrir);
+      btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+      if(list) list.classList.toggle('open', abrir);
+    });
+  });
 }
 function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){
   var tree = document.getElementById('sbServicosTree');
@@ -1265,12 +1314,22 @@ function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){
   var menu = window.SERVICOS_MENU || [];
   var porNome = {};
   menu.forEach(function(svc){ porNome[svc.nome] = svc; });
+  tree.querySelectorAll('.sb-svc').forEach(function(svcEl){
+    var algumaAcaoVisivel = false;
+    svcEl.querySelectorAll('.sb-action-link').forEach(function(link){
+      var visivel = zeloAcaoVisivel({ modulo: link.dataset.modulo, item: link.dataset.item }, role, permissoes);
+      link.style.display = visivel ? '' : 'none';
+      if(visivel) algumaAcaoVisivel = true;
+    });
+    var toggle = svcEl.querySelector('.sb-svc-toggle');
+    if(toggle) toggle.style.display = algumaAcaoVisivel ? '' : 'none';
+  });
   tree.querySelectorAll('.sb-cat').forEach(function(catEl){
     var algumVisivel = false;
-    catEl.querySelectorAll('.sb-svc-link').forEach(function(link){
-      var svc = porNome[link.dataset.svcNome];
+    catEl.querySelectorAll('.sb-svc').forEach(function(svcEl){
+      var svc = porNome[svcEl.dataset.svcNome];
       var visivel = !svc || zeloServicoTemAcessoVisivel(svc, role, permissoes);
-      link.style.display = visivel ? '' : 'none';
+      svcEl.style.display = visivel ? '' : 'none';
       if(visivel) algumVisivel = true;
     });
     catEl.style.display = algumVisivel ? '' : 'none';
