@@ -615,6 +615,8 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     </div>
     <span class="date-disp" id="date-disp">—</span>
     <span class="sync-info" id="sync-info"><svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Guardado</span>
+    <span class="sync-info" id="last-saved-status" style="display:none;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></span>
+    <button class="btn-h btn-out" id="ver-historico-btn" style="display:none;" onclick="abrirHistoricoAlteracoes()"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Histórico</button>
     <button class="btn-h btn-save" onclick="saveAll()"><svg class="svc-icon" aria-hidden="true"><use href="#i-save"/></svg> Guardar</button>
     <button class="btn-h btn-out wa" onclick="acaoWA()" title="Enviar PDF por WhatsApp"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg> WhatsApp</button>
     <button class="btn-h btn-out email" onclick="acaoEmail()" title="Enviar PDF por Email"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Email</button>
@@ -838,6 +840,19 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
 </div>
 
 <!-- RESTORE CONFIRM MODAL -->
+<!-- HISTÓRICO DE ALTERAÇÕES DO DIA -->
+<div class="modal-overlay" id="historico-alteracoes-modal">
+  <div class="modal-box">
+    <h3>🕘 Histórico de Alterações — <span id="historico-alteracoes-date">—</span></h3>
+    <div id="historico-alteracoes-lista" style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px;margin:12px 0;">
+      <div style="color:var(--muted);font-size:.85rem;padding:12px 4px;">A carregar…</div>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn cancel" onclick="fecharHistoricoAlteracoes()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="restoreModal">
   <div class="modal-box">
     <h3>Restaurar Backup</h3>
@@ -1455,8 +1470,12 @@ function persist(date) {
     _fbUltimoEnvioSavedAt[d] = _fbSavedAt; // é a nossa própria gravação — não avisar sobre ela
     zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + d, {savedAt: _fbSavedAt, snapshot: buildFirebaseSnapshot(data)});
     try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + d, _fbSavedAt); }catch(e){}
+    _registarHistoricoAlteracao(d, data, _fbSavedAt);
   }
   setSyncInfo('<svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Guardado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
+  _mostrarHoraGuardado();
+  const histBtn = document.getElementById('ver-historico-btn');
+  if (histBtn) histBtn.style.display = 'inline-flex';
 }
 
 // ── Sincronização em tempo real ───────────────────────────────────────────
@@ -1467,6 +1486,100 @@ function persist(date) {
 // silenciosamente o que o utilizador possa estar a editar.
 const _FB_SAVEDAT_PREFIX = 'proc_fb_savedAt_' + FB_SLUG + '_';
 const _fbUltimoEnvioSavedAt = {};
+
+function _escHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Mostra quem gravou por último e a que horas — nome/quando são opcionais:
+// por omissão usa o utilizador desta sessão e a hora actual (gravação feita
+// agora); ao reabrir um dia já existente passamos os valores de criadoPor/_ts
+// guardados, para reflectir quem gravou por último mesmo que não tenha sido
+// nesta sessão.
+function _mostrarHoraGuardado(nome, quando){
+  const now = quando ? new Date(quando) : new Date();
+  const hhmm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const nameEl = document.getElementById('last-saved-name');
+  const timeEl = document.getElementById('last-saved-time');
+  const wrapEl = document.getElementById('last-saved-status');
+  if (nameEl) nameEl.textContent = nome || sessionStorage.getItem('zeloNome') || 'Utilizador';
+  if (timeEl) timeEl.textContent = hhmm;
+  if (wrapEl) wrapEl.style.display = 'inline';
+}
+
+// ── Histórico de alterações do dia (quem gravou, quando) ───────────────────
+// O auto-save aqui é frequente (dispara ~800ms após qualquer pausa a
+// escrever, em qualquer dos muitos campos da grelha) — registar uma entrada
+// por cada gravação encheria o histórico de dezenas de entradas quase
+// idênticas numa única sessão de preenchimento. Em vez disso, só regista uma
+// nova entrada se já passaram pelo menos 2 minutos desde a última gravada
+// para este dia (neste dispositivo) — dá pontos de controlo úteis sem ruído.
+const _ULTIMO_HISTORICO_MS = 2 * 60 * 1000;
+const _ultimoHistoricoTs = {};
+function _resumoAlteracaoProc(data){
+  let nPreenchidos = 0;
+  Object.values(data.specs || {}).forEach(sp => {
+    ['dia','noite'].forEach(turno => {
+      Object.values(sp?.[turno] || {}).forEach(v => { if (v !== null && v !== undefined && v !== 0) nPreenchidos++; });
+    });
+  });
+  return `Guardou registo do dia (${nPreenchidos} campo(s) preenchido(s))`;
+}
+async function _registarHistoricoAlteracao(date, data, savedAt){
+  if (typeof zeloQueueWrite !== 'function' || !date) return;
+  const agora = Date.now();
+  if (_ultimoHistoricoTs[date] && (agora - _ultimoHistoricoTs[date]) < _ULTIMO_HISTORICO_MS) return;
+  _ultimoHistoricoTs[date] = agora;
+  try{
+    const chave = savedAt.replace(/[.#$/\[\]]/g, '_');
+    await zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + date + '/historico/' + chave, {
+      nome: sessionStorage.getItem('zeloNome') || 'Utilizador',
+      email: sessionStorage.getItem('zeloEmail') || null,
+      ts: savedAt,
+      resumo: _resumoAlteracaoProc(data)
+    });
+  }catch(e){ console.warn('ZELO: falha ao registar histórico de alterações.', e); }
+}
+async function abrirHistoricoAlteracoes(){
+  const date = currentLoadedDate;
+  const modal = document.getElementById('historico-alteracoes-modal');
+  const lista = document.getElementById('historico-alteracoes-lista');
+  const dateLabel = document.getElementById('historico-alteracoes-date');
+  if (!modal || !lista) return;
+  if (dateLabel && date){
+    const [y,m,dd] = date.split('-');
+    dateLabel.textContent = `${dd}/${m}/${y}`;
+  }
+  lista.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:12px 4px;">A carregar…</div>';
+  modal.classList.add('open');
+  if (!date || !window.__fbGet){
+    lista.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:12px 4px;">Sincronização indisponível de momento.</div>';
+    return;
+  }
+  try{
+    const entradas = await window.__fbGet('registos_enf/' + FB_SLUG + '/' + date + '/historico');
+    if (!entradas){
+      lista.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:12px 4px;">Ainda sem histórico registado para este dia.</div>';
+      return;
+    }
+    const ordenadas = Object.values(entradas).sort((a,b) => (b.ts||'').localeCompare(a.ts||''));
+    lista.innerHTML = ordenadas.map(e => {
+      const dt = e.ts ? new Date(e.ts) : null;
+      const hhmm = dt ? `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}` : '—';
+      return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:.82rem;">
+        <div style="font-weight:700;color:var(--accent);">${hhmm} · ${_escHtml(e.nome || 'Utilizador')}</div>
+        <div style="color:var(--muted);margin-top:2px;">${_escHtml(e.resumo || '')}</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.warn('ZELO: falha ao carregar histórico de alterações.', e);
+    lista.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:12px 4px;">Falha ao carregar o histórico — tente novamente.</div>';
+  }
+}
+function fecharHistoricoAlteracoes(){
+  const modal = document.getElementById('historico-alteracoes-modal');
+  if (modal) modal.classList.remove('open');
+}
 // O IndexedDB/armazenamento local costuma abrir muito mais depressa do que
 // o módulo do Firebase acaba de carregar da rede (sobretudo com Internet
 // lenta) — sem isto, a escuta em tempo real podia correr ANTES de
@@ -1556,7 +1669,13 @@ function _fbMostrarAvisoNovosDados(remoto, date){
   const banner = document.createElement('div');
   banner.id = 'fb-novos-dados-banner';
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#1A56DB;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
-  banner.innerHTML = '<span>🔄 Outro utilizador guardou dados mais recentes para este dia.</span>' +
+  const autorNome = remoto?.snapshot?.raw?.criadoPor?.nome;
+  const quandoDt = remoto?.savedAt ? new Date(remoto.savedAt) : null;
+  const horaFmt = quandoDt ? `${String(quandoDt.getHours()).padStart(2,'0')}:${String(quandoDt.getMinutes()).padStart(2,'0')}` : null;
+  const msgAviso = autorNome
+    ? `🔄 Dados mais recentes guardados por <strong>${_escHtml(autorNome)}</strong>${horaFmt ? ' às ' + horaFmt : ''}.`
+    : '🔄 Outro utilizador guardou dados mais recentes para este dia.';
+  banner.innerHTML = '<span>' + msgAviso + '</span>' +
     '<button type="button" data-act="atualizar" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>' +
     '<button type="button" data-act="dispensar" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.8rem;">Agora não</button>';
   // O botao "Atualizar" aplica explicitamente os dados pendentes ANTES de recarregar -- sem isto,
@@ -1638,6 +1757,10 @@ function loadFromStorage() {
   if(!raw) {
     clearDayState();
     setSyncInfo('📭 Sem dados para esta data');
+    const wrapEl = document.getElementById('last-saved-status');
+    const histBtn = document.getElementById('ver-historico-btn');
+    if (wrapEl) wrapEl.style.display = 'none';
+    if (histBtn) histBtn.style.display = 'none';
     _fbEscutarDia(currentLoadedDate);
     return;
   }
@@ -1655,6 +1778,11 @@ function loadFromStorage() {
 // IndexedDB local, ou um snapshot recebido do Firebase) — extraído de
 // loadFromStorage() para poder ser reutilizado sem recursão.
 function _popularProcedimentos(data) {
+  if (data.criadoPor?.nome && data._ts) {
+    _mostrarHoraGuardado(data.criadoPor.nome, data._ts);
+  }
+  const histBtn = document.getElementById('ver-historico-btn');
+  if (histBtn) histBtn.style.display = 'inline-flex';
   SPECIALTIES.forEach(sp => {
     if(sp.id === 'medicina' || sp.id === 'bloco_op') return;
     const spData = data.specs?.[sp.id];
@@ -2602,6 +2730,9 @@ function closeRestoreModal() {
 }
 document.getElementById('restoreModal').addEventListener('click', function(e){
   if(e.target===this) closeRestoreModal();
+});
+document.getElementById('historico-alteracoes-modal').addEventListener('click', function(e){
+  if(e.target===this) fecharHistoricoAlteracoes();
 });
 
 // ════════════════════════════════════════════════════════════
