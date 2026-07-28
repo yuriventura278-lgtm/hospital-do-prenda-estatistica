@@ -2369,14 +2369,24 @@ function _fbEsperarPronto(timeoutMs){
   });
 }
 let _fbCancelarEscuta = null;
-function _fbMostrarAvisoNovosDados(){
+function _fbMostrarAvisoNovosDados(remoto, date){
   if (document.getElementById('fb-novos-dados-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'fb-novos-dados-banner';
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#1A56DB;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
   banner.innerHTML = '<span>🔄 Outro utilizador guardou dados mais recentes para este dia.</span>' +
     '<button type="button" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>';
-  banner.querySelector('button').onclick = () => window.location.reload();
+  // O botao aplica explicitamente os dados pendentes ANTES de recarregar -- sem isto,
+  // recarregar nao mudava nada localmente e o aviso reaparecia sempre, preso num ciclo.
+  banner.querySelector('button').onclick = () => {
+    if (remoto && date){
+      try{
+        LS.setItem(sk(date), JSON.stringify(remoto.snapshot));
+        localStorage.setItem(_FB_LAB_SAVEDAT_PREFIX + date, remoto.savedAt);
+      }catch(e){}
+    }
+    window.location.reload();
+  };
   document.body.insertBefore(banner, document.body.firstChild);
 }
 async function _fbEscutarDia(date){
@@ -2400,7 +2410,7 @@ async function _fbEscutarDia(date){
       if (date !== currentDate) return;
       // Nunca substituir dados locais já existentes sem confirmação, mesmo sem carimbo do Firebase
       // (podem ser anteriores a esta sincronização) -- mostra o aviso em vez de aplicar sozinho.
-      if (LS.getItem(sk(date))) { _fbMostrarAvisoNovosDados(); return; }
+      if (LS.getItem(sk(date))) { _fbMostrarAvisoNovosDados(remoto, date); return; }
       try{
         LS.setItem(sk(date), JSON.stringify(remoto.snapshot));
         try{ localStorage.setItem(_FB_LAB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
@@ -2408,7 +2418,7 @@ async function _fbEscutarDia(date){
       }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes do Laboratório.', e); }
       return;
     }
-    _fbMostrarAvisoNovosDados();
+    _fbMostrarAvisoNovosDados(remoto, date);
   });
 }
 
