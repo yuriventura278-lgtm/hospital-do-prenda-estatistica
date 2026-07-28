@@ -1,0 +1,76 @@
+// ZELO — lista partilhada dos serviços/especialidades, usada por servicos.html.
+// Cada serviço junta, num só bloco, o Banco/Relatório Diário + Procedimentos de
+// Enfermagem + Movimento Hospitalar que existirem para essa especialidade — sem
+// agrupar por categoria, é uma lista única.
+//
+// modulo/item de cada ação corresponde exatamente ao que a própria página de
+// destino já verifica (zelo_pagegate.js / zeloAuthGate / renderPicker), por
+// isso escondemos um botão aqui sem nunca mudar o acesso real a essa página.
+const SERVICOS_MENU = [
+  { nome: 'Cirurgia Geral', icon: 'stretcher', cor: '#DC2626',
+    banco: { file: 'Cirurgia_Geral.html', modulo: 'servicos', item: 'cirurgia_geral' },
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_cirurgia_geral.html', modulo: 'procedimentos_enfermagem', item: 'cirurgia_geral' }],
+    movimento: [{ label: 'Movimento Hospitalar', slug: 'cirurgia_geral', modulo: 'movimento_mensal' }] },
+  { nome: 'Ortopedia', icon: 'bone', cor: '#DC2626',
+    banco: { file: 'Ortopedia.html', modulo: 'servicos', item: 'ortopedia' },
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_ortopedia.html', modulo: 'procedimentos_enfermagem', item: 'ortopedia' }],
+    movimento: [{ label: 'Movimento Hospitalar', slug: 'ortopedia', modulo: 'movimento_mensal' }] },
+  { nome: 'Neurocirurgia', icon: 'brain', cor: '#DC2626',
+    banco: { file: 'Neurocirurgia.html', modulo: 'servicos', item: 'neurocirurgia' },
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_neurocirurgia.html', modulo: 'procedimentos_enfermagem', item: 'neurocirurgia' }],
+    movimento: [{ label: 'Movimento Hospitalar', slug: 'neurocirurgia', modulo: 'movimento_mensal' }] },
+  { nome: 'Cirurgia Maxilo-Facial', icon: 'jaw', cor: '#DC2626',
+    banco: { file: 'Cirurgia_Maxilo_Facial.html', modulo: 'servicos', item: 'maxilo_facial' },
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_maxilo_facial.html', modulo: 'procedimentos_enfermagem', item: 'maxilo_facial' }],
+    movimento: [{ label: 'Movimento Hospitalar', slug: 'maxilo_facial', modulo: 'movimento_mensal' }] },
+  { nome: 'Oftalmologia', icon: 'eye', cor: '#DC2626',
+    banco: { file: 'Oftalmologia.html', modulo: 'servicos', item: 'oftalmologia' } },
+  { nome: 'Otorrinolaringologia', icon: 'ear', cor: '#DC2626',
+    banco: { file: 'Otorrinolaringologia.html', modulo: 'servicos', item: 'otorrinolaringologia' } },
+  { nome: 'Bloco Operatório', icon: 'scissors', cor: '#B91C1C',
+    banco: { file: 'bloco_operatorio_registo_diario.html', modulo: 'sistemas_independentes', item: 'bloco_operatorio_registo_diario' } },
+  { nome: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
+    banco: { file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' },
+    procedimentos: [
+      { label: 'Procedimentos · Homem', file: 'procedimentos_enfermagem_medicina_homem.html', modulo: 'procedimentos_enfermagem', item: 'medicina_homem' },
+      { label: 'Procedimentos · Mulher', file: 'procedimentos_enfermagem_medicina_mulher.html', modulo: 'procedimentos_enfermagem', item: 'medicina_mulher' },
+    ],
+    movimento: [
+      { label: 'Movimento · Homem', slug: 'medicina_homem', modulo: 'movimento_mensal' },
+      { label: 'Movimento · Mulher', slug: 'medicina_mulher', modulo: 'movimento_mensal' },
+    ] },
+  { nome: 'Nefrologia', icon: 'droplet', cor: '#7C3AED',
+    banco: { file: 'Banco_Nefrologia_v2-1.html', modulo: 'servicos', item: 'nefrologia' },
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_nefrologia.html', modulo: 'procedimentos_enfermagem', item: 'nefrologia' }],
+    movimento: [{ label: 'Movimento Hospitalar', slug: 'nefrologia', modulo: 'movimento_mensal' }] },
+  { nome: 'UCI / Cuidados Intermédios', icon: 'activity', cor: '#7C3AED',
+    banco: { file: 'banco_uci_v1-3-1-1.html', modulo: 'servicos', item: 'uci_cuidados_intermedios' },
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_uci_cuidados_intermedios.html', modulo: 'procedimentos_enfermagem', item: 'uci_cuidados_intermedios' }],
+    movimento: [{ label: 'Movimento Hospitalar', slug: 'uci_cuidados_intermedios', modulo: 'movimento_mensal' }] },
+  { nome: 'Fisioterapia', icon: 'users', cor: '#7C3AED',
+    banco: { file: 'banco_fisioterapia_v1-1-1.html', modulo: 'servicos', item: 'fisioterapia' } },
+  { nome: 'Laboratório', icon: 'flask', cor: '#0EA5E9',
+    banco: { file: 'laboratorio_geral.html', modulo: 'sistemas_independentes', item: 'laboratorio_geral' } },
+  { nome: 'Imagiologia', icon: 'scan', cor: '#0EA5E9',
+    banco: { file: 'imagiologia_radiologia_geral.html', modulo: 'sistemas_independentes', item: 'imagiologia_radiologia_geral' } },
+  { nome: 'Hemoterapia', icon: 'droplet', cor: '#BE123C',
+    banco: { file: 'hemoterapia.html', modulo: 'sistemas_independentes', item: 'hemoterapia' } },
+  { nome: 'Consulta Externa', icon: 'door', cor: '#059669',
+    banco: { file: 'consulta_externa_geral.html', modulo: 'sistemas_independentes', item: 'consulta_externa_geral' } },
+  { nome: 'Banco de Urgência', icon: 'shield', cor: '#059669',
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_banco_urgencia.html', modulo: 'procedimentos_enfermagem', item: 'banco_urgencia' }] },
+  { nome: 'Hospital de Dia', icon: 'clipboard', cor: '#059669',
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_hospital_dia.html', modulo: 'procedimentos_enfermagem', item: 'hospital_dia' }] },
+  { nome: 'Psicologia Clínica', icon: 'head', cor: '#059669',
+    banco: { file: 'psicologia_clinica_hp-1-3-1.html', modulo: 'servicos', item: 'psicologia_clinica' } },
+  { nome: 'Farmácia', icon: 'bank', cor: '#0D9488',
+    banco: { file: 'farmacia_central.html', modulo: 'sistemas_independentes', item: 'farmacia_central' } },
+  { nome: 'Supervisão do Hospital', icon: 'shield', cor: '#334155', wip: true,
+    banco: { file: 'Supervisao_Hospital.html', modulo: 'servicos', item: 'supervisao_hospital' } },
+  { nome: 'Supervisão Serviclean', icon: 'sparkles', cor: '#334155', wip: true,
+    banco: { file: 'Supervisao_Serviclean.html', modulo: 'servicos', item: 'supervisao_serviclean' } },
+  { nome: 'Supervisão de Maqueiros', icon: 'move', cor: '#334155', wip: true,
+    banco: { file: 'Supervisao_Maqueiros.html', modulo: 'servicos', item: 'supervisao_maqueiros' } },
+];
+
+if (typeof window !== 'undefined') window.SERVICOS_MENU = SERVICOS_MENU;
