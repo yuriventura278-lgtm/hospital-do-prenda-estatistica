@@ -867,7 +867,7 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
       <button class="bopt" onclick="doBackupGeral()">
         <strong>Geral</strong><span>Todos os registos guardados</span>
       </button>
-      <button class="bopt" onclick="reenviarTudoParaFirebase()">
+      <button class="bopt" id="btn-admin-reenviar-tudo" style="display:none;" onclick="reenviarTudoParaFirebase()">
         <strong>Reenviar p/ Firebase</strong><span>Envia todos os dias guardados neste dispositivo</span>
       </button>
     </div>
@@ -1527,6 +1527,10 @@ async function _fbSyncArmazenado(date){
 // sincronização, para os dias antigos (só locais) passarem a existir lá
 // também.
 async function reenviarTudoParaFirebase(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+    return;
+  }
   if (!window.__fbReady){
     if (typeof showToast === 'function') showToast('Firebase indisponível de momento');
     return;
@@ -2462,6 +2466,9 @@ function openBackup() {
   document.getElementById('backupSemanaInput').value = currentLoadedDate;
   document.getElementById('backupMesPicker').style.display = 'none';
   document.getElementById('backupMesInput').value = currentLoadedDate.slice(0,7);
+  var _ehAdmin = sessionStorage.getItem('zeloRole') === 'admin';
+  var _btnReenviar = document.getElementById('btn-admin-reenviar-tudo');
+  if (_btnReenviar) _btnReenviar.style.display = _ehAdmin ? '' : 'none';
   document.getElementById('backupModal').classList.add('open');
 }
 function closeBackupModal() {
