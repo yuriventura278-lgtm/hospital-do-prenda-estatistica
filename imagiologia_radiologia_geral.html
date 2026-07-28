@@ -2309,6 +2309,14 @@ renderECOTable();
 renderRXTable();
 updateKPIs();
 loadDay(document.getElementById('data-registo').value);
+
+// Deep-link do menu ZELO: abre diretamente Historico/Exportacao/Estatisticas via ?abrir=
+(function(){
+  var _abrir = new URLSearchParams(location.search).get('abrir');
+  if (_abrir === 'historico' && typeof showSection === 'function') showSection('historico', null);
+  if (_abrir === 'exportar' && typeof showSection === 'function') showSection('exportar', null);
+  if (_abrir === 'estatisticas' && typeof showSection === 'function') showSection('estatisticas', null);
+})();
 </script>
 <script src="zelo_theme.js"></script>
 </body>

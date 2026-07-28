@@ -1736,6 +1736,13 @@ document.getElementById('ov').addEventListener('click',e=>{if(e.target===documen
   const d=document.getElementById('data');const df=document.getElementById('data-fim');
   if(d)d.value=fmt(yesterday);if(df)df.value=fmt(today);
 })();
+
+// Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
+(function(){
+  var _abrir = new URLSearchParams(location.search).get('abrir');
+  if (_abrir === 'historico' && typeof mostrarHistorico === 'function') mostrarHistorico();
+  if (_abrir === 'exportar' && typeof visualizar === 'function') visualizar();
+})();
 </script>
 <script src="zelo_theme.js"></script>
 </body>

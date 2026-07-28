@@ -1791,6 +1791,13 @@ function exportJSON(){
   a.download="hemoterapia_backup_"+todayKey()+".json"; a.click();
   toast("Backup JSON exportado","success");
 }
+
+// Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
+(function(){
+  var _abrir = new URLSearchParams(location.search).get('abrir');
+  if (_abrir === 'historico' && typeof showSection === 'function') showSection('sec-historico', null);
+  if (_abrir === 'exportar' && typeof exportDayPDF === 'function') exportDayPDF();
+})();
 </script>
 </body>
 </html>

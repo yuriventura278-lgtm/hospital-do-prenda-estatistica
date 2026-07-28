@@ -1543,6 +1543,13 @@ function removeConsProf(idx){
   renderConsList();
   ss();
 }
+
+// Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
+(function(){
+  var _abrir = new URLSearchParams(location.search).get('abrir');
+  if (_abrir === 'historico' && typeof historicoRegisto === 'function') historicoRegisto();
+  if (_abrir === 'exportar' && typeof visualizar === 'function') visualizar();
+})();
 </script>
 
 <!-- MODAL VISUALIZAR -->

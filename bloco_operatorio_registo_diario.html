@@ -2164,6 +2164,17 @@ document.querySelectorAll('.nav-item').forEach(tab => {
   });
 });
 
+// Deep-link do menu ZELO: abre diretamente Historico/Exportacao/Estatisticas via ?abrir=
+// Adiado com setTimeout para so correr depois de todo o script (ex: let _statsCache
+// mais abaixo) ja ter sido avaliado - um clique sincrono aqui rebentava com
+// "Cannot access '_statsCache' before initialization".
+setTimeout(function(){
+  var _abrir = new URLSearchParams(location.search).get('abrir');
+  if (_abrir === 'historico') { var t = document.querySelector('.nav-item[data-section="hist_diario"]'); if (t) t.click(); }
+  if (_abrir === 'exportar' && typeof exportPDF === 'function') exportPDF();
+  if (_abrir === 'estatisticas') { var e = document.querySelector('.nav-item[data-section="estatisticas"]'); if (e) e.click(); }
+}, 0);
+
 // ── MENU MOBILE (drawer) ──
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');

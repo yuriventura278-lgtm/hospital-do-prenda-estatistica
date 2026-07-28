@@ -644,11 +644,13 @@ const ICONS = {
   move: '<path d="M5 9 2 12l3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>',
   bank: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
   nurse: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
 };
 function icon(name){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||ICONS.clipboard}</svg>`;}
 function acaoIcon(tipo){
   if(tipo==='procedimentos') return icon('nurse');
   if(tipo==='movimento') return icon('activity');
+  if(tipo==='estatisticas') return icon('chart');
   return icon('bank');
 }
 
@@ -667,15 +669,19 @@ function podeVerAcao(modulo, item){
 
 function buildActions(svc){
   const acts = [];
-  if(svc.banco && podeVerAcao(svc.banco.modulo, svc.banco.item)){
-    acts.push({tipo:'banco', label:'Relatório Diário', file:svc.banco.file});
-  }
+  (svc.relatorios||[]).forEach(r=>{
+    if(podeVerAcao(r.modulo, r.item)) acts.push({tipo:'banco', label:r.label, file:r.file});
+  });
   (svc.procedimentos||[]).forEach(p=>{
     if(podeVerAcao(p.modulo, p.item)) acts.push({tipo:'procedimentos', label:p.label, file:p.file});
   });
   (svc.movimento||[]).forEach(m=>{
     if(podeVerAcao(m.modulo)) acts.push({tipo:'movimento', label:m.label, file:'movimento_mensal.html?servico='+m.slug});
   });
+  if(svc.temEstatisticas && svc.estatisticasFile){
+    const rel = (svc.relatorios||[]).find(r => r.file === svc.estatisticasFile);
+    if(!rel || podeVerAcao(rel.modulo, rel.item)) acts.push({tipo:'estatisticas', label:'Estatísticas', file:svc.estatisticasFile+'?abrir=estatisticas'});
+  }
   return acts;
 }
 

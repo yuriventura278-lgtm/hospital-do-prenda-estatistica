@@ -3866,6 +3866,13 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     });
   }, 'runSplash');
 });
+
+// Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
+(function(){
+  var _abrir = new URLSearchParams(location.search).get('abrir');
+  if (_abrir === 'historico' && typeof showSection === 'function') showSection('sec-historico', null);
+  if (_abrir === 'exportar' && typeof exportDailyPDF === 'function') exportDailyPDF();
+})();
 </script>
 </body>
 </html>

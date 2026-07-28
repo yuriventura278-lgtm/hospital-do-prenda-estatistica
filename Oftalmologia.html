@@ -3599,6 +3599,13 @@ function confirmarSave(){
 document.getElementById('ov2').addEventListener('click',e=>{if(e.target===document.getElementById('ov2'))closeValid();});
 document.getElementById('ov3').addEventListener('click',e=>{if(e.target===document.getElementById('ov3'))closePost();});
 
+// Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
+(function(){
+  var _abrir = new URLSearchParams(location.search).get('abrir');
+  if (_abrir === 'historico' && typeof historicoRegisto === 'function') historicoRegisto();
+  if (_abrir === 'exportar' && typeof visualizar === 'function') visualizar();
+})();
+
 </script>
 <script src="zelo_theme.js"></script>
 </body>

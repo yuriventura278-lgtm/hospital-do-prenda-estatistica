@@ -1390,6 +1390,11 @@ CE.Store = (function(){
   CE._goTo = activate;
   CE.nav = activate;
 
+  // Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
+  var _abrir = new URLSearchParams(location.search).get('abrir');
+  if (_abrir === 'historico') activate('historico');
+  if (_abrir === 'exportar') activate('relatorio');
+
   /* menu hambúrguer (mobile) */
   CE.$('btn-menu').addEventListener('click', function(){
     CE.$('sidebar').classList.toggle('open');
