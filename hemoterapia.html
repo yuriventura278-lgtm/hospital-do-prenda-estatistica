@@ -745,7 +745,17 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
   </main>
 </div>
 
-<div class="save-bar"><div class="save-status"><strong id="sync-info"><svg class="ic"><use href="#ic-check"/></svg> Guardado</strong></div><button class="btn-h btn-save" onclick="saveAllData()"><svg class='ic'><use href='#ic-save'/></svg> Guardar</button></div>
+<div class="save-bar"><div class="save-status"><strong id="sync-info"><svg class="ic"><use href="#ic-check"/></svg> Guardado</strong><span id="last-saved-status" style="display:none;font-size:.7rem;color:var(--muted,#64748B);margin-left:8px;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></span></div><button type="button" id="ver-historico-btn" onclick="abrirHistoricoAlteracoes()" style="display:none;background:transparent;border:1px solid #CBD5E1;color:#334155;border-radius:6px;padding:6px 12px;font-size:.76rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">Histórico</button><button class="btn-h btn-save" onclick="saveAllData()"><svg class='ic'><use href='#ic-save'/></svg> Guardar</button></div>
+
+<div id="historico-alteracoes-modal" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.72);backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;max-width:440px;width:100%;max-height:80vh;overflow:auto;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;font-size:1rem;color:#0D1B3E;">Histórico de alterações — <span id="historico-alteracoes-date"></span></h3>
+      <button onclick="fecharHistoricoAlteracoes()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#64748B;">✕</button>
+    </div>
+    <div id="historico-alteracoes-lista"></div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -1235,13 +1245,91 @@ async function _fbSyncHemoterapia(date){
     if (!rec) return;
     const savedAt = new Date().toISOString();
     _fbUltimoEnvioSavedAt[date] = savedAt; // marca este envio para nos ignorarmos a nós próprios quando o listener ecoar
+    const criadoPor = {nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null};
     await zeloQueueWrite('registos_sistemas_locais/hemoterapia/' + date, {
       savedAt: savedAt,
-      snapshot: rec
+      snapshot: rec,
+      criadoPor: criadoPor
     });
     try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+    _mostrarHoraGuardado(criadoPor.nome, savedAt);
+    _registarHistoricoAlteracao(date, savedAt);
   }catch(e){ console.warn('ZELO: falha ao sincronizar Hemoterapia com o Firebase', e); }
 }
+
+// ── Autoria e histórico de alterações (quem gravou, quando) ────────────────
+function _escHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function _mostrarHoraGuardado(nome, quando){
+  const now = quando ? new Date(quando) : new Date();
+  const hhmm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const nameEl = document.getElementById('last-saved-name');
+  const timeEl = document.getElementById('last-saved-time');
+  const wrapEl = document.getElementById('last-saved-status');
+  if (nameEl) nameEl.textContent = nome || sessionStorage.getItem('zeloNome') || 'Utilizador';
+  if (timeEl) timeEl.textContent = hhmm;
+  if (wrapEl) wrapEl.style.display = 'inline';
+  const histBtn = document.getElementById('ver-historico-btn');
+  if (histBtn) histBtn.style.display = 'inline-flex';
+}
+const _ULTIMO_HISTORICO_MS = 2 * 60 * 1000;
+const _ultimoHistoricoTs = {};
+function _registarHistoricoAlteracao(date, savedAt){
+  if (typeof zeloQueueWrite !== 'function' || !date) return;
+  const agora = Date.now();
+  if (_ultimoHistoricoTs[date] && (agora - _ultimoHistoricoTs[date]) < _ULTIMO_HISTORICO_MS) return;
+  _ultimoHistoricoTs[date] = agora;
+  const chave = savedAt.replace(/[.#$/\[\]]/g, '_');
+  zeloQueueWrite('registos_sistemas_locais/hemoterapia/' + date + '/historico/' + chave, {
+    nome: sessionStorage.getItem('zeloNome') || 'Utilizador',
+    email: sessionStorage.getItem('zeloEmail') || null,
+    ts: savedAt,
+    resumo: 'Guardou o registo do dia'
+  });
+}
+async function abrirHistoricoAlteracoes(){
+  const date = currentData.date || (document.getElementById('data-registo')?document.getElementById('data-registo').value:'');
+  const modal = document.getElementById('historico-alteracoes-modal');
+  const lista = document.getElementById('historico-alteracoes-lista');
+  const dateLabel = document.getElementById('historico-alteracoes-date');
+  if (!modal || !lista) return;
+  if (dateLabel && date){
+    const [y,m,dd] = date.split('-');
+    dateLabel.textContent = `${dd}/${m}/${y}`;
+  }
+  lista.innerHTML = '<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">A carregar…</div>';
+  modal.style.display = 'flex';
+  if (!date || !window.__fbGet){
+    lista.innerHTML = '<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">Sincronização indisponível de momento.</div>';
+    return;
+  }
+  try{
+    const hist = await window.__fbGet('registos_sistemas_locais/hemoterapia/' + date + '/historico');
+    if (!hist){
+      lista.innerHTML = '<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">Sem histórico registado para este dia.</div>';
+      return;
+    }
+    const entradas = Object.values(hist).sort(function(a,b){ return new Date(b.ts) - new Date(a.ts); });
+    lista.innerHTML = entradas.map(function(e){
+      const d = new Date(e.ts);
+      const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return '<div style="padding:10px 4px;border-bottom:1px solid #F1F5F9;font-size:.84rem;">' +
+        '<strong>' + _escHtml(e.nome || 'Utilizador') + '</strong> às ' + hhmm +
+        '<div style="color:#64748B;font-size:.78rem;margin-top:2px;">' + _escHtml(e.resumo || '') + '</div>' +
+      '</div>';
+    }).join('');
+  }catch(e){
+    lista.innerHTML = '<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">Falha ao carregar o histórico.</div>';
+  }
+}
+function fecharHistoricoAlteracoes(){
+  const modal = document.getElementById('historico-alteracoes-modal');
+  if (modal) modal.style.display = 'none';
+}
+document.getElementById('historico-alteracoes-modal').addEventListener('click', function(e){
+  if (e.target === this) fecharHistoricoAlteracoes();
+});
 
 // ── Sincronização em tempo real com o Firebase (fonte oficial) ───────────
 // Ao abrir um dia: se o Firebase tiver uma versão mais recente do que a
@@ -1309,6 +1397,7 @@ async function _fbEscutarDia(date){
   _fbCancelarEscuta = window.__fbListen('registos_sistemas_locais/hemoterapia/' + date, async function(remoto){
     const savedAt = remoto && remoto.savedAt;
     if (!savedAt || !remoto.snapshot){ primeira = false; return; }
+    if (remoto.criadoPor) _mostrarHoraGuardado(remoto.criadoPor.nome, savedAt);
     if (savedAt === _fbUltimoEnvioSavedAt[date]){ primeira = false; return; } // eco do nosso próprio envio
     if (primeira){
       primeira = false;
