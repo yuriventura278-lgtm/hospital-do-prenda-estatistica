@@ -327,6 +327,8 @@ function closeSplash(){
     <div class="pt"><div id="pf"></div></div>
     <span id="pp">0%</span>
     <span class="as-ind" id="autosave-ind"></span>
+    <span id="last-saved-status" style="display:none;font-size:.62rem;color:rgba(255,255,255,.75);white-space:nowrap;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></span>
+    <button type="button" id="ver-historico-btn" onclick="abrirHistoricoAlteracoes()" style="display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:100px;padding:3px 10px;font-size:.62rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Histórico</button>
     <div id="turno-pill" style="flex-shrink:0;display:flex;align-items:center;gap:5px;border-radius:100px;padding:3px 10px 3px 7px;font-size:.62rem;font-weight:700;letter-spacing:.04em;white-space:nowrap;border:1px solid transparent;"></div>
   </div>
 </header>
@@ -739,6 +741,15 @@ function closeSplash(){
   </div>
 </div>
 
+<div id="historico-alteracoes-modal" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.72);backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;max-width:440px;width:100%;max-height:80vh;overflow:auto;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;font-size:1rem;color:#0D1B3E;">Histórico de alterações — <span id="historico-alteracoes-date"></span></h3>
+      <button onclick="fecharHistoricoAlteracoes()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#64748B;">✕</button>
+    </div>
+    <div id="historico-alteracoes-lista"></div>
+  </div>
+</div>
 
 <div id="toast"></div>
 <div id="seq-toast"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span id="seq-toast-msg"></span></div>
@@ -3542,6 +3553,9 @@ async function sincronizarHistoricoFirebase(){
         if(d===dataAberta) dataAbertaAtualizada=r;
       }
     });
+    if(dataAberta && remoto[dataAberta] && remoto[dataAberta].criadoPor){
+      _mostrarHoraGuardado(remoto[dataAberta].criadoPor.nome, remoto[dataAberta].savedAt);
+    }
     const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt)).slice(0,30);
     localStorage.setItem('orl_v1_hist', JSON.stringify(merged));
     // Se outro dispositivo guardou uma versão mais recente do dia atualmente
@@ -3587,12 +3601,91 @@ function confirmarSave(){
     while(hist.length>30)hist.pop();
     localStorage.setItem('orl_v1_hist',JSON.stringify(hist));
     enviarParaFirebase(dataHoje, hist[0]);
+    const _savedAtAgora = new Date().toISOString();
+    _mostrarHoraGuardado(sessionStorage.getItem('zeloNome'), _savedAtAgora);
+    _registarHistoricoAlteracao(dataHoje, _savedAtAgora);
     if(wasUpdate)toast('✓ Registo do dia actualizado!');
     else toast('✓ Registo guardado com sucesso!');
   }catch(e){toast('✓ Registo guardado com sucesso!');}
   // Mostrar opções pós-save
   setTimeout(()=>{document.getElementById('ov3').style.display='flex';},400);
 }
+
+// ── Autoria e histórico de alterações (quem gravou, quando) ────────────────
+function _escHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function _mostrarHoraGuardado(nome, quando){
+  const now = quando ? new Date(quando) : new Date();
+  const hhmm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const nameEl = document.getElementById('last-saved-name');
+  const timeEl = document.getElementById('last-saved-time');
+  const wrapEl = document.getElementById('last-saved-status');
+  if (nameEl) nameEl.textContent = nome || sessionStorage.getItem('zeloNome') || 'Utilizador';
+  if (timeEl) timeEl.textContent = hhmm;
+  if (wrapEl) wrapEl.style.display = 'inline';
+  const histBtn = document.getElementById('ver-historico-btn');
+  if (histBtn) histBtn.style.display = 'inline-flex';
+}
+const _ULTIMO_HISTORICO_MS = 2 * 60 * 1000;
+const _ultimoHistoricoTs = {};
+async function _registarHistoricoAlteracao(date, savedAt){
+  if (typeof zeloQueueWrite !== 'function' || !date) return;
+  const agora = Date.now();
+  if (_ultimoHistoricoTs[date] && (agora - _ultimoHistoricoTs[date]) < _ULTIMO_HISTORICO_MS) return;
+  _ultimoHistoricoTs[date] = agora;
+  try{
+    const chave = savedAt.replace(/[.#$/\[\]]/g, '_');
+    await zeloQueueWrite(FB_PATH + '/' + date + '/historico/' + chave, {
+      nome: sessionStorage.getItem('zeloNome') || 'Utilizador',
+      email: sessionStorage.getItem('zeloEmail') || null,
+      ts: savedAt,
+      resumo: 'Guardou o registo do dia'
+    });
+  }catch(e){ console.warn('ZELO: falha ao registar histórico de alterações.', e); }
+}
+async function abrirHistoricoAlteracoes(){
+  const date = (typeof gv==='function')?gv('data'):'';
+  const modal = document.getElementById('historico-alteracoes-modal');
+  const lista = document.getElementById('historico-alteracoes-lista');
+  const dateLabel = document.getElementById('historico-alteracoes-date');
+  if (!modal || !lista) return;
+  if (dateLabel && date){
+    const [y,m,dd] = date.split('-');
+    dateLabel.textContent = `${dd}/${m}/${y}`;
+  }
+  lista.innerHTML = '<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">A carregar…</div>';
+  modal.style.display = 'flex';
+  if (!date || !window.__fbGet){
+    lista.innerHTML = '<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">Sincronização indisponível de momento.</div>';
+    return;
+  }
+  try{
+    const hist = await window.__fbGet(FB_PATH + '/' + date + '/historico');
+    if (!hist){
+      lista.innerHTML = '<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">Sem histórico registado para este dia.</div>';
+      return;
+    }
+    const entradas = Object.values(hist).sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+    lista.innerHTML = entradas.map(function(e){
+      const d = new Date(e.ts);
+      const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return '<div style="padding:10px 4px;border-bottom:1px solid #F1F5F9;font-size:.84rem;">' +
+        '<strong>' + _escHtml(e.nome || 'Utilizador') + '</strong> às ' + hhmm +
+        '<div style="color:#64748B;font-size:.78rem;margin-top:2px;">' + _escHtml(e.resumo || '') + '</div>' +
+      '</div>';
+    }).join('');
+  }catch(e){
+    lista.innerHTML = '<div style="color:#64748B;font-size:.85rem;padding:12px 4px;">Falha ao carregar o histórico.</div>';
+  }
+}
+function fecharHistoricoAlteracoes(){
+  const modal = document.getElementById('historico-alteracoes-modal');
+  if (modal) modal.style.display = 'none';
+}
+document.getElementById('historico-alteracoes-modal').addEventListener('click', function(e){
+  if (e.target === this) fecharHistoricoAlteracoes();
+});
 
 // Close modals on backdrop click
 document.getElementById('ov2').addEventListener('click',e=>{if(e.target===document.getElementById('ov2'))closeValid();});
