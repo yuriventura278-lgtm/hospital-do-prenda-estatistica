@@ -209,6 +209,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--rd2);bac
     <div class="pt"><div id="pf"></div></div>
     <span id="pp">0%</span>
     <span class="as-ind" id="autosave-ind"></span>
+    <span id="last-saved-status" style="display:none;font-size:.62rem;color:rgba(255,255,255,.75);white-space:nowrap;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></span>
   </div>
 </header>
 
@@ -506,7 +507,7 @@ function upd(){
     bd.textContent=d.toLocaleDateString('pt-PT',{day:'2-digit',month:'short'});bd.classList.add('on');
   }else bd.classList.remove('on');
 }
-function onPeriodChg(){upd();ss();}
+function onPeriodChg(){upd();ss();_mostrarAutoriaDoPeriodo();}
 
 // ── TOAST ──────────────────────────────────────────────────────
 let toastT;
@@ -557,6 +558,32 @@ function zeloMostrarGuardadoAs(){
   el.textContent='Guardado às '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
 }
 function ss(){try{localStorage.setItem('hiv_reg_v1',JSON.stringify(buildSnapshot()));}catch(e){}zeloMostrarGuardadoAs();}
+// ── Autoria (quem gravou, quando) ────────────────────────────────
+// Sem sincronização entre dispositivos (este módulo é só local) -- a
+// autoria vem do histórico já guardado no próprio dispositivo.
+function _mostrarHoraGuardado(nome,quando){
+  const now=quando?new Date(quando):new Date();
+  const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const nameEl=document.getElementById('last-saved-name');
+  const timeEl=document.getElementById('last-saved-time');
+  const wrapEl=document.getElementById('last-saved-status');
+  if(nameEl)nameEl.textContent=nome||sessionStorage.getItem('zeloNome')||'Utilizador';
+  if(timeEl)timeEl.textContent=hhmm;
+  if(wrapEl)wrapEl.style.display='inline';
+}
+function _mostrarAutoriaDoPeriodo(){
+  try{
+    const di=gv('data-inicio'),df=gv('data-fim');
+    if(!di||!df)return;
+    const hist=JSON.parse(localStorage.getItem('hiv_reg_v1_hist')||'[]');
+    const h=hist.find(x=>x.key===(di+'_'+df)&&!x.deleted);
+    if(h&&h.criadoPor)_mostrarHoraGuardado(h.criadoPor.nome,h.savedAt);
+    else{
+      const wrapEl=document.getElementById('last-saved-status');
+      if(wrapEl)wrapEl.style.display='none';
+    }
+  }catch(e){}
+}
 function ls(){try{const raw=localStorage.getItem('hiv_reg_v1');if(!raw)return;applySnapshot(JSON.parse(raw));}catch(e){}}
 document.addEventListener('input',e=>{if(!e.target.closest('#ov')&&!e.target.closest('#ov2')){upd();ss();}});
 
@@ -629,9 +656,11 @@ function confirmarSave(){
     const key=snap.dataInicio+'_'+snap.dataFim;
     const idx=hist.findIndex(h=>h.key===key);
     const autor={nome:sessionStorage.getItem('zeloNome')||null,email:sessionStorage.getItem('zeloEmail')||null};
-    if(idx>=0){hist[idx]={key,savedAt:new Date().toISOString(),snapshot:snap,criadoPor:autor};const u=hist.splice(idx,1)[0];hist.unshift(u);toast('Registo actualizado!');}
-    else{hist.unshift({key,savedAt:new Date().toISOString(),snapshot:snap,criadoPor:autor});toast('Registo guardado!');}
+    const _savedAtAgora=new Date().toISOString();
+    if(idx>=0){hist[idx]={key,savedAt:_savedAtAgora,snapshot:snap,criadoPor:autor};const u=hist.splice(idx,1)[0];hist.unshift(u);toast('Registo actualizado!');}
+    else{hist.unshift({key,savedAt:_savedAtAgora,snapshot:snap,criadoPor:autor});toast('Registo guardado!');}
     localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));
+    _mostrarHoraGuardado(autor.nome,_savedAtAgora);
   }catch(e){toast('Registo guardado!');}
   document.getElementById('mo3-per').textContent=fmtPer();
   setTimeout(()=>{document.getElementById('ov3').style.display='flex';},400);
@@ -656,6 +685,7 @@ function historico(){
           <div style="font-size:.85rem;font-weight:700;color:var(--tx);">${fmtD(si)} - ${fmtD(sf)}</div>
           <span style="font-size:.65rem;color:var(--tx3);">${fmtDT(h.savedAt)}</span>
         </div>
+        ${h.criadoPor&&h.criadoPor.nome?`<div style="font-size:.7rem;color:var(--tx3);margin-bottom:4px;">Guardado por <b>${h.criadoPor.nome}</b></div>`:''}
         <div style="font-size:.78rem;color:var(--tx2);">Testados: <b style="color:#0891B2;">${tf+tm}</b> · Positivos: <b style="color:#DC2626;">${pf+pm}</b></div>
         <div style="display:flex;gap:6px;margin-top:8px;">
           <button style="padding:7px 12px;border-radius:8px;font-size:.72rem;font-weight:600;background:#EFF6FF;border:1.5px solid #93C5FD;color:#0D1B3E;cursor:pointer;font-family:'Inter',sans-serif;" onclick="carregarHistorico(${i})">Carregar</button>
@@ -909,6 +939,7 @@ INDICADORES.forEach(({id})=>renderLista(id));
 })();
 ls();
 updateKPIs();
+_mostrarAutoriaDoPeriodo();
 </script>
 <footer id="app-footer">
   <div class="footer-inner">
