@@ -666,12 +666,18 @@ window.__zeloHasModuleAccess = hasModuleAccess;
     if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
     if(user){ completarLogin(user); } else { showAuthForm(); }
   });
+  // Em ligação lenta (sobretudo em telemóvel, a reler a sessão do Firebase do
+  // IndexedDB), 3s por vezes não chegava e isto desistia da verificação
+  // real, mostrando sempre o formulário de login mesmo com sessão válida
+  // ("Lembrar-me" ligado) -- daí voltar a pedir para entrar de vez em
+  // quando. Agora o prazo é mais generoso e, mais importante, NÃO desiste da
+  // verificação real: mostra o formulário apenas como reserva visual
+  // enquanto continua à escuta -- se a sessão responder a seguir com um
+  // utilizador válido, entra-se automaticamente sem repetir o login.
   var verificacaoInicialTimeout = setTimeout(function(){
     if(verificacaoInicialFeita) return;
-    verificacaoInicialFeita = true;
-    if(typeof unsubscribeVerificacaoInicial === 'function') unsubscribeVerificacaoInicial();
     showAuthForm();
-  }, 3000);
+  }, 8000);
 
   // ── 2. Enquanto o utilizador escreve: nada disto corre — sem novas verificações,
   //       sem bloquear campos. Só o clique em "Entrar" (abaixo) reactiva o sistema. ──
