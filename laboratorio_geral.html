@@ -2398,6 +2398,9 @@ async function _fbEscutarDia(date){
       try{ localSavedAt = localStorage.getItem(_FB_LAB_SAVEDAT_PREFIX + date); }catch(e){}
       if (localSavedAt && localSavedAt >= savedAt) return;
       if (date !== currentDate) return;
+      // Nunca substituir dados locais já existentes sem confirmação, mesmo sem carimbo do Firebase
+      // (podem ser anteriores a esta sincronização) -- mostra o aviso em vez de aplicar sozinho.
+      if (LS.getItem(sk(date))) { _fbMostrarAvisoNovosDados(); return; }
       try{
         LS.setItem(sk(date), JSON.stringify(remoto.snapshot));
         try{ localStorage.setItem(_FB_LAB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}

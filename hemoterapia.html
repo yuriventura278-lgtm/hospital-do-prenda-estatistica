@@ -1299,6 +1299,9 @@ async function _fbEscutarDia(date){
       try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
       if (localSavedAt && localSavedAt >= savedAt) return; // já temos esta versão (ou mais recente)
       if (date !== currentData.date) return; // o utilizador já mudou de dia entretanto
+      // Nunca substituir dados locais já existentes sem confirmação, mesmo sem carimbo do Firebase
+      // (podem ser anteriores a esta sincronização) -- mostra o aviso em vez de aplicar sozinho.
+      try{ const _existente = await DB.get(date); if (_existente) { _fbMostrarAvisoNovosDados(); return; } }catch(e){}
       try{
         await DB.put(JSON.parse(JSON.stringify(Object.assign({}, remoto.snapshot, { date: date }))));
         try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
