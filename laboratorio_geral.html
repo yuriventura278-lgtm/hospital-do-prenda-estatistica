@@ -1258,6 +1258,17 @@ const DatabaseManager = (() => {
     flushTimer = setTimeout(() => { flushTimer = null; flushWrites(); }, 150);
   }
 
+  // Copia para o localStorage qualquer chave que já esteja na IndexedDB mas
+  // ainda não tenha espelho local — cobre os registos guardados antes desta
+  // correção existir, para que também eles fiquem protegidos.
+  function backfillLocalStorageMirror() {
+    try {
+      cache.forEach((v, k) => {
+        if (window.localStorage.getItem(k) === null) window.localStorage.setItem(k, v);
+      });
+    } catch (e) {}
+  }
+
   async function init() {
     if (readyPromise) return readyPromise;
     readyPromise = (async () => {
@@ -1265,19 +1276,29 @@ const DatabaseManager = (() => {
         db = await openDB();
         await loadAllFromDB();
         migrateFromLocalStorage();
+        backfillLocalStorageMirror();
         if (navigator.storage && navigator.storage.persist) {
           navigator.storage.persist().catch(() => {});
         }
       } catch (e) {
-        console.error('DatabaseManager: IndexedDB indisponível, a operar apenas em memória:', e);
+        console.error('DatabaseManager: IndexedDB indisponível — a usar o espelho em localStorage.', e);
+        try {
+          for (let i = 0; i < window.localStorage.length; i++) {
+            const key = window.localStorage.key(i);
+            if (key !== null) cache.set(key, window.localStorage.getItem(key));
+          }
+        } catch (e2) {}
       }
     })();
     return readyPromise;
   }
 
   function getItem(key)          { return cache.has(key) ? cache.get(key) : null; }
-  function setItem(key, value)   { const v = String(value); cache.set(key, v); writeQueue.set(key, v); scheduleFlush(); }
-  function removeItem(key)       { cache.delete(key); writeQueue.set(key, null); scheduleFlush(); }
+  // Grava sempre também no localStorage (não só na IndexedDB) — para que um
+  // registo nunca desapareça só por a IndexedDB ficar indisponível numa
+  // sessão futura (outro separador aberto, modo privado, quota esgotada).
+  function setItem(key, value)   { const v = String(value); cache.set(key, v); writeQueue.set(key, v); scheduleFlush(); try { window.localStorage.setItem(key, v); } catch(e) {} }
+  function removeItem(key)       { cache.delete(key); writeQueue.set(key, null); scheduleFlush(); try { window.localStorage.removeItem(key); } catch(e) {} }
   function keyAt(i)              { const ks = Array.from(cache.keys()); return i >= 0 && i < ks.length ? ks[i] : null; }
   function keyCount()            { return cache.size; }
 

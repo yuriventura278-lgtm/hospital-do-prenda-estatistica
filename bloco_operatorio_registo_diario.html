@@ -2065,6 +2065,14 @@ function _idbInit() {
     .then(all => {
       _idbCache = all || {};
       _migrateLocalStorageToIndexedDB();
+      // Espelha também no sentido inverso: qualquer registo já na IndexedDB
+      // mas ainda sem cópia em localStorage (guardado antes desta correção
+      // existir) passa a ficar protegido também aí.
+      try {
+        Object.keys(_idbCache).forEach(k => {
+          if (window.localStorage.getItem(k) === null) window.localStorage.setItem(k, _idbCache[k]);
+        });
+      } catch(e) {}
       _idbReady = true;
       if (typeof setSyncState === 'function') setSyncState('synced', 'Dados locais carregados');
       // Assim que o IndexedDB está pronto, recarrega o dia em tela com os dados reais
@@ -2099,6 +2107,11 @@ function safeGet(k){
 }
 function safeSet(k,v){
   _idbCache[k] = v; // ★ disponível instantaneamente para qualquer leitura síncrona seguinte
+  // Grava sempre também no localStorage — não só quando o IndexedDB ainda
+  // está a abrir — para que um dia guardado nunca desapareça só por o
+  // IndexedDB ficar indisponível numa sessão futura (outro separador aberto,
+  // modo privado, quota esgotada, etc.).
+  try { window.localStorage.setItem(k, v); } catch(e) {}
   if (_idbDB) {
     _idbPut(_idbDB, k, v)
       .then(() => { _idbWriteFailCount = 0; })
@@ -2109,9 +2122,6 @@ function safeSet(k,v){
           showToast('⚠ ERRO ao guardar localmente! Os dados podem não persistir.');
         }
       });
-  } else {
-    // IndexedDB ainda a abrir/indisponível — guarda já em localStorage como rede de segurança
-    try { window.localStorage.setItem(k, v); } catch(e) {}
   }
   return true;
 }

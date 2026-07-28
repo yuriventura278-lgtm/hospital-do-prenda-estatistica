@@ -570,9 +570,14 @@ function ss(){
   openDB().then(db=>{
     const tx=db.transaction(STORE,'readwrite');
     tx.objectStore(STORE).put(snap);
-  }).catch(()=>{
-    try{localStorage.setItem('bloco_bu_v2',JSON.stringify(snap));}catch(e){}
-  });
+  }).catch(()=>{});
+  // Espelha sempre também no localStorage (por dia, e como reserva geral) —
+  // não só quando o IndexedDB falha — para que o dia guardado nunca
+  // desapareça só por o IndexedDB ficar indisponível numa sessão futura.
+  try{
+    if(snap.data) localStorage.setItem('bloco_bu_v2_'+snap.data, JSON.stringify(snap));
+    localStorage.setItem('bloco_bu_v2', JSON.stringify(snap));
+  }catch(e){}
   try{ if(snap.data) localStorage.setItem('bloco_bu_v2_savedAt_'+snap.data, new Date().toISOString()); }catch(e){}
   enviarParaFirebase(snap.data, snap);
   zeloMostrarGuardadoAs(snap.criadoPor && snap.criadoPor.nome, snap._ts);
@@ -602,9 +607,9 @@ async function sincronizarComFirebase(){
       openDB().then(db=>{
         const tx=db.transaction(STORE,'readwrite');
         tx.objectStore(STORE).put(remoto.snapshot);
-      }).catch(()=>{
-        try{localStorage.setItem('bloco_bu_v2',JSON.stringify(remoto.snapshot));}catch(e){}
-      });
+      }).catch(()=>{});
+      localStorage.setItem('bloco_bu_v2_'+dataAberta, JSON.stringify(remoto.snapshot));
+      localStorage.setItem('bloco_bu_v2', JSON.stringify(remoto.snapshot));
       localStorage.setItem('bloco_bu_v2_savedAt_'+dataAberta, remoto.savedAt);
     }catch(e){}
   }catch(e){ console.warn('Firebase: falha ao verificar versão mais recente de outros dispositivos.', e); }
@@ -660,7 +665,16 @@ function ls(){
             applySnapshot(e2.target.result);
             _diaAnterior=keyOntem;
           }else{
-            try{const raw=localStorage.getItem('bloco_bu_v2');if(raw){applySnapshot(JSON.parse(raw));}}catch(ex){}
+            // Nada no IndexedDB para hoje/ontem — tenta o espelho local por dia
+            // antes da reserva geral (cobre o caso de o IndexedDB ter sido
+            // limpo/recriado mas o localStorage ainda ter os dados).
+            try{
+              const rawHoje=localStorage.getItem('bloco_bu_v2_'+keyHoje);
+              const rawOntem=localStorage.getItem('bloco_bu_v2_'+keyOntem);
+              if(rawHoje){ applySnapshot(JSON.parse(rawHoje)); _diaAnterior=keyHoje; }
+              else if(rawOntem){ applySnapshot(JSON.parse(rawOntem)); _diaAnterior=keyOntem; }
+              else{ const raw=localStorage.getItem('bloco_bu_v2'); if(raw) applySnapshot(JSON.parse(raw)); }
+            }catch(ex){}
           }
           _finish();
         };
@@ -669,7 +683,15 @@ function ls(){
     };
     req.onerror=()=>_finish();
   }).catch(()=>{
-    try{const raw=localStorage.getItem('bloco_bu_v2');if(raw)applySnapshot(JSON.parse(raw));}catch(ex){}
+    try{
+      const hoje=new Date().toISOString().slice(0,10);
+      const ontem=new Date(Date.now()-86400000).toISOString().slice(0,10);
+      const rawHoje=localStorage.getItem('bloco_bu_v2_'+hoje);
+      const rawOntem=localStorage.getItem('bloco_bu_v2_'+ontem);
+      if(rawHoje) applySnapshot(JSON.parse(rawHoje));
+      else if(rawOntem) applySnapshot(JSON.parse(rawOntem));
+      else{ const raw=localStorage.getItem('bloco_bu_v2'); if(raw) applySnapshot(JSON.parse(raw)); }
+    }catch(ex){}
     _finish();
   });
 }

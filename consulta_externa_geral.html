@@ -1201,6 +1201,25 @@ CE.Store = (function(){
     return max + 1;
   }
 
+  // Espelho em localStorage — mantido mesmo quando o IndexedDB está saudável,
+  // para que nenhum registo desapareça só porque o IndexedDB ficou
+  // indisponível numa sessão futura (outro separador aberto, modo privado,
+  // quota esgotada, etc.).
+  function _mirrorUpsert(key, item){
+    try{
+      var arr = lsGet(key);
+      var idx = arr.findIndex(function(x){ return x.id === item.id; });
+      if (idx > -1) arr[idx] = item; else arr.push(item);
+      lsSet(key, arr);
+    }catch(e){}
+  }
+  function _mirrorDelete(key, id){
+    try{ lsSet(key, lsGet(key).filter(function(x){ return x.id !== id; })); }catch(e){}
+  }
+  function _mirrorDeleteBySessao(sessaoId){
+    try{ lsSet(LS_KEY_REGISTOS, lsGet(LS_KEY_REGISTOS).filter(function(r){ return r.sessaoId !== sessaoId; })); }catch(e){}
+  }
+
   function addSessao(sessao){
     return new Promise(function(resolve, reject){
       if (useLocalFallback || !db){
@@ -1214,7 +1233,10 @@ CE.Store = (function(){
       var tx = db.transaction(['sessoes'], 'readwrite');
       var store = tx.objectStore('sessoes');
       var req = store.add(sessao);
-      req.onsuccess = function(e){ resolve(e.target.result); };
+      req.onsuccess = function(e){
+        _mirrorUpsert(LS_KEY_SESSOES, Object.assign({}, sessao, {id: e.target.result}));
+        resolve(e.target.result);
+      };
       req.onerror = function(){ reject(req.error); };
     });
   }
@@ -1232,7 +1254,10 @@ CE.Store = (function(){
       var tx = db.transaction(['registos'], 'readwrite');
       var store = tx.objectStore('registos');
       var req = store.add(registo);
-      req.onsuccess = function(e){ resolve(e.target.result); };
+      req.onsuccess = function(e){
+        _mirrorUpsert(LS_KEY_REGISTOS, Object.assign({}, registo, {id: e.target.result}));
+        resolve(e.target.result);
+      };
       req.onerror = function(){ reject(req.error); };
     });
   }
@@ -1278,7 +1303,7 @@ CE.Store = (function(){
         var cursor = e.target.result;
         if (cursor){ cursor.delete(); cursor.continue(); }
       };
-      tx.oncomplete = function(){ resolve(); };
+      tx.oncomplete = function(){ _mirrorDelete(LS_KEY_SESSOES, id); _mirrorDeleteBySessao(id); resolve(); };
     });
   }
 
@@ -1291,7 +1316,7 @@ CE.Store = (function(){
       var tx = db.transaction(['sessoes','registos'], 'readwrite');
       tx.objectStore('sessoes').clear();
       tx.objectStore('registos').clear();
-      tx.oncomplete = function(){ resolve(); };
+      tx.oncomplete = function(){ lsSet(LS_KEY_SESSOES, []); lsSet(LS_KEY_REGISTOS, []); resolve(); };
     });
   }
 
@@ -1319,7 +1344,10 @@ CE.Store = (function(){
       }
       var tx = db.transaction(['sessoes'], 'readwrite');
       var req = tx.objectStore('sessoes').put(sessao);
-      req.onsuccess = function(){ resolve(sessao.id); };
+      req.onsuccess = function(){
+        _mirrorUpsert(LS_KEY_SESSOES, sessao);
+        resolve(sessao.id);
+      };
       req.onerror = function(){ reject(req.error); };
     });
   }
@@ -1336,7 +1364,7 @@ CE.Store = (function(){
       var idx = tx.objectStore('registos').index('sessaoId');
       var req = idx.openCursor(IDBKeyRange.only(sessaoId));
       req.onsuccess = function(e){ var c = e.target.result; if (c){ c.delete(); c.continue(); } };
-      tx.oncomplete = function(){ resolve(); };
+      tx.oncomplete = function(){ _mirrorDeleteBySessao(sessaoId); resolve(); };
     });
   }
 

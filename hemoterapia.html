@@ -847,6 +847,11 @@ const DB = (() => {
     return v;
   }
 
+  // Nota: put/putMany/del/clearAll espelham sempre no localStorage (lsPut/
+  // lsDel), mesmo quando a IndexedDB está saudável — não só quando falha —
+  // para que um registo nunca desapareça só por a IndexedDB ficar
+  // indisponível numa sessão futura (outro separador aberto, modo privado,
+  // quota esgotada, etc.).
   async function put(record) {
     record.updatedAt = Date.now();
     const db = await openDB();
@@ -856,6 +861,7 @@ const DB = (() => {
       r.onsuccess = () => resolve();
       r.onerror = () => reject(r.error);
     }));
+    lsPut(record);
     cache.set(record.date, record);
     return record;
   }
@@ -870,6 +876,7 @@ const DB = (() => {
       s.transaction.oncomplete = () => resolve();
       s.transaction.onerror = () => reject(s.transaction.error);
     }));
+    records.forEach(r => lsPut(r));
   }
 
   async function del(date) {
@@ -881,6 +888,7 @@ const DB = (() => {
       r.onsuccess = () => resolve();
       r.onerror = () => reject(r.error);
     }));
+    lsDel(date);
   }
 
   async function clearAll() {
@@ -892,6 +900,7 @@ const DB = (() => {
       r.onsuccess = () => resolve();
       r.onerror = () => reject(r.error);
     }));
+    lsAllDates().forEach(lsDel);
   }
 
   // datas disponíveis — usa a chave primária (indexada por definição), sem full scan
@@ -965,6 +974,16 @@ const DB = (() => {
   async function exportAll() { return getAll(); }
   async function importAll(records) { if (Array.isArray(records) && records.length) await putMany(records); }
 
+  // Copia para o localStorage qualquer registo que já esteja na IndexedDB mas
+  // ainda não tenha espelho local — cobre os registos guardados antes desta
+  // correção existir, para que também eles fiquem protegidos.
+  async function backfillLocalStorageMirror() {
+    try {
+      const all = await getAll();
+      all.forEach(r => { if (localStorage.getItem(LS_PREFIX + r.date) === null) lsPut(r); });
+    } catch (e) {}
+  }
+
   // gestão de armazenamento do navegador
   async function estimate() {
     if (navigator.storage?.estimate) { try { return await navigator.storage.estimate(); } catch { return null; } }
@@ -977,10 +996,11 @@ const DB = (() => {
 
   return {
     get, put, putMany, del, clearAll, getAllDates, getRange, getPage, getAll, count,
-    exportAll, importAll, estimate, requestPersistence,
+    exportAll, importAll, estimate, requestPersistence, backfillLocalStorageMirror,
     isUsingFallback: () => usingFallback,
   };
 })();
+DB.backfillLocalStorageMirror();
 
 // ═══ STATE ═══
 let currentData = {
