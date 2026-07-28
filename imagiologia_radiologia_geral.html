@@ -1039,7 +1039,7 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
     <div class="export-card">
       <div class="export-icon"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></div><div class="export-title">Backup JSON</div>
       <div class="export-desc">Exportar todos os dados locais</div>
-      <button class="btn btn-navy btn-sm" onclick="zeloAbrirBackup()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> Exportar Backup</button>
+      <button class="btn btn-navy btn-sm" id="btn-backup-trigger" style="display:none;" onclick="zeloAbrirBackup()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> Exportar Backup</button>
     </div>
     <div class="export-card">
       <div class="export-icon"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><div class="export-title">Restaurar Backup</div>
@@ -2207,6 +2207,10 @@ function _imagDownloadBackup(all, suffix){
 }
 function exportBackup(){ _imagDownloadBackup(_imagCollectBackup(()=>true), todayKey()); }
 function zeloAbrirBackup(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+    return;
+  }
   document.getElementById('zeloMesInput').value=todayKey().slice(0,7);
   document.getElementById('zeloMesPicker').style.display='none';
   document.getElementById('zeloBkOverlay').classList.add('open');
@@ -2319,5 +2323,13 @@ loadDay(document.getElementById('data-registo').value);
 })();
 </script>
 <script src="zelo_theme.js"></script>
+<script>
+function _zeloAtualizarBackupTrigger(){
+  var el = document.getElementById('btn-backup-trigger');
+  if (el) el.style.display = (sessionStorage.getItem('zeloRole') === 'admin') ? '' : 'none';
+}
+_zeloAtualizarBackupTrigger();
+window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
+</script>
 </body>
 </html>

@@ -320,7 +320,7 @@ function closeSplash(){const s=document.getElementById('splash');if(s){s.style.o
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     Histórico de Registos
   </button>
-  <button class="hist-btn" onclick="zeloAbrirBackup()" style="margin-top:8px;">
+  <button class="hist-btn" id="btn-backup-trigger" style="display:none;margin-top:8px;" onclick="zeloAbrirBackup()">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Backup / Exportar
   </button>
@@ -917,6 +917,10 @@ function gerarPDFFromSnap(snap,wa,email){
 
 // ─── BACKUP / RESTAURAR ─────────────────────────────────────────────
 function zeloAbrirBackup(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+    return;
+  }
   const hoje=new Date().toISOString().slice(0,10);
   document.getElementById('zeloMesInput').value=hoje.slice(0,7);
   document.getElementById('zeloMesPicker').style.display='none';
@@ -1009,5 +1013,13 @@ abrirDB().then(async()=>{
   </div>
 </footer>
 <script src="zelo_theme.js"></script>
+<script>
+function _zeloAtualizarBackupTrigger(){
+  var el = document.getElementById('btn-backup-trigger');
+  if (el) el.style.display = (sessionStorage.getItem('zeloRole') === 'admin') ? '' : 'none';
+}
+_zeloAtualizarBackupTrigger();
+window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
+</script>
 </body>
 </html>
