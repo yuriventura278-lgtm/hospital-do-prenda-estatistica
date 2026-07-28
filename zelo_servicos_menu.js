@@ -54,7 +54,7 @@ const SERVICOS_MENU = [
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_banco_urgencia.html', modulo: 'procedimentos_enfermagem', item: 'banco_urgencia' }] },
   { nome: 'Bloco Operatório', categoria: 'bloco_operatorio', icon: 'scissors', cor: '#B91C1C',
     relatorios: [
-      { label: 'Relatório Diário (antigo)', file: 'Bloco_Operatorio.html', modulo: 'servicos', item: 'bloco_operatorio' },
+      { label: 'Relatório Diário', file: 'Bloco_Operatorio.html', modulo: 'servicos', item: 'bloco_operatorio' },
       { label: 'Registo Diário', file: 'bloco_operatorio_registo_diario.html', modulo: 'sistemas_independentes', item: 'bloco_operatorio_registo_diario' },
     ],
     temEstatisticas: true, estatisticasFile: 'bloco_operatorio_registo_diario.html' },

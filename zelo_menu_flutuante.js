@@ -41,12 +41,6 @@
       .zmf-close{flex-shrink:0;width:28px;height:28px;border-radius:8px;background:#F4F7FF;border:none;color:#64748B;
         display:flex;align-items:center;justify-content:center;cursor:pointer;}
       .zmf-close:hover{background:#E2E8F0;color:#0D1B3E;}
-      .zmf-search-wrap{padding:12px 14px;flex-shrink:0;}
-      .zmf-search-wrap input{width:100%;padding:9px 12px 9px 32px;border-radius:100px;border:1px solid #E2E8F0;
-        background:#F4F7FF;font-size:.8rem;font-family:inherit;color:#0F172A;}
-      .zmf-search-wrap input:focus{outline:none;border-color:#1A56DB;}
-      .zmf-search-wrap{position:relative;}
-      .zmf-search-wrap svg{position:absolute;left:26px;top:50%;transform:translateY(-50%);color:#94A3B8;pointer-events:none;}
       .zmf-nav{flex:1;min-height:0;overflow-y:auto;padding:6px 10px 16px;}
       .zmf-group{margin-bottom:4px;}
       .zmf-section-label{font-size:.62rem;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:.08em;
@@ -89,7 +83,6 @@
       .zmf-action-link:hover{background:#EFF6FF;}
       .zmf-sis-link{display:block;padding:8px 10px 8px 30px;font-size:.78rem;color:#334155;text-decoration:none;border-radius:9px;}
       .zmf-sis-link:hover{background:#F4F7FF;color:#1A56DB;}
-      .zmf-no-results{padding:16px 14px;color:#94A3B8;font-size:.78rem;text-align:center;}
       @media(max-width:480px){#zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}}
     `;
     document.head.appendChild(style);
@@ -186,29 +179,6 @@
     });
   }
 
-  function filtrar(root, q){
-    q = (q || '').trim().toLowerCase();
-    var anyVisible = false;
-    root.querySelectorAll('.zmf-cat').forEach(function(catEl){
-      var anyInCat = false;
-      catEl.querySelectorAll('.zmf-svc').forEach(function(svcEl){
-        var match = !q || svcEl.dataset.zmfNome.includes(q);
-        svcEl.style.display = match ? '' : 'none';
-        if(match) anyInCat = true;
-      });
-      catEl.style.display = anyInCat ? '' : 'none';
-      if(anyInCat) anyVisible = true;
-      // Ao pesquisar, abre automaticamente as categorias/serviços com resultado.
-      if(q && anyInCat){
-        var catList = catEl.querySelector('[data-zmf-cat-list]');
-        if(catList) catList.classList.add('open');
-        catEl.querySelectorAll('[data-zmf-cat-toggle]').forEach(function(b){ b.classList.add('open'); });
-      }
-    });
-    var noResults = root.querySelector('.zmf-no-results');
-    if(noResults) noResults.style.display = (q && !anyVisible) ? '' : 'none';
-  }
-
   function montarPainel(){
     var overlay = document.createElement('div');
     overlay.id = 'zmf-overlay';
@@ -225,10 +195,6 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
-      <div class="zmf-search-wrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="zmf-search" placeholder="Pesquisar serviço…"/>
-      </div>
       <nav class="zmf-nav">
         <div class="zmf-group">
           <a class="zmf-link" href="index.html"><span class="zmf-ic">${ICON_DASH}</span>Dashboard</a>
@@ -239,7 +205,6 @@
             <button type="button" class="zmf-toggle" id="zmf-servicos-toggle" aria-expanded="false">${ICON_CHEV}</button>
           </div>
           <div class="zmf-subtree" id="zmf-servicos-tree">${construirArvoreServicos()}</div>
-          <div class="zmf-no-results" style="display:none;">Nenhum serviço encontrado.</div>
         </div>
         <div class="zmf-group">
           <div class="zmf-parent-row">
@@ -302,9 +267,6 @@
 
     ligarAlternador(panel, '[data-zmf-cat-toggle]', 'data-zmf-cat-toggle', 'data-zmf-cat-list');
     ligarAlternador(panel, '[data-zmf-svc-toggle]', 'data-zmf-svc-toggle', 'data-zmf-svc-actions');
-
-    var searchInput = panel.querySelector('#zmf-search');
-    searchInput.addEventListener('input', function(){ filtrar(panel, searchInput.value); });
 
     var sairBtn = panel.querySelector('#zmf-sair');
     if(sairBtn) sairBtn.addEventListener('click', function(){ window.zeloLogout(); });

@@ -184,15 +184,6 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   font-size:.7rem;font-weight:700;padding:5px 8px;font-family:'DM Mono',monospace;letter-spacing:.03em;}
 .code-edit-input:focus{outline:2px solid #fff;}
 
-/* ── PESQUISA ── */
-.search-wrap{max-width:1040px;margin:0 auto 24px;padding:0 20px;}
-.search-box{position:relative;max-width:420px;}
-.search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--tx3);pointer-events:none;}
-.search-box input{width:100%;padding:12px 16px 12px 40px;border-radius:100px;border:1.5px solid var(--br);background:#fff;
-  font-family:'Inter',sans-serif;font-size:.86rem;color:var(--tx);box-shadow:var(--s1);}
-.search-box input:focus{outline:none;border-color:var(--bl);}
-.no-results{text-align:center;padding:40px 20px;color:var(--tx3);font-size:.86rem;display:none;}
-
 @keyframes destaquePulse{ 0%,100%{box-shadow:0 0 0 0 rgba(26,86,219,0);} 35%{box-shadow:0 0 0 6px rgba(26,86,219,.32);} }
 .destaque-ancora{animation:destaquePulse 1.1s ease 2;border-radius:16px;}
 
@@ -605,15 +596,7 @@ window.hasModuleAccess = hasModuleAccess;
   </div>
 </div>
 
-<div class="search-wrap">
-  <div class="search-box">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="searchServico" placeholder="Pesquisar serviço…" oninput="filterServicos(this.value)"/>
-  </div>
-</div>
-
 <main id="main"></main>
-<div class="no-results" id="noResults">Nenhum serviço encontrado para essa pesquisa.</div>
 
 <footer>
   <div class="foot-grid">
@@ -751,21 +734,6 @@ function render(){
   });
 }
 window.render = render;
-function filterServicos(q){
-  q = q.trim().toLowerCase();
-  let anyVisible = false;
-  document.querySelectorAll('.cat-section').forEach(section=>{
-    let anyInSection = false;
-    section.querySelectorAll('.svc-card').forEach(card=>{
-      const match = !q || card.dataset.name.includes(q);
-      card.style.display = match ? '' : 'none';
-      if(match) anyInSection = true;
-    });
-    section.style.display = anyInSection ? '' : 'none';
-    if(anyInSection) anyVisible = true;
-  });
-  document.getElementById('noResults').style.display = anyVisible ? 'none' : 'block';
-}
 render();
 
 // Se chegou aqui a partir de um atalho do menu lateral (#cat-... ou
