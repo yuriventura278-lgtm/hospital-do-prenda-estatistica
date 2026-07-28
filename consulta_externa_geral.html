@@ -761,6 +761,7 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
         <button type="button" class="btn btn-navy block" id="btn-guardar-especialidade" style="margin-top:6px;">
           <svg class="svc-icon"><use href="#i-save"/></svg>Guardar Especialidade do Dia
         </button>
+        <div id="last-saved-status" style="display:none;font-size:.72rem;color:#64748B;text-align:center;margin-top:6px;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></div>
         <button type="button" class="btn btn-out block" id="btn-pdf-especialidade-dia" style="margin-top:10px;">
           <svg class="svc-icon"><use href="#i-pdf"/></svg>PDF da Especialidade do Dia
         </button>
@@ -1055,7 +1056,7 @@ CE.criarPDF = function(){
     d.text('Emitido em '+new Date().toLocaleDateString('pt-PT'), W-M, 16.5, {align:'right'});
     return 42;
   }
-  function rodape(){
+  function rodape(autorTxt){
     var n = d.getNumberOfPages();
     for (var i=1; i<=n; i++){
       d.setPage(i);
@@ -1064,6 +1065,7 @@ CE.criarPDF = function(){
       d.text('Departamento de Estatística', M, 290);
       d.setFont('helvetica','normal'); d.setTextColor(CINZA); d.setFontSize(7);
       d.text('Hospital do Prenda · Gerado em '+new Date().toLocaleString('pt-PT'), M, 293.8);
+      if (autorTxt){ d.setFontSize(6.5); d.text(autorTxt, W/2, 293.8, {align:'center'}); }
       d.setFontSize(7.5); d.setTextColor(CINZA); d.setFont('helvetica','normal');
       d.text('Pág. '+i+'/'+n, W-M, 291.5, {align:'right'});
     }
@@ -2195,7 +2197,7 @@ CE.Registo = (function(){
       y = pdf.tabela(y, ['Diagnóstico','Nº'], [pdf.CW-30,30], diagRows);
     }
 
-    pdf.rodape();
+    pdf.rodape(_registadoPorTxtAtual());
     pdf.d.save('Atendimento_' + nome.replace(/\s+/g,'_') + '_' + data + '.pdf');
     toast('✓ PDF da lista de atendimento gerado.');
   }
@@ -2273,7 +2275,7 @@ CE.Registo = (function(){
       y = pdf.tabela(y, ['Descrição','Nº'], [pdf.CW-30,30], matRows);
     }
 
-    pdf.rodape();
+    pdf.rodape(_registadoPorTxtAtual());
     pdf.d.save('Especialidade_Dia_' + especialidade.replace(/\s+/g,'_') + '_' + data + '.pdf');
     toast('✓ PDF da especialidade do dia gerado.');
   }
@@ -2428,6 +2430,35 @@ CE.Registo = (function(){
     document.getElementById('f-obs').value = sessao.obs || '';
     setMedicos(sessao.medicos, null);
     carregandoSessaoExistente = false;
+    if (sessao.criadoPor && sessao.criadoPor.nome){ _mostrarHoraGuardado(sessao.criadoPor.nome, sessao.createdAt); }
+    else { _esconderHoraGuardado(); }
+  }
+
+  /* ---------- Indicador "Última alteração" (autoria) ---------- */
+  function _mostrarHoraGuardado(nome, quando){
+    var d = quando ? new Date(quando) : new Date();
+    var hhmm = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    var wrapEl = document.getElementById('last-saved-status');
+    var nameEl = document.getElementById('last-saved-name');
+    var timeEl = document.getElementById('last-saved-time');
+    if (nameEl) nameEl.textContent = nome || sessionStorage.getItem('zeloNome') || 'Utilizador';
+    if (timeEl) timeEl.textContent = hhmm;
+    if (wrapEl) wrapEl.style.display = 'block';
+  }
+  function _esconderHoraGuardado(){
+    var wrapEl = document.getElementById('last-saved-status');
+    if (wrapEl) wrapEl.style.display = 'none';
+  }
+  function _registadoPorTxtAtual(){
+    var wrapEl = document.getElementById('last-saved-status');
+    var nome = document.getElementById('last-saved-name') && document.getElementById('last-saved-name').textContent.trim();
+    var hora = document.getElementById('last-saved-time') && document.getElementById('last-saved-time').textContent.trim();
+    if (wrapEl && wrapEl.style.display !== 'none' && nome && nome !== '—') return 'Registado por: ' + nome + ' às ' + hora;
+    return null;
+  }
+  function _documentoExportadoPorTxtAtual(){
+    var nome = sessionStorage.getItem('zeloNome');
+    return nome ? 'Documento exportado por: ' + nome : null;
   }
 
   /* ---------- Portão "Adicionar Registo" ---------- */
@@ -2471,6 +2502,7 @@ CE.Registo = (function(){
         sessaoAtualId = null;
         limparCamposMedicosEDoentes();
         mostrarGate();
+        _esconderHoraGuardado();
       }
     });
   }
@@ -2609,6 +2641,7 @@ CE.Registo = (function(){
         sessaoAtualId = sessaoId;
       }
       clearDraft();
+      _mostrarHoraGuardado(sessao.criadoPor.nome, sessao.createdAt);
       carregarCachePatologias();
       toast('✓ Especialidade do dia guardada com ' + totalDoentes + ' doente(s).');
       _fbSyncConsultaExterna(sessao.data);
@@ -3176,7 +3209,13 @@ CE.Historico = (function(){
       y = pdf.tabela(y, ['Descrição','Nº'], [pdf.CW-30,30], matRows);
     }
 
-    pdf.rodape();
+    var _registadoTxt = null;
+    if (s.criadoPor && s.criadoPor.nome){
+      var _dt = s.createdAt ? new Date(s.createdAt) : null;
+      var _hhmm = _dt ? (String(_dt.getHours()).padStart(2,'0') + ':' + String(_dt.getMinutes()).padStart(2,'0')) : null;
+      _registadoTxt = 'Registado por: ' + s.criadoPor.nome + (_hhmm ? ' às ' + _hhmm : '');
+    }
+    pdf.rodape(_registadoTxt);
     pdf.d.save('Especialidade_Dia_' + s.especialidade.replace(/\s+/g,'_') + '_' + s.data + '.pdf');
     toast('✓ PDF gerado.');
   }
@@ -3730,7 +3769,7 @@ CE.Relatorio = (function(){
       });
     }
 
-    rodape();
+    rodape(_documentoExportadoPorTxtAtual());
     d.save('Relatorio_' + r.periodo.tipo + '_' + r.periodo.inicio + '_a_' + r.periodo.fim + (r.especialidadeFiltro ? '_' + r.especialidadeFiltro.replace(/\s+/g,'_') : '') + '.pdf');
     toast('✓ PDF gerado.');
   }

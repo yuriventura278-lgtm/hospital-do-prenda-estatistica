@@ -738,6 +738,7 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
       <input type="date" id="data-registo" onchange="loadDay(this.value)"></div>
     <span class="clock-b" id="clock">--:--:--</span>
     <div class="sync-b"><div class="sync-dot"></div><span id="sync-label">Local</span></div>
+    <span id="last-saved-status" style="display:none;font-size:.65rem;color:#64748B;margin:0 4px;white-space:nowrap;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></span>
     <a class="btn-hdr" href="index.html" style="text-decoration:none;">🏠 Início</a>
     <button class="btn-hdr accent" onclick="saveAllData()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
     <button class="btn-hdr" onclick="exportPDFDia()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</button>
@@ -1615,6 +1616,7 @@ async function _fbEscutarDia(date){
           numTechs = Math.max(3, currentData.techs.length);
           document.getElementById('turno-select').value = currentData.turno||'manha';
           renderTechGrid(); renderTACTable(); renderECOTable(); renderRXTable(); updateKPIs();
+          if (currentData.criadoPor && currentData.criadoPor.nome) { _mostrarHoraGuardado(currentData.criadoPor.nome, currentData._ts); }
         }
       }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes da Imagiologia.', e); }
       return;
@@ -1650,13 +1652,44 @@ function saveAllData(){
   const date=currentData.date||todayKey();
   const payload=JSON.parse(JSON.stringify(currentData));
   payload.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
+  payload._ts = Date.now();
   localStorage.setItem(sk(date),JSON.stringify(payload));
   addSavedDate(date);
   document.getElementById('sync-label').textContent='Guardado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('save-status-date').textContent=fmtDate(date);
   toast('Dados guardados com sucesso <svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="20 6 9 17 4 12"/></svg>','success');
   renderHistory();
+  currentData.criadoPor = payload.criadoPor;
+  currentData._ts = payload._ts;
+  _mostrarHoraGuardado(payload.criadoPor.nome, payload._ts);
   _fbSyncImagiologia(date, payload);
+}
+
+// ── Indicador "Última alteração" (autoria) ──
+function _mostrarHoraGuardado(nome, quando){
+  const d = quando ? new Date(quando) : new Date();
+  const hhmm = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  const wrapEl = document.getElementById('last-saved-status');
+  const nameEl = document.getElementById('last-saved-name');
+  const timeEl = document.getElementById('last-saved-time');
+  if (nameEl) nameEl.textContent = nome || sessionStorage.getItem('zeloNome') || 'Utilizador';
+  if (timeEl) timeEl.textContent = hhmm;
+  if (wrapEl) wrapEl.style.display = 'inline';
+}
+function _esconderHoraGuardado(){
+  const wrapEl = document.getElementById('last-saved-status');
+  if (wrapEl) wrapEl.style.display = 'none';
+}
+function _registadoPorTxtAtual(){
+  const wrapEl = document.getElementById('last-saved-status');
+  const nome = document.getElementById('last-saved-name') && document.getElementById('last-saved-name').textContent.trim();
+  const hora = document.getElementById('last-saved-time') && document.getElementById('last-saved-time').textContent.trim();
+  if (wrapEl && wrapEl.style.display !== 'none' && nome && nome !== '—') return 'Registado por: ' + nome + ' às ' + hora;
+  return null;
+}
+function _documentoExportadoPorTxtAtual(){
+  const nome = sessionStorage.getItem('zeloNome');
+  return nome ? 'Documento exportado por: ' + nome : null;
 }
 
 function loadDay(date){
@@ -1671,6 +1704,8 @@ function loadDay(date){
   document.getElementById('turno-select').value=currentData.turno||'manha';
   document.getElementById('save-status-date').textContent=fmtDate(date);
   renderTechGrid(); renderTACTable(); renderECOTable(); renderRXTable(); updateKPIs();
+  if (currentData.criadoPor && currentData.criadoPor.nome) { _mostrarHoraGuardado(currentData.criadoPor.nome, currentData._ts); }
+  else { _esconderHoraGuardado(); }
   _fbEscutarDia(date);
 }
 
@@ -2149,10 +2184,23 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
     });
   }
 
+  let _autorTxt=null;
+  if(filteredDates.length===1){
+    const _dia=allData[filteredDates[0]];
+    if(_dia && _dia.criadoPor && _dia.criadoPor.nome){
+      const _dt=_dia._ts?new Date(_dia._ts):null;
+      const _hhmm=_dt?(String(_dt.getHours()).padStart(2,'0')+':'+String(_dt.getMinutes()).padStart(2,'0')):null;
+      _autorTxt='Registado por: '+_dia.criadoPor.nome+(_hhmm?' às '+_hhmm:'');
+    }
+  } else {
+    const _nome=sessionStorage.getItem('zeloNome');
+    if(_nome) _autorTxt='Documento exportado por: '+_nome;
+  }
   const pages=doc.internal.getNumberOfPages();
   for(let i=1;i<=pages;i++){
     doc.setPage(i); doc.setFontSize(7); doc.setTextColor(150);
-    doc.text(`Hospital do Prenda · Radiologia · Pág. ${i}/${pages} · Criador: Yuri Matias`,14,doc.internal.pageSize.getHeight()-8);
+    doc.text(`Hospital do Prenda · Radiologia · Pág. ${i}/${pages}`,14,doc.internal.pageSize.getHeight()-8);
+    if(_autorTxt) doc.text(_autorTxt, doc.internal.pageSize.getWidth()-14, doc.internal.pageSize.getHeight()-8, {align:'right'});
     doc.setTextColor(0);
   }
   const safe=titleLabel.replace(/[\s·]+/g,'_').replace(/[^a-zA-Z0-9À-ú_-]/g,'');

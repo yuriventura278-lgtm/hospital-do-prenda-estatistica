@@ -529,6 +529,8 @@ function buildSnapshot(){
     urgData:JSON.parse(JSON.stringify(urgData)),
     eleData:JSON.parse(JSON.stringify(eleData)),
     susData:JSON.parse(JSON.stringify(susData)),
+    criadoPor:{nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null},
+    _ts: Date.now(),
   };
 }
 // ── SINCRONIZAÇÃO ENTRE DISPOSITIVOS (Firebase Realtime Database) ──
@@ -548,11 +550,20 @@ function enviarParaFirebase(dataHoje, snap){
     }
   },1500);
 }
-function zeloMostrarGuardadoAs(){
+let _ultimoAutor=null; // {nome, ts} — usado para o rodapé "Registado por" no PDF
+function zeloMostrarGuardadoAs(nome, ts){
   const el=document.getElementById('autosave-ind');
-  if(!el)return;
-  const now=new Date();
-  el.textContent='Guardado às '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const d=ts?new Date(ts):new Date();
+  const hhmm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const quem=nome||sessionStorage.getItem('zeloNome')||null;
+  if(el) el.textContent=quem?('Guardado por '+quem+' às '+hhmm):('Guardado às '+hhmm);
+  if(quem) _ultimoAutor={nome:quem, ts:ts||Date.now()};
+}
+function _registadoPorTxtAtual(){
+  if(!_ultimoAutor || !_ultimoAutor.nome) return null;
+  const d=new Date(_ultimoAutor.ts);
+  const hhmm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  return 'Registado por: '+_ultimoAutor.nome+' às '+hhmm;
 }
 function ss(){
   const snap=buildSnapshot();
@@ -564,7 +575,7 @@ function ss(){
   });
   try{ if(snap.data) localStorage.setItem('bloco_bu_v2_savedAt_'+snap.data, new Date().toISOString()); }catch(e){}
   enviarParaFirebase(snap.data, snap);
-  zeloMostrarGuardadoAs();
+  zeloMostrarGuardadoAs(snap.criadoPor && snap.criadoPor.nome, snap._ts);
 }
 
 // Ao abrir a página, verifica se outro dispositivo guardou entretanto uma
@@ -611,6 +622,7 @@ function applySnapshot(s){
     document.querySelectorAll('.co').forEach(o=>o.classList.toggle('sel',o.dataset.v===selClass));
     const b=document.getElementById('bdg-class');
     if(b){if(selClass){b.textContent=selClass;b.classList.add('on');}else b.classList.remove('on');}
+    if(s.criadoPor && s.criadoPor.nome) zeloMostrarGuardadoAs(s.criadoPor.nome, s._ts);
   }catch(e){console.warn(e);}
   // NÃO chamar renderAll/upd aqui — ls() trata disso após initDates()
 }
@@ -1671,6 +1683,8 @@ async function gerarPDF(silencioso){
       pdf.text('Bloco Operatório · Hospital do Prenda · DEMA',ML+9,PH-5);
       setT('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(8);
       pdf.text(`Pág. ${i} / ${pg}`,PW-MR,PH-5,{align:'right'});
+      const _registadoPorTxt=_registadoPorTxtAtual();
+      if(_registadoPorTxt){ setT('#93C5FD'); pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5); pdf.text(_registadoPorTxt, PW/2, PH-5, {align:'center'}); }
     }
     const rawDate=gv('data')||new Date().toLocaleDateString('pt-PT').replace(/\//g,'-');
     if(!silencioso){pdf.save(pdfFileName()+'.pdf');toast('✓ PDF gerado!');}
