@@ -1248,11 +1248,22 @@ function zeloConverterDataDMY(id){
 //  DATE INIT  ★ usa hora LOCAL (não UTC) — evita desvio de fuso horário
 // ════════════════════════════════════════════════════════════
 const dateInput = document.getElementById('regDate');
+// Chave de "último dia visto" por serviço -- ao atualizar a página (F5), reabre
+// no mesmo dia em que o utilizador estava, em vez de saltar sempre para hoje.
+function _ultimoDiaVistoKey(){ return 'enf5_ultimoDiaVisto_' + (window.ZELO_ITEM || 'geral'); }
 (function initDate() {
-  const n = new Date();
-  const yy = n.getFullYear(), mm = String(n.getMonth()+1).padStart(2,'0'), dd = String(n.getDate()).padStart(2,'0');
-  dateInput.value = `${yy}-${mm}-${dd}`;
-  const dd2 = document.getElementById('date-disp'); if(dd2) dd2.textContent = `${dd}/${mm}/${yy}`;
+  let usarHoje = true;
+  try{
+    const salvo = localStorage.getItem(_ultimoDiaVistoKey());
+    if (salvo) { dateInput.value = salvo; usarHoje = false; }
+  }catch(e){}
+  if (usarHoje) {
+    const n = new Date();
+    const yy = n.getFullYear(), mm = String(n.getMonth()+1).padStart(2,'0'), dd = String(n.getDate()).padStart(2,'0');
+    dateInput.value = `${yy}-${mm}-${dd}`;
+  }
+  const [yv,mv,dv] = dateInput.value.split('-');
+  const dd2 = document.getElementById('date-disp'); if(dd2) dd2.textContent = `${dv}/${mv}/${yv}`;
 })();
 let currentLoadedDate = dateInput.value;
 
@@ -1826,6 +1837,7 @@ dateInput.addEventListener('change', () => {
   autoSaveTimer = null;
   persist(currentLoadedDate);          // ★ guarda o dia ANTERIOR com a SUA chave
   currentLoadedDate = dateInput.value; // ★ avança o ponteiro
+  try{ localStorage.setItem(_ultimoDiaVistoKey(), currentLoadedDate); }catch(e){}
   const [y,m,d] = dateInput.value.split('-');
   const ddEl = document.getElementById('date-disp'); if(ddEl) ddEl.textContent = `${d}/${m}/${y}`;
   loadFromStorage();                   // ★ carrega o NOVO dia
