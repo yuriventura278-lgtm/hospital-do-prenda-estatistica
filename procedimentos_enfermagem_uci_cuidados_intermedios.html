@@ -1418,14 +1418,18 @@ async function _migrateLsToIdb() {
 
 // ── API pública ──
 
-// Guardar: cache + IDB (ou localStorage como fallback)
+// Guardar: cache + localStorage (espelho sempre presente) + IDB.
+// Grava sempre também no localStorage — não só quando o IndexedDB falha —
+// para que um dia guardado nunca desapareça só porque o IndexedDB ficou
+// indisponível numa sessão futura (outro separador aberto, modo privado,
+// quota esgotada, etc.): o localStorage garante que os dados continuam
+// visíveis mesmo nesse cenário.
 async function _storageSet(key, value) {
   _memCache[key] = value;
-  if (_idbReady) {
-    try { await _idbPut(key, value); return; } catch(e) {}
-  }
-  // fallback
   try { localStorage.setItem(key, value); } catch(e) {}
+  if (_idbReady) {
+    try { await _idbPut(key, value); } catch(e) {}
+  }
 }
 
 // Ler: síncrono via cache

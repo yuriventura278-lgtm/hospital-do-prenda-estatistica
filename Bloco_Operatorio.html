@@ -594,9 +594,19 @@ async function sincronizarComFirebase(){
     if(localSavedAt && new Date(localSavedAt) >= new Date(remoto.savedAt)) return;
     applySnapshot(remoto.snapshot);
     renderAll();upd();
-    // Só quem tem acesso de edição a este módulo grava localmente/publica de
-    // volta no Firebase — leitores só vêem os dados actualizados no ecrã.
-    if(zeloTemAcessoEdicao()) ss();
+    // Guarda localmente o snapshot remoto tal como veio — preserva o autor e a
+    // hora originais (criadoPor/_ts). NÃO usar ss()/buildSnapshot() aqui: isso
+    // reconstruiria um snapshot novo com o utilizador desta sessão como autor,
+    // atribuindo-lhe uma gravação que não fez só por ter aberto a página.
+    try{
+      openDB().then(db=>{
+        const tx=db.transaction(STORE,'readwrite');
+        tx.objectStore(STORE).put(remoto.snapshot);
+      }).catch(()=>{
+        try{localStorage.setItem('bloco_bu_v2',JSON.stringify(remoto.snapshot));}catch(e){}
+      });
+      localStorage.setItem('bloco_bu_v2_savedAt_'+dataAberta, remoto.savedAt);
+    }catch(e){}
   }catch(e){ console.warn('Firebase: falha ao verificar versão mais recente de outros dispositivos.', e); }
 }
 function zeloTemAcessoEdicao(){
