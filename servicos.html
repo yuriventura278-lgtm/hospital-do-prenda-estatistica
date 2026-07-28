@@ -101,6 +101,13 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
 main{width:100%;max-width:1040px;margin:0 auto;padding:56px 20px 60px;box-sizing:border-box;}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:start;}
+.cat-section{margin-bottom:8px;}
+.cat-section + .cat-section{margin-top:32px;}
+.cat-title{display:flex;align-items:center;gap:9px;margin-bottom:14px;}
+.cat-title .cat-emoji{font-size:1.1rem;line-height:1;}
+.cat-title h2{font-size:.94rem;font-weight:800;color:var(--nv);letter-spacing:-.005em;}
+.cat-title .cat-count{font-family:'DM Mono',monospace;font-size:.64rem;font-weight:700;color:var(--tx3);
+  background:var(--sf);border:1px solid var(--br);border-radius:100px;padding:2px 9px;}
 .svc-card{
   position:relative;display:flex;flex-direction:column;overflow:hidden;
   background:#fff;border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--s1);
@@ -685,43 +692,78 @@ function buildActions(svc){
   return acts;
 }
 
+// Ordem e rótulo de cada categoria no menu — "outros" apanha qualquer
+// serviço sem categoria atribuída (ou uma categoria desconhecida), para
+// nenhum ficar por mostrar por engano.
+const CATEGORIAS_SERVICOS = [
+  { id: 'internamento', emoji: '🏥', label: 'Internamento' },
+  { id: 'urgencia', emoji: '🚑', label: 'Urgência' },
+  { id: 'consultas', emoji: '🩺', label: 'Consultas e Especialidades' },
+  { id: 'diagnostico', emoji: '🔬', label: 'Diagnóstico e Terapêutica' },
+  { id: 'bloco_operatorio', emoji: '🏥', label: 'Bloco Operatório' },
+  { id: 'farmacia', emoji: '💊', label: 'Farmácia' },
+  { id: 'supervisao', emoji: '👥', label: 'Supervisão' },
+  { id: 'outros', emoji: '📁', label: 'Outros' },
+];
+
+function buildCard(svc, acts){
+  const card = document.createElement('div');
+  card.className = 'svc-card' + (svc.wip ? ' wip' : '');
+  card.dataset.name = svc.nome.toLowerCase();
+  const btnsHtml = acts.map(a=>`
+    <a class="svc-btn" href="${a.file}" style="background:linear-gradient(120deg,var(--nv) 0%,${svc.cor} 170%);">
+      <span class="ic">${acaoIcon(a.tipo)}</span>
+      <span class="lbl">${a.label}</span>
+      <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </a>
+  `).join('');
+  card.innerHTML = `
+    <div class="svc-head">
+      <div class="svc-ic" style="background:linear-gradient(120deg,var(--nv) 0%,${svc.cor} 170%);">${icon(svc.icon)}</div>
+      <div class="svc-name">${svc.nome}</div>
+      ${svc.wip ? '<span class="svc-wip">Em construção</span>' : ''}
+    </div>
+    <div class="svc-actions">${btnsHtml}</div>
+  `;
+  return card;
+}
+
 function render(){
   main.innerHTML = '';
-  const grid = document.createElement('div');
-  grid.className = 'grid';
+  const porCategoria = {};
   (window.SERVICOS_MENU || []).forEach(svc=>{
     const acts = buildActions(svc);
     if(!acts.length) return; // nada visível para este utilizador — não mostra o bloco
-    const card = document.createElement('div');
-    card.className = 'svc-card' + (svc.wip ? ' wip' : '');
-    card.dataset.name = svc.nome.toLowerCase();
-    const btnsHtml = acts.map(a=>`
-      <a class="svc-btn" href="${a.file}" style="background:linear-gradient(120deg,var(--nv) 0%,${svc.cor} 170%);">
-        <span class="ic">${acaoIcon(a.tipo)}</span>
-        <span class="lbl">${a.label}</span>
-        <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-      </a>
-    `).join('');
-    card.innerHTML = `
-      <div class="svc-head">
-        <div class="svc-ic" style="background:linear-gradient(120deg,var(--nv) 0%,${svc.cor} 170%);">${icon(svc.icon)}</div>
-        <div class="svc-name">${svc.nome}</div>
-        ${svc.wip ? '<span class="svc-wip">Em construção</span>' : ''}
-      </div>
-      <div class="svc-actions">${btnsHtml}</div>
-    `;
-    grid.appendChild(card);
+    const catId = CATEGORIAS_SERVICOS.some(c=>c.id===svc.categoria) ? svc.categoria : 'outros';
+    (porCategoria[catId] = porCategoria[catId] || []).push({svc, acts});
   });
-  main.appendChild(grid);
+  CATEGORIAS_SERVICOS.forEach(cat=>{
+    const itens = porCategoria[cat.id];
+    if(!itens || !itens.length) return; // categoria sem nenhum serviço visível — não mostra o título
+    const section = document.createElement('section');
+    section.className = 'cat-section';
+    section.dataset.catId = cat.id;
+    section.innerHTML = `<div class="cat-title"><span class="cat-emoji">${cat.emoji}</span><h2>${cat.label}</h2><span class="cat-count">${itens.length}</span></div>`;
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    itens.forEach(({svc, acts})=> grid.appendChild(buildCard(svc, acts)));
+    section.appendChild(grid);
+    main.appendChild(section);
+  });
 }
 window.render = render;
 function filterServicos(q){
   q = q.trim().toLowerCase();
   let anyVisible = false;
-  document.querySelectorAll('.svc-card').forEach(card=>{
-    const match = !q || card.dataset.name.includes(q);
-    card.style.display = match ? '' : 'none';
-    if(match) anyVisible = true;
+  document.querySelectorAll('.cat-section').forEach(section=>{
+    let anyInSection = false;
+    section.querySelectorAll('.svc-card').forEach(card=>{
+      const match = !q || card.dataset.name.includes(q);
+      card.style.display = match ? '' : 'none';
+      if(match) anyInSection = true;
+    });
+    section.style.display = anyInSection ? '' : 'none';
+    if(anyInSection) anyVisible = true;
   });
   document.getElementById('noResults').style.display = anyVisible ? 'none' : 'block';
 }
