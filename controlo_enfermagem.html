@@ -410,7 +410,7 @@ main{max-width:920px; margin:0 auto; padding:20px 16px 0;}
         <a class="today-btn" href="index.html" title="Voltar ao Início" style="text-decoration:none;">🏠 Início</a>
         <button class="today-btn" id="btn-today">hoje</button>
         <button class="today-btn" id="btn-refresh" title="Verificar agora nos Procedimentos de Enfermagem">↻</button>
-        <button class="today-btn" onclick="zeloOpenBackup()" title="Exportar backup">backup</button>
+        <button class="today-btn" id="btn-backup-trigger" style="display:none;" onclick="zeloOpenBackup()" title="Exportar backup">backup</button>
         <button class="today-btn" onclick="document.getElementById('zeloRestoreFile').click()" title="Restaurar backup">restaurar</button>
         <span id="progress-pct" class="mono">0%</span>
       </span>
@@ -1712,6 +1712,10 @@ var ZELO_BK_PREFIX = 'enf_controlo_';
 function _zeloPad(n){ return String(n).padStart(2,'0'); }
 function _zeloTodayKey(){ var d = new Date(); return d.getFullYear()+'-'+_zeloPad(d.getMonth()+1)+'-'+_zeloPad(d.getDate()); }
 function zeloOpenBackup(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+    return;
+  }
   document.getElementById('zelo-backup-diario-sub').textContent = 'Só o dia atual (' + _zeloTodayKey().split('-').reverse().join('/') + ')';
   document.getElementById('zeloBackupMesPicker').style.display = 'none';
   document.getElementById('zeloBackupMesInput').value = _zeloTodayKey().slice(0,7);
@@ -1780,6 +1784,14 @@ function zeloRestoreFromFile(input){
   };
   reader.readAsText(file);
 }
+</script>
+<script>
+function _zeloAtualizarBackupTrigger(){
+  var el = document.getElementById('btn-backup-trigger');
+  if (el) el.style.display = (sessionStorage.getItem('zeloRole') === 'admin') ? '' : 'none';
+}
+_zeloAtualizarBackupTrigger();
+window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 <script src="zelo_theme.js"></script>
 </body>

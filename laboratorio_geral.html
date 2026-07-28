@@ -827,13 +827,13 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
       <div class="sb-sec">Dados</div>
       <button class="nav-item" id="nav-historico" onclick="showSection('sec-historico',this)"><span class="icon-svg" data-icon="calendarDays"></span> Histórico</button>
       <hr class="sb-divider">
-      <div class="sb-sec">Cópia de Segurança</div>
-      <button class="nav-item" id="nav-bk-dia" onclick="backupDia()" title="Descarregar backup do dia em registo"><span class="icon-svg" data-icon="download"></span> Backup Dia</button>
-      <button class="nav-item" id="nav-bk-semana" onclick="backupSemana()" title="Descarregar backup da semana seleccionada no Relatório Semanal"><span class="icon-svg" data-icon="download"></span> Backup Semana</button>
-      <button class="nav-item" id="nav-bk-mes" onclick="backupMes()" title="Descarregar backup do mês seleccionado no Relatório Mensal"><span class="icon-svg" data-icon="download"></span> Backup Mês</button>
-      <button class="nav-item" id="nav-bk-geral" onclick="backupGeral()" title="Descarregar backup completo de todos os dados"><span class="icon-svg" data-icon="download"></span> Backup Geral</button>
-      <button class="nav-item" id="nav-bk-restaurar" onclick="document.getElementById('bk-file-inp').click()" title="Restaurar dados a partir de um ficheiro de backup JSON"><span class="icon-svg" data-icon="save"></span> Restaurar Backup</button>
-      <button class="nav-item" id="nav-bk-firebase" onclick="reenviarTudoParaFirebase()" title="Envia todos os dias guardados neste dispositivo para o Firebase"><span class="icon-svg" data-icon="download"></span> Reenviar p/ Firebase</button>
+      <div class="sb-sec" id="backup-section-label" style="display:none;">Cópia de Segurança</div>
+      <button class="nav-item" id="nav-bk-dia" style="display:none;" onclick="backupDia()" title="Descarregar backup do dia em registo"><span class="icon-svg" data-icon="download"></span> Backup Dia</button>
+      <button class="nav-item" id="nav-bk-semana" style="display:none;" onclick="backupSemana()" title="Descarregar backup da semana seleccionada no Relatório Semanal"><span class="icon-svg" data-icon="download"></span> Backup Semana</button>
+      <button class="nav-item" id="nav-bk-mes" style="display:none;" onclick="backupMes()" title="Descarregar backup do mês seleccionado no Relatório Mensal"><span class="icon-svg" data-icon="download"></span> Backup Mês</button>
+      <button class="nav-item" id="nav-bk-geral" style="display:none;" onclick="backupGeral()" title="Descarregar backup completo de todos os dados"><span class="icon-svg" data-icon="download"></span> Backup Geral</button>
+      <button class="nav-item" id="nav-bk-restaurar" style="display:none;" onclick="document.getElementById('bk-file-inp').click()" title="Restaurar dados a partir de um ficheiro de backup JSON"><span class="icon-svg" data-icon="save"></span> Restaurar Backup</button>
+      <button class="nav-item" id="nav-bk-firebase" style="display:none;" onclick="reenviarTudoParaFirebase()" title="Envia todos os dias guardados neste dispositivo para o Firebase"><span class="icon-svg" data-icon="download"></span> Reenviar p/ Firebase</button>
       <input type="file" id="bk-file-inp" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
     </div>
   </nav>
@@ -2044,7 +2044,15 @@ function showRestoreConfirm(grupos, tipo, onConfirm){
   ov.addEventListener('click', function(e){ if(e.target === ov) ov.remove(); });
 }
 
+function _zeloExigirAdminBackup(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof showToast === 'function') showToast('error', 'Só administradores podem usar esta opção');
+    return false;
+  }
+  return true;
+}
 function backupDia() {
+  if (!_zeloExigirAdminBackup()) return;
   collectFromDOM();
   LS.setItem(sk(currentDate), JSON.stringify(cd));
   addSavedDay(currentDate);
@@ -2058,6 +2066,7 @@ function backupDia() {
 }
 
 function backupSemana() {
+  if (!_zeloExigirAdminBackup()) return;
   const r = weekRangeInMonth();
   if(!r){ showToast('warning', 'Seleccione o mês e a semana no Relatório Semanal antes de exportar o backup'); return; }
   const dias = daysForWeek();
@@ -2075,6 +2084,7 @@ function backupSemana() {
 }
 
 function backupGeral() {
+  if (!_zeloExigirAdminBackup()) return;
   collectFromDOM();
   LS.setItem(sk(currentDate), JSON.stringify(cd));
   addSavedDay(currentDate);
@@ -2086,6 +2096,7 @@ function backupGeral() {
 }
 
 function backupMes() {
+  if (!_zeloExigirAdminBackup()) return;
   const mEl = document.getElementById('mrpt-month');
   const now = new Date();
   const m = (mEl && mEl.value) ? mEl.value : (now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'));
@@ -2312,6 +2323,7 @@ async function _fbSyncLaboratorio(date, data){
 // sincronização, para os dias antigos (só locais) passarem a existir lá
 // também.
 async function reenviarTudoParaFirebase(){
+  if (!_zeloExigirAdminBackup()) return;
   if (!window.__fbReady){ showToast('error', 'Firebase indisponível de momento'); return; }
   const keys = [];
   for (let i = 0; i < LS.length; i++){
@@ -3873,6 +3885,16 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   if (_abrir === 'historico' && typeof showSection === 'function') showSection('sec-historico', null);
   if (_abrir === 'exportar' && typeof exportDailyPDF === 'function') exportDailyPDF();
 })();
+
+function _zeloAtualizarBackupTrigger(){
+  var ehAdmin = sessionStorage.getItem('zeloRole') === 'admin';
+  ['backup-section-label','nav-bk-dia','nav-bk-semana','nav-bk-mes','nav-bk-geral','nav-bk-restaurar','nav-bk-firebase'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.style.display = ehAdmin ? '' : 'none';
+  });
+}
+_zeloAtualizarBackupTrigger();
+window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 </body>
 </html>

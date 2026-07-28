@@ -461,7 +461,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
   <button class="drw-it" id="drwSaida"><svg viewBox="0 0 24 24"><path d="M12 5v14M12 19l-5-5M12 19l5-5"/></svg>Registar saída<span class="bdg">›</span></button>
   <button class="drw-it" id="drwAjuste"><svg viewBox="0 0 24 24"><path d="M4 7h13M17 7l-3-3M17 7l-3 3"/><path d="M20 17H7M7 17l3-3M7 17l3 3"/></svg>Ajuste de inventário<span class="bdg">›</span></button>
   <div class="drw-sec">Sistema</div>
-  <button class="drw-it" id="drwBackup"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 7.7-8 9-4.8-1.3-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>Cópia de segurança<span class="bdg">›</span></button>
+  <button class="drw-it" id="drwBackup" style="display:none;"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 7.7-8 9-4.8-1.3-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>Cópia de segurança<span class="bdg">›</span></button>
   <button class="drw-it" id="drwKeys"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M18 14h.01M9 14h6"/></svg>Atalhos de teclado<span class="bdg">›</span></button>
   <div class="drw-foot">ZELO · Sistema Estatístico e Gestão de Ocorrências<br>Farmácia Central</div>
 </div>
@@ -2519,6 +2519,10 @@ $("rPer").addEventListener("change",perInit);
 
 /* ===== CÓPIA DE SEGURANÇA: EVENTOS ===== */
 $("drwBackup").addEventListener("click",function(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof toast === 'function') toast('Só administradores podem usar esta opção','bad');
+    return;
+  }
   fecharMenu();renderBkpList();
   if(!$("bkpMes").value)$("bkpMes").value=hoje().slice(0,7);
   if(!$("bkpDia").value)$("bkpDia").value=hoje();
@@ -2764,6 +2768,14 @@ function boot(){
 }
 boot();
 })();
+</script>
+<script>
+function _zeloAtualizarBackupTrigger(){
+  var el = document.getElementById('drwBackup');
+  if (el) el.style.display = (sessionStorage.getItem('zeloRole') === 'admin') ? '' : 'none';
+}
+_zeloAtualizarBackupTrigger();
+window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 </body>
 </html>

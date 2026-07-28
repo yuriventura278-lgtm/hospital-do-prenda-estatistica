@@ -432,7 +432,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
     <a class="btn-h btn-out" href="index.html" style="text-decoration:none;" aria-label="Início">🏠<span class="btn-label"> Início</span></a>
     <button class="btn-h btn-save" onclick="saveAllData()" aria-label="Guardar"><svg class='ic'><use href='#ic-save'/></svg><span class="btn-label"> Guardar</span></button>
     <button class="btn-h btn-out" onclick="exportDayPDF()" aria-label="Exportar PDF"><svg class='ic'><use href='#ic-file'/></svg><span class="btn-label"> PDF</span></button>
-    <button class="btn-h btn-out" onclick="exportJSON()" aria-label="Exportar backup"><svg class='ic'><use href='#ic-disc'/></svg><span class="btn-label"> Backup</span></button>
+    <button class="btn-h btn-out" id="btn-backup-trigger" style="display:none;" onclick="exportJSON()" aria-label="Exportar backup"><svg class='ic'><use href='#ic-disc'/></svg><span class="btn-label"> Backup</span></button>
   </div>
 </header>
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
@@ -1784,6 +1784,10 @@ function addPDFFooter(doc,label){
 
 // ═══ JSON BACKUP ═══
 function exportJSON(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof toast === 'function') toast('Só administradores podem usar esta opção', 'error');
+    return;
+  }
   const dates=getSavedDates(); const all={};
   dates.forEach(d=>{ const raw=localStorage.getItem(sk(d)); if(raw) all[d]=JSON.parse(raw); });
   const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),dates,data:all},null,2)],{type:"application/json"});
@@ -1798,6 +1802,13 @@ function exportJSON(){
   if (_abrir === 'historico' && typeof showSection === 'function') showSection('sec-historico', null);
   if (_abrir === 'exportar' && typeof exportDayPDF === 'function') exportDayPDF();
 })();
+
+function _zeloAtualizarBackupTrigger(){
+  var el = document.getElementById('btn-backup-trigger');
+  if (el) el.style.display = (sessionStorage.getItem('zeloRole') === 'admin') ? '' : 'none';
+}
+_zeloAtualizarBackupTrigger();
+window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 </body>
 </html>

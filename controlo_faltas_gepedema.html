@@ -278,7 +278,7 @@
   <div class="hint">Toque num dia do calendário para registar quem faltou. Tudo fica guardado automaticamente, sem precisar de internet.</div>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <a href="index.html" style="padding:6px 14px;font-size:12px;font-weight:700;border-radius:100px;border:1px solid var(--border);background:#fff;color:var(--ink);cursor:pointer;text-decoration:none;">🏠 Início</a>
-    <button style="padding:6px 14px;font-size:12px;font-weight:700;border-radius:100px;border:1px solid var(--border);background:#fff;color:var(--ink);cursor:pointer;" onclick="cfgOpenBackup()">⬇ Backup</button>
+    <button id="btn-backup-trigger" style="display:none;padding:6px 14px;font-size:12px;font-weight:700;border-radius:100px;border:1px solid var(--border);background:#fff;color:var(--ink);cursor:pointer;" onclick="cfgOpenBackup()">⬇ Backup</button>
     <button style="padding:6px 14px;font-size:12px;font-weight:700;border-radius:100px;border:1px solid var(--border);background:#fff;color:var(--ink);cursor:pointer;" onclick="document.getElementById('cfgRestoreFile').click()">⬆ Restaurar</button>
     <button style="padding:6px 14px;font-size:12px;font-weight:700;border-radius:100px;border:1px solid var(--cyan-500);background:var(--cyan-500);color:#fff;cursor:pointer;" onclick="document.getElementById('btnPdf').click()">📄 Exportar PDF</button>
   </div>
@@ -1595,6 +1595,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   function cfgLoadFerias(){ try{ return JSON.parse(localStorage.getItem(CFG_LS_KEY_FERIAS) || '[]'); }catch(e){ return []; } }
 
   window.cfgOpenBackup = function(){
+    if (sessionStorage.getItem('zeloRole') !== 'admin'){
+      if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+      return;
+    }
     document.getElementById('cfg-backup-diario-sub').textContent = 'Só o dia atual (' + cfgTodayISO().split('-').reverse().join('/') + ')';
     document.getElementById('cfgBackupMesPicker').style.display = 'none';
     document.getElementById('cfgBackupMesInput').value = cfgTodayISO().slice(0,7);
@@ -1697,6 +1701,14 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     reader.readAsText(file);
   };
 })();
+</script>
+<script>
+function _zeloAtualizarBackupTrigger(){
+  var el = document.getElementById('btn-backup-trigger');
+  if (el) el.style.display = (sessionStorage.getItem('zeloRole') === 'admin') ? '' : 'none';
+}
+_zeloAtualizarBackupTrigger();
+window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 <script src="zelo_theme.js"></script>
 </body>

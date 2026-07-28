@@ -625,7 +625,7 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
     <hr class="sb-divider">
     <div class="sb-sec">Sistema</div>
     <div class="nav-list">
-      <div class="nav-item" data-view="backup" id="nav-backup">
+      <div class="nav-item" data-view="backup" id="nav-backup" style="display:none;">
         <span class="ni-icon"><svg class="svc-icon"><use href="#i-transfer"/></svg></span><span class="ni-label">Dados (Exportar/Importar)</span>
       </div>
     </div>
@@ -1366,6 +1366,10 @@ CE.Store = (function(){
   };
 
   function activate(view){
+    if (view === 'backup' && sessionStorage.getItem('zeloRole') !== 'admin'){
+      if (typeof toast === 'function') toast('Só administradores podem usar esta opção');
+      return;
+    }
     document.querySelectorAll('.nav-item[data-view]').forEach(function(n){ n.classList.toggle('active', n.dataset.view === view); });
     document.querySelectorAll('.nav-item[data-especialidade]').forEach(function(n){ n.classList.remove('active'); });
     document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('on'); });
@@ -1394,6 +1398,13 @@ CE.Store = (function(){
   var _abrir = new URLSearchParams(location.search).get('abrir');
   if (_abrir === 'historico') activate('historico');
   if (_abrir === 'exportar') activate('relatorio');
+
+  function _zeloAtualizarBackupTrigger(){
+    var el = document.getElementById('nav-backup');
+    if (el) el.style.display = (sessionStorage.getItem('zeloRole') === 'admin') ? '' : 'none';
+  }
+  _zeloAtualizarBackupTrigger();
+  window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 
   /* menu hambúrguer (mobile) */
   CE.$('btn-menu').addEventListener('click', function(){
