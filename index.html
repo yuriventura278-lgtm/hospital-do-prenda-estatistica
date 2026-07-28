@@ -239,6 +239,33 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-link.active .sb-ic{background:var(--bl);color:#fff;}
 .sb-link:focus-visible{outline:2.5px solid var(--cy);outline-offset:-2px;}
 
+/* Árvore de atalhos "Serviços" — categorias e serviços, expansível sem sair da página */
+.sb-parent{padding:0 0 0 0;}
+.sb-parent-link{display:flex;align-items:center;gap:12px;flex:1;min-width:0;color:inherit;text-decoration:none;padding:11px 6px 11px 12px;}
+.sb-toggle{flex-shrink:0;width:26px;height:26px;margin-right:6px;border-radius:7px;background:none;border:none;color:var(--tx3);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .14s,color .14s;}
+.sb-toggle:hover{background:var(--sf);color:var(--bl);}
+.sb-toggle svg{transition:transform .18s ease;}
+.sb-toggle.open svg{transform:rotate(90deg);}
+.sb-subtree{max-height:0;overflow:hidden;transition:max-height .25s ease;}
+.sb-subtree.open{max-height:2400px;}
+.sb-cat{margin:2px 0;}
+.sb-cat-row{display:flex;align-items:center;width:100%;}
+.sb-cat-link{display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:8px 6px 8px 30px;border-radius:9px;
+  color:var(--tx2);text-decoration:none;font-size:.76rem;font-weight:700;}
+.sb-cat-link:hover{background:var(--sf);color:var(--bl);}
+.sb-cat-icon{width:14px;height:14px;flex-shrink:0;color:var(--bl);}
+.sb-cat-count{margin-left:auto;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tx3);}
+.sb-cat-toggle{flex-shrink:0;width:22px;height:22px;margin-right:4px;border-radius:6px;background:none;border:none;color:var(--tx3);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.sb-cat-toggle:hover{background:var(--sf);color:var(--bl);}
+.sb-cat-toggle svg{transition:transform .18s ease;}
+.sb-cat-toggle.open svg{transform:rotate(90deg);}
+.sb-svc-list{max-height:0;overflow:hidden;transition:max-height .22s ease;}
+.sb-svc-list.open{max-height:900px;}
+.sb-svc-link{display:block;padding:7px 10px 7px 48px;font-size:.74rem;color:var(--tx3);text-decoration:none;border-radius:8px;}
+.sb-svc-link:hover{background:var(--sf);color:var(--bl);}
+
 .zelo-main{min-width:0;padding:24px 26px 40px;max-width:none;margin:0 0 0 var(--zelo-sidebar-w);}
 .zelo-main-inner{max-width:1100px;}
 .zelo-page-title{font-size:1.3rem;font-weight:800;color:var(--tx);margin-bottom:18px;}
@@ -469,6 +496,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   </div>
 </div>
 <script src="zelo_loading.js"></script>
+<script src="zelo_servicos_menu.js"></script>
 <script type="module">
 import {
   auth, db, ref, get, onValue, query, orderByChild, limitToLast,
@@ -1074,11 +1102,17 @@ document.addEventListener('DOMContentLoaded', function(){
           </a>
         </div>
         <div class="sb-group">
-          <a href="servicos.html" class="sb-link" data-module="servicos">
-            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
-            <span>Serviços</span>
-            <span class="sb-badge" id="sbBadgeServicos" style="display:none;">0</span>
-          </a>
+          <div class="sb-link sb-parent" data-module="servicos">
+            <a href="servicos.html" class="sb-parent-link">
+              <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+              <span>Serviços</span>
+              <span class="sb-badge" id="sbBadgeServicos" style="display:none;">0</span>
+            </a>
+            <button type="button" class="sb-toggle" id="sbServicosToggle" aria-expanded="false" title="Mostrar categorias">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <div class="sb-subtree" id="sbServicosTree"></div>
         </div>
         <div class="sb-group">
           <div class="sb-section-label">Análise</div>
@@ -1171,7 +1205,86 @@ window.zeloApplyPermissoes = function(role, permissoes){
     var permitido = window.__zeloHasModuleAccess(role, permissoes, mod);
     link.style.display = permitido ? '' : 'none';
   });
+  zeloAtualizarVisibilidadeArvoreServicos(role, permissoes);
 };
+
+// ── Árvore de atalhos "Serviços" no menu lateral: categorias → serviços,
+// expansível sem sair da página. Usa os mesmos dados (SERVICOS_MENU /
+// CATEGORIAS_SERVICOS) partilhados com servicos.html, e liga cada serviço a
+// uma âncora (#svc-...) nessa página em vez de tentar escolher uma das
+// várias acções possíveis (Relatório/Procedimentos/Movimento) por si só.
+function zeloServicoTemAcessoVisivel(svc, role, permissoes){
+  var hasAccess = window.__zeloHasModuleAccess;
+  if(typeof hasAccess !== 'function') return true; // ainda não carregou — não esconde nada por engano
+  function algum(lista){ return (lista||[]).some(function(a){ return hasAccess(role, permissoes, a.modulo, a.item); }); }
+  if(algum(svc.relatorios) || algum(svc.procedimentos)) return true;
+  return (svc.movimento||[]).some(function(m){ return hasAccess(role, permissoes, m.modulo); });
+}
+function zeloConstruirArvoreServicos(){
+  var tree = document.getElementById('sbServicosTree');
+  if(!tree || tree.dataset.built) return;
+  tree.dataset.built = '1';
+  var menu = window.SERVICOS_MENU || [];
+  var cats = window.CATEGORIAS_SERVICOS || [];
+  var slugify = window.zeloSlugifyServico || function(n){ return String(n||'').toLowerCase(); };
+  var porCategoria = {};
+  menu.forEach(function(svc){
+    var catId = cats.some(function(c){ return c.id === svc.categoria; }) ? svc.categoria : 'outros';
+    (porCategoria[catId] = porCategoria[catId] || []).push(svc);
+  });
+  var html = '';
+  cats.forEach(function(cat){
+    var itens = porCategoria[cat.id];
+    if(!itens || !itens.length) return;
+    var svcHtml = itens.map(function(svc){
+      return '<a class="sb-svc-link" href="servicos.html#svc-' + slugify(svc.nome) + '" data-svc-nome="' + svc.nome.replace(/"/g,'&quot;') + '">' + svc.nome + '</a>';
+    }).join('');
+    html += '<div class="sb-cat" data-cat-id="' + cat.id + '">' +
+      '<div class="sb-cat-row">' +
+        '<a class="sb-cat-link" href="servicos.html#cat-' + cat.id + '"><svg class="sb-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="sb-cat-count">' + itens.length + '</span></a>' +
+        '<button type="button" class="sb-cat-toggle" data-cat-toggle="' + cat.id + '" aria-expanded="false" title="Mostrar serviços"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' +
+      '</div>' +
+      '<div class="sb-svc-list" data-cat-list="' + cat.id + '">' + svcHtml + '</div>' +
+    '</div>';
+  });
+  tree.innerHTML = html;
+  tree.querySelectorAll('[data-cat-toggle]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.dataset.catToggle;
+      var list = tree.querySelector('[data-cat-list="' + id + '"]');
+      var abrir = !btn.classList.contains('open');
+      btn.classList.toggle('open', abrir);
+      btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+      if(list) list.classList.toggle('open', abrir);
+    });
+  });
+}
+function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){
+  var tree = document.getElementById('sbServicosTree');
+  if(!tree) return;
+  var menu = window.SERVICOS_MENU || [];
+  var porNome = {};
+  menu.forEach(function(svc){ porNome[svc.nome] = svc; });
+  tree.querySelectorAll('.sb-cat').forEach(function(catEl){
+    var algumVisivel = false;
+    catEl.querySelectorAll('.sb-svc-link').forEach(function(link){
+      var svc = porNome[link.dataset.svcNome];
+      var visivel = !svc || zeloServicoTemAcessoVisivel(svc, role, permissoes);
+      link.style.display = visivel ? '' : 'none';
+      if(visivel) algumVisivel = true;
+    });
+    catEl.style.display = algumVisivel ? '' : 'none';
+  });
+}
+zeloConstruirArvoreServicos();
+zeloAtualizarVisibilidadeArvoreServicos(sessionStorage.getItem('zeloRole') || 'funcionario', JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'));
+document.getElementById('sbServicosToggle').addEventListener('click', function(){
+  var tree = document.getElementById('sbServicosTree');
+  var abrir = !this.classList.contains('open');
+  this.classList.toggle('open', abrir);
+  this.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  tree.classList.toggle('open', abrir);
+});
 document.getElementById('zeloMenuToggle').addEventListener('click', function(){
   document.getElementById('zeloSidebar').classList.toggle('open');
 });

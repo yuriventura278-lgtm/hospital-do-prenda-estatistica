@@ -99,4 +99,43 @@ const SERVICOS_MENU = [
     relatorios: [{ label: 'Relatório Diário', file: 'Supervisao_Maqueiros.html', modulo: 'servicos', item: 'supervisao_maqueiros' }] },
 ];
 
-if (typeof window !== 'undefined') window.SERVICOS_MENU = SERVICOS_MENU;
+// Categorias usadas para agrupar SERVICOS_MENU — partilhadas entre
+// servicos.html (secções da grelha) e o menu lateral em index.html (árvore
+// de atalhos), para as duas nunca ficarem dessincronizadas. "outros" apanha
+// qualquer serviço sem categoria (ou com uma categoria desconhecida).
+// "icon" é o miolo (paths/rects) de um ícone SVG 24x24 — cada página envolve-o
+// no seu próprio <svg ...>, sem depender de emojis (que rendem de forma
+// inconsistente entre dispositivos/fontes).
+const CATEGORIAS_SERVICOS = [
+  { id: 'internamento', label: 'Internamento',
+    icon: '<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7v10M18 7v10M2 12h20"/>' },
+  { id: 'urgencia', label: 'Urgência',
+    icon: '<circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>' },
+  { id: 'consultas', label: 'Consultas e Especialidades',
+    icon: '<path d="M14 22V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16M2 22h20M14 12v.01"/>' },
+  { id: 'diagnostico', label: 'Diagnóstico e Terapêutica',
+    icon: '<path d="M9 2v6.3a2 2 0 0 1-.3 1L4 18a2 2 0 0 0 1.7 3h12.6a2 2 0 0 0 1.7-3l-4.7-8.7a2 2 0 0 1-.3-1V2"/><path d="M6 9h12"/>' },
+  { id: 'bloco_operatorio', label: 'Bloco Operatório',
+    icon: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/>' },
+  { id: 'farmacia', label: 'Farmácia',
+    icon: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>' },
+  { id: 'supervisao', label: 'Supervisão',
+    icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>' },
+  { id: 'outros', label: 'Outros',
+    icon: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>' },
+];
+
+// Slug estável a partir do nome do serviço — usado como id do cartão em
+// servicos.html e como âncora (#svc-...) pelos atalhos do menu lateral em
+// index.html. Tem de ser a MESMA função nos dois ficheiros, daqui partilhada.
+function zeloSlugifyServico(nome){
+  return String(nome || '').toLowerCase()
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+if (typeof window !== 'undefined') {
+  window.SERVICOS_MENU = SERVICOS_MENU;
+  window.CATEGORIAS_SERVICOS = CATEGORIAS_SERVICOS;
+  window.zeloSlugifyServico = zeloSlugifyServico;
+}
