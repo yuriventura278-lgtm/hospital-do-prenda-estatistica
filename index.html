@@ -241,7 +241,8 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 
 /* Árvore de atalhos "Serviços" — categorias e serviços, expansível sem sair da página */
 .sb-parent{padding:0 0 0 0;}
-.sb-parent-link{display:flex;align-items:center;gap:12px;flex:1;min-width:0;color:inherit;text-decoration:none;padding:11px 6px 11px 12px;}
+.sb-parent-link{display:flex;align-items:center;gap:12px;flex:1;min-width:0;color:inherit;text-decoration:none;padding:11px 6px 11px 12px;
+  background:none;border:none;font:inherit;text-align:left;cursor:pointer;}
 .sb-toggle{flex-shrink:0;width:26px;height:26px;margin-right:6px;border-radius:7px;background:none;border:none;color:var(--tx3);
   display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .14s,color .14s;}
 .sb-toggle:hover{background:var(--sf);color:var(--bl);}
@@ -1115,11 +1116,11 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
         <div class="sb-group">
           <div class="sb-link sb-parent" data-module="servicos">
-            <a href="servicos.html" class="sb-parent-link">
+            <button type="button" class="sb-parent-link" id="sbServicosLabel">
               <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
               <span>Serviços</span>
               <span class="sb-badge" id="sbBadgeServicos" style="display:none;">0</span>
-            </a>
+            </button>
             <button type="button" class="sb-toggle" id="sbServicosToggle" aria-expanded="false" title="Mostrar categorias">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -1255,12 +1256,16 @@ function zeloConstruirArvoreServicos(){
     if(!itens || !itens.length) return;
     var svcHtml = itens.map(function(svc){
       var slug = slugify(svc.nome);
-      // Acesso rápido directo ao destino (Relatório(s) Diário(s) + Movimento
-      // Hospitalar) -- em vez de só saltar para o cartão em servicos.html e
-      // obrigar a mais um clique lá para escolher a acção.
+      // Acesso rápido directo ao destino (Relatório(s) Diário(s) +
+      // Procedimentos de Enfermagem + Movimento Hospitalar) -- em vez de só
+      // saltar para o cartão em servicos.html e obrigar a mais um clique lá
+      // para escolher a acção.
       var acoes = [];
       (svc.relatorios||[]).forEach(function(r){
         acoes.push({ label: r.label, href: r.file, modulo: r.modulo, item: r.item });
+      });
+      (svc.procedimentos||[]).forEach(function(p){
+        acoes.push({ label: p.label, href: p.file, modulo: p.modulo, item: p.item });
       });
       (svc.movimento||[]).forEach(function(m){
         acoes.push({ label: m.label, href: 'movimento_mensal.html?servico=' + m.slug, modulo: m.modulo, item: null });
@@ -1337,13 +1342,18 @@ function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){
 }
 zeloConstruirArvoreServicos();
 zeloAtualizarVisibilidadeArvoreServicos(sessionStorage.getItem('zeloRole') || 'funcionario', JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'));
-document.getElementById('sbServicosToggle').addEventListener('click', function(){
+function zeloAlternarArvoreServicos(){
   var tree = document.getElementById('sbServicosTree');
-  var abrir = !this.classList.contains('open');
-  this.classList.toggle('open', abrir);
-  this.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  var btn = document.getElementById('sbServicosToggle');
+  var abrir = !btn.classList.contains('open');
+  btn.classList.toggle('open', abrir);
+  btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
   tree.classList.toggle('open', abrir);
-});
+}
+// "Serviços" não navega para servicos.html -- clicar no nome ou na seta
+// faz a mesma coisa: mostrar/esconder as categorias aqui mesmo.
+document.getElementById('sbServicosLabel').addEventListener('click', zeloAlternarArvoreServicos);
+document.getElementById('sbServicosToggle').addEventListener('click', zeloAlternarArvoreServicos);
 document.getElementById('zeloMenuToggle').addEventListener('click', function(){
   document.getElementById('zeloSidebar').classList.toggle('open');
 });
