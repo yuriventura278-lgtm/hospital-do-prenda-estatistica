@@ -3718,6 +3718,13 @@ function exportPDF() {
   const now = new Date();
   const geradoEm = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
+  const _lsWrap = document.getElementById('last-saved-status');
+  const _lsNome = document.getElementById('last-saved-name')?.textContent?.trim();
+  const _lsHora = document.getElementById('last-saved-time')?.textContent?.trim();
+  const registadoPorTxt = (_lsWrap && _lsWrap.style.display !== 'none' && _lsNome && _lsNome !== '—')
+    ? `Registado por: ${_lsNome} às ${_lsHora}`
+    : null;
+
   // Mesma fusão e ordenação por hora usada na tabela "Cirurgias do Dia" em tela
   const allSurg = [
     ...surgeries.urg.map(s => ({ ...s, _type: 'urg' })),
@@ -3934,6 +3941,7 @@ function exportPDF() {
     drawBOHeader();
     doc.setFontSize(8); doc.setTextColor(150, 150, 150);
     doc.text('Hospital do Prenda · Luanda · Angola', 14, doc.internal.pageSize.height - 8);
+    if (registadoPorTxt) doc.text(registadoPorTxt, pageW / 2, doc.internal.pageSize.height - 8, { align: 'center' });
     doc.text('Pág. ' + i + '/' + pageCount, pageW - 14, doc.internal.pageSize.height - 8, { align: 'right' });
   }
 
