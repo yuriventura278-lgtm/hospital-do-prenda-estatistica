@@ -1427,7 +1427,16 @@ function _storageKeys(prefix) {
 
 // Debounced auto-save
 let autoSaveTimer = null;
+// _diaAlterado: só fica true quando o utilizador altera mesmo algum campo
+// (autoSave() só é chamado a partir de oninput/onchange reais). Sem isto,
+// abrir um dia só para ver e depois mudar de data ou fechar/actualizar a
+// página voltava a gravar esse dia na mesma — com a hora e o nome do
+// utilizador ACTUAL como autor — mesmo sem ter escrito nada, o que fazia
+// "Última alteração" mentir e podia sobrepor-se ao que outro dispositivo
+// tinha gravado a seguir.
+let _diaAlterado = false;
 function autoSave() {
+  _diaAlterado = true;
   clearTimeout(autoSaveTimer);
   const snap = currentLoadedDate; // ★ captura a data AGORA, não quando o timer disparar
   const dot = document.getElementById('as-dot');
@@ -1460,6 +1469,7 @@ function persist(date) {
       if(notesEl) data.specs[sp.id]['notes' + turno.charAt(0).toUpperCase() + turno.slice(1)] = notesEl.value || '';
     });
   });
+  _diaAlterado = false;
   _storageSet(storageKey(d), JSON.stringify(data));
   if(window.zeloQueueWrite){
     const _fbSavedAt = new Date().toISOString();
@@ -1747,6 +1757,7 @@ function clearDayState() {
 
 // loadFromStorage: lê localStorage e preenche o DOM
 function loadFromStorage() {
+  _diaAlterado = false; // ★ abrir/recarregar um dia nunca conta como alteração
   const raw = _storageGet(storageKey());
   if(!raw) {
     clearDayState();
@@ -1817,7 +1828,10 @@ function setSyncInfo(msg) {
 dateInput.addEventListener('change', () => {
   clearTimeout(autoSaveTimer);
   autoSaveTimer = null;
-  persist(currentLoadedDate);          // ★ guarda o dia ANTERIOR com a SUA chave
+  // Só grava o dia que está a deixar-se se houve mesmo alguma alteração
+  // (_diaAlterado) — abrir um dia só para ver e mudar para outro não pode
+  // gravar nada nem mudar quem/quando foi a última alteração real.
+  if (_diaAlterado) persist(currentLoadedDate);
   currentLoadedDate = dateInput.value; // ★ avança o ponteiro
   try{ localStorage.setItem(_ultimoDiaVistoKey(), currentLoadedDate); }catch(e){}
   const [y,m,d] = dateInput.value.split('-');
@@ -1825,10 +1839,10 @@ dateInput.addEventListener('change', () => {
   loadFromStorage();                   // ★ carrega o NOVO dia
 });
 
-// ★ BEFOREUNLOAD — guarda antes de fechar/refrescar
+// ★ BEFOREUNLOAD — guarda antes de fechar/refrescar, só se algo foi alterado
 window.addEventListener('beforeunload', () => {
   clearTimeout(autoSaveTimer);
-  persist(currentLoadedDate);
+  if (_diaAlterado) persist(currentLoadedDate);
 });
 
 // ════════════════════════════════════════════════════════════
