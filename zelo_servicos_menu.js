@@ -87,7 +87,10 @@ const SERVICOS_MENU = [
   { nome: 'Fisioterapia', categoria: 'consultas', icon: 'users', cor: '#059669',
     relatorios: [{ label: 'Relatório Diário', file: 'banco_fisioterapia_v1-1-1.html', modulo: 'servicos', item: 'fisioterapia' }] },
   { nome: 'Psicologia Clínica', categoria: 'consultas', icon: 'head', cor: '#059669',
-    relatorios: [{ label: 'Relatório Diário', file: 'psicologia_clinica_hp-1-3-1.html', modulo: 'servicos', item: 'psicologia_clinica' }] },
+    relatorios: [
+      { label: 'Relatório Diário', file: 'psicologia_clinica_hp-1-3-1.html', modulo: 'servicos', item: 'psicologia_clinica' },
+      { label: 'Atendimento & Estatística', file: 'psicologia_atendimento.html', modulo: 'sistemas_independentes', item: 'psicologia_atendimento' },
+    ] },
   { nome: 'Farmácia', categoria: 'farmacia', icon: 'bank', cor: '#0D9488',
     relatorios: [{ label: 'Movimentação de Medicamentos', file: 'farmacia_central.html', modulo: 'sistemas_independentes', item: 'farmacia_central' }] },
   { nome: 'Supervisão do Hospital', categoria: 'supervisao', icon: 'shield', cor: '#334155', wip: true,
