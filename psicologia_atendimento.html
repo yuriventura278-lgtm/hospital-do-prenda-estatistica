@@ -4,6 +4,27 @@
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='sistemas_independentes';</script>
 <script>window.ZELO_ITEM='psicologia_atendimento';</script>
+<script src="zelo_indexeddb.js"></script>
+<script src="zelo_sync.js"></script>
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    // Escuta em tempo real: cb é chamado de imediato com o valor actual e,
+    // depois, sempre que outro dispositivo altera este caminho — sem sondagem.
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
+    window.__fbReady = false;
+  }
+</script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
 <meta charset="UTF-8"/>
@@ -439,6 +460,58 @@ function save(){try{localStorage.setItem(K_ATEND,JSON.stringify(atendimentos));l
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 
 // ═══════════════════════════════════════════════════════════════════
+//  SINCRONIZAÇÃO ENTRE DISPOSITIVOS (Firebase)
+// ═══════════════════════════════════════════════════════════════════
+// Cada atendimento/médico/proveniência é guardado no Firebase no seu
+// próprio caminho, indexado pelo id — ao contrário de um "registo do dia"
+// único (como nos bancos de serviço), esta página é uma lista que só
+// cresce, sem um "dia actual" para reescrever por inteiro. Gravar cada
+// registo no seu próprio caminho evita que dois dispositivos a escrever
+// ao mesmo tempo apaguem os registos um do outro — cada escrita só afecta
+// o seu próprio id, nunca a lista inteira.
+const FB_BASE='registos_sistemas_locais/psicologia_atendimento';
+function fbKey(s){return String(s).replace(/[.#$/\[\]]/g,'_');}
+function fbSalvarAtendimento(a){if(window.zeloQueueWrite)window.zeloQueueWrite(FB_BASE+'/atendimentos/'+a.id,a);}
+function fbRemoverAtendimento(id){if(window.__fbSet)window.__fbSet(FB_BASE+'/atendimentos/'+id,null).catch(()=>{});}
+function fbSalvarMedico(m){if(window.zeloQueueWrite)window.zeloQueueWrite(FB_BASE+'/medicos/'+m.id,m);}
+function fbRemoverMedico(id){if(window.__fbSet)window.__fbSet(FB_BASE+'/medicos/'+id,null).catch(()=>{});}
+function fbSalvarProveniencia(p){if(window.zeloQueueWrite)window.zeloQueueWrite(FB_BASE+'/proveniencias/'+fbKey(p),p);}
+
+let _syncPronto=false;
+function iniciarSincronizacao(){
+  if(!window.__fbListen)return;
+  // onValue chama o callback de imediato com o estado actual (mistura o que
+  // já lá estava de outros dispositivos com o que temos localmente) e depois
+  // sempre que outro dispositivo grava — por isso não precisamos de sondagem.
+  window.__fbListen(FB_BASE+'/atendimentos',function(remoto){
+    const mapa={};atendimentos.forEach(a=>mapa[a.id]=a);
+    Object.keys(remoto||{}).forEach(id=>{mapa[id]=remoto[id];});
+    atendimentos=Object.values(mapa);
+    save();
+    if(_syncPronto){renderDia();renderMenu();
+      if(document.getElementById('pane-dash').classList.contains('on'))renderDash();
+      if(document.getElementById('pane-rel').classList.contains('on'))renderRelatorios();}
+  });
+  window.__fbListen(FB_BASE+'/medicos',function(remoto){
+    const mapa={};medicos.forEach(m=>mapa[m.id]=m);
+    Object.keys(remoto||{}).forEach(id=>{mapa[id]=remoto[id];});
+    medicos=Object.values(mapa);
+    save();
+    if(_syncPronto){renderMedicos();fillMedicoSelect();}
+  });
+  window.__fbListen(FB_BASE+'/proveniencias',function(remoto){
+    const set=new Set(provList);
+    Object.values(remoto||{}).forEach(p=>set.add(p));
+    provList=Array.from(set);
+    save();
+    if(_syncPronto)fillDatalists();
+  });
+  // Só depois da primeira sincronização real re-renderizamos por causa dela —
+  // no arranque, o init() já vai renderizar tudo uma vez por conta própria.
+  setTimeout(()=>{_syncPronto=true;},1500);
+}
+
+// ═══════════════════════════════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════════════════════════════
 function $(id){return document.getElementById(id);}
@@ -501,7 +574,9 @@ let medicoSel=null;
 function addMedico(){
   const nome=gv('med-nome').trim(), cons=gv('med-cons').trim();
   if(!nome){toast('Indique o nome do médico');return;}
-  medicos.push({id:uid(),nome,cons});
+  const novoMedico={id:uid(),nome,cons};
+  medicos.push(novoMedico);
+  fbSalvarMedico(novoMedico);
   $('med-nome').value='';$('med-cons').value='';
   save();renderMedicos();fillMedicoSelect();toast('Médico adicionado');
   $('med-nome').focus();
@@ -511,6 +586,7 @@ function removeMedico(id){
   medicos=medicos.filter(m=>m.id!==id);
   if(medicoSel===id)medicoSel=null;
   save();renderMedicos();fillMedicoSelect();
+  fbRemoverMedico(id);
 }
 function renderMedicos(){
   const box=$('med-list');
@@ -557,9 +633,11 @@ function addAtendimento(){
   if(!diag){toast('Indique o diagnóstico');return;}
   if(!prov){toast('Indique a proveniência');return;}
   const m=medicos.find(x=>x.id===medId)||{};
-  atendimentos.push({id:uid(),data,medId,medNome:m.nome||'',cons:m.cons||'',paciente:pac,idade:parseInt(idade),sexo,diag,prov});
+  const novoRegisto={id:uid(),data,medId,medNome:m.nome||'',cons:m.cons||'',paciente:pac,idade:parseInt(idade),sexo,diag,prov};
+  atendimentos.push(novoRegisto);
+  fbSalvarAtendimento(novoRegisto);
   // memorizar nova proveniência
-  if(!provList.includes(prov)){provList.push(prov);}
+  if(!provList.includes(prov)){provList.push(prov);fbSalvarProveniencia(prov);}
   save();fillDatalists();
   // limpar campos do paciente (mantém data e médico)
   $('a-paciente').value='';$('a-idade').value='';$('a-sexo').value='';$('a-diag').value='';$('a-prov').value='';showFaixa();
@@ -571,6 +649,7 @@ function addAtendimento(){
 function removeAtend(id){
   if(!confirm('Remover este atendimento?'))return;
   atendimentos=atendimentos.filter(a=>a.id!==id);save();renderDia();
+  fbRemoverAtendimento(id);
 }
 function renderDia(){
   const data=gv('a-data')||todayISO();
@@ -868,14 +947,25 @@ function importJSON(ev){
     if(d.medicos)medicos=d.medicos;
     if(d.provList)provList=d.provList;
     save();renderMedicos();fillMedicoSelect();fillDatalists();renderDia();
-    toast('Dados importados');
+    // Propaga a cópia restaurada para o Firebase, para os outros dispositivos
+    // também passarem a ver estes dados (cada registo grava-se no seu próprio
+    // caminho — restaurar não apaga o que os outros dispositivos já tinham).
+    atendimentos.forEach(fbSalvarAtendimento);
+    medicos.forEach(fbSalvarMedico);
+    provList.forEach(fbSalvarProveniencia);
+    toast('Dados importados e sincronizados');
   }catch(err){toast('Ficheiro inválido');}};
   rd.readAsText(f);ev.target.value='';
 }
 function wipeAll(){
-  if(!confirm('Apagar TODOS os atendimentos, médicos e proveniências? Esta acção não pode ser anulada.'))return;
+  if(!confirm('Apagar TODOS os atendimentos, médicos e proveniências — em TODOS os dispositivos sincronizados? Esta acção não pode ser anulada.'))return;
   atendimentos=[];medicos=[];provList=PROVENIENCIAS_DEFAULT.slice();
   save();renderMedicos();fillMedicoSelect();fillDatalists();renderDia();toast('Tudo apagado');
+  if(window.__fbSet){
+    window.__fbSet(FB_BASE+'/atendimentos',null).catch(()=>{});
+    window.__fbSet(FB_BASE+'/medicos',null).catch(()=>{});
+    window.__fbSet(FB_BASE+'/proveniencias',null).catch(()=>{});
+  }
 }
 function seedDemo(){
   if(atendimentos.length && !confirm('Já existem dados. Adicionar exemplos mesmo assim?'))return;
@@ -903,6 +993,7 @@ function seedDemo(){
   $('d-ref').value=todayISO();
   $('a-data').addEventListener('change',renderDia);
   renderMedicos();fillMedicoSelect();fillDatalists();renderDia();renderMenu();
+  iniciarSincronizacao();
 })();
 </script>
 <script src="zelo_servicos_menu.js"></script>
