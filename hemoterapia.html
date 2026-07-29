@@ -1122,7 +1122,7 @@ function syncProvas(){
   document.getElementById("prova-total").value = g;
 }
 
-function calcAll(){
+function calcAll(fromLoad){
   // Transfusões
   const p=n("transf-plaquetas"), pl=n("transf-plasmas"), g=n("transf-globulos"), c=n("transf-crio");
   const totalTransf=p+pl+g+c;
@@ -1177,20 +1177,28 @@ function calcAll(){
   currentData.doadores={voluntarios:v,familiares:f,habituais:h};
   currentData.serologia={vih,hbs,vdrl,hcv};
 
-  // Auto-save
-  autoSaveLazy();
+  // Auto-save — só quando a recontagem vem de uma edição real do
+  // utilizador (fromLoad é passado como true ao recalcular por carregar
+  // um dia ou aplicar dados remotos, nunca por o utilizador ter escrito).
+  if (!fromLoad) { _diaAlterado = true; autoSaveLazy(); }
 }
 
+let _diaAlterado = false;
 function autoSaveLazy(){
   clearTimeout(_autoSaveTimer);
   setSyncInfo('<svg class="ic ic-spin"><use href="#ic-refresh"/></svg> A gravar…', "pending");
   const snap=currentData.date||todayKey();
-  _autoSaveTimer=setTimeout(()=>{ persistData(snap); },900);
+  _autoSaveTimer=setTimeout(()=>{ persistData(snap); _diaAlterado = false; },900);
 }
 
 // ═══ DATE CHANGE ═══
 async function onDateChange(newDate){
-  await persistData(currentData.date||todayKey());
+  clearTimeout(_autoSaveTimer);
+  // ★ Só grava o dia anterior se houve mesmo uma edição por gravar — abrir
+  // um dia só para ver e mudar logo para outro não deve gravá-lo, nem
+  // reatribuir a autoria ao utilizador actual sem ele ter alterado nada.
+  if (_diaAlterado) { await persistData(currentData.date||todayKey()); }
+  _diaAlterado = false;
   await loadDay(newDate);
 }
 
@@ -1235,7 +1243,8 @@ async function loadDay(date){
     currentData.turno="manha";
   }
   populateFields();
-  calcAll();
+  calcAll(true);
+  _diaAlterado = false;
   _fbEscutarDia(date);
 }
 
@@ -1399,10 +1408,6 @@ function _fbMostrarAvisoNovosDados(remoto, date){
   banner.querySelector('[data-act="dispensar"]').onclick = () => { banner.remove(); };
   document.body.insertBefore(banner, document.body.firstChild);
 }
-function _fbEhHoje(date){
-  const n = new Date();
-  return date === n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
-}
 // Chamado sempre que o dia aberto muda — cancela a escuta do dia anterior
 // (se existir) e liga-se ao caminho do novo dia.
 async function _fbEscutarDia(date){
@@ -1425,18 +1430,19 @@ async function _fbEscutarDia(date){
       try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
       if (localSavedAt && localSavedAt >= savedAt) return; // já temos esta versão (ou mais recente)
       if (date !== currentData.date) return; // o utilizador já mudou de dia entretanto
-      // Nunca substituir dados locais já existentes sem confirmação, mesmo sem carimbo do Firebase
-      // (podem ser anteriores a esta sincronização) -- mostra o aviso em vez de aplicar sozinho.
-      // Exceção: no próprio dia de hoje aplica sozinho ao reabrir (vários turnos gravam o
-      // mesmo dia ao longo do dia) -- a proteção com aviso só vale a partir de amanhã.
-      try{ const _existente = await DB.get(date); if (_existente && !_fbEhHoje(date)) { _fbMostrarAvisoNovosDados(remoto, date); return; } }catch(e){}
+      // Ao abrir qualquer dia (hoje ou um dia passado), aplica logo os dados
+      // mais recentes vindos doutro dispositivo — o carimbo savedAt já
+      // garante acima que só substitui se for realmente mais recente do que
+      // o que já temos, por isso não há risco de apagar uma gravação mais
+      // nova. Só gravações SEGUINTES enquanto o dia continua aberto (mais
+      // abaixo) é que mostram o aviso.
       try{
         await DB.put(JSON.parse(JSON.stringify(Object.assign({}, remoto.snapshot, { date: date }))));
         try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
         if (date === currentData.date){
           Object.assign(currentData, remoto.snapshot);
           populateFields();
-          calcAll();
+          calcAll(true);
         }
       }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes da Hemoterapia.', e); }
       return;
@@ -1458,12 +1464,13 @@ async function saveAllData(){
   renderHistory();
 }
 
-// Guarda ao sair ou ao esconder a aba (mobile-safe). IndexedDB não garante
-// escrita síncrona em beforeunload, por isso o auto-save de 900ms + o botão
-// "Guardar" são a rede de segurança principal; isto é um esforço adicional.
-window.addEventListener("beforeunload",()=>{ clearTimeout(_autoSaveTimer); persistData(currentData.date||todayKey()); });
+// Guarda ao sair ou ao esconder a aba (mobile-safe), mas só se houver mesmo
+// uma alteração por gravar — IndexedDB não garante escrita síncrona em
+// beforeunload, por isso o auto-save de 900ms + o botão "Guardar" são a
+// rede de segurança principal; isto é um esforço adicional.
+window.addEventListener("beforeunload",()=>{ clearTimeout(_autoSaveTimer); if (_diaAlterado) { persistData(currentData.date||todayKey()); _diaAlterado = false; } });
 window.addEventListener("resize",()=>{ if(window.innerWidth>768) toggleSidebar(false); });
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"){ clearTimeout(_autoSaveTimer); persistData(currentData.date||todayKey()); } });
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden"){ clearTimeout(_autoSaveTimer); if (_diaAlterado) { persistData(currentData.date||todayKey()); _diaAlterado = false; } } });
 
 // ═══ HISTORY (paginação incremental) ═══
 const HIST_PAGE_SIZE = 20;
