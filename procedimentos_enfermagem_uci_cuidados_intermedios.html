@@ -1709,10 +1709,6 @@ function _fbMostrarAvisoNovosDados(remoto, date){
   banner.querySelector('[data-act="dispensar"]').onclick = () => { banner.remove(); };
   document.body.insertBefore(banner, document.body.firstChild);
 }
-function _fbEhHoje(date){
-  const n = new Date();
-  return date === n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
-}
 async function _fbEscutarDia(date){
   if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
   const el = document.getElementById('fb-novos-dados-banner');
@@ -1732,11 +1728,13 @@ async function _fbEscutarDia(date){
       try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
       if (localSavedAt && localSavedAt >= savedAt) return;
       if (date !== currentLoadedDate) return;
-      // Nunca substituir dados locais ja existentes sem confirmacao, mesmo sem carimbo do Firebase
-      // (podem ser anteriores a esta sincronizacao) -- mostra o aviso em vez de aplicar sozinho.
-      // Excecao: no proprio dia de hoje aplica sozinho ao reabrir (varios turnos gravam o
-      // mesmo dia ao longo do dia) -- a protecao com aviso so vale a partir de amanha.
-      if (_storageGet(storageKey(date)) && !_fbEhHoje(date)) { _fbMostrarAvisoNovosDados(remoto, date); return; }
+      // Ao abrir qualquer dia (hoje ou um dia passado), aplica logo os dados
+      // mais recentes vindos doutro dispositivo — o carimbo savedAt já garante
+      // acima que só substitui se for realmente mais recente do que o que já
+      // temos, por isso não há risco de apagar uma gravação mais nova. Só
+      // gravações SEGUINTES enquanto o dia continua aberto (mais abaixo) é que
+      // mostram o aviso, para nunca substituir silenciosamente algo que o
+      // utilizador possa estar a escrever nesse momento.
       try{
         _storageSet(storageKey(date), JSON.stringify(remoto.snapshot.raw));
         try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
