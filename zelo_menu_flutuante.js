@@ -98,11 +98,19 @@
   var ICON_SAIR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
 
   function temAcesso(modulo, item){
-    if (typeof window.hasModuleAccess !== 'function') return true; // ainda não carregou — não esconde nada
+    // window.hasModuleAccess só existe nas 4 páginas-índice que a expõem
+    // explicitamente (bancos_index.html, procedimentos_enfermagem_index.html,
+    // servicos.html, sistemas_independentes.html). Em todas as outras páginas
+    // (onde este menu também corre) a mesma função só está acessível via
+    // window.ZeloAuth, que o zelo_pagegate.js/zelo_auth.js já garante em
+    // qualquer página com sessão — sem este fallback, a verificação falhava
+    // sempre em aberto e mostrava tudo a todos os perfis.
+    var fn = window.hasModuleAccess || (window.ZeloAuth && window.ZeloAuth.hasModuleAccess);
+    if (typeof fn !== 'function') return true; // ainda não carregou — não esconde nada
     var role = sessionStorage.getItem('zeloRole') || 'funcionario';
     var permissoes = {};
     try{ permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'); }catch(e){}
-    return window.hasModuleAccess(role, permissoes, modulo, item);
+    return fn(role, permissoes, modulo, item);
   }
 
   function slug(nome){
