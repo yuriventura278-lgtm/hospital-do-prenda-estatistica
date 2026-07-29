@@ -2158,11 +2158,15 @@ document.getElementById('current-date-display').textContent = `${dd}/${mm}/${yy}
 //   Toda a lógica de guardar usa esta variável em vez de dateInput.value.
 let currentLoadedDate = dateInput.value;
 dateInput.addEventListener('change', () => {
-  // ★ FIXO DEFINITIVO: guardar estado actual na data carregada ANTES de mudar.
+  // ★ FIXO DEFINITIVO: guardar estado actual na data carregada ANTES de mudar —
+  // mas só se houver mesmo uma alteração pendente por gravar (_hasPendingSave).
+  // Sem esta verificação, abrir um dia só para ver e mudar logo para outro
+  // gravava-o na mesma, com a hora e o utilizador ACTUAL como autor — mesmo
+  // sem ter escrito nada.
   clearTimeout(autoSaveTimer);
   autoSaveTimer = null;
-  persist(currentLoadedDate);           // guardar dia anterior com a sua própria chave
-  _hasPendingSave = false;              // já gravámos, não há mais nada pendente para esta data
+  if (_hasPendingSave) persist(currentLoadedDate); // guardar dia anterior com a sua própria chave
+  _hasPendingSave = false;              // já gravámos (ou não havia nada pendente) para esta data
   currentLoadedDate = dateInput.value;  // avançar o ponteiro para o novo dia
   const [y,m,d] = dateInput.value.split('-');
   document.getElementById('current-date-display').textContent = `${d}/${m}/${y}`;
@@ -3598,10 +3602,6 @@ function _fbMostrarAvisoNovosDados(remoto, date){
   document.body.insertBefore(banner, document.body.firstChild);
 }
 let _fbCancelarEscuta = null;
-function _fbEhHoje(date){
-  const n = new Date();
-  return date === n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
-}
 async function _fbEscutarDia(date){
   if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
   const el = document.getElementById('fb-novos-dados-banner');
@@ -3621,11 +3621,13 @@ async function _fbEscutarDia(date){
       try{ localSavedAt = localStorage.getItem(_FB_BO_SAVEDAT_PREFIX + date); }catch(e){}
       if (localSavedAt && localSavedAt >= savedAt) return;
       if (date !== currentLoadedDate) return;
-      // Nunca substituir dados locais já existentes sem confirmação, mesmo sem carimbo do Firebase
-      // (podem ser anteriores a esta sincronização) -- mostra o aviso em vez de aplicar sozinho.
-      // Exceção: no próprio dia de hoje aplica sozinho ao reabrir (vários turnos gravam o
-      // mesmo dia ao longo do dia) -- a proteção com aviso só vale a partir de amanhã.
-      if (safeGet(storageKey(date)) && !_fbEhHoje(date)) { _fbMostrarAvisoNovosDados(remoto, date); return; }
+      // Ao abrir qualquer dia (hoje ou um dia passado), aplica logo os dados
+      // mais recentes vindos doutro dispositivo — o carimbo savedAt já garante
+      // acima que só substitui se for realmente mais recente do que o que já
+      // temos, por isso não há risco de apagar uma gravação mais nova. Só
+      // gravações SEGUINTES enquanto o dia continua aberto (mais abaixo) é que
+      // mostram o aviso, para nunca substituir silenciosamente algo que o
+      // utilizador possa estar a escrever nesse momento.
       try{
         safeSet(storageKey(date), JSON.stringify(remoto.snapshot));
         try{ localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
