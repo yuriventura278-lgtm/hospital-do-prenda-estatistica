@@ -430,7 +430,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
   </div>
   <div class="hdr-right">
     <a class="btn-h btn-out" href="index.html" style="text-decoration:none;" aria-label="Início">🏠<span class="btn-label"> Início</span></a>
-    <button class="btn-h btn-save" onclick="saveAllData()" aria-label="Guardar"><svg class='ic'><use href='#ic-save'/></svg><span class="btn-label"> Guardar</span></button>
+    <button class="btn-h btn-save" id="main-save-btn" onclick="saveAllData()" aria-label="Guardar"><svg class='ic'><use href='#ic-save'/></svg><span class="btn-label"> Guardar</span></button>
     <button class="btn-h btn-out" onclick="exportDayPDF()" aria-label="Exportar PDF"><svg class='ic'><use href='#ic-file'/></svg><span class="btn-label"> PDF</span></button>
     <button class="btn-h btn-out" id="btn-backup-trigger" style="display:none;" onclick="exportJSON()" aria-label="Exportar backup"><svg class='ic'><use href='#ic-disc'/></svg><span class="btn-label"> Backup</span></button>
   </div>
@@ -1453,7 +1453,8 @@ async function saveAllData(){
   const date = currentData.date||todayKey();
   await persistData(date);
   btns.forEach(b=>b.disabled=false);
-  toast('Dados guardados com sucesso',"success");
+  if(window.zeloGuardarComFeedback) window.zeloGuardarComFeedback('#main-save-btn', 'Registo guardado com sucesso');
+  else toast('Dados guardados com sucesso',"success");
   renderHistory();
 }
 
@@ -1958,5 +1959,7 @@ window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script src="zelo_save_feedback.js"></script>
 </body>
 </html>

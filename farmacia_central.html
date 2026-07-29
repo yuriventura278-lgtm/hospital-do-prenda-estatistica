@@ -2367,7 +2367,10 @@ $("fpSave").addEventListener("click",function(){
     if(!state.editId){obj.id=id;state.produtos.push(obj);state.undo.push({t:"novoProd",id:id});}
     else state.undo.push({t:"editProd",antes:antes});
     bumpAlt();
-    closeOvl("ovlProd");toast("Produto guardado com sucesso.","ok");render();
+    closeOvl("ovlProd");
+    if(window.zeloSavedToast) window.zeloSavedToast("Produto guardado com sucesso");
+    else toast("Produto guardado com sucesso.","ok");
+    render();
   });
 });
 
@@ -2463,7 +2466,9 @@ $("fmSave").addEventListener("click",function(){
     state.undo.push({t:"mov",m:m,pid:pid,delta:delta});
     bumpAlt();
     closeOvl("ovlMov");
-    toast(ajuste?"Ajuste registado com sucesso.":(tipo==="entrada"?"Entrada registada com sucesso.":"Saída registada com sucesso."),"ok");
+    var _msgMov=ajuste?"Ajuste registado com sucesso":(tipo==="entrada"?"Entrada registada com sucesso":"Saída registada com sucesso");
+    if(window.zeloSavedToast) window.zeloSavedToast(_msgMov);
+    else toast(_msgMov+".","ok");
     render();
   };
   tx.onabort=function(){
@@ -2873,5 +2878,7 @@ window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script src="zelo_save_feedback.js"></script>
 </body>
 </html>
