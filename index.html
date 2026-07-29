@@ -355,7 +355,25 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   const arc=document.getElementById('splash-arc'),pct=document.getElementById('splash-pct'),bar=document.getElementById('splash-bar');
   const total=301,dur=2600,fps=40,steps=dur/fps;let i=0;
   const iv=setInterval(()=>{i++;const p=Math.min(i/steps,1);arc.style.strokeDashoffset=total*(1-p);pct.textContent=Math.round(p*100)+'%';bar.style.width=(p*100)+'%';if(i>=steps)clearInterval(iv);},fps);
-  setTimeout(()=>{const sp=document.getElementById('splash');if(!sp)return;sp.style.transition='opacity .5s ease';sp.style.opacity='0';setTimeout(()=>sp.remove(),500);},2900);
+  var removido=false;
+  function remover(){
+    if(removido) return; removido=true;
+    clearInterval(iv); clearTimeout(to);
+    const sp=document.getElementById('splash');
+    if(!sp) return;
+    sp.style.transition='opacity .5s ease';
+    sp.style.opacity='0';
+    setTimeout(()=>sp.remove(),500);
+  }
+  var to=setTimeout(remover,2900);
+  // #zeloAuthGate fica sobreposto a este splash (z-index mais alto) e, quando já
+  // existe sessão guardada, pode ficar pronto a mostrar conteúdo antes dos 2.9s
+  // fixos do splash. Sem esta ligação, as duas transições corriam em paralelo e
+  // sem coordenação — via-se por instantes as duas barras de progresso ao mesmo
+  // tempo e um "flash" do ecrã de login/splash reaparecendo por cima do
+  // conteúdo já carregado. Remover o splash no mesmo instante em que o ecrã de
+  // login fica pronto (showAuthForm/hideGate, mais abaixo) elimina essa corrida.
+  window.zeloRemoveSplash = remover;
 })();
 </script>
 <div id="zeloAuthGate" style="position:fixed;inset:0;z-index:999999;display:flex;">
@@ -615,6 +633,7 @@ window.__zeloHasModuleAccess = hasModuleAccess;
   });
 
   function hideGate(){
+    if(window.zeloRemoveSplash) window.zeloRemoveSplash();
     if(loadingCtrl) loadingCtrl.concluido();
     htmlEl.style.overflow=prevOverflow;
     gate.style.transition='opacity .25s ease';
@@ -623,6 +642,7 @@ window.__zeloHasModuleAccess = hasModuleAccess;
   }
 
   function showAuthForm(){
+    if(window.zeloRemoveSplash) window.zeloRemoveSplash();
     if(loadingCtrl) loadingCtrl.concluido();
     var loading = document.getElementById('zeloAuthLoading');
     if(loading) loading.style.display = 'none';

@@ -22,8 +22,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-const INACTIVITY_WARNING_MS = 13 * 60 * 1000; // 13 minutos — mostra aviso de expiração
-const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 minutos sem interação — logout automático
+const INACTIVITY_WARNING_MS = 28 * 60 * 1000; // 28 minutos — mostra aviso de expiração
+const INACTIVITY_LIMIT_MS = 30 * 60 * 1000; // 30 minutos sem interação — logout automático
 const MAX_SESSION_MS = 8 * 60 * 60 * 1000; // 8 horas — sessão máxima mesmo com atividade contínua (fim de turno)
 const REVALIDATE_INTERVAL_MS = 2 * 60 * 1000; // 2 minutos — reconfirma em segundo plano que a conta continua activa
 
