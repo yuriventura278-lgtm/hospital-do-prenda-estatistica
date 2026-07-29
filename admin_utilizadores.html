@@ -520,9 +520,14 @@ document.getElementById('permModalSave').addEventListener('click', async functio
     if(nivel === 'leitura'){ denied._nivel = 'leitura'; perms[m.key] = denied; }
     else { perms[m.key] = anyDenied ? denied : true; }
   });
-  await update(ref(db, 'users/' + permUid), { permissoes: perms });
-  await logAuditEvent(currentUid, currentEmail, 'alterar_permissoes', { alvoUid: permUid });
-  document.getElementById('permModal').style.display = 'none';
+  try{
+    await update(ref(db, 'users/' + permUid), { permissoes: perms });
+    await logAuditEvent(currentUid, currentEmail, 'alterar_permissoes', { alvoUid: permUid });
+    document.getElementById('permModal').style.display = 'none';
+  }catch(err){
+    console.error('ZELO: falha ao guardar permissões', err);
+    alert('Não foi possível guardar as permissões (' + (err && err.message || 'erro desconhecido') + ').');
+  }
 });
 
 function ensureScript(url, checkFn, cb){
@@ -747,8 +752,13 @@ usersBody.addEventListener('change', async function(e){
   const cargoSel = e.target.closest('select.cargo-select');
   if(cargoSel){
     const uid = cargoSel.dataset.uid;
-    await update(ref(db, 'users/' + uid), { cargo: cargoSel.value });
-    await logAuditEvent(currentUid, currentEmail, 'alterar_cargo', { alvoUid: uid, novoCargo: cargoSel.value });
+    try{
+      await update(ref(db, 'users/' + uid), { cargo: cargoSel.value });
+      await logAuditEvent(currentUid, currentEmail, 'alterar_cargo', { alvoUid: uid, novoCargo: cargoSel.value });
+    }catch(err){
+      console.error('ZELO: falha ao alterar cargo', err);
+      alert('Não foi possível guardar o cargo (' + (err && err.message || 'erro desconhecido') + ').');
+    }
     return;
   }
   const roleSel = e.target.closest('select.role-select');
@@ -766,8 +776,14 @@ usersBody.addEventListener('change', async function(e){
     if(uid === currentUid && novoRole !== 'admin' && u.role === 'admin'){
       if(!confirm('Vais remover o teu próprio acesso de Administrador. Continuar?')){ roleSel.value = u.role; return; }
     }
-    await update(ref(db, 'users/' + uid), { role: novoRole });
-    await logAuditEvent(currentUid, currentEmail, 'alterar_papel', { alvoUid: uid, alvoEmail: u.email, novoRole });
+    try{
+      await update(ref(db, 'users/' + uid), { role: novoRole });
+      await logAuditEvent(currentUid, currentEmail, 'alterar_papel', { alvoUid: uid, alvoEmail: u.email, novoRole });
+    }catch(err){
+      console.error('ZELO: falha ao alterar papel', err);
+      alert('Não foi possível guardar o papel (' + (err && err.message || 'erro desconhecido') + ').');
+      roleSel.value = u.role;
+    }
   }
 });
 usersBody.addEventListener('click', async function(e){
@@ -792,17 +808,27 @@ usersBody.addEventListener('click', async function(e){
     if(uid === currentUid && !novoAtivo){
       if(!confirm('Vais desativar a tua própria conta e perder o acesso. Continuar?')) return;
     }
-    await update(ref(db, 'users/' + uid), { ativo: novoAtivo });
-    await logAuditEvent(currentUid, currentEmail, novoAtivo ? 'reativar_utilizador' : 'desativar_utilizador', { alvoUid: uid, alvoEmail: u.email });
+    try{
+      await update(ref(db, 'users/' + uid), { ativo: novoAtivo });
+      await logAuditEvent(currentUid, currentEmail, novoAtivo ? 'reativar_utilizador' : 'desativar_utilizador', { alvoUid: uid, alvoEmail: u.email });
+    }catch(err){
+      console.error('ZELO: falha ao ativar/desativar utilizador', err);
+      alert('Não foi possível ' + (novoAtivo ? 'reativar' : 'desativar') + ' esta conta (' + (err && err.message || 'erro desconhecido') + ').');
+    }
   }
   if(action === 'eliminar'){
     if(u.role === 'admin' && u.ativo !== false && countActiveAdmins(uid) === 0){
       alert('Não é possível eliminar esta conta: é o único Administrador ativo do sistema.');
       return;
     }
-    if(!confirm('Eliminar o acesso de ' + (btn.dataset.email || uid) + '? Esta ação não pode ser desfeita (a conta deixa de conseguir entrar no ZELO).')) return;
-    await remove(ref(db, 'users/' + uid));
-    await logAuditEvent(currentUid, currentEmail, 'eliminar_utilizador', { alvoUid: uid, alvoEmail: u.email });
+    if(!confirm('Eliminar o acesso de ' + (btn.dataset.email || uid) + '? Esta ação não pode ser desfeita (a conta deixa de conseguir entrar no ZELO). Nota: o email fica reservado no sistema de autenticação e não poderá ser usado para criar uma nova conta.')) return;
+    try{
+      await remove(ref(db, 'users/' + uid));
+      await logAuditEvent(currentUid, currentEmail, 'eliminar_utilizador', { alvoUid: uid, alvoEmail: u.email });
+    }catch(err){
+      console.error('ZELO: falha ao eliminar utilizador', err);
+      alert('Não foi possível eliminar esta conta (' + (err && err.message || 'erro desconhecido') + ').');
+    }
   }
 });
 
