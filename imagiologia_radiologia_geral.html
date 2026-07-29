@@ -763,7 +763,7 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
   <button class="nav-item" onclick="showSection('historico',this)"><span class="nav-dot"></span><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Histórico</button>
   <button class="nav-item" onclick="showSection('exportar',this)"><span class="nav-dot"></span><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar</button>
   <div class="sb-divider"></div>
-  <button class="save-btn" onclick="saveAllData()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar Registo</button>
+  <button class="save-btn" id="main-save-btn" onclick="saveAllData()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Guardar Registo</span></button>
   <div style="padding:6px 14px;">
     <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;color:rgba(148,163,184,.7);border-color:#334155;" onclick="exportPDFDia()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF Diário</button>
   </div>
@@ -1657,7 +1657,8 @@ function saveAllData(){
   addSavedDate(date);
   document.getElementById('sync-label').textContent='Guardado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('save-status-date').textContent=fmtDate(date);
-  toast('Dados guardados com sucesso <svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="20 6 9 17 4 12"/></svg>','success');
+  if(window.zeloGuardarComFeedback) window.zeloGuardarComFeedback('#main-save-btn', 'Registo guardado com sucesso');
+  else toast('Dados guardados com sucesso <svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="20 6 9 17 4 12"/></svg>','success');
   renderHistory();
   currentData.criadoPor = payload.criadoPor;
   currentData._ts = payload._ts;
@@ -2395,6 +2396,7 @@ loadDay(document.getElementById('data-registo').value);
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
+<script src="zelo_save_feedback.js"></script>
 <script>
 function _zeloAtualizarBackupTrigger(){
   var el = document.getElementById('btn-backup-trigger');

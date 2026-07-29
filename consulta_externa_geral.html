@@ -759,7 +759,7 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
           <div class="sec-b-wrap"><div class="sec-b-inner"><div class="sec-b" id="resumo-diagnostico"></div></div></div>
         </div>
         <button type="button" class="btn btn-navy block" id="btn-guardar-especialidade" style="margin-top:6px;">
-          <svg class="svc-icon"><use href="#i-save"/></svg>Guardar Especialidade do Dia
+          <svg class="svc-icon"><use href="#i-save"/></svg><span>Guardar Especialidade do Dia</span>
         </button>
         <div id="last-saved-status" style="display:none;font-size:.72rem;color:#64748B;text-align:center;margin-top:6px;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></div>
         <button type="button" class="btn btn-out block" id="btn-pdf-especialidade-dia" style="margin-top:10px;">
@@ -2671,7 +2671,8 @@ CE.Registo = (function(){
       clearDraft();
       _mostrarHoraGuardado(sessao.criadoPor.nome, sessao.createdAt);
       carregarCachePatologias();
-      toast('✓ Especialidade do dia guardada com ' + totalDoentes + ' doente(s).');
+      if (window.zeloGuardarComFeedback) window.zeloGuardarComFeedback('#btn-guardar-especialidade', 'Especialidade do dia guardada com ' + totalDoentes + ' doente(s)');
+      else toast('✓ Especialidade do dia guardada com ' + totalDoentes + ' doente(s).');
       _fbSyncConsultaExterna(sessao.data);
       if (CE.atualizarIndicadoresEspecialidades) CE.atualizarIndicadoresEspecialidades();
       sessaoAtualId = null;
@@ -4367,6 +4368,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
+<script src="zelo_save_feedback.js"></script>
 </body>
 </html>
 

@@ -43,9 +43,10 @@
 
     var icon = btn.querySelector('svg');
     var textoOrig = null, noSpanTexto = null;
-    // Se o botão tiver um <span> dedicado ao rótulo, troca só esse span;
-    // senão troca o texto do próprio botão (preservando o ícone, se houver).
-    noSpanTexto = btn.querySelector('span:not(.zelo-theme-header-icon)');
+    // Se o botão tiver um ou mais <span>, o rótulo é sempre o último (o ícone,
+    // quando também é um <span> em vez de <svg>, vem sempre antes do texto).
+    var spans = btn.querySelectorAll('span:not(.zelo-theme-header-icon)');
+    noSpanTexto = spans.length ? spans[spans.length - 1] : null;
     var origBg = btn.style.background;
     var origIconHtml = icon ? icon.outerHTML : null;
 

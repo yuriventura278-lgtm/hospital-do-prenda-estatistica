@@ -1005,7 +1005,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <textarea class="notes-area" id="notas-dia" placeholder="Observações, intercorrências, situações especiais…" oninput="cd.notas=this.value"></textarea>
       </div>
       <div class="btn-group">
-        <button class="btn-h btn-save" style="font-size:.6rem;padding:8px 20px;" onclick="saveAll()"><span class="icon-svg" data-icon="save"></span> Guardar Registo</button>
+        <button class="btn-h btn-save" id="main-save-btn" style="font-size:.6rem;padding:8px 20px;" onclick="saveAll()"><span class="icon-svg" data-icon="save"></span> <span>Guardar Registo</span></button>
         <button class="btn-h btn-out" style="font-size:.6rem;padding:8px 20px;" onclick="exportDailyPDF()"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
       </div>
     </div>
@@ -2494,7 +2494,8 @@ function saveAll() {
   cd.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   LS.setItem(sk(currentDate), JSON.stringify(cd));
   addSavedDay(currentDate);
-  showToast('success', 'Registo diário de '+fmtDate(currentDate)+' guardado com sucesso');
+  if(window.zeloGuardarComFeedback) window.zeloGuardarComFeedback('#main-save-btn', 'Registo diário de '+fmtDate(currentDate)+' guardado com sucesso');
+  else showToast('success', 'Registo diário de '+fmtDate(currentDate)+' guardado com sucesso');
   _mostrarHoraGuardado(cd.criadoPor.nome, cd._ts);
   _fbSyncLaboratorio(currentDate, cd);
 }
@@ -3981,5 +3982,7 @@ window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script src="zelo_save_feedback.js"></script>
 </body>
 </html>
