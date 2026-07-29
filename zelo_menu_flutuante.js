@@ -212,6 +212,11 @@
     var panel = document.createElement('div');
     panel.id = 'zmf-panel';
     var temLogout = typeof window.zeloLogout === 'function';
+    // Perfis sem nenhum "Sistema Local" acessível (a maioria — este acesso é
+    // sempre concedido pelo admin por utilizador) não devem ver uma secção
+    // que expande para uma lista vazia.
+    var sistemasLocaisHtml = construirSistemasLocais();
+    var temSistemasLocais = sistemasLocaisHtml.trim() !== '';
     panel.innerHTML = `
       <div class="zmf-head">
         <img src="icons/logo.png" alt="ZELO"/>
@@ -231,13 +236,14 @@
           </div>
           <div class="zmf-subtree" id="zmf-servicos-tree">${construirArvoreServicos()}</div>
         </div>
+        ${temSistemasLocais ? `
         <div class="zmf-group">
           <div class="zmf-parent-row">
             <button type="button" class="zmf-link" id="zmf-sistemas-label" style="flex:1;"><span class="zmf-ic">${ICON_SIS}</span>Sistemas Locais</button>
             <button type="button" class="zmf-toggle" id="zmf-sistemas-toggle" aria-expanded="false">${ICON_CHEV}</button>
           </div>
-          <div class="zmf-subtree" id="zmf-sistemas-tree">${construirSistemasLocais()}</div>
-        </div>
+          <div class="zmf-subtree" id="zmf-sistemas-tree">${sistemasLocaisHtml}</div>
+        </div>` : ''}
         <div class="zmf-section-label">Análise</div>
         <div class="zmf-group">
           <a class="zmf-link" href="Estatistica.html"><span class="zmf-ic">${ICON_STATS}</span>Estatística</a>
@@ -288,7 +294,7 @@
       toggle.addEventListener('click', alternar);
     }
     alternarSubtree('zmf-servicos-label', 'zmf-servicos-toggle', 'zmf-servicos-tree');
-    alternarSubtree('zmf-sistemas-label', 'zmf-sistemas-toggle', 'zmf-sistemas-tree');
+    if (temSistemasLocais) alternarSubtree('zmf-sistemas-label', 'zmf-sistemas-toggle', 'zmf-sistemas-tree');
 
     ligarAlternador(panel, '[data-zmf-cat-toggle]', 'data-zmf-cat-toggle', 'data-zmf-cat-list');
     ligarAlternador(panel, '[data-zmf-svc-toggle]', 'data-zmf-svc-toggle', 'data-zmf-svc-actions');
