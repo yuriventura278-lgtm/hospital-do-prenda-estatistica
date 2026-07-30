@@ -38,15 +38,26 @@ const FETCH_PERFIL_TIMEOUT_MS = 10000;
 
 async function fetchUserProfile(uid) {
   try {
-    const snap = await Promise.race([
-      get(ref(db, 'users/' + uid)),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FETCH_PERFIL_TIMEOUT_MS))
-    ]);
-    return snap.exists() ? snap.val() : null;
+    return await fetchUserProfileOuFalhar(uid);
   } catch (e) {
     console.error('ZELO auth: falha ao ler perfil do utilizador (ou tempo excedido)', e);
     return null;
   }
+}
+
+// Variante que NÃO absorve falhas de rede/timeout num "null" — lança o erro
+// para quem chama poder distinguir "conta confirmada como inexistente/
+// desativada" de "não conseguimos confirmar nada agora". É a versão usada
+// pela reconfirmação periódica em segundo plano (startInactivityWatch):
+// tratar as duas situações da mesma forma terminava a sessão de um
+// profissional a meio de escrever só porque a ligação teve uma falha
+// momentânea ao reconfirmar — não porque a conta foi realmente desativada.
+async function fetchUserProfileOuFalhar(uid) {
+  const snap = await Promise.race([
+    get(ref(db, 'users/' + uid)),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FETCH_PERFIL_TIMEOUT_MS))
+  ]);
+  return snap.exists() ? snap.val() : null;
 }
 
 async function isFirstAdminNeeded() {
@@ -143,8 +154,16 @@ function startInactivityWatch(onTimeout, uid, permissoesSnapshot, onPermissoesCh
     }, INACTIVITY_LIMIT_MS);
   }
 
-  function reset() {
-    if (avisoMostrado) return; // só o botão "Continuar" do aviso reinicia a partir daqui
+  function reset(evt) {
+    if (avisoMostrado) {
+      // Escrever é uma interação inequívoca e deliberada — ao contrário de um
+      // mousemove/scroll passageiro, nunca acontece sem o utilizador estar
+      // mesmo a usar o sistema. Sem isto, quem continuava a escrever sem
+      // reparar no aviso via a sessão terminar-se sozinha a meio da escrita,
+      // em vez de só precisar de clicar em "Continuar".
+      if (evt && evt.type === 'keydown') agendar();
+      return;
+    }
     agendar();
   }
 
@@ -160,7 +179,17 @@ function startInactivityWatch(onTimeout, uid, permissoesSnapshot, onPermissoesCh
       return;
     }
     if (uid) {
-      const perfil = await fetchUserProfile(uid);
+      let perfil;
+      try {
+        perfil = await fetchUserProfileOuFalhar(uid);
+      } catch (e) {
+        // Falha momentânea de rede/timeout ao reconfirmar em segundo plano —
+        // NUNCA terminar a sessão só por isto (isso fechava o sistema a meio
+        // de o utilizador escrever, sem a conta ter sido realmente desativada).
+        // Tenta-se de novo no próximo ciclo, dentro de 2 minutos.
+        console.warn('ZELO: falha temporária ao reconfirmar sessão, a tentar de novo no próximo ciclo', e);
+        return;
+      }
       if (!perfil || perfil.ativo === false) {
         clearInterval(revalidateTimer);
         removeInactivityModal();
