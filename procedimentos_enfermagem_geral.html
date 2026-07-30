@@ -195,6 +195,41 @@ header .btn-out:hover{border-color:#fff!important;color:#fff;background:rgba(255
 header .last-saved-chip{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff;}
 header .last-saved-chip:hover{background:rgba(255,255,255,.2);border-color:#fff;}
 
+/* CAIXA "SERVIÇOS DO DIA" — substitui o antigo aviso genérico "Atenção" que
+   aparecia sempre ao abrir a app, sem qualquer ligação aos dados reais.
+   Esta caixa actualiza-se sempre que se abre um dia, mostrando de facto
+   quais serviços já preencheram e quais ainda faltam nesse dia. */
+.ssd-box{margin-bottom:16px;border-radius:10px;border:1px solid var(--accent-ring);
+  background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;}
+.ssd-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 16px;background:var(--accent-tint);border-bottom:1px solid var(--accent-ring);flex-wrap:wrap;}
+.ssd-title{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-head);
+  font-weight:700;font-size:.72rem;letter-spacing:.3px;color:var(--accent);text-transform:uppercase;}
+.ssd-title .svc-icon{width:15px;height:15px;}
+.ssd-pct{font-family:var(--font-head);font-size:.62rem;font-weight:700;padding:3px 10px;
+  border-radius:100px;background:#fff7ed;color:var(--orange);border:1px solid #fed7aa;white-space:nowrap;}
+.ssd-pct.ssd-pct-ok{background:#f0fdf4;color:var(--green);border-color:#bbf7d0;}
+.ssd-bar{height:4px;background:var(--border);}
+.ssd-bar-fill{height:100%;background:var(--green);transition:width .3s;}
+.ssd-cols{display:grid;grid-template-columns:1fr 1fr;}
+.ssd-col{padding:12px 16px;}
+.ssd-col-ok{border-right:1px solid var(--border);}
+.ssd-col-head{font-family:var(--font-head);font-size:.6rem;font-weight:700;letter-spacing:.3px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.ssd-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.ssd-chip{display:inline-flex;align-items:center;gap:5px;font-size:.63rem;font-weight:600;
+  padding:4px 9px;border-radius:100px;white-space:nowrap;}
+.ssd-chip .svc-icon{width:12px;height:12px;}
+.ssd-chip.ok{background:#f0fdf4;color:var(--green);border:1px solid #bbf7d0;}
+.ssd-chip.pend{background:#fffbeb;color:var(--warn);border:1px solid #fde68a;}
+.ssd-empty{font-size:.63rem;color:var(--muted);font-style:italic;}
+@media (max-width:760px){.ssd-cols{grid-template-columns:1fr;}.ssd-col-ok{border-right:none;border-bottom:1px solid var(--border);}}
+html.dark .ssd-box{box-shadow:none;}
+html.dark .ssd-pct{background:rgba(194,65,12,.15);border-color:rgba(194,65,12,.35);}
+html.dark .ssd-pct.ssd-pct-ok{background:rgba(4,120,87,.15);border-color:rgba(4,120,87,.35);}
+html.dark .ssd-chip.ok{background:rgba(4,120,87,.15);border-color:rgba(4,120,87,.35);}
+html.dark .ssd-chip.pend{background:rgba(180,83,9,.15);border-color:rgba(180,83,9,.35);}
+
 /* LAYOUT */
 .app-shell{display:flex;padding-top:var(--top-h);min-height:100vh;}
 
@@ -700,6 +735,8 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
   </aside>
 
   <main class="main-content">
+    <!-- Estado dos serviços do dia — actualiza sempre que se abre um dia -->
+    <div class="ssd-box" id="status-servicos-dia"></div>
     <!-- Specialty sections built by JS -->
     <div id="spec-sections"></div>
 
@@ -887,17 +924,6 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
 </div>
 
 <div class="toast" id="toast"></div>
-
-<!-- ALERTA — PROCEDIMENTOS ATRASADOS -->
-<div class="modal-overlay" id="turnoAlertModal">
-  <div class="modal-box">
-    <h3>⚠️ Atenção</h3>
-    <p>Envie ou entregue com urgência os procedimentos do turno anterior antes de continuar. Os procedimentos atrasados condicionam e comprometem a qualidade e o prazo para a conclusão do relatório do hospital.<br><br>Agradecemos a sua pontualidade.</p>
-    <div class="modal-btns">
-      <button class="mbtn confirm" onclick="closeTurnoAlert()">Entendi</button>
-    </div>
-  </div>
-</div>
 
 <!-- RESTORE CONFIRM MODAL -->
 <!-- HISTÓRICO DE ALTERAÇÕES DO DIA -->
@@ -1534,6 +1560,7 @@ function persist(date) {
   }
   setSyncInfo('<svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Guardado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
   _mostrarHoraGuardado();
+  if (d === currentLoadedDate) _renderStatusServicosDia(data);
   const histBtn = document.getElementById('ver-historico-btn');
   if (histBtn) histBtn.style.display = 'inline-flex';
   return true;
@@ -1830,6 +1857,7 @@ function loadFromStorage() {
     const histBtn = document.getElementById('ver-historico-btn');
     if (wrapEl) wrapEl.style.display = 'none';
     if (histBtn) histBtn.style.display = 'none';
+    _renderStatusServicosDia(null);
     _fbEscutarDia(currentLoadedDate);
     return;
   }
@@ -1839,8 +1867,54 @@ function loadFromStorage() {
   } catch(e) {
     console.error('Erro ao carregar dados:', e);
     clearDayState();
+    _renderStatusServicosDia(null);
   }
   _fbEscutarDia(currentLoadedDate);
+}
+
+// ── Estado dos serviços do dia (preenchido / em falta) ─────────────────────
+// Um serviço conta como "preenchido" nesse dia se tiver pelo menos um valor
+// gravado (incluindo 0 — um número explícito) em qualquer procedimento, em
+// qualquer turno. 'medicina' e 'bloco_op' são consolidados calculados a
+// partir de outros serviços (ver SRC_MAP) e não são gravados por si próprios
+// — por isso ficam de fora desta lista, tal como já ficam de fora de persist().
+function _servicoTemDados(spData) {
+  if (!spData) return false;
+  return TURNOS.some(turno => {
+    const t = spData[turno];
+    if (!t) return false;
+    return Object.values(t).some(v => v !== null && v !== undefined);
+  });
+}
+
+function _renderStatusServicosDia(data) {
+  const box = document.getElementById('status-servicos-dia');
+  if (!box) return;
+  const preenchidos = [];
+  const faltam = [];
+  SPECIALTIES.forEach(sp => {
+    if (sp.id === 'medicina' || sp.id === 'bloco_op') return;
+    if (_servicoTemDados(data?.specs?.[sp.id])) preenchidos.push(sp); else faltam.push(sp);
+  });
+  const total = preenchidos.length + faltam.length;
+  const pct = total ? Math.round(preenchidos.length / total * 100) : 0;
+  const chip = (sp, cls) => `<span class="ssd-chip ${cls}">${sp.icon} ${_escHtml(sp.label)}</span>`;
+  box.innerHTML = `
+    <div class="ssd-head">
+      <span class="ssd-title"><svg class="svc-icon" aria-hidden="true"><use href="#i-clipboard"/></svg> Serviços — ${_escHtml(fmtDate(currentLoadedDate))}</span>
+      <span class="ssd-pct${faltam.length === 0 ? ' ssd-pct-ok' : ''}">${preenchidos.length}/${total} preenchidos</span>
+    </div>
+    <div class="ssd-bar"><div class="ssd-bar-fill" style="width:${pct}%"></div></div>
+    <div class="ssd-cols">
+      <div class="ssd-col ssd-col-ok">
+        <div class="ssd-col-head">✅ Já preencheram (${preenchidos.length})</div>
+        <div class="ssd-chips">${preenchidos.length ? preenchidos.map(sp => chip(sp,'ok')).join('') : '<span class="ssd-empty">Nenhum serviço ainda</span>'}</div>
+      </div>
+      <div class="ssd-col ssd-col-pend">
+        <div class="ssd-col-head">⏳ Em falta (${faltam.length})</div>
+        <div class="ssd-chips">${faltam.length ? faltam.map(sp => chip(sp,'pend')).join('') : '<span class="ssd-empty">Todos preenchidos 🎉</span>'}</div>
+      </div>
+    </div>`;
 }
 
 // Preenche o formulário a partir de dados já desserializados (localStorage/
@@ -1850,6 +1924,7 @@ function _popularProcedimentos(data) {
   if (data.criadoPor?.nome && data._ts) {
     _mostrarHoraGuardado(data.criadoPor.nome, data._ts);
   }
+  _renderStatusServicosDia(data);
   const histBtn = document.getElementById('ver-historico-btn');
   if (histBtn) histBtn.style.display = 'inline-flex';
   SPECIALTIES.forEach(sp => {
@@ -4477,22 +4552,9 @@ function exportSupervisaoPDF() {
 })();
 
 // ════════════════════════════════════════════════════════════
-//  ALERTA — procedimentos do turno anterior por entregar
-//  Aparece uma vez a cada abertura da app (não reaparece ao trocar de secção)
-// ════════════════════════════════════════════════════════════
-function closeTurnoAlert() {
-  const m = document.getElementById('turnoAlertModal');
-  if(m) m.classList.remove('open');
-}
-document.getElementById('turnoAlertModal').addEventListener('click', function(e){
-  if(e.target === this) closeTurnoAlert();
-});
-
-// ════════════════════════════════════════════════════════════
 //  STARTUP — aguarda IndexedDB antes de carregar dados
 // ════════════════════════════════════════════════════════════
 buildUI();
-document.getElementById('turnoAlertModal').classList.add('open');
 (function(){ var yEl = document.getElementById('zf-year'); if(yEl) yEl.textContent = new Date().getFullYear(); })();
 (async function(){
   await _loadAllFromStorage();
