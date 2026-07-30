@@ -177,6 +177,24 @@ header .btn-out:hover{border-color:#fff!important;color:#fff;background:rgba(255
   background:oklch(97% 0.01 155);border:1px solid oklch(91% 0.02 155);
   padding:3px 8px;border-radius:4px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;}
 
+/* Chip "Última alteração" — visual próprio (não confundir com o "Guardado" a
+   verde: aqui é sempre informativo, nunca uma confirmação de sucesso), em
+   forma de pill para se distinguir dos botões quadrados vizinhos. Clicável —
+   leva directamente ao Histórico completo. */
+.last-saved-chip{font-family:var(--font-body);font-size:.56rem;color:var(--accent);
+  background:var(--accent-tint);border:1px solid var(--accent-ring);
+  padding:3px 10px;border-radius:100px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;
+  cursor:pointer;transition:background .13s,border-color .13s;}
+.last-saved-chip:hover{background:oklch(93% 0.025 230);border-color:var(--accent);}
+.last-saved-chip .svc-icon{width:11px;height:11px;flex-shrink:0;opacity:.85;}
+.last-saved-chip .lsc-label{font-family:var(--font-head);font-weight:700;font-size:.5rem;
+  text-transform:uppercase;letter-spacing:.5px;opacity:.7;}
+.last-saved-chip .lsc-sep{opacity:.35;}
+.last-saved-chip .lsc-name{font-weight:700;}
+.last-saved-chip .lsc-when{font-variant-numeric:tabular-nums;opacity:.9;}
+header .last-saved-chip{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff;}
+header .last-saved-chip:hover{background:rgba(255,255,255,.2);border-color:#fff;}
+
 /* LAYOUT */
 .app-shell{display:flex;padding-top:var(--top-h);min-height:100vh;}
 
@@ -583,6 +601,9 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
   <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <polyline points="20 6 9 17 4 12"/>
   </symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/>
+  </symbol>
   <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="10"/>
     <line x1="12" y1="8" x2="12" y2="8"/><line x1="12" y1="12" x2="12" y2="16"/>
@@ -631,7 +652,14 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     </div>
     <span class="date-disp" id="date-disp">—</span>
     <span class="sync-info" id="sync-info"><svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Guardado</span>
-    <span class="sync-info" id="last-saved-status" style="display:none;">· Última alteração: <span id="last-saved-name">—</span> em <span id="last-saved-date">—</span> às <span id="last-saved-time">—</span></span>
+    <span class="last-saved-chip" id="last-saved-status" style="display:none;" onclick="abrirHistoricoAlteracoes()" title="Clique para ver o histórico completo de alterações">
+      <svg class="svc-icon" aria-hidden="true"><use href="#i-clock"/></svg>
+      <span class="lsc-label">Última alteração</span>
+      <span class="lsc-sep">·</span>
+      <span class="lsc-name" id="last-saved-name">—</span>
+      <span class="lsc-sep">·</span>
+      <span class="lsc-when"><span id="last-saved-date">—</span> às <span id="last-saved-time">—</span></span>
+    </span>
     <button class="btn-h btn-out" id="ver-historico-btn" style="display:none;" onclick="abrirHistoricoAlteracoes()"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Histórico</button>
     <button class="btn-h btn-save" onclick="saveAll()"><svg class="svc-icon" aria-hidden="true"><use href="#i-save"/></svg> Guardar</button>
     <button class="btn-h btn-out pdf" onclick="exportPDF()"><svg class="svc-icon" aria-hidden="true"><use href="#i-pdf"/></svg> PDF</button>
@@ -1522,14 +1550,19 @@ function _mostrarHoraGuardado(nome, quando){
   const now = quando ? new Date(quando) : new Date();
   const hhmm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const ddmm = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}`;
+  const nomeFinal = nome || sessionStorage.getItem('zeloNome') || 'Utilizador';
   const nameEl = document.getElementById('last-saved-name');
   const dateEl = document.getElementById('last-saved-date');
   const timeEl = document.getElementById('last-saved-time');
   const wrapEl = document.getElementById('last-saved-status');
-  if (nameEl) nameEl.textContent = nome || sessionStorage.getItem('zeloNome') || 'Utilizador';
+  if (nameEl) nameEl.textContent = nomeFinal;
   if (dateEl) dateEl.textContent = ddmm;
   if (timeEl) timeEl.textContent = hhmm;
-  if (wrapEl) wrapEl.style.display = 'inline';
+  if (wrapEl) {
+    wrapEl.style.display = 'inline-flex';
+    const dataCompleta = now.toLocaleDateString('pt-PT', { day:'2-digit', month:'long', year:'numeric' });
+    wrapEl.title = `${nomeFinal} gravou em ${dataCompleta} às ${hhmm} · clique para ver o histórico completo`;
+  }
 }
 
 // ── Histórico de alterações do dia (quem gravou, quando) ───────────────────
@@ -1841,7 +1874,7 @@ function saveAll() {
 
 function setSyncInfo(msg) {
   const el = document.getElementById('sync-info');
-  if(el) el.textContent = msg;
+  if(el) el.innerHTML = msg;
 }
 
 // ★ DATA CHANGE — padrão idêntico ao bloco-operatório
