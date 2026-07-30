@@ -906,9 +906,6 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
       <button class="bopt" id="btn-admin-reenviar-tudo" style="display:none;" onclick="reenviarTudoParaFirebase()">
         <strong>Reenviar p/ Firebase</strong><span>Envia todos os dias guardados neste dispositivo</span>
       </button>
-      <button class="bopt" id="btn-admin-reenviar-dia" style="display:none;" onclick="toggleBackupDiaReenviarPicker()">
-        <strong>Reenviar um dia p/ Firebase</strong><span>Escolher um dia específico já guardado neste dispositivo</span>
-      </button>
     </div>
     <div id="backupSemanaPicker" style="display:none;margin-top:12px;display:flex;gap:8px;align-items:center;">
       <input type="date" id="backupSemanaInput" style="flex:1;padding:8px;border-radius:4px;border:1px solid var(--border);font-family:var(--font-head);"/>
@@ -917,10 +914,6 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     <div id="backupMesPicker" style="display:none;margin-top:12px;display:flex;gap:8px;align-items:center;">
       <input type="month" id="backupMesInput" style="flex:1;padding:8px;border-radius:4px;border:1px solid var(--border);font-family:var(--font-head);"/>
       <button class="mbtn confirm" onclick="doBackupMensal()">Exportar</button>
-    </div>
-    <div id="backupDiaReenviarPicker" style="display:none;margin-top:12px;display:flex;gap:8px;align-items:center;">
-      <input type="date" id="backupDiaReenviarInput" style="flex:1;padding:8px;border-radius:4px;border:1px solid var(--border);font-family:var(--font-head);"/>
-      <button class="mbtn confirm" onclick="reenviarDiaParaFirebase()">Reenviar</button>
     </div>
     <div class="modal-btns">
       <button class="mbtn cancel" onclick="closeBackupModal()">Fechar</button>
@@ -2683,13 +2676,9 @@ function openBackup() {
   document.getElementById('backupSemanaInput').value = currentLoadedDate;
   document.getElementById('backupMesPicker').style.display = 'none';
   document.getElementById('backupMesInput').value = currentLoadedDate.slice(0,7);
-  document.getElementById('backupDiaReenviarPicker').style.display = 'none';
-  document.getElementById('backupDiaReenviarInput').value = currentLoadedDate;
   var _ehAdmin = sessionStorage.getItem('zeloRole') === 'admin';
   var _btnReenviar = document.getElementById('btn-admin-reenviar-tudo');
   if (_btnReenviar) _btnReenviar.style.display = _ehAdmin ? '' : 'none';
-  var _btnReenviarDia = document.getElementById('btn-admin-reenviar-dia');
-  if (_btnReenviarDia) _btnReenviarDia.style.display = _ehAdmin ? '' : 'none';
   document.getElementById('backupModal').classList.add('open');
 }
 function closeBackupModal() {
@@ -2731,7 +2720,6 @@ function doBackupDiario() {
 }
 function toggleBackupSemanaPicker() {
   document.getElementById('backupMesPicker').style.display = 'none';
-  document.getElementById('backupDiaReenviarPicker').style.display = 'none';
   const el = document.getElementById('backupSemanaPicker');
   el.style.display = el.style.display === 'none' ? 'flex' : 'none';
 }
@@ -2749,45 +2737,8 @@ function doBackupSemanal() {
 }
 function toggleBackupMesPicker() {
   document.getElementById('backupSemanaPicker').style.display = 'none';
-  document.getElementById('backupDiaReenviarPicker').style.display = 'none';
   const el = document.getElementById('backupMesPicker');
   el.style.display = el.style.display === 'none' ? 'flex' : 'none';
-}
-function toggleBackupDiaReenviarPicker() {
-  document.getElementById('backupSemanaPicker').style.display = 'none';
-  document.getElementById('backupMesPicker').style.display = 'none';
-  const el = document.getElementById('backupDiaReenviarPicker');
-  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
-}
-// Reenvia para o Firebase só o dia escolhido — útil quando um dia específico
-// não chegou lá (ex.: foi guardado offline, ou antes de uma correção de
-// sincronização) sem ter de reenviar TODOS os dias guardados neste
-// dispositivo. Reaproveita o que já está gravado localmente tal como está,
-// sem voltar a carimbar autoria/hora (ao contrário de abrir o dia e clicar
-// em Guardar, que reenvia mas também reatribui a autoria ao utilizador atual).
-async function reenviarDiaParaFirebase(){
-  if (sessionStorage.getItem('zeloRole') !== 'admin'){
-    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
-    return;
-  }
-  if (!window.__fbReady){
-    if (typeof showToast === 'function') showToast('Firebase indisponível de momento');
-    return;
-  }
-  const date = document.getElementById('backupDiaReenviarInput').value;
-  if (!date){ if (typeof showToast === 'function') showToast('⚠️ Escolhe um dia.'); return; }
-  if (!_storageGet(storageKey(date))){
-    if (typeof showToast === 'function') showToast('Não há dados guardados localmente neste dispositivo para ' + fmtDate(date) + '.');
-    return;
-  }
-  if (typeof showToast === 'function') showToast('A reenviar ' + fmtDate(date) + '…');
-  try{
-    await _fbSyncArmazenado(date);
-    if (typeof showToast === 'function') showToast('Reenviado: ' + fmtDate(date));
-  }catch(e){
-    console.warn('ZELO: falha ao reenviar dia', date, e);
-    if (typeof showToast === 'function') showToast('⚠️ Falha ao reenviar ' + fmtDate(date) + '.');
-  }
 }
 function doBackupMensal() {
   const val = document.getElementById('backupMesInput').value; // "YYYY-MM"
