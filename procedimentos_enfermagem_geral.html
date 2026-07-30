@@ -663,8 +663,6 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     <button class="btn-h btn-out" id="ver-historico-btn" style="display:none;" onclick="abrirHistoricoAlteracoes()"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Histórico</button>
     <button class="btn-h btn-save" onclick="saveAll()"><svg class="svc-icon" aria-hidden="true"><use href="#i-save"/></svg> Guardar</button>
     <button class="btn-h btn-out pdf" onclick="exportPDF()"><svg class="svc-icon" aria-hidden="true"><use href="#i-pdf"/></svg> PDF</button>
-    <button class="btn-h btn-out bk" id="btn-backup-trigger" style="display:none;" onclick="openBackup()"><svg class="svc-icon" aria-hidden="true"><use href="#i-download"/></svg> Backup</button>
-    <button class="btn-h btn-out rs" onclick="document.getElementById('restoreInput').click()"><svg class="svc-icon" aria-hidden="true"><use href="#i-upload"/></svg> Restaurar</button>
     <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="restoreFromFile(this)">
   </div>
 </header>
@@ -685,6 +683,19 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
       <div class="nav-item rpt" data-view="comparacao"><span class="ni-icon"><svg class="svc-icon" aria-hidden="true"><use href="#i-shuffle"/></svg></span><span class="ni-label">Comparação</span></div>
       <div class="nav-item rpt" data-view="tabela13"><span class="ni-icon"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg></span><span class="ni-label">Tabela 13</span></div>
       <div class="nav-item rpt" data-view="supervisao"><span class="ni-icon"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg></span><span class="ni-label">Supervisão</span></div>
+    </div>
+
+    <!-- Cópia de Segurança — só administradores (ver _zeloAtualizarBackupTrigger).
+         padding-bottom evita que o botão flutuante do menu (canto inferior
+         esquerdo, position:fixed) tape estes itens quando se chega ao fim
+         da barra lateral. -->
+    <div id="backup-menu-section" style="display:none;padding-bottom:70px;">
+      <hr class="sb-divider">
+      <div class="sb-sec">Cópia de Segurança</div>
+      <div class="nav-list">
+        <div class="nav-item" onclick="openBackup()"><span class="ni-icon"><svg class="svc-icon" aria-hidden="true"><use href="#i-download"/></svg></span><span class="ni-label">Exportar Backup</span></div>
+        <div class="nav-item" onclick="document.getElementById('restoreInput').click()"><span class="ni-icon"><svg class="svc-icon" aria-hidden="true"><use href="#i-upload"/></svg></span><span class="ni-label">Restaurar Backup</span></div>
+      </div>
     </div>
   </aside>
 
@@ -2807,6 +2818,11 @@ function doBackupGeral() {
 
 let _pendingRestore = null;
 function restoreFromFile(input) {
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+    input.value = '';
+    return;
+  }
   const file = input.files[0];
   if(!file) return;
   const reader = new FileReader();
@@ -4849,7 +4865,7 @@ var BD_DIASEM = ['Domingo','Segunda-Feira','Terça-Feira','Quarta-Feira','Quinta
 </script>
 <script>
 function _zeloAtualizarBackupTrigger(){
-  var el = document.getElementById('btn-backup-trigger');
+  var el = document.getElementById('backup-menu-section');
   if (el) el.style.display = (sessionStorage.getItem('zeloRole') === 'admin') ? '' : 'none';
 }
 _zeloAtualizarBackupTrigger();
