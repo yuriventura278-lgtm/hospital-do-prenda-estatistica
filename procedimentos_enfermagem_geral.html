@@ -1029,7 +1029,11 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
 // ════════════════════════════════════════════════════════════
 const SPECIALTIES = [
   { id:'banco_urg', label:'Banco de Urgência', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-cross-sq"/></svg>' },
+  { id:'bloco_electiva', label:'Bloco Op. Electiva', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-calendar"/></svg>' },
+  { id:'bloco_urgente', label:'Bloco Op. Urgente', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-cross-sq"/></svg>' },
+  { id:'bloco_op', label:'Bloco Operatório', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-lamp"/></svg>' },
   { id:'cirurgia', label:'Cirurgia', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-scalpel"/></svg>' },
+  { id:'consulta_ext', label:'Consulta Externa', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-clipboard"/></svg>' },
   { id:'cuid_intermedio', label:'Cuidados Intermédios', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-bed"/></svg>' },
   { id:'hosp_dia', label:'Hospital de Dia', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-calendar"/></svg>' },
   { id:'maxilo', label:'Maxilo Facial', icon:'<svg class="svc-icon" aria-hidden="true"><use href="#i-tooth"/></svg>' },
@@ -1045,13 +1049,6 @@ const SPECIALTIES = [
 // ── Grupos para placar dos totais ──
 // Usa sempre os IDs consolidados (leitura): medicina e bloco_op
 // Os componentes (med_homem/mulher, bloco_urgente/electiva) são ignorados nos totais
-//
-// NOTA — 'bloco_op' e 'consulta_ext' já não são separadores editáveis em
-// SPECIALTIES (Bloco Operatório e Consulta Externa passaram a ter páginas
-// próprias), mas continuam aqui de propósito: os relatórios (Supervisão,
-// Tabela 13, resumos por grupo) usam estes IDs para ler dados HISTÓRICOS já
-// gravados neste ficheiro antes da mudança — remover isto tornaria essas
-// colunas sempre a zero, apagando o acesso a dados que continuam gravados.
 var GRUPO_AMB = ['consulta_ext','hosp_dia'];
 var GRUPO_INT = ['ortopedia','cuid_intermedio','uci','cirurgia','maxilo','nefrologia',
                  'neurocirurgia','medicina','bloco_op'];
@@ -1064,12 +1061,6 @@ var SRC_MAP = {
 };
 // IDs a excluir dos totais (contados via consolidados acima)
 var SKIP_IDS = new Set(['med_homem','med_mulher','bloco_urgente','bloco_electiva']);
-
-// Serviços que já foram editados diretamente aqui mas passaram a ter página
-// própria (Bloco Op. Urgente/Electiva, Consulta Externa). Deixam de aparecer
-// como separadores, mas qualquer dado já gravado num dia é preservado para
-// sempre — ver a preservação em persist().
-var IDS_DESCONTINUADOS_PRESERVAR = ['bloco_urgente','bloco_electiva','consulta_ext'];
 
 const CATEGORIES = [
   { id:'medicacao',    label:'Medicação e Terapêutica',         color:'green',
@@ -1613,19 +1604,6 @@ function persist(date) {
   let prevData = null;
   try { const rawPrev = _storageGet(storageKey(d)); prevData = rawPrev ? JSON.parse(rawPrev) : null; } catch(e) {}
   const prevSpecs = prevData ? prevData.specs : null;
-
-  // ★ Nunca apagar dados de serviços descontinuados aqui — se este dia já
-  // tinha Bloco Op. Urgente/Electiva ou Consulta Externa gravados (de antes
-  // destes passarem a ter página própria), preserva-os tal como estavam.
-  // Como já não fazem parte de SPECIALTIES, sem isto seriam simplesmente
-  // omitidos — e portanto apagados — da próxima vez que este dia fosse
-  // gravado (mesmo sem o utilizador ter mexido neles).
-  IDS_DESCONTINUADOS_PRESERVAR.forEach(idAntigo => {
-    if (prevSpecs && prevSpecs[idAntigo] && !data.specs[idAntigo]) {
-      data.specs[idAntigo] = prevSpecs[idAntigo];
-    }
-  });
-
   const mudouDeVerdade = JSON.stringify(prevSpecs) !== JSON.stringify(data.specs);
   if (!mudouDeVerdade) {
     setSyncInfo('<svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Sem alterações');
