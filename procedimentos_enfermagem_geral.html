@@ -334,6 +334,7 @@ html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
 .proc-row:last-child{border-bottom:none;}
 .proc-name{padding:8px 8px;font-size:.87rem;font-family:var(--font-head);font-weight:400;
   color:var(--text);line-height:1.35;}
+.proc-name .proc-num{color:var(--muted);font-variant-numeric:tabular-nums;margin-right:1px;}
 .proc-cell{padding:6px 5px;display:flex;flex-direction:column;align-items:center;gap:1px;}
 .proc-cell input[type=number]{width:100%;max-width:70px;background:var(--surface);border:1px solid var(--border);
   border-radius:4px;color:var(--text);font-family:var(--font-body);font-size:.9rem;font-weight:400;
@@ -2439,7 +2440,7 @@ function buildUI() {
     // Build unified rows in ORDERED_PROCS canonical order
     const gUnified = document.getElementById('grid-unified-' + sp.id);
 
-    ORDERED_PROCS.forEach(({proc, catId}) => {
+    ORDERED_PROCS.forEach(({proc, catId}, procIdx) => {
       const k  = iid(sp.id, 'dia',   catId, proc);
       const kN = iid(sp.id, 'noite', catId, proc);
       const kid = 'td_' + sp.id + '_' + pKey(catId, proc);
@@ -2463,7 +2464,7 @@ function buildUI() {
 
       const nameDiv = document.createElement('div');
       nameDiv.className = 'proc-name';
-      nameDiv.textContent = proc;
+      nameDiv.innerHTML = '<span class="proc-num">' + (procIdx + 1) + '.</span> ' + _escHtml(proc);
       row.appendChild(nameDiv);
 
       // Dia
