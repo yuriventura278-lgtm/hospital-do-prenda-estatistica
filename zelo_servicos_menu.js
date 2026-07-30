@@ -133,7 +133,6 @@ const CATEGORIAS_SERVICOS = [
 // um é um só acesso directo, sem sub-acções como os serviços clínicos acima.
 const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Procedimentos de Enfermagem · Geral', file: 'procedimentos_enfermagem_geral.html', modulo: 'procedimentos_enfermagem', item: 'geral' },
-  { nome: 'Controlo de Enfermagem · Entregas Diárias', file: 'controlo_enfermagem.html', modulo: 'sistemas_independentes', item: 'controlo_enfermagem' },
   { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
   { nome: 'Dias-Cama & Dias-Doente', file: 'dias_cama_doente.html', modulo: 'sistemas_independentes', item: 'dias_cama_doente' },
   { nome: 'Registo VIH · Geral', file: 'registo_hiv.html', modulo: 'sistemas_independentes', item: 'registo_hiv' },
