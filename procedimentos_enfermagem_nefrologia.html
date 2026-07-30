@@ -1495,6 +1495,30 @@ function autoSave() {
 }
 
 // persist: lê o DOM e escreve no localStorage
+// Carimbo de hora por campo — permite à mesclagem entre dispositivos (ver
+// _mesclarDadosDia) distinguir "apagado de propósito agora" de "nunca foi
+// preenchido": todo o campo que muda de valor nesta gravação (incluindo
+// ficar vazio, ex. o botão Eliminar) recebe o carimbo desta gravação; os
+// que não mudam mantêm o carimbo que já tinham.
+function _construirCamposTs(prevCamposTs, prevSpecs, novoSpecs, ts) {
+  const out = Object.assign({}, prevCamposTs || {});
+  Object.keys(novoSpecs).forEach(specId => {
+    TURNOS.forEach(turno => {
+      const novo = novoSpecs[specId]?.[turno] || {};
+      const antigo = prevSpecs?.[specId]?.[turno] || {};
+      Object.keys(novo).forEach(k => {
+        const antigoV = antigo[k] === undefined ? null : antigo[k];
+        if (novo[k] !== antigoV) out[specId + '|' + turno + '|' + k] = ts;
+      });
+      const notesKey = 'notes' + turno.charAt(0).toUpperCase() + turno.slice(1);
+      const novaNota = novoSpecs[specId]?.[notesKey] || '';
+      const antigaNota = prevSpecs?.[specId]?.[notesKey] || '';
+      if (novaNota !== antigaNota) out[specId + '|' + notesKey] = ts;
+    });
+  });
+  return out;
+}
+
 function persist(date) {
   const d = date || currentLoadedDate;
   const data = { _ts: Date.now(), specs: {} };
@@ -1515,6 +1539,9 @@ function persist(date) {
     });
   });
   _diaAlterado = false;
+  let prevData = null;
+  try { const rawPrev = _storageGet(storageKey(d)); prevData = rawPrev ? JSON.parse(rawPrev) : null; } catch(e) {}
+  data.camposTs = _construirCamposTs(prevData?.camposTs, prevData?.specs, data.specs, data._ts);
   _storageSet(storageKey(d), JSON.stringify(data));
   if(window.zeloQueueWrite){
     const _fbSavedAt = new Date().toISOString();
@@ -1867,10 +1894,34 @@ function _servicoTemDados(spData) {
 // e não-vazios no MESMO campo é que há um conflito real, e só nesse
 // caso se desempata pelo carimbo de hora (_ts) mais recente — e só para
 // esse campo, nunca para o dia todo.
+// Decide o valor final de UM campo. Quando os dois lados têm carimbo de
+// hora próprio para este campo (gravações feitas depois desta funcionalidade
+// existir), vence sempre o carimbo mais recente — seja qual for o valor,
+// incluindo null (uma eliminação deliberada, ex. botão "Eliminar", vence
+// legitimamente um valor antigo doutro dispositivo). Só quando NENHUM dos
+// lados tem carimbo para este campo (registos antigos, de antes desta
+// funcionalidade) é que se usa a regra de segurança anterior: um campo
+// vazio nunca vence um campo preenchido.
+function _resolverCampo(lv, rv, ltTempo, rtTempo, remotoMaisRecente) {
+  if (ltTempo !== undefined || rtTempo !== undefined) {
+    if (rtTempo !== undefined && (ltTempo === undefined || rtTempo > ltTempo)) {
+      return { valor: rv === undefined ? null : rv, ts: rtTempo };
+    }
+    return { valor: lv === undefined ? null : lv, ts: ltTempo };
+  }
+  if (lv === undefined || lv === null) return { valor: (rv === undefined ? null : rv), ts: undefined };
+  if (rv === undefined || rv === null) return { valor: lv, ts: undefined };
+  if (lv === rv) return { valor: lv, ts: undefined };
+  return { valor: remotoMaisRecente ? rv : lv, ts: undefined };
+}
+
 function _mesclarDadosDia(local, remoto) {
   if (!local) return remoto;
   if (!remoto) return local;
   const remotoMaisRecente = (remoto._ts || 0) >= (local._ts || 0);
+  const localTs = local.camposTs || {};
+  const remotoTs = remoto.camposTs || {};
+  const camposTsMesclados = Object.assign({}, localTs);
   const especialidades = new Set([...Object.keys(local.specs || {}), ...Object.keys(remoto.specs || {})]);
   const specsMesclados = {};
   especialidades.forEach(specId => {
@@ -1882,23 +1933,23 @@ function _mesclarDadosDia(local, remoto) {
       const rt = r[turno] || {};
       const chaves = new Set([...Object.keys(lt), ...Object.keys(rt)]);
       chaves.forEach(k => {
-        const lv = lt[k], rv = rt[k];
-        if (lv === undefined || lv === null) merged[turno][k] = (rv === undefined ? null : rv);
-        else if (rv === undefined || rv === null) merged[turno][k] = lv;
-        else if (lv === rv) merged[turno][k] = lv;
-        else merged[turno][k] = remotoMaisRecente ? rv : lv;
+        const chaveTs = specId + '|' + turno + '|' + k;
+        const resultado = _resolverCampo(lt[k], rt[k], localTs[chaveTs], remotoTs[chaveTs], remotoMaisRecente);
+        merged[turno][k] = resultado.valor;
+        if (resultado.ts !== undefined) camposTsMesclados[chaveTs] = resultado.ts;
       });
       const notesKey = 'notes' + turno.charAt(0).toUpperCase() + turno.slice(1);
-      const ln = l[notesKey], rn = r[notesKey];
-      if (!ln) merged[notesKey] = rn || '';
-      else if (!rn) merged[notesKey] = ln;
-      else merged[notesKey] = remotoMaisRecente ? rn : ln;
+      const chaveNotaTs = specId + '|' + notesKey;
+      const resultadoNota = _resolverCampo(l[notesKey] || null, r[notesKey] || null, localTs[chaveNotaTs], remotoTs[chaveNotaTs], remotoMaisRecente);
+      merged[notesKey] = resultadoNota.valor || '';
+      if (resultadoNota.ts !== undefined) camposTsMesclados[chaveNotaTs] = resultadoNota.ts;
     });
     specsMesclados[specId] = merged;
   });
   return {
     _ts: Math.max(local._ts || 0, remoto._ts || 0),
     specs: specsMesclados,
+    camposTs: camposTsMesclados,
     criadoPor: remotoMaisRecente ? remoto.criadoPor : local.criadoPor,
   };
 }
