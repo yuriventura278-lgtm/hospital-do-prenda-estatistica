@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_feriados.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
@@ -380,6 +381,14 @@ html.dark .proc-row:nth-child(even){background:rgba(255,255,255,.014);}
   background:var(--accent-tint);border:1px solid var(--accent-ring);
   border-radius:5px;font-size:.62rem;color:var(--muted);font-family:var(--font-head);
   letter-spacing:.3px;display:flex;align-items:flex-start;gap:7px;}
+
+.feriado-notice{margin-bottom:13px;padding:11px 14px;
+  background:#fef2f2;border:1px solid #fecaca;
+  border-radius:5px;font-size:.66rem;color:var(--danger);font-family:var(--font-head);
+  letter-spacing:.3px;display:flex;align-items:flex-start;gap:8px;font-weight:600;}
+.feriado-notice .svc-icon{width:15px;height:15px;flex-shrink:0;margin-top:1px;color:var(--danger);}
+html.dark .feriado-notice{background:rgba(192,57,43,.15);border-color:rgba(192,57,43,.35);color:#f87171;}
+html.dark .feriado-notice .svc-icon{color:#f87171;}
 
 /* REPORTS */
 .rpt-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
@@ -1062,6 +1071,20 @@ var SRC_MAP = {
 // IDs a excluir dos totais (contados via consolidados acima)
 var SKIP_IDS = new Set(['med_homem','med_mulher','bloco_urgente','bloco_electiva']);
 
+// IDs que não têm expediente aos fins de semana e feriados — Bloco Op.
+// Urgente e os restantes serviços de internamento continuam sempre
+// editáveis; só o Bloco Op. Eletiva e a Consulta Externa (agendados) ficam
+// bloqueados nessas datas (ver zelo_feriados.js).
+var IDS_BLOQUEIO_FERIADO = ['bloco_electiva', 'consulta_ext'];
+
+// Formata uma data ISO ('YYYY-MM-DD') como 'DD/MM/AAAA · Dia da semana'.
+function _fmtDataDisp(dataISO) {
+  const [y, m, d] = dataISO.split('-');
+  const dataFmt = `${d}/${m}/${y}`;
+  if (typeof ZeloFeriados === 'undefined') return dataFmt;
+  return dataFmt + ' · ' + ZeloFeriados.nomeDiaSemana(dataISO);
+}
+
 const CATEGORIES = [
   { id:'medicacao',    label:'Medicação e Terapêutica',         color:'green',
     procs:['Medicação Oral','Injecção IM','Injecção IV','Injecção SC','Venoclise (Hidratação EV)','Nebulização','Medicação Rectal','Oxigenoterapia','Hidratação Via Oral / SRO','Hemotransfusão','Insulinoterapia'] },
@@ -1341,8 +1364,7 @@ function _ultimoDiaVistoKey(){ return 'enf5_ultimoDiaVisto_' + (window.ZELO_ITEM
     const yy = n.getFullYear(), mm = String(n.getMonth()+1).padStart(2,'0'), dd = String(n.getDate()).padStart(2,'0');
     dateInput.value = `${yy}-${mm}-${dd}`;
   }
-  const [yv,mv,dv] = dateInput.value.split('-');
-  const dd2 = document.getElementById('date-disp'); if(dd2) dd2.textContent = `${dv}/${mv}/${yv}`;
+  const dd2 = document.getElementById('date-disp'); if(dd2) dd2.textContent = _fmtDataDisp(dateInput.value);
 })();
 let currentLoadedDate = dateInput.value;
 
@@ -2105,13 +2127,26 @@ function _calcularConcluidos(data) {
   });
 }
 
+// Bloco Op. Eletiva e Consulta Externa não têm expediente aos fins de
+// semana e feriados — devolve o motivo (feriado ou fim de semana) para a
+// data atualmente selecionada, ou { bloqueado:false } fora dessas datas.
+function _diaFeriadoInfo(specId) {
+  if (!IDS_BLOQUEIO_FERIADO.includes(specId)) return { bloqueado: false };
+  if (typeof ZeloFeriados === 'undefined') return { bloqueado: false };
+  return ZeloFeriados.verificarBloqueio(currentLoadedDate);
+}
+
 function _aplicarBloqueio(specId) {
-  const locked = _specConcluido.has(specId) && !_specUnlocked.has(specId);
+  const feriado = _diaFeriadoInfo(specId);
+  const locked = feriado.bloqueado || (_specConcluido.has(specId) && !_specUnlocked.has(specId));
   const badge = document.getElementById('lock-badge-' + specId);
   const editBtn = document.getElementById('btn-edit-' + specId);
   const doneIcon = document.getElementById('done-' + specId);
-  if (badge) badge.style.display = locked ? 'inline-flex' : 'none';
-  if (editBtn) editBtn.style.display = locked ? 'inline-flex' : 'none';
+  // O badge/botão "Concluído" só faz sentido para o bloqueio normal de
+  // pós-gravação — no bloqueio por feriado/fim de semana a mensagem própria
+  // (feriado-notice) já explica a razão, e não há "Editar" a oferecer.
+  if (badge) badge.style.display = (locked && !feriado.bloqueado) ? 'inline-flex' : 'none';
+  if (editBtn) editBtn.style.display = (locked && !feriado.bloqueado) ? 'inline-flex' : 'none';
   if (doneIcon) doneIcon.classList.toggle('on', _specConcluido.has(specId));
   document.querySelectorAll('[id^="i_' + specId + '_dia_"], [id^="i_' + specId + '_noite_"]').forEach(el => {
     el.readOnly = locked;
@@ -2123,6 +2158,18 @@ function _aplicarBloqueio(specId) {
   });
   const toolbar = document.getElementById('sel-toolbar-' + specId);
   if (toolbar) toolbar.querySelectorAll('button, input[type="checkbox"]').forEach(el => { el.disabled = locked; });
+
+  const notice = document.getElementById('feriado-notice-' + specId);
+  const noticeText = document.getElementById('feriado-notice-text-' + specId);
+  if (notice) {
+    notice.style.display = feriado.bloqueado ? 'flex' : 'none';
+    if (feriado.bloqueado && noticeText) {
+      const spLabel = (SPECIALTIES.find(s => s.id === specId) || {}).label || specId;
+      noticeText.innerHTML = feriado.motivo === 'feriado'
+        ? `Não há registo de <strong>${spLabel}</strong> em feriados. Hoje é feriado — <strong>${feriado.nome}</strong>. Este serviço não funciona nesta data.`
+        : `Não há registo de <strong>${spLabel}</strong> aos fins de semana. Este serviço não funciona nesta data.`;
+    }
+  }
 }
 
 function _aplicarBloqueiosTodos() {
@@ -2141,6 +2188,7 @@ function _resetBloqueiosParaDia(data) {
 }
 
 function toggleSpecEdit(specId) {
+  if (_diaFeriadoInfo(specId).bloqueado) return; // bloqueio de feriado/fim de semana não se desbloqueia
   if (_specUnlocked.has(specId)) _specUnlocked.delete(specId);
   else _specUnlocked.add(specId);
   _aplicarBloqueio(specId);
@@ -2209,8 +2257,7 @@ dateInput.addEventListener('change', () => {
   if (_diaAlterado) persist(currentLoadedDate);
   currentLoadedDate = dateInput.value; // ★ avança o ponteiro
   try{ localStorage.setItem(_ultimoDiaVistoKey(), currentLoadedDate); }catch(e){}
-  const [y,m,d] = dateInput.value.split('-');
-  const ddEl = document.getElementById('date-disp'); if(ddEl) ddEl.textContent = `${d}/${m}/${y}`;
+  const ddEl = document.getElementById('date-disp'); if(ddEl) ddEl.textContent = _fmtDataDisp(dateInput.value);
   loadFromStorage();                   // ★ carrega o NOVO dia
 });
 
@@ -2520,6 +2567,13 @@ function buildUI() {
       html += noticeMsg;
     }
 
+    if (IDS_BLOQUEIO_FERIADO.includes(sp.id)) {
+      html += `<div class="feriado-notice" id="feriado-notice-${sp.id}" style="display:none;">
+        <svg class="svc-icon" aria-hidden="true"><use href="#i-info"/></svg>
+        <span id="feriado-notice-text-${sp.id}"></span>
+      </div>`;
+    }
+
     // No tabs — unified view
     html += ``;
 
@@ -2650,6 +2704,13 @@ function switchSpec(id) {
   if(ni) ni.classList.add('active');
   document.querySelectorAll('#rpt-nav .nav-item').forEach(i => i.classList.remove('active'));
   const al = document.getElementById('active-label'); if(al) al.textContent = SPECIALTIES.find(s=>s.id===id)?.label || id;
+
+  const feriado = _diaFeriadoInfo(id);
+  if (feriado.bloqueado) {
+    showToast(feriado.motivo === 'feriado'
+      ? `⛔ Sem registo — hoje é feriado (${feriado.nome})`
+      : '⛔ Sem registo aos fins de semana');
+  }
 }
 
 function switchView(vid) {
