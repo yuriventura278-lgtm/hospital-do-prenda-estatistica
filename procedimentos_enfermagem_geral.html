@@ -1453,7 +1453,6 @@ const FB_SLUG = 'geral';
 function persist(date) {
   const d = date || currentLoadedDate;
   const data = { _ts: Date.now(), specs: {} };
-  data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   SPECIALTIES.forEach(sp => {
     if(sp.id === 'medicina' || sp.id === 'bloco_op') return; // calculado — não guardar
     data.specs[sp.id] = { dia: {}, noite: {}, notesDia: '', notesNoite: '' };
@@ -1470,6 +1469,22 @@ function persist(date) {
     });
   });
   _diaAlterado = false;
+
+  // ★ Critério reforçado: só conta como alteração real se os dados gravados
+  // forem mesmo diferentes dos que já lá estavam — tocar num campo e voltar
+  // a escrever o mesmo valor (ou clicar em Guardar sem ter mudado nada) não
+  // pode carimbar ninguém como autor de uma alteração que na prática não
+  // aconteceu. Autoria, reenvio ao Firebase e histórico só se aplicam
+  // quando esta comparação confirma uma mudança de facto.
+  let prevSpecs = null;
+  try { const rawPrev = _storageGet(storageKey(d)); prevSpecs = rawPrev ? JSON.parse(rawPrev).specs : null; } catch(e) {}
+  const mudouDeVerdade = JSON.stringify(prevSpecs) !== JSON.stringify(data.specs);
+  if (!mudouDeVerdade) {
+    setSyncInfo('<svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Sem alterações');
+    return false;
+  }
+
+  data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   _storageSet(storageKey(d), JSON.stringify(data));
   if(window.zeloQueueWrite){
     const _fbSavedAt = new Date().toISOString();
@@ -1482,6 +1497,7 @@ function persist(date) {
   _mostrarHoraGuardado();
   const histBtn = document.getElementById('ver-historico-btn');
   if (histBtn) histBtn.style.display = 'inline-flex';
+  return true;
 }
 
 // ── Sincronização em tempo real ───────────────────────────────────────────
@@ -1819,8 +1835,8 @@ function _popularProcedimentos(data) {
 function saveAll() {
   clearTimeout(autoSaveTimer);
   autoSaveTimer = null;
-  persist(currentLoadedDate);
-  showToast('✅ Registo guardado com sucesso!');
+  const mudou = persist(currentLoadedDate);
+  showToast(mudou ? '✅ Registo guardado com sucesso!' : 'Sem alterações para guardar.');
 }
 
 function setSyncInfo(msg) {
