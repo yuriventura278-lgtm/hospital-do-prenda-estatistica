@@ -631,7 +631,7 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     </div>
     <span class="date-disp" id="date-disp">—</span>
     <span class="sync-info" id="sync-info"><svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Guardado</span>
-    <span class="sync-info" id="last-saved-status" style="display:none;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></span>
+    <span class="sync-info" id="last-saved-status" style="display:none;">· Última alteração: <span id="last-saved-name">—</span> em <span id="last-saved-date">—</span> às <span id="last-saved-time">—</span></span>
     <button class="btn-h btn-out" id="ver-historico-btn" style="display:none;" onclick="abrirHistoricoAlteracoes()"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Histórico</button>
     <button class="btn-h btn-save" onclick="saveAll()"><svg class="svc-icon" aria-hidden="true"><use href="#i-save"/></svg> Guardar</button>
     <button class="btn-h btn-out pdf" onclick="exportPDF()"><svg class="svc-icon" aria-hidden="true"><use href="#i-pdf"/></svg> PDF</button>
@@ -1505,10 +1505,13 @@ function _escHtml(s){
 function _mostrarHoraGuardado(nome, quando){
   const now = quando ? new Date(quando) : new Date();
   const hhmm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const ddmm = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}`;
   const nameEl = document.getElementById('last-saved-name');
+  const dateEl = document.getElementById('last-saved-date');
   const timeEl = document.getElementById('last-saved-time');
   const wrapEl = document.getElementById('last-saved-status');
   if (nameEl) nameEl.textContent = nome || sessionStorage.getItem('zeloNome') || 'Utilizador';
+  if (dateEl) dateEl.textContent = ddmm;
   if (timeEl) timeEl.textContent = hhmm;
   if (wrapEl) wrapEl.style.display = 'inline';
 }
@@ -1572,8 +1575,9 @@ async function abrirHistoricoAlteracoes(){
     lista.innerHTML = ordenadas.map(e => {
       const dt = e.ts ? new Date(e.ts) : null;
       const hhmm = dt ? `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}` : '—';
+      const ddmm = dt ? `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}` : '—';
       return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:.82rem;">
-        <div style="font-weight:700;color:var(--accent);">${hhmm} · ${_escHtml(e.nome || 'Utilizador')}</div>
+        <div style="font-weight:700;color:var(--accent);">${ddmm} às ${hhmm} · ${_escHtml(e.nome || 'Utilizador')}</div>
         <div style="color:var(--muted);margin-top:2px;">${_escHtml(e.resumo || '')}</div>
       </div>`;
     }).join('');
@@ -2814,9 +2818,10 @@ function exportPDF() {
 
   const _lsWrap = document.getElementById('last-saved-status');
   const _lsNome = document.getElementById('last-saved-name')?.textContent?.trim();
+  const _lsData = document.getElementById('last-saved-date')?.textContent?.trim();
   const _lsHora = document.getElementById('last-saved-time')?.textContent?.trim();
   const registadoPorTxt = (_lsWrap && _lsWrap.style.display !== 'none' && _lsNome && _lsNome !== '—')
-    ? `Registado por: ${_lsNome} às ${_lsHora}`
+    ? `Registado por: ${_lsNome} em ${_lsData} às ${_lsHora}`
     : null;
 
   // ── Helper: desenha tabela de procedimentos por campo usando ORDERED_PROCS ──
