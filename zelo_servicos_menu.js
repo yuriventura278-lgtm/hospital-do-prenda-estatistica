@@ -57,6 +57,7 @@ const SERVICOS_MENU = [
       { label: 'Relatório Diário', file: 'Bloco_Operatorio.html', modulo: 'servicos', item: 'bloco_operatorio' },
       { label: 'Registo Diário', file: 'bloco_operatorio_registo_diario.html', modulo: 'sistemas_independentes', item: 'bloco_operatorio_registo_diario' },
     ],
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_bloco_operatorio.html', modulo: 'procedimentos_enfermagem', item: 'bloco_operatorio' }],
     temEstatisticas: true, estatisticasFile: 'bloco_operatorio_registo_diario.html' },
   { nome: 'Oftalmologia', categoria: 'consultas', icon: 'eye', cor: '#DC2626',
     relatorios: [{ label: 'Relatório Diário', file: 'Oftalmologia.html', modulo: 'servicos', item: 'oftalmologia' }] },
@@ -66,7 +67,8 @@ const SERVICOS_MENU = [
     relatorios: [
       { label: 'Relatório Diário', file: 'Consulta_Externa-2.html', modulo: 'servicos', item: 'consulta_externa' },
       { label: 'Consultas Externa', file: 'consulta_externa_geral.html', modulo: 'sistemas_independentes', item: 'consulta_externa_geral' },
-    ] },
+    ],
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_consulta_externa.html', modulo: 'procedimentos_enfermagem', item: 'consulta_externa' }] },
   { nome: 'Hospital de Dia', categoria: 'consultas', icon: 'clipboard', cor: '#059669',
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_hospital_dia.html', modulo: 'procedimentos_enfermagem', item: 'hospital_dia' }] },
   { nome: 'Imagiologia', categoria: 'diagnostico', icon: 'scan', cor: '#0EA5E9',
