@@ -1735,7 +1735,10 @@ function _fbMostrarAvisoNovosDados(remoto, date){
   banner.querySelector('[data-act="atualizar"]').onclick = () => {
     if (remoto && date){
       try{
-        _storageSet(storageKey(date), JSON.stringify(remoto.snapshot.raw));
+        let localRaw = null;
+        try{ const rawStr = _storageGet(storageKey(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+        const mesclado = _mesclarDadosDia(localRaw, remoto.snapshot.raw);
+        _storageSet(storageKey(date), JSON.stringify(mesclado));
         localStorage.setItem(_FB_SAVEDAT_PREFIX + date, remoto.savedAt);
       }catch(e){}
     }
@@ -1763,17 +1766,28 @@ async function _fbEscutarDia(date){
       try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
       if (localSavedAt && localSavedAt >= savedAt) return;
       if (date !== currentLoadedDate) return;
-      // Ao abrir qualquer dia (hoje ou um dia passado), aplica logo os dados
-      // mais recentes vindos doutro dispositivo — o carimbo savedAt já garante
-      // acima que só substitui se for realmente mais recente do que o que já
-      // temos, por isso não há risco de apagar uma gravação mais nova. Só
+      // Ao abrir qualquer dia (hoje ou um dia passado), mescla logo os dados
+      // vindos doutro dispositivo com os que já estavam gravados localmente
+      // — campo a campo, nunca o dia inteiro (ver _mesclarDadosDia). Só
       // gravações SEGUINTES enquanto o dia continua aberto (mais abaixo) é que
       // mostram o aviso, para nunca substituir silenciosamente algo que o
       // utilizador possa estar a escrever nesse momento.
       try{
-        _storageSet(storageKey(date), JSON.stringify(remoto.snapshot.raw));
+        let localRaw = null;
+        try{ const rawStr = _storageGet(storageKey(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+        const mesclado = _mesclarDadosDia(localRaw, remoto.snapshot.raw);
+        _storageSet(storageKey(date), JSON.stringify(mesclado));
         try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
-        if (date === currentLoadedDate){ _popularProcedimentos(remoto.snapshot.raw); }
+        if (date === currentLoadedDate){ _popularProcedimentos(mesclado); }
+        // Se a mesclagem recuperou campos que o Firebase não tinha (o outro
+        // dispositivo guardou com menos dados preenchidos), reenvia a versão
+        // mesclada para que essa recuperação fique disponível para todos.
+        if (localRaw && window.zeloQueueWrite && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot.raw)) {
+          const curaSavedAt = new Date().toISOString();
+          _fbUltimoEnvioSavedAt[date] = curaSavedAt;
+          zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + date, {savedAt: curaSavedAt, snapshot: {raw: mesclado}});
+          try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
+        }
       }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes dos Procedimentos.', e); }
       return;
     }
@@ -1840,6 +1854,53 @@ function _servicoTemDados(spData) {
     if (!t) return false;
     return Object.values(t).some(v => v !== null && v !== undefined);
   });
+}
+
+// ── Mesclagem campo-a-campo entre a versão local e a versão vinda doutro
+// dispositivo (Firebase) ────────────────────────────────────────────────
+// Antes, ao chegar uma versão "mais recente" doutro dispositivo, o dia
+// inteiro era substituído em bloco — se o dispositivo B tivesse guardado
+// depois do A mas com menos campos preenchidos (ex.: B só mexeu num
+// serviço, A já tinha vários), a versão mais recente (B) apagava os
+// campos que só existiam em A. Um campo vazio NUNCA deve substituir um
+// campo já preenchido — só quando os dois lados têm valores diferentes
+// e não-vazios no MESMO campo é que há um conflito real, e só nesse
+// caso se desempata pelo carimbo de hora (_ts) mais recente — e só para
+// esse campo, nunca para o dia todo.
+function _mesclarDadosDia(local, remoto) {
+  if (!local) return remoto;
+  if (!remoto) return local;
+  const remotoMaisRecente = (remoto._ts || 0) >= (local._ts || 0);
+  const especialidades = new Set([...Object.keys(local.specs || {}), ...Object.keys(remoto.specs || {})]);
+  const specsMesclados = {};
+  especialidades.forEach(specId => {
+    const l = local.specs?.[specId] || {};
+    const r = remoto.specs?.[specId] || {};
+    const merged = { dia:{}, noite:{}, notesDia:'', notesNoite:'' };
+    TURNOS.forEach(turno => {
+      const lt = l[turno] || {};
+      const rt = r[turno] || {};
+      const chaves = new Set([...Object.keys(lt), ...Object.keys(rt)]);
+      chaves.forEach(k => {
+        const lv = lt[k], rv = rt[k];
+        if (lv === undefined || lv === null) merged[turno][k] = (rv === undefined ? null : rv);
+        else if (rv === undefined || rv === null) merged[turno][k] = lv;
+        else if (lv === rv) merged[turno][k] = lv;
+        else merged[turno][k] = remotoMaisRecente ? rv : lv;
+      });
+      const notesKey = 'notes' + turno.charAt(0).toUpperCase() + turno.slice(1);
+      const ln = l[notesKey], rn = r[notesKey];
+      if (!ln) merged[notesKey] = rn || '';
+      else if (!rn) merged[notesKey] = ln;
+      else merged[notesKey] = remotoMaisRecente ? rn : ln;
+    });
+    specsMesclados[specId] = merged;
+  });
+  return {
+    _ts: Math.max(local._ts || 0, remoto._ts || 0),
+    specs: specsMesclados,
+    criadoPor: remotoMaisRecente ? remoto.criadoPor : local.criadoPor,
+  };
 }
 
 let _specConcluido = new Set();
