@@ -395,10 +395,14 @@ window.hasModuleAccess = hasModuleAccess;
   // Bloqueia o acesso com uma mensagem clara quando o administrador retirou a
   // permissão a este módulo — em vez de reencaminhar em silêncio para o
   // índice, o que deixava o utilizador sem perceber porquê.
-  function mostrarBloqueioPermissao(){
+  function mostrarBloqueioPermissao(role, permissoes){
     if(loadingCtrl) loadingCtrl.concluido();
     htmlEl.style.overflow=prevOverflow;
     gate.remove();
+    // Diagnóstico temporário: mostra o que foi realmente lido do perfil,
+    // para confirmar rapidamente se o problema é o papel gravado na conta
+    // ou as permissões do módulo, sem precisar de abrir a consola.
+    console.warn('[ZELO] Acesso bloqueado — módulo: servicos · papel:', role, '· permissões:', permissoes);
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#0D1B3E;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif;';
     overlay.innerHTML =
@@ -408,6 +412,7 @@ window.hasModuleAccess = hasModuleAccess;
         '</div>' +
         '<div style="font-size:1.05rem;font-weight:700;color:#0D1B3E;margin-bottom:8px;">Sem permissão de acesso</div>' +
         '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:22px;">Não tem permissão para entrar nesta página. Contacte os administradores do ZELO.</div>' +
+        '<div style="font-size:.68rem;color:#94A3B8;line-height:1.5;margin-bottom:18px;padding:8px 10px;background:#F8FAFC;border-radius:8px;">Papel detetado: <strong>' + (role || '—') + '</strong> · Módulo: <strong>servicos</strong></div>' +
         '<a href="index.html" style="display:inline-block;padding:11px 22px;border-radius:10px;background:#0D1B3E;color:#fff;text-decoration:none;font-weight:600;font-size:.86rem;">Voltar ao Início</a>' +
       '</div>';
     document.body.appendChild(overlay);
@@ -460,7 +465,7 @@ window.hasModuleAccess = hasModuleAccess;
     sessionStorage.setItem('zeloEmail', user.email || '');
     sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
     if(!hasModuleAccess(perfil.role || 'funcionario', perfil.permissoes || {}, 'servicos')){
-      mostrarBloqueioPermissao();
+      mostrarBloqueioPermissao(perfil.role || 'funcionario', perfil.permissoes || {});
       return;
     }
     clearLoginAttempts(user.email);

@@ -33,7 +33,7 @@ function aplicarModoLeitura(){
 function aplicarAcesso(role, permissoes, uid){
   resolvido = true;
   if (moduleKey && !hasModuleAccess(role, permissoes || {}, moduleKey, itemKey)) {
-    showBlockedScreen();
+    showBlockedScreen(role, permissoes);
     return;
   }
   document.documentElement.style.visibility = 'visible';
@@ -77,8 +77,13 @@ if (embedded) {
   try { window.parent.postMessage({ type: 'zelo-child-ready' }, window.location.origin); } catch (e) {}
 }
 
-function showBlockedScreen(){
+function showBlockedScreen(role, permissoes){
   document.documentElement.style.visibility = 'visible';
+  // Diagnóstico temporário (visível só neste ecrã de bloqueio, não afeta o
+  // resto da app): mostra exatamente o que foi lido do perfil, para se
+  // conseguir confirmar rapidamente se o problema é o papel gravado na
+  // conta ou as permissões do módulo, sem precisar de abrir a consola.
+  console.warn('[ZELO] Acesso bloqueado — módulo:', moduleKey, '· item:', itemKey, '· papel:', role, '· permissões:', permissoes);
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#0D1B3E;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif;';
   overlay.innerHTML =
@@ -88,6 +93,7 @@ function showBlockedScreen(){
       '</div>' +
       '<div style="font-size:1.05rem;font-weight:700;color:#0D1B3E;margin-bottom:8px;">Sem permissão de acesso</div>' +
       '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:22px;">Não tem permissão para entrar neste serviço ou página. Contacte os administradores do ZELO.</div>' +
+      '<div style="font-size:.68rem;color:#94A3B8;line-height:1.5;margin-bottom:18px;padding:8px 10px;background:#F8FAFC;border-radius:8px;">Papel detetado: <strong>' + (role || '—') + '</strong> · Módulo: <strong>' + (moduleKey || '—') + '</strong>' + (itemKey ? (' · Item: <strong>' + itemKey + '</strong>') : '') + '</div>' +
       '<a href="index.html" style="display:inline-block;padding:11px 22px;border-radius:10px;background:#0D1B3E;color:#fff;text-decoration:none;font-weight:600;font-size:.86rem;">Voltar ao Início</a>' +
     '</div>';
   document.body.appendChild(overlay);
