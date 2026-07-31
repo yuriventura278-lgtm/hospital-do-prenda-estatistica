@@ -12,13 +12,14 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
     window.__fbReady = true;
   }catch(e){
     console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
@@ -2544,6 +2545,7 @@ CE.Registo = (function(){
       sessaoAtualId = sessao.id;
       lockEspecialidade(sessao.especialidade);
       document.getElementById('f-data').value = sessao.data;
+      _fbEscutarDia(sessao.data);
       carregandoSessaoExistente = false;
       carregarSessaoParaEdicao(sessao, regs);
       esconderGate();
@@ -2552,7 +2554,7 @@ CE.Registo = (function(){
     });
   }
 
-  /* ---------- Sincronização com o Firebase (só escrita/leitura pontual, sem tempo real) ----------
+  /* ---------- Sincronização com o Firebase (escrita + escuta em tempo real) ----------
      Depois de gravar localmente, reenvia todas as sessões desse dia para o Firebase —
      mantém o dia inteiro coerente lá, mesmo quando há várias especialidades/sessões
      guardadas para a mesma data. Falha em silêncio (zeloQueueWrite já trata do reenvio
@@ -2570,36 +2572,100 @@ CE.Registo = (function(){
     }catch(e){ console.warn('ZELO: falha ao sincronizar Consulta Externa com o Firebase', e); }
   }
 
-  /* ---------- Aviso de dados mais recentes noutro dispositivo ----------
-     Sem sincronização em tempo real (decisão para poupar o plano gratuito do
-     Firebase), verifica de vez em quando se alguém guardou dados mais
-     recentes para o dia aberto e avisa — sem recarregar sozinho, para nunca
-     perder alterações locais por gravar. */
+  /* ---------- Aplicar sessões remotas ----------
+     Cada especialidade só tem UMA sessão por dia (chave natural especialidade+data —
+     ver verificarSessaoExistente), por isso aplicar dados remotos é: para cada sessão
+     recebida, encontrar a sessão local da mesma especialidade+dia e substituí-la
+     (updateSessao mantendo o id local) — nunca criar uma cópia nova (o bulkImport
+     genérico, feito para restaurar backups completos, criaria duplicados aqui). */
+  async function _fbAplicarSessoesRemotas(data, sessoesRemotas){
+    if (!sessoesRemotas || !sessoesRemotas.length) return;
+    var locais = await CE.Store.getAllSessoes();
+    for (var i = 0; i < sessoesRemotas.length; i++){
+      var remota = Object.assign({}, sessoesRemotas[i]);
+      delete remota.id;
+      var local = locais.find(function(s){ return s.especialidade === remota.especialidade && s.data === data; });
+      if (local){ remota.id = local.id; await CE.Store.updateSessao(remota); }
+      else { await CE.Store.addSessao(remota); }
+    }
+    carregarCachePatologias();
+    if (CE.atualizarIndicadoresEspecialidades) CE.atualizarIndicadoresEspecialidades();
+    // Se a especialidade+dia que está aberta no formulário agora mesmo foi uma das
+    // atualizadas, refresca o ecrã com o valor novo — sem isto, o profissional
+    // continuaria a ver a versão antiga até trocar de especialidade/dia manualmente.
+    var especialidadeAberta = document.getElementById('f-especialidade').value;
+    var dataAberta = document.getElementById('f-data').value;
+    if (dataAberta === data && sessoesRemotas.some(function(s){ return s.especialidade === especialidadeAberta; })){
+      var recarregadas = await CE.Store.getAllSessoes();
+      var sessaoLocal = recarregadas.find(function(s){ return s.especialidade === especialidadeAberta && s.data === data; });
+      if (sessaoLocal){
+        sessaoAtualId = sessaoLocal.id;
+        carregarSessaoParaEdicao(sessaoLocal, []);
+      }
+    }
+  }
+
+  /* ---------- Escuta em tempo real do dia aberto ----------
+     Ao abrir um dia, aplica em silêncio a versão mais recente vinda doutro
+     dispositivo (só se não houver rascunho local por guardar). Uma gravação
+     SEGUINTE de outro dispositivo, enquanto o dia continua aberto, já não é
+     aplicada sozinha — mostra um banner com botão "Atualizar página", que agora
+     aplica mesmo os dados novos (antes só recarregava a página, sem ir buscar
+     nada ao Firebase — o ecrã continuava com os dados antigos). */
   var _fbBaselineSavedAt = {};
-  function _fbMostrarAvisoNovosDados(){
+  var _fbCancelarEscuta = null;
+  function _fbEsperarPronto(timeoutMs){
+    return new Promise(function(resolve){
+      if (window.__fbReady){ resolve(true); return; }
+      var inicio = Date.now();
+      var iv = setInterval(function(){
+        if (window.__fbReady){ clearInterval(iv); resolve(true); }
+        else if (Date.now() - inicio > (timeoutMs || 10000)){ clearInterval(iv); resolve(false); }
+      }, 150);
+    });
+  }
+  function _fbMostrarAvisoNovosDados(data, sessoesRemotas){
     if (document.getElementById('fb-novos-dados-banner')) return;
     var banner = document.createElement('div');
     banner.id = 'fb-novos-dados-banner';
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#1A56DB;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
     banner.innerHTML = '<span>🔄 Outro utilizador guardou dados mais recentes para este dia.</span>' +
-      '<button type="button" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>';
-    banner.querySelector('button').onclick = function(){ window.location.reload(); };
+      '<button type="button" data-act="atualizar" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>' +
+      '<button type="button" data-act="dispensar" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.8rem;">Agora não</button>';
+    banner.querySelector('[data-act="atualizar"]').onclick = function(){
+      banner.remove();
+      _fbAplicarSessoesRemotas(data, sessoesRemotas).then(function(){
+        toast('Dados atualizados com a versão mais recente.');
+      }).catch(function(e){ console.warn('ZELO: falha ao aplicar dados remotos da Consulta Externa.', e); });
+    };
+    banner.querySelector('[data-act="dispensar"]').onclick = function(){ banner.remove(); };
     document.body.insertBefore(banner, document.body.firstChild);
   }
-  async function _fbVerificarNovosDados(){
-    if (!window.__fbReady || !window.__fbGet) return;
-    var data = document.getElementById('f-data') && document.getElementById('f-data').value;
+  async function _fbEscutarDia(data){
+    if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
+    var banner = document.getElementById('fb-novos-dados-banner');
+    if (banner) banner.remove();
     if (!data) return;
-    try{
-      var reg = await window.__fbGet('registos_sistemas_locais/consulta_externa/' + data);
-      var remoto = reg && reg.savedAt;
-      if (!remoto) return;
-      var base = _fbBaselineSavedAt[data];
-      if (base === undefined){ _fbBaselineSavedAt[data] = remoto; return; }
-      if (remoto > base){ _fbBaselineSavedAt[data] = remoto; _fbMostrarAvisoNovosDados(); }
-    }catch(e){ /* falha silenciosa — não bloqueia a página */ }
+    var pronto = await _fbEsperarPronto();
+    if (!pronto || !window.__fbListen) return;
+    if (data !== (document.getElementById('f-data') && document.getElementById('f-data').value)) return; // entretanto mudou de dia — a chamada mais recente trata da escuta
+    var primeira = true;
+    _fbCancelarEscuta = window.__fbListen('registos_sistemas_locais/consulta_externa/' + data, function(remoto){
+      var savedAt = remoto && remoto.savedAt;
+      var sessoesRemotas = remoto && remoto.snapshot && remoto.snapshot.sessoes;
+      if (!savedAt || !sessoesRemotas){ primeira = false; return; }
+      if (savedAt === _fbBaselineSavedAt[data]){ primeira = false; return; }
+      if (primeira){
+        primeira = false;
+        if (data !== (document.getElementById('f-data') && document.getElementById('f-data').value)) return;
+        if (localStorage.getItem(DRAFT_KEY)) return; // rascunho por guardar — nunca sobrescrever em silêncio
+        _fbBaselineSavedAt[data] = savedAt;
+        _fbAplicarSessoesRemotas(data, sessoesRemotas).catch(function(e){ console.warn('ZELO: falha ao aplicar dados remotos da Consulta Externa.', e); });
+        return;
+      }
+      _fbMostrarAvisoNovosDados(data, sessoesRemotas);
+    });
   }
-  setInterval(_fbVerificarNovosDados, 120000);
 
   /* ---------- Guardar Especialidade do Dia (só no Resumo) ---------- */
   async function guardarEspecialidadeDia(){
@@ -2679,6 +2745,7 @@ CE.Registo = (function(){
       carregandoSessaoExistente = true;
       limparFormulario(especialidade);
       document.getElementById('f-data').value = todayISO();
+      _fbEscutarDia(todayISO());
       carregandoSessaoExistente = false;
       verificarSessaoExistente();
     }catch(err){
@@ -2776,7 +2843,10 @@ CE.Registo = (function(){
       btn.dataset.ativo = btn.dataset.ativo === '1' ? '0' : '1';
       scheduleDraftSave();
     });
-    document.getElementById('f-data').addEventListener('change', verificarSessaoExistente);
+    document.getElementById('f-data').addEventListener('change', function(){
+      verificarSessaoExistente();
+      _fbEscutarDia(document.getElementById('f-data').value);
+    });
     document.getElementById('f-especialidade').addEventListener('change', function(){
       especialidadeGridAtual = null;
       limparCamposMedicosEDoentes();
@@ -2798,6 +2868,7 @@ CE.Registo = (function(){
       atualizarProgressoBloco(String(medicoCounter));
     }
     irParaPagina(0);
+    _fbEscutarDia(document.getElementById('f-data').value);
   }
 
   return {
