@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_feriados.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
@@ -1034,6 +1035,14 @@ var SRC_MAP = {
 // IDs a excluir dos totais (contados via consolidados acima)
 var SKIP_IDS = new Set([]);
 
+// Formata uma data ISO ('YYYY-MM-DD') como 'DD/MM/AAAA · Dia da semana'.
+function _fmtDataDisp(dataISO) {
+  const [y, m, d] = dataISO.split('-');
+  const dataFmt = `${d}/${m}/${y}`;
+  if (typeof ZeloFeriados === 'undefined') return dataFmt;
+  return dataFmt + ' · ' + ZeloFeriados.nomeDiaSemana(dataISO);
+}
+
 const CATEGORIES = [
   { id:'medicacao',    label:'Medicação e Terapêutica',         color:'green',
     procs:['Medicação Oral','Injecção IM','Injecção IV','Injecção SC','Venoclise (Hidratação EV)','Nebulização','Medicação Rectal','Oxigenoterapia','Hidratação Via Oral / SRO','Hemotransfusão','Insulinoterapia'] },
@@ -1313,8 +1322,7 @@ function _ultimoDiaVistoKey(){ return 'enf5_ultimoDiaVisto_' + (window.ZELO_ITEM
     const yy = n.getFullYear(), mm = String(n.getMonth()+1).padStart(2,'0'), dd = String(n.getDate()).padStart(2,'0');
     dateInput.value = `${yy}-${mm}-${dd}`;
   }
-  const [yv,mv,dv] = dateInput.value.split('-');
-  const dd2 = document.getElementById('date-disp'); if(dd2) dd2.textContent = `${dv}/${mv}/${yv}`;
+  const dd2 = document.getElementById('date-disp'); if(dd2) dd2.textContent = _fmtDataDisp(dateInput.value);
 })();
 let currentLoadedDate = dateInput.value;
 
@@ -2118,8 +2126,7 @@ dateInput.addEventListener('change', () => {
   if (_diaAlterado) persist(currentLoadedDate);
   currentLoadedDate = dateInput.value; // ★ avança o ponteiro
   try{ localStorage.setItem(_ultimoDiaVistoKey(), currentLoadedDate); }catch(e){}
-  const [y,m,d] = dateInput.value.split('-');
-  const ddEl = document.getElementById('date-disp'); if(ddEl) ddEl.textContent = `${d}/${m}/${y}`;
+  const ddEl = document.getElementById('date-disp'); if(ddEl) ddEl.textContent = _fmtDataDisp(dateInput.value);
   loadFromStorage();                   // ★ carrega o NOVO dia
 });
 
