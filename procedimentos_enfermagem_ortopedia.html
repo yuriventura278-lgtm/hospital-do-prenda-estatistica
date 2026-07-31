@@ -3152,6 +3152,10 @@ window.ZBK_getBackupJSON = function (cadencia, fimISO) {
 };
 
 window.ZBK_gerarPDF = async function (cadencia, fimISO) {
+  // O backup automático do Diário só grava o JSON — o PDF automático só é
+  // gerado a partir da cadência Semanal para cima (o diário continua
+  // disponível para exportação manual, tal como antes).
+  if (cadencia === 'diario') return null;
   if (typeof window.jspdf === 'undefined' || typeof buildReportPDF !== 'function') return null;
   const { inicioISO, fimISO: fimISO2 } = _limitesDoPeriodo(cadencia, fimISO);
   const dates = datesInRange(inicioISO, fimISO2);
