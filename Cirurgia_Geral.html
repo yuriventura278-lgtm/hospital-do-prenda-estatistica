@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
@@ -666,6 +667,10 @@ function closeSplash(){
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     Histórico de Registo
   </button>
+  <button onclick="abrirBackupAutoModal()" style="width:100%;padding:16px;margin-top:10px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:14px;color:#5B21B6;font-size:.92rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;-webkit-tap-highlight-color:transparent;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+    Backup Automático
+  </button>
 </div>
 
 <!-- ACTION BAR -->
@@ -696,6 +701,38 @@ function closeSplash(){
     <div class="mf">
       <button id="mpd" onclick="closeModal();acaoPDF()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Só PDF</button>
       <button id="mcl" onclick="closeModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BACKUP AUTOMÁTICO -->
+<div id="backupAutoModal" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.72);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:20px;width:100%;max-width:440px;box-shadow:0 16px 48px rgba(13,27,62,.25);max-height:90vh;overflow:auto;">
+    <div style="padding:20px 22px 4px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Backup Automático</h3>
+      <button onclick="closeBackupAutoModal()" aria-label="Fechar" style="background:#F1F5F9;border:none;border-radius:9px;width:30px;height:30px;cursor:pointer;color:#334155;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:10px 22px 22px;">
+      <p id="bkauto-suporte-msg" style="display:none;color:#DC2626;font-size:.75rem;">
+        O seu navegador não suporta esta funcionalidade — funciona apenas no Google Chrome ou Microsoft Edge (computador).
+      </p>
+      <div id="bkauto-corpo">
+        <p style="font-size:.75rem;color:#64748B;line-height:1.5;">
+          Escolha uma pasta no computador. O sistema grava automaticamente uma cópia em JSON
+          dos registos do histórico — Diário, Semanal, Mensal, Trimestral, Semestral e Anual —
+          sempre que esta página estiver aberta à volta da meia-noite, ou assim que a abrir de novo.
+          O PDF é guardado na pasta sempre que gerar um manualmente (botão "Visualizar"/"Só PDF").
+        </p>
+        <div id="bkauto-status" style="margin:10px 0;padding:10px 12px;background:#F8FAFC;border-radius:10px;font-size:.72rem;color:#334155;">
+          <div id="bkauto-pasta-nome">A verificar…</div>
+        </div>
+        <div id="bkauto-cadencias" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:.68rem;color:#64748B;margin-bottom:12px;"></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button onclick="_bkAutoEscolherPasta()" style="width:100%;padding:13px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;color:#1E40AF;font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Escolher pasta</button>
+          <button onclick="_bkAutoVerificarAgora()" style="width:100%;padding:13px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;color:#166534;font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Verificar agora</button>
+          <button onclick="_bkAutoEsquecerPasta()" style="width:100%;padding:13px;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;color:#991B1B;font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Esquecer pasta</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2977,7 +3014,7 @@ async function gerarPDF(silencioso){
 
     const nome=pdfFileName()+'.pdf';
     window._lastPDF=pdf;
-    if(!silencioso){pdf.save(nome);toast('✓ PDF guardado.');}
+    if(!silencioso){pdf.save(nome);toast('✓ PDF guardado.');_guardarPDFNaPastaBackup(pdf,nome);}
     return pdf;
   }catch(err){
     console.error(err);toast('Erro ao gerar PDF: '+err.message);return null;
@@ -3006,6 +3043,7 @@ async function compartilhar(canal){
   }
   const nomeFallback=(typeof pdfFileName==='function'?pdfFileName():String(Date.now()))+'.pdf';
   pdf.save(nomeFallback);
+  _guardarPDFNaPastaBackup(pdf,nomeFallback);
   if(typeof toast==='function')toast('PDF guardado — anexe manualmente.');
   if(canal==='wa'){ setTimeout(()=>window.open('https://wa.me/','_blank'),400); }
   if(canal==='email'){
@@ -3701,6 +3739,152 @@ document.getElementById('historico-alteracoes-modal').addEventListener('click', 
 // Close modals on backdrop click
 document.getElementById('ov2').addEventListener('click',e=>{if(e.target===document.getElementById('ov2'))closeValid();});
 document.getElementById('ov3').addEventListener('click',e=>{if(e.target===document.getElementById('ov3'))closePost();});
+
+// ── BACKUP AUTOMÁTICO EM PASTA LOCAL ──────────────────────────────
+// Âmbito reduzido para esta família de ficheiros (registo único + histórico
+// em lista, sem snapshot próprio de PDF por período): o backup automático
+// só grava JSON por cadência (a partir do histórico já guardado); o PDF é
+// gravado na pasta apenas quando o utilizador o gera manualmente (o
+// gerarPDF() lê sempre o formulário ao vivo, não dá para reconstituir um
+// PDF fiel de um período passado sem reabrir cada registo).
+function abrirBackupAutoModal() {
+  if (sessionStorage.getItem('zeloRole') !== 'admin') {
+    if (typeof toast === 'function') toast('Só administradores podem usar esta opção');
+    return;
+  }
+  document.getElementById('backupAutoModal').style.display = 'flex';
+  _bkAutoAtualizarStatus();
+}
+function closeBackupAutoModal() {
+  document.getElementById('backupAutoModal').style.display = 'none';
+}
+document.getElementById('backupAutoModal').addEventListener('click', function (e) {
+  if (e.target === this) closeBackupAutoModal();
+});
+
+async function _bkAutoAtualizarStatus() {
+  const suporteMsg = document.getElementById('bkauto-suporte-msg');
+  const corpo = document.getElementById('bkauto-corpo');
+  if (typeof ZeloAutoBackup === 'undefined' || !ZeloAutoBackup.suportado()) {
+    suporteMsg.style.display = 'block';
+    corpo.style.display = 'none';
+    return;
+  }
+  suporteMsg.style.display = 'none';
+  corpo.style.display = 'block';
+  const pasta = await ZeloAutoBackup.obterPastaAtiva(false);
+  const nomeEl = document.getElementById('bkauto-pasta-nome');
+  if (pasta.estado === 'ok') {
+    nomeEl.textContent = '📁 Pasta escolhida: ' + pasta.handle.name;
+  } else if (pasta.estado === 'sem_permissao') {
+    nomeEl.textContent = '⚠️ Autorização da pasta expirou — clique em "Escolher pasta" para renovar.';
+  } else {
+    nomeEl.textContent = 'Nenhuma pasta escolhida ainda.';
+  }
+  const cadEl = document.getElementById('bkauto-cadencias');
+  cadEl.innerHTML = Object.keys(_BKAUTO_ROTULOS).map(function (c) {
+    const marca = localStorage.getItem('zbk_marca_cirurgia_geral_' + c);
+    return '<div>' + _BKAUTO_ROTULOS[c] + ': ' + (marca ? '✅ ' + marca : '— ainda não') + '</div>';
+  }).join('');
+}
+
+async function _bkAutoEscolherPasta() {
+  try {
+    await ZeloAutoBackup.escolherPasta();
+    toast('📁 Pasta escolhida com sucesso!');
+    _bkAutoAtualizarStatus();
+    ZeloAutoBackup.verificarEExecutar('cirurgia_geral').then(_bkAutoAtualizarStatus);
+  } catch (e) {
+    if (e && e.name !== 'AbortError') toast('❌ Não foi possível escolher a pasta.');
+  }
+}
+async function _bkAutoEsquecerPasta() {
+  await ZeloAutoBackup.esquecerPasta();
+  toast('Pasta de backup automático esquecida.');
+  _bkAutoAtualizarStatus();
+}
+async function _bkAutoVerificarAgora() {
+  toast('A verificar backups pendentes…');
+  const r = await ZeloAutoBackup.verificarEExecutar('cirurgia_geral');
+  _bkAutoAtualizarStatus();
+  toast('Verificação concluída.');
+  console.log('[BackupAuto]', r);
+}
+
+function _limitesDoPeriodo(cadencia, fimISO) {
+  const fim = new Date(fimISO + 'T00:00:00');
+  let inicio;
+  switch (cadencia) {
+    case 'diario': inicio = new Date(fim); break;
+    case 'semanal': inicio = new Date(fim); inicio.setDate(inicio.getDate() - 6); break;
+    case 'mensal': inicio = new Date(fim.getFullYear(), fim.getMonth(), 1); break;
+    case 'trimestral': inicio = new Date(fim.getFullYear(), Math.floor(fim.getMonth() / 3) * 3, 1); break;
+    case 'semestral': inicio = new Date(fim.getFullYear(), fim.getMonth() < 6 ? 0 : 6, 1); break;
+    case 'anual': inicio = new Date(fim.getFullYear(), 0, 1); break;
+  }
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  return { inicioISO: iso(inicio), fimISO: iso(fim) };
+}
+function _fimDoPeriodoContendo(cadencia, dataISO) {
+  const d = new Date(dataISO + 'T00:00:00');
+  let fim;
+  switch (cadencia) {
+    case 'diario': fim = new Date(d); break;
+    case 'semanal': { const dow = (d.getDay() + 6) % 7; fim = new Date(d); fim.setDate(fim.getDate() + (6 - dow)); break; }
+    case 'mensal': fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); break;
+    case 'trimestral': fim = new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 0); break;
+    case 'semestral': fim = new Date(d.getFullYear(), d.getMonth() < 6 ? 6 : 12, 0); break;
+    case 'anual': fim = new Date(d.getFullYear(), 12, 0); break;
+  }
+  return fim.getFullYear() + '-' + String(fim.getMonth() + 1).padStart(2, '0') + '-' + String(fim.getDate()).padStart(2, '0');
+}
+const _BKAUTO_ROTULOS = { diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
+
+// Só grava PDF na pasta quando é gerado manualmente (Visualizar/Só PDF) —
+// ver nota de âmbito acima.
+function _guardarPDFNaPastaBackup(doc, nomeFicheiro) {
+  if (typeof ZeloAutoBackup === 'undefined' || !ZeloAutoBackup.suportado()) return;
+  try {
+    const blob = doc.output('blob');
+    ZeloAutoBackup.gravarNaPasta('cirurgia_geral', 'Diario', nomeFicheiro, blob).then(function (r) {
+      if (r.ok && typeof toast === 'function') toast('📁 PDF também guardado na pasta de backup.');
+    });
+  } catch (e) { console.warn('[BackupAuto] falha ao guardar PDF na pasta', e); }
+}
+
+// Lista os períodos já terminados com dados no histórico (cg_v1_hist) —
+// nunca inclui o período em curso, mesmo com dados parciais.
+window.ZBK_periodosDisponiveis = function (cadencia) {
+  const hoje = new Date();
+  const hojeISO = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch (e) { hist = []; }
+  const periodosVistos = {};
+  hist.forEach(function (h) {
+    if (!h || h.deleted) return;
+    const dataISO = h.snapshot && h.snapshot.data;
+    if (!dataISO) return;
+    const fimISO = _fimDoPeriodoContendo(cadencia, dataISO);
+    if (fimISO >= hojeISO) return;
+    const chave = ZeloAutoBackup._periodoAtual(cadencia, new Date(fimISO + 'T00:00:00'));
+    periodosVistos[chave] = fimISO;
+  });
+  return Object.keys(periodosVistos).map(function (chave) { return { chave: chave, dataRefISO: periodosVistos[chave] }; });
+};
+
+window.ZBK_getBackupJSON = function (cadencia, fimISO) {
+  const limites = _limitesDoPeriodo(cadencia, fimISO);
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch (e) { hist = []; }
+  const registos = hist.filter(function (h) {
+    if (!h || h.deleted) return false;
+    const dataISO = h.snapshot && h.snapshot.data;
+    return dataISO && dataISO >= limites.inicioISO && dataISO <= limites.fimISO;
+  });
+  return { nome: `backup_cirurgia_geral_${cadencia}_${limites.fimISO}.json`, conteudo: registos };
+};
+
+if (typeof ZeloAutoBackup !== 'undefined') ZeloAutoBackup.iniciar('cirurgia_geral');
 
 // Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
 (function(){
