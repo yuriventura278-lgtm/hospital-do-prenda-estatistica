@@ -581,6 +581,15 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 .lab-grand{display:grid;grid-template-columns:1fr 76px 76px 60px;padding:7px 8px;background:var(--accent-tint);border-top:2px solid var(--accent-ring);}
 .lab-grand span{font-family:var(--font-head);font-size:.56rem;font-weight:800;color:var(--accent);text-align:center;}
 .lab-grand .g-name{text-align:left;}
+/* SELEÇÃO EM MASSA (linhas) */
+.linesel-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px;}
+.linesel-toolbar .btn-h{font-size:.6rem;padding:6px 10px;}
+.linesel-toolbar .btn-h[disabled]{opacity:.4;cursor:not-allowed;}
+.linesel-all-lbl{display:flex;align-items:center;gap:6px;font-family:var(--font-head);font-size:.62rem;color:var(--muted);font-weight:600;}
+.lab-chk-cell,.pos-chk-cell{display:none;align-items:center;justify-content:center;}
+.linesel-mode .lab-chk-cell,.linesel-mode .pos-chk-cell{display:flex;}
+.card.linesel-mode .lab-row,.card.linesel-mode .pos-row{grid-template-columns:24px 1fr 76px 76px 60px;}
+.card.linesel-mode .lab-thead,.card.linesel-mode .pos-thead{grid-template-columns:24px 1fr 76px 76px 60px;}
 /* ADD EXAM */
 .add-exam-bar{display:flex;align-items:center;gap:7px;padding:8px;background:var(--bg);border:1px dashed var(--border);border-radius:5px;margin-top:6px;}
 .add-exam-bar input[type=text]{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:var(--font-head);font-size:.72rem;color:var(--text);outline:none;}
@@ -950,9 +959,18 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         </div>
       </div>
       <!-- Exames Realizados -->
-      <div class="card">
+      <div class="card" id="card-exames">
         <div class="card-label">Exames Realizados</div>
+        <div class="linesel-toolbar">
+          <button type="button" class="btn-h btn-out" onclick="linesetToggle('exames')" id="btn-linesel-toggle-exames">Selecionar</button>
+          <label class="linesel-all-lbl linesel-only" style="display:none;"><input type="checkbox" id="linesel-all-exames" onchange="linesetToggleAll('exames',this.checked)"/> <span id="linesel-count-exames">0 selecionados</span></label>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" onclick="linesetSelPreenchidos('exames')">Selecionar preenchidos</button>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-copiar-exames" disabled onclick="linesetCopiar('exames')">Copiar</button>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-colar-exames" disabled onclick="linesetColar('exames')">Colar</button>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;color:var(--danger);" id="btn-linesel-eliminar-exames" disabled onclick="linesetEliminar('exames')">Eliminar</button>
+        </div>
         <div class="lab-thead">
+          <span class="lab-chk-cell"></span>
           <span class="th-name">Exame</span>
           <span style="color:var(--danger)">B. Urgência</span>
           <span style="color:var(--blue)">Internamento</span>
@@ -979,9 +997,18 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         </div>
       </div>
       <!-- Exames Positivos -->
-      <div class="card card-red">
+      <div class="card card-red" id="card-positivos">
         <div class="card-label danger"><span class="icon-svg" data-icon="alertTriangle"></span> Exames Positivos</div>
+        <div class="linesel-toolbar">
+          <button type="button" class="btn-h btn-out" onclick="linesetToggle('positivos')" id="btn-linesel-toggle-positivos">Selecionar</button>
+          <label class="linesel-all-lbl linesel-only" style="display:none;"><input type="checkbox" id="linesel-all-positivos" onchange="linesetToggleAll('positivos',this.checked)"/> <span id="linesel-count-positivos">0 selecionados</span></label>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" onclick="linesetSelPreenchidos('positivos')">Selecionar preenchidos</button>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-copiar-positivos" disabled onclick="linesetCopiar('positivos')">Copiar</button>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-colar-positivos" disabled onclick="linesetColar('positivos')">Colar</button>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;color:var(--danger);" id="btn-linesel-eliminar-positivos" disabled onclick="linesetEliminar('positivos')">Eliminar</button>
+        </div>
         <div class="pos-thead">
+          <span class="pos-chk-cell"></span>
           <span class="th-name">Exame</span>
           <span>B. Urgência</span>
           <span>Internamento</span>
@@ -1573,6 +1600,7 @@ function renderExamBody() {
       row.dataset.section = sec.id;
       row.dataset.name = e;
       row.innerHTML =
+        '<div class="lab-chk-cell"><input type="checkbox" class="lab-row-chk" data-group="exames" data-name="'+esc(e)+'"></div>'+
         '<div class="lab-name">'+
           '<span class="drag-handle" title="Arrastar para reordenar">⠿</span>'+
           '<span style="flex:1;">'+e+'</span>'+
@@ -1603,7 +1631,7 @@ function renderExamBody() {
 
       // ── Drag-and-drop (apenas reordena dentro da mesma secção) ──
       row.addEventListener('dragstart', function(ev) {
-        if(document.body.classList.contains('sel-mode')){ ev.preventDefault(); return; }
+        if(document.body.classList.contains('sel-mode') || row.closest('.linesel-mode')){ ev.preventDefault(); return; }
         ev.dataTransfer.effectAllowed = 'move';
         ev.dataTransfer.setData('text/plain', JSON.stringify({section:sec.id, idx}));
         setTimeout(()=> row.classList.add('dragging'), 0);
@@ -1675,6 +1703,7 @@ function renderPosBody() {
     row.dataset.name = e;
 
     row.innerHTML =
+      '<div class="pos-chk-cell"><input type="checkbox" class="pos-row-chk" data-group="positivos" data-name="'+esc(e)+'"></div>'+
       '<div class="pos-name">'+
         '<span class="drag-handle" title="Arrastar para reordenar">⠿</span>'+
         '<span style="flex:1;">'+e+'</span>'+
@@ -1708,7 +1737,7 @@ function renderPosBody() {
 
     // ── Drag-and-drop ──
     row.addEventListener('dragstart', function(ev) {
-        if(document.body.classList.contains('sel-mode')){ ev.preventDefault(); return; }
+        if(document.body.classList.contains('sel-mode') || row.closest('.linesel-mode')){ ev.preventDefault(); return; }
       ev.dataTransfer.effectAllowed = 'move';
       ev.dataTransfer.setData('text/plain', idx);
       setTimeout(()=> row.classList.add('dragging'), 0);
@@ -1750,6 +1779,124 @@ function renderPosBody() {
 
 function slug(s) { return s.replace(/[^a-zA-Z0-9]/g,'-'); }
 function esc(s)  { return String(s).replace(/"/g,'&quot;'); }
+
+// ════════════════════════════════════════════════════════════
+//  SELECIONAR / COPIAR / COLAR / ELIMINAR EM MASSA (linhas)
+// ════════════════════════════════════════════════════════════
+const LINESEL_GROUPS = {
+  exames:    { cardId: 'card-exames',    rowClass: 'lab-row', chkClass: 'lab-row-chk', updateFn: (n,c,v)=>updateExame(n,c,v),    label: 'exame' },
+  positivos: { cardId: 'card-positivos', rowClass: 'pos-row', chkClass: 'pos-row-chk', updateFn: (n,c,v)=>updatePositivo(n,c,v), label: 'exame positivo' }
+};
+function _linesetRows(group){
+  const cfg = LINESEL_GROUPS[group];
+  const card = document.getElementById(cfg.cardId);
+  return card ? Array.from(card.querySelectorAll('.'+cfg.chkClass)) : [];
+}
+function _linesetInputs(chk, group){
+  const cfg = LINESEL_GROUPS[group];
+  const row = chk.closest('.'+cfg.rowClass);
+  if(!row) return { bu:null, int:null };
+  return { bu: row.querySelector('input[data-col="bu"]'), int: row.querySelector('input[data-col="int"]') };
+}
+function _linesetContagem(group){
+  const checks = _linesetRows(group);
+  const marcados = checks.filter(c=>c.checked).length;
+  const cnt = document.getElementById('linesel-count-'+group);
+  if(cnt) cnt.textContent = marcados + (marcados===1 ? ' selecionado' : ' selecionados');
+  ['copiar','colar','eliminar'].forEach(a=>{
+    const b = document.getElementById('btn-linesel-'+a+'-'+group);
+    if(b) b.disabled = marcados===0;
+  });
+  const all = document.getElementById('linesel-all-'+group);
+  if(all){ all.checked = checks.length>0 && marcados===checks.length; all.indeterminate = marcados>0 && marcados<checks.length; }
+}
+function linesetToggle(group){
+  const cfg = LINESEL_GROUPS[group];
+  const card = document.getElementById(cfg.cardId);
+  if(!card) return;
+  const ativo = card.classList.toggle('linesel-mode');
+  const btn = document.getElementById('btn-linesel-toggle-'+group);
+  if(btn) btn.textContent = ativo ? 'Cancelar seleção' : 'Selecionar';
+  card.querySelectorAll('.linesel-only').forEach(el=>{ el.style.display = ativo ? '' : 'none'; });
+  if(!ativo){ _linesetRows(group).forEach(c=>{ c.checked = false; }); }
+  _linesetContagem(group);
+}
+function linesetToggleAll(group, checked){
+  _linesetRows(group).forEach(c=>{ c.checked = checked; });
+  _linesetContagem(group);
+}
+function linesetSelPreenchidos(group){
+  const checks = _linesetRows(group);
+  let marcados = 0;
+  checks.forEach(c=>{
+    const { bu, int } = _linesetInputs(c, group);
+    const preenchido = (bu && bu.value.trim()!=='') || (int && int.value.trim()!=='');
+    c.checked = preenchido;
+    if(preenchido) marcados++;
+  });
+  _linesetContagem(group);
+  showToast('info', marcados>0 ? (marcados+(marcados===1?' exame preenchido selecionado':' exames preenchidos selecionados')) : 'Nenhum exame preenchido para selecionar');
+}
+function linesetCopiar(group){
+  const cfg = LINESEL_GROUPS[group];
+  const checks = _linesetRows(group).filter(c=>c.checked);
+  if(!checks.length) return;
+  const itens = checks.map(c=>{
+    const { bu, int } = _linesetInputs(c, group);
+    return { nome: c.dataset.name, bu: (bu ? bu.value : '') || '', int: (int ? int.value : '') || '' };
+  });
+  try{
+    sessionStorage.setItem('zeloLabClipboard_'+group, JSON.stringify({ data: currentDate, itens }));
+    showToast('success', 'Copiados '+checks.length+(checks.length===1?' '+cfg.label:' '+cfg.label+'s')+' — pronto para colar noutro dia');
+  }catch(e){
+    showToast('warning', 'Não foi possível copiar');
+  }
+}
+function linesetColar(group){
+  const cfg = LINESEL_GROUPS[group];
+  const checks = _linesetRows(group).filter(c=>c.checked);
+  if(!checks.length) return;
+  let clip = null;
+  try{ clip = JSON.parse(sessionStorage.getItem('zeloLabClipboard_'+group) || 'null'); }catch(e){ clip = null; }
+  if(!clip || !Array.isArray(clip.itens) || !clip.itens.length){
+    showToast('warning', 'Nada copiado ainda — use "Copiar" primeiro noutro dia');
+    return;
+  }
+  const porNome = {};
+  clip.itens.forEach(it=>{ porNome[it.nome] = it; });
+  let colados = 0;
+  checks.forEach(c=>{
+    const item = porNome[c.dataset.name];
+    if(!item) return;
+    const { bu, int } = _linesetInputs(c, group);
+    if(bu){ bu.value = item.bu || ''; cfg.updateFn(c.dataset.name, 'bu', item.bu || ''); }
+    if(int){ int.value = item.int || ''; cfg.updateFn(c.dataset.name, 'int', item.int || ''); }
+    colados++;
+  });
+  if(colados === 0){
+    showToast('warning', 'Nenhum dos exames selecionados corresponde ao que foi copiado');
+    return;
+  }
+  showToast('success', 'Colados '+colados+(colados===1?' '+cfg.label:' '+cfg.label+'s'));
+}
+function linesetEliminar(group){
+  const cfg = LINESEL_GROUPS[group];
+  const checks = _linesetRows(group).filter(c=>c.checked);
+  if(!checks.length) return;
+  if(!confirm('Eliminar os valores de '+checks.length+(checks.length===1?' exame selecionado':' exames selecionados')+'? Esta ação não pode ser desfeita.')) return;
+  checks.forEach(c=>{
+    const { bu, int } = _linesetInputs(c, group);
+    if(bu){ bu.value = ''; cfg.updateFn(c.dataset.name, 'bu', ''); }
+    if(int){ int.value = ''; cfg.updateFn(c.dataset.name, 'int', ''); }
+    c.checked = false;
+  });
+  _linesetContagem(group);
+  showToast('success', 'Eliminados '+checks.length+(checks.length===1?' '+cfg.label:' '+cfg.label+'s'));
+}
+document.addEventListener('change', function(e){
+  const chk = e.target.closest('.lab-row-chk,.pos-row-chk');
+  if(chk) _linesetContagem(chk.dataset.group);
+});
 
 // ─── UPDATES ───
 function updateExame(name, col, val) {

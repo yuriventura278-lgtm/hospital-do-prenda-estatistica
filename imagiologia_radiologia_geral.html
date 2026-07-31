@@ -1333,6 +1333,20 @@ document.addEventListener('paste',e=>{
   toast('Dados colados com sucesso.','success');
 });
 
+// Eliminar em massa: com várias células selecionadas (arrasto ou Shift+clique),
+// Delete/Backspace limpa todas de uma vez. Uma única célula focada continua a
+// editar normalmente (não intercetamos nesse caso).
+document.addEventListener('keydown',e=>{
+  if((e.key==='Delete'||e.key==='Backspace') && _selCells.length>1){
+    e.preventDefault();
+    _selCells.forEach(inp=>{
+      inp.value='';
+      setItem(inp.dataset.sec,inp.dataset.key,inp.dataset.col,'');
+    });
+    toast('Células eliminadas.','info');
+  }
+});
+
 // ════════════════════════════════════════════════════════════════════
 // RENDER TABLES
 // ════════════════════════════════════════════════════════════════════
