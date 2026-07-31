@@ -2277,6 +2277,12 @@ function procAtualizarContagem(specId){
   const selAll = document.querySelector('.sel-all-chk[data-spec="'+specId+'"]');
   if(selAll){ selAll.checked = checks.length>0 && marcados===checks.length; selAll.indeterminate = marcados>0 && marcados<checks.length; }
 }
+function procSelecionarTodos(specId){
+  const checks = procRowChecks(specId);
+  checks.forEach(c => { c.checked = true; });
+  procAtualizarContagem(specId);
+  showToast(checks.length + (checks.length===1 ? ' procedimento selecionado' : ' procedimentos selecionados (preenchidos e não preenchidos)'));
+}
 function procSelecionarPreenchidos(specId){
   const checks = procRowChecks(specId);
   let marcados = 0;
@@ -2449,6 +2455,7 @@ document.addEventListener('click', function(e){
   const specId = btn.dataset.spec;
   if(!specId) return;
   if(btn.dataset.action === 'toggle-sel-mode') procToggleSelMode(specId);
+  if(btn.dataset.action === 'sel-todos') procSelecionarTodos(specId);
   if(btn.dataset.action === 'sel-preenchidos') procSelecionarPreenchidos(specId);
   if(btn.dataset.action === 'copiar-sel') procCopiarSelecionados(specId);
   if(btn.dataset.action === 'colar-sel') procColarSelecionados(specId);
@@ -2524,6 +2531,7 @@ function buildUI() {
       html += `<div class="sel-toolbar" id="sel-toolbar-${sp.id}">
         <button type="button" class="btn-sel" data-action="toggle-sel-mode" data-spec="${sp.id}" id="btn-toggle-sel-${sp.id}">Selecionar</button>
         <label class="sel-all sel-mode-only"><input type="checkbox" class="sel-all-chk" data-spec="${sp.id}"/> <span class="sel-count" id="sel-count-${sp.id}">0 selecionados</span></label>
+        <button type="button" class="btn-sel sel-mode-only" data-action="sel-todos" data-spec="${sp.id}">Selecionar tudo</button>
         <button type="button" class="btn-sel sel-mode-only" data-action="sel-preenchidos" data-spec="${sp.id}">Selecionar preenchidos</button>
         <button type="button" class="btn-sel sel-mode-only" data-action="copiar-sel" data-spec="${sp.id}" id="btn-copiar-${sp.id}" disabled>Copiar</button>
         <button type="button" class="btn-sel sel-mode-only" data-action="colar-sel" data-spec="${sp.id}" id="btn-colar-${sp.id}" disabled>Colar</button>
