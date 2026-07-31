@@ -117,6 +117,26 @@
     trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual',
   };
 
+  // Utilitário público — grava um único ficheiro (ex.: um PDF gerado por um
+  // botão "Exportar PDF" manual) na mesma pasta/estrutura de subpastas do
+  // backup automático, sem depender do fluxo de cadências/marcas. Usa-se
+  // sempre que a página quer que uma exportação manual fique também
+  // organizada na pasta de backup, além do download normal do navegador.
+  // subpasta pode ser um nome da NOMES_CADENCIA (ex. 'Diario') ou qualquer
+  // outro nome de pasta.
+  async function gravarNaPasta(slug, subpasta, nome, conteudo) {
+    const pasta = await obterPastaAtiva(false);
+    if (pasta.estado !== 'ok') return { ok: false, motivo: pasta.estado };
+    try {
+      const raizApp = await _subpasta(pasta.handle, 'ZELO_Backups', slug, subpasta);
+      await _escreverFicheiro(raizApp, nome, conteudo);
+      return { ok: true };
+    } catch (e) {
+      console.warn('[ZeloAutoBackup] gravarNaPasta falhou', e);
+      return { ok: false, motivo: 'erro' };
+    }
+  }
+
   // ── Cálculo do "período de referência" já TERMINADO mais recente, para
   // cada cadência, a partir de "agora". O backup diário de um dia só é
   // feito depois de esse dia ter terminado (ou seja, no dia seguinte).
@@ -269,6 +289,7 @@
     obterPastaAtiva,
     verificarEExecutar,
     iniciar,
+    gravarNaPasta,
     _periodoAtual, _ultimoPeriodoTerminado, // expostas para testes
   };
 })(window);

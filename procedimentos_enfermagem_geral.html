@@ -3253,6 +3253,21 @@ function _limitesDoPeriodo(cadencia, fimISO) {
 
 const _BKAUTO_ROTULOS = { diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
 const _BKAUTO_TITULOS = { diario: 'RELATÓRIO DIÁRIO', semanal: 'RELATÓRIO SEMANAL', mensal: 'RELATÓRIO MENSAL', trimestral: 'RELATÓRIO TRIMESTRAL', semestral: 'RELATÓRIO SEMESTRAL', anual: 'RELATÓRIO ANUAL' };
+const _BKAUTO_SUBPASTA_POR_TITULO = { 'RELATÓRIO DIÁRIO':'Diario', 'RELATÓRIO SEMANAL':'Semanal', 'RELATÓRIO MENSAL':'Mensal', 'RELATÓRIO TRIMESTRAL':'Trimestral', 'RELATÓRIO SEMESTRAL':'Semestral', 'RELATÓRIO ANUAL':'Anual' };
+
+// Além do download normal do navegador, guarda também uma cópia do PDF na
+// pasta de backup automático já escolhida (ver zelo_auto_backup.js) — se
+// nenhuma pasta tiver sido escolhida ainda, ou o navegador não suportar,
+// não faz nada (silencioso, o download normal continua a funcionar à mesma).
+function _guardarPDFNaPastaBackup(doc, subpasta, nomeFicheiro) {
+  if (typeof ZeloAutoBackup === 'undefined' || !ZeloAutoBackup.suportado()) return;
+  try {
+    const blob = doc.output('blob');
+    ZeloAutoBackup.gravarNaPasta('procedimentos_geral', subpasta, nomeFicheiro, blob).then(function (r) {
+      if (r.ok) showToast('📁 PDF também guardado na pasta de backup.');
+    });
+  } catch (e) { console.warn('[BackupAuto] falha ao guardar PDF na pasta', e); }
+}
 
 // Último dia (YYYY-MM-DD) do período que CONTÉM dataISO, para a cadência
 // indicada — usado só para descobrir a que período pertence cada dia com
@@ -3823,6 +3838,7 @@ function buildReportPDF(dates, titleLine1, titleLine2, specLabel, filename, filt
       doc.setTextColor(0);
     }
     doc.save(filename);
+    _guardarPDFNaPastaBackup(doc, _BKAUTO_SUBPASTA_POR_TITULO[titleLine2] || 'Outros', filename);
     showToast('✅ PDF exportado — ' + spLabel);
     return;
   }
@@ -4106,6 +4122,7 @@ function buildReportPDF(dates, titleLine1, titleLine2, specLabel, filename, filt
     doc.setTextColor(0);
   }
   doc.save(filename);
+  _guardarPDFNaPastaBackup(doc, _BKAUTO_SUBPASTA_POR_TITULO[titleLine2] || 'Outros', filename);
   showToast('PDF exportado com sucesso!');
 }
 
@@ -4224,7 +4241,9 @@ function exportDiarioPDF() {
     if (_exportadoPorTxtDia) doc.text(_exportadoPorTxtDia, PW-MR, PH-6, { align: 'right' });
     doc.setTextColor(0);
   }
-  doc.save(`Diario_${d}${specId!=='all'?'_'+specId:''}.pdf`);
+  const _nomeDiarioPdf = `Diario_${d}${specId!=='all'?'_'+specId:''}.pdf`;
+  doc.save(_nomeDiarioPdf);
+  _guardarPDFNaPastaBackup(doc, 'Diario', _nomeDiarioPdf);
   showToast('PDF exportado com sucesso!');
 }
 
