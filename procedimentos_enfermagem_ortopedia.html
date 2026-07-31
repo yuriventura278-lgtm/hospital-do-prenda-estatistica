@@ -2266,9 +2266,11 @@ function procAtualizarContagem(specId){
   const toolbarEl = document.getElementById('sel-toolbar-'+specId);
   if(toolbarEl) toolbarEl.classList.toggle('has-selection', marcados>0);
   const btnCopiar = document.getElementById('btn-copiar-'+specId);
+  const btnColar = document.getElementById('btn-colar-'+specId);
   const btnPdf = document.getElementById('btn-pdf-'+specId);
   const btnEliminar = document.getElementById('btn-eliminar-'+specId);
   if(btnCopiar) btnCopiar.disabled = marcados===0;
+  if(btnColar) btnColar.disabled = marcados===0;
   if(btnPdf) btnPdf.disabled = marcados===0;
   if(btnEliminar) btnEliminar.disabled = marcados===0;
   const selAll = document.querySelector('.sel-all-chk[data-spec="'+specId+'"]');
@@ -2297,12 +2299,51 @@ async function procCopiarSelecionados(specId){
     return '- ' + c.dataset.name + ': Dia ' + dRaw + ', Noite ' + nRaw;
   });
   const texto = 'Procedimentos — ' + specLabel + ' — ' + fmtDate(currentLoadedDate) + '\n' + linhas.join('\n');
+  try{ await navigator.clipboard.writeText(texto); }catch(e){}
+  // Guarda também os valores estruturados (incluindo campos vazios) para
+  // permitir colar depois noutro serviço/dia — ver procColarSelecionados.
   try{
-    await navigator.clipboard.writeText(texto);
-    showToast('Copiado ' + checks.length + (checks.length===1?' procedimento':' procedimentos') + ' para a área de transferência');
+    const itens = checks.map(c => ({
+      proc: c.dataset.name,
+      dia: (document.getElementById(c.dataset.dia)?.value || ''),
+      noite: (document.getElementById(c.dataset.noite)?.value || '')
+    }));
+    sessionStorage.setItem('zeloProcClipboard', JSON.stringify({ origemLabel: specLabel, origemData: currentLoadedDate, itens: itens }));
+    showToast('Copiado ' + checks.length + (checks.length===1?' procedimento':' procedimentos') + ' — pronto para colar noutro serviço/dia');
   }catch(e){
     showToast('Não foi possível copiar — tente novamente');
   }
+}
+function procColarSelecionados(specId){
+  const checks = procRowChecks(specId).filter(c => c.checked);
+  if(!checks.length) return;
+  let clip = null;
+  try{ clip = JSON.parse(sessionStorage.getItem('zeloProcClipboard') || 'null'); }catch(e){ clip = null; }
+  if(!clip || !Array.isArray(clip.itens) || !clip.itens.length){
+    showToast('Nada copiado ainda — use "Copiar" primeiro noutro serviço ou dia');
+    return;
+  }
+  const porNome = {};
+  clip.itens.forEach(it => { porNome[it.proc] = it; });
+  let colados = 0;
+  checks.forEach(c => {
+    const item = porNome[c.dataset.name];
+    if(!item) return;
+    const dEl = document.getElementById(c.dataset.dia);
+    const nEl = document.getElementById(c.dataset.noite);
+    // Cola sempre o valor copiado, mesmo vazio — assim colar espelha
+    // exatamente o que foi copiado (equivalente ao copiar).
+    if(dEl) dEl.value = item.dia || '';
+    if(nEl) nEl.value = item.noite || '';
+    colados++;
+  });
+  if(colados === 0){
+    showToast('Nenhum dos procedimentos selecionados corresponde ao que foi copiado');
+    return;
+  }
+  recalc(specId);
+  autoSave();
+  showToast('Colados ' + colados + (colados===1?' procedimento':' procedimentos') + (clip.origemLabel ? (' — de ' + clip.origemLabel) : ''));
 }
 function procEliminarSelecionados(specId){
   const checks = procRowChecks(specId).filter(c => c.checked);
@@ -2409,6 +2450,7 @@ document.addEventListener('click', function(e){
   if(btn.dataset.action === 'toggle-sel-mode') procToggleSelMode(specId);
   if(btn.dataset.action === 'sel-preenchidos') procSelecionarPreenchidos(specId);
   if(btn.dataset.action === 'copiar-sel') procCopiarSelecionados(specId);
+  if(btn.dataset.action === 'colar-sel') procColarSelecionados(specId);
   if(btn.dataset.action === 'pdf-sel') procExportarSelecionadosPDF(specId);
   if(btn.dataset.action === 'eliminar-sel') procEliminarSelecionados(specId);
 });
@@ -2483,6 +2525,7 @@ function buildUI() {
         <label class="sel-all sel-mode-only"><input type="checkbox" class="sel-all-chk" data-spec="${sp.id}"/> <span class="sel-count" id="sel-count-${sp.id}">0 selecionados</span></label>
         <button type="button" class="btn-sel sel-mode-only" data-action="sel-preenchidos" data-spec="${sp.id}">Selecionar preenchidos</button>
         <button type="button" class="btn-sel sel-mode-only" data-action="copiar-sel" data-spec="${sp.id}" id="btn-copiar-${sp.id}" disabled>Copiar</button>
+        <button type="button" class="btn-sel sel-mode-only" data-action="colar-sel" data-spec="${sp.id}" id="btn-colar-${sp.id}" disabled>Colar</button>
         <button type="button" class="btn-sel sel-mode-only" data-action="pdf-sel" data-spec="${sp.id}" id="btn-pdf-${sp.id}" disabled>Exportar PDF</button>
         <button type="button" class="btn-sel danger sel-mode-only" data-action="eliminar-sel" data-spec="${sp.id}" id="btn-eliminar-${sp.id}" disabled>Eliminar</button>
       </div>`;
