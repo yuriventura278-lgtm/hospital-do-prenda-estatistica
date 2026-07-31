@@ -9,6 +9,7 @@
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
 <script src="zelo_feriados.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
@@ -706,6 +707,7 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
       <div class="nav-list">
         <div class="nav-item" onclick="openBackup()"><span class="ni-icon"><svg class="svc-icon" aria-hidden="true"><use href="#i-download"/></svg></span><span class="ni-label">Exportar Backup</span></div>
         <div class="nav-item" onclick="document.getElementById('restoreInput').click()"><span class="ni-icon"><svg class="svc-icon" aria-hidden="true"><use href="#i-upload"/></svg></span><span class="ni-label">Restaurar Backup</span></div>
+        <div class="nav-item" onclick="abrirBackupAutoModal()"><span class="ni-icon"><svg class="svc-icon" aria-hidden="true"><use href="#i-clock"/></svg></span><span class="ni-label">Backup Automático</span></div>
       </div>
     </div>
   </aside>
@@ -949,6 +951,41 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     </div>
     <div class="modal-btns">
       <button class="mbtn cancel" onclick="closeBackupModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="backupAutoModal">
+  <div class="modal-box">
+    <h3>Backup Automático</h3>
+    <p id="bkauto-suporte-msg" style="display:none;color:var(--danger);font-size:.72rem;">
+      O seu navegador não suporta esta funcionalidade — funciona apenas no Google Chrome ou Microsoft Edge (computador).
+    </p>
+    <div id="bkauto-corpo">
+      <p style="font-size:.72rem;color:var(--muted);">
+        Escolha uma pasta no computador. O sistema grava automaticamente cópias
+        (JSON + PDF) do período mais recente já terminado — Diário, Semanal,
+        Mensal, Trimestral, Semestral e Anual — sempre que este separador
+        estiver aberto à volta da meia-noite, ou assim que o abrir de novo.
+      </p>
+      <div id="bkauto-status" style="margin:10px 0;padding:10px 12px;background:var(--surface2);border-radius:6px;font-size:.68rem;">
+        <div id="bkauto-pasta-nome">A verificar…</div>
+      </div>
+      <div id="bkauto-cadencias" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:.66rem;color:var(--muted);margin-bottom:10px;"></div>
+      <div class="backup-opts" style="margin-top:8px;">
+        <button class="bopt" onclick="_bkAutoEscolherPasta()">
+          <strong>Escolher pasta</strong><span>Selecionar onde gravar os backups</span>
+        </button>
+        <button class="bopt" onclick="_bkAutoVerificarAgora()">
+          <strong>Verificar agora</strong><span>Grava já qualquer período em falta</span>
+        </button>
+        <button class="bopt" onclick="_bkAutoEsquecerPasta()">
+          <strong>Esquecer pasta</strong><span>Desliga o backup automático</span>
+        </button>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn cancel" onclick="closeBackupAutoModal()">Fechar</button>
     </div>
   </div>
 </div>
@@ -3002,6 +3039,160 @@ function doBackupGeral() {
   _downloadBackup(all, 'geral_' + new Date().toISOString().split('T')[0]);
 }
 
+// ── Backup automático numa pasta do computador (ver zelo_auto_backup.js) ──
+function _limitesDoPeriodo(cadencia, fimISO) {
+  const fim = new Date(fimISO + 'T00:00:00');
+  let inicio;
+  switch (cadencia) {
+    case 'diario': inicio = new Date(fim); break;
+    case 'semanal': inicio = new Date(fim); inicio.setDate(inicio.getDate() - 6); break;
+    case 'mensal': inicio = new Date(fim.getFullYear(), fim.getMonth(), 1); break;
+    case 'trimestral': inicio = new Date(fim.getFullYear(), Math.floor(fim.getMonth() / 3) * 3, 1); break;
+    case 'semestral': inicio = new Date(fim.getFullYear(), fim.getMonth() < 6 ? 0 : 6, 1); break;
+    case 'anual': inicio = new Date(fim.getFullYear(), 0, 1); break;
+  }
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  return { inicioISO: iso(inicio), fimISO: iso(fim) };
+}
+
+const _BKAUTO_ROTULOS = { diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
+const _BKAUTO_TITULOS = { diario: 'RELATÓRIO DIÁRIO', semanal: 'RELATÓRIO SEMANAL', mensal: 'RELATÓRIO MENSAL', trimestral: 'RELATÓRIO TRIMESTRAL', semestral: 'RELATÓRIO SEMESTRAL', anual: 'RELATÓRIO ANUAL' };
+const _BKAUTO_SUBPASTA_POR_TITULO = { 'RELATÓRIO DIÁRIO':'Diario', 'RELATÓRIO SEMANAL':'Semanal', 'RELATÓRIO MENSAL':'Mensal', 'RELATÓRIO TRIMESTRAL':'Trimestral', 'RELATÓRIO SEMESTRAL':'Semestral', 'RELATÓRIO ANUAL':'Anual' };
+
+function _guardarPDFNaPastaBackup(doc, subpasta, nomeFicheiro) {
+  if (typeof ZeloAutoBackup === 'undefined' || !ZeloAutoBackup.suportado()) return;
+  try {
+    const blob = doc.output('blob');
+    ZeloAutoBackup.gravarNaPasta('procedimentos_uci_cuidados_intermedios', subpasta, nomeFicheiro, blob).then(function (r) {
+      if (r.ok) showToast('📁 PDF também guardado na pasta de backup.');
+    });
+  } catch (e) { console.warn('[BackupAuto] falha ao guardar PDF na pasta', e); }
+}
+
+function _fimDoPeriodoContendo(cadencia, dataISO) {
+  const d = new Date(dataISO + 'T00:00:00');
+  let fim;
+  switch (cadencia) {
+    case 'diario': fim = new Date(d); break;
+    case 'semanal': { const dow = (d.getDay() + 6) % 7; fim = new Date(d); fim.setDate(fim.getDate() + (6 - dow)); break; }
+    case 'mensal': fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); break;
+    case 'trimestral': fim = new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 0); break;
+    case 'semestral': fim = new Date(d.getFullYear(), d.getMonth() < 6 ? 6 : 12, 0); break;
+    case 'anual': fim = new Date(d.getFullYear(), 12, 0); break;
+  }
+  return fim.getFullYear() + '-' + String(fim.getMonth() + 1).padStart(2, '0') + '-' + String(fim.getDate()).padStart(2, '0');
+}
+
+window.ZBK_periodosDisponiveis = function (cadencia) {
+  const hoje = new Date();
+  const hojeISO = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+  const datasComDados = new Set();
+  _storageKeys('enf5_').concat(_storageKeys('enf4_')).forEach(function (k) {
+    const d = _keyDateStr(k);
+    if (d) datasComDados.add(d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6, 8));
+  });
+  const periodosVistos = {};
+  datasComDados.forEach(function (dataISO) {
+    const fimISO = _fimDoPeriodoContendo(cadencia, dataISO);
+    if (fimISO >= hojeISO) return;
+    const chave = ZeloAutoBackup._periodoAtual(cadencia, new Date(fimISO + 'T00:00:00'));
+    periodosVistos[chave] = fimISO;
+  });
+  return Object.keys(periodosVistos).map(function (chave) { return { chave: chave, dataRefISO: periodosVistos[chave] }; });
+};
+
+window.ZBK_getBackupJSON = function (cadencia, fimISO) {
+  const { inicioISO, fimISO: fimISO2 } = _limitesDoPeriodo(cadencia, fimISO);
+  const ini8 = inicioISO.replace(/-/g, ''), fim8 = fimISO2.replace(/-/g, '');
+  const all = _collectBackupData(k => { const d = _keyDateStr(k); return d && d >= ini8 && d <= fim8; });
+  return { nome: `backup_uci_cuidados_intermedios_${cadencia}_${fimISO2}.json`, conteudo: all };
+};
+
+window.ZBK_gerarPDF = async function (cadencia, fimISO) {
+  if (typeof window.jspdf === 'undefined' || typeof buildReportPDF !== 'function') return null;
+  const { inicioISO, fimISO: fimISO2 } = _limitesDoPeriodo(cadencia, fimISO);
+  const dates = datesInRange(inicioISO, fimISO2);
+  const [iy, im, id] = inicioISO.split('-'), [fy, fm, fd] = fimISO2.split('-');
+  const titleLine1 = `Período: ${id}/${im}/${iy} – ${fd}/${fm}/${fy}`;
+  const titleLine2 = _BKAUTO_TITULOS[cadencia] || 'RELATÓRIO';
+  const filename = `relatorio_uci_cuidados_intermedios_${cadencia}_${fimISO2}.pdf`;
+
+  let docCapturado = null;
+  const origSave = window.jspdf.jsPDF.prototype.save;
+  window.jspdf.jsPDF.prototype.save = function () { docCapturado = this; return this; };
+  try {
+    buildReportPDF(dates, titleLine1, titleLine2, 'Todos os Serviços', filename, 'all');
+  } catch (e) { console.warn('[BackupAuto] falha ao gerar PDF', e); }
+  window.jspdf.jsPDF.prototype.save = origSave;
+
+  if (!docCapturado) return null;
+  return { nome: filename, blob: docCapturado.output('blob') };
+};
+
+function abrirBackupAutoModal() {
+  if (sessionStorage.getItem('zeloRole') !== 'admin') {
+    if (typeof showToast === 'function') showToast('Só administradores podem usar esta opção');
+    return;
+  }
+  document.getElementById('backupAutoModal').classList.add('open');
+  _bkAutoAtualizarStatus();
+}
+function closeBackupAutoModal() {
+  document.getElementById('backupAutoModal').classList.remove('open');
+}
+document.getElementById('backupAutoModal').addEventListener('click', function (e) {
+  if (e.target === this) closeBackupAutoModal();
+});
+
+async function _bkAutoAtualizarStatus() {
+  const suporteMsg = document.getElementById('bkauto-suporte-msg');
+  const corpo = document.getElementById('bkauto-corpo');
+  if (!ZeloAutoBackup.suportado()) {
+    suporteMsg.style.display = 'block';
+    corpo.style.display = 'none';
+    return;
+  }
+  suporteMsg.style.display = 'none';
+  corpo.style.display = 'block';
+  const pasta = await ZeloAutoBackup.obterPastaAtiva(false);
+  const nomeEl = document.getElementById('bkauto-pasta-nome');
+  if (pasta.estado === 'ok') {
+    nomeEl.textContent = '📁 Pasta escolhida: ' + pasta.handle.name;
+  } else if (pasta.estado === 'sem_permissao') {
+    nomeEl.textContent = '⚠️ Autorização da pasta expirou — clique em "Escolher pasta" para renovar.';
+  } else {
+    nomeEl.textContent = 'Nenhuma pasta escolhida ainda.';
+  }
+  const cadEl = document.getElementById('bkauto-cadencias');
+  cadEl.innerHTML = Object.keys(_BKAUTO_ROTULOS).map(function (c) {
+    const marca = localStorage.getItem('zbk_marca_procedimentos_uci_cuidados_intermedios_' + c);
+    return '<div>' + _BKAUTO_ROTULOS[c] + ': ' + (marca ? '✅ ' + marca : '— ainda não') + '</div>';
+  }).join('');
+}
+
+async function _bkAutoEscolherPasta() {
+  try {
+    await ZeloAutoBackup.escolherPasta();
+    showToast('📁 Pasta escolhida com sucesso!');
+    _bkAutoAtualizarStatus();
+    ZeloAutoBackup.verificarEExecutar('procedimentos_uci_cuidados_intermedios').then(_bkAutoAtualizarStatus);
+  } catch (e) {
+    if (e && e.name !== 'AbortError') showToast('❌ Não foi possível escolher a pasta.');
+  }
+}
+async function _bkAutoEsquecerPasta() {
+  await ZeloAutoBackup.esquecerPasta();
+  showToast('Pasta de backup automático esquecida.');
+  _bkAutoAtualizarStatus();
+}
+async function _bkAutoVerificarAgora() {
+  showToast('A verificar backups pendentes…');
+  const r = await ZeloAutoBackup.verificarEExecutar('procedimentos_uci_cuidados_intermedios');
+  _bkAutoAtualizarStatus();
+  showToast('Verificação concluída.');
+  console.log('[BackupAuto]', r);
+}
+
 let _pendingRestore = null;
 function restoreFromFile(input) {
   if (sessionStorage.getItem('zeloRole') !== 'admin'){
@@ -3450,6 +3641,7 @@ function buildReportPDF(dates, titleLine1, titleLine2, specLabel, filename, filt
       doc.setTextColor(0);
     }
     doc.save(filename);
+    _guardarPDFNaPastaBackup(doc, _BKAUTO_SUBPASTA_POR_TITULO[titleLine2] || 'Outros', filename);
     showToast('✅ PDF exportado — ' + spLabel);
     return;
   }
@@ -3733,6 +3925,7 @@ function buildReportPDF(dates, titleLine1, titleLine2, specLabel, filename, filt
     doc.setTextColor(0);
   }
   doc.save(filename);
+  _guardarPDFNaPastaBackup(doc, _BKAUTO_SUBPASTA_POR_TITULO[titleLine2] || 'Outros', filename);
   showToast('PDF exportado com sucesso!');
 }
 
@@ -3851,7 +4044,9 @@ function exportDiarioPDF() {
     if (_exportadoPorTxtDia) doc.text(_exportadoPorTxtDia, PW-MR, PH-6, { align: 'right' });
     doc.setTextColor(0);
   }
-  doc.save(`Diario_${d}${specId!=='all'?'_'+specId:''}.pdf`);
+  const _nomeDiarioPdf = `Diario_${d}${specId!=='all'?'_'+specId:''}.pdf`;
+  doc.save(_nomeDiarioPdf);
+  _guardarPDFNaPastaBackup(doc, 'Diario', _nomeDiarioPdf);
   showToast('PDF exportado com sucesso!');
 }
 
@@ -4685,6 +4880,7 @@ buildUI();
   loadFromStorage();
   switchSpec(SPECIALTIES[0].id);
   const _al = document.getElementById('active-label'); if(_al) _al.textContent = SPECIALTIES[0].label;
+  if (typeof ZeloAutoBackup !== 'undefined') ZeloAutoBackup.iniciar('procedimentos_uci_cuidados_intermedios');
 })();
 
 // ── SPLASH COUNTDOWN ──
