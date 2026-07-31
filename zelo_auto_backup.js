@@ -199,37 +199,76 @@
 
   function _chaveMarca(slug, cadencia) { return 'zbk_marca_' + slug + '_' + cadencia; }
 
-  async function _executarBackupCadencia(slug, cadencia, dataRefISO) {
+  // Fingerprint rápido (não-criptográfico, FNV-1a) do conteúdo — usado só
+  // para detetar se os dados de um período mudaram desde o último backup,
+  // não para segurança.
+  function _hashTexto(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = (h * 0x01000193) >>> 0;
+    }
+    return h.toString(16);
+  }
+  async function _hashBlob(blob) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let h = 0x811c9dc5;
+    for (let i = 0; i < bytes.length; i++) {
+      h ^= bytes[i];
+      h = (h * 0x01000193) >>> 0;
+    }
+    return h.toString(16);
+  }
+  function _chaveHashJson(slug, cadencia, chave) { return 'zbk_hash_json_' + slug + '_' + cadencia + '_' + chave; }
+  function _chaveHashPdf(slug, cadencia, chave) { return 'zbk_hash_pdf_' + slug + '_' + cadencia + '_' + chave; }
+
+  // Grava (ou regrava) o JSON e o PDF de um período — mas só escreve
+  // ficheiro quando o conteúdo realmente mudou desde a última vez (compara
+  // um hash do conteúdo, guardado em localStorage). Isto permite que um
+  // registo editado depois de já ter sido gravado seja atualizado no
+  // próximo ciclo de verificação, em vez de ficar "esquecido" com a versão
+  // antiga para sempre. O PDF (quando a página o gera automaticamente) só
+  // é recriado se o JSON tiver mudado, para não regenerar PDFs caros a
+  // cada verificação quando nada mudou.
+  async function _executarBackupCadencia(slug, cadencia, chave, dataRefISO) {
     const pasta = await obterPastaAtiva(false);
     if (pasta.estado !== 'ok') return { ok: false, motivo: pasta.estado };
     const raizApp = await _subpasta(pasta.handle, 'ZELO_Backups', slug, NOMES_CADENCIA[cadencia]);
-    let gravouJson = false, gravouPdf = false;
+    let gravouJson = false, gravouPdf = false, tentouAlgo = false, jsonMudou = false;
     try {
       if (typeof global.ZBK_getBackupJSON === 'function') {
         const r = global.ZBK_getBackupJSON(cadencia, dataRefISO);
         if (r && r.conteudo && Object.keys(r.conteudo).length) {
-          await _escreverFicheiro(raizApp, r.nome, JSON.stringify({ version: '5', exported: new Date().toISOString(), data: r.conteudo }, null, 2));
-          gravouJson = true;
+          tentouAlgo = true;
+          const hashConteudo = _hashTexto(JSON.stringify(r.conteudo));
+          const chaveHash = _chaveHashJson(slug, cadencia, chave);
+          if (localStorage.getItem(chaveHash) !== hashConteudo) {
+            jsonMudou = true;
+            const texto = JSON.stringify({ version: '5', exported: new Date().toISOString(), data: r.conteudo }, null, 2);
+            await _escreverFicheiro(raizApp, r.nome, texto);
+            localStorage.setItem(chaveHash, hashConteudo);
+            gravouJson = true;
+          }
         }
       }
     } catch (e) { console.warn('[ZeloAutoBackup] falha ao gravar JSON', e); }
-    try {
-      if (typeof global.ZBK_gerarPDF === 'function') {
-        const r = await global.ZBK_gerarPDF(cadencia, dataRefISO);
-        if (r && r.blob) {
-          await _escreverFicheiro(raizApp, r.nome, r.blob);
-          gravouPdf = true;
+    if (jsonMudou) {
+      try {
+        if (typeof global.ZBK_gerarPDF === 'function') {
+          const r = await global.ZBK_gerarPDF(cadencia, dataRefISO);
+          if (r && r.blob) {
+            tentouAlgo = true;
+            await _escreverFicheiro(raizApp, r.nome, r.blob);
+            localStorage.setItem(_chaveHashPdf(slug, cadencia, chave), await _hashBlob(r.blob));
+            gravouPdf = true;
+          }
         }
-      }
-    } catch (e) { console.warn('[ZeloAutoBackup] falha ao gravar PDF', e); }
-    return { ok: gravouJson || gravouPdf, gravouJson, gravouPdf };
+      } catch (e) { console.warn('[ZeloAutoBackup] falha ao gravar PDF', e); }
+    }
+    return { ok: tentouAlgo, gravouJson, gravouPdf };
   }
 
   const CADENCIAS = ['diario', 'semanal', 'mensal', 'trimestral', 'semestral', 'anual'];
-
-  function _chaveFeitaMarca(slug, cadencia, chave) {
-    return 'zbk_feito_' + slug + '_' + cadencia + '_' + chave;
-  }
 
   // Períodos a considerar para uma cadência: se a página fornecer
   // window.ZBK_periodosDisponiveis(cadencia) — lista de { chave, dataRefISO }
@@ -247,27 +286,35 @@
     return [_ultimoPeriodoTerminado(cadencia, agora)];
   }
 
+  // Verifica TODOS os períodos disponíveis em cada cadência — não só os
+  // que ainda não tinham sido gravados. Um período já gravado só é
+  // regravado se o conteúdo tiver mudado (ver _executarBackupCadencia);
+  // caso contrário fica marcado como "sem alterações" sem tocar no
+  // ficheiro. Isto garante que editar um registo já feito atualiza o
+  // backup no ciclo seguinte, em vez de ficar preso na versão antiga.
   async function verificarEExecutar(slug) {
     const agora = new Date();
     const resultado = {};
     for (const cadencia of CADENCIAS) {
       const periodos = _periodosAConsiderar(slug, cadencia, agora);
-      const pendentes = periodos.filter(p => !localStorage.getItem(_chaveFeitaMarca(slug, cadencia, p.chave)));
-      if (pendentes.length === 0) { resultado[cadencia] = 'já feito'; continue; }
-      let gravados = 0, falhas = 0, ultimoMotivo = null;
-      for (const p of pendentes) {
-        const r = await _executarBackupCadencia(slug, cadencia, p.dataRefISO);
+      if (periodos.length === 0) { resultado[cadencia] = 'sem dados'; continue; }
+      let atualizados = 0, semAlteracoes = 0, falhas = 0, ultimoMotivo = null;
+      for (const p of periodos) {
+        const r = await _executarBackupCadencia(slug, cadencia, p.chave, p.dataRefISO);
         if (r.ok) {
-          localStorage.setItem(_chaveFeitaMarca(slug, cadencia, p.chave), '1');
-          localStorage.setItem(_chaveMarca(slug, cadencia), p.chave); // última chave feita, para a UI
-          gravados++;
+          localStorage.setItem(_chaveMarca(slug, cadencia), p.chave); // última chave processada, para a UI
+          if (r.gravouJson || r.gravouPdf) atualizados++; else semAlteracoes++;
         } else {
           falhas++; ultimoMotivo = r.motivo;
         }
       }
-      resultado[cadencia] = gravados > 0
-        ? `gravado ${gravados}/${pendentes.length}` + (falhas ? ` (${falhas} pendente)` : '')
-        : 'pendente — ' + ultimoMotivo;
+      if (atualizados > 0) {
+        resultado[cadencia] = `atualizado ${atualizados}` + (semAlteracoes ? `, ${semAlteracoes} sem alterações` : '') + (falhas ? ` (${falhas} falhou)` : '');
+      } else if (semAlteracoes > 0) {
+        resultado[cadencia] = `sem alterações (${semAlteracoes})` + (falhas ? ` (${falhas} falhou)` : '');
+      } else {
+        resultado[cadencia] = 'pendente — ' + ultimoMotivo;
+      }
     }
     return resultado;
   }
