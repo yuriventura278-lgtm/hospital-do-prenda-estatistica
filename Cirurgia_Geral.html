@@ -9,6 +9,7 @@
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
 <script src="zelo_auto_backup.js"></script>
+<script src="zelo_merge.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
@@ -883,6 +884,38 @@ const eq2={esp:[],int:[],est:[],vol:[]};
 const diagData=[],verfData=[],obitData=[],opData=[],transfR=[],transfE=[],intData=[];
 let sinOutros=[],altasOutros=[],procOutros=[],selClass='';
 
+// ── Mesclagem entre dispositivos: tombstones de eliminação por entrada ──
+// { 'lista|id': timestampDaEliminação } — do dia actualmente aberto. Sem
+// isto, ao mesclar com uma versão remota mais recente, não há forma de
+// distinguir "esta entrada nunca existiu no outro dispositivo" de "foi
+// eliminada de propósito" (ver zelo_merge.js). Reposto a cada mudança de
+// dia (applySnapshot) e incluído no snapshot para sobreviver a um refresh
+// da página antes de "Guardar".
+let _deletados = {};
+function _marcarEliminado(lista, id){ _deletados[lista + '|' + id] = Date.now(); }
+const CAMPOS_ESCALARES_CG = ['data','dataFim','pacTotal','genM','genF','idMen','idMai','provTot','provDet','intAltManual','altas','altasObs','sinObs','obsTurno','cirMaior','cirMenor','selClass'];
+// Carimbo por campo escalar/procV/sinV, calculado por diff em confirmarSave()
+// (única altura em que este ficheiro sincroniza com o Firebase — a
+// gravação automática ss() só grava localmente).
+function _construirCamposTsCG(prevCamposTs, prevSnap, novoSnap, ts){
+  const out = Object.assign({}, prevCamposTs || {});
+  CAMPOS_ESCALARES_CG.forEach(function(k){
+    const antigo = prevSnap ? prevSnap[k] : undefined;
+    const novo = novoSnap[k];
+    if (JSON.stringify(novo) !== JSON.stringify(antigo)) out[k] = ts;
+  });
+  ['procV','sinV'].forEach(function(campo){
+    const antigoArr = (prevSnap && prevSnap[campo]) || [];
+    const novoArr = novoSnap[campo] || [];
+    const antigoMap = {};
+    antigoArr.forEach(function(x){ antigoMap[x.t] = x.v; });
+    novoArr.forEach(function(x){
+      if (antigoMap[x.t] !== x.v) out[campo + '|' + x.t] = ts;
+    });
+  });
+  return out;
+}
+
 // ── LOCALSTORAGE ──────────────────────────────────────────
 
 // ══════════ DRAFTS DIÁRIOS — armazenamento por dia (IndexedDB + fallback localStorage) ══════════
@@ -981,7 +1014,8 @@ function buildSnapshot(){
     intData:JSON.parse(JSON.stringify(intData)),
     procOutros:JSON.parse(JSON.stringify(procOutros)),
     sinOutros:JSON.parse(JSON.stringify(sinOutros)),
-    sinV:SIN_TIPOS.map(t=>{const el=document.getElementById('sin-'+sid(t));return{t,v:parseInt(el?.value)||0};})
+    sinV:SIN_TIPOS.map(t=>{const el=document.getElementById('sin-'+sid(t));return{t,v:parseInt(el?.value)||0};}),
+    _deletados:Object.assign({},_deletados)
   };
 }
 function zeloMostrarGuardadoAs(){
@@ -1016,6 +1050,11 @@ function applySnapshot(s){
     if(s.eq1)Object.assign(eq1,s.eq1);else{eq1.esp=[];eq1.int=[];eq1.est=[];eq1.vol=[];}
     if(s.eq2)Object.assign(eq2,s.eq2);else{eq2.esp=[];eq2.int=[];eq2.est=[];eq2.vol=[];}
     if(s.diagData)diagData.push(...s.diagData);
+    // Migração: entradas antigas de diagData não tinham id (necessário para a
+    // mesclagem entre dispositivos por lista — ver zelo_merge.js). Atribui-se
+    // um id estável na primeira vez que são recarregadas.
+    diagData.forEach((d,idx)=>{ if(d.id===undefined) d.id=Date.now()+idx; });
+    _deletados = s._deletados ? Object.assign({}, s._deletados) : {};
     if(s.verfData)verfData.push(...s.verfData);
     if(s.obitData)obitData.push(...s.obitData);
     if(s.opData)opData.push(...s.opData);
@@ -1196,6 +1235,7 @@ function editMember(eqKey,tipo,id){
   setTimeout(()=>{const el=document.getElementById('mbr-'+id);if(el){el.focus();el.select();}},60);
 }
 function delMember(eqKey,tipo,id){
+  _marcarEliminado(eqKey+'.'+tipo,id);
   const data=eqKey==='eq1'?eq1:eq2;
   data[tipo]=data[tipo].filter(x=>x.id!==id);
   renderMembers(eqKey,tipo);upd();ss();
@@ -1587,13 +1627,14 @@ function saveDiag(){
   if(!desc){toast('Preencha a descrição do diagnóstico.');document.getElementById('d-desc').classList.add('err-inp');return;}
   document.getElementById('d-desc').classList.remove('err-inp');
   if(diagEditIdx!==null){
-    diagData[diagEditIdx]={code,desc,qty};
+    const idAntigo=diagData[diagEditIdx]&&diagData[diagEditIdx].id;
+    diagData[diagEditIdx]={code,desc,qty,id:idAntigo!==undefined?idAntigo:Date.now()};
     diagEditIdx=null;
     toast('✓ Diagnóstico actualizado.');
   }else{
     const ex=diagData.find(d=>d.desc.toLowerCase()===desc.toLowerCase()||(code&&d.code&&d.code===code));
-    if(ex){ex.qty=(ex.qty||1)+qty;toast(`✓ Somado: ${desc} (+${qty})`);}
-    else{diagData.push({code,desc,qty});toast('✓ Diagnóstico adicionado.');}
+    if(ex){if(ex.id===undefined)ex.id=Date.now();ex.qty=(ex.qty||1)+qty;toast(`✓ Somado: ${desc} (+${qty})`);}
+    else{diagData.push({code,desc,qty,id:Date.now()});toast('✓ Diagnóstico adicionado.');}
   }
   closeDiagForm();renderDiag();chkDiag();upd();ss();
 }
@@ -1605,7 +1646,7 @@ function editDiag(i){
   const f=document.getElementById('diag-form-modal')||document.getElementById('diag-form');if(f)f.style.display='block';
   setTimeout(()=>document.getElementById('d-desc').focus(),80);
 }
-function delDiag(i){diagData.splice(i,1);renderDiag();chkDiag();upd();ss();}
+function delDiag(i){const item=diagData[i];if(item&&item.id!==undefined)_marcarEliminado('diagData',item.id);diagData.splice(i,1);renderDiag();chkDiag();upd();ss();}
 let diagEditMode=false;
 function toggleDiagEdit(){diagEditMode=!diagEditMode;renderDiag();}
 function renderDiag(){
@@ -1663,7 +1704,7 @@ function saveVerf(id){
   renderVerf();upd();ss();toast('✓ Verificação guardada.');
 }
 function editVerf(id){const idx=verfData.findIndex(x=>x.id===id);verfData[idx].saved=false;renderVerf();}
-function delVerf(id){const idx=verfData.findIndex(x=>x.id===id);verfData.splice(idx,1);renderVerf();upd();ss();}
+function delVerf(id){_marcarEliminado('verfData',id);const idx=verfData.findIndex(x=>x.id===id);verfData.splice(idx,1);renderVerf();upd();ss();}
 let verfEditMode=false;
 function toggleVerfEdit(){verfEditMode=!verfEditMode;renderVerf();}
 function renderVerf(){
@@ -1743,7 +1784,7 @@ function saveObit(id){
   renderObit();upd();ss();toast('✓ Óbito registado.');
 }
 function editObit(id){const idx=obitData.findIndex(x=>x.id===id);obitData[idx].saved=false;renderObit();}
-function delObit(id){const idx=obitData.findIndex(x=>x.id===id);obitData.splice(idx,1);renderObit();upd();ss();}
+function delObit(id){_marcarEliminado('obitData',id);const idx=obitData.findIndex(x=>x.id===id);obitData.splice(idx,1);renderObit();upd();ss();}
 let obitEditMode=false;
 function toggleObitEdit(){obitEditMode=!obitEditMode;renderObit();}
 function renderObit(){
@@ -1839,7 +1880,7 @@ function saveOp(id){
     saved:true};
   renderOp();upd();ss();toast('✓ Operado registado.');}
 function editOp(id){const idx=opData.findIndex(x=>x.id===id);opData[idx].saved=false;renderOp();}
-function delOp(id){const idx=opData.findIndex(x=>x.id===id);opData.splice(idx,1);renderOp();upd();ss();}
+function delOp(id){_marcarEliminado('opData',id);const idx=opData.findIndex(x=>x.id===id);opData.splice(idx,1);renderOp();upd();ss();}
 let opEditMode=false;
 function toggleOpEdit(){opEditMode=!opEditMode;renderOp();}
 function renderOp(){
@@ -1955,7 +1996,7 @@ function saveTransf(tipo,id){
   renderTransf();upd();ss();toast('✓ Transferência guardada.');
 }
 function editTransf(tipo,id){const arr=tipo==='r'?transfR:transfE;const idx=arr.findIndex(x=>x.id===id);arr[idx].saved=false;renderTransf();}
-function delTransf(tipo,id){const arr=tipo==='r'?transfR:transfE;const idx=arr.findIndex(x=>x.id===id);arr.splice(idx,1);renderTransf();upd();ss();}
+function delTransf(tipo,id){_marcarEliminado(tipo==='r'?'transfR':'transfE',id);const arr=tipo==='r'?transfR:transfE;const idx=arr.findIndex(x=>x.id===id);arr.splice(idx,1);renderTransf();upd();ss();}
 function onHospChange(id){
   const v=document.getElementById('tr-hosp-'+id)?.value;
   const row=document.getElementById('tr-hman-row-'+id);
@@ -2079,7 +2120,7 @@ function saveAltasOutro(id){
   if(o){o.label=lbl;o.saved=true;}
   renderAltasOutros();updAltasTot();upd();ss();toast('✓ Tipo de alta guardado.');
 }
-function delAltasOutro(id){altasOutros=altasOutros.filter(x=>x.id!==id);renderAltasOutros();updAltasTot();upd();ss();}
+function delAltasOutro(id){_marcarEliminado('altasOutros',id);altasOutros=altasOutros.filter(x=>x.id!==id);renderAltasOutros();updAltasTot();upd();ss();}
 function renderAltasOutros(){
   const el=document.getElementById('altas-outros-list');el.innerHTML='';
   altasOutros.forEach(o=>{
@@ -2110,7 +2151,7 @@ function saveSinOutro(id){
   if(o){o.label=lbl;o.saved=true;}
   renderSinOutros();ss();toast('✓ Tipo de acidente guardado.');
 }
-function delSinOutro(id){sinOutros=sinOutros.filter(x=>x.id!==id);renderSinOutros();ss();}
+function delSinOutro(id){_marcarEliminado('sinOutros',id);sinOutros=sinOutros.filter(x=>x.id!==id);renderSinOutros();ss();}
 function renderSinOutros(){
   const el=document.getElementById('sin-outros-list');el.innerHTML='';
   sinOutros.forEach(o=>{
@@ -2191,7 +2232,7 @@ function saveInt(id){
   renderInt();upd();ss();toast('✓ Doente guardado.');
 }
 function editInt(id){const idx=intData.findIndex(x=>x.id===id);intData[idx].saved=false;renderInt();}
-function delInt(id){const idx=intData.findIndex(x=>x.id===id);intData.splice(idx,1);renderInt();upd();ss();}
+function delInt(id){_marcarEliminado('intData',id);const idx=intData.findIndex(x=>x.id===id);intData.splice(idx,1);renderInt();upd();ss();}
 function intDesChg(id){
   const v=document.getElementById('it-des-'+id)?.value;
   const row=document.getElementById('it-hobit-row-'+id);
@@ -2292,7 +2333,7 @@ function saveTrInt(id){
   renderTrInt();upd();ss();toast('✓ Transferência interna guardada.');
 }
 function editTrInt(id){const idx=trintData.findIndex(x=>x.id===id);trintData[idx].saved=false;renderTrInt();}
-function delTrInt(id){const idx=trintData.findIndex(x=>x.id===id);trintData.splice(idx,1);renderTrInt();upd();ss();}
+function delTrInt(id){_marcarEliminado('trintData',id);const idx=trintData.findIndex(x=>x.id===id);trintData.splice(idx,1);renderTrInt();upd();ss();}
 function onTrIntServChg(id){
   const v=document.getElementById('tri-serv-'+id)?.value;
   const row=document.getElementById('tri-servman-row-'+id);
@@ -2359,7 +2400,7 @@ function saveProcOutro(id){
   if(o){o.label=lbl;o.saved=true;}
   renderProcOutros();upd();ss();toast('✓ Procedimento guardado.');
 }
-function delProcOutro(id){procOutros=procOutros.filter(x=>x.id!==id);renderProcOutros();upd();ss();}
+function delProcOutro(id){_marcarEliminado('procOutros',id);procOutros=procOutros.filter(x=>x.id!==id);renderProcOutros();upd();ss();}
 function renderProcOutros(){
   const el=document.getElementById('proc-outros-list');if(!el)return;el.innerHTML='';
   procOutros.forEach(o=>{
@@ -3580,34 +3621,105 @@ function zeloTemAcessoEdicao(){
     return window.ZeloAuth.getModuleAccessLevel(role, permissoes, window.ZELO_MODULE) !== 'leitura';
   }catch(e){ return true; }
 }
+// ── Mesclagem campo-a-campo entre dispositivos (ver zelo_merge.js) ──
+// Listas de registos com id próprio, guardadas directamente no snapshot.
+const _LISTAS_ID_CG = ['verfData','obitData','opData','transfR','transfE','intData','trintData','procOutros','sinOutros','altasOutros','diagData'];
+function _filtrarTombstones(deletados, prefixo){
+  const out={}; const pre=prefixo+'|';
+  Object.keys(deletados||{}).forEach(k=>{ if(k.indexOf(pre)===0) out[k.slice(pre.length)]=deletados[k]; });
+  return out;
+}
+function _prefixarTombstones(tombstones, prefixo){
+  const out={};
+  Object.keys(tombstones||{}).forEach(id=>{ out[prefixo+'|'+id]=tombstones[id]; });
+  return out;
+}
+// Mescla duas entradas completas do histórico (savedAt/snapshot/camposTs/deletados)
+// do MESMO dia, campo a campo e lista a lista — nunca substitui o dia inteiro.
+function _mesclarEntradaDia(local, remoto){
+  if(!local) return remoto;
+  if(!remoto) return local;
+  const remotoMaisRecente = new Date(remoto.savedAt) >= new Date(local.savedAt);
+  const lCamposTs=local.camposTs||{}, rCamposTs=remoto.camposTs||{};
+  const lSnap=local.snapshot||{}, rSnap=remoto.snapshot||{};
+  const lDel=local.deletados||{}, rDel=remoto.deletados||{};
+
+  // Campos escalares de topo
+  const lEscalares={}, rEscalares={};
+  CAMPOS_ESCALARES_CG.forEach(k=>{ lEscalares[k]=lSnap[k]; rEscalares[k]=rSnap[k]; });
+  const resEscalares=ZeloMerge.mesclarChaveValor(lEscalares,rEscalares,lCamposTs,rCamposTs,null,remotoMaisRecente);
+  const snapshotMesclado=Object.assign({},lSnap,rSnap,resEscalares.valor);
+  let camposTsMesclados=Object.assign({},lCamposTs,resEscalares.camposTs);
+
+  // procV / sinV (arrays [{t,v}] tratados como mapa t->v)
+  [['procV',PROC_TIPOS],['sinV',SIN_TIPOS]].forEach(function(par){
+    const campo=par[0], tipos=par[1];
+    const lMapa={}, rMapa={};
+    (lSnap[campo]||[]).forEach(x=>lMapa[x.t]=x.v);
+    (rSnap[campo]||[]).forEach(x=>rMapa[x.t]=x.v);
+    const res=ZeloMerge.mesclarChaveValor(lMapa,rMapa,lCamposTs,rCamposTs,campo,remotoMaisRecente);
+    snapshotMesclado[campo]=tipos.map(t=>({t,v:res.valor[t]||0}));
+    camposTsMesclados=Object.assign(camposTsMesclados,res.camposTs);
+  });
+
+  // Listas simples de topo, por id
+  let deletadosMesclados={};
+  _LISTAS_ID_CG.forEach(function(lista){
+    const res=ZeloMerge.mesclarListaPorId(lSnap[lista]||[], rSnap[lista]||[], _filtrarTombstones(lDel,lista), _filtrarTombstones(rDel,lista));
+    snapshotMesclado[lista]=res.lista;
+    Object.assign(deletadosMesclados,_prefixarTombstones(res.tombstones,lista));
+  });
+
+  // eq1/eq2 (cada uma com 4 sublistas: esp/int/est/vol)
+  ['eq1','eq2'].forEach(function(eqKey){
+    const lEq=lSnap[eqKey]||{}, rEq=rSnap[eqKey]||{};
+    const eqMesclado={};
+    ['esp','int','est','vol'].forEach(function(tipo){
+      const prefixo=eqKey+'.'+tipo;
+      const res=ZeloMerge.mesclarListaPorId(lEq[tipo]||[], rEq[tipo]||[], _filtrarTombstones(lDel,prefixo), _filtrarTombstones(rDel,prefixo));
+      eqMesclado[tipo]=res.lista;
+      Object.assign(deletadosMesclados,_prefixarTombstones(res.tombstones,prefixo));
+    });
+    snapshotMesclado[eqKey]=eqMesclado;
+  });
+
+  return {
+    savedAt: remotoMaisRecente ? remoto.savedAt : local.savedAt,
+    snapshot: snapshotMesclado,
+    camposTs: camposTsMesclados,
+    deletados: deletadosMesclados,
+    criadoPor: remotoMaisRecente ? remoto.criadoPor : local.criadoPor
+  };
+}
 async function sincronizarHistoricoFirebase(){
   if(!window.__fbReady || !window.__fbGet) return;
   try{
-    const remoto = await window.__fbGet(FB_PATH); // { 'YYYY-MM-DD': {savedAt, snapshot}, ... }
+    const remoto = await window.__fbGet(FB_PATH); // { 'YYYY-MM-DD': {savedAt, snapshot, camposTs, deletados}, ... }
     if(!remoto) return;
     let hist=[]; try{hist=JSON.parse(localStorage.getItem('cg_v1_hist')||'[]');}catch(e){hist=[];}
     const porData={};
     hist.forEach(h=>{ if(h && h.snapshot && h.snapshot.data) porData[h.snapshot.data]=h; });
     const dataAberta=(typeof gv==='function')?gv('data'):'';
-    let dataAbertaAtualizada=null;
+    let dataAbertaAtualizada=null, dataAbertaMudou=false;
     Object.values(remoto).forEach(r=>{
       const d = r && r.snapshot && r.snapshot.data; if(!d) return;
       const atual = porData[d];
-      if(!atual || new Date(r.savedAt) > new Date(atual.savedAt)){
-        porData[d]=r;
-        if(d===dataAberta) dataAbertaAtualizada=r;
-      }
+      const mesclado = _mesclarEntradaDia(atual, r);
+      const mudou = JSON.stringify(mesclado) !== JSON.stringify(atual);
+      porData[d]=mesclado;
+      if(d===dataAberta && mudou){ dataAbertaAtualizada=mesclado; dataAbertaMudou=true; }
     });
     if(dataAberta && remoto[dataAberta] && remoto[dataAberta].criadoPor){
       _mostrarHoraGuardado(remoto[dataAberta].criadoPor.nome, remoto[dataAberta].savedAt);
     }
     const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt)).slice(0,30);
     localStorage.setItem('cg_v1_hist', JSON.stringify(merged));
-    // Se outro dispositivo guardou uma versão mais recente do dia atualmente
-    // aberto, e não há edições locais por guardar, actualiza o ecrã já com
-    // essa versão e guarda-a logo localmente — nunca perde dados nem
-    // sobrescreve um rascunho activo.
-    if(dataAbertaAtualizada && !localStorage.getItem(DRAFT_KEY)){
+    // Se a mesclagem trouxe algo de novo para o dia atualmente aberto, e não
+    // há edições locais por guardar, actualiza o ecrã já com o resultado
+    // mesclado (nunca substitui o dia inteiro — ver _mesclarEntradaDia) e
+    // guarda-o localmente; nunca sobrescreve um rascunho activo.
+    if(dataAbertaMudou && !localStorage.getItem(DRAFT_KEY)){
+      _deletados = dataAbertaAtualizada.deletados ? Object.assign({}, dataAbertaAtualizada.deletados) : {};
       applySnapshot(dataAbertaAtualizada.snapshot);
       // Só quem tem acesso de edição a este módulo grava localmente/publica
       // de volta no Firebase — leitores só vêem os dados actualizados no ecrã.
@@ -3632,16 +3744,25 @@ function confirmarSave(){
     let wasUpdate=false;
     // Procurar registo existente com a mesma data
     const idxExist=dataHoje?hist.findIndex(h=>(h.snapshot||{}).data===dataHoje):-1;
+    const _entradaAnterior=idxExist>=0?hist[idxExist]:null;
+    const _tsGuardar=Date.now();
+    // Carimbo por campo escalar (mesclagem entre dispositivos — ver
+    // zelo_merge.js): compara com a última vez que ESTE dia foi guardado,
+    // para saber que campos mudaram de facto nesta gravação.
+    const _camposTsNovos=_construirCamposTsCG(_entradaAnterior&&_entradaAnterior.camposTs,_entradaAnterior&&_entradaAnterior.snapshot,snap,_tsGuardar);
+    // Tombstones acumulados desde a última gravação deste dia, mais os que já
+    // vinham do histórico anterior (nunca se perde uma eliminação já confirmada).
+    const _deletadosNovos=Object.assign({},(_entradaAnterior&&_entradaAnterior.deletados)||{},_deletados);
     if(idxExist>=0){
       // Actualizar registo existente
-      hist[idxExist]={savedAt:new Date().toISOString(),snapshot:snap};
+      hist[idxExist]={savedAt:new Date().toISOString(),snapshot:snap,camposTs:_camposTsNovos,deletados:_deletadosNovos};
       // Mover para o topo
       const updated=hist.splice(idxExist,1)[0];
       hist.unshift(updated);
       wasUpdate=true;
     }else{
       // Nova data — adicionar no topo
-      hist.unshift({savedAt:new Date().toISOString(),snapshot:snap});
+      hist.unshift({savedAt:new Date().toISOString(),snapshot:snap,camposTs:_camposTsNovos,deletados:_deletadosNovos});
     }
     while(hist.length>30)hist.pop();
     localStorage.setItem('cg_v1_hist',JSON.stringify(hist));
