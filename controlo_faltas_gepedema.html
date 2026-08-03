@@ -1389,6 +1389,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     gerarPDFMes();
   });
 
+  // Logótipo ZELO no PDF — reaproveita a imagem já presente na página.
+  function _zeloLogoDataURL(){
+    try{
+      var img = document.querySelector("header.top img.logo");
+      if(!img || !img.naturalWidth) return null;
+      var c = document.createElement("canvas");
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext("2d").drawImage(img,0,0);
+      return c.toDataURL("image/png");
+    }catch(e){ return null; }
+  }
   function gerarPDFMes(){
     if(typeof window.jspdf === "undefined"){
       showToast("Erro ao carregar gerador de PDF");
@@ -1403,6 +1414,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     // Cabeçalho institucional
     doc.setFillColor(15,41,66); // navy
     doc.roundedRect(marginX, y-24, pageW-2*marginX, 54, 8, 8, "F");
+    var _logo = _zeloLogoDataURL();
+    if(_logo){ try{ doc.addImage(_logo,"PNG", pageW-marginX-14-38, y-24+7, 38, 38); }catch(e){} }
     doc.setTextColor(255,255,255);
     doc.setFont("helvetica","bold");
     doc.setFontSize(13);

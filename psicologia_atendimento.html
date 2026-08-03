@@ -864,6 +864,21 @@ function emptyTbl(){return '<div class="empty">Sem dados no período seleccionad
 // ═══════════════════════════════════════════════════════════════════
 //  EXPORTAÇÃO — imagem e PDF
 // ═══════════════════════════════════════════════════════════════════
+// Logótipo ZELO nos cabeçalhos de PDF — reaproveita a imagem já presente
+// na página (evita embutir outro base64 duplicado no ficheiro).
+var _zeloLogoCache;
+function _zeloLogoDataURL(){
+  if(_zeloLogoCache!==undefined)return _zeloLogoCache;
+  try{
+    const img=document.querySelector('.ld img');
+    if(!img||!img.naturalWidth){_zeloLogoCache=null;return null;}
+    const c=document.createElement('canvas');
+    c.width=img.naturalWidth;c.height=img.naturalHeight;
+    c.getContext('2d').drawImage(img,0,0);
+    _zeloLogoCache=c.toDataURL('image/png');
+  }catch(e){_zeloLogoCache=null;}
+  return _zeloLogoCache;
+}
 function dlPNG(canvasId,name){
   const c=$(canvasId);if(!c)return;
   const a=document.createElement('a');a.href=c.toDataURL('image/png',1);a.download='psicologia_'+name+'_'+todayISO()+'.png';a.click();
@@ -874,6 +889,7 @@ function dlPDF(canvasId,title){
   const{jsPDF}=window.jspdf;const pdf=new jsPDF('l','mm','a4');
   const pw=pdf.internal.pageSize.getWidth();
   pdf.setFillColor(13,27,62);pdf.rect(0,0,pw,20,'F');
+  const _logo1=_zeloLogoDataURL();if(_logo1){try{pdf.addImage(_logo1,'PNG',pw-17,3,14,14);}catch(e){}}
   pdf.setTextColor(255);pdf.setFontSize(13);pdf.text(title,10,10);
   pdf.setFontSize(8);pdf.text('Hospital do Prenda · Psicologia · '+$('d-range').textContent,10,16);
   const img=c.toDataURL('image/png',1);const iw=pw-20;const ih=iw*(c.height/c.width);
@@ -886,6 +902,7 @@ function dlTablePDF(divId,title){
   const{jsPDF}=window.jspdf;const pdf=new jsPDF('l','mm','a4');
   const pw=pdf.internal.pageSize.getWidth();
   pdf.setFillColor(13,27,62);pdf.rect(0,0,pw,20,'F');
+  const _logo2=_zeloLogoDataURL();if(_logo2){try{pdf.addImage(_logo2,'PNG',pw-17,3,14,14);}catch(e){}}
   pdf.setTextColor(255);pdf.setFontSize(13);pdf.text(title,10,10);
   pdf.setFontSize(8);pdf.text('Hospital do Prenda · Psicologia · '+$('r-range').textContent,10,16);
   const table=div.querySelector('table');
@@ -908,6 +925,7 @@ function exportRelatorioPDF(){
   const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');
   const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
   pdf.setFillColor(13,27,62);pdf.rect(0,0,pw,26,'F');
+  const _logo3=_zeloLogoDataURL();if(_logo3){try{pdf.addImage(_logo3,'PNG',pw-20,4,17,17);}catch(e){}}
   pdf.setTextColor(255);pdf.setFontSize(15);pdf.text('Relatório de Psicologia',12,13);
   pdf.setFontSize(9);pdf.text('Hospital do Prenda · '+r.label,12,20);
   pdf.setFontSize(8);pdf.text('Gerado em '+fmtBR(todayISO()),pw-12,20,{align:'right'});

@@ -1610,7 +1610,23 @@ function pdfSan(s){
     .replace(/[    ]/g," ");
 }
 function pdfNovoDoc(){return new window.jspdf.jsPDF({unit:"pt",format:"a4",compress:true});}
+var _zeloLogoCache;
+function _zeloLogoDataURL(){
+  if(_zeloLogoCache!==undefined)return _zeloLogoCache;
+  try{
+    var img=document.querySelector("img.logo");
+    if(!img||!img.naturalWidth){_zeloLogoCache=null;return null;}
+    var c=document.createElement("canvas");
+    c.width=img.naturalWidth;c.height=img.naturalHeight;
+    c.getContext("2d").drawImage(img,0,0);
+    _zeloLogoCache=c.toDataURL("image/png");
+  }catch(e){_zeloLogoCache=null;}
+  return _zeloLogoCache;
+}
 function pdfHeader(doc,titulo,nReg){
+  var _pw=doc.internal.pageSize.getWidth();
+  var _logo=_zeloLogoDataURL();
+  if(_logo){try{doc.addImage(_logo,"PNG",_pw-PDF_M-30,26,30,30);}catch(e){}}
   doc.setFont("helvetica","bold");doc.setFontSize(14);doc.setTextColor(13,59,102);
   doc.text(pdfSan("ZELO — Farmácia Central · "+titulo),PDF_M,46);
   doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(90,90,90);

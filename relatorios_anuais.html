@@ -1049,11 +1049,27 @@ footer{text-align:center;padding:26px 20px 40px;color:#4d6089;font-family:var(--
     });
   }
 
+  // Logótipo ZELO no PDF — reaproveita a imagem já presente na página.
+  var _zeloLogoCache;
+  function _zeloLogoDataURL(){
+    if(_zeloLogoCache !== undefined) return _zeloLogoCache;
+    try{
+      const img = document.querySelector('.brand-mark img');
+      if(!img || !img.naturalWidth){ _zeloLogoCache = null; return null; }
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img,0,0);
+      _zeloLogoCache = c.toDataURL('image/png');
+    }catch(e){ _zeloLogoCache = null; }
+    return _zeloLogoCache;
+  }
   async function renderEntryToPDF(doc, entry, year, y){
     const marginX = 40;
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
 
+    const _logo = _zeloLogoDataURL();
+    if(_logo){ try{ doc.addImage(_logo, 'PNG', pageW-marginX-26, y-20, 26, 26); }catch(e){} }
     doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(15,25,50);
     const titleLines = doc.splitTextToSize(entry.legenda, pageW - marginX*2);
     doc.text(titleLines, marginX, y);
@@ -1134,6 +1150,9 @@ footer{text-align:center;padding:26px 20px 40px;color:#4d6089;font-family:var(--
     try{
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({unit:'pt', format:'a4'});
+      const _pageW0 = doc.internal.pageSize.getWidth();
+      const _logo0 = _zeloLogoDataURL();
+      if(_logo0){ try{ doc.addImage(_logo0, 'PNG', _pageW0-40-46, 36, 46, 46); }catch(e){} }
       doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(10,20,45);
       doc.text('Hospital do Prenda', 40, 70);
       doc.setFontSize(13); doc.setFont('helvetica','normal');
