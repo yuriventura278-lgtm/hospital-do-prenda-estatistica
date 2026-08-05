@@ -28,6 +28,7 @@
 </script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hemoterapia — HP</title>
@@ -455,6 +456,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
       <hr class="sb-divider">
       <div class="sb-sec">Dados</div>
       <button class="nav-item" id="nav-historico" onclick="showSection('sec-historico',this)"><svg class='ic'><use href='#ic-calendar'/></svg> Histórico</button>
+      <button class="nav-item" id="nav-backup" onclick="showSection('sec-backup',this)"><svg class='ic'><use href='#ic-disc'/></svg> Cópias de Segurança</button>
     </div>
   </nav>
   <main class="main-content">
@@ -651,6 +653,70 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 
     <!-- ═══ MAPAS DIÁRIOS (folhas do HEMOTERAPIA.xlsx) — construídos por buildMapaSections() ═══ -->
     <div id="mapas-container"></div>
+
+    <!-- ═══ CÓPIAS DE SEGURANÇA ═══ -->
+    <div class="section" id="sec-backup">
+      <div class="pg-hdr">
+        <div class="pg-hdr-icon"><svg class='ic'><use href='#ic-disc'/></svg></div>
+        <div><h2>Cópias de Segurança</h2><p>Backup geral, mensal e automático em pasta</p></div>
+      </div>
+
+      <!-- BACKUP GERAL -->
+      <div class="card">
+        <div class="card-hdr blue-hdr">
+          <div>
+            <div class="card-title"><svg class='ic'><use href='#ic-disc'/></svg> Backup Geral</div>
+            <div class="card-sub">Descarrega um ficheiro JSON com TODOS os registos guardados (todas as datas e todas as páginas)</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <button class="btn-h btn-save" onclick="exportJSON()"><svg class='ic'><use href='#ic-disc'/></svg> Descarregar backup geral (JSON)</button>
+        </div>
+      </div>
+
+      <!-- BACKUP MENSAL -->
+      <div class="card">
+        <div class="card-hdr amber-hdr">
+          <div>
+            <div class="card-title"><svg class='ic'><use href='#ic-clipboard'/></svg> Backup Mensal</div>
+            <div class="card-sub">Descarrega apenas os registos de um mês escolhido</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <label class="field-label">Mês:</label>
+            <input type="month" id="backup-mes" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-family:var(--font-body);font-size:.8rem;color:var(--text);outline:none;">
+            <button class="btn-h btn-out" onclick="exportMensalJSON()"><svg class='ic'><use href='#ic-clipboard'/></svg> Descarregar backup mensal (JSON)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BACKUP AUTOMÁTICO EM PASTA -->
+      <div class="card">
+        <div class="card-hdr green-hdr">
+          <div>
+            <div class="card-title"><svg class='ic'><use href='#ic-refresh'/></svg> Backup Automático em Pasta (diário)</div>
+            <div class="card-sub">Escolha uma pasta no computador. O sistema grava lá automaticamente uma cópia dos registos — Diário, Semanal, Mensal, Trimestral, Semestral e Anual — sempre que esta página estiver aberta à volta da meia-noite, ou assim que a abrir de novo</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <p id="bkauto-suporte-msg" style="display:none;color:var(--danger);font-size:.78rem;margin-bottom:10px;">
+            O seu navegador não suporta esta funcionalidade — funciona apenas no Google Chrome ou Microsoft Edge (computador).
+          </p>
+          <div id="bkauto-corpo">
+            <div id="bkauto-status" style="margin:2px 0 10px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:.76rem;color:var(--text);">
+              <div id="bkauto-pasta-nome">A verificar…</div>
+            </div>
+            <div id="bkauto-cadencias" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:.72rem;color:var(--muted);margin-bottom:14px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn-h btn-save" onclick="_bkAutoEscolherPasta()"><svg class='ic'><use href='#ic-disc'/></svg> Escolher pasta</button>
+              <button class="btn-h btn-out" onclick="_bkAutoVerificarAgora()"><svg class='ic'><use href='#ic-refresh'/></svg> Verificar agora</button>
+              <button class="btn-h btn-out" onclick="_bkAutoEsquecerPasta()"><svg class='ic'><use href='#ic-trash'/></svg> Esquecer pasta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ═══ HISTÓRICO ═══ -->
     <div class="section" id="sec-historico">
@@ -1090,6 +1156,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(elq('seme-year')) elq('seme-year').value=sy;
   if(elq('seme-h')) elq('seme-h').value=sm<=6?1:2;
   if(elq('anu-year')) elq('anu-year').value=sy;
+  if(elq('backup-mes')) elq('backup-mes').value=`${sy}-${String(sm).padStart(2,'0')}`;
   runSplash(()=>{
     if(elq('data-registo')) elq('data-registo').value=today;
     loadDay(today);
@@ -1103,6 +1170,7 @@ function showSection(id, btn){
   const sec=document.getElementById(id); if(sec) sec.classList.add("active");
   if(btn) btn.classList.add("active");
   if(id==="sec-historico") renderHistory();
+  if(id==="sec-backup") _bkAutoAtualizarStatus();
   if(window.innerWidth<=768) toggleSidebar(false);
   document.querySelector(".main-content")?.scrollTo({top:0,behavior:"smooth"});
 }
@@ -1879,7 +1947,9 @@ function exportDayPDF(){
     });
   });
   addPDFFooter(doc,d.date||todayKey(),_registadoPorTxtAtual());
-  doc.save("hemoterapia_"+(d.date||todayKey())+".pdf");
+  const _nomePdf="hemoterapia_"+(d.date||todayKey())+".pdf";
+  doc.save(_nomePdf);
+  _guardarPDFNaPastaBackup(doc,_nomePdf);
   toast("PDF gerado","success");
 }
 
@@ -2168,6 +2238,154 @@ async function exportJSON(){
     toast("Falha ao exportar backup","error");
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BACKUP MENSAL + BACKUP AUTOMÁTICO EM PASTA (diário/mensal/…)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Lê (de forma síncrona) todos os registos guardados a partir do espelho em
+// localStorage mantido pelo módulo DB (chaves "hemo2_<data>" + índice
+// "hemo2_saved_dates"). Serve os backups mensal e automático.
+function _hemoLerRegistos(){
+  let idx=[];
+  try{ idx=JSON.parse(localStorage.getItem('hemo2_saved_dates')||'[]'); }catch(e){ idx=[]; }
+  const out=[];
+  idx.forEach(d=>{ try{ const raw=localStorage.getItem('hemo2_'+d); if(raw) out.push(JSON.parse(raw)); }catch(e){} });
+  return out;
+}
+
+// Backup mensal — descarrega os registos de um mês (YYYY-MM) escolhido.
+function exportMensalJSON(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    toast('Só administradores podem usar esta opção','error'); return;
+  }
+  const mesEl=document.getElementById('backup-mes');
+  const n=new Date();
+  const mes=(mesEl && mesEl.value) ? mesEl.value : (n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'));
+  const recs=_hemoLerRegistos().filter(r=>r && r.date && r.date.slice(0,7)===mes);
+  if(!recs.length){ toast('Não há registos guardados em '+mes,'error'); return; }
+  recs.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const dates=recs.map(r=>r.date); const data={}; recs.forEach(r=>{ data[r.date]=r; });
+  const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),mes,dates,data},null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="hemoterapia_backup_mensal_"+mes+".json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("Backup mensal de "+mes+" exportado ("+recs.length+" registos)","success");
+}
+
+// ── Backup automático em pasta (módulo ZeloAutoBackup) ─────────────────────
+const _BKAUTO_ROTULOS = { diario:'Diário', semanal:'Semanal', mensal:'Mensal', trimestral:'Trimestral', semestral:'Semestral', anual:'Anual' };
+
+async function _bkAutoAtualizarStatus(){
+  const suporteMsg=document.getElementById('bkauto-suporte-msg');
+  const corpo=document.getElementById('bkauto-corpo');
+  if(!suporteMsg||!corpo) return;
+  if(typeof ZeloAutoBackup==='undefined' || !ZeloAutoBackup.suportado()){
+    suporteMsg.style.display='block'; corpo.style.display='none'; return;
+  }
+  suporteMsg.style.display='none'; corpo.style.display='block';
+  const pasta=await ZeloAutoBackup.obterPastaAtiva(false);
+  const nomeEl=document.getElementById('bkauto-pasta-nome');
+  if(nomeEl){
+    if(pasta.estado==='ok') nomeEl.textContent='📁 Pasta escolhida: '+pasta.handle.name;
+    else if(pasta.estado==='sem_permissao') nomeEl.textContent='⚠️ Autorização da pasta expirou — clique em "Escolher pasta" para renovar.';
+    else nomeEl.textContent='Nenhuma pasta escolhida ainda.';
+  }
+  const cadEl=document.getElementById('bkauto-cadencias');
+  if(cadEl){
+    cadEl.innerHTML=Object.keys(_BKAUTO_ROTULOS).map(c=>{
+      const marca=localStorage.getItem('zbk_marca_hemoterapia_'+c);
+      return '<div>'+_BKAUTO_ROTULOS[c]+': '+(marca?'✅ '+marca:'— ainda não')+'</div>';
+    }).join('');
+  }
+}
+async function _bkAutoEscolherPasta(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){ toast('Só administradores podem usar esta opção','error'); return; }
+  try{
+    await ZeloAutoBackup.escolherPasta();
+    toast('📁 Pasta escolhida com sucesso!','success');
+    _bkAutoAtualizarStatus();
+    ZeloAutoBackup.verificarEExecutar('hemoterapia').then(_bkAutoAtualizarStatus);
+  }catch(e){ if(e && e.name!=='AbortError') toast('Não foi possível escolher a pasta.','error'); }
+}
+async function _bkAutoEsquecerPasta(){
+  await ZeloAutoBackup.esquecerPasta();
+  toast('Pasta de backup automático esquecida.');
+  _bkAutoAtualizarStatus();
+}
+async function _bkAutoVerificarAgora(){
+  if(typeof ZeloAutoBackup==='undefined' || !ZeloAutoBackup.suportado()){ toast('Funcionalidade indisponível neste navegador','error'); return; }
+  toast('A verificar backups pendentes…');
+  await ZeloAutoBackup.verificarEExecutar('hemoterapia');
+  _bkAutoAtualizarStatus();
+  toast('Verificação concluída.','success');
+}
+
+// Guarda também o PDF na pasta de backup (subpasta Diario) quando é gerado
+// manualmente, além do download normal do navegador.
+function _guardarPDFNaPastaBackup(doc,nomeFicheiro){
+  if(typeof ZeloAutoBackup==='undefined' || !ZeloAutoBackup.suportado()) return;
+  try{
+    const blob=doc.output('blob');
+    ZeloAutoBackup.gravarNaPasta('hemoterapia','Diario',nomeFicheiro,blob).then(r=>{
+      if(r.ok && typeof toast==='function') toast('📁 PDF também guardado na pasta de backup.');
+    });
+  }catch(e){ console.warn('[BackupAuto] falha ao guardar PDF na pasta',e); }
+}
+
+// ── Ligação ao módulo de backup automático ────────────────────────────────
+function _bkFimDoPeriodoContendo(cadencia,dataISO){
+  const d=new Date(dataISO+'T00:00:00'); let fim;
+  switch(cadencia){
+    case 'diario': fim=new Date(d); break;
+    case 'semanal': { const dow=(d.getDay()+6)%7; fim=new Date(d); fim.setDate(fim.getDate()+(6-dow)); break; }
+    case 'mensal': fim=new Date(d.getFullYear(),d.getMonth()+1,0); break;
+    case 'trimestral': fim=new Date(d.getFullYear(),Math.floor(d.getMonth()/3)*3+3,0); break;
+    case 'semestral': fim=new Date(d.getFullYear(),d.getMonth()<6?6:12,0); break;
+    case 'anual': fim=new Date(d.getFullYear(),12,0); break;
+  }
+  return fim.getFullYear()+'-'+String(fim.getMonth()+1).padStart(2,'0')+'-'+String(fim.getDate()).padStart(2,'0');
+}
+function _bkLimitesDoPeriodo(cadencia,fimISO){
+  const fim=new Date(fimISO+'T00:00:00'); let inicio;
+  switch(cadencia){
+    case 'diario': inicio=new Date(fim); break;
+    case 'semanal': inicio=new Date(fim); inicio.setDate(inicio.getDate()-6); break;
+    case 'mensal': inicio=new Date(fim.getFullYear(),fim.getMonth(),1); break;
+    case 'trimestral': inicio=new Date(fim.getFullYear(),Math.floor(fim.getMonth()/3)*3,1); break;
+    case 'semestral': inicio=new Date(fim.getFullYear(),fim.getMonth()<6?0:6,1); break;
+    case 'anual': inicio=new Date(fim.getFullYear(),0,1); break;
+  }
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return { inicioISO:iso(inicio), fimISO:iso(fim) };
+}
+
+// Lista os períodos já TERMINADOS (fim < hoje) que têm registos guardados.
+window.ZBK_periodosDisponiveis = function(cadencia){
+  const n=new Date();
+  const hojeISO=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+  const vistos={};
+  _hemoLerRegistos().forEach(r=>{
+    if(!r || !r.date) return;
+    const fimISO=_bkFimDoPeriodoContendo(cadencia,r.date);
+    if(fimISO>=hojeISO) return;
+    const chave=ZeloAutoBackup._periodoAtual(cadencia,new Date(fimISO+'T00:00:00'));
+    vistos[chave]=fimISO;
+  });
+  return Object.keys(vistos).map(chave=>({ chave, dataRefISO:vistos[chave] }));
+};
+
+// Conteúdo JSON de um período (mapa data→registo) para o backup automático.
+window.ZBK_getBackupJSON = function(cadencia,fimISO){
+  const lim=_bkLimitesDoPeriodo(cadencia,fimISO);
+  const data={};
+  _hemoLerRegistos().forEach(r=>{
+    if(r && r.date && r.date>=lim.inicioISO && r.date<=lim.fimISO) data[r.date]=r;
+  });
+  return { nome:'backup_hemoterapia_'+cadencia+'_'+lim.fimISO+'.json', conteudo:data };
+};
+
+if (typeof ZeloAutoBackup !== 'undefined') ZeloAutoBackup.iniciar('hemoterapia');
 
 // Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
 (function(){
