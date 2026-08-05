@@ -443,6 +443,9 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
       <div class="sb-sec">Registo</div>
       <button class="nav-item active" id="nav-registo" onclick="showSection('sec-registo',this)"><svg class='ic'><use href='#ic-drop'/></svg> Registo Diário</button>
       <hr class="sb-divider">
+      <div class="sb-sec">Mapas Diários</div>
+      <div id="nav-mapas-group"><!-- construído por buildMapaSections() --></div>
+      <hr class="sb-divider">
       <div class="sb-sec">Relatórios</div>
       <button class="nav-item" id="nav-semanal" onclick="showSection('sec-semanal',this)"><svg class='ic'><use href='#ic-cal-week'/></svg> Semanal</button>
       <button class="nav-item" id="nav-mensal" onclick="showSection('sec-mensal',this)"><svg class='ic'><use href='#ic-clipboard'/></svg> Mensal</button>
@@ -645,6 +648,9 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
       </div>
 
     </div><!-- /sec-registo -->
+
+    <!-- ═══ MAPAS DIÁRIOS (folhas do HEMOTERAPIA.xlsx) — construídos por buildMapaSections() ═══ -->
+    <div id="mapas-container"></div>
 
     <!-- ═══ HISTÓRICO ═══ -->
     <div class="section" id="sec-historico">
@@ -1008,7 +1014,10 @@ let currentData = {
   transfusoes: { plaquetas:0, plasmas:0, globulos:0, crio:0 },
   provas: { colhido:0, consumido:0 },
   doadores: { voluntarios:0, familiares:0, habituais:0 },
-  serologia: { vih:0, hbs:0, vdrl:0, hcv:0, outros:0 }
+  serologia: { vih:0, hbs:0, vdrl:0, hcv:0, outros:0 },
+  // Mapas diários (folhas do HEMOTERAPIA.xlsx) — cada um é um array de blocos,
+  // cada bloco um array de valores por linha. Preenchidos por populateMapas().
+  transfServicos: [], sangueOutras: [], sangueHPrenda: [], resultadosINS: [], imunohematologia: []
 };
 
 const STORAGE_PREFIX = "hemo2_"; // mantido para compatibilidade com dados antigos já migrados
@@ -1064,6 +1073,7 @@ function runSplash(onDone){
 
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded',()=>{
+  buildMapaSections();
   setInterval(updateClock,1000);
   updateClock();
   const n=new Date();
@@ -1210,6 +1220,7 @@ function collectData(){
   currentData.provas={total:n("prova-total")};
   currentData.doadores={voluntarios:n("donor-voluntarios"),familiares:n("donor-familiares"),habituais:n("donor-habituais")};
   currentData.serologia={vih:n("serol-vih"),hbs:n("serol-hbs"),vdrl:n("serol-vdrl"),hcv:n("serol-hcv")};
+  collectMapas();
 }
 
 async function persistData(date){
@@ -1242,8 +1253,12 @@ async function loadDay(date){
     currentData.serologia={vih:0,hbs:0,vdrl:0,hcv:0};
     currentData.turno="manha";
   }
+  // Mapas diários: aplicar o que o dia guardou, ou limpar se este dia não os tem
+  // (evita arrastar valores do dia anterior para um dia sem registo).
+  MAPAS.forEach(m=>{ currentData[m.key] = (saved && saved[m.key]) ? saved[m.key] : []; });
   populateFields();
   calcAll(true);
+  calcMapaAll(true);
   _diaAlterado = false;
   _fbEscutarDia(date);
 }
@@ -1260,6 +1275,7 @@ function populateFields(){
   const s=currentData.serologia||{};
   setV("serol-vih",s.vih||""); setV("serol-hbs",s.hbs||""); setV("serol-vdrl",s.vdrl||""); setV("serol-hcv",s.hcv||"");
   if(currentData.turno) document.getElementById("turno-select").value=currentData.turno;
+  populateMapas();
 }
 
 // ═══ SAVE ═══
@@ -1844,6 +1860,24 @@ function exportDayPDF(){
   ],startY:cy,styles:{fontSize:9},headStyles:{fillColor:[192,57,43]},alternateRowStyles:{fillColor:[255,249,249]},
     didParseCell(d){ if(d.row.index>=15) d.cell.styles.fontStyle='bold'; }
   });
+  // Mapas diários (folhas do HEMOTERAPIA.xlsx) — anexados ao PDF do dia.
+  collectMapas();
+  MAPAS.forEach(mapa=>{
+    const store=currentData[mapa.key]||[];
+    const body=[]; let temDados=false, totalGeral=0;
+    mapa.blocks.forEach((blk,bi)=>{
+      const arr=(store&&store[bi])||[]; let tot=0;
+      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; if(v) temDados=true; tot+=v; body.push([blk.title,row,v]); });
+      body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
+    });
+    if(!temDados) return; // não imprime páginas sem qualquer valor no dia
+    if(mapa.blocks.length>1) body.push(["","TOTAL GERAL",totalGeral]);
+    const startY=(doc.lastAutoTable?doc.lastAutoTable.finalY:cy)+8;
+    doc.autoTable({head:[[mapa.title,"Item","Valor"]],body,startY,styles:{fontSize:8},
+      headStyles:{fillColor:[26,86,219]},alternateRowStyles:{fillColor:[235,243,255]},
+      didParseCell(c){ if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0) c.cell.styles.fontStyle='bold'; }
+    });
+  });
   addPDFFooter(doc,d.date||todayKey(),_registadoPorTxtAtual());
   doc.save("hemoterapia_"+(d.date||todayKey())+".pdf");
   toast("PDF gerado","success");
@@ -1936,18 +1970,203 @@ function _documentoExportadoPorTxtAtual(){
   return nome ? `Documento exportado por: ${nome}` : null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// MAPAS DIÁRIOS — folhas do ficheiro HEMOTERAPIA.xlsx (excepto "Saúde Pública")
+// Cada folha vira uma página do menu, com preenchimento diário, PDF e backup.
+// O preenchimento diário de cada linha, agregado ao longo do mês, reconstrói o
+// mapa mensal original (linhas × dias do mês) de cada folha.
+// ═══════════════════════════════════════════════════════════════════════════
+const GRUPOS_SANGUINEOS = ["ORH+","ORH-","ABRH+","ABRH-","ARH+","ARH-","BRH+","BRH-"];
+const SEROLOGIA_OBS = ["HIV","HBS","HCV","VDRL","AGM","Outras"];
+
+const MAPAS = [
+  {
+    key:"transfServicos", secId:"sec-transf-servicos", navId:"nav-transf-servicos",
+    title:"Transfusões por Serviços", sub:"Grupo sanguíneo transfundido, por serviço", icon:"ic-drop",
+    blocks:[
+      {title:"Bloco Operatório", rows:GRUPOS_SANGUINEOS},
+      {title:"UCI", rows:GRUPOS_SANGUINEOS},
+      {title:"Banco de Urgências", rows:GRUPOS_SANGUINEOS},
+      {title:"Cirurgia", rows:GRUPOS_SANGUINEOS},
+      {title:"Medicina", rows:GRUPOS_SANGUINEOS},
+      {title:"Ortopedia", rows:GRUPOS_SANGUINEOS},
+    ]
+  },
+  {
+    key:"sangueOutras", secId:"sec-sangue-outras", navId:"nav-sangue-outras",
+    title:"Sangue de Outras Unidades", sub:"Unidades de origem e grupo sanguíneo recebido", icon:"ic-heart",
+    blocks:[
+      {title:"Unidades de Origem", rows:[
+        "Instituto Nacional de Sangue","Hospital Militar de Luanda","Hospital Neves Bendinha",
+        "Hospital Josina Machel","Américo Boa vida","Maternidade Lucrécia Paim",
+        "Maternidade Augusto Ngangula","Hospital dos Cajueiros","Clinica Girassol",
+        "Maternidade do K. Norte","Hospital Kilamba Kiaxi","Hospital municipal da Samba",
+        "Clinica Multiperfil","Clínica Endiama","Centro Nacional de Oncologia",
+        "Hospital Geral de Luanda","Hospital Sanatório","Hospital Pediátrico de Luanda",
+        "HDP","HMC","HPDB","Outras unidades"
+      ]},
+      {title:"Grupo Sanguíneo Recebido", rows:GRUPOS_SANGUINEOS},
+    ]
+  },
+  {
+    key:"sangueHPrenda", secId:"sec-sangue-hprenda", navId:"nav-sangue-hprenda",
+    title:"Sangue H. Prenda — Serologia", sub:"Casos positivos e negativos (observação microscópica)", icon:"ic-microscope",
+    blocks:[
+      {title:"Casos Positivos", rows:SEROLOGIA_OBS},
+      {title:"Casos Negativos", rows:SEROLOGIA_OBS},
+    ]
+  },
+  {
+    key:"resultadosINS", secId:"sec-resultados-ins", navId:"nav-resultados-ins",
+    title:"Resultados Vindos do INS", sub:"Observação microscópica — Instituto Nacional de Sangue", icon:"ic-test-tube",
+    blocks:[
+      {title:"Resultados", rows:SEROLOGIA_OBS},
+    ]
+  },
+  {
+    key:"imunohematologia", secId:"sec-imunohematologia", navId:"nav-imunohematologia",
+    title:"Testes de Imunohematologia", sub:"Testes efectuados e grupo sanguíneo por serviço", icon:"ic-microscope",
+    blocks:[
+      {title:"Testes Efectuados", rows:[
+        "Grupo sanguíneo do dador","Grupo sanguíneo do doente a transfundir",
+        "Prova de compatibilidade","Transfusões","Grupos sanguíneos efectuados","Hemoglobinas"
+      ]},
+      {title:"Grupo Sanguíneo por Serviço", rows:[
+        "Bloco Operatório","Banco de Urgência","UCI","Sala de Medicina","Sala de Ortopedia","Sala de Cirurgia"
+      ]},
+    ]
+  }
+];
+
+function _mapaById(key){ return MAPAS.find(m=>m.key===key); }
+function _mapaInputId(key,bi,ri){ return "map_"+key+"_"+bi+"_"+ri; }
+function _mapaTotalId(key,bi){ return "maptot_"+key+"_"+bi; }
+function _mapaEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function _mapaBlockHtml(mapa,blk,bi){
+  let inputs="";
+  blk.rows.forEach((row,ri)=>{
+    inputs+='<div class="field-group"><label class="field-label">'+_mapaEsc(row)+'</label>'
+      +'<input type="number" class="hemo-input" id="'+_mapaInputId(mapa.key,bi,ri)+'" min="0" placeholder="0" oninput="calcMapa(\''+mapa.key+'\')"></div>';
+  });
+  inputs+='<div class="field-group"><label class="field-label">TOTAL</label>'
+    +'<div class="total-display" style="background:var(--surface2);border-color:var(--border);color:var(--muted);" id="'+_mapaTotalId(mapa.key,bi)+'">0</div></div>';
+  return '<div class="card"><div class="card-hdr"><div><div class="card-title"><svg class="ic"><use href="#'+mapa.icon+'"/></svg> '
+    +_mapaEsc(blk.title)+'</div></div></div><div class="card-body"><div class="field-grid">'+inputs+'</div></div></div>';
+}
+
+// Constrói os itens do menu e as secções de cada mapa a partir da configuração.
+function buildMapaSections(){
+  const nav=document.getElementById("nav-mapas-group");
+  if(nav){
+    nav.innerHTML=MAPAS.map(m=>
+      '<button class="nav-item" id="'+m.navId+'" onclick="showSection(\''+m.secId+'\',this)">'
+      +'<svg class="ic"><use href="#'+m.icon+'"/></svg> '+_mapaEsc(m.title)+'</button>'
+    ).join("");
+  }
+  const cont=document.getElementById("mapas-container");
+  if(cont){
+    cont.innerHTML=MAPAS.map(m=>
+      '<div class="section" id="'+m.secId+'">'
+      +'<div class="pg-hdr"><div class="pg-hdr-icon"><svg class="ic"><use href="#'+m.icon+'"/></svg></div>'
+      +'<div><h2>'+_mapaEsc(m.title)+'</h2><p>'+_mapaEsc(m.sub)+' · Preenchimento diário</p></div>'
+      +'<div style="margin-left:auto;"><button class="btn-h btn-out" onclick="exportMapaPDF(\''+m.key+'\')" aria-label="Exportar PDF desta página">'
+      +'<svg class="ic"><use href="#ic-file"/></svg><span class="btn-label"> PDF</span></button></div></div>'
+      +'<div class="mapa-body">'+m.blocks.map((blk,bi)=>_mapaBlockHtml(m,blk,bi)).join("")+'</div>'
+      +'</div>'
+    ).join("");
+  }
+}
+
+// Recalcula os totais de um mapa e guarda o seu estado em currentData.
+function calcMapa(key,fromLoad){
+  const mapa=_mapaById(key); if(!mapa) return;
+  const store=[];
+  mapa.blocks.forEach((blk,bi)=>{
+    let tot=0; const arr=[];
+    blk.rows.forEach((row,ri)=>{ const v=n(_mapaInputId(key,bi,ri)); arr.push(v); tot+=v; });
+    const totEl=document.getElementById(_mapaTotalId(key,bi));
+    if(totEl) totEl.textContent=tot.toLocaleString("pt-PT");
+    store[bi]=arr;
+  });
+  currentData[key]=store;
+  if(!fromLoad){ _diaAlterado=true; autoSaveLazy(); }
+}
+function calcMapaAll(fromLoad){ MAPAS.forEach(m=>calcMapa(m.key,fromLoad)); }
+
+// Lê os campos de todos os mapas para currentData (chamado por collectData).
+function collectMapas(){
+  MAPAS.forEach(mapa=>{
+    const store=[];
+    mapa.blocks.forEach((blk,bi)=>{
+      const arr=[]; blk.rows.forEach((row,ri)=>arr.push(n(_mapaInputId(mapa.key,bi,ri))));
+      store[bi]=arr;
+    });
+    currentData[mapa.key]=store;
+  });
+}
+
+// Preenche os campos de todos os mapas a partir de currentData (chamado por populateFields).
+function populateMapas(){
+  MAPAS.forEach(mapa=>{
+    const store=currentData[mapa.key]||[];
+    mapa.blocks.forEach((blk,bi)=>{
+      const arr=(store&&store[bi])||[];
+      blk.rows.forEach((row,ri)=>{
+        const el=document.getElementById(_mapaInputId(mapa.key,bi,ri));
+        if(el) el.value=(arr[ri]!=null && arr[ri]!==0)?arr[ri]:"";
+      });
+    });
+  });
+}
+
+// PDF de uma página de mapa (só os dados do dia actual).
+function exportMapaPDF(key){
+  const { jsPDF }=window.jspdf; if(!jsPDF){ toast("Biblioteca PDF não carregada","error"); return; }
+  const mapa=_mapaById(key); if(!mapa) return;
+  collectMapas();
+  const store=currentData[key]||[];
+  const doc=new jsPDF(); const d=currentData;
+  let cy=buildPDFHeader(doc,mapa.title+"  |  Data: "+fmtDate(d.date),"Mapa Diário",d.date);
+  const body=[]; let totalGeral=0;
+  mapa.blocks.forEach((blk,bi)=>{
+    const arr=(store&&store[bi])||[]; let tot=0;
+    blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
+    body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
+  });
+  if(mapa.blocks.length>1) body.push(["","TOTAL GERAL",totalGeral]);
+  doc.autoTable({head:[["Secção","Item","Valor"]],body,startY:cy,styles:{fontSize:9},
+    headStyles:{fillColor:[192,57,43]},alternateRowStyles:{fillColor:[255,249,249]},
+    didParseCell(c){ if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0) c.cell.styles.fontStyle='bold'; }
+  });
+  addPDFFooter(doc,mapa.title,_registadoPorTxtAtual());
+  doc.save("hemo_"+key+"_"+(d.date||todayKey())+".pdf");
+  toast("PDF de "+mapa.title+" gerado","success");
+}
+
 // ═══ JSON BACKUP ═══
-function exportJSON(){
+// Exporta TODOS os registos guardados (incluindo os mapas diários acima, que
+// fazem parte de cada registo). Usa o módulo DB para ler a fonte de dados real.
+async function exportJSON(){
   if (sessionStorage.getItem('zeloRole') !== 'admin'){
     if (typeof toast === 'function') toast('Só administradores podem usar esta opção', 'error');
     return;
   }
-  const dates=getSavedDates(); const all={};
-  dates.forEach(d=>{ const raw=localStorage.getItem(sk(d)); if(raw) all[d]=JSON.parse(raw); });
-  const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),dates,data:all},null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download="hemoterapia_backup_"+todayKey()+".json"; a.click();
-  toast("Backup JSON exportado","success");
+  try{
+    const records = await DB.getAll();
+    records.sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    const dates = records.map(r=>r.date);
+    const all = {};
+    records.forEach(r=>{ if(r && r.date) all[r.date]=r; });
+    const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),dates,data:all},null,2)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="hemoterapia_backup_"+todayKey()+".json"; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    toast("Backup JSON exportado ("+records.length+" registos)","success");
+  }catch(e){
+    console.error("Erro ao exportar backup:",e);
+    toast("Falha ao exportar backup","error");
+  }
 }
 
 // Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
