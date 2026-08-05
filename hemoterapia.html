@@ -1681,7 +1681,25 @@ function aggregateData(records){
   out.cc.colhido   = out.doadores.total * 500;
   out.cc.consumido = (out.transfusoes.globulos*500) + (out.transfusoes.plasmas*200) + (out.transfusoes.plaquetas*200) + (out.transfusoes.crio*150);
   out.cc.perdido   = out.serologia.total * 500;
+  out.mapas = aggregateMapas(records);
   return out;
+}
+
+// Agrega os mapas diários ao longo de vários registos (soma linha a linha por
+// bloco). Devolve { chave: [ [somasPorLinha], ... porBloco ] }.
+function aggregateMapas(records){
+  const agg={};
+  MAPAS.forEach(m=>{ agg[m.key]=m.blocks.map(blk=>blk.rows.map(()=>0)); });
+  (records||[]).forEach(r=>{
+    MAPAS.forEach(m=>{
+      const store=r[m.key]; if(!Array.isArray(store)) return;
+      m.blocks.forEach((blk,bi)=>{
+        const arr=store[bi]; if(!Array.isArray(arr)) return;
+        blk.rows.forEach((row,ri)=>{ agg[m.key][bi][ri]+=Number(arr[ri])||0; });
+      });
+    });
+  });
+  return agg;
 }
 
 // ═══ STAT PERIODS ═══
@@ -1798,6 +1816,34 @@ function renderStatTable(period,agg){
     ["ic-bar-chart","Sangue Perdido/Mil (cc) = Serologia × 500",agg.cc.perdido.toLocaleString("pt-PT"),true],
   ];
   tbl.innerHTML=`<thead><tr><th>Indicador</th><th>Total</th></tr></thead><tbody>${rows.map(([icon,l,v,total])=>`<tr ${total?"class='total-row'":""}><td><svg class='ic'><use href='#${icon}'/></svg> ${l}</td><td>${v}</td></tr>`).join("")}</tbody>`;
+  renderStatMapas(period,agg.mapas);
+}
+
+// Renderiza, por baixo da tabela do período, uma tabela agregada por cada mapa
+// diário (folhas do HEMOTERAPIA.xlsx) — soma de cada linha no período.
+function renderStatMapas(period,mapasAgg){
+  const tbl=document.getElementById("stat-"+period); if(!tbl) return;
+  const ancora=tbl.closest(".card")||tbl;
+  let cont=document.getElementById("statmapas-"+period);
+  if(!cont){
+    cont=document.createElement("div");
+    cont.id="statmapas-"+period;
+    ancora.parentNode.insertBefore(cont,ancora.nextSibling);
+  }
+  if(!mapasAgg){ cont.innerHTML=""; return; }
+  cont.innerHTML=MAPAS.map(m=>{
+    const agg=mapasAgg[m.key]||[];
+    let corpo="";
+    m.blocks.forEach((blk,bi)=>{
+      const arr=agg[bi]||[]; let tot=0;
+      let linhas="";
+      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; linhas+=`<tr><td>${_mapaEsc(row)}</td><td>${v}</td></tr>`; });
+      corpo+=`<tr class="total-row"><td>${_mapaEsc(blk.title)}</td><td></td></tr>`+linhas
+        +`<tr class="total-row"><td>TOTAL ${_mapaEsc(blk.title)}</td><td>${tot}</td></tr>`;
+    });
+    return `<div class="card" style="margin-top:12px;"><div class="card-hdr"><div><div class="card-title"><svg class='ic'><use href='#${m.icon}'/></svg> ${_mapaEsc(m.title)}</div></div></div>`
+      +`<div class="card-body" style="overflow-x:auto;"><table class="stat-table"><thead><tr><th>Item</th><th>Total no período</th></tr></thead><tbody>${corpo}</tbody></table></div></div>`;
+  }).join("");
 }
 
 // ═══ DETAIL TABLE ═══
@@ -1984,6 +2030,24 @@ function exportStatPDF(period,dates){
     ["Sangue Perdido/Mil (cc) = (VIH+HBs+VDRL+HCV) x 500",agg.cc.perdido.toLocaleString("pt-PT")],
   ],startY:cy,styles:{fontSize:9},headStyles:{fillColor:[192,57,43]},alternateRowStyles:{fillColor:[255,249,249]},
     didParseCell(d){ if(d.row.index>=14) d.cell.styles.fontStyle='bold'; }
+  });
+  // Mapas diários agregados no período.
+  const mapasAgg=agg.mapas||{};
+  MAPAS.forEach(mapa=>{
+    const a=mapasAgg[mapa.key]||[];
+    const body=[]; let temDados=false, totalGeral=0;
+    mapa.blocks.forEach((blk,bi)=>{
+      const arr=a[bi]||[]; let tot=0;
+      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; if(v) temDados=true; tot+=v; body.push([blk.title,row,v]); });
+      body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
+    });
+    if(!temDados) return;
+    if(mapa.blocks.length>1) body.push(["","TOTAL GERAL",totalGeral]);
+    const startY=(doc.lastAutoTable?doc.lastAutoTable.finalY:cy)+8;
+    doc.autoTable({head:[[mapa.title,"Item","Total"]],body,startY,styles:{fontSize:8},
+      headStyles:{fillColor:[26,86,219]},alternateRowStyles:{fillColor:[235,243,255]},
+      didParseCell(c){ if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0) c.cell.styles.fontStyle='bold'; }
+    });
   });
   addPDFFooter(doc,period,_documentoExportadoPorTxtAtual());
   doc.save("hemo_stat_"+period+"_"+todayKey()+".pdf");
