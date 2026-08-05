@@ -442,7 +442,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
     <div class="sb-hdr"><span>Hemoterapia</span></div>
     <div class="nav-list">
       <div class="sb-sec">Registo</div>
-      <button class="nav-item active" id="nav-registo" onclick="showSection('sec-registo',this)"><svg class='ic'><use href='#ic-drop'/></svg> Registo Diário</button>
+      <button class="nav-item active" id="nav-registo" onclick="showSection('sec-registo',this)"><svg class='ic'><use href='#ic-drop'/></svg> Saúde Pública</button>
       <hr class="sb-divider">
       <div class="sb-sec">Mapas Diários</div>
       <div id="nav-mapas-group"><!-- construído por buildMapaSections() --></div>
@@ -464,7 +464,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
     <div class="section active" id="sec-registo">
       <div class="pg-hdr">
         <div class="pg-hdr-icon"><svg class='ic'><use href='#ic-drop'/></svg></div>
-        <div><h2>Registo Diário — Hemoterapia</h2><p>Transfusões · Provas · Doadores · Serologia</p></div>
+        <div><h2>Saúde Pública — Hemoterapia</h2><p>Transfusões · Provas · Doadores · Serologia</p></div>
         <div class="spec-totals">
           <div class="tot-box red"><span class="tot-lbl">Transfusões</span><span class="tot-val" id="hdr-transf">0</span></div>
           <div class="tot-box blue"><span class="tot-lbl">Colhido (cc)</span><span class="tot-val" id="hdr-colhido-cc">0</span></div>
@@ -1171,6 +1171,12 @@ function showSection(id, btn){
   if(btn) btn.classList.add("active");
   if(id==="sec-historico") renderHistory();
   if(id==="sec-backup") _bkAutoAtualizarStatus();
+  // Ao abrir uma página de mapa, recalcula (cria/atualiza o gráfico) e
+  // redimensiona-o — o canvas estava oculto e sem dimensões até agora.
+  if(typeof MAPAS!=="undefined"){
+    const _m=MAPAS.find(x=>x.secId===id);
+    if(_m){ calcMapa(_m.key,true); const _c=_mapaCharts[_m.key]; if(_c) requestAnimationFrame(()=>_c.resize()); }
+  }
   if(window.innerWidth<=768) toggleSidebar(false);
   document.querySelector(".main-content")?.scrollTo({top:0,behavior:"smooth"});
 }
@@ -1952,7 +1958,7 @@ function exportDayPDF(){
   const totalD=(doa.voluntarios||0)+(doa.familiares||0)+(doa.habituais||0);
   const totalS=(s.vih||0)+(s.hbs||0)+(s.vdrl||0)+(s.hcv||0);
   const ccC=totalD*500, ccCo=(t.globulos||0)*500+(t.plasmas||0)*200+(t.plaquetas||0)*200+(t.crio||0)*150, ccP=totalS*500;
-  let cy=buildPDFHeader(doc,"Data: "+fmtDate(d.date)+"  |  Turno: "+(d.turno||"—"),"Registo Diário",d.date);
+  let cy=buildPDFHeader(doc,"Data: "+fmtDate(d.date)+"  |  Turno: "+(d.turno||"—"),"Saúde Pública",d.date);
   doc.autoTable({head:[["Secção","Indicador","Valor"]],body:[
     ["Transfusões","Plaquetas",t.plaquetas||0],
     ["Transfusões","Plasmas",t.plasmas||0],
@@ -1978,14 +1984,14 @@ function exportDayPDF(){
   collectMapas();
   MAPAS.forEach(mapa=>{
     const store=currentData[mapa.key]||[];
-    const body=[]; let temDados=false, totalGeral=0;
+    const body=[]; let totalGeral=0;
     mapa.blocks.forEach((blk,bi)=>{
       const arr=(store&&store[bi])||[]; let tot=0;
-      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; if(v) temDados=true; tot+=v; body.push([blk.title,row,v]); });
+      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
       body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
     });
-    if(!temDados) return; // não imprime páginas sem qualquer valor no dia
-    if(mapa.blocks.length>1) body.push(["","TOTAL GERAL",totalGeral]);
+    // Todas as páginas entram no PDF do dia, mesmo sem valores.
+    body.push(["","TOTAL GERAL",totalGeral]);
     const startY=(doc.lastAutoTable?doc.lastAutoTable.finalY:cy)+8;
     doc.autoTable({head:[[mapa.title,"Item","Valor"]],body,startY,styles:{fontSize:8},
       headStyles:{fillColor:[26,86,219]},alternateRowStyles:{fillColor:[235,243,255]},
@@ -2035,14 +2041,14 @@ function exportStatPDF(period,dates){
   const mapasAgg=agg.mapas||{};
   MAPAS.forEach(mapa=>{
     const a=mapasAgg[mapa.key]||[];
-    const body=[]; let temDados=false, totalGeral=0;
+    const body=[]; let totalGeral=0;
     mapa.blocks.forEach((blk,bi)=>{
       const arr=a[bi]||[]; let tot=0;
-      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; if(v) temDados=true; tot+=v; body.push([blk.title,row,v]); });
+      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
       body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
     });
-    if(!temDados) return;
-    if(mapa.blocks.length>1) body.push(["","TOTAL GERAL",totalGeral]);
+    // Todas as páginas entram no PDF do período, mesmo sem valores.
+    body.push(["","TOTAL GERAL",totalGeral]);
     const startY=(doc.lastAutoTable?doc.lastAutoTable.finalY:cy)+8;
     doc.autoTable({head:[[mapa.title,"Item","Total"]],body,startY,styles:{fontSize:8},
       headStyles:{fillColor:[26,86,219]},alternateRowStyles:{fillColor:[235,243,255]},
@@ -2177,6 +2183,9 @@ function _mapaInputId(key,bi,ri){ return "map_"+key+"_"+bi+"_"+ri; }
 function _mapaTotalId(key,bi){ return "maptot_"+key+"_"+bi; }
 function _mapaEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+const _MAPA_ACCENTS=["red-hdr","blue-hdr","green-hdr","amber-hdr"];
+const _MAPA_CHART_CORES=["#c0392b","#1a56db","#047857","#d97706","#7c3aed","#0891b2","#db2777","#4b5563","#ca8a04","#0d9488"];
+
 function _mapaBlockHtml(mapa,blk,bi){
   let inputs="";
   blk.rows.forEach((row,ri)=>{
@@ -2184,9 +2193,28 @@ function _mapaBlockHtml(mapa,blk,bi){
       +'<input type="number" class="hemo-input" id="'+_mapaInputId(mapa.key,bi,ri)+'" min="0" placeholder="0" oninput="calcMapa(\''+mapa.key+'\')"></div>';
   });
   inputs+='<div class="field-group"><label class="field-label">TOTAL</label>'
-    +'<div class="total-display" style="background:var(--surface2);border-color:var(--border);color:var(--muted);" id="'+_mapaTotalId(mapa.key,bi)+'">0</div></div>';
-  return '<div class="card"><div class="card-hdr"><div><div class="card-title"><svg class="ic"><use href="#'+mapa.icon+'"/></svg> '
-    +_mapaEsc(blk.title)+'</div></div></div><div class="card-body"><div class="field-grid">'+inputs+'</div></div></div>';
+    +'<div class="total-display" id="'+_mapaTotalId(mapa.key,bi)+'">0</div></div>';
+  return '<div class="card"><div class="card-hdr '+_MAPA_ACCENTS[bi%_MAPA_ACCENTS.length]+'"><div><div class="card-title"><svg class="ic"><use href="#'+mapa.icon+'"/></svg> '
+    +_mapaEsc(blk.title)+'</div><div class="card-sub">Total de itens: '+blk.rows.length+'</div></div></div>'
+    +'<div class="card-body"><div class="field-grid">'+inputs+'</div></div></div>';
+}
+
+// Placar da página: um cartão com o total de cada bloco (item) + o total geral.
+function _mapaPlacarHtml(mapa){
+  const boxes=mapa.blocks.map((blk,bi)=>
+    '<div class="kpi"><div class="kpi-lbl">'+_mapaEsc(blk.title)+'</div>'
+    +'<div class="kpi-val" id="mapkpi_'+mapa.key+'_'+bi+'">0</div></div>'
+  ).join("");
+  const geral='<div class="kpi red"><span class="kpi-icon"><svg class="ic"><use href="#'+mapa.icon+'"/></svg></span>'
+    +'<div class="kpi-lbl">Total Geral</div><div class="kpi-val" id="mapkpi_'+mapa.key+'_geral">0</div></div>';
+  return '<div class="kpi-grid">'+boxes+geral+'</div>';
+}
+
+// Painel/dashboard da página: gráfico real que se atualiza enquanto se preenche.
+function _mapaDashHtml(mapa){
+  return '<div class="card"><div class="card-hdr"><div><div class="card-title"><svg class="ic"><use href="#ic-bar-chart"/></svg> Painel — '
+    +_mapaEsc(mapa.title)+'</div><div class="card-sub">Atualiza automaticamente enquanto preenche</div></div></div>'
+    +'<div class="card-body"><div class="chart-wrap" style="height:300px;"><canvas id="mapchart_'+mapa.key+'"></canvas></div></div></div>';
 }
 
 // Constrói os itens do menu e as secções de cada mapa a partir da configuração.
@@ -2204,29 +2232,91 @@ function buildMapaSections(){
       '<div class="section" id="'+m.secId+'">'
       +'<div class="pg-hdr"><div class="pg-hdr-icon"><svg class="ic"><use href="#'+m.icon+'"/></svg></div>'
       +'<div><h2>'+_mapaEsc(m.title)+'</h2><p>'+_mapaEsc(m.sub)+' · Preenchimento diário</p></div>'
-      +'<div style="margin-left:auto;"><button class="btn-h btn-out" onclick="exportMapaPDF(\''+m.key+'\')" aria-label="Exportar PDF desta página">'
-      +'<svg class="ic"><use href="#ic-file"/></svg><span class="btn-label"> PDF</span></button></div></div>'
+      +'<div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">'
+      +'<button class="btn-h btn-save" onclick="guardarMapa(\''+m.key+'\')" aria-label="Guardar"><svg class="ic"><use href="#ic-save"/></svg><span class="btn-label"> Guardar</span></button>'
+      +'<button class="btn-h btn-out" onclick="eliminarMapa(\''+m.key+'\')" aria-label="Eliminar dados desta página"><svg class="ic"><use href="#ic-trash"/></svg><span class="btn-label"> Eliminar</span></button>'
+      +'<button class="btn-h btn-out" onclick="exportMapaPDF(\''+m.key+'\')" aria-label="Exportar PDF desta página"><svg class="ic"><use href="#ic-file"/></svg><span class="btn-label"> PDF</span></button>'
+      +'</div></div>'
+      +_mapaPlacarHtml(m)
+      +_mapaDashHtml(m)
       +'<div class="mapa-body">'+m.blocks.map((blk,bi)=>_mapaBlockHtml(m,blk,bi)).join("")+'</div>'
       +'</div>'
     ).join("");
   }
 }
 
-// Recalcula os totais de um mapa e guarda o seu estado em currentData.
+// Recalcula os totais de um mapa, atualiza o placar e o gráfico, e guarda o
+// estado em currentData.
 function calcMapa(key,fromLoad){
   const mapa=_mapaById(key); if(!mapa) return;
-  const store=[];
+  const store=[]; const blockTotals=[]; let geral=0;
   mapa.blocks.forEach((blk,bi)=>{
     let tot=0; const arr=[];
     blk.rows.forEach((row,ri)=>{ const v=n(_mapaInputId(key,bi,ri)); arr.push(v); tot+=v; });
     const totEl=document.getElementById(_mapaTotalId(key,bi));
     if(totEl) totEl.textContent=tot.toLocaleString("pt-PT");
-    store[bi]=arr;
+    const kpiEl=document.getElementById("mapkpi_"+key+"_"+bi);
+    if(kpiEl) kpiEl.textContent=tot.toLocaleString("pt-PT");
+    store[bi]=arr; blockTotals.push(tot); geral+=tot;
   });
+  const geralEl=document.getElementById("mapkpi_"+key+"_geral");
+  if(geralEl) geralEl.textContent=geral.toLocaleString("pt-PT");
   currentData[key]=store;
+  _updateMapaChart(mapa,store,blockTotals);
   if(!fromLoad){ _diaAlterado=true; autoSaveLazy(); }
 }
 function calcMapaAll(fromLoad){ MAPAS.forEach(m=>calcMapa(m.key,fromLoad)); }
+
+// Gráfico dinâmico por página (Chart.js). Páginas com vários blocos mostram o
+// total por bloco; páginas de bloco único mostram o valor por linha.
+const _mapaCharts={};
+function _updateMapaChart(mapa,store,blockTotals){
+  if(typeof Chart==="undefined") return;
+  const canvas=document.getElementById("mapchart_"+mapa.key); if(!canvas) return;
+  let labels,data;
+  if(mapa.blocks.length>1){ labels=mapa.blocks.map(b=>b.title); data=blockTotals.slice(); }
+  else { labels=mapa.blocks[0].rows.slice(); data=(store[0]||[]).slice(); }
+  const cores=labels.map((_,i)=>_MAPA_CHART_CORES[i%_MAPA_CHART_CORES.length]);
+  const ex=_mapaCharts[mapa.key];
+  if(ex){ ex.data.labels=labels; ex.data.datasets[0].data=data; ex.data.datasets[0].backgroundColor=cores; ex.update(); return; }
+  try{
+    _mapaCharts[mapa.key]=new Chart(canvas,{
+      type:"bar",
+      data:{labels,datasets:[{label:"Total",data,backgroundColor:cores,borderWidth:1,borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>" "+c.parsed.y}}},
+        scales:{y:{beginAtZero:true,ticks:{precision:0,font:{family:"Roboto Mono",size:10}}},
+                x:{ticks:{font:{family:"Inter",size:10},maxRotation:40,minRotation:0}}}}
+    });
+  }catch(e){ console.warn("[Mapa] gráfico indisponível",e); }
+}
+
+// Guardar (criar/atualizar) — persiste o dia e mostra mensagem de confirmação.
+async function guardarMapa(key){
+  const mapa=_mapaById(key);
+  collectData();
+  try{
+    await persistData(currentData.date||todayKey());
+    toast("✔ "+(mapa?mapa.title:"Registo")+" guardado com sucesso","success");
+  }catch(e){ toast("Não foi possível guardar","error"); }
+}
+
+// Eliminar — limpa os dados desta página no dia atual e persiste a alteração.
+async function eliminarMapa(key){
+  const mapa=_mapaById(key); if(!mapa) return;
+  const dia=fmtDate(currentData.date||todayKey());
+  if(!confirm('Eliminar todos os dados de "'+mapa.title+'" no dia '+dia+'?\nEsta ação não pode ser anulada.')) return;
+  mapa.blocks.forEach((blk,bi)=>blk.rows.forEach((row,ri)=>{
+    const el=document.getElementById(_mapaInputId(key,bi,ri)); if(el) el.value="";
+  }));
+  currentData[key]=[];
+  calcMapa(key,true);
+  collectData();
+  try{
+    await persistData(currentData.date||todayKey());
+    toast("🗑 Dados de \""+mapa.title+"\" eliminados","success");
+  }catch(e){ toast("Não foi possível eliminar","error"); }
+}
 
 // Lê os campos de todos os mapas para currentData (chamado por collectData).
 function collectMapas(){
