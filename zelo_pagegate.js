@@ -1,5 +1,5 @@
 // ZELO — proteção de página com sessão Firebase real (verifica módulo + item específico)
-import { auth, fetchUserProfile, onAuthStateChanged, hasModuleAccess, getModuleAccessLevel, startInactivityWatch, signOut } from './zelo_auth.js';
+import { auth, fetchUserProfileOuFalhar, onAuthStateChanged, hasModuleAccess, getModuleAccessLevel, startInactivityWatch, signOut } from './zelo_auth.js';
 
 var moduleKey = window.ZELO_MODULE || null;
 var itemKey = window.ZELO_ITEM || null;
@@ -77,6 +77,42 @@ if (embedded) {
   try { window.parent.postMessage({ type: 'zelo-child-ready' }, window.location.origin); } catch (e) {}
 }
 
+// Lê o perfil com até 2 tentativas antes de desistir — uma leitura lenta
+// (rede instável, ou uma página pesada como o Bloco Operatório a competir
+// pelo processador enquanto o Firebase responde) nunca deve ser tratada
+// como "conta inexistente"; só uma leitura que TERMINE com sucesso e
+// confirme perfil ausente/inactivo é motivo para reencaminhar ao login.
+async function _obterPerfilComRetentativa(uid, tentativas){
+  var ultimoErro;
+  for (var i = 0; i < tentativas; i++) {
+    try { return await fetchUserProfileOuFalhar(uid); }
+    catch (e) { ultimoErro = e; console.warn('ZELO: falha momentânea ao ler o perfil (tentativa ' + (i + 1) + '/' + tentativas + ')', e); }
+  }
+  throw ultimoErro;
+}
+
+function showSlowConnectionScreen(){
+  document.documentElement.style.visibility = 'visible';
+  if (document.getElementById('zelo-gate-slow')) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'zelo-gate-slow';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#0D1B3E;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif;';
+  overlay.innerHTML =
+    '<div style="max-width:420px;width:100%;background:#fff;border-radius:16px;padding:32px 28px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);">' +
+      '<div style="width:56px;height:56px;border-radius:50%;background:#FFFBEB;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">' +
+        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.18 14.18A2 2 0 0 0 3.82 21h16.36a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>' +
+      '</div>' +
+      '<div style="font-size:1.05rem;font-weight:700;color:#0D1B3E;margin-bottom:8px;">Não foi possível confirmar a sessão</div>' +
+      '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:22px;">A ligação à internet está lenta ou instável — a sua conta e os seus dados de acesso continuam intactos. Tente novamente.</div>' +
+      '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
+        '<button id="zelo-gate-retry" style="padding:11px 22px;border-radius:10px;background:#0D1B3E;color:#fff;border:none;font-weight:600;font-size:.86rem;cursor:pointer;">Tentar novamente</button>' +
+        '<a href="index.html" style="display:inline-block;padding:11px 22px;border-radius:10px;background:#F1F5F9;color:#0D1B3E;text-decoration:none;font-weight:600;font-size:.86rem;">Voltar ao Início</a>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  document.getElementById('zelo-gate-retry').addEventListener('click', function(){ window.location.reload(); });
+}
+
 function showBlockedScreen(role, permissoes){
   document.documentElement.style.visibility = 'visible';
   // Diagnóstico temporário (visível só neste ecrã de bloqueio, não afeta o
@@ -110,7 +146,15 @@ onAuthStateChanged(auth, async function (user) {
     window.location.replace('index.html');
     return;
   }
-  var perfil = await fetchUserProfile(user.uid);
+  var perfil;
+  try {
+    perfil = await _obterPerfilComRetentativa(user.uid, 2);
+  } catch (e) {
+    if (resolvido) return;
+    console.error('ZELO: não foi possível ler o perfil do utilizador após várias tentativas — a sessão não foi terminada.', e);
+    showSlowConnectionScreen();
+    return;
+  }
   if (resolvido) return;
   if (!perfil || perfil.ativo === false) {
     if (embedded) { window.top.location.href = 'index.html'; return; }

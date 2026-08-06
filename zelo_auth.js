@@ -376,7 +376,7 @@ export {
   app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
-  fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
+  fetchUserProfile, fetchUserProfileOuFalhar, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
   hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES
 };
@@ -385,7 +385,7 @@ window.ZeloAuth = {
   app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
-  fetchUserProfile, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
+  fetchUserProfile, fetchUserProfileOuFalhar, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
   hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES
 };
