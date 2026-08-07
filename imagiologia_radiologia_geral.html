@@ -6,6 +6,8 @@
 <script>window.ZELO_ITEM='imagiologia_radiologia_geral';</script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_merge.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -387,6 +389,8 @@ header .btn-hdr.accent:hover{background:#fff;color:#1A56DB;}
   box-shadow:0 4px 16px rgba(26,86,219,.28);transition:all .18s var(--ease);width:calc(100% - 32px);}
 .save-btn:hover{background:var(--accent-d);transform:translateY(-1px);box-shadow:0 6px 20px rgba(26,86,219,.32);}
 .save-btn:active{transform:translateY(0);}
+.as-dot{width:6px;height:6px;border-radius:50%;background:transparent;flex-shrink:0;transition:background .15s;}
+.as-dot.saving{background:#fff;animation:pulse 1s infinite;}
 
 /* ── MAIN CONTENT ── */
 .main-content{margin-left:var(--sidebar-w);flex:1;min-height:calc(100vh - var(--header-h));
@@ -494,10 +498,10 @@ table{width:100%;border-collapse:collapse;}
 
 /* ── NUMBER INPUTS ── */
 .num-input{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
-  padding:6.5px 8px;font-family:'Inter',sans-serif;font-size:.8rem;color:var(--text);
-  width:74px;text-align:center;outline:none;-moz-appearance:textfield;transition:border-color .15s,box-shadow .15s;}
+  padding:8px 9px;font-family:'Inter',sans-serif;font-size:.82rem;color:var(--text);
+  width:76px;text-align:center;outline:none;-moz-appearance:textfield;transition:border-color .15s,box-shadow .15s;}
 .num-input:hover{border-color:var(--border2);}
-.num-input:focus{border-color:var(--accent);box-shadow:var(--focus-ring);}
+.num-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,.22);}
 .num-input::-webkit-outer-spin-button,.num-input::-webkit-inner-spin-button{-webkit-appearance:none;}
 .th-bu{color:#ef4444!important;}
 .th-aut{color:#d97706!important;}
@@ -602,6 +606,25 @@ table{width:100%;border-collapse:collapse;}
 .export-desc{font-size:.6rem;color:var(--muted);margin-bottom:15px;line-height:1.55;}
 
 /* ── BACKUP MODAL ── */
+/* ── MODAL DE PRÉ-VISUALIZAÇÃO DE PDF ────────────────────*/
+.pdf-preview-overlay{display:none;position:fixed;inset:0;background:rgba(13,27,62,.7);backdrop-filter:blur(6px);z-index:9100;align-items:center;justify-content:center;padding:20px;}
+.pdf-preview-overlay.open{display:flex;}
+.pdf-preview-box{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:820px;height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;}
+.pdf-preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0;}
+.pdf-preview-head h3{font-size:.9rem;font-weight:800;color:var(--text);font-family:'Inter',sans-serif;}
+.pdf-preview-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--surface2);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;}
+.pdf-preview-close:hover{background:var(--border);}
+.pdf-preview-body{flex:1;min-height:0;background:#525659;}
+.pdf-preview-body iframe{width:100%;height:100%;border:none;display:block;}
+.pdf-preview-foot{display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--border);background:#fff;flex-wrap:wrap;flex-shrink:0;}
+.pdf-preview-foot button{flex:1;min-width:120px;padding:11px 16px;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;border:none;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px;}
+.pdf-preview-cancel{background:#fff;border:1.5px solid var(--border2)!important;color:var(--text-muted);flex:0 0 auto!important;min-width:100px!important;}
+#pdfPreviewBaixar{background:var(--accent);color:#fff;}
+#pdfPreviewBaixar:hover{background:var(--accent-d);}
+@media (max-width:640px){
+  .pdf-preview-overlay{padding:0;}
+  .pdf-preview-box{max-width:none;height:100vh;border-radius:0;}
+}
 #zeloBkOverlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(6px);z-index:9000;align-items:center;justify-content:center;padding:16px;}
 #zeloBkOverlay.open{display:flex;}
 #zeloBkModal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:420px;box-shadow:var(--shadow-lg);overflow:hidden;}
@@ -735,7 +758,7 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
   </div>
   <div class="header-right">
     <div class="date-badge"><label>Data</label>
-      <input type="date" id="data-registo" onchange="loadDay(this.value)"></div>
+      <input type="date" id="data-registo" onchange="mudarDataRegisto(this.value)"></div>
     <span class="clock-b" id="clock">--:--:--</span>
     <div class="sync-b"><div class="sync-dot"></div><span id="sync-label">Local</span></div>
     <span id="last-saved-status" style="display:none;font-size:.65rem;color:#64748B;margin:0 4px;white-space:nowrap;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></span>
@@ -764,7 +787,7 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
   <button class="nav-item" onclick="showSection('historico',this)"><span class="nav-dot"></span><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Histórico</button>
   <button class="nav-item" onclick="showSection('exportar',this)"><span class="nav-dot"></span><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar</button>
   <div class="sb-divider"></div>
-  <button class="save-btn" id="main-save-btn" onclick="saveAllData()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Guardar Registo</span></button>
+  <button class="save-btn" id="main-save-btn" onclick="saveAllData()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Guardar Registo</span> <span id="as-dot" class="as-dot" title="A gravar automaticamente…"></span></button>
   <div style="padding:6px 14px;">
     <button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;color:rgba(148,163,184,.7);border-color:#334155;" onclick="exportPDFDia()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF Diário</button>
   </div>
@@ -800,7 +823,7 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
     <div class="card-hdr"><h3><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Data, Turno e Técnicos</h3></div>
     <div class="date-bar">
       <label>Turno</label>
-      <select id="turno-select" class="pc-select">
+      <select id="turno-select" class="pc-select" onchange="autoSave()">
         <option value="manha">Manhã</option>
         <option value="tarde">Tarde</option>
         <option value="noite">Noite</option>
@@ -1056,6 +1079,43 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
       <div class="export-desc">Envia todos os dias guardados neste dispositivo para o Firebase</div>
       <button class="btn btn-navy btn-sm" onclick="reenviarTudoParaFirebase()">Reenviar Tudo</button>
     </div>
+    <div class="export-card">
+      <div class="export-icon"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg></div><div class="export-title">Backup Automático</div>
+      <div class="export-desc">Gravação periódica numa pasta do computador</div>
+      <button class="btn btn-navy btn-sm" onclick="abrirBackupAutoModal()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg> Configurar</button>
+    </div>
+  </div>
+
+  <!-- MODAL BACKUP AUTOMÁTICO -->
+  <div id="backupAutoModal" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.72);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;border-radius:20px;width:100%;max-width:440px;box-shadow:0 16px 48px rgba(13,27,62,.25);max-height:90vh;overflow:auto;">
+      <div style="padding:20px 22px 4px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Backup Automático</h3>
+        <button onclick="closeBackupAutoModal()" aria-label="Fechar" style="background:#F1F5F9;border:none;border-radius:9px;width:30px;height:30px;cursor:pointer;color:#334155;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div style="padding:10px 22px 22px;">
+        <p id="bkauto-suporte-msg" style="display:none;color:#DC2626;font-size:.75rem;">
+          O seu navegador não suporta esta funcionalidade — funciona apenas no Google Chrome ou Microsoft Edge (computador).
+        </p>
+        <div id="bkauto-corpo">
+          <p style="font-size:.75rem;color:#64748B;line-height:1.5;">
+            Escolha uma pasta no computador. O sistema grava automaticamente uma cópia em JSON
+            dos registos guardados — Diário, Semanal, Mensal, Trimestral, Semestral e Anual —
+            sempre que esta página estiver aberta à volta da meia-noite, ou assim que a abrir de novo.
+            O PDF é guardado na pasta sempre que gerar um manualmente.
+          </p>
+          <div id="bkauto-status" style="margin:10px 0;padding:10px 12px;background:#F8FAFC;border-radius:10px;font-size:.72rem;color:#334155;">
+            <div id="bkauto-pasta-nome">A verificar…</div>
+          </div>
+          <div id="bkauto-cadencias" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:.68rem;color:#64748B;margin-bottom:12px;"></div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button onclick="_bkAutoEscolherPasta()" style="width:100%;padding:13px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;color:#1E40AF;font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Escolher pasta</button>
+            <button onclick="_bkAutoVerificarAgora()" style="width:100%;padding:13px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;color:#166534;font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Verificar agora</button>
+            <button onclick="_bkAutoEsquecerPasta()" style="width:100%;padding:13px;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;color:#991B1B;font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Esquecer pasta</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1073,6 +1133,21 @@ tr.kb-focus{outline:2px solid #1a56db;outline-offset:-2px;background:rgba(26,86,
 </footer>
 
 <div id="toast-stack"></div>
+<div id="sel-counter" style="display:none;position:fixed;left:calc(var(--sidebar-w) + 20px);bottom:78px;z-index:250;background:#0D1B3E;color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.3px;padding:7px 14px;border-radius:100px;box-shadow:0 6px 18px rgba(13,27,62,.28);"></div>
+
+<div class="pdf-preview-overlay" id="pdfPreviewOverlay" onclick="if(event.target===this) fecharModalPreviewPDF();">
+  <div class="pdf-preview-box">
+    <div class="pdf-preview-head">
+      <h3>Pré-visualização do PDF</h3>
+      <button class="pdf-preview-close" onclick="fecharModalPreviewPDF()" title="Fechar" aria-label="Fechar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="pdf-preview-body"><iframe id="pdfPreviewFrame" title="Pré-visualização do PDF"></iframe></div>
+    <div class="pdf-preview-foot">
+      <button class="pdf-preview-cancel" onclick="fecharModalPreviewPDF()">Fechar</button>
+      <button id="pdfPreviewBaixar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Baixar PDF</button>
+    </div>
+  </div>
+</div>
 <div class="save-bar">
   <div class="save-status">Radiologia · Hospital do Prenda · <span id="save-status-date">—</span></div>
   <div class="btn-group">
@@ -1199,7 +1274,7 @@ function renderTechGrid(){
   for(let i=0;i<numTechs;i++){
     const v=currentData.techs[i]||'';
     g.innerHTML+=`<div class="tech-item"><div class="tech-num">${i+1}</div>
-      <input class="tech-input" type="text" placeholder="Nome do técnico ${i+1}" value="${v}" oninput="currentData.techs[${i}]=this.value" id="tech-${i}"></div>`;
+      <input class="tech-input" type="text" placeholder="Nome do técnico ${i+1}" value="${v}" oninput="currentData.techs[${i}]=this.value;autoSave();" id="tech-${i}"></div>`;
   }
 }
 function addTech(){ numTechs++; renderTechGrid(); }
@@ -1280,16 +1355,23 @@ function _cellPos(input){
   const c=Array.from(tr.querySelectorAll('.num-input')).indexOf(input);
   return {tbody,r,c,rows};
 }
-function _clearSel(){ document.querySelectorAll('.cell-sel').forEach(td=>td.classList.remove('cell-sel')); _selCells=[]; }
+function _atualizarContadorSel(){
+  const el=document.getElementById('sel-counter');
+  if(!el) return;
+  if(_selCells.length>1){ el.textContent=_selCells.length+' células seleccionadas'; el.style.display='inline-flex'; }
+  else el.style.display='none';
+}
+function _clearSel(){ document.querySelectorAll('.cell-sel').forEach(td=>td.classList.remove('cell-sel')); _selCells=[]; _atualizarContadorSel(); }
 function _paintSel(anchorInput,targetInput){
   _clearSel();
   const a=_cellPos(anchorInput), b=_cellPos(targetInput);
-  if(!a||!b||a.tbody!==b.tbody){ if(targetInput&&targetInput.closest('td')){ targetInput.closest('td').classList.add('cell-sel'); _selCells=[targetInput]; } return; }
+  if(!a||!b||a.tbody!==b.tbody){ if(targetInput&&targetInput.closest('td')){ targetInput.closest('td').classList.add('cell-sel'); _selCells=[targetInput]; } _atualizarContadorSel(); return; }
   const r0=Math.min(a.r,b.r), r1=Math.max(a.r,b.r), c0=Math.min(a.c,b.c), c1=Math.max(a.c,b.c);
   for(let r=r0;r<=r1;r++){
     const inputs=Array.from(a.rows[r].querySelectorAll('.num-input'));
     for(let c=c0;c<=c1;c++){ const inp=inputs[c]; if(inp){ inp.closest('td').classList.add('cell-sel'); _selCells.push(inp); } }
   }
+  _atualizarContadorSel();
 }
 
 document.addEventListener('mousedown',e=>{
@@ -1333,6 +1415,7 @@ document.addEventListener('paste',e=>{
   if(!text) return;
   e.preventDefault();
   const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.length);
+  const entradas=[];
   lines.forEach((line,i)=>{
     const cols=line.split('\t');
     const r=pos.r+i; if(r>=pos.rows.length) return;
@@ -1340,24 +1423,55 @@ document.addEventListener('paste',e=>{
     cols.forEach((val,j)=>{
       const c=pos.c+j; const inp=inputs[c]; if(!inp) return;
       const num=(val.match(/-?\d+(\.\d+)?/)||['0'])[0];
+      const antes=currentData[inp.dataset.sec][inp.dataset.key]?currentData[inp.dataset.sec][inp.dataset.key][inp.dataset.col]:0;
+      entradas.push({section:inp.dataset.sec,key:inp.dataset.key,col:inp.dataset.col,antes});
       inp.value=num;
-      setItem(inp.dataset.sec,inp.dataset.key,inp.dataset.col,num);
+      setItem(inp.dataset.sec,inp.dataset.key,inp.dataset.col,num,{skipUndo:true,skipAutoSave:true});
     });
   });
-  toast('Dados colados com sucesso.','success');
+  if(entradas.length) _undoPush({t:'bulk',entradas});
+  autoSave();
+  toast('Dados colados com sucesso. Ctrl+Z para desfazer.','success');
 });
 
 // Eliminar em massa: com várias células selecionadas (arrasto ou Shift+clique),
-// Delete/Backspace limpa todas de uma vez. Uma única célula focada continua a
-// editar normalmente (não intercetamos nesse caso).
+// Delete/Backspace limpa todas de uma vez (pede confirmação acima de 3
+// células, para evitar apagar uma tabela inteira sem querer). Uma única
+// célula focada continua a editar normalmente (não intercetamos nesse caso).
+// Ctrl+Z desfaz a última alteração (célula única, colagem ou eliminação em
+// massa) mesmo com o foco dentro de uma célula numérica. Ctrl+A dentro de
+// uma tabela TAC/ECO/RX seleciona-a por inteiro.
 document.addEventListener('keydown',e=>{
+  const mod = e.ctrlKey || e.metaKey;
+
+  if(mod && (e.key==='z'||e.key==='Z') && !e.shiftKey){
+    const ae=document.activeElement;
+    const emCampoDeTextoLivre = ae && (ae.classList.contains('tech-input') || ae.id==='data-registo');
+    if(!emCampoDeTextoLivre){ e.preventDefault(); desfazerImagiologia(); return; }
+  }
+
+  if(mod && (e.key==='a'||e.key==='A')){
+    const ae=document.activeElement;
+    const tbody = ae && ae.classList && ae.classList.contains('num-input') ? _cellTbody(ae) : null;
+    if(tbody){
+      e.preventDefault();
+      const inputs=Array.from(tbody.querySelectorAll('.num-input'));
+      if(inputs.length){ _paintSel(inputs[0], inputs[inputs.length-1]); }
+      return;
+    }
+  }
+
   if((e.key==='Delete'||e.key==='Backspace') && _selCells.length>1){
     e.preventDefault();
+    if(_selCells.length>3 && !confirm('Eliminar '+_selCells.length+' células seleccionadas? Pode desfazer com Ctrl+Z.')) return;
+    const entradas=_selCells.map(inp=>({section:inp.dataset.sec,key:inp.dataset.key,col:inp.dataset.col,antes:currentData[inp.dataset.sec][inp.dataset.key]?currentData[inp.dataset.sec][inp.dataset.key][inp.dataset.col]:0}));
+    _undoPush({t:'bulk',entradas});
     _selCells.forEach(inp=>{
       inp.value='';
-      setItem(inp.dataset.sec,inp.dataset.key,inp.dataset.col,'');
+      setItem(inp.dataset.sec,inp.dataset.key,inp.dataset.col,'',{skipUndo:true,skipAutoSave:true});
     });
-    toast('Células eliminadas.','info');
+    autoSave();
+    toast('Células eliminadas. Ctrl+Z para desfazer.','info');
   }
 });
 
@@ -1422,11 +1536,48 @@ function updateGrandDisplay(section,keys,elId){
 }
 
 // ════════════════════════════════════════════════════════════════════
+// UNDO (Ctrl+Z) — pilha simples em memória, um nível por operação (edição
+// de uma célula, colagem em massa, ou eliminação em massa). Sem redo — não
+// há precedente disso em nenhum ficheiro do ZELO (o único outro undo do
+// repositório, em farmacia_central.html, também não tem). O autosave trata
+// de persistir o estado desfeito como qualquer outra edição.
+// ════════════════════════════════════════════════════════════════════
+let _undoStack=[];
+const UNDO_LIMITE=50;
+function _undoPush(entry){
+  _undoStack.push(entry);
+  if(_undoStack.length>UNDO_LIMITE) _undoStack.shift();
+}
+function _undoFindInput(section,key,col){
+  const inputs=document.querySelectorAll('.num-input[data-sec="'+section+'"][data-col="'+col+'"]');
+  for(const inp of inputs){ if(inp.dataset.key===key) return inp; }
+  return null;
+}
+function _undoAplicarCelula(e){
+  const inp=_undoFindInput(e.section,e.key,e.col);
+  if(inp) inp.value=e.antes||'';
+  setItem(e.section,e.key,e.col,e.antes,{skipUndo:true,skipAutoSave:true});
+}
+function desfazerImagiologia(){
+  const u=_undoStack.pop();
+  if(!u){ toast('Nada para desfazer.','info'); return; }
+  if(u.t==='cell') _undoAplicarCelula(u);
+  else if(u.t==='bulk') u.entradas.forEach(_undoAplicarCelula);
+  autoSave();
+  toast('Alteração desfeita — Ctrl+Z','info');
+}
+
+// ════════════════════════════════════════════════════════════════════
 // SET ITEM + LIVE UPDATE (with subtotals)
 // ════════════════════════════════════════════════════════════════════
-function setItem(section,key,col,val){
+function setItem(section,key,col,val,opts){
+  opts=opts||{};
+  const antes=currentData[section][key]?currentData[section][key][col]:0;
   if(!currentData[section][key]) currentData[section][key]={bu:0,aut:0,int:0};
-  currentData[section][key][col]=Number(val)||0;
+  const novo=Number(val)||0;
+  if(!opts.skipUndo && antes!==novo){ _undoPush({t:'cell',section,key,col,antes}); }
+  currentData[section][key][col]=novo;
+  if(!opts.skipAutoSave) autoSave();
   // Row total
   const d=currentData[section][key];
   const tot=(d.bu||0)+(d.aut||0)+(d.int||0);
@@ -1658,6 +1809,73 @@ function _fbEsperarPronto(timeoutMs){
   });
 }
 let _fbCancelarEscuta = null;
+
+// ── Mesclagem campo-a-campo entre a versão local e a versão vinda doutro
+// dispositivo (Firebase), usando zelo_merge.js ─────────────────────────────
+// Antes, ao chegar uma versão "mais recente" doutro dispositivo, o dia
+// inteiro era substituído em bloco — se o dispositivo B tivesse gravado
+// depois do A mas só tivesse mexido no TAC, a versão de B apagava o ECO/RX
+// que A tinha preenchido. Agora mescla-se exame a exame, coluna a coluna
+// (bu/aut/int), usando o carimbo de hora de cada campo para desempatar —
+// mesmo padrão já em produção em Cirurgia_Geral.html e nos Procedimentos de
+// Enfermagem.
+function _mesclarSecaoImagiologia(localSec, remotoSec, localTs, remotoTs, secPrefixo, remotoMaisRecente){
+  const chaves = new Set([...Object.keys(localSec||{}), ...Object.keys(remotoSec||{})]);
+  const merged = {};
+  const tsOut = {};
+  chaves.forEach(function(k){
+    ['bu','aut','int'].forEach(function(col){
+      const lv = localSec && localSec[k] ? localSec[k][col] : undefined;
+      const rv = remotoSec && remotoSec[k] ? remotoSec[k][col] : undefined;
+      const chaveTs = secPrefixo+'|'+k+'|'+col;
+      const r = ZeloMerge.resolverCampo(lv, rv, localTs[chaveTs], remotoTs[chaveTs], remotoMaisRecente);
+      if(!merged[k]) merged[k] = {bu:0,aut:0,int:0};
+      merged[k][col] = r.valor==null ? 0 : r.valor;
+      if(r.ts !== undefined) tsOut[chaveTs] = r.ts;
+    });
+  });
+  return { valor: merged, camposTs: tsOut };
+}
+function _mesclarDadosImagiologia(local, remoto){
+  if(!local) return remoto;
+  if(!remoto) return local;
+  const remotoMaisRecente = (remoto._ts||0) >= (local._ts||0);
+  const localTs = local.camposTs || {};
+  const remotoTs = remoto.camposTs || {};
+  const camposTsMesclados = Object.assign({}, localTs);
+
+  const tac = _mesclarSecaoImagiologia(local.tac, remoto.tac, localTs, remotoTs, 'tac', remotoMaisRecente);
+  const eco = _mesclarSecaoImagiologia(local.eco, remoto.eco, localTs, remotoTs, 'eco', remotoMaisRecente);
+  const rx  = _mesclarSecaoImagiologia(local.rx,  remoto.rx,  localTs, remotoTs, 'rx',  remotoMaisRecente);
+  Object.assign(camposTsMesclados, tac.camposTs, eco.camposTs, rx.camposTs);
+
+  const turnoR = ZeloMerge.resolverCampo(local.turno, remoto.turno, localTs['turno'], remotoTs['turno'], remotoMaisRecente);
+  if(turnoR.ts !== undefined) camposTsMesclados['turno'] = turnoR.ts;
+
+  const techsR = ZeloMerge.resolverCampo(JSON.stringify(local.techs||[]), JSON.stringify(remoto.techs||[]), localTs['techs'], remotoTs['techs'], remotoMaisRecente);
+  if(techsR.ts !== undefined) camposTsMesclados['techs'] = techsR.ts;
+  let techsFinal;
+  try{ techsFinal = JSON.parse(techsR.valor||'[]'); }catch(e){ techsFinal = local.techs||remoto.techs||[]; }
+
+  return {
+    date: local.date || remoto.date,
+    turno: turnoR.valor || 'manha',
+    techs: techsFinal,
+    tac: tac.valor, eco: eco.valor, rx: rx.valor,
+    camposTs: camposTsMesclados,
+    criadoPor: remotoMaisRecente ? remoto.criadoPor : local.criadoPor,
+    _ts: Math.max(local._ts||0, remoto._ts||0),
+  };
+}
+
+function _aplicarDadosImagiologiaNoEcra(data){
+  currentData = { date: currentData.date, turno:'manha', techs:[], tac:{}, eco:{}, rx:{}, ...data };
+  numTechs = Math.max(3, currentData.techs.length);
+  document.getElementById('turno-select').value = currentData.turno||'manha';
+  renderTechGrid(); renderTACTable(); renderECOTable(); renderRXTable(); updateKPIs();
+  if (currentData.criadoPor && currentData.criadoPor.nome) { _mostrarHoraGuardado(currentData.criadoPor.nome, currentData._ts); }
+}
+
 function _fbMostrarAvisoNovosDados(remoto, date){
   if (document.getElementById('fb-novos-dados-banner')) return;
   const banner = document.createElement('div');
@@ -1672,7 +1890,15 @@ function _fbMostrarAvisoNovosDados(remoto, date){
   banner.querySelector('[data-act="atualizar"]').onclick = () => {
     if (remoto && date){
       try{
-        localStorage.setItem(sk(date), JSON.stringify(remoto.snapshot));
+        // Grava primeiro qualquer edição pendente neste dispositivo (o
+        // autosave já corre a cada ~800ms, mas isto garante que a mesclagem
+        // parte sempre do estado mais recente do ecrã, não de uma gravação
+        // já ultrapassada).
+        if (date === (currentData && currentData.date) && _diaAlterado) persistImagiologia(date,{silent:true});
+        let localRaw = null;
+        try{ const rawStr = localStorage.getItem(sk(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+        const mesclado = _mesclarDadosImagiologia(localRaw, remoto.snapshot);
+        localStorage.setItem(sk(date), JSON.stringify(mesclado));
         localStorage.setItem(_FB_IMG_SAVEDAT_PREFIX + date, remoto.savedAt);
       }catch(e){}
     }
@@ -1700,21 +1926,27 @@ async function _fbEscutarDia(date){
       try{ localSavedAt = localStorage.getItem(_FB_IMG_SAVEDAT_PREFIX + date); }catch(e){}
       if (localSavedAt && localSavedAt >= savedAt) return;
       if (date !== (currentData && currentData.date)) return;
-      // Ao abrir qualquer dia (hoje ou um dia passado), aplica logo os dados
-      // mais recentes vindos doutro dispositivo — o carimbo savedAt já
-      // garante acima que só substitui se for realmente mais recente do que
-      // o que já temos, por isso não há risco de apagar uma gravação mais
-      // nova. Só gravações SEGUINTES enquanto o dia continua aberto (mais
-      // abaixo) é que mostram o aviso.
+      // Ao abrir qualquer dia (hoje ou um dia passado), mescla logo os dados
+      // vindos doutro dispositivo com os que já estavam gravados localmente
+      // — campo a campo, nunca o dia inteiro (ver _mesclarDadosImagiologia).
+      // Só gravações SEGUINTES enquanto o dia continua aberto (mais abaixo)
+      // é que mostram o aviso, para nunca substituir silenciosamente algo
+      // que o utilizador possa estar a escrever nesse momento.
       try{
-        localStorage.setItem(sk(date), JSON.stringify(remoto.snapshot));
+        let localRaw = null;
+        try{ const rawStr = localStorage.getItem(sk(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+        const mesclado = _mesclarDadosImagiologia(localRaw, remoto.snapshot);
+        localStorage.setItem(sk(date), JSON.stringify(mesclado));
         try{ localStorage.setItem(_FB_IMG_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
-        if (date === (currentData && currentData.date)){
-          currentData = { date, turno:'manha', techs:[], tac:{}, eco:{}, rx:{}, ...remoto.snapshot };
-          numTechs = Math.max(3, currentData.techs.length);
-          document.getElementById('turno-select').value = currentData.turno||'manha';
-          renderTechGrid(); renderTACTable(); renderECOTable(); renderRXTable(); updateKPIs();
-          if (currentData.criadoPor && currentData.criadoPor.nome) { _mostrarHoraGuardado(currentData.criadoPor.nome, currentData._ts); }
+        if (date === (currentData && currentData.date)){ _aplicarDadosImagiologiaNoEcra(mesclado); }
+        // Se a mesclagem recuperou campos que o Firebase não tinha (o outro
+        // dispositivo guardou com menos exames preenchidos), reenvia a
+        // versão mesclada para que essa recuperação fique disponível a todos.
+        if (localRaw && typeof zeloQueueWrite === 'function' && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot)) {
+          const curaSavedAt = new Date().toISOString();
+          _fbUltimoEnvioSavedAt[date] = curaSavedAt;
+          zeloQueueWrite('registos_sistemas_locais/imagiologia/' + date, {savedAt: curaSavedAt, snapshot: mesclado});
+          try{ localStorage.setItem(_FB_IMG_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
         }
       }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes da Imagiologia.', e); }
       return;
@@ -1745,23 +1977,95 @@ async function reenviarTudoParaFirebase(){
   toast('Concluído: ' + done + ' dia(s) enviados para o Firebase.','success');
 }
 
-function saveAllData(){
+// ── Autosave — nunca perder dados por esquecer de clicar em Guardar ──────
+// Antes, os dados só chegavam a localStorage/Firebase quando se clicava
+// explicitamente em "Guardar": fechar a aba, a bateria acabar, ou o browser
+// falhar antes disso perdia tudo o que tinha sido escrito. Agora, qualquer
+// edição (célula, colar em massa, técnico, turno) marca _diaAlterado e
+// dispara persistImagiologia() ~800ms depois de parar de escrever — mesmo
+// padrão já usado em Cirurgia_Geral.html e nos Procedimentos de Enfermagem.
+let autoSaveTimer=null;
+let _diaAlterado=false;
+function autoSave(){
+  _diaAlterado=true;
+  clearTimeout(autoSaveTimer);
+  const snap=document.getElementById('data-registo').value||currentData.date;
+  const dot=document.getElementById('as-dot');
+  if(dot) dot.classList.add('saving');
+  autoSaveTimer=setTimeout(function(){
+    persistImagiologia(snap,{silent:true});
+    if(dot) dot.classList.remove('saving');
+  },800);
+}
+
+const IMG_SECOES=['tac','eco','rx'];
+// Constrói o mapa de carimbos de hora por campo (camposTs) — só os campos
+// que mudaram de facto desde a última gravação recebem um novo carimbo, os
+// restantes mantêm o carimbo anterior. Chaves no formato 'sec|exame|col'
+// para TAC/ECO/RX, e 'turno'/'techs' para os campos escalares de topo.
+function _construirCamposTsImagiologia(prevCamposTs, prevData, novoData, ts){
+  const out=Object.assign({},prevCamposTs||{});
+  IMG_SECOES.forEach(function(sec){
+    const novo=novoData[sec]||{};
+    const antigo=(prevData&&prevData[sec])||{};
+    Object.keys(novo).forEach(function(key){
+      ['bu','aut','int'].forEach(function(col){
+        const novoV=novo[key]?(novo[key][col]??null):null;
+        const antigoV=antigo[key]?(antigo[key][col]??null):null;
+        if(novoV!==antigoV) out[sec+'|'+key+'|'+col]=ts;
+      });
+    });
+  });
+  const antigoTurno=prevData?prevData.turno:undefined;
+  if(novoData.turno!==antigoTurno) out['turno']=ts;
+  const antigoTechs=JSON.stringify((prevData&&prevData.techs)||[]);
+  const novoTechs=JSON.stringify(novoData.techs||[]);
+  if(antigoTechs!==novoTechs) out['techs']=ts;
+  return out;
+}
+
+// persistImagiologia: núcleo de gravação (usado tanto pelo autosave
+// silencioso como pelo clique explícito em "Guardar") — só grava/reenvia
+// ao Firebase se os dados mudaram mesmo de facto, para não encher o
+// histórico com gravações idênticas.
+function persistImagiologia(date, opts){
+  opts=opts||{};
   collectCurrentData();
-  const date=currentData.date||todayKey();
+  const d=date||currentData.date||todayKey();
   const payload=JSON.parse(JSON.stringify(currentData));
-  payload.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
-  payload._ts = Date.now();
-  localStorage.setItem(sk(date),JSON.stringify(payload));
-  addSavedDate(date);
+  _diaAlterado=false;
+
+  let prevData=null;
+  try{ const raw=localStorage.getItem(sk(d)); prevData=raw?JSON.parse(raw):null; }catch(e){}
+  const mudouDeVerdade=JSON.stringify({tac:prevData&&prevData.tac,eco:prevData&&prevData.eco,rx:prevData&&prevData.rx,turno:prevData&&prevData.turno,techs:prevData&&prevData.techs})
+    !==JSON.stringify({tac:payload.tac,eco:payload.eco,rx:payload.rx,turno:payload.turno,techs:payload.techs});
+  if(!mudouDeVerdade){
+    if(!opts.silent) document.getElementById('sync-label').textContent='Sem alterações';
+    return false;
+  }
+
+  payload.camposTs=_construirCamposTsImagiologia(prevData&&prevData.camposTs, prevData, payload, Date.now());
+  payload.criadoPor={ nome: sessionStorage.getItem('zeloNome')||null, email: sessionStorage.getItem('zeloEmail')||null };
+  payload._ts=Date.now();
+  localStorage.setItem(sk(d),JSON.stringify(payload));
+  addSavedDate(d);
   document.getElementById('sync-label').textContent='Guardado às '+new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('save-status-date').textContent=fmtDate(date);
-  if(window.zeloGuardarComFeedback) window.zeloGuardarComFeedback('#main-save-btn', 'Registo guardado com sucesso');
-  else toast('Dados guardados com sucesso <svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="20 6 9 17 4 12"/></svg>','success');
+  document.getElementById('save-status-date').textContent=fmtDate(d);
   renderHistory();
-  currentData.criadoPor = payload.criadoPor;
-  currentData._ts = payload._ts;
+  currentData.criadoPor=payload.criadoPor;
+  currentData._ts=payload._ts;
+  currentData.camposTs=payload.camposTs;
   _mostrarHoraGuardado(payload.criadoPor.nome, payload._ts);
-  _fbSyncImagiologia(date, payload);
+  _fbSyncImagiologia(d, payload);
+  return true;
+}
+
+function saveAllData(){
+  clearTimeout(autoSaveTimer);
+  const date=document.getElementById('data-registo').value||currentData.date||todayKey();
+  const mudou=persistImagiologia(date);
+  if(window.zeloGuardarComFeedback) window.zeloGuardarComFeedback('#main-save-btn', mudou?'Registo guardado com sucesso':'Sem alterações para guardar');
+  else toast(mudou?'Dados guardados com sucesso <svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="20 6 9 17 4 12"/></svg>':'Sem alterações para guardar', mudou?'success':'info');
 }
 
 // ── Indicador "Última alteração" (autoria) ──
@@ -1807,8 +2111,24 @@ function loadDay(date){
   renderTechGrid(); renderTACTable(); renderECOTable(); renderRXTable(); updateKPIs();
   if (currentData.criadoPor && currentData.criadoPor.nome) { _mostrarHoraGuardado(currentData.criadoPor.nome, currentData._ts); }
   else { _esconderHoraGuardado(); }
+  _diaAlterado=false;
+  _undoStack=[];
   _fbEscutarDia(date);
 }
+
+// Grava o dia que se está a deixar (se houve alterações reais por gravar) antes
+// de trocar para a nova data escolhida — sem isto, mudar de data descartava
+// silenciosamente qualquer edição feita desde o último autosave/Guardar.
+function mudarDataRegisto(novaData){
+  clearTimeout(autoSaveTimer);
+  if(_diaAlterado) persistImagiologia(currentData.date,{silent:true});
+  loadDay(novaData);
+}
+
+window.addEventListener('beforeunload', function(){
+  clearTimeout(autoSaveTimer);
+  if(_diaAlterado) persistImagiologia(currentData.date,{silent:true});
+});
 
 function clearForm(){
   if(!confirm('Limpar todos os campos do formulário actual?')) return;
@@ -1843,7 +2163,7 @@ function renderHistory(){
 
 function loadHistoryDay(d){
   document.getElementById('data-registo').value=d;
-  loadDay(d);
+  mudarDataRegisto(d);
   showSection('registo', document.querySelectorAll('.nav-item:not(.nav-sub)')[0]);
   toast('Registo de '+fmtDate(d)+' carregado');
 }
@@ -2172,6 +2492,17 @@ function _groupByLabel(period,dates,allData){
 // ════════════════════════════════════════════════════════════════════
 // PDF EXPORTS
 // ════════════════════════════════════════════════════════════════════
+// Evita que o cabeçalho de uma tabela fique "órfão" no fundo de uma página
+// com o corpo já a começar na página seguinte — se sobrar pouco espaço,
+// começa logo numa nova página em vez de confiar só na paginação interna
+// do autoTable (que só pagina as próprias linhas, não decide antecipar o
+// início de uma tabela nova).
+function _pdfProximoStartY(doc){
+  const y = doc.lastAutoTable.finalY+8;
+  const ph = doc.internal.pageSize.getHeight();
+  if(y > ph-40){ doc.addPage(); return 14; }
+  return y;
+}
 function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   if(!allData) allData=_getAllData();
   const agg=_aggregate(dates,allData);
@@ -2205,7 +2536,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   const tacS = _secSum('tac',[...TAC_EXAMES,...TAC_CONTADORES]);
   const totBu=rxS.bu+ecoS.bu+tacS.bu, totAut=rxS.aut+ecoS.aut+tacS.aut, totInt=rxS.int2+ecoS.int2+tacS.int2;
   doc.autoTable({
-    startY: doc.lastAutoTable.finalY+8,
+    startY: _pdfProximoStartY(doc),
     head:[['DESIGNAÇÕES','AMBULATÓRIO','URGÊNCIA','INTERNAMENTO','TOTAL']],
     body:[
       ['Raios X',    rxS.aut,  rxS.bu,  rxS.int2,  rxS.t ],
@@ -2234,7 +2565,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   if(tacRows.length){
     let sb=0,sa=0,si=0;tacRows.forEach(r=>{sb+=r[1];sa+=r[2];si+=r[3];});
     tacRows.push(['Exames Realizados — TOTAL (automático)',sb,sa,si,sb+sa+si,'']);
-    doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[['TAC — Exames','B. Urgência','Autorizados','Internamentos','Total','%']],body:tacRows,
+    doc.autoTable({startY:_pdfProximoStartY(doc),head:[['TAC — Exames','B. Urgência','Autorizados','Internamentos','Total','%']],body:tacRows,
       styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[30,58,138],textColor:255,fontStyle:'bold'},
       columnStyles:{0:{halign:'left'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',fontStyle:'bold'},5:{halign:'center'}},
       alternateRowStyles:{fillColor:[239,246,255]},
@@ -2248,7 +2579,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   if(ecoRows.length){
     let sb=0,sa=0,si=0;ecoRows.forEach(r=>{sb+=r[1];sa+=r[2];si+=r[3];});
     ecoRows.push(['Exames Realizados — TOTAL (automático)',sb,sa,si,sb+sa+si,'']);
-    doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[['Ecografia','B. Urgência','Autorizados','Internamentos','Total','%']],body:ecoRows,
+    doc.autoTable({startY:_pdfProximoStartY(doc),head:[['Ecografia','B. Urgência','Autorizados','Internamentos','Total','%']],body:ecoRows,
       styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[8,145,178],textColor:255,fontStyle:'bold'},
       columnStyles:{0:{halign:'left'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',fontStyle:'bold'},5:{halign:'center'}},
       alternateRowStyles:{fillColor:[236,254,255]},
@@ -2264,7 +2595,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
     let pb=0,pa=0,pi=0;RX_PLACAS.forEach(k=>{const d=agg.rx[k]||{};pb+=+(d.bu||0);pa+=+(d.aut||0);pi+=+(d.int||0);});
     rxRows.push(['Exames Realizados (automático)',pb,pa,pi,pb+pa+pi]);
     rxRows.push(['TOTAL RAIO X',sb,sa,si,sb+sa+si]);
-    doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[['Raio X','B. Urgência','Autorizados','Internamentos','Total']],body:rxRows,
+    doc.autoTable({startY:_pdfProximoStartY(doc),head:[['Raio X','B. Urgência','Autorizados','Internamentos','Total']],body:rxRows,
       styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[109,40,217],textColor:255,fontStyle:'bold'},
       columnStyles:{0:{halign:'left'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',fontStyle:'bold'}},
       alternateRowStyles:{fillColor:[245,243,255]},
@@ -2278,7 +2609,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   if(cntRows.length){
     let sb=0,sa=0,si=0;cntRows.forEach(r=>{sb+=r[1];sa+=r[2];si+=r[3];});
     cntRows.push(['TOTAL CONTADORES',sb,sa,si,sb+sa+si]);
-    doc.autoTable({startY:doc.lastAutoTable.finalY+8,head:[['TAC — Contadores/Placas','B. Urgência','Autorizados','Internamentos','Total']],body:cntRows,
+    doc.autoTable({startY:_pdfProximoStartY(doc),head:[['TAC — Contadores/Placas','B. Urgência','Autorizados','Internamentos','Total']],body:cntRows,
       styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[30,41,59],textColor:255,fontStyle:'bold'},
       columnStyles:{0:{halign:'left'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',fontStyle:'bold'}},
       alternateRowStyles:{fillColor:[248,250,252]},
@@ -2305,9 +2636,46 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
     doc.setTextColor(0);
   }
   const safe=titleLabel.replace(/[\s·]+/g,'_').replace(/[^a-zA-Z0-9À-ú_-]/g,'');
-  doc.save(`Radiologia_${safe}.pdf`);
-  toast('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> PDF exportado com sucesso!','success');
+  abrirModalPreviewPDF(doc, `Radiologia_${safe}.pdf`);
 }
+
+// ── Pré-visualização de PDF antes de descarregar ────────────────────────
+// Antes, o PDF era descarregado directamente ao gerar — sem hipótese de
+// conferir o conteúdo antes de o guardar/enviar. Mesmo padrão já usado em
+// Dashboard.html (Monitorizar Procedimentos): abre o PDF gerado num iframe
+// dentro de um modal; só ao clicar "Baixar PDF" é que o ficheiro é de facto
+// gravado (e, nessa altura, também copiado para a pasta de backup automático
+// se estiver configurada).
+var __pdfPreviewUrlAtual = null;
+function abrirModalPreviewPDF(doc, fileName){
+  const url = doc.output('bloburl');
+  __pdfPreviewUrlAtual = url;
+  const overlay = document.getElementById('pdfPreviewOverlay');
+  const iframe = document.getElementById('pdfPreviewFrame');
+  const btnBaixar = document.getElementById('pdfPreviewBaixar');
+  if(iframe) iframe.src = url;
+  if(btnBaixar) btnBaixar.onclick = function(){
+    doc.save(fileName);
+    _guardarPDFNaPastaBackup(doc, fileName);
+    toast('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> PDF exportado com sucesso!','success');
+  };
+  if(overlay) overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function fecharModalPreviewPDF(){
+  const overlay = document.getElementById('pdfPreviewOverlay');
+  const iframe = document.getElementById('pdfPreviewFrame');
+  if(overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  if(iframe) iframe.src = 'about:blank';
+  if(__pdfPreviewUrlAtual){ try{ URL.revokeObjectURL(__pdfPreviewUrlAtual); }catch(e){} __pdfPreviewUrlAtual = null; }
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    const overlay = document.getElementById('pdfPreviewOverlay');
+    if(overlay && overlay.classList.contains('open')) fecharModalPreviewPDF();
+  }
+});
 
 function exportStatsPDF(){
   const dates=_getDatesForPeriod(_currentPeriod);
@@ -2407,6 +2775,146 @@ function zeloBackupGeral(){
   _imagDownloadBackup(_imagCollectBackup(()=>true), 'geral_'+todayKey());
 }
 document.getElementById('zeloBkOverlay').addEventListener('click', e=>{ if(e.target===document.getElementById('zeloBkOverlay')) zeloFecharBackup(); });
+
+// ── BACKUP AUTOMÁTICO EM PASTA LOCAL ──────────────────────────────
+// Mesmo padrão já em produção em Cirurgia_Geral.html e nos Procedimentos de
+// Enfermagem — grava periodicamente uma cópia em JSON dos registos deste
+// dispositivo numa pasta escolhida pelo utilizador (File System Access API),
+// por cadência (Diário/Semanal/Mensal/Trimestral/Semestral/Anual). O PDF é
+// gravado na pasta sempre que é gerado manualmente.
+function abrirBackupAutoModal() {
+  if (sessionStorage.getItem('zeloRole') !== 'admin') {
+    toast('Só administradores podem usar esta opção');
+    return;
+  }
+  document.getElementById('backupAutoModal').style.display = 'flex';
+  _bkAutoAtualizarStatus();
+}
+function closeBackupAutoModal() {
+  document.getElementById('backupAutoModal').style.display = 'none';
+}
+document.getElementById('backupAutoModal').addEventListener('click', function (e) {
+  if (e.target === this) closeBackupAutoModal();
+});
+
+const _BKAUTO_ROTULOS = { diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
+
+async function _bkAutoAtualizarStatus() {
+  const suporteMsg = document.getElementById('bkauto-suporte-msg');
+  const corpo = document.getElementById('bkauto-corpo');
+  if (typeof ZeloAutoBackup === 'undefined' || !ZeloAutoBackup.suportado()) {
+    suporteMsg.style.display = 'block';
+    corpo.style.display = 'none';
+    return;
+  }
+  suporteMsg.style.display = 'none';
+  corpo.style.display = 'block';
+  const pasta = await ZeloAutoBackup.obterPastaAtiva(false);
+  const nomeEl = document.getElementById('bkauto-pasta-nome');
+  if (pasta.estado === 'ok') {
+    nomeEl.textContent = '📁 Pasta escolhida: ' + pasta.handle.name;
+  } else if (pasta.estado === 'sem_permissao') {
+    nomeEl.textContent = '⚠️ Autorização da pasta expirou — clique em "Escolher pasta" para renovar.';
+  } else {
+    nomeEl.textContent = 'Nenhuma pasta escolhida ainda.';
+  }
+  const cadEl = document.getElementById('bkauto-cadencias');
+  cadEl.innerHTML = Object.keys(_BKAUTO_ROTULOS).map(function (c) {
+    const marca = localStorage.getItem('zbk_marca_imagiologia_' + c);
+    return '<div>' + _BKAUTO_ROTULOS[c] + ': ' + (marca ? '✅ ' + marca : '— ainda não') + '</div>';
+  }).join('');
+}
+
+async function _bkAutoEscolherPasta() {
+  try {
+    await ZeloAutoBackup.escolherPasta();
+    toast('📁 Pasta escolhida com sucesso!');
+    _bkAutoAtualizarStatus();
+    ZeloAutoBackup.verificarEExecutar('imagiologia').then(_bkAutoAtualizarStatus);
+  } catch (e) {
+    if (e && e.name !== 'AbortError') toast('❌ Não foi possível escolher a pasta.');
+  }
+}
+async function _bkAutoEsquecerPasta() {
+  await ZeloAutoBackup.esquecerPasta();
+  toast('Pasta de backup automático esquecida.');
+  _bkAutoAtualizarStatus();
+}
+async function _bkAutoVerificarAgora() {
+  toast('A verificar backups pendentes…');
+  const r = await ZeloAutoBackup.verificarEExecutar('imagiologia');
+  _bkAutoAtualizarStatus();
+  toast('Verificação concluída.');
+  console.log('[BackupAuto]', r);
+}
+
+function _imgLimitesDoPeriodo(cadencia, fimISO) {
+  const fim = new Date(fimISO + 'T00:00:00');
+  let inicio;
+  switch (cadencia) {
+    case 'diario': inicio = new Date(fim); break;
+    case 'semanal': inicio = new Date(fim); inicio.setDate(inicio.getDate() - 6); break;
+    case 'mensal': inicio = new Date(fim.getFullYear(), fim.getMonth(), 1); break;
+    case 'trimestral': inicio = new Date(fim.getFullYear(), Math.floor(fim.getMonth() / 3) * 3, 1); break;
+    case 'semestral': inicio = new Date(fim.getFullYear(), fim.getMonth() < 6 ? 0 : 6, 1); break;
+    case 'anual': inicio = new Date(fim.getFullYear(), 0, 1); break;
+  }
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  return { inicioISO: iso(inicio), fimISO: iso(fim) };
+}
+function _imgFimDoPeriodoContendo(cadencia, dataISO) {
+  const d = new Date(dataISO + 'T00:00:00');
+  let fim;
+  switch (cadencia) {
+    case 'diario': fim = new Date(d); break;
+    case 'semanal': { const dow = (d.getDay() + 6) % 7; fim = new Date(d); fim.setDate(fim.getDate() + (6 - dow)); break; }
+    case 'mensal': fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); break;
+    case 'trimestral': fim = new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 0); break;
+    case 'semestral': fim = new Date(d.getFullYear(), d.getMonth() < 6 ? 6 : 12, 0); break;
+    case 'anual': fim = new Date(d.getFullYear(), 12, 0); break;
+  }
+  return fim.getFullYear() + '-' + String(fim.getMonth() + 1).padStart(2, '0') + '-' + String(fim.getDate()).padStart(2, '0');
+}
+
+// Só grava PDF na pasta quando é gerado manualmente — ver nota de âmbito em
+// _buildPeriodPDF (não há como reconstituir fielmente o PDF de um período
+// passado sem reabrir cada dia).
+function _guardarPDFNaPastaBackup(doc, nomeFicheiro) {
+  if (typeof ZeloAutoBackup === 'undefined' || !ZeloAutoBackup.suportado()) return;
+  try {
+    const blob = doc.output('blob');
+    ZeloAutoBackup.gravarNaPasta('imagiologia', 'Diario', nomeFicheiro, blob).then(function (r) {
+      if (r.ok) toast('📁 PDF também guardado na pasta de backup.');
+    });
+  } catch (e) { console.warn('[BackupAuto] falha ao guardar PDF na pasta', e); }
+}
+
+// Lista os períodos já terminados com dados guardados neste dispositivo —
+// nunca inclui o período em curso, mesmo com dados parciais.
+window.ZBK_periodosDisponiveis = function (cadencia) {
+  const hojeISO = todayKey();
+  const periodosVistos = {};
+  getSavedDates().forEach(function (d) {
+    const fimISO = _imgFimDoPeriodoContendo(cadencia, d);
+    if (fimISO >= hojeISO) return;
+    const chave = ZeloAutoBackup._periodoAtual(cadencia, new Date(fimISO + 'T00:00:00'));
+    periodosVistos[chave] = fimISO;
+  });
+  return Object.keys(periodosVistos).map(function (chave) { return { chave: chave, dataRefISO: periodosVistos[chave] }; });
+};
+
+window.ZBK_getBackupJSON = function (cadencia, fimISO) {
+  const limites = _imgLimitesDoPeriodo(cadencia, fimISO);
+  const registos = {};
+  getSavedDates().forEach(function (d) {
+    if (d >= limites.inicioISO && d <= limites.fimISO) {
+      try { registos[d] = JSON.parse(localStorage.getItem(sk(d))); } catch (e) {}
+    }
+  });
+  return { nome: `backup_imagiologia_${cadencia}_${limites.fimISO}.json`, conteudo: registos };
+};
+
+if (typeof ZeloAutoBackup !== 'undefined') ZeloAutoBackup.iniciar('imagiologia');
 
 function importBackup(input){
   const f=input.files[0];if(!f) return;
