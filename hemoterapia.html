@@ -1895,7 +1895,7 @@ function renderChart(period,records){
 }
 
 // ═══ COMPARISON ═══
-function renderComparison(){
+async function renderComparison(){
   const typeA=document.getElementById("cmp-type-a").value;
   const typeB=document.getElementById("cmp-type-b").value;
   const rawA=document.getElementById("cmp-date-a").value;
@@ -1903,8 +1903,8 @@ function renderComparison(){
   if(!rawA||!rawB){ toast("Seleccione os dois períodos","error"); return; }
   const refA=rawA.length===7?rawA+"-01":rawA;
   const refB=rawB.length===7?rawB+"-01":rawB;
-  const aggA=aggregateData(getDataForDates(getPeriodDatesForComparison(typeA,refA)));
-  const aggB=aggregateData(getDataForDates(getPeriodDatesForComparison(typeB,refB)));
+  const aggA=aggregateData(await getDataForDates(getPeriodDatesForComparison(typeA,refA)));
+  const aggB=aggregateData(await getDataForDates(getPeriodDatesForComparison(typeB,refB)));
   function fmt(agg){ return `<strong>Transfusões:</strong> ${agg.transfusoes.total}<br>Plaquetas: ${agg.transfusoes.plaquetas} | Plasmas: ${agg.transfusoes.plasmas} | Glóbulos: ${agg.transfusoes.globulos}<br><strong>Colhido:</strong> ${agg.cc.colhido.toLocaleString("pt-PT")}cc | Consumido: ${agg.cc.consumido.toLocaleString("pt-PT")}cc | Perdido: ${agg.cc.perdido.toLocaleString("pt-PT")}cc<br><strong>Doadores:</strong> ${agg.doadores.total}`; }
   document.getElementById("cmp-result-a").innerHTML=fmt(aggA);
   document.getElementById("cmp-result-b").innerHTML=fmt(aggB);
@@ -2008,12 +2008,12 @@ function exportDayPDF(){
 function exportDayPDFFromDate(){ const date=document.getElementById("exp-date").value; if(date) editDay(date); setTimeout(exportDayPDF,300); }
 function exportDayPDFForDate(date){ editDay(date); setTimeout(exportDayPDF,300); }
 
-function exportStatPDFFromPeriod(period){ const dates=_lastDates[period]; if(!dates||!dates.length){ toast("Carregue o relatório primeiro","error"); return; } exportStatPDF(period,dates); }
+function exportStatPDFFromPeriod(period){ const dates=_lastDates[period]; if(!dates||!dates.length){ toast("Carregue o relatório primeiro","error"); return; } Promise.resolve(exportStatPDF(period,dates)).catch(e=>{ console.error("Erro no PDF de estatísticas:",e); toast("Falha ao gerar PDF","error"); }); }
 function exportStatPDFFromExport(){ exportStatPDFFromPeriod(document.getElementById("exp-period").value); }
 
-function exportStatPDF(period,dates){
+async function exportStatPDF(period,dates){
   const { jsPDF }=window.jspdf; if(!jsPDF){ toast("Biblioteca PDF não carregada","error"); return; }
-  const records=getDataForDates(dates); const agg=aggregateData(records);
+  const records=await getDataForDates(dates); const agg=aggregateData(records);
   const doc=new jsPDF();
   let cy=buildPDFHeader(doc,"Período: "+period.toUpperCase()+" | Registos: "+records.length,"Relatório de Estatísticas",period);
   doc.autoTable({head:[["Indicador","Total"]],body:[
@@ -2060,13 +2060,13 @@ function exportStatPDF(period,dates){
   toast("PDF de estatísticas gerado","success");
 }
 
-function exportComparisonPDF(){
+async function exportComparisonPDF(){
   const typeA=document.getElementById("cmp-type-a").value, typeB=document.getElementById("cmp-type-b").value;
   const rawA=document.getElementById("cmp-date-a").value, rawB=document.getElementById("cmp-date-b").value;
   if(!rawA||!rawB){ toast("Seleccione os dois períodos","error"); return; }
   const refA=rawA.length===7?rawA+"-01":rawA, refB=rawB.length===7?rawB+"-01":rawB;
-  const aggA=aggregateData(getDataForDates(getPeriodDatesForComparison(typeA,refA)));
-  const aggB=aggregateData(getDataForDates(getPeriodDatesForComparison(typeB,refB)));
+  const aggA=aggregateData(await getDataForDates(getPeriodDatesForComparison(typeA,refA)));
+  const aggB=aggregateData(await getDataForDates(getPeriodDatesForComparison(typeB,refB)));
   const { jsPDF }=window.jspdf; const doc=new jsPDF();
   let cy=buildPDFHeader(doc,"Comparação de Períodos","Período A vs Período B","comparacao");
   doc.autoTable({head:[["Indicador","Período A","Período B","Diferença"]],body:[
@@ -2252,7 +2252,7 @@ function calcMapa(key,fromLoad){
   const store=[]; const blockTotals=[]; let geral=0;
   mapa.blocks.forEach((blk,bi)=>{
     let tot=0; const arr=[];
-    blk.rows.forEach((row,ri)=>{ const v=n(_mapaInputId(key,bi,ri)); arr.push(v); tot+=v; });
+    blk.rows.forEach((row,ri)=>{ const v=Math.max(0,n(_mapaInputId(key,bi,ri))); arr.push(v); tot+=v; });
     const totEl=document.getElementById(_mapaTotalId(key,bi));
     if(totEl) totEl.textContent=tot.toLocaleString("pt-PT");
     const kpiEl=document.getElementById("mapkpi_"+key+"_"+bi);
@@ -2323,7 +2323,7 @@ function collectMapas(){
   MAPAS.forEach(mapa=>{
     const store=[];
     mapa.blocks.forEach((blk,bi)=>{
-      const arr=[]; blk.rows.forEach((row,ri)=>arr.push(n(_mapaInputId(mapa.key,bi,ri))));
+      const arr=[]; blk.rows.forEach((row,ri)=>arr.push(Math.max(0,n(_mapaInputId(mapa.key,bi,ri)))));
       store[bi]=arr;
     });
     currentData[mapa.key]=store;
