@@ -84,7 +84,7 @@ const SERVICOS_MENU = [
     ] },
   { nome: 'Hemoterapia', categoria: 'diagnostico', icon: 'droplet', cor: '#BE123C',
     relatorios: [
-      { label: 'Relatório Diário', file: 'hemoterapia.html', modulo: 'sistemas_independentes', item: 'hemoterapia' },
+      { label: 'Saúde Pública', file: 'hemoterapia.html', modulo: 'sistemas_independentes', item: 'hemoterapia' },
     ] },
   { nome: 'Fisioterapia', categoria: 'consultas', icon: 'users', cor: '#059669',
     relatorios: [{ label: 'Relatório Diário', file: 'banco_fisioterapia_v1-1-1.html', modulo: 'servicos', item: 'fisioterapia' }] },

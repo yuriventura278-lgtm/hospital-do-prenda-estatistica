@@ -192,6 +192,10 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
   border:1px solid var(--accent-ring);border-radius:8px;padding:0 4px;
   font-size:.49rem;font-weight:700;color:var(--accent);display:none;align-items:center;justify-content:center;}
 .ni-badge.on{display:flex;}
+.nav-item .ni-done{margin-left:auto;display:none;align-items:center;color:var(--green);}
+.nav-item .ni-done.on{display:flex;}
+.nav-item .ni-done .svc-icon{width:13px;height:13px;}
+.nav-item .ni-done + .ni-badge{margin-left:6px;}
 .sb-divider{margin:4px 10px;border:none;border-top:1px solid var(--border);}
 .sb-sec{padding:6px 14px 2px;font-size:.46rem;text-transform:uppercase;letter-spacing:2px;
   color:var(--muted);font-family:var(--font-head);font-weight:600;}
@@ -211,6 +215,17 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 .spec-hdr h2{font-family:var(--font-head);font-size:1.1rem;font-weight:700;color:var(--text);}
 .spec-hdr p{font-size:.5rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:2px;}
 .spec-totals{margin-left:auto;display:flex;gap:8px;}
+.spec-lock-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-head);
+  font-size:.58rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  color:var(--green);background:#f0fdf4;border:1px solid #bbf7d0;border-radius:100px;padding:4px 11px;white-space:nowrap;}
+.spec-lock-badge .svc-icon{width:12px;height:12px;}
+.btn-edit-spec{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-head);
+  font-size:.58rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;
+  color:var(--accent);background:var(--accent-tint);border:1px solid var(--accent-ring);border-radius:100px;padding:4px 11px;white-space:nowrap;transition:background .13s;}
+.btn-edit-spec:hover{background:oklch(93% 0.025 230);border-color:var(--accent);}
+.btn-edit-spec .svc-icon{width:12px;height:12px;}
+input[readonly].locked-field,textarea[readonly].locked-field{background:var(--surface2)!important;color:var(--muted);cursor:not-allowed;}
+html.dark .spec-lock-badge{background:rgba(4,120,87,.15);border-color:rgba(4,120,87,.35);}
 .tot-box{border-radius:5px;padding:8px 12px;text-align:center;flex-shrink:0;}
 .tot-box.day{background:var(--accent-tint);border:1px solid var(--accent-ring);}
 .tot-box.night{background:#f7f7f7;border:1px solid #e8e8e8;}
@@ -577,6 +592,14 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
     <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
     <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
     <line x1="4" y1="4" x2="9" y2="9"/>
+  </symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9.5"/>
+    <polyline points="7.5 12.3 10.4 15.2 16.5 8.7"/>
+  </symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 20h9"/>
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>
   </symbol>
 </svg>
 
@@ -1513,11 +1536,32 @@ function autoSave() {
   }, 800);
 }
 
-// persist: lê o DOM e escreve no localStorage
+// Constrói o mapa de carimbos de hora por campo (camposTs), comparando o que
+// vai ser gravado agora com o que já lá estava — só os campos que mudaram de
+// facto recebem um novo carimbo, os restantes mantêm o carimbo anterior.
+function _construirCamposTs(prevCamposTs, prevSpecs, novoSpecs, ts) {
+  const out = Object.assign({}, prevCamposTs || {});
+  Object.keys(novoSpecs).forEach(specId => {
+    TURNOS.forEach(turno => {
+      const novo = novoSpecs[specId]?.[turno] || {};
+      const antigo = prevSpecs?.[specId]?.[turno] || {};
+      Object.keys(novo).forEach(k => {
+        const antigoV = antigo[k] === undefined ? null : antigo[k];
+        if (novo[k] !== antigoV) out[specId + '|' + turno + '|' + k] = ts;
+      });
+      const notesKey = 'notes' + turno.charAt(0).toUpperCase() + turno.slice(1);
+      const novaNota = novoSpecs[specId]?.[notesKey] || '';
+      const antigaNota = prevSpecs?.[specId]?.[notesKey] || '';
+      if (novaNota !== antigaNota) out[specId + '|' + notesKey] = ts;
+    });
+  });
+  return out;
+}
+
+// persist: lê o DOM e escreve no localStorage — devolve true se gravou uma alteração real
 function persist(date) {
   const d = date || currentLoadedDate;
   const data = { _ts: Date.now(), specs: {} };
-  data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   SPECIALTIES.forEach(sp => {
     if(sp.id === 'medicina' || sp.id === 'bloco_op') return; // calculado — não guardar
     data.specs[sp.id] = { dia: {}, noite: {}, notesDia: '', notesNoite: '' };
@@ -1534,6 +1578,24 @@ function persist(date) {
     });
   });
   _diaAlterado = false;
+
+  // ★ Critério reforçado: só conta como alteração real se os dados gravados
+  // forem mesmo diferentes dos que já lá estavam — tocar num campo e voltar
+  // a escrever o mesmo valor (ou clicar em Guardar sem ter mudado nada) não
+  // pode carimbar ninguém como autor de uma alteração que na prática não
+  // aconteceu. Autoria, reenvio ao Firebase e histórico só se aplicam
+  // quando esta comparação confirma uma mudança de facto.
+  let prevData = null;
+  try { const rawPrev = _storageGet(storageKey(d)); prevData = rawPrev ? JSON.parse(rawPrev) : null; } catch(e) {}
+  const prevSpecs = prevData ? prevData.specs : null;
+  const mudouDeVerdade = JSON.stringify(prevSpecs) !== JSON.stringify(data.specs);
+  if (!mudouDeVerdade) {
+    setSyncInfo('<svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Sem alterações');
+    return false;
+  }
+
+  data.camposTs = _construirCamposTs(prevData?.camposTs, prevSpecs, data.specs, data._ts);
+  data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   _storageSet(storageKey(d), JSON.stringify(data));
   if(window.zeloQueueWrite){
     const _fbSavedAt = new Date().toISOString();
@@ -1546,6 +1608,7 @@ function persist(date) {
   _mostrarHoraGuardado();
   const histBtn = document.getElementById('ver-historico-btn');
   if (histBtn) histBtn.style.display = 'inline-flex';
+  return true;
 }
 
 // ── Sincronização em tempo real ───────────────────────────────────────────
@@ -1754,7 +1817,10 @@ function _fbMostrarAvisoNovosDados(remoto, date){
   banner.querySelector('[data-act="atualizar"]').onclick = () => {
     if (remoto && date){
       try{
-        _storageSet(storageKey(date), JSON.stringify(remoto.snapshot.raw));
+        let localRaw = null;
+        try{ const rawStr = _storageGet(storageKey(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+        const mesclado = _mesclarDadosDia(localRaw, remoto.snapshot.raw);
+        _storageSet(storageKey(date), JSON.stringify(mesclado));
         localStorage.setItem(_FB_SAVEDAT_PREFIX + date, remoto.savedAt);
       }catch(e){}
     }
@@ -1782,22 +1848,172 @@ async function _fbEscutarDia(date){
       try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
       if (localSavedAt && localSavedAt >= savedAt) return;
       if (date !== currentLoadedDate) return;
-      // Ao abrir qualquer dia (hoje ou um dia passado), aplica logo os dados
-      // mais recentes vindos doutro dispositivo — o carimbo savedAt já garante
-      // acima que só substitui se for realmente mais recente do que o que já
-      // temos, por isso não há risco de apagar uma gravação mais nova. Só
+      // Ao abrir qualquer dia (hoje ou um dia passado), mescla logo os dados
+      // vindos doutro dispositivo com os que já estavam gravados localmente
+      // — campo a campo, nunca o dia inteiro (ver _mesclarDadosDia). Só
       // gravações SEGUINTES enquanto o dia continua aberto (mais abaixo) é que
       // mostram o aviso, para nunca substituir silenciosamente algo que o
       // utilizador possa estar a escrever nesse momento.
       try{
-        _storageSet(storageKey(date), JSON.stringify(remoto.snapshot.raw));
+        let localRaw = null;
+        try{ const rawStr = _storageGet(storageKey(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+        const mesclado = _mesclarDadosDia(localRaw, remoto.snapshot.raw);
+        _storageSet(storageKey(date), JSON.stringify(mesclado));
         try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
-        if (date === currentLoadedDate){ _popularProcedimentos(remoto.snapshot.raw); }
+        if (date === currentLoadedDate){ _popularProcedimentos(mesclado); }
+        // Se a mesclagem recuperou campos que o Firebase não tinha (o outro
+        // dispositivo guardou com menos dados preenchidos), reenvia a versão
+        // mesclada para que essa recuperação fique disponível para todos.
+        if (localRaw && window.zeloQueueWrite && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot.raw)) {
+          const curaSavedAt = new Date().toISOString();
+          _fbUltimoEnvioSavedAt[date] = curaSavedAt;
+          zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + date, {savedAt: curaSavedAt, snapshot: {raw: mesclado}});
+          try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
+        }
       }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes dos Procedimentos.', e); }
       return;
     }
     _fbMostrarAvisoNovosDados(remoto, date);
   });
+}
+
+// ── Concluído + bloqueio de edição ──────────────────────────────────────
+// Ao clicar em Guardar, cada serviço com dados fica marcado como concluído:
+// ícone verde junto ao total no menu lateral, e os seus campos passam a
+// só-leitura, para evitar alterações acidentais num serviço já dado como
+// terminado. Só volta a ficar editável clicando em "Editar" — e o próximo
+// clique em Guardar volta a bloquear. O autosave (em segundo plano, a cada
+// pausa a escrever) nunca bloqueia nada — só o clique explícito em Guardar.
+function _servicoTemDados(spData) {
+  if (!spData) return false;
+  return TURNOS.some(turno => {
+    const t = spData[turno];
+    if (!t) return false;
+    return Object.values(t).some(v => v !== null && v !== undefined);
+  });
+}
+
+// ── Mesclagem campo-a-campo entre a versão local e a versão vinda doutro
+// dispositivo (Firebase) ────────────────────────────────────────────────
+// Antes, ao chegar uma versão "mais recente" doutro dispositivo, o dia
+// inteiro era substituído em bloco — se o dispositivo B tivesse guardado
+// depois do A mas com menos campos preenchidos (ex.: B só mexeu num
+// serviço, A já tinha vários), a versão mais recente (B) apagava os
+// campos que só existiam em A. Um campo vazio NUNCA deve substituir um
+// campo já preenchido — só quando os dois lados têm valores diferentes
+// e não-vazios no MESMO campo é que há um conflito real, e só nesse
+// caso se desempata pelo carimbo de hora (_ts) mais recente — e só para
+// esse campo, nunca para o dia todo.
+// Decide o valor final de UM campo. Quando os dois lados têm carimbo de
+// hora próprio para este campo (gravações feitas depois desta funcionalidade
+// existir), vence sempre o carimbo mais recente — seja qual for o valor,
+// incluindo null (uma eliminação deliberada, ex. botão "Eliminar", vence
+// legitimamente um valor antigo doutro dispositivo). Só quando NENHUM dos
+// lados tem carimbo para este campo (registos antigos, de antes desta
+// funcionalidade) é que se usa a regra de segurança anterior: um campo
+// vazio nunca vence um campo preenchido.
+function _resolverCampo(lv, rv, ltTempo, rtTempo, remotoMaisRecente) {
+  if (ltTempo !== undefined || rtTempo !== undefined) {
+    if (rtTempo !== undefined && (ltTempo === undefined || rtTempo > ltTempo)) {
+      return { valor: rv === undefined ? null : rv, ts: rtTempo };
+    }
+    return { valor: lv === undefined ? null : lv, ts: ltTempo };
+  }
+  if (lv === undefined || lv === null) return { valor: (rv === undefined ? null : rv), ts: undefined };
+  if (rv === undefined || rv === null) return { valor: lv, ts: undefined };
+  if (lv === rv) return { valor: lv, ts: undefined };
+  return { valor: remotoMaisRecente ? rv : lv, ts: undefined };
+}
+
+function _mesclarDadosDia(local, remoto) {
+  if (!local) return remoto;
+  if (!remoto) return local;
+  const remotoMaisRecente = (remoto._ts || 0) >= (local._ts || 0);
+  const localTs = local.camposTs || {};
+  const remotoTs = remoto.camposTs || {};
+  const camposTsMesclados = Object.assign({}, localTs);
+  const especialidades = new Set([...Object.keys(local.specs || {}), ...Object.keys(remoto.specs || {})]);
+  const specsMesclados = {};
+  especialidades.forEach(specId => {
+    const l = local.specs?.[specId] || {};
+    const r = remoto.specs?.[specId] || {};
+    const merged = { dia:{}, noite:{}, notesDia:'', notesNoite:'' };
+    TURNOS.forEach(turno => {
+      const lt = l[turno] || {};
+      const rt = r[turno] || {};
+      const chaves = new Set([...Object.keys(lt), ...Object.keys(rt)]);
+      chaves.forEach(k => {
+        const chaveTs = specId + '|' + turno + '|' + k;
+        const resultado = _resolverCampo(lt[k], rt[k], localTs[chaveTs], remotoTs[chaveTs], remotoMaisRecente);
+        merged[turno][k] = resultado.valor;
+        if (resultado.ts !== undefined) camposTsMesclados[chaveTs] = resultado.ts;
+      });
+      const notesKey = 'notes' + turno.charAt(0).toUpperCase() + turno.slice(1);
+      const chaveNotaTs = specId + '|' + notesKey;
+      const resultadoNota = _resolverCampo(l[notesKey] || null, r[notesKey] || null, localTs[chaveNotaTs], remotoTs[chaveNotaTs], remotoMaisRecente);
+      merged[notesKey] = resultadoNota.valor || '';
+      if (resultadoNota.ts !== undefined) camposTsMesclados[chaveNotaTs] = resultadoNota.ts;
+    });
+    specsMesclados[specId] = merged;
+  });
+  return {
+    _ts: Math.max(local._ts || 0, remoto._ts || 0),
+    specs: specsMesclados,
+    camposTs: camposTsMesclados,
+    criadoPor: remotoMaisRecente ? remoto.criadoPor : local.criadoPor,
+  };
+}
+
+let _specConcluido = new Set();
+let _specUnlocked = new Set();
+
+function _calcularConcluidos(data) {
+  _specConcluido = new Set();
+  SPECIALTIES.forEach(sp => {
+    if (sp.id === 'medicina' || sp.id === 'bloco_op') return;
+    if (_servicoTemDados(data?.specs?.[sp.id])) _specConcluido.add(sp.id);
+  });
+}
+
+function _aplicarBloqueio(specId) {
+  const locked = _specConcluido.has(specId) && !_specUnlocked.has(specId);
+  const badge = document.getElementById('lock-badge-' + specId);
+  const editBtn = document.getElementById('btn-edit-' + specId);
+  const doneIcon = document.getElementById('done-' + specId);
+  if (badge) badge.style.display = locked ? 'inline-flex' : 'none';
+  if (editBtn) editBtn.style.display = locked ? 'inline-flex' : 'none';
+  if (doneIcon) doneIcon.classList.toggle('on', _specConcluido.has(specId));
+  document.querySelectorAll('[id^="i_' + specId + '_dia_"], [id^="i_' + specId + '_noite_"]').forEach(el => {
+    el.readOnly = locked;
+    el.classList.toggle('locked-field', locked);
+  });
+  ['notes-dia-' + specId, 'notes-noite-' + specId].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.readOnly = locked; el.classList.toggle('locked-field', locked); }
+  });
+  const toolbar = document.getElementById('sel-toolbar-' + specId);
+  if (toolbar) toolbar.querySelectorAll('button, input[type="checkbox"]').forEach(el => { el.disabled = locked; });
+}
+
+function _aplicarBloqueiosTodos() {
+  SPECIALTIES.forEach(sp => {
+    if (sp.id === 'medicina' || sp.id === 'bloco_op') return;
+    _aplicarBloqueio(sp.id);
+  });
+}
+
+// Chamar sempre que se troca de dia — reinicia quaisquer desbloqueios
+// manuais da sessão anterior (não fazem sentido para um dia diferente).
+function _resetBloqueiosParaDia(data) {
+  _specUnlocked = new Set();
+  _calcularConcluidos(data);
+  _aplicarBloqueiosTodos();
+}
+
+function toggleSpecEdit(specId) {
+  if (_specUnlocked.has(specId)) _specUnlocked.delete(specId);
+  else _specUnlocked.add(specId);
+  _aplicarBloqueio(specId);
 }
 
 // clearDayState: zera todos os inputs
@@ -1830,6 +2046,7 @@ function loadFromStorage() {
     const histBtn = document.getElementById('ver-historico-btn');
     if (wrapEl) wrapEl.style.display = 'none';
     if (histBtn) histBtn.style.display = 'none';
+    _resetBloqueiosParaDia(null);
     _fbEscutarDia(currentLoadedDate);
     return;
   }
@@ -1839,6 +2056,7 @@ function loadFromStorage() {
   } catch(e) {
     console.error('Erro ao carregar dados:', e);
     clearDayState();
+    _resetBloqueiosParaDia(null);
   }
   _fbEscutarDia(currentLoadedDate);
 }
@@ -1873,14 +2091,21 @@ function _popularProcedimentos(data) {
   });
   recalcMedicina();
   recalcBlocoOp();
+  _resetBloqueiosParaDia(data);
 }
 
 // saveAll: guarda explicitamente + toast
 function saveAll() {
   clearTimeout(autoSaveTimer);
   autoSaveTimer = null;
-  persist(currentLoadedDate);
-  showToast('✅ Registo guardado com sucesso!');
+  const mudou = persist(currentLoadedDate);
+  _specUnlocked = new Set();
+  try {
+    const raw = _storageGet(storageKey(currentLoadedDate));
+    _calcularConcluidos(raw ? JSON.parse(raw) : null);
+  } catch(e) { _calcularConcluidos(null); }
+  _aplicarBloqueiosTodos();
+  showToast(mudou ? '✅ Registo guardado com sucesso!' : 'Sem alterações para guardar.');
 }
 
 function setSyncInfo(msg) {
@@ -2221,7 +2446,7 @@ function buildUI() {
     const item = document.createElement('div');
     item.className = 'nav-item' + (sp.id===activeSpecId?' active':'');
     item.dataset.spec = sp.id;
-    item.innerHTML = `<span class="ni-icon">${sp.icon}</span><span class="ni-label">${sp.label}</span><span class="ni-badge" id="badge-${sp.id}">0</span>`;
+    item.innerHTML = `<span class="ni-icon">${sp.icon}</span><span class="ni-label">${sp.label}</span><span class="ni-done" id="done-${sp.id}" title="Concluído — guardado"><svg class="svc-icon" aria-hidden="true"><use href="#i-check-circle"/></svg></span><span class="ni-badge" id="badge-${sp.id}">0</span>`;
     item.addEventListener('click', () => switchSpec(sp.id));
     specNav.appendChild(item);
 
@@ -2236,6 +2461,13 @@ function buildUI() {
       <div class="spec-hdr">
         <span class="spec-hdr-icon">${sp.icon}</span>
         <div><h2>${sp.label}</h2><p>Procedimentos · Dia | Noite | Total</p></div>
+        ${isReadonly ? '' : `
+        <span class="spec-lock-badge" id="lock-badge-${sp.id}" style="display:none;">
+          <svg class="svc-icon" aria-hidden="true"><use href="#i-check-circle"/></svg> Concluído
+        </span>
+        <button type="button" class="btn-edit-spec" id="btn-edit-${sp.id}" style="display:none;" onclick="toggleSpecEdit('${sp.id}')">
+          <svg class="svc-icon" aria-hidden="true"><use href="#i-edit"/></svg> Editar
+        </button>`}
         <div class="spec-totals">
           <div class="tot-box day"><span class="tot-lbl"><svg class="svc-icon" aria-hidden="true"><use href="#i-sun"/></svg> Turno Dia</span><span class="tot-val" id="hdr-dia-${sp.id}">0</span></div>
           <div class="tot-box night"><span class="tot-lbl"><svg class="svc-icon" aria-hidden="true"><use href="#i-moon"/></svg> Turno Noite</span><span class="tot-val" id="hdr-noite-${sp.id}">0</span></div>
