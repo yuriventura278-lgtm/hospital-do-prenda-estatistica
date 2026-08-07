@@ -28,6 +28,7 @@
 </script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hemoterapia — HP</title>
@@ -441,7 +442,10 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
     <div class="sb-hdr"><span>Hemoterapia</span></div>
     <div class="nav-list">
       <div class="sb-sec">Registo</div>
-      <button class="nav-item active" id="nav-registo" onclick="showSection('sec-registo',this)"><svg class='ic'><use href='#ic-drop'/></svg> Registo Diário</button>
+      <button class="nav-item active" id="nav-registo" onclick="showSection('sec-registo',this)"><svg class='ic'><use href='#ic-drop'/></svg> Saúde Pública</button>
+      <hr class="sb-divider">
+      <div class="sb-sec">Mapas Diários</div>
+      <div id="nav-mapas-group"><!-- construído por buildMapaSections() --></div>
       <hr class="sb-divider">
       <div class="sb-sec">Relatórios</div>
       <button class="nav-item" id="nav-semanal" onclick="showSection('sec-semanal',this)"><svg class='ic'><use href='#ic-cal-week'/></svg> Semanal</button>
@@ -452,6 +456,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
       <hr class="sb-divider">
       <div class="sb-sec">Dados</div>
       <button class="nav-item" id="nav-historico" onclick="showSection('sec-historico',this)"><svg class='ic'><use href='#ic-calendar'/></svg> Histórico</button>
+      <button class="nav-item" id="nav-backup" onclick="showSection('sec-backup',this)"><svg class='ic'><use href='#ic-disc'/></svg> Cópias de Segurança</button>
     </div>
   </nav>
   <main class="main-content">
@@ -459,7 +464,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
     <div class="section active" id="sec-registo">
       <div class="pg-hdr">
         <div class="pg-hdr-icon"><svg class='ic'><use href='#ic-drop'/></svg></div>
-        <div><h2>Registo Diário — Hemoterapia</h2><p>Transfusões · Provas · Doadores · Serologia</p></div>
+        <div><h2>Saúde Pública — Hemoterapia</h2><p>Transfusões · Provas · Doadores · Serologia</p></div>
         <div class="spec-totals">
           <div class="tot-box red"><span class="tot-lbl">Transfusões</span><span class="tot-val" id="hdr-transf">0</span></div>
           <div class="tot-box blue"><span class="tot-lbl">Colhido (cc)</span><span class="tot-val" id="hdr-colhido-cc">0</span></div>
@@ -645,6 +650,73 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
       </div>
 
     </div><!-- /sec-registo -->
+
+    <!-- ═══ MAPAS DIÁRIOS (folhas do HEMOTERAPIA.xlsx) — construídos por buildMapaSections() ═══ -->
+    <div id="mapas-container"></div>
+
+    <!-- ═══ CÓPIAS DE SEGURANÇA ═══ -->
+    <div class="section" id="sec-backup">
+      <div class="pg-hdr">
+        <div class="pg-hdr-icon"><svg class='ic'><use href='#ic-disc'/></svg></div>
+        <div><h2>Cópias de Segurança</h2><p>Backup geral, mensal e automático em pasta</p></div>
+      </div>
+
+      <!-- BACKUP GERAL -->
+      <div class="card">
+        <div class="card-hdr blue-hdr">
+          <div>
+            <div class="card-title"><svg class='ic'><use href='#ic-disc'/></svg> Backup Geral</div>
+            <div class="card-sub">Descarrega um ficheiro JSON com TODOS os registos guardados (todas as datas e todas as páginas)</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <button class="btn-h btn-save" onclick="exportJSON()"><svg class='ic'><use href='#ic-disc'/></svg> Descarregar backup geral (JSON)</button>
+        </div>
+      </div>
+
+      <!-- BACKUP MENSAL -->
+      <div class="card">
+        <div class="card-hdr amber-hdr">
+          <div>
+            <div class="card-title"><svg class='ic'><use href='#ic-clipboard'/></svg> Backup Mensal</div>
+            <div class="card-sub">Descarrega apenas os registos de um mês escolhido</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <label class="field-label">Mês:</label>
+            <input type="month" id="backup-mes" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-family:var(--font-body);font-size:.8rem;color:var(--text);outline:none;">
+            <button class="btn-h btn-out" onclick="exportMensalJSON()"><svg class='ic'><use href='#ic-clipboard'/></svg> Descarregar backup mensal (JSON)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BACKUP AUTOMÁTICO EM PASTA -->
+      <div class="card">
+        <div class="card-hdr green-hdr">
+          <div>
+            <div class="card-title"><svg class='ic'><use href='#ic-refresh'/></svg> Backup Automático em Pasta (diário)</div>
+            <div class="card-sub">Escolha uma pasta no computador. O sistema grava lá automaticamente uma cópia dos registos — Diário, Semanal, Mensal, Trimestral, Semestral e Anual — sempre que esta página estiver aberta à volta da meia-noite, ou assim que a abrir de novo</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <p id="bkauto-suporte-msg" style="display:none;color:var(--danger);font-size:.78rem;margin-bottom:10px;">
+            O seu navegador não suporta esta funcionalidade — funciona apenas no Google Chrome ou Microsoft Edge (computador).
+          </p>
+          <div id="bkauto-corpo">
+            <div id="bkauto-status" style="margin:2px 0 10px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:.76rem;color:var(--text);">
+              <div id="bkauto-pasta-nome">A verificar…</div>
+            </div>
+            <div id="bkauto-cadencias" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:.72rem;color:var(--muted);margin-bottom:14px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn-h btn-save" onclick="_bkAutoEscolherPasta()"><svg class='ic'><use href='#ic-disc'/></svg> Escolher pasta</button>
+              <button class="btn-h btn-out" onclick="_bkAutoVerificarAgora()"><svg class='ic'><use href='#ic-refresh'/></svg> Verificar agora</button>
+              <button class="btn-h btn-out" onclick="_bkAutoEsquecerPasta()"><svg class='ic'><use href='#ic-trash'/></svg> Esquecer pasta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ═══ HISTÓRICO ═══ -->
     <div class="section" id="sec-historico">
@@ -1008,7 +1080,10 @@ let currentData = {
   transfusoes: { plaquetas:0, plasmas:0, globulos:0, crio:0 },
   provas: { colhido:0, consumido:0 },
   doadores: { voluntarios:0, familiares:0, habituais:0 },
-  serologia: { vih:0, hbs:0, vdrl:0, hcv:0, outros:0 }
+  serologia: { vih:0, hbs:0, vdrl:0, hcv:0, outros:0 },
+  // Mapas diários (folhas do HEMOTERAPIA.xlsx) — cada um é um array de blocos,
+  // cada bloco um array de valores por linha. Preenchidos por populateMapas().
+  transfServicos: [], sangueOutras: [], sangueHPrenda: [], resultadosINS: [], imunohematologia: []
 };
 
 const STORAGE_PREFIX = "hemo2_"; // mantido para compatibilidade com dados antigos já migrados
@@ -1064,6 +1139,7 @@ function runSplash(onDone){
 
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded',()=>{
+  buildMapaSections();
   setInterval(updateClock,1000);
   updateClock();
   const n=new Date();
@@ -1080,6 +1156,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(elq('seme-year')) elq('seme-year').value=sy;
   if(elq('seme-h')) elq('seme-h').value=sm<=6?1:2;
   if(elq('anu-year')) elq('anu-year').value=sy;
+  if(elq('backup-mes')) elq('backup-mes').value=`${sy}-${String(sm).padStart(2,'0')}`;
   runSplash(()=>{
     if(elq('data-registo')) elq('data-registo').value=today;
     loadDay(today);
@@ -1093,6 +1170,13 @@ function showSection(id, btn){
   const sec=document.getElementById(id); if(sec) sec.classList.add("active");
   if(btn) btn.classList.add("active");
   if(id==="sec-historico") renderHistory();
+  if(id==="sec-backup") _bkAutoAtualizarStatus();
+  // Ao abrir uma página de mapa, recalcula (cria/atualiza o gráfico) e
+  // redimensiona-o — o canvas estava oculto e sem dimensões até agora.
+  if(typeof MAPAS!=="undefined"){
+    const _m=MAPAS.find(x=>x.secId===id);
+    if(_m){ calcMapa(_m.key,true); const _c=_mapaCharts[_m.key]; if(_c) requestAnimationFrame(()=>_c.resize()); }
+  }
   if(window.innerWidth<=768) toggleSidebar(false);
   document.querySelector(".main-content")?.scrollTo({top:0,behavior:"smooth"});
 }
@@ -1210,6 +1294,7 @@ function collectData(){
   currentData.provas={total:n("prova-total")};
   currentData.doadores={voluntarios:n("donor-voluntarios"),familiares:n("donor-familiares"),habituais:n("donor-habituais")};
   currentData.serologia={vih:n("serol-vih"),hbs:n("serol-hbs"),vdrl:n("serol-vdrl"),hcv:n("serol-hcv")};
+  collectMapas();
 }
 
 async function persistData(date){
@@ -1242,8 +1327,12 @@ async function loadDay(date){
     currentData.serologia={vih:0,hbs:0,vdrl:0,hcv:0};
     currentData.turno="manha";
   }
+  // Mapas diários: aplicar o que o dia guardou, ou limpar se este dia não os tem
+  // (evita arrastar valores do dia anterior para um dia sem registo).
+  MAPAS.forEach(m=>{ currentData[m.key] = (saved && saved[m.key]) ? saved[m.key] : []; });
   populateFields();
   calcAll(true);
+  calcMapaAll(true);
   _diaAlterado = false;
   _fbEscutarDia(date);
 }
@@ -1260,6 +1349,7 @@ function populateFields(){
   const s=currentData.serologia||{};
   setV("serol-vih",s.vih||""); setV("serol-hbs",s.hbs||""); setV("serol-vdrl",s.vdrl||""); setV("serol-hcv",s.hcv||"");
   if(currentData.turno) document.getElementById("turno-select").value=currentData.turno;
+  populateMapas();
 }
 
 // ═══ SAVE ═══
@@ -1597,7 +1687,25 @@ function aggregateData(records){
   out.cc.colhido   = out.doadores.total * 500;
   out.cc.consumido = (out.transfusoes.globulos*500) + (out.transfusoes.plasmas*200) + (out.transfusoes.plaquetas*200) + (out.transfusoes.crio*150);
   out.cc.perdido   = out.serologia.total * 500;
+  out.mapas = aggregateMapas(records);
   return out;
+}
+
+// Agrega os mapas diários ao longo de vários registos (soma linha a linha por
+// bloco). Devolve { chave: [ [somasPorLinha], ... porBloco ] }.
+function aggregateMapas(records){
+  const agg={};
+  MAPAS.forEach(m=>{ agg[m.key]=m.blocks.map(blk=>blk.rows.map(()=>0)); });
+  (records||[]).forEach(r=>{
+    MAPAS.forEach(m=>{
+      const store=r[m.key]; if(!Array.isArray(store)) return;
+      m.blocks.forEach((blk,bi)=>{
+        const arr=store[bi]; if(!Array.isArray(arr)) return;
+        blk.rows.forEach((row,ri)=>{ agg[m.key][bi][ri]+=Number(arr[ri])||0; });
+      });
+    });
+  });
+  return agg;
 }
 
 // ═══ STAT PERIODS ═══
@@ -1714,6 +1822,34 @@ function renderStatTable(period,agg){
     ["ic-bar-chart","Sangue Perdido/Mil (cc) = Serologia × 500",agg.cc.perdido.toLocaleString("pt-PT"),true],
   ];
   tbl.innerHTML=`<thead><tr><th>Indicador</th><th>Total</th></tr></thead><tbody>${rows.map(([icon,l,v,total])=>`<tr ${total?"class='total-row'":""}><td><svg class='ic'><use href='#${icon}'/></svg> ${l}</td><td>${v}</td></tr>`).join("")}</tbody>`;
+  renderStatMapas(period,agg.mapas);
+}
+
+// Renderiza, por baixo da tabela do período, uma tabela agregada por cada mapa
+// diário (folhas do HEMOTERAPIA.xlsx) — soma de cada linha no período.
+function renderStatMapas(period,mapasAgg){
+  const tbl=document.getElementById("stat-"+period); if(!tbl) return;
+  const ancora=tbl.closest(".card")||tbl;
+  let cont=document.getElementById("statmapas-"+period);
+  if(!cont){
+    cont=document.createElement("div");
+    cont.id="statmapas-"+period;
+    ancora.parentNode.insertBefore(cont,ancora.nextSibling);
+  }
+  if(!mapasAgg){ cont.innerHTML=""; return; }
+  cont.innerHTML=MAPAS.map(m=>{
+    const agg=mapasAgg[m.key]||[];
+    let corpo="";
+    m.blocks.forEach((blk,bi)=>{
+      const arr=agg[bi]||[]; let tot=0;
+      let linhas="";
+      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; linhas+=`<tr><td>${_mapaEsc(row)}</td><td>${v}</td></tr>`; });
+      corpo+=`<tr class="total-row"><td>${_mapaEsc(blk.title)}</td><td></td></tr>`+linhas
+        +`<tr class="total-row"><td>TOTAL ${_mapaEsc(blk.title)}</td><td>${tot}</td></tr>`;
+    });
+    return `<div class="card" style="margin-top:12px;"><div class="card-hdr"><div><div class="card-title"><svg class='ic'><use href='#${m.icon}'/></svg> ${_mapaEsc(m.title)}</div></div></div>`
+      +`<div class="card-body" style="overflow-x:auto;"><table class="stat-table"><thead><tr><th>Item</th><th>Total no período</th></tr></thead><tbody>${corpo}</tbody></table></div></div>`;
+  }).join("");
 }
 
 // ═══ DETAIL TABLE ═══
@@ -1759,7 +1895,7 @@ function renderChart(period,records){
 }
 
 // ═══ COMPARISON ═══
-function renderComparison(){
+async function renderComparison(){
   const typeA=document.getElementById("cmp-type-a").value;
   const typeB=document.getElementById("cmp-type-b").value;
   const rawA=document.getElementById("cmp-date-a").value;
@@ -1767,8 +1903,8 @@ function renderComparison(){
   if(!rawA||!rawB){ toast("Seleccione os dois períodos","error"); return; }
   const refA=rawA.length===7?rawA+"-01":rawA;
   const refB=rawB.length===7?rawB+"-01":rawB;
-  const aggA=aggregateData(getDataForDates(getPeriodDatesForComparison(typeA,refA)));
-  const aggB=aggregateData(getDataForDates(getPeriodDatesForComparison(typeB,refB)));
+  const aggA=aggregateData(await getDataForDates(getPeriodDatesForComparison(typeA,refA)));
+  const aggB=aggregateData(await getDataForDates(getPeriodDatesForComparison(typeB,refB)));
   function fmt(agg){ return `<strong>Transfusões:</strong> ${agg.transfusoes.total}<br>Plaquetas: ${agg.transfusoes.plaquetas} | Plasmas: ${agg.transfusoes.plasmas} | Glóbulos: ${agg.transfusoes.globulos}<br><strong>Colhido:</strong> ${agg.cc.colhido.toLocaleString("pt-PT")}cc | Consumido: ${agg.cc.consumido.toLocaleString("pt-PT")}cc | Perdido: ${agg.cc.perdido.toLocaleString("pt-PT")}cc<br><strong>Doadores:</strong> ${agg.doadores.total}`; }
   document.getElementById("cmp-result-a").innerHTML=fmt(aggA);
   document.getElementById("cmp-result-b").innerHTML=fmt(aggB);
@@ -1822,7 +1958,7 @@ function exportDayPDF(){
   const totalD=(doa.voluntarios||0)+(doa.familiares||0)+(doa.habituais||0);
   const totalS=(s.vih||0)+(s.hbs||0)+(s.vdrl||0)+(s.hcv||0);
   const ccC=totalD*500, ccCo=(t.globulos||0)*500+(t.plasmas||0)*200+(t.plaquetas||0)*200+(t.crio||0)*150, ccP=totalS*500;
-  let cy=buildPDFHeader(doc,"Data: "+fmtDate(d.date)+"  |  Turno: "+(d.turno||"—"),"Registo Diário",d.date);
+  let cy=buildPDFHeader(doc,"Data: "+fmtDate(d.date)+"  |  Turno: "+(d.turno||"—"),"Saúde Pública",d.date);
   doc.autoTable({head:[["Secção","Indicador","Valor"]],body:[
     ["Transfusões","Plaquetas",t.plaquetas||0],
     ["Transfusões","Plasmas",t.plasmas||0],
@@ -1844,20 +1980,40 @@ function exportDayPDF(){
   ],startY:cy,styles:{fontSize:9},headStyles:{fillColor:[192,57,43]},alternateRowStyles:{fillColor:[255,249,249]},
     didParseCell(d){ if(d.row.index>=15) d.cell.styles.fontStyle='bold'; }
   });
+  // Mapas diários (folhas do HEMOTERAPIA.xlsx) — anexados ao PDF do dia.
+  collectMapas();
+  MAPAS.forEach(mapa=>{
+    const store=currentData[mapa.key]||[];
+    const body=[]; let totalGeral=0;
+    mapa.blocks.forEach((blk,bi)=>{
+      const arr=(store&&store[bi])||[]; let tot=0;
+      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
+      body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
+    });
+    // Todas as páginas entram no PDF do dia, mesmo sem valores.
+    body.push(["","TOTAL GERAL",totalGeral]);
+    const startY=(doc.lastAutoTable?doc.lastAutoTable.finalY:cy)+8;
+    doc.autoTable({head:[[mapa.title,"Item","Valor"]],body,startY,styles:{fontSize:8},
+      headStyles:{fillColor:[26,86,219]},alternateRowStyles:{fillColor:[235,243,255]},
+      didParseCell(c){ if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0) c.cell.styles.fontStyle='bold'; }
+    });
+  });
   addPDFFooter(doc,d.date||todayKey(),_registadoPorTxtAtual());
-  doc.save("hemoterapia_"+(d.date||todayKey())+".pdf");
+  const _nomePdf="hemoterapia_"+(d.date||todayKey())+".pdf";
+  doc.save(_nomePdf);
+  _guardarPDFNaPastaBackup(doc,_nomePdf);
   toast("PDF gerado","success");
 }
 
 function exportDayPDFFromDate(){ const date=document.getElementById("exp-date").value; if(date) editDay(date); setTimeout(exportDayPDF,300); }
 function exportDayPDFForDate(date){ editDay(date); setTimeout(exportDayPDF,300); }
 
-function exportStatPDFFromPeriod(period){ const dates=_lastDates[period]; if(!dates||!dates.length){ toast("Carregue o relatório primeiro","error"); return; } exportStatPDF(period,dates); }
+function exportStatPDFFromPeriod(period){ const dates=_lastDates[period]; if(!dates||!dates.length){ toast("Carregue o relatório primeiro","error"); return; } Promise.resolve(exportStatPDF(period,dates)).catch(e=>{ console.error("Erro no PDF de estatísticas:",e); toast("Falha ao gerar PDF","error"); }); }
 function exportStatPDFFromExport(){ exportStatPDFFromPeriod(document.getElementById("exp-period").value); }
 
-function exportStatPDF(period,dates){
+async function exportStatPDF(period,dates){
   const { jsPDF }=window.jspdf; if(!jsPDF){ toast("Biblioteca PDF não carregada","error"); return; }
-  const records=getDataForDates(dates); const agg=aggregateData(records);
+  const records=await getDataForDates(dates); const agg=aggregateData(records);
   const doc=new jsPDF();
   let cy=buildPDFHeader(doc,"Período: "+period.toUpperCase()+" | Registos: "+records.length,"Relatório de Estatísticas",period);
   doc.autoTable({head:[["Indicador","Total"]],body:[
@@ -1881,18 +2037,36 @@ function exportStatPDF(period,dates){
   ],startY:cy,styles:{fontSize:9},headStyles:{fillColor:[192,57,43]},alternateRowStyles:{fillColor:[255,249,249]},
     didParseCell(d){ if(d.row.index>=14) d.cell.styles.fontStyle='bold'; }
   });
+  // Mapas diários agregados no período.
+  const mapasAgg=agg.mapas||{};
+  MAPAS.forEach(mapa=>{
+    const a=mapasAgg[mapa.key]||[];
+    const body=[]; let totalGeral=0;
+    mapa.blocks.forEach((blk,bi)=>{
+      const arr=a[bi]||[]; let tot=0;
+      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
+      body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
+    });
+    // Todas as páginas entram no PDF do período, mesmo sem valores.
+    body.push(["","TOTAL GERAL",totalGeral]);
+    const startY=(doc.lastAutoTable?doc.lastAutoTable.finalY:cy)+8;
+    doc.autoTable({head:[[mapa.title,"Item","Total"]],body,startY,styles:{fontSize:8},
+      headStyles:{fillColor:[26,86,219]},alternateRowStyles:{fillColor:[235,243,255]},
+      didParseCell(c){ if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0) c.cell.styles.fontStyle='bold'; }
+    });
+  });
   addPDFFooter(doc,period,_documentoExportadoPorTxtAtual());
   doc.save("hemo_stat_"+period+"_"+todayKey()+".pdf");
   toast("PDF de estatísticas gerado","success");
 }
 
-function exportComparisonPDF(){
+async function exportComparisonPDF(){
   const typeA=document.getElementById("cmp-type-a").value, typeB=document.getElementById("cmp-type-b").value;
   const rawA=document.getElementById("cmp-date-a").value, rawB=document.getElementById("cmp-date-b").value;
   if(!rawA||!rawB){ toast("Seleccione os dois períodos","error"); return; }
   const refA=rawA.length===7?rawA+"-01":rawA, refB=rawB.length===7?rawB+"-01":rawB;
-  const aggA=aggregateData(getDataForDates(getPeriodDatesForComparison(typeA,refA)));
-  const aggB=aggregateData(getDataForDates(getPeriodDatesForComparison(typeB,refB)));
+  const aggA=aggregateData(await getDataForDates(getPeriodDatesForComparison(typeA,refA)));
+  const aggB=aggregateData(await getDataForDates(getPeriodDatesForComparison(typeB,refB)));
   const { jsPDF }=window.jspdf; const doc=new jsPDF();
   let cy=buildPDFHeader(doc,"Comparação de Períodos","Período A vs Período B","comparacao");
   doc.autoTable({head:[["Indicador","Período A","Período B","Diferença"]],body:[
@@ -1936,19 +2110,436 @@ function _documentoExportadoPorTxtAtual(){
   return nome ? `Documento exportado por: ${nome}` : null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// MAPAS DIÁRIOS — folhas do ficheiro HEMOTERAPIA.xlsx (excepto "Saúde Pública")
+// Cada folha vira uma página do menu, com preenchimento diário, PDF e backup.
+// O preenchimento diário de cada linha, agregado ao longo do mês, reconstrói o
+// mapa mensal original (linhas × dias do mês) de cada folha.
+// ═══════════════════════════════════════════════════════════════════════════
+const GRUPOS_SANGUINEOS = ["ORH+","ORH-","ABRH+","ABRH-","ARH+","ARH-","BRH+","BRH-"];
+const SEROLOGIA_OBS = ["HIV","HBS","HCV","VDRL","AGM","Outras"];
+
+const MAPAS = [
+  {
+    key:"transfServicos", secId:"sec-transf-servicos", navId:"nav-transf-servicos",
+    title:"Transfusões por Serviços", sub:"Grupo sanguíneo transfundido, por serviço", icon:"ic-drop",
+    blocks:[
+      {title:"Bloco Operatório", rows:GRUPOS_SANGUINEOS},
+      {title:"UCI", rows:GRUPOS_SANGUINEOS},
+      {title:"Banco de Urgências", rows:GRUPOS_SANGUINEOS},
+      {title:"Cirurgia", rows:GRUPOS_SANGUINEOS},
+      {title:"Medicina", rows:GRUPOS_SANGUINEOS},
+      {title:"Ortopedia", rows:GRUPOS_SANGUINEOS},
+    ]
+  },
+  {
+    key:"sangueOutras", secId:"sec-sangue-outras", navId:"nav-sangue-outras",
+    title:"Sangue de Outras Unidades", sub:"Unidades de origem e grupo sanguíneo recebido", icon:"ic-heart",
+    blocks:[
+      {title:"Unidades de Origem", rows:[
+        "Instituto Nacional de Sangue","Hospital Militar de Luanda","Hospital Neves Bendinha",
+        "Hospital Josina Machel","Américo Boa vida","Maternidade Lucrécia Paim",
+        "Maternidade Augusto Ngangula","Hospital dos Cajueiros","Clinica Girassol",
+        "Maternidade do K. Norte","Hospital Kilamba Kiaxi","Hospital municipal da Samba",
+        "Clinica Multiperfil","Clínica Endiama","Centro Nacional de Oncologia",
+        "Hospital Geral de Luanda","Hospital Sanatório","Hospital Pediátrico de Luanda",
+        "HDP","HMC","HPDB","Outras unidades"
+      ]},
+      {title:"Grupo Sanguíneo Recebido", rows:GRUPOS_SANGUINEOS},
+    ]
+  },
+  {
+    key:"sangueHPrenda", secId:"sec-sangue-hprenda", navId:"nav-sangue-hprenda",
+    title:"Sangue H. Prenda — Serologia", sub:"Casos positivos e negativos (observação microscópica)", icon:"ic-microscope",
+    blocks:[
+      {title:"Casos Positivos", rows:SEROLOGIA_OBS},
+      {title:"Casos Negativos", rows:SEROLOGIA_OBS},
+    ]
+  },
+  {
+    key:"resultadosINS", secId:"sec-resultados-ins", navId:"nav-resultados-ins",
+    title:"Resultados Vindos do INS", sub:"Observação microscópica — Instituto Nacional de Sangue", icon:"ic-test-tube",
+    blocks:[
+      {title:"Resultados", rows:SEROLOGIA_OBS},
+    ]
+  },
+  {
+    key:"imunohematologia", secId:"sec-imunohematologia", navId:"nav-imunohematologia",
+    title:"Testes de Imunohematologia", sub:"Testes efectuados e grupo sanguíneo por serviço", icon:"ic-microscope",
+    blocks:[
+      {title:"Testes Efectuados", rows:[
+        "Grupo sanguíneo do dador","Grupo sanguíneo do doente a transfundir",
+        "Prova de compatibilidade","Transfusões","Grupos sanguíneos efectuados","Hemoglobinas"
+      ]},
+      {title:"Grupo Sanguíneo por Serviço", rows:[
+        "Bloco Operatório","Banco de Urgência","UCI","Sala de Medicina","Sala de Ortopedia","Sala de Cirurgia"
+      ]},
+    ]
+  }
+];
+
+function _mapaById(key){ return MAPAS.find(m=>m.key===key); }
+function _mapaInputId(key,bi,ri){ return "map_"+key+"_"+bi+"_"+ri; }
+function _mapaTotalId(key,bi){ return "maptot_"+key+"_"+bi; }
+function _mapaEsc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+const _MAPA_ACCENTS=["red-hdr","blue-hdr","green-hdr","amber-hdr"];
+const _MAPA_CHART_CORES=["#c0392b","#1a56db","#047857","#d97706","#7c3aed","#0891b2","#db2777","#4b5563","#ca8a04","#0d9488"];
+
+function _mapaBlockHtml(mapa,blk,bi){
+  let inputs="";
+  blk.rows.forEach((row,ri)=>{
+    inputs+='<div class="field-group"><label class="field-label">'+_mapaEsc(row)+'</label>'
+      +'<input type="number" class="hemo-input" id="'+_mapaInputId(mapa.key,bi,ri)+'" min="0" placeholder="0" oninput="calcMapa(\''+mapa.key+'\')"></div>';
+  });
+  inputs+='<div class="field-group"><label class="field-label">TOTAL</label>'
+    +'<div class="total-display" id="'+_mapaTotalId(mapa.key,bi)+'">0</div></div>';
+  return '<div class="card"><div class="card-hdr '+_MAPA_ACCENTS[bi%_MAPA_ACCENTS.length]+'"><div><div class="card-title"><svg class="ic"><use href="#'+mapa.icon+'"/></svg> '
+    +_mapaEsc(blk.title)+'</div><div class="card-sub">Total de itens: '+blk.rows.length+'</div></div></div>'
+    +'<div class="card-body"><div class="field-grid">'+inputs+'</div></div></div>';
+}
+
+// Placar da página: um cartão com o total de cada bloco (item) + o total geral.
+function _mapaPlacarHtml(mapa){
+  const boxes=mapa.blocks.map((blk,bi)=>
+    '<div class="kpi"><div class="kpi-lbl">'+_mapaEsc(blk.title)+'</div>'
+    +'<div class="kpi-val" id="mapkpi_'+mapa.key+'_'+bi+'">0</div></div>'
+  ).join("");
+  const geral='<div class="kpi red"><span class="kpi-icon"><svg class="ic"><use href="#'+mapa.icon+'"/></svg></span>'
+    +'<div class="kpi-lbl">Total Geral</div><div class="kpi-val" id="mapkpi_'+mapa.key+'_geral">0</div></div>';
+  return '<div class="kpi-grid">'+boxes+geral+'</div>';
+}
+
+// Painel/dashboard da página: gráfico real que se atualiza enquanto se preenche.
+function _mapaDashHtml(mapa){
+  return '<div class="card"><div class="card-hdr"><div><div class="card-title"><svg class="ic"><use href="#ic-bar-chart"/></svg> Painel — '
+    +_mapaEsc(mapa.title)+'</div><div class="card-sub">Atualiza automaticamente enquanto preenche</div></div></div>'
+    +'<div class="card-body"><div class="chart-wrap" style="height:300px;"><canvas id="mapchart_'+mapa.key+'"></canvas></div></div></div>';
+}
+
+// Constrói os itens do menu e as secções de cada mapa a partir da configuração.
+function buildMapaSections(){
+  const nav=document.getElementById("nav-mapas-group");
+  if(nav){
+    nav.innerHTML=MAPAS.map(m=>
+      '<button class="nav-item" id="'+m.navId+'" onclick="showSection(\''+m.secId+'\',this)">'
+      +'<svg class="ic"><use href="#'+m.icon+'"/></svg> '+_mapaEsc(m.title)+'</button>'
+    ).join("");
+  }
+  const cont=document.getElementById("mapas-container");
+  if(cont){
+    cont.innerHTML=MAPAS.map(m=>
+      '<div class="section" id="'+m.secId+'">'
+      +'<div class="pg-hdr"><div class="pg-hdr-icon"><svg class="ic"><use href="#'+m.icon+'"/></svg></div>'
+      +'<div><h2>'+_mapaEsc(m.title)+'</h2><p>'+_mapaEsc(m.sub)+' · Preenchimento diário</p></div>'
+      +'<div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">'
+      +'<button class="btn-h btn-save" onclick="guardarMapa(\''+m.key+'\')" aria-label="Guardar"><svg class="ic"><use href="#ic-save"/></svg><span class="btn-label"> Guardar</span></button>'
+      +'<button class="btn-h btn-out" onclick="eliminarMapa(\''+m.key+'\')" aria-label="Eliminar dados desta página"><svg class="ic"><use href="#ic-trash"/></svg><span class="btn-label"> Eliminar</span></button>'
+      +'<button class="btn-h btn-out" onclick="exportMapaPDF(\''+m.key+'\')" aria-label="Exportar PDF desta página"><svg class="ic"><use href="#ic-file"/></svg><span class="btn-label"> PDF</span></button>'
+      +'</div></div>'
+      +_mapaPlacarHtml(m)
+      +_mapaDashHtml(m)
+      +'<div class="mapa-body">'+m.blocks.map((blk,bi)=>_mapaBlockHtml(m,blk,bi)).join("")+'</div>'
+      +'</div>'
+    ).join("");
+  }
+}
+
+// Recalcula os totais de um mapa, atualiza o placar e o gráfico, e guarda o
+// estado em currentData.
+function calcMapa(key,fromLoad){
+  const mapa=_mapaById(key); if(!mapa) return;
+  const store=[]; const blockTotals=[]; let geral=0;
+  mapa.blocks.forEach((blk,bi)=>{
+    let tot=0; const arr=[];
+    blk.rows.forEach((row,ri)=>{ const v=Math.max(0,n(_mapaInputId(key,bi,ri))); arr.push(v); tot+=v; });
+    const totEl=document.getElementById(_mapaTotalId(key,bi));
+    if(totEl) totEl.textContent=tot.toLocaleString("pt-PT");
+    const kpiEl=document.getElementById("mapkpi_"+key+"_"+bi);
+    if(kpiEl) kpiEl.textContent=tot.toLocaleString("pt-PT");
+    store[bi]=arr; blockTotals.push(tot); geral+=tot;
+  });
+  const geralEl=document.getElementById("mapkpi_"+key+"_geral");
+  if(geralEl) geralEl.textContent=geral.toLocaleString("pt-PT");
+  currentData[key]=store;
+  _updateMapaChart(mapa,store,blockTotals);
+  if(!fromLoad){ _diaAlterado=true; autoSaveLazy(); }
+}
+function calcMapaAll(fromLoad){ MAPAS.forEach(m=>calcMapa(m.key,fromLoad)); }
+
+// Gráfico dinâmico por página (Chart.js). Páginas com vários blocos mostram o
+// total por bloco; páginas de bloco único mostram o valor por linha.
+const _mapaCharts={};
+function _updateMapaChart(mapa,store,blockTotals){
+  if(typeof Chart==="undefined") return;
+  const canvas=document.getElementById("mapchart_"+mapa.key); if(!canvas) return;
+  let labels,data;
+  if(mapa.blocks.length>1){ labels=mapa.blocks.map(b=>b.title); data=blockTotals.slice(); }
+  else { labels=mapa.blocks[0].rows.slice(); data=(store[0]||[]).slice(); }
+  const cores=labels.map((_,i)=>_MAPA_CHART_CORES[i%_MAPA_CHART_CORES.length]);
+  const ex=_mapaCharts[mapa.key];
+  if(ex){ ex.data.labels=labels; ex.data.datasets[0].data=data; ex.data.datasets[0].backgroundColor=cores; ex.update(); return; }
+  try{
+    _mapaCharts[mapa.key]=new Chart(canvas,{
+      type:"bar",
+      data:{labels,datasets:[{label:"Total",data,backgroundColor:cores,borderWidth:1,borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>" "+c.parsed.y}}},
+        scales:{y:{beginAtZero:true,ticks:{precision:0,font:{family:"Roboto Mono",size:10}}},
+                x:{ticks:{font:{family:"Inter",size:10},maxRotation:40,minRotation:0}}}}
+    });
+  }catch(e){ console.warn("[Mapa] gráfico indisponível",e); }
+}
+
+// Guardar (criar/atualizar) — persiste o dia e mostra mensagem de confirmação.
+async function guardarMapa(key){
+  const mapa=_mapaById(key);
+  collectData();
+  try{
+    await persistData(currentData.date||todayKey());
+    toast("✔ "+(mapa?mapa.title:"Registo")+" guardado com sucesso","success");
+  }catch(e){ toast("Não foi possível guardar","error"); }
+}
+
+// Eliminar — limpa os dados desta página no dia atual e persiste a alteração.
+async function eliminarMapa(key){
+  const mapa=_mapaById(key); if(!mapa) return;
+  const dia=fmtDate(currentData.date||todayKey());
+  if(!confirm('Eliminar todos os dados de "'+mapa.title+'" no dia '+dia+'?\nEsta ação não pode ser anulada.')) return;
+  mapa.blocks.forEach((blk,bi)=>blk.rows.forEach((row,ri)=>{
+    const el=document.getElementById(_mapaInputId(key,bi,ri)); if(el) el.value="";
+  }));
+  currentData[key]=[];
+  calcMapa(key,true);
+  collectData();
+  try{
+    await persistData(currentData.date||todayKey());
+    toast("🗑 Dados de \""+mapa.title+"\" eliminados","success");
+  }catch(e){ toast("Não foi possível eliminar","error"); }
+}
+
+// Lê os campos de todos os mapas para currentData (chamado por collectData).
+function collectMapas(){
+  MAPAS.forEach(mapa=>{
+    const store=[];
+    mapa.blocks.forEach((blk,bi)=>{
+      const arr=[]; blk.rows.forEach((row,ri)=>arr.push(Math.max(0,n(_mapaInputId(mapa.key,bi,ri)))));
+      store[bi]=arr;
+    });
+    currentData[mapa.key]=store;
+  });
+}
+
+// Preenche os campos de todos os mapas a partir de currentData (chamado por populateFields).
+function populateMapas(){
+  MAPAS.forEach(mapa=>{
+    const store=currentData[mapa.key]||[];
+    mapa.blocks.forEach((blk,bi)=>{
+      const arr=(store&&store[bi])||[];
+      blk.rows.forEach((row,ri)=>{
+        const el=document.getElementById(_mapaInputId(mapa.key,bi,ri));
+        if(el) el.value=(arr[ri]!=null && arr[ri]!==0)?arr[ri]:"";
+      });
+    });
+  });
+}
+
+// PDF de uma página de mapa (só os dados do dia actual).
+function exportMapaPDF(key){
+  const { jsPDF }=window.jspdf; if(!jsPDF){ toast("Biblioteca PDF não carregada","error"); return; }
+  const mapa=_mapaById(key); if(!mapa) return;
+  collectMapas();
+  const store=currentData[key]||[];
+  const doc=new jsPDF(); const d=currentData;
+  let cy=buildPDFHeader(doc,mapa.title+"  |  Data: "+fmtDate(d.date),"Mapa Diário",d.date);
+  const body=[]; let totalGeral=0;
+  mapa.blocks.forEach((blk,bi)=>{
+    const arr=(store&&store[bi])||[]; let tot=0;
+    blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
+    body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
+  });
+  if(mapa.blocks.length>1) body.push(["","TOTAL GERAL",totalGeral]);
+  doc.autoTable({head:[["Secção","Item","Valor"]],body,startY:cy,styles:{fontSize:9},
+    headStyles:{fillColor:[192,57,43]},alternateRowStyles:{fillColor:[255,249,249]},
+    didParseCell(c){ if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0) c.cell.styles.fontStyle='bold'; }
+  });
+  addPDFFooter(doc,mapa.title,_registadoPorTxtAtual());
+  doc.save("hemo_"+key+"_"+(d.date||todayKey())+".pdf");
+  toast("PDF de "+mapa.title+" gerado","success");
+}
+
 // ═══ JSON BACKUP ═══
-function exportJSON(){
+// Exporta TODOS os registos guardados (incluindo os mapas diários acima, que
+// fazem parte de cada registo). Usa o módulo DB para ler a fonte de dados real.
+async function exportJSON(){
   if (sessionStorage.getItem('zeloRole') !== 'admin'){
     if (typeof toast === 'function') toast('Só administradores podem usar esta opção', 'error');
     return;
   }
-  const dates=getSavedDates(); const all={};
-  dates.forEach(d=>{ const raw=localStorage.getItem(sk(d)); if(raw) all[d]=JSON.parse(raw); });
-  const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),dates,data:all},null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download="hemoterapia_backup_"+todayKey()+".json"; a.click();
-  toast("Backup JSON exportado","success");
+  try{
+    const records = await DB.getAll();
+    records.sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    const dates = records.map(r=>r.date);
+    const all = {};
+    records.forEach(r=>{ if(r && r.date) all[r.date]=r; });
+    const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),dates,data:all},null,2)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="hemoterapia_backup_"+todayKey()+".json"; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    toast("Backup JSON exportado ("+records.length+" registos)","success");
+  }catch(e){
+    console.error("Erro ao exportar backup:",e);
+    toast("Falha ao exportar backup","error");
+  }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BACKUP MENSAL + BACKUP AUTOMÁTICO EM PASTA (diário/mensal/…)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Lê (de forma síncrona) todos os registos guardados a partir do espelho em
+// localStorage mantido pelo módulo DB (chaves "hemo2_<data>" + índice
+// "hemo2_saved_dates"). Serve os backups mensal e automático.
+function _hemoLerRegistos(){
+  let idx=[];
+  try{ idx=JSON.parse(localStorage.getItem('hemo2_saved_dates')||'[]'); }catch(e){ idx=[]; }
+  const out=[];
+  idx.forEach(d=>{ try{ const raw=localStorage.getItem('hemo2_'+d); if(raw) out.push(JSON.parse(raw)); }catch(e){} });
+  return out;
+}
+
+// Backup mensal — descarrega os registos de um mês (YYYY-MM) escolhido.
+function exportMensalJSON(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){
+    toast('Só administradores podem usar esta opção','error'); return;
+  }
+  const mesEl=document.getElementById('backup-mes');
+  const n=new Date();
+  const mes=(mesEl && mesEl.value) ? mesEl.value : (n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'));
+  const recs=_hemoLerRegistos().filter(r=>r && r.date && r.date.slice(0,7)===mes);
+  if(!recs.length){ toast('Não há registos guardados em '+mes,'error'); return; }
+  recs.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const dates=recs.map(r=>r.date); const data={}; recs.forEach(r=>{ data[r.date]=r; });
+  const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),mes,dates,data},null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="hemoterapia_backup_mensal_"+mes+".json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("Backup mensal de "+mes+" exportado ("+recs.length+" registos)","success");
+}
+
+// ── Backup automático em pasta (módulo ZeloAutoBackup) ─────────────────────
+const _BKAUTO_ROTULOS = { diario:'Diário', semanal:'Semanal', mensal:'Mensal', trimestral:'Trimestral', semestral:'Semestral', anual:'Anual' };
+
+async function _bkAutoAtualizarStatus(){
+  const suporteMsg=document.getElementById('bkauto-suporte-msg');
+  const corpo=document.getElementById('bkauto-corpo');
+  if(!suporteMsg||!corpo) return;
+  if(typeof ZeloAutoBackup==='undefined' || !ZeloAutoBackup.suportado()){
+    suporteMsg.style.display='block'; corpo.style.display='none'; return;
+  }
+  suporteMsg.style.display='none'; corpo.style.display='block';
+  const pasta=await ZeloAutoBackup.obterPastaAtiva(false);
+  const nomeEl=document.getElementById('bkauto-pasta-nome');
+  if(nomeEl){
+    if(pasta.estado==='ok') nomeEl.textContent='📁 Pasta escolhida: '+pasta.handle.name;
+    else if(pasta.estado==='sem_permissao') nomeEl.textContent='⚠️ Autorização da pasta expirou — clique em "Escolher pasta" para renovar.';
+    else nomeEl.textContent='Nenhuma pasta escolhida ainda.';
+  }
+  const cadEl=document.getElementById('bkauto-cadencias');
+  if(cadEl){
+    cadEl.innerHTML=Object.keys(_BKAUTO_ROTULOS).map(c=>{
+      const marca=localStorage.getItem('zbk_marca_hemoterapia_'+c);
+      return '<div>'+_BKAUTO_ROTULOS[c]+': '+(marca?'✅ '+marca:'— ainda não')+'</div>';
+    }).join('');
+  }
+}
+async function _bkAutoEscolherPasta(){
+  if (sessionStorage.getItem('zeloRole') !== 'admin'){ toast('Só administradores podem usar esta opção','error'); return; }
+  try{
+    await ZeloAutoBackup.escolherPasta();
+    toast('📁 Pasta escolhida com sucesso!','success');
+    _bkAutoAtualizarStatus();
+    ZeloAutoBackup.verificarEExecutar('hemoterapia').then(_bkAutoAtualizarStatus);
+  }catch(e){ if(e && e.name!=='AbortError') toast('Não foi possível escolher a pasta.','error'); }
+}
+async function _bkAutoEsquecerPasta(){
+  await ZeloAutoBackup.esquecerPasta();
+  toast('Pasta de backup automático esquecida.');
+  _bkAutoAtualizarStatus();
+}
+async function _bkAutoVerificarAgora(){
+  if(typeof ZeloAutoBackup==='undefined' || !ZeloAutoBackup.suportado()){ toast('Funcionalidade indisponível neste navegador','error'); return; }
+  toast('A verificar backups pendentes…');
+  await ZeloAutoBackup.verificarEExecutar('hemoterapia');
+  _bkAutoAtualizarStatus();
+  toast('Verificação concluída.','success');
+}
+
+// Guarda também o PDF na pasta de backup (subpasta Diario) quando é gerado
+// manualmente, além do download normal do navegador.
+function _guardarPDFNaPastaBackup(doc,nomeFicheiro){
+  if(typeof ZeloAutoBackup==='undefined' || !ZeloAutoBackup.suportado()) return;
+  try{
+    const blob=doc.output('blob');
+    ZeloAutoBackup.gravarNaPasta('hemoterapia','Diario',nomeFicheiro,blob).then(r=>{
+      if(r.ok && typeof toast==='function') toast('📁 PDF também guardado na pasta de backup.');
+    });
+  }catch(e){ console.warn('[BackupAuto] falha ao guardar PDF na pasta',e); }
+}
+
+// ── Ligação ao módulo de backup automático ────────────────────────────────
+function _bkFimDoPeriodoContendo(cadencia,dataISO){
+  const d=new Date(dataISO+'T00:00:00'); let fim;
+  switch(cadencia){
+    case 'diario': fim=new Date(d); break;
+    case 'semanal': { const dow=(d.getDay()+6)%7; fim=new Date(d); fim.setDate(fim.getDate()+(6-dow)); break; }
+    case 'mensal': fim=new Date(d.getFullYear(),d.getMonth()+1,0); break;
+    case 'trimestral': fim=new Date(d.getFullYear(),Math.floor(d.getMonth()/3)*3+3,0); break;
+    case 'semestral': fim=new Date(d.getFullYear(),d.getMonth()<6?6:12,0); break;
+    case 'anual': fim=new Date(d.getFullYear(),12,0); break;
+  }
+  return fim.getFullYear()+'-'+String(fim.getMonth()+1).padStart(2,'0')+'-'+String(fim.getDate()).padStart(2,'0');
+}
+function _bkLimitesDoPeriodo(cadencia,fimISO){
+  const fim=new Date(fimISO+'T00:00:00'); let inicio;
+  switch(cadencia){
+    case 'diario': inicio=new Date(fim); break;
+    case 'semanal': inicio=new Date(fim); inicio.setDate(inicio.getDate()-6); break;
+    case 'mensal': inicio=new Date(fim.getFullYear(),fim.getMonth(),1); break;
+    case 'trimestral': inicio=new Date(fim.getFullYear(),Math.floor(fim.getMonth()/3)*3,1); break;
+    case 'semestral': inicio=new Date(fim.getFullYear(),fim.getMonth()<6?0:6,1); break;
+    case 'anual': inicio=new Date(fim.getFullYear(),0,1); break;
+  }
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return { inicioISO:iso(inicio), fimISO:iso(fim) };
+}
+
+// Lista os períodos já TERMINADOS (fim < hoje) que têm registos guardados.
+window.ZBK_periodosDisponiveis = function(cadencia){
+  const n=new Date();
+  const hojeISO=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+  const vistos={};
+  _hemoLerRegistos().forEach(r=>{
+    if(!r || !r.date) return;
+    const fimISO=_bkFimDoPeriodoContendo(cadencia,r.date);
+    if(fimISO>=hojeISO) return;
+    const chave=ZeloAutoBackup._periodoAtual(cadencia,new Date(fimISO+'T00:00:00'));
+    vistos[chave]=fimISO;
+  });
+  return Object.keys(vistos).map(chave=>({ chave, dataRefISO:vistos[chave] }));
+};
+
+// Conteúdo JSON de um período (mapa data→registo) para o backup automático.
+window.ZBK_getBackupJSON = function(cadencia,fimISO){
+  const lim=_bkLimitesDoPeriodo(cadencia,fimISO);
+  const data={};
+  _hemoLerRegistos().forEach(r=>{
+    if(r && r.date && r.date>=lim.inicioISO && r.date<=lim.fimISO) data[r.date]=r;
+  });
+  return { nome:'backup_hemoterapia_'+cadencia+'_'+lim.fimISO+'.json', conteudo:data };
+};
+
+if (typeof ZeloAutoBackup !== 'undefined') ZeloAutoBackup.iniciar('hemoterapia');
 
 // Deep-link do menu ZELO: abre diretamente Historico/Exportacao via ?abrir=
 (function(){
