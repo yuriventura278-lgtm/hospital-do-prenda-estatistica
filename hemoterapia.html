@@ -1950,6 +1950,85 @@ function buildPDFHeader(doc,title,subtitle,date){
   return 33;
 }
 
+// Verifica se todos os blocos de um mapa partilham exactamente o mesmo
+// conjunto de linhas (ex.: os 6 serviços — Bloco Operatório, UCI, Banco de
+// Urgências, Cirurgia, Medicina, Ortopedia — de "Transfusões por Serviços"
+// usam todos os mesmos 8 grupos sanguíneos). Nesse caso um quadro cruzado
+// (linha = item, coluna = serviço, + coluna TOTAL) fica muito mais
+// organizado do que uma lista longa repetida serviço a serviço, e dá
+// directamente o total geral de cada grupo sanguíneo somado de todos os
+// serviços — pedido explicitamente pelo utilizador.
+function _mapaEhCruzavel(mapa){
+  if(mapa.blocks.length<2) return false;
+  const base=mapa.blocks[0].rows;
+  return mapa.blocks.every(b=>b.rows.length===base.length && b.rows.every((r,i)=>r===base[i]));
+}
+
+// Constrói o head/body da tabela de um mapa para o PDF: quadro cruzado
+// (item × serviço, com coluna e linha de TOTAL) quando os blocos partilham
+// as mesmas linhas, ou o formato em lista bloco-a-bloco nos restantes casos
+// (blocos com linhas diferentes, ex.: "Unidades de Origem" vs. "Grupo
+// Sanguíneo Recebido").
+function _mapaTabela(mapa,store,colunaValor){
+  if(_mapaEhCruzavel(mapa)){
+    const rows=mapa.blocks[0].rows;
+    const head=[["Item",...mapa.blocks.map(b=>b.title),"TOTAL"]];
+    const blockTotals=mapa.blocks.map(()=>0);
+    const body=rows.map((row,ri)=>{
+      let rowTotal=0;
+      const vals=mapa.blocks.map((blk,bi)=>{ const v=(store[bi]||[])[ri]||0; blockTotals[bi]+=v; rowTotal+=v; return v; });
+      return [row,...vals,rowTotal];
+    });
+    const grand=blockTotals.reduce((a,b)=>a+b,0);
+    body.push(["TOTAL",...blockTotals,grand]);
+    return { head, body, totalGeral:grand, cruzado:true };
+  }
+  const head=[[mapa.title,"Item",colunaValor]];
+  const body=[]; let totalGeral=0;
+  mapa.blocks.forEach((blk,bi)=>{
+    const arr=(store&&store[bi])||[]; let tot=0;
+    blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
+    body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
+  });
+  // Só faz sentido uma linha "TOTAL GERAL" à parte quando há mais do que um
+  // bloco — com um único bloco seria uma repetição exacta da linha TOTAL
+  // que já lá está.
+  if(mapa.blocks.length>1) body.push(["","TOTAL GERAL",totalGeral]);
+  return { head, body, totalGeral, cruzado:false };
+}
+
+// Desenha a tabela de um mapa no PDF (chamada a partir de exportDayPDF,
+// exportStatPDF e exportMapaPDF) — mantém as três num único sítio para não
+// haver três cópias divergentes da mesma lógica de organização.
+function _desenharMapaPDF(doc,mapa,store,startY,colunaValor){
+  const {head,body,cruzado}=_mapaTabela(mapa,store,colunaValor);
+  const nCols=head[0].length;
+  if(cruzado){
+    // O quadro cruzado não repete o nome do mapa na 1ª coluna (fica só
+    // "Item"/serviços/TOTAL) — escreve o título como legenda por cima.
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(26,86,219);
+    doc.text(mapa.title,14,startY-2);
+    doc.setTextColor(0); doc.setFont('helvetica','normal');
+  }
+  doc.autoTable({
+    head: cruzado ? head : [[mapa.title,"Item",colunaValor]],
+    body, startY: cruzado ? startY+3 : startY,
+    styles:{fontSize:cruzado?7.5:8,halign:cruzado?'center':'left'},
+    headStyles:{fillColor:[26,86,219],halign:cruzado?'center':'left'},
+    alternateRowStyles:{fillColor:[235,243,255]},
+    columnStyles: cruzado ? {0:{halign:'left',fontStyle:'bold',cellWidth:'auto'}} : undefined,
+    didParseCell(c){
+      if(cruzado){
+        if(c.row.index===body.length-1){ c.cell.styles.fontStyle='bold'; c.cell.styles.fillColor=[219,234,254]; }
+        if(c.column.index===nCols-1) c.cell.styles.fontStyle='bold';
+      } else if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0){
+        c.cell.styles.fontStyle='bold';
+      }
+    }
+  });
+  return doc.lastAutoTable.finalY;
+}
+
 function exportDayPDF(){
   const { jsPDF }=window.jspdf; if(!jsPDF){ toast("Biblioteca PDF não carregada","error"); return; }
   const doc=new jsPDF(); const d=currentData;
@@ -1984,19 +2063,9 @@ function exportDayPDF(){
   collectMapas();
   MAPAS.forEach(mapa=>{
     const store=currentData[mapa.key]||[];
-    const body=[]; let totalGeral=0;
-    mapa.blocks.forEach((blk,bi)=>{
-      const arr=(store&&store[bi])||[]; let tot=0;
-      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
-      body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
-    });
     // Todas as páginas entram no PDF do dia, mesmo sem valores.
-    body.push(["","TOTAL GERAL",totalGeral]);
     const startY=(doc.lastAutoTable?doc.lastAutoTable.finalY:cy)+8;
-    doc.autoTable({head:[[mapa.title,"Item","Valor"]],body,startY,styles:{fontSize:8},
-      headStyles:{fillColor:[26,86,219]},alternateRowStyles:{fillColor:[235,243,255]},
-      didParseCell(c){ if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0) c.cell.styles.fontStyle='bold'; }
-    });
+    _desenharMapaPDF(doc,mapa,store,startY,"Valor");
   });
   addPDFFooter(doc,d.date||todayKey(),_registadoPorTxtAtual());
   const _nomePdf="hemoterapia_"+(d.date||todayKey())+".pdf";
@@ -2040,20 +2109,10 @@ async function exportStatPDF(period,dates){
   // Mapas diários agregados no período.
   const mapasAgg=agg.mapas||{};
   MAPAS.forEach(mapa=>{
-    const a=mapasAgg[mapa.key]||[];
-    const body=[]; let totalGeral=0;
-    mapa.blocks.forEach((blk,bi)=>{
-      const arr=a[bi]||[]; let tot=0;
-      blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
-      body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
-    });
+    const store=mapasAgg[mapa.key]||[];
     // Todas as páginas entram no PDF do período, mesmo sem valores.
-    body.push(["","TOTAL GERAL",totalGeral]);
     const startY=(doc.lastAutoTable?doc.lastAutoTable.finalY:cy)+8;
-    doc.autoTable({head:[[mapa.title,"Item","Total"]],body,startY,styles:{fontSize:8},
-      headStyles:{fillColor:[26,86,219]},alternateRowStyles:{fillColor:[235,243,255]},
-      didParseCell(c){ if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0) c.cell.styles.fontStyle='bold'; }
-    });
+    _desenharMapaPDF(doc,mapa,store,startY,"Total");
   });
   addPDFFooter(doc,period,_documentoExportadoPorTxtAtual());
   doc.save("hemo_stat_"+period+"_"+todayKey()+".pdf");
@@ -2352,17 +2411,7 @@ function exportMapaPDF(key){
   const store=currentData[key]||[];
   const doc=new jsPDF(); const d=currentData;
   let cy=buildPDFHeader(doc,mapa.title+"  |  Data: "+fmtDate(d.date),"Mapa Diário",d.date);
-  const body=[]; let totalGeral=0;
-  mapa.blocks.forEach((blk,bi)=>{
-    const arr=(store&&store[bi])||[]; let tot=0;
-    blk.rows.forEach((row,ri)=>{ const v=arr[ri]||0; tot+=v; body.push([blk.title,row,v]); });
-    body.push([blk.title,"TOTAL",tot]); totalGeral+=tot;
-  });
-  if(mapa.blocks.length>1) body.push(["","TOTAL GERAL",totalGeral]);
-  doc.autoTable({head:[["Secção","Item","Valor"]],body,startY:cy,styles:{fontSize:9},
-    headStyles:{fillColor:[192,57,43]},alternateRowStyles:{fillColor:[255,249,249]},
-    didParseCell(c){ if(c.section==='body' && String(c.row.raw[1]).indexOf('TOTAL')===0) c.cell.styles.fontStyle='bold'; }
-  });
+  _desenharMapaPDF(doc,mapa,store,cy,"Valor");
   addPDFFooter(doc,mapa.title,_registadoPorTxtAtual());
   doc.save("hemo_"+key+"_"+(d.date||todayKey())+".pdf");
   toast("PDF de "+mapa.title+" gerado","success");
