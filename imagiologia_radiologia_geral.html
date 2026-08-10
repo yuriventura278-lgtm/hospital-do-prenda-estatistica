@@ -2620,14 +2620,21 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   if(rxRows.length){
     let sb=0,sa=0,si=0;rxRows.forEach(r=>{sb+=r[1];sa+=r[2];si+=r[3];});
     let pb=0,pa=0,pi=0;RX_PLACAS.forEach(k=>{const d=agg.rx[k]||{};pb+=+(d.bu||0);pa+=+(d.aut||0);pi+=+(d.int||0);});
-    rxRows.push(['Exames Realizados (automático)',pb,pa,pi,pb+pa+pi]);
+    // "Subtotal Placas" — nunca "Exames Realizados", que já é o campo
+    // manual de RX_CONTADORES logo acima nesta mesma tabela: os dois têm
+    // valores diferentes (este é só a soma das placas por tamanho) e
+    // partilhar quase o mesmo nome confundia qual dos dois contava para as
+    // estatísticas oficiais. Em Raio X o total de exames é sempre o valor
+    // escrito manualmente — não há lista de exames individuais para somar,
+    // ao contrário do TAC/Ecografia.
+    rxRows.push(['Subtotal Placas (automático)',pb,pa,pi,pb+pa+pi]);
     rxRows.push(['TOTAL RAIO X',sb,sa,si,sb+sa+si]);
     doc.autoTable({startY:_pdfProximoStartY(doc),head:[['Raio X','B. Urgência','Autorizados','Internamentos','Total']],body:rxRows,
       styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[109,40,217],textColor:255,fontStyle:'bold'},
       columnStyles:{0:{halign:'left'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',fontStyle:'bold'}},
       alternateRowStyles:{fillColor:[245,243,255]},
       didParseCell:function(data){
-        if(data.row.raw[0]==='Exames Realizados (automático)'){ data.cell.styles.fontStyle='bold'; data.cell.styles.textColor=[91,33,182]; data.cell.styles.fillColor=[237,233,254]; }
+        if(data.row.raw[0]==='Subtotal Placas (automático)'){ data.cell.styles.fontStyle='bold'; data.cell.styles.textColor=[91,33,182]; data.cell.styles.fillColor=[237,233,254]; }
       },
     });
   }
