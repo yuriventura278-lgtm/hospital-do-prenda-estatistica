@@ -1108,6 +1108,43 @@ var SRC_MAP = {
 // IDs a excluir dos totais (contados via consolidados acima)
 var SKIP_IDS = new Set(['med_homem','med_mulher','bloco_urgente','bloco_electiva']);
 
+// ── Sincronização com as páginas individuais "Procedimentos por Serviço" ──
+// Cada página individual (procedimentos_enfermagem_<slug>.html) grava em
+// registos_enf/<slug>/<data> e tem exatamente a mesma forma de dados que esta
+// página (_ts/specs/camposTs — ver _mesclarDadosDia), só que com um
+// subconjunto das especialidades. Dois slugs individuais cobrem DUAS
+// especialidades desta página cada (Bloco Operatório = urgente+electiva;
+// UCI e Cuidados Intermédios = uci+cuid_intermedio); os restantes cobrem
+// uma só. 'medicina' e 'bloco_op' são consolidados calculados — nunca são
+// gravados nem lidos por esta sincronização (ver SRC_MAP acima).
+const GERAL_SYNC_MAP = {
+  banco_urgencia:   ['banco_urg'],
+  bloco_operatorio: ['bloco_urgente', 'bloco_electiva'],
+  cirurgia:         ['cirurgia'],
+  consulta_externa: ['consulta_ext'],
+  hospital_dia:     ['hosp_dia'],
+  maxilo_facial:    ['maxilo'],
+  medicina_homem:   ['med_homem'],
+  medicina_mulher:  ['med_mulher'],
+  nefrologia:       ['nefrologia'],
+  neurocirurgia:    ['neurocirurgia'],
+  ortopedia:        ['ortopedia'],
+  uci_intermedio:   ['uci', 'cuid_intermedio'],
+};
+
+// Recorta um objeto de dados completo ({_ts,specs,camposTs}) para conter só
+// as especialidades de um serviço individual — é o que se envia para o
+// caminho desse serviço, para não misturar aí dados de outras especialidades.
+function _dataParaSlug(data, specIds) {
+  const specs = {};
+  specIds.forEach(id => { if (data.specs && data.specs[id]) specs[id] = data.specs[id]; });
+  const camposTs = {};
+  Object.keys(data.camposTs || {}).forEach(k => {
+    if (specIds.includes(k.split('|')[0])) camposTs[k] = data.camposTs[k];
+  });
+  return { _ts: data._ts, specs, camposTs, criadoPor: data.criadoPor };
+}
+
 // IDs que não têm expediente aos fins de semana e feriados — Bloco Op.
 // Urgente e os restantes serviços de internamento continuam sempre
 // editáveis; só o Bloco Op. Eletiva e a Consulta Externa (agendados) ficam
@@ -1595,8 +1632,15 @@ let autoSaveTimer = null;
 // "Última alteração" mentir e podia sobrepor-se ao que outro dispositivo
 // tinha gravado a seguir.
 let _diaAlterado = false;
-function autoSave() {
+// Especialidades que o utilizador editou nesta sessão, desde que o dia actual
+// foi aberto — usado por _fbEscutarServicosIndividuais para decidir se pode
+// aplicar uma atualização em tempo real de outra página em silêncio (secção
+// que o utilizador não está a mexer) ou se deve antes mostrar o aviso
+// (secção onde pode estar a escrever agora mesmo).
+let _specialtiesEditadasNestaSessao = new Set();
+function autoSave(specId) {
   _diaAlterado = true;
+  if (specId) _specialtiesEditadasNestaSessao.add(specId);
   clearTimeout(autoSaveTimer);
   const snap = currentLoadedDate; // ★ captura a data AGORA, não quando o timer disparar
   const dot = document.getElementById('as-dot');
@@ -1678,6 +1722,18 @@ function persist(date) {
     zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + d, {savedAt: _fbSavedAt, snapshot: {raw: data}});
     try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + d, _fbSavedAt); }catch(e){}
     _registarHistoricoAlteracao(d, data, _fbSavedAt);
+
+    // ★ Reflecte nas páginas individuais "Procedimentos por Serviço": só
+    // reenvia aos serviços cujas especialidades mudaram nesta gravação (ver
+    // GERAL_SYNC_MAP), para não escrever nos 12 caminhos a cada autosave.
+    const specsAlterados = new Set(Object.keys(data.specs).filter(id =>
+      JSON.stringify(data.specs[id]) !== JSON.stringify(prevSpecs?.[id])));
+    Object.keys(GERAL_SYNC_MAP).forEach(slug => {
+      const specIds = GERAL_SYNC_MAP[slug];
+      if (!specIds.some(id => specsAlterados.has(id))) return;
+      _fbUltimoEnvioSlug[slug + '|' + d] = _fbSavedAt;
+      zeloQueueWrite('registos_enf/' + slug + '/' + d, {savedAt: _fbSavedAt, snapshot: {raw: _dataParaSlug(data, specIds)}});
+    });
   }
   setSyncInfo('<svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Guardado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
   _mostrarHoraGuardado();
@@ -1695,6 +1751,10 @@ function persist(date) {
 // silenciosamente o que o utilizador possa estar a editar.
 const _FB_SAVEDAT_PREFIX = 'proc_fb_savedAt_' + FB_SLUG + '_';
 const _fbUltimoEnvioSavedAt = {};
+// Chave 'slug|data' → savedAt do último envio DESTA página para o caminho
+// individual desse serviço — evita tratar a nossa própria escrita de volta
+// (ver persist()) como se fosse uma novidade vinda de outro dispositivo.
+const _fbUltimoEnvioSlug = {};
 
 function _escHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1962,6 +2022,75 @@ async function _fbEscutarDia(date){
   });
 }
 
+// ── Sincronização com as páginas individuais "Procedimentos por Serviço" ──
+// Um _fbListen por serviço (registos_enf/<slug>/<data>) — mesmo padrão e as
+// mesmas garantias de _fbEscutarDia acima (mescla campo-a-campo, nunca
+// substitui o dia inteiro, primeira leitura aplica-se em silêncio, gravações
+// seguintes mostram o aviso), só que agora com 12 fontes em vez de uma.
+let _fbCancelarEscutasServicos = [];
+// Aplica em silêncio um snapshot vindo de um serviço individual — mescla
+// campo-a-campo (nunca substitui o dia inteiro), grava local, actualiza o
+// ecrã se o dia continuar aberto, e "cura" (reenvia) se a mesclagem
+// recuperou algo que o Firebase não tinha. Partilhado por dois momentos:
+// a primeira leitura de cada serviço (ao abrir o dia) e, depois disso,
+// qualquer atualização de uma especialidade que o utilizador não esteja a
+// editar nesta sessão — só as que está mesmo a editar é que passam antes
+// pelo aviso "Atualizar página", para nunca substituir em silêncio algo que
+// possa estar a escrever agora mesmo.
+function _aplicarDadosServicoIndividual(slug, remoto, date){
+  try{
+    let localRaw = null;
+    try{ const rawStr = _storageGet(storageKey(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+    const mesclado = _mesclarDadosDia(localRaw, remoto.snapshot.raw);
+    _storageSet(storageKey(date), JSON.stringify(mesclado));
+    if (date === currentLoadedDate){ _popularProcedimentos(mesclado); }
+    // Recuperou campos que o serviço individual não tinha (ex.: esta página
+    // tinha dados de outra especialidade do mesmo bloco, ou campos mais
+    // recentes) — reenvia para o caminho individual e para 'geral', para
+    // que a recuperação fique disponível a todos.
+    if (localRaw && window.zeloQueueWrite && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot.raw)) {
+      const curaSavedAt = new Date().toISOString();
+      _fbUltimoEnvioSlug[slug + '|' + date] = curaSavedAt;
+      zeloQueueWrite('registos_enf/' + slug + '/' + date, {savedAt: curaSavedAt, snapshot: {raw: _dataParaSlug(mesclado, GERAL_SYNC_MAP[slug])}});
+      _fbUltimoEnvioSavedAt[date] = curaSavedAt;
+      zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + date, {savedAt: curaSavedAt, snapshot: {raw: mesclado}});
+    }
+  }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes do serviço "' + slug + '".', e); }
+}
+
+async function _fbEscutarServicosIndividuais(date){
+  _fbCancelarEscutasServicos.forEach(cancelar => { try{ cancelar(); }catch(e){} });
+  _fbCancelarEscutasServicos = [];
+  _specialtiesEditadasNestaSessao = new Set();
+  if (!date) return;
+  const pronto = await _fbEsperarPronto();
+  if (!pronto || !window.__fbListen) return;
+  if (date !== currentLoadedDate) return; // entretanto mudou de dia
+
+  Object.keys(GERAL_SYNC_MAP).forEach(slug => {
+    let primeira = true;
+    const cancelar = window.__fbListen('registos_enf/' + slug + '/' + date, function(remoto){
+      const savedAt = remoto && remoto.savedAt;
+      if (!savedAt || !remoto.snapshot || !remoto.snapshot.raw){ primeira = false; return; }
+      if (savedAt === _fbUltimoEnvioSlug[slug + '|' + date]){ primeira = false; return; } // a nossa própria escrita
+      if (primeira){
+        primeira = false;
+        if (date !== currentLoadedDate) return;
+        _aplicarDadosServicoIndividual(slug, remoto, date);
+        return;
+      }
+      // Atualização em tempo real, depois da leitura inicial: se nenhuma das
+      // especialidades deste serviço está a ser editada agora nesta sessão,
+      // aplica logo (é seguro — não há nada local em risco de ser pisado);
+      // caso contrário, mostra o aviso em vez de substituir em silêncio.
+      const emEdicao = GERAL_SYNC_MAP[slug].some(id => _specialtiesEditadasNestaSessao.has(id));
+      if (!emEdicao){ _aplicarDadosServicoIndividual(slug, remoto, date); return; }
+      _fbMostrarAvisoNovosDados(remoto, date);
+    });
+    _fbCancelarEscutasServicos.push(cancelar);
+  });
+}
+
 // clearDayState: zera todos os inputs
 function clearDayState() {
   SPECIALTIES.forEach(sp => {
@@ -1995,6 +2124,7 @@ function loadFromStorage() {
     _renderStatusServicosDia(null);
     _resetBloqueiosParaDia(null);
     _fbEscutarDia(currentLoadedDate);
+    _fbEscutarServicosIndividuais(currentLoadedDate);
     return;
   }
   try {
@@ -2007,6 +2137,7 @@ function loadFromStorage() {
     _resetBloqueiosParaDia(null);
   }
   _fbEscutarDia(currentLoadedDate);
+  _fbEscutarServicosIndividuais(currentLoadedDate);
 }
 
 // ── Estado dos serviços do dia (preenchido / em falta) ─────────────────────
@@ -2695,9 +2826,9 @@ function buildUI() {
     if(!isReadonly) {
       html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="card notes-area"><div class="card-label"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Notas — Dia</div>
-          <textarea id="notes-dia-${sp.id}" placeholder="Observações do turno dia…" oninput="autoSave()"></textarea></div>
+          <textarea id="notes-dia-${sp.id}" placeholder="Observações do turno dia…" oninput="autoSave('${sp.id}')"></textarea></div>
         <div class="card notes-area"><div class="card-label"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Notas — Noite</div>
-          <textarea id="notes-noite-${sp.id}" placeholder="Observações do turno noite…" oninput="autoSave()"></textarea></div>
+          <textarea id="notes-noite-${sp.id}" placeholder="Observações do turno noite…" oninput="autoSave('${sp.id}')"></textarea></div>
       </div>`;
     }
 
@@ -2740,7 +2871,7 @@ function buildUI() {
       const inpDia = document.createElement('input');
       inpDia.type = 'number'; inpDia.id = k; inpDia.min = '0'; inpDia.placeholder = ''; inpDia.value = '';
       if(isReadonly){ inpDia.readOnly = true; }
-      else { inpDia.setAttribute('oninput', "recalc('" + sp.id + "');autoSave();"); }
+      else { inpDia.setAttribute('oninput', "recalc('" + sp.id + "');autoSave('" + sp.id + "');"); }
       cellDia.appendChild(inpDia);
       row.appendChild(cellDia);
 
@@ -2751,7 +2882,7 @@ function buildUI() {
       inpNoite.type = 'number'; inpNoite.id = kN; inpNoite.min = '0'; inpNoite.placeholder = ''; inpNoite.value = '';
       inpNoite.className = 'night-inp';
       if(isReadonly){ inpNoite.readOnly = true; }
-      else { inpNoite.setAttribute('oninput', "recalc('" + sp.id + "');autoSave();"); }
+      else { inpNoite.setAttribute('oninput', "recalc('" + sp.id + "');autoSave('" + sp.id + "');"); }
       cellNoite.appendChild(inpNoite);
       row.appendChild(cellNoite);
 
