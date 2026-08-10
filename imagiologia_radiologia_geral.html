@@ -250,6 +250,22 @@ function initFieldNav(){
 }
 document.addEventListener('DOMContentLoaded',function(){initKeyboardNav();initFieldNav();});
 
+// ── Desativa o incremento/decremento por scroll do rato nos campos numéricos ──
+// Comportamento nativo do Chrome/Edge: rodar a roda do rato sobre um
+// <input type="number"> focado muda o valor — muito fácil de disparar sem
+// querer ao percorrer a página com o rato por cima de uma célula
+// preenchida, alterando dados sem o utilizador reparar. Impede o
+// comportamento por omissão do evento 'wheel' sempre que o alvo é o campo
+// numérico actualmente focado (listener não-passivo, para poder chamar
+// preventDefault); a página continua a fazer scroll normalmente quando o
+// rato não está sobre um campo focado.
+document.addEventListener('wheel',function(e){
+  var t=e.target;
+  if(t && t.tagName==='INPUT' && t.type==='number' && document.activeElement===t){
+    e.preventDefault();
+  }
+},{passive:false});
+
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -1205,8 +1221,15 @@ const TAC_EXAMES = [
   'TAC Tórax','TAC Hipogástrio','TAC Suprarrenal',
   'AngioTAC','Radiografia Contrastada'
 ];
+// "Pacientes Examinados"/"Exames Realizados" vêm primeiro (mesma ordem da
+// folha "TAC — PLACAS/QUALIDADE"); "Placas 14X17" fica à parte, em
+// TAC_PLACAS, com o seu próprio subtotal — mesmo padrão já usado no Raio X
+// (RX_CONTADORES vs RX_PLACAS).
 const TAC_CONTADORES = [
-  'Pacientes Examinados','Corretas','Defeituosas','Placas 14X17'
+  'Pacientes Examinados','Exames Realizados','Corretas','Defeituosas'
+];
+const TAC_PLACAS = [
+  'Placas 14X17'
 ];
 
 const ECO_EXAMES = [
@@ -1216,8 +1239,11 @@ const ECO_EXAMES = [
   'Ecografia das Partes Moles','Doppler','Ecografia Obstétrica','Eco Fast Total'
 ];
 
+// "Pacientes Examinados"/"Exames Realizados" à frente, tal como na folha
+// "RAIO X" (antes só existiam Corretas/Defeituosas — faltava por completo o
+// campo "Pacientes Examinados").
 const RX_CONTADORES = [
-  'Corretas','Defeituosas'
+  'Pacientes Examinados','Exames Realizados','Corretas','Defeituosas'
 ];
 const RX_PLACAS = [
   'Placas 8X10','Placas 18X24','Placas 20X40','Placas 24X30',
@@ -1483,13 +1509,15 @@ function renderTACTable(){
   rows+=`<tr class="section-hdr"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M4 15V9a8 8 0 0 1 16 0v6"/><path d="M4 15h5v-6H4z"/><path d="M15 15h5v-6h-5z"/></svg> Exames Realizados — TAC</td></tr>`;
   TAC_EXAMES.forEach(e=>{ rows+=mkRow('tac',e,e); });
   rows+=buildSubtotalRow('tac',TAC_EXAMES,'subtac','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal TAC');
-  rows+=`<tr class="section-hdr cnt"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Contadores e Placas — TAC</td></tr>`;
-  rows+=mkRow('tac','Exames Realizados','Exames Realizados');
+  rows+=`<tr class="section-hdr cnt"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Contadores — TAC / Placas / Qualidade</td></tr>`;
   TAC_CONTADORES.forEach(e=>{ rows+=mkRow('tac',e,e); });
   rows+=buildSubtotalRow('tac',TAC_CONTADORES,'subtac_cnt','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Contadores');
+  rows+=`<tr class="section-hdr cnt"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Placas Segundo Tamanho</td></tr>`;
+  TAC_PLACAS.forEach(e=>{ rows+=mkRow('tac',e,e); });
+  rows+=buildSubtotalRow('tac',TAC_PLACAS,'subtac_pl','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Placas');
   document.getElementById('tbody-tac').innerHTML=rows;
-  appendTotalRow('tac',[...TAC_EXAMES,...TAC_CONTADORES],'tbody-tac','TOTAL TAC');
-  updateGrandDisplay('tac',[...TAC_EXAMES,...TAC_CONTADORES],'tac-grand-display');
+  appendTotalRow('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS],'tbody-tac','TOTAL TAC');
+  updateGrandDisplay('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS],'tac-grand-display');
 }
 
 function renderECOTable(){
@@ -1497,7 +1525,6 @@ function renderECOTable(){
   rows+=`<tr class="section-hdr eco"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Exames Realizados — Ecografia</td></tr>`;
   ECO_EXAMES.forEach(e=>{ rows+=mkRow('eco',e,e); });
   rows+=buildSubtotalRow('eco',ECO_EXAMES,'subeco','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Ecografia');
-  rows+=mkRow('eco','Exames Realizados','Exames Realizados');
   document.getElementById('tbody-eco').innerHTML=rows;
   appendTotalRow('eco',ECO_EXAMES,'tbody-eco','TOTAL ECOGRAFIA');
   updateGrandDisplay('eco',ECO_EXAMES,'eco-grand-display');
@@ -1511,7 +1538,6 @@ function renderRXTable(){
   rows+=`<tr class="section-hdr rx"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Placas Segundo Tamanho</td></tr>`;
   RX_PLACAS.forEach(e=>{ rows+=mkRow('rx',e,e); });
   rows+=buildSubtotalRow('rx',RX_PLACAS,'subrx_pl','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Placas');
-  rows+=mkRow('rx','Exames Realizados','Exames Realizados');
   document.getElementById('tbody-rx').innerHTML=rows;
   appendTotalRow('rx',[...RX_CONTADORES,...RX_PLACAS],'tbody-rx','TOTAL RAIO X');
   updateGrandDisplay('rx',[...RX_CONTADORES,...RX_PLACAS],'rx-grand-display');
@@ -1587,8 +1613,8 @@ function setItem(section,key,col,val,opts){
   if(section==='tac'){
     updateSubtotalRow('tac',TAC_EXAMES,'subtac');
     updateSubtotalRow('tac',TAC_CONTADORES,'subtac_cnt');
-    updateSectionTotals('tac',[...TAC_EXAMES,...TAC_CONTADORES],'tbody-tac');
-    updateGrandDisplay('tac',[...TAC_EXAMES,...TAC_CONTADORES],'tac-grand-display');
+    updateSectionTotals('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS],'tbody-tac');
+    updateGrandDisplay('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS],'tac-grand-display');
   }
   if(section==='eco'){
     updateSubtotalRow('eco',ECO_EXAMES,'subeco');
@@ -1623,7 +1649,7 @@ function updateSectionTotals(section,keys,tbodyId){
 function updateKPIs(){
   let tacT=0,ecoT=0,rxT=0,grandBu=0,grandAut=0,grandInt=0;
   let tacBu=0,tacAut=0,tacInt=0,ecoBu=0,ecoAut=0,ecoInt=0,rxBu=0,rxAut=0,rxInt=0;
-  [...TAC_EXAMES,...TAC_CONTADORES].forEach(k=>{
+  [...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS].forEach(k=>{
     const d=currentData.tac[k]||{};
     tacT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
     tacBu+=Number(d.bu||0); tacAut+=Number(d.aut||0); tacInt+=Number(d.int||0);
@@ -1679,7 +1705,7 @@ function updateKPIs(){
 function _calcTotal(data){
   let t=0;
   const calc=(sec,keys)=>{ keys.forEach(k=>{ const d=sec?.[k]||{}; t+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0); }); };
-  calc(data.tac,[...TAC_EXAMES,...TAC_CONTADORES]);
+  calc(data.tac,[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
   calc(data.eco,ECO_EXAMES);
   calc(data.rx,[...RX_CONTADORES,...RX_PLACAS]);
   return t;
@@ -2258,7 +2284,7 @@ function _periodLabel(p){ return{diario:'Dia',semanal:'Semana',mensal:'Mês',tri
 function _aggregate(dates,allData){
   const agg={ tac:{}, eco:{}, rx:{}, _grandBu:0, _grandAut:0, _grandInt:0 };
   const initSec=(sec,keys)=>keys.forEach(k=>{ if(!agg[sec][k]) agg[sec][k]={bu:0,aut:0,int:0}; });
-  initSec('tac',[...TAC_EXAMES,...TAC_CONTADORES]);
+  initSec('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
   initSec('eco',ECO_EXAMES);
   initSec('rx',[...RX_CONTADORES,...RX_PLACAS]);
   dates.forEach(d=>{
@@ -2268,14 +2294,14 @@ function _aggregate(dates,allData){
       agg[sec][k].aut+=Number(data[sec]?.[k]?.aut||0);
       agg[sec][k].int+=Number(data[sec]?.[k]?.int||0);
     });
-    addSec('tac',[...TAC_EXAMES,...TAC_CONTADORES]);
+    addSec('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
     addSec('eco',ECO_EXAMES);
     addSec('rx',[...RX_CONTADORES,...RX_PLACAS]);
   });
   const sumSec=(sec,keys)=>keys.forEach(k=>{
     agg._grandBu+=agg[sec][k].bu; agg._grandAut+=agg[sec][k].aut; agg._grandInt+=agg[sec][k].int;
   });
-  sumSec('tac',[...TAC_EXAMES,...TAC_CONTADORES]);
+  sumSec('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
   sumSec('eco',ECO_EXAMES);
   sumSec('rx',[...RX_CONTADORES,...RX_PLACAS]);
   return agg;
@@ -2300,7 +2326,7 @@ function renderStats(allData,period){
   const pct=(v)=>grand>0?(v/grand*100).toFixed(1):'0.0';
 
   let tacT=0,ecoT=0,rxT=0;
-  [...TAC_EXAMES,...TAC_CONTADORES].forEach(k=>{ const d=agg.tac[k]||{}; tacT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
+  [...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS].forEach(k=>{ const d=agg.tac[k]||{}; tacT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
   ECO_EXAMES.forEach(k=>{ const d=agg.eco[k]||{}; ecoT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
   [...RX_CONTADORES,...RX_PLACAS].forEach(k=>{ const d=agg.rx[k]||{}; rxT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
 
@@ -2462,7 +2488,8 @@ function renderStats(allData,period){
 
   container.innerHTML = periodBadge + summaryCards + timeChart + annualChart + barChart
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M4 15V9a8 8 0 0 1 16 0v6"/><path d="M4 15h5v-6H4z"/><path d="M15 15h5v-6h-5z"/></svg> TAC — Exames Realizados','tac',TAC_EXAMES,'tac')
-    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> TAC — Contadores e Placas','tac',TAC_CONTADORES,'')
+    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> TAC — Contadores','tac',TAC_CONTADORES,'')
+    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> TAC — Placas por Tamanho','tac',TAC_PLACAS,'')
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Ecografia — Detalhe por Exame','eco',ECO_EXAMES,'eco')
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M17 21h2a2 2 0 0 1 2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg> Raio X — Contadores','rx',RX_CONTADORES,'rx')
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Raio X — Placas por Tamanho','rx',RX_PLACAS,'rx')
@@ -2533,7 +2560,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   const _secSum=(sec,keys)=>{let bu=0,aut=0,int2=0; keys.forEach(k=>{const d=agg[sec][k]||{}; bu+=+(d.bu||0); aut+=+(d.aut||0); int2+=+(d.int||0);}); return{bu,aut,int2,t:bu+aut+int2};};
   const rxS  = _secSum('rx',[...RX_CONTADORES,...RX_PLACAS]);
   const ecoS = _secSum('eco',ECO_EXAMES);
-  const tacS = _secSum('tac',[...TAC_EXAMES,...TAC_CONTADORES]);
+  const tacS = _secSum('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
   const totBu=rxS.bu+ecoS.bu+tacS.bu, totAut=rxS.aut+ecoS.aut+tacS.aut, totInt=rxS.int2+ecoS.int2+tacS.int2;
   doc.autoTable({
     startY: _pdfProximoStartY(doc),
@@ -2605,7 +2632,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
     });
   }
 
-  const cntRows=TAC_CONTADORES.map(k=>{const d=agg.tac[k]||{};const bu=+(d.bu||0),aut=+(d.aut||0),int2=+(d.int||0),t=bu+aut+int2;return[k,bu,aut,int2,t];});
+  const cntRows=[...TAC_CONTADORES,...TAC_PLACAS].map(k=>{const d=agg.tac[k]||{};const bu=+(d.bu||0),aut=+(d.aut||0),int2=+(d.int||0),t=bu+aut+int2;return[k,bu,aut,int2,t];});
   if(cntRows.length){
     let sb=0,sa=0,si=0;cntRows.forEach(r=>{sb+=r[1];sa+=r[2];si+=r[3];});
     cntRows.push(['TOTAL CONTADORES',sb,sa,si,sb+sa+si]);
