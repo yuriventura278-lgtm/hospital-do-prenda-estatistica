@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt" data-theme="light">
 <head>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='sistemas_independentes';</script>
@@ -33,23 +33,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hemoterapia — HP</title>
 <link rel="icon" type="image/png" href="icons/logo.png"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="zelo_tokens.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 /* ════ CLINICAL MINIMAL — Hemoterapia (Lab theme) ════ */
 :root{
-  --bg:#f0f6ff;--surface:#ffffff;--border:#c7ddf9;
-  --text:#0a1628;--muted:#3d5580;
-  --accent:#c0392b;--accent-tint:#fff0f0;--accent-ring:#fca5a5;
+  --bg:var(--zelo-bg, #f0f6ff);--surface:var(--zelo-surface, #ffffff);--border:var(--zelo-line, #c7ddf9);
+  --text:var(--zelo-ink, #0a1628);--muted:var(--zelo-ink-soft, #3d5580);
+  --accent:var(--zelo-accent, #3E5C87);--accent-tint:var(--zelo-accent-soft, #E9EEF4);--accent-ring:#B9C6D9;
   --blue:#1a56db;--blue-tint:#ebf3ff;--blue-ring:#93c5fd;
   --amber:#d97706;--amber-tint:#fffbeb;--amber-ring:#fcd34d;
   --green:#047857;--green-tint:#ecfdf5;--green-ring:#6ee7b7;
   --danger:#c0392b;
-  --surface2:#e8f0fe;
-  --font-head:'Inter',sans-serif;
-  --font-body:'Roboto Mono',monospace;
+  --surface2:var(--zelo-surface-2, #e8f0fe);
+  --font-head:var(--zelo-font-body, 'Source Sans 3', sans-serif);
+  --font-body:var(--zelo-font-mono, 'IBM Plex Mono', monospace);
   --nav-w:230px;--hdr-h:62px;
   --shadow-sm:0 1px 2px rgba(10,22,40,.06);
   --shadow-md:0 4px 14px rgba(10,22,40,.08);
@@ -63,7 +64,7 @@ html{font-size:17px;}
 .spl-inner{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;}
 .spl-ring{position:relative;width:96px;height:96px;}
 .spl-ring-svg{position:absolute;top:0;left:0;width:96px;height:96px;transform:rotate(-90deg);}
-.spl-img-wrap{position:absolute;top:9px;left:9px;right:9px;bottom:9px;border-radius:50%;overflow:hidden;border:1px solid var(--border);background:#c0392b;}
+.spl-img-wrap{position:absolute;top:9px;left:9px;right:9px;bottom:9px;border-radius:50%;overflow:hidden;border:1px solid var(--border);background:#3E5C87;}
 .spl-img-wrap img{width:100%;height:100%;object-fit:cover;}
 .spl-hosp{font-family:var(--font-head);font-size:.55rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
 .spl-name{font-family:var(--font-head);font-size:.95rem;font-weight:700;color:var(--text);}
@@ -82,7 +83,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 .logo-area{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .ic{width:1em;height:1em;display:inline-block;vertical-align:-0.15em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
 .pg-hdr-icon .ic{width:19px;height:19px;}
-.logo-img{width:38px;height:38px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#c0392b;flex-shrink:0;}
+.logo-img{width:38px;height:38px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#3E5C87;flex-shrink:0;}
 .logo-img img{width:100%;height:100%;object-fit:cover;}
 .logo-text h1{font-family:var(--font-head);font-size:.88rem;font-weight:700;color:var(--accent);}
 .logo-text p{font-size:.44rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:1px;}
@@ -396,7 +397,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
     <div class="spl-ring">
       <svg class="spl-ring-svg" viewBox="0 0 96 96" aria-hidden="true">
         <circle cx="48" cy="48" r="44" fill="none" stroke="#e8e8e4" stroke-width="4"/>
-        <circle id="spl-arc" cx="48" cy="48" r="44" fill="none" stroke="#c0392b" stroke-width="4"
+        <circle id="spl-arc" cx="48" cy="48" r="44" fill="none" stroke="#3E5C87" stroke-width="4"
           stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="276.46"/>
       </svg>
       <div class="spl-img-wrap">
@@ -1479,9 +1480,9 @@ function _fbMostrarAvisoNovosDados(remoto, date){
   if (document.getElementById('fb-novos-dados-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'fb-novos-dados-banner';
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#1A56DB;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#3E5C87;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
   banner.innerHTML = '<span>🔄 Outro utilizador guardou dados mais recentes para este dia.</span>' +
-    '<button type="button" data-act="atualizar" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>' +
+    '<button type="button" data-act="atualizar" style="background:#fff;color:#3E5C87;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>' +
     '<button type="button" data-act="dispensar" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.8rem;">Agora não</button>';
   // O botao "Atualizar" aplica explicitamente os dados pendentes ANTES de recarregar -- sem isto,
   // recarregar nao mudava nada localmente e o aviso reaparecia sempre, preso num ciclo.
