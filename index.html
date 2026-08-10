@@ -1209,12 +1209,47 @@ function desenharCoverageChart(reportaram, total){
     }
   });
 }
+/* ── Gráfico "Registos de Hoje por Categoria": pizza real com a composição
+   dos serviços já reportados hoje, por categoria (Especialidades Cirúrgicas,
+   Diagnóstico & Laboratório, Ambulatório, Procedimentos de Enfermagem) —
+   mesmas categorias e cores já usadas dentro do Dashboard, agora também
+   enviadas por postMessage em vez de ficarem só lá dentro. ── */
+let categoryPieChartInst = null;
+function desenharCategoryPieChart(porCategoria){
+  const canvas = document.getElementById('categoryPieChart');
+  const vazio = document.getElementById('categoryPieEmpty');
+  if(!canvas || typeof Chart === 'undefined') return;
+  const comDados = (porCategoria || []).filter(function(c){ return c.reportaram > 0; });
+  if(!comDados.length){
+    canvas.style.display = 'none';
+    if(vazio) vazio.style.display = 'block';
+    if(categoryPieChartInst){ categoryPieChartInst.destroy(); categoryPieChartInst = null; }
+    return;
+  }
+  canvas.style.display = '';
+  if(vazio) vazio.style.display = 'none';
+  if(categoryPieChartInst){ categoryPieChartInst.destroy(); }
+  categoryPieChartInst = new Chart(canvas.getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: comDados.map(function(c){ return c.label + ' (' + c.reportaram + '/' + c.total + ')'; }),
+      datasets: [{ data: comDados.map(function(c){ return c.reportaram; }), backgroundColor: comDados.map(function(c){ return c.color; }), borderWidth: 1, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 500 },
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+    }
+  });
+}
 window.addEventListener('message', function(e){
   if(!e.data || e.data.type !== 'zelo-dashboard-overview') return;
   const pend = e.data.pendentes || [];
   const total = e.data.total || 0;
   const reportaram = e.data.reportaram != null ? e.data.reportaram : Math.max(total - pend.length, 0);
   desenharCoverageChart(reportaram, total);
+  desenharCategoryPieChart(e.data.porCategoria);
   const pctEl = document.getElementById('covPct');
   if(pctEl) pctEl.textContent = total ? Math.round((reportaram/total)*100) + '%' : '—';
   const pendTxtEl = document.getElementById('covPendentesTxt');
@@ -1503,6 +1538,11 @@ document.addEventListener('DOMContentLoaded', function(){
           <div class="zelo-panel">
             <h2>Procedimentos de Enfermagem — Últimos 7 Dias</h2>
             <div class="trend-chart-wrap"><canvas id="weeklyTrendChart"></canvas></div>
+          </div>
+          <div class="zelo-panel">
+            <h2>Registos de Hoje por Categoria</h2>
+            <div class="trend-chart-wrap"><canvas id="categoryPieChart"></canvas></div>
+            <div class="zelo-empty" id="categoryPieEmpty" style="display:none;">Ainda sem registos hoje.</div>
           </div>
         </div>
 

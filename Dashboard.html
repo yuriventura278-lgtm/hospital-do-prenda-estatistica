@@ -1421,11 +1421,17 @@ function renderOverview(){
   document.getElementById('statHora').textContent = lastTime ? fmtHora(lastTime) : '—';
   document.getElementById('statPend').textContent = pendCount;
   try{
+    const porCategoria = CATS.map(function(cat){
+      const svcsDaCat = SERVICES.filter(function(svc){ return svc.cat === cat.id; });
+      const reportaramDaCat = svcsDaCat.filter(function(svc){ return currentDataset[svc.id] && currentDataset[svc.id].snapshot; });
+      return { id: cat.id, label: cat.label, color: cat.color, reportaram: reportaramDaCat.length, total: svcsDaCat.length };
+    }).filter(function(c){ return c.total > 0; });
     window.parent.postMessage({
       type: 'zelo-dashboard-overview',
       reportaram: withData.length,
       total: SERVICES.length,
-      pendentes: SERVICES.filter(function(svc){ return !(currentDataset[svc.id] && currentDataset[svc.id].snapshot); }).map(function(svc){ return svc.name; })
+      pendentes: SERVICES.filter(function(svc){ return !(currentDataset[svc.id] && currentDataset[svc.id].snapshot); }).map(function(svc){ return svc.name; }),
+      porCategoria: porCategoria
     }, '*');
   }catch(e){}
 
