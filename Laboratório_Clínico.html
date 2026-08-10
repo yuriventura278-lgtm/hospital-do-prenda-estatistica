@@ -14,7 +14,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>Banco de Laboratório Clínico — Hospital do Prenda</title>
 <link rel="icon" type="image/png" href="icons/logo.png"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet"/>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -35,28 +35,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
-  --nv:#064E3B;--bl:#059669;--bl2:#10B981;--blt:#D1FAE5;--blxt:#ECFDF5;
-  --gr:#059669;--rd:#DC2626;--am:#D97706;--or:#EA580C;--pu:#7C3AED;--cy:#0891B2;
-  --sf:#F0FDF4;--br:#E2E8F0;--br2:#CBD5E1;
+  --nv:#2B415E;--bl:#3E5C87;--bl2:#5A7AA3;--blt:#DCE4EE;--blxt:#F2F5F9;
+  --gr:#3E5C87;--rd:#DC2626;--am:#D97706;--or:#EA580C;--pu:#7C3AED;--cy:#0891B2;
+  --sf:#F5F6F8;--br:#E2E8F0;--br2:#CBD5E1;
   --tx:#0F172A;--tx2:#334155;--tx3:#64748B;
   --r:10px;--r2:16px;--r3:22px;
-  --s1:0 2px 10px rgba(6,78,59,.08);--s2:0 8px 28px rgba(6,78,59,.13);
+  --s1:0 2px 10px rgba(27,42,61,.08);--s2:0 8px 28px rgba(27,42,61,.13);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;padding-bottom:130px;-webkit-font-smoothing:antialiased;font-size:16px;}
-header{background:linear-gradient(135deg,#022C22 0%,#064E3B 55%,#059669 100%);position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.35);}
+body{font-family:'Source Sans 3',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;padding-bottom:130px;-webkit-font-smoothing:antialiased;font-size:16px;}
+header{background:linear-gradient(135deg,#111C2B 0%,#2B415E 55%,#3E5C87 100%);position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.35);}
 .hi{padding:14px 16px 12px;display:flex;align-items:center;gap:14px;}
 .ld{width:54px;height:54px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:7px;box-shadow:0 2px 8px rgba(0,0,0,.18);}
 .ld img{width:100%;height:100%;object-fit:contain;}
 .ht h1{font-size:1.15rem;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.2;}
-.ht h1 em{font-style:normal;color:#6EE7B7;}
+.ht h1 em{font-style:normal;color:#B9C6D9;}
 .ht p{font-size:.68rem;color:rgba(255,255,255,.5);margin-top:3px;}
+.hdr-actions{margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;}
+.hdr-btn{display:flex;align-items:center;justify-content:center;gap:6px;color:#fff;text-decoration:none;font-size:.72rem;font-weight:600;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:7px 12px;border-radius:100px;white-space:nowrap;cursor:pointer;font-family:inherit;}
+.hdr-btn:hover{background:rgba(255,255,255,.2);}
+.hdr-btn.icon-only{padding:7px;}
 .ps{background:rgba(0,0,0,.25);padding:7px 16px;display:flex;align-items:center;gap:10px;}
 .pl{font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.45);white-space:nowrap;}
-.as-ind{font-size:.6rem;font-weight:600;color:rgba(255,255,255,.5);white-space:nowrap;font-family:'DM Mono',monospace;}
+.as-ind{font-size:.6rem;font-weight:600;color:rgba(255,255,255,.5);white-space:nowrap;font-family:'IBM Plex Mono',monospace;}
 .pt{flex:1;height:5px;background:rgba(255,255,255,.12);border-radius:100px;overflow:hidden;}
-#pf{height:100%;background:linear-gradient(90deg,#34D399,#6EE7B7);width:0%;transition:width .4s ease;border-radius:100px;}
-#pp{font-family:'DM Mono',monospace;font-size:.72rem;color:#34D399;min-width:36px;text-align:right;font-weight:600;}
+#pf{height:100%;background:linear-gradient(90deg,#34D399,#B9C6D9);width:0%;transition:width .4s ease;border-radius:100px;}
+#pp{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:#34D399;min-width:36px;text-align:right;font-weight:600;}
 /* Splash keyframes */
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @keyframes splashScaleIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
@@ -66,12 +70,12 @@ header{background:linear-gradient(135deg,#022C22 0%,#064E3B 55%,#059669 100%);po
 .sec{background:#fff;border:1px solid var(--br);border-radius:var(--r2);margin-bottom:12px;overflow:hidden;box-shadow:var(--s1);}
 .sh{padding:13px 16px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--br);background:linear-gradient(90deg,var(--blxt),#fff 65%);}
 .si{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.igr{background:#DCFCE7;color:#166534;}.ibl{background:#D1FAE5;color:#065F46;}.ite{background:#CCFBF1;color:#0F766E;}
+.igr{background:#DCFCE7;color:#166534;}.ibl{background:#DCE4EE;color:#2B415E;}.ite{background:#CCFBF1;color:#0F766E;}
 .ird{background:#FEE2E2;color:#991B1B;}.iam{background:#FEF3C7;color:#92400E;}.ipu{background:#EDE9FE;color:#5B21B6;}
 .icy{background:#CFFAFE;color:#164E63;}
 .st h2{font-size:.76rem;font-weight:700;color:var(--nv);text-transform:uppercase;letter-spacing:.07em;}
 .st p{font-size:.67rem;color:var(--tx3);margin-top:2px;}
-.bdg{background:var(--blt);border:1px solid #6EE7B7;border-radius:100px;padding:3px 10px;font-size:.68rem;font-weight:700;color:var(--nv);font-family:'DM Mono',monospace;opacity:0;transition:opacity .2s;margin-left:auto;flex-shrink:0;}
+.bdg{background:var(--blt);border:1px solid #B9C6D9;border-radius:100px;padding:3px 10px;font-size:.68rem;font-weight:700;color:var(--nv);font-family:'IBM Plex Mono',monospace;opacity:0;transition:opacity .2s;margin-left:auto;flex-shrink:0;}
 .bdg.on{opacity:1;}
 .sb{padding:18px 16px;}
 .f{margin-bottom:16px;}
@@ -80,11 +84,11 @@ label{font-size:.72rem;font-weight:600;color:var(--tx3);margin-bottom:7px;displa
 label .req{color:var(--rd);margin-left:2px;}
 input[type=text],input[type=time],input[type=date],input[type=number],textarea,select{
   width:100%;padding:12px 14px;border:1.5px solid var(--br2);border-radius:var(--r);
-  font-size:1rem;font-family:'Inter',sans-serif;color:var(--tx);background:#FAFBFF;
+  font-size:1rem;font-family:'Source Sans 3',sans-serif;color:var(--tx);background:#FAFBFF;
   line-height:1.5;transition:border-color .15s,box-shadow .15s;
   -webkit-appearance:none;appearance:none;
 }
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(5,150,105,.12);}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(62,92,135,.12);}
 textarea{resize:vertical;min-height:88px;line-height:1.65;}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:38px;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -92,67 +96,67 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;}
 .err-inp{border-color:var(--rd)!important;background:#FFF5F5!important;}
 .sep{height:1px;background:linear-gradient(90deg,transparent,var(--br),transparent);margin:18px 0;}
-.db{background:linear-gradient(135deg,var(--nv),#065F46);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.db{background:linear-gradient(135deg,var(--nv),#2B415E);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px;}
 .db svg{color:rgba(255,255,255,.45);flex-shrink:0;}
 .db input[type=date]{background:transparent;border:none;color:#fff;font-size:.82rem;font-weight:700;padding:0;box-shadow:none;}
 .db input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5;cursor:pointer;width:22px;height:22px;}
 .nd{border-radius:var(--r);padding:13px 10px 11px;text-align:center;border:1.5px solid var(--br);background:var(--blxt);}
 .nd label{justify-content:center;font-size:.62rem;margin-bottom:6px;text-align:center;text-transform:uppercase;letter-spacing:.05em;}
-.val{font-family:'DM Mono',monospace;font-size:2.3rem;font-weight:600;color:var(--nv);line-height:1;}
+.val{font-family:'IBM Plex Mono',monospace;font-size:2.3rem;font-weight:600;color:var(--nv);line-height:1;}
 .nd.rd2{background:#FFF5F5;border-color:#FCA5A5;}.nd.rd2 .val{color:var(--rd);}
 .nd.gr2{background:var(--blxt);border-color:var(--br);}.nd.gr2 .val{color:var(--nv);}
 .nd.am2{background:#FFFBEB;border-color:#FCD34D;}.nd.am2 .val{color:var(--am);}
 .nd.cy2{background:var(--blxt);border-color:var(--br);}.nd.cy2 .val{color:var(--nv);}
-.nd.tot{background:linear-gradient(145deg,#ECFDF5,#D1FAE5);border-color:#6EE7B7;}.nd.tot .val{color:var(--nv);font-size:2.7rem;}
-.ba{width:100%;padding:14px;border:2px dashed var(--br2);border-radius:var(--r);background:transparent;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--tx3);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;}
+.nd.tot{background:linear-gradient(145deg,#F2F5F9,#DCE4EE);border-color:#B9C6D9;}.nd.tot .val{color:var(--nv);font-size:2.7rem;}
+.ba{width:100%;padding:14px;border:2px dashed var(--br2);border-radius:var(--r);background:transparent;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--tx3);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;font-family:'Source Sans 3',sans-serif;-webkit-tap-highlight-color:transparent;}
 .ba:hover,.ba:active{border-color:var(--bl2);color:var(--nv);background:var(--blxt);}
-.bs{padding:9px 14px;border-radius:var(--r);font-size:.78rem;font-weight:600;font-family:'Inter',sans-serif;border:1.5px solid transparent;cursor:pointer;transition:all .13s;display:inline-flex;align-items:center;gap:5px;}
+.bs{padding:9px 14px;border-radius:var(--r);font-size:.78rem;font-weight:600;font-family:'Source Sans 3',sans-serif;border:1.5px solid transparent;cursor:pointer;transition:all .13s;display:inline-flex;align-items:center;gap:5px;}
 .bs:active{transform:scale(.97);}
 .bsv{background:#DCFCE7;color:#166534;border-color:#86EFAC!important;}.bsv:hover{background:#86EFAC;}
-.bse{background:var(--blt);color:var(--nv);border:1.5px solid #6EE7B7!important;}.bse:hover{background:#A7F3D0;}
+.bse{background:var(--blt);color:var(--nv);border:1.5px solid #B9C6D9!important;}.bse:hover{background:#A7F3D0;}
 .bsd{background:#FEE2E2;color:var(--rd);border:1.5px solid #FCA5A5!important;}.bsd:hover{background:#FCA5A5;color:#fff;}
 .bsc{background:var(--sf);border:1.5px solid var(--br)!important;color:var(--tx3);}
 /* EXAMES — lista responsiva tipo ortopedia */
-.exam-sec-hdr{background:#064E3B;color:#6EE7B7;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:8px 16px;display:flex;align-items:center;gap:8px;}
-.exam-row{display:flex;align-items:center;padding:9px 12px 9px 16px;border-bottom:1px solid rgba(6,78,59,.07);gap:8px;background:#fff;transition:background .1s;}
+.exam-sec-hdr{background:#2B415E;color:#B9C6D9;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:8px 16px;display:flex;align-items:center;gap:8px;}
+.exam-row{display:flex;align-items:center;padding:9px 12px 9px 16px;border-bottom:1px solid rgba(27,42,61,.07);gap:8px;background:#fff;transition:background .1s;}
 .exam-row:hover{background:var(--blxt);}
 .exam-row.extra-row{background:#f0fdf4;}
 .exam-name{flex:1;font-size:.88rem;color:var(--tx2);min-width:0;line-height:1.35;}
 .exam-inputs{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .inp-lbl{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);text-align:center;line-height:1.2;margin-bottom:3px;}
 .inp-wrap{display:flex;flex-direction:column;align-items:center;width:58px;}
-.num-in{background:var(--sf);border:1.5px solid var(--br2);border-radius:6px;padding:8px 4px;font-family:'DM Mono',monospace;font-size:.95rem;font-weight:600;color:var(--tx);width:58px;text-align:center;outline:none;-moz-appearance:textfield;display:block;box-sizing:border-box;}
-.num-in:focus{border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(5,150,105,.12);}
+.num-in{background:var(--sf);border:1.5px solid var(--br2);border-radius:6px;padding:8px 4px;font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:600;color:var(--tx);width:58px;text-align:center;outline:none;-moz-appearance:textfield;display:block;box-sizing:border-box;}
+.num-in:focus{border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(62,92,135,.12);}
 .num-in::-webkit-outer-spin-button,.num-in::-webkit-inner-spin-button{-webkit-appearance:none;}
-.exam-tot{width:42px;text-align:center;font-family:'DM Mono',monospace;font-size:.95rem;font-weight:700;color:var(--nv);flex-shrink:0;}
-.exam-subtot{display:flex;align-items:center;padding:8px 12px 8px 16px;background:rgba(5,150,105,.05);border-bottom:1px solid rgba(6,78,59,.1);}
+.exam-tot{width:42px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:700;color:var(--nv);flex-shrink:0;}
+.exam-subtot{display:flex;align-items:center;padding:8px 12px 8px 16px;background:rgba(62,92,135,.05);border-bottom:1px solid rgba(27,42,61,.1);}
 .exam-subtot-name{flex:1;font-size:.75rem;font-weight:700;color:var(--nv);padding-left:10px;}
 .exam-subtot-vals{display:flex;gap:6px;flex-shrink:0;}
-.exam-subtot-val{width:58px;text-align:center;font-family:'DM Mono',monospace;font-size:.82rem;font-weight:700;color:var(--nv);}
-.exam-subtot-tot{width:42px;text-align:center;font-family:'DM Mono',monospace;font-size:.85rem;font-weight:800;color:var(--nv);}
-.exam-total-row{display:flex;align-items:center;padding:10px 12px 10px 16px;background:linear-gradient(90deg,#ECFDF5,#D1FAE5);border-top:2px solid #6EE7B7;}
+.exam-subtot-val{width:58px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.82rem;font-weight:700;color:var(--nv);}
+.exam-subtot-tot{width:42px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.85rem;font-weight:800;color:var(--nv);}
+.exam-total-row{display:flex;align-items:center;padding:10px 12px 10px 16px;background:linear-gradient(90deg,#F2F5F9,#DCE4EE);border-top:2px solid #B9C6D9;}
 .exam-total-name{flex:1;font-size:.88rem;font-weight:800;color:var(--nv);}
 .exam-total-vals{display:flex;gap:6px;flex-shrink:0;}
-.exam-total-val{width:58px;text-align:center;font-family:'DM Mono',monospace;font-size:.9rem;font-weight:800;color:var(--nv);}
-.exam-total-tot{width:42px;text-align:center;font-family:'DM Mono',monospace;font-size:1rem;font-weight:800;color:var(--nv);}
+.exam-total-val{width:58px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.9rem;font-weight:800;color:var(--nv);}
+.exam-total-tot{width:42px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:800;color:var(--nv);}
 /* col headers */
-.exam-col-hdr{display:flex;align-items:center;padding:6px 12px 6px 16px;background:#064E3B;}
+.exam-col-hdr{display:flex;align-items:center;padding:6px 12px 6px 16px;background:#2B415E;}
 .exam-col-hdr-name{flex:1;}
 .exam-col-hdrs{display:flex;gap:6px;flex-shrink:0;}
-.exam-col-h{width:58px;text-align:center;font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6EE7B7;}
-.exam-col-ht{width:42px;text-align:center;font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6EE7B7;}
+.exam-col-h{width:58px;text-align:center;font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#B9C6D9;}
+.exam-col-ht{width:42px;text-align:center;font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#B9C6D9;}
 /* POSITIVOS — mesma lógica */
 .pos-sec-hdr{background:#7F1D1D;color:#FCA5A5;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;padding:8px 16px;}
 .pos-row{display:flex;align-items:center;padding:9px 12px 9px 16px;border-bottom:1px solid rgba(220,38,38,.08);gap:8px;background:#fff;}
 .pos-row:hover{background:#FFF5F5;}
 .pos-name{flex:1;font-size:.88rem;font-weight:600;color:var(--rd);min-width:0;}
 .pos-inputs{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-.pos-tot{width:42px;text-align:center;font-family:'DM Mono',monospace;font-size:.95rem;font-weight:700;color:var(--rd);flex-shrink:0;}
+.pos-tot{width:42px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:700;color:var(--rd);flex-shrink:0;}
 .pos-total-row{display:flex;align-items:center;padding:10px 12px 10px 16px;background:rgba(220,38,38,.05);border-top:2px solid #FCA5A5;}
 .pos-total-name{flex:1;font-size:.88rem;font-weight:800;color:var(--rd);}
 .pos-total-vals{display:flex;gap:6px;flex-shrink:0;}
-.pos-total-val{width:58px;text-align:center;font-family:'DM Mono',monospace;font-size:.9rem;font-weight:800;color:var(--rd);}
-.pos-total-tot{width:42px;text-align:center;font-family:'DM Mono',monospace;font-size:1rem;font-weight:800;color:var(--rd);}
+.pos-total-val{width:58px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.9rem;font-weight:800;color:var(--rd);}
+.pos-total-tot{width:42px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:800;color:var(--rd);}
 .pos-col-hdr{display:flex;align-items:center;padding:6px 12px 6px 16px;background:#7F1D1D;}
 .pos-col-hdr-name{flex:1;}
 .pos-col-hdrs{display:flex;gap:6px;flex-shrink:0;}
@@ -162,20 +166,20 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 /* TÉCNICOS */
 .tec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:14px;}
 .tec-item{display:flex;align-items:center;gap:8px;}
-.tec-num{font-family:'DM Mono',monospace;font-size:.65rem;font-weight:700;color:var(--nv);background:var(--blt);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tec-num{font-family:'IBM Plex Mono',monospace;font-size:.65rem;font-weight:700;color:var(--nv);background:var(--blt);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 /* ACTION BAR */
-.ab{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--br);padding:10px 14px;display:flex;gap:8px;z-index:100;box-shadow:0 -6px 24px rgba(6,78,59,.1);}
-.bm{flex:1;padding:15px 10px;border-radius:var(--r);font-size:.82rem;font-weight:700;font-family:'Inter',sans-serif;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .13s;-webkit-tap-highlight-color:transparent;}
+.ab{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--br);padding:10px 14px;display:flex;gap:8px;z-index:100;box-shadow:0 -6px 24px rgba(27,42,61,.1);}
+.bm{flex:1;padding:15px 10px;border-radius:var(--r);font-size:.82rem;font-weight:700;font-family:'Source Sans 3',sans-serif;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .13s;-webkit-tap-highlight-color:transparent;}
 .bm:active{transform:scale(.97);}
-.bpd{background:linear-gradient(135deg,#059669,#047857);color:#fff;box-shadow:0 4px 14px rgba(5,150,105,.25);}
-.bwa{background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;box-shadow:0 4px 14px rgba(37,211,102,.25);}.bgr{background:linear-gradient(135deg,#1A56DB,#1E40AF);color:#fff;box-shadow:0 4px 14px rgba(26,86,219,.3);}
+.bpd{background:linear-gradient(135deg,#3E5C87,#2B415E);color:#fff;box-shadow:0 4px 14px rgba(62,92,135,.25);}
+.bwa{background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;box-shadow:0 4px 14px rgba(37,211,102,.25);}.bgr{background:linear-gradient(135deg,#3E5C87,#1E40AF);color:#fff;box-shadow:0 4px 14px rgba(26,86,219,.3);}
 .bem{background:linear-gradient(135deg,#EA4335,#C62828);color:#fff;box-shadow:0 4px 14px rgba(234,67,53,.22);}
 /* MODAL */
-#ov{display:none;position:fixed;inset:0;background:rgba(6,78,59,.7);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center;}
+#ov{display:none;position:fixed;inset:0;background:rgba(27,42,61,.7);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center;}
 #ov.open{display:flex;}
 #mo{background:#fff;border-radius:var(--r3) var(--r3) 0 0;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;animation:su .28s cubic-bezier(.34,1.2,.64,1);}
 @keyframes su{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
-.mh{background:linear-gradient(135deg,var(--nv),#065F46);padding:18px 20px 14px;color:#fff;display:flex;align-items:center;gap:12px;border-radius:var(--r3) var(--r3) 0 0;}
+.mh{background:linear-gradient(135deg,var(--nv),#2B415E);padding:18px 20px 14px;color:#fff;display:flex;align-items:center;gap:12px;border-radius:var(--r3) var(--r3) 0 0;}
 .mh .ml,.ml{width:40px;height:40px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,.25);flex-shrink:0;background:rgba(255,255,255,.08);}
 .mh .ml img,.ml img{width:100%;height:100%;object-fit:cover;display:block;}
 .mh h3{font-size:.92rem;font-weight:700;margin:0;}
@@ -185,16 +189,16 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .mst{display:flex;align-items:center;gap:7px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--nv);margin-bottom:7px;padding-bottom:5px;border-bottom:1.5px solid var(--blt);}
 .ml2{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;font-size:.88rem;border-bottom:1px solid #F1F5F9;}
 .ml2:last-child{border-bottom:none;}
-.mk{color:var(--tx2);}.mv{font-weight:700;color:var(--tx);font-family:'DM Mono',monospace;}
+.mk{color:var(--tx2);}.mv{font-weight:700;color:var(--tx);font-family:'IBM Plex Mono',monospace;}
 .mf{padding:12px 20px 20px;display:flex;gap:8px;border-top:1px solid var(--br);flex-wrap:wrap;}
-.mf button{flex:1;min-width:110px;padding:13px;border-radius:var(--r);font-size:.82rem;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all .13s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.mf button{flex:1;min-width:110px;padding:13px;border-radius:var(--r);font-size:.82rem;font-weight:600;font-family:'Source Sans 3',sans-serif;cursor:pointer;border:none;transition:all .13s;display:flex;align-items:center;justify-content:center;gap:6px;}
 /* MODAL BUTTON IDs */
 #mwa{background:#25D366;color:#fff;}
 #mem{background:#EA4335;color:#fff;}
-#mpd{background:#059669;color:#fff;}
+#mpd{background:#3E5C87;color:#fff;}
 #mcl{background:var(--sf);border:1.5px solid var(--br)!important;color:var(--tx2);flex:0 0 auto;padding:13px 16px;}
 /* TOAST */
-#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--nv);color:#fff;padding:11px 22px;border-radius:100px;font-size:.8rem;font-weight:500;opacity:0;transition:all .3s cubic-bezier(.34,1.2,.64,1);z-index:400;white-space:nowrap;box-shadow:0 6px 20px rgba(6,78,59,.3);pointer-events:none;}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--nv);color:#fff;padding:11px 22px;border-radius:100px;font-size:.8rem;font-weight:500;opacity:0;transition:all .3s cubic-bezier(.34,1.2,.64,1);z-index:400;white-space:nowrap;box-shadow:0 6px 20px rgba(27,42,61,.3);pointer-events:none;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 @media(max-width:480px){
   .g3{grid-template-columns:1fr 1fr;}
@@ -205,18 +209,18 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
   .num-in{font-size:.82rem;}
 }
 body:has(#ov.open){overflow:hidden;}
-.zelo-foot{background:linear-gradient(135deg,#022C22 0%,#064E3B 55%,#059669 100%);margin-top:20px;padding:18px 12px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.zelo-foot{background:linear-gradient(135deg,#111C2B 0%,#2B415E 55%,#3E5C87 100%);margin-top:20px;padding:18px 12px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .zelo-foot img{width:20px;height:20px;border-radius:6px;flex-shrink:0;}
-.zelo-foot span{font-size:.66rem;font-weight:700;letter-spacing:.05em;font-family:'DM Mono',monospace;color:#fff;}
+.zelo-foot span{font-size:.66rem;font-weight:700;letter-spacing:.05em;font-family:'IBM Plex Mono',monospace;color:#fff;}
 </style>
 </head>
 <body>
 <!-- SPLASH SCREEN -->
-<div id="splash" style="position:fixed;inset:0;background:linear-gradient(145deg,#08112A 0%,#0D1B3E 45%,#162E6B 100%);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;overflow-y:auto;">
+<div id="splash" style="position:fixed;inset:0;background:linear-gradient(145deg,#111C2B 0%,#1B2A3D 45%,#2B415E 100%);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;overflow-y:auto;">
   <div id="splash-msg" style="display:none;max-width:400px;width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px 20px 16px;backdrop-filter:blur(8px);text-align:center;">
     <p style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:10px;line-height:1.35;">Bem-vindo — Banco de Laboratório Clínico</p>
-    <p style="font-size:.84rem;color:rgba(255,255,255,.8);line-height:1.7;margin-bottom:16px;">Os dados que preenche aqui alimentam directamente as estatísticas do Hospital do Prenda — <strong style="color:#93C5FD;">são vidas</strong>, não apenas números. Preencha com clareza, rigor e dados reais.</p>
-    <button onclick="closeSplash()" style="width:100%;background:linear-gradient(135deg,#1A56DB,#2563EB);border:none;border-radius:10px;color:#fff;font-size:.85rem;font-weight:700;padding:12px 28px;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px;">
+    <p style="font-size:.84rem;color:rgba(255,255,255,.8);line-height:1.7;margin-bottom:16px;">Os dados que preenche aqui alimentam directamente as estatísticas do Hospital do Prenda — <strong style="color:#A8C0DE;">são vidas</strong>, não apenas números. Preencha com clareza, rigor e dados reais.</p>
+    <button onclick="closeSplash()" style="width:100%;background:linear-gradient(135deg,#3E5C87,#5A7AA3);border:none;border-radius:10px;color:#fff;font-size:.85rem;font-weight:700;padding:12px 28px;cursor:pointer;font-family:'Source Sans 3',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       Começar
     </button>
@@ -250,10 +254,18 @@ function closeSplash(){
       <h1>Banco de <em>Laboratório</em></h1>
       <p>Hospital do Prenda · Serviço de Admissão e Arquivo Médico Estatístico · Registo diário de exames</p>
     </div>
-    <a href="index.html" style="margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;color:#fff;text-decoration:none;font-size:.72rem;font-weight:600;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:7px 12px;border-radius:100px;white-space:nowrap;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Início
-    </a>
+    <div class="hdr-actions">
+      <button type="button" class="hdr-btn icon-only" onclick="history.back()" title="Voltar à página anterior" aria-label="Voltar à página anterior">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button type="button" class="hdr-btn icon-only" onclick="location.reload()" title="Actualizar página" aria-label="Actualizar página">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+      <a href="index.html" class="hdr-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Início
+      </a>
+    </div>
   </div>
   <div class="ps">
     <span class="pl">Progresso</span>
@@ -371,15 +383,15 @@ function closeSplash(){
 
 <!-- SALVAR -->
 <div style="max-width:680px;margin:0 auto;padding:0 12px 12px;">
-  <button onclick="salvarRegisto()" style="width:100%;padding:18px;background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:14px;color:#fff;font-size:1rem;font-weight:800;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 20px rgba(5,150,105,.3);transition:all .15s;-webkit-tap-highlight-color:transparent;">
+  <button onclick="salvarRegisto()" style="width:100%;padding:18px;background:linear-gradient(135deg,#3E5C87,#2B415E);border:none;border-radius:14px;color:#fff;font-size:1rem;font-weight:800;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 20px rgba(62,92,135,.3);transition:all .15s;-webkit-tap-highlight-color:transparent;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
     Salvar Registo Diário
   </button>
-  <button onclick="historicoRegisto()" style="width:100%;padding:16px;margin-top:10px;background:#ECFDF5;border:1.5px solid #6EE7B7;border-radius:14px;color:#064E3B;font-size:.92rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;-webkit-tap-highlight-color:transparent;">
+  <button onclick="historicoRegisto()" style="width:100%;padding:16px;margin-top:10px;background:#F2F5F9;border:1.5px solid #B9C6D9;border-radius:14px;color:#2B415E;font-size:.92rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;-webkit-tap-highlight-color:transparent;">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     Histórico de Registos
   </button>
-  <button onclick="abrirBackupAutoModal()" style="width:100%;padding:16px;margin-top:10px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:14px;color:#5B21B6;font-size:.92rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;-webkit-tap-highlight-color:transparent;">
+  <button onclick="abrirBackupAutoModal()" style="width:100%;padding:16px;margin-top:10px;background:#F5F3FF;border:1.5px solid #DDD6FE;border-radius:14px;color:#5B21B6;font-size:.92rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;-webkit-tap-highlight-color:transparent;">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
     Backup Automático
   </button>
@@ -399,7 +411,7 @@ function closeSplash(){
 <div id="ov">
   <div id="mo">
     <div class="mh">
-      <div class="ml"><svg width="100%" height="100%" viewBox="0 0 64 64" role="img" aria-label="ZELO" style="display:block;"><rect width="64" height="64" fill="#0D1B3E"/><path d="M18 20h28l-19 24h20" fill="none" stroke="#22D3EE" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="ml"><svg width="100%" height="100%" viewBox="0 0 64 64" role="img" aria-label="ZELO" style="display:block;"><rect width="64" height="64" fill="#1B2A3D"/><path d="M18 20h28l-19 24h20" fill="none" stroke="#22D3EE" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div><h3>Relatório do Dia — Banco de Laboratório Clínico</h3><p id="m-data"></p></div>
       <button onclick="closeModal()" aria-label="Fechar" style="margin-left:auto;flex-shrink:0;background:rgba(255,255,255,.14);border:none;border-radius:9px;width:32px;height:32px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
@@ -438,9 +450,9 @@ function closeSplash(){
         </div>
         <div id="bkauto-cadencias" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:.68rem;color:#64748B;margin-bottom:12px;"></div>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button onclick="_bkAutoEscolherPasta()" style="width:100%;padding:13px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;color:#1E40AF;font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Escolher pasta</button>
-          <button onclick="_bkAutoVerificarAgora()" style="width:100%;padding:13px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;color:#166534;font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Verificar agora</button>
-          <button onclick="_bkAutoEsquecerPasta()" style="width:100%;padding:13px;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;color:#991B1B;font-size:.85rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Esquecer pasta</button>
+          <button onclick="_bkAutoEscolherPasta()" style="width:100%;padding:13px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;color:#1E40AF;font-size:.85rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;">Escolher pasta</button>
+          <button onclick="_bkAutoVerificarAgora()" style="width:100%;padding:13px;background:#F5F6F8;border:1.5px solid #BBF7D0;border-radius:10px;color:#166534;font-size:.85rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;">Verificar agora</button>
+          <button onclick="_bkAutoEsquecerPasta()" style="width:100%;padding:13px;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;color:#991B1B;font-size:.85rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;">Esquecer pasta</button>
         </div>
       </div>
     </div>
@@ -448,9 +460,9 @@ function closeSplash(){
 </div>
 
 <!-- MODAL VALIDAÇÃO -->
-<div id="ov2" style="display:none;position:fixed;inset:0;background:rgba(6,78,59,.7);backdrop-filter:blur(8px);z-index:300;align-items:flex-end;justify-content:center;">
+<div id="ov2" style="display:none;position:fixed;inset:0;background:rgba(27,42,61,.7);backdrop-filter:blur(8px);z-index:300;align-items:flex-end;justify-content:center;">
   <div style="background:#fff;border-radius:var(--r3) var(--r3) 0 0;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;">
-    <div style="background:linear-gradient(135deg,#064E3B,#059669);padding:18px 20px 14px;color:#fff;border-radius:var(--r3) var(--r3) 0 0;">
+    <div style="background:linear-gradient(135deg,#2B415E,#3E5C87);padding:18px 20px 14px;color:#fff;border-radius:var(--r3) var(--r3) 0 0;">
       <h3 style="font-size:.98rem;font-weight:700;">Confirmar Registo</h3>
       <p style="font-size:.7rem;color:rgba(255,255,255,.55);margin-top:3px;">Reveja os dados antes de guardar</p>
     </div>
@@ -460,9 +472,9 @@ function closeSplash(){
 </div>
 
 <!-- MODAL PÓS-SAVE -->
-<div id="ov3" style="display:none;position:fixed;inset:0;background:rgba(6,78,59,.72);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#fff;border-radius:20px;width:100%;max-width:420px;box-shadow:0 16px 48px rgba(6,78,59,.25);animation:su .25s cubic-bezier(.34,1.2,.64,1);overflow:hidden;">
-    <div style="background:linear-gradient(135deg,#059669,#047857);padding:20px 22px 16px;text-align:center;">
+<div id="ov3" style="display:none;position:fixed;inset:0;background:rgba(27,42,61,.72);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:20px;width:100%;max-width:420px;box-shadow:0 16px 48px rgba(27,42,61,.25);animation:su .25s cubic-bezier(.34,1.2,.64,1);overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#3E5C87,#2B415E);padding:20px 22px 16px;text-align:center;">
       <div style="width:52px;height:52px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
@@ -470,11 +482,11 @@ function closeSplash(){
       <div style="font-size:.75rem;color:rgba(255,255,255,.7);margin-top:4px;" id="mo3-date"></div>
     </div>
     <div style="padding:20px 22px;display:flex;flex-direction:column;gap:10px;">
-      <button onclick="closePost();visualizar()" style="width:100%;padding:15px;background:#ECFDF5;border:1.5px solid #6EE7B7;border-radius:10px;color:#064E3B;font-size:.92rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:10px;">
+      <button onclick="closePost();visualizar()" style="width:100%;padding:15px;background:#F2F5F9;border:1.5px solid #B9C6D9;border-radius:10px;color:#2B415E;font-size:.92rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;gap:10px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         Visualizar Registo
       </button>
-      <button onclick="closePost();acaoPDF()" style="width:100%;padding:15px;background:#D1FAE5;border:1.5px solid #6EE7B7;border-radius:10px;color:#064E3B;font-size:.92rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:10px;">
+      <button onclick="closePost();acaoPDF()" style="width:100%;padding:15px;background:#DCE4EE;border:1.5px solid #B9C6D9;border-radius:10px;color:#2B415E;font-size:.92rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;gap:10px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Guardar PDF
       </button>
@@ -485,7 +497,7 @@ function closeSplash(){
 <div id="historico-alteracoes-modal" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.72);backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;padding:16px;">
   <div style="background:#fff;border-radius:16px;max-width:440px;width:100%;max-height:80vh;overflow:auto;padding:22px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <h3 style="margin:0;font-size:1rem;color:#0D1B3E;">Histórico de alterações — <span id="historico-alteracoes-date"></span></h3>
+      <h3 style="margin:0;font-size:1rem;color:#1B2A3D;">Histórico de alterações — <span id="historico-alteracoes-date"></span></h3>
       <button onclick="fecharHistoricoAlteracoes()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#64748B;">✕</button>
     </div>
     <div id="historico-alteracoes-lista"></div>
@@ -502,7 +514,7 @@ const EXAM_SECTIONS=[
    headerBg:'#1e3058',headerColor:'#93c5fd',accentColor:'#2563eb',
    exames:['Pesquisa de Plasmódio','Hemograma','Tempo de Coagulação','Tempo de Hemorragia','Hemoglobina','Ag Malária','VS','Coagulograma']},
   {id:'imunologia',label:'IMUNOLOGIA / SEROLOGIA',icon:'🧬',
-   headerBg:'#14352a',headerColor:'#6ee7b7',accentColor:'#059669',
+   headerBg:'#16222F',headerColor:'#A8C0DE',accentColor:'#3E5C87',
    exames:['HIV','Chicungunya','Dengue','Ag HBS','Ac HVB','Ac HCV','TASO','Factor Reumatoide','PCR','Vidal','VDRL']},
   {id:'bioquimica',label:'BIOQUÍMICA',icon:'⚗️',
    headerBg:'#2a2210',headerColor:'#fcd34d',accentColor:'#d97706',
@@ -691,7 +703,7 @@ function updateKPIs(){
     extraExames.filter(ex=>ex.secId===sec.id).forEach(ex=>{sT+=(exameData[ex.id]?.urg||0)+(exameData[ex.id]?.int||0);});
     return`<div style="background:#fff;border:1.5px solid ${sec.accentColor}30;border-radius:10px;padding:12px 14px;border-left:3px solid ${sec.accentColor};">
       <div style="font-size:.55rem;text-transform:uppercase;letter-spacing:.1em;color:${sec.accentColor};font-weight:700;margin-bottom:4px;">${sec.icon} ${sec.label}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:600;color:${sec.accentColor};">${sT}</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:600;color:${sec.accentColor};">${sT}</div>
     </div>`;
   }).join('');
   upd();
@@ -893,13 +905,13 @@ function visualizar(){
     const tot=eu+ei;
     if(!tot)return '';
     const clrU=eu>0?"color:#1E40AF;font-weight:700":"color:#94A3B8";
-    const clrI=ei>0?"color:#059669;font-weight:700":"color:#94A3B8";
+    const clrI=ei>0?"color:#3E5C87;font-weight:700":"color:#94A3B8";
     const clrT="color:#0F172A;font-weight:700";
     return `<div style="display:flex;align-items:center;padding:4px 6px;border-bottom:1px solid #F1F5F9;font-size:.82rem;background:${even?'#FAFBFF':'#fff'};">
       <span style="flex:1;color:#1E293B;">${nome}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:.7rem;min-width:52px;text-align:right;${clrU}">U: ${eu}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:.7rem;min-width:52px;text-align:right;${clrI}">I: ${ei}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:.75rem;min-width:32px;text-align:right;${clrT}">${tot}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.7rem;min-width:52px;text-align:right;${clrU}">U: ${eu}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.7rem;min-width:52px;text-align:right;${clrI}">I: ${ei}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.75rem;min-width:32px;text-align:right;${clrT}">${tot}</span>
     </div>`;
   };
 
@@ -921,9 +933,9 @@ function visualizar(){
       <div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:#EFF6FF;">
         <span style="font-size:.95rem;">${sec.icon}</span>
         <span style="font-size:.73rem;font-weight:700;color:#1E293B;text-transform:uppercase;letter-spacing:.04em;flex:1;">${sec.label}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:#64748B;">U:<b style="color:#1E40AF;"> ${sU}</b></span>
-        <span style="font-family:'DM Mono',monospace;font-size:.68rem;color:#64748B;margin-left:6px;">I:<b style="color:#059669;"> ${sI}</b></span>
-        <span style="font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;color:#059669;margin-left:8px;">${sU+sI}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:#64748B;">U:<b style="color:#1E40AF;"> ${sU}</b></span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:#64748B;margin-left:6px;">I:<b style="color:#3E5C87;"> ${sI}</b></span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;font-weight:700;color:#3E5C87;margin-left:8px;">${sU+sI}</span>
       </div>
       <div>${rows}</div>
     </div>`;
@@ -935,19 +947,19 @@ function visualizar(){
     if(!tot)return '';
     return `<div style="display:flex;align-items:center;gap:4px;padding:4px 0;border-bottom:1px solid #FEE2E2;font-size:.82rem;">
       <span style="flex:1;color:var(--tx);">${p}</span>
-      <span style="font-family:'DM Mono',monospace;font-size:.72rem;min-width:50px;text-align:right;">U: <b style="color:#DC2626;">${pu}</b></span>
-      <span style="font-family:'DM Mono',monospace;font-size:.72rem;min-width:50px;text-align:right;">I: <b style="color:#DC2626;">${pi}</b></span>
-      <span style="font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;color:#991B1B;min-width:32px;text-align:right;">${tot}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;min-width:50px;text-align:right;">U: <b style="color:#DC2626;">${pu}</b></span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;min-width:50px;text-align:right;">I: <b style="color:#DC2626;">${pi}</b></span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:.78rem;font-weight:700;color:#991B1B;min-width:32px;text-align:right;">${tot}</span>
     </div>`;
   }).join('');
 
   let html=`
-  <div style="background:linear-gradient(135deg,#064E3B,#065F46);border-radius:12px;padding:14px;margin-bottom:14px;">
+  <div style="background:linear-gradient(135deg,#2B415E,#2B415E);border-radius:12px;padding:14px;margin-bottom:14px;">
     <div style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:8px;">${pdfDateFmt()}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      ${[{v:tU+tI,l:'Total',c:'#34D399'},{v:tU,l:'Urgência',c:'#6EE7B7'},{v:tI,l:'Intern.',c:'#A7F3D0'},{v:tP,l:'Positivos',c:'#F87171'}].map(x=>`
+      ${[{v:tU+tI,l:'Total',c:'#34D399'},{v:tU,l:'Urgência',c:'#B9C6D9'},{v:tI,l:'Intern.',c:'#A7F3D0'},{v:tP,l:'Positivos',c:'#F87171'}].map(x=>`
         <div style="background:rgba(255,255,255,.08);border:1px solid ${x.c}40;border-radius:8px;padding:8px 6px;flex:1;min-width:0;text-align:center;">
-          <div style="font-family:'DM Mono',monospace;font-size:1.4rem;font-weight:700;color:${x.c};">${x.v}</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:700;color:${x.c};">${x.v}</div>
           <div style="font-size:.5rem;color:${x.c};font-weight:700;text-transform:uppercase;margin-top:2px;white-space:nowrap;">${x.l}</div>
         </div>`).join('')}
     </div>
@@ -1002,8 +1014,8 @@ async function gerarPDF(silencioso){
 
     function pageStrip(){
       // Faixa superior em páginas seguintes
-      F('#0D1B3E');pdf.rect(0,0,PW,10,'F');
-      T('#93C5FD');pdf.setFontSize(6);pdf.setFont('helvetica','bold');
+      F('#1B2A3D');pdf.rect(0,0,PW,10,'F');
+      T('#A8C0DE');pdf.setFontSize(6);pdf.setFont('helvetica','bold');
       pdf.text('LABORATÓRIO CLÍNICO · HOSPITAL DO PRENDA',ML,6.5);
       T('#FFFFFF');pdf.setFont('helvetica','normal');
       pdf.text(pdfDateFmt(),PW-MR,6.5,{align:'right'});
@@ -1012,9 +1024,9 @@ async function gerarPDF(silencioso){
 
     // ── CABEÇALHO PRINCIPAL ────────────────────────────────────
     const HDR=48;
-    F('#0D1B3E');pdf.rect(0,0,PW,HDR,'F');
+    F('#1B2A3D');pdf.rect(0,0,PW,HDR,'F');
     // Linha de acento verde
-    F('#059669');pdf.rect(0,HDR,PW,1.5,'F');
+    F('#3E5C87');pdf.rect(0,HDR,PW,1.5,'F');
 
     // Logo circular
     try{
@@ -1032,7 +1044,7 @@ async function gerarPDF(silencioso){
 
     // Textos cabeçalho
     const TX=ML+38;
-    T('#93C5FD');pdf.setFontSize(6);pdf.setFont('helvetica','normal');
+    T('#A8C0DE');pdf.setFontSize(6);pdf.setFont('helvetica','normal');
     pdf.text('HOSPITAL DO PRENDA · LUANDA · GEPE',TX,11);
     T('#FFFFFF');pdf.setFontSize(14);pdf.setFont('helvetica','bold');
     pdf.text('BANCO DE LABORATÓRIO CLÍNICO',TX,20);
@@ -1050,7 +1062,7 @@ async function gerarPDF(silencioso){
       // Linha esquerda + texto — sem fundo cheio
       F('#F1F5F9');pdf.rect(ML,y,CW,7,'F');
       D('#CBD5E1');pdf.setLineWidth(0.5);pdf.line(ML,y,ML,y+7); // barra esquerda verde
-      F('#059669');pdf.rect(ML,y,2.5,7,'F');
+      F('#3E5C87');pdf.rect(ML,y,2.5,7,'F');
       T('#1E293B');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
       pdf.text(label,ML+6,y+5);
       // Cabeçalhos das colunas à direita
@@ -1077,7 +1089,7 @@ async function gerarPDF(silencioso){
       T(ei>0?'#1E293B':'#94A3B8');pdf.setFont('helvetica',ei>0?'bold':'normal');
       pdf.text(String(ei),C_INT,y+5,{align:'right'});
       // Total — a negrito verde se >0, cinza se 0
-      T(tot>0?'#059669':'#94A3B8');pdf.setFont('helvetica',tot>0?'bold':'normal');
+      T(tot>0?'#3E5C87':'#94A3B8');pdf.setFont('helvetica',tot>0?'bold':'normal');
       pdf.text(String(tot),C_TOT,y+5,{align:'right'});
       y+=ROW_H;
     }
@@ -1091,7 +1103,7 @@ async function gerarPDF(silencioso){
       T('#334155');
       pdf.text(sU>0?String(sU):'—',C_URG,y+5.2,{align:'right'});
       pdf.text(sI>0?String(sI):'—',C_INT,y+5.2,{align:'right'});
-      T('#059669');pdf.text(String(sU+sI),C_TOT,y+5.2,{align:'right'});
+      T('#3E5C87');pdf.text(String(sU+sI),C_TOT,y+5.2,{align:'right'});
       y+=9;
     }
     function sep(n=5){y+=n;}
@@ -1103,10 +1115,10 @@ async function gerarPDF(silencioso){
     // ── 1. TOTAL GERAL (bloco de destaque no topo) ─────────────
     chk(28);
     // Fundo do bloco
-    F('#F0FDF4');pdf.roundedRect(ML,y,CW,24,3,3,'F');
-    D('#93C5FD');pdf.setLineWidth(0.5);pdf.roundedRect(ML,y,CW,24,3,3,'S');
+    F('#F5F6F8');pdf.roundedRect(ML,y,CW,24,3,3,'F');
+    D('#A8C0DE');pdf.setLineWidth(0.5);pdf.roundedRect(ML,y,CW,24,3,3,'S');
     // Rótulo
-    T('#065F46');pdf.setFontSize(7);pdf.setFont('helvetica','bold');
+    T('#2B415E');pdf.setFontSize(7);pdf.setFont('helvetica','bold');
     pdf.text('TOTAL DE EXAMES REALIZADOS',ML+5,y+6);
     // Valores grandes lado a lado
     const BOX_W=38,BOX_H=14,BOX_Y=y+8,GAP=4;
@@ -1115,8 +1127,8 @@ async function gerarPDF(silencioso){
     const totalBoxW=(BOX_W2+GAP2)*4-GAP2;
     const boxes=[
       {l:'URGENCIA',v:tU,c:'#1E3A5F',bg:'#EFF6FF',bd:'#BFDBFE'},
-      {l:'INTERNAMENTO',v:tI,c:'#1A3D2B',bg:'#D1FAE5',bd:'#93C5FD'},
-      {l:'TOTAL GERAL',v:tU+tI,c:'#FFFFFF',bg:'#059669',bd:'#047857',inv:true},
+      {l:'INTERNAMENTO',v:tI,c:'#1A3D2B',bg:'#DCE4EE',bd:'#93C5FD'},
+      {l:'TOTAL GERAL',v:tU+tI,c:'#FFFFFF',bg:'#3E5C87',bd:'#2B415E',inv:true},
       {l:'POSITIVOS',v:tP,c:'#7F1D1D',bg:'#FFF5F5',bd:'#FCA5A5'},
     ];
     let bx=ML+5;
@@ -1125,7 +1137,7 @@ async function gerarPDF(silencioso){
       D(b.bd);pdf.setLineWidth(0.4);pdf.roundedRect(bx,BOX_Y,BOX_W2,BOX_H,2,2,'S');
       T(b.c);pdf.setFontSize(15);pdf.setFont('helvetica','bold');
       pdf.text(String(b.v),bx+BOX_W2/2,BOX_Y+9,{align:'center'});
-      T(b.inv?'#D1FAE5':b.c);pdf.setFontSize(5);pdf.setFont('helvetica','bold');
+      T(b.inv?'#DCE4EE':b.c);pdf.setFontSize(5);pdf.setFont('helvetica','bold');
       pdf.text(b.l,bx+BOX_W2/2,BOX_Y+13,{align:'center'});
       bx+=BOX_W2+GAP2;
     });
@@ -1135,10 +1147,10 @@ async function gerarPDF(silencioso){
     const chefeNome=gv('chefe-equipa');
     if(chefeNome){
       chk(14);
-      F('#F0FDF4');pdf.roundedRect(ML,y,CW,12,2,2,'F');
-      D('#93C5FD');pdf.setLineWidth(0.3);pdf.roundedRect(ML,y,CW,12,2,2,'S');
-      F('#059669');pdf.rect(ML,y,3,12,'F');
-      T('#0D1B3E');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
+      F('#F5F6F8');pdf.roundedRect(ML,y,CW,12,2,2,'F');
+      D('#A8C0DE');pdf.setLineWidth(0.3);pdf.roundedRect(ML,y,CW,12,2,2,'S');
+      F('#3E5C87');pdf.rect(ML,y,3,12,'F');
+      T('#1B2A3D');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
       pdf.text('CHEFE DE EQUIPA / SUPERVISOR',ML+7,y+5);
       T('#1E293B');pdf.setFontSize(9.5);pdf.setFont('helvetica','normal');
       pdf.text(chefeNome,ML+7,y+10);
@@ -1158,7 +1170,7 @@ async function gerarPDF(silencioso){
         const cx2=ML+(i%cols)*(cellW+8);
         const cy=y+Math.floor(i/cols)*9;
         // Número do técnico
-        F('#0D1B3E');pdf.circle(cx2+3.5,cy+4,3,'F');
+        F('#1B2A3D');pdf.circle(cx2+3.5,cy+4,3,'F');
         T('#FFFFFF');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
         pdf.text(String(i+1),cx2+3.5,cy+5.2,{align:'center'});
         // Nome
@@ -1262,10 +1274,10 @@ async function gerarPDF(silencioso){
     for(let p=1;p<=nPages;p++){
       pdf.setPage(p);
       // Linha de acento + fundo
-      F('#0D1B3E');pdf.rect(0,PH-12,PW,12,'F');
-      F('#059669');pdf.rect(0,PH-12,PW,1,'F');
+      F('#1B2A3D');pdf.rect(0,PH-12,PW,12,'F');
+      F('#3E5C87');pdf.rect(0,PH-12,PW,1,'F');
       if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
-      T('#93C5FD');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
+      T('#A8C0DE');pdf.setFontSize(7);pdf.setFont('helvetica','normal');
       pdf.text('Banco de Laboratório Clínico · Hospital do Prenda · GEPE · Criado por Yuri Matias',ML+9,PH-5);
       T('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);
       pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});
@@ -1300,13 +1312,13 @@ function salvarRegisto(){
   }).join('');
   const posRows=POSITIVOS.map(p=>{const tot=(positivoData[p]?.urg||0)+(positivoData[p]?.int||0);return tot>0?`<div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px;"><span style="color:#DC2626;">${p}</span><span style="font-weight:700;color:#DC2626;">${tot}</span></div>`:''}).join('');
   body.innerHTML=`
-  <div style="background:#ECFDF5;border:1.5px solid #6EE7B7;border-radius:12px;padding:16px;margin-bottom:12px;">
-    <div style="font-size:.65rem;font-weight:700;color:#064E3B;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">📋 Resumo do registo</div>
-    <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(6,78,59,.1);"><span style="color:#64748B;">Data</span><span style="font-weight:700;">${pdfDateFmt()}</span></div>
-    <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(6,78,59,.1);"><span style="color:#64748B;">Técnicos</span><span style="font-weight:600;text-align:right;max-width:60%;">${tecs.join(' · ')||'—'}</span></div>
-    <div style="margin-bottom:4px;font-size:.65rem;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.08em;">Exames por secção</div>
+  <div style="background:#F2F5F9;border:1.5px solid #B9C6D9;border-radius:12px;padding:16px;margin-bottom:12px;">
+    <div style="font-size:.65rem;font-weight:700;color:#2B415E;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">📋 Resumo do registo</div>
+    <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(27,42,61,.1);"><span style="color:#64748B;">Data</span><span style="font-weight:700;">${pdfDateFmt()}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(27,42,61,.1);"><span style="color:#64748B;">Técnicos</span><span style="font-weight:600;text-align:right;max-width:60%;">${tecs.join(' · ')||'—'}</span></div>
+    <div style="margin-bottom:4px;font-size:.65rem;font-weight:700;color:#3E5C87;text-transform:uppercase;letter-spacing:.08em;">Exames por secção</div>
     ${secRows||'<div style="font-size:.85rem;color:#94A3B8;">Nenhum exame registado</div>'}
-    <div style="display:flex;justify-content:space-between;font-size:.92rem;font-weight:800;color:#064E3B;margin-top:10px;padding-top:8px;border-top:2px solid #6EE7B7;">
+    <div style="display:flex;justify-content:space-between;font-size:.92rem;font-weight:800;color:#2B415E;margin-top:10px;padding-top:8px;border-top:2px solid #B9C6D9;">
       <span>Total Exames</span><span>${tU+tI} <span style="font-size:.78rem;font-weight:600;color:#64748B;">(urg:${tU} / int:${tI})</span></span>
     </div>
   </div>
@@ -1319,8 +1331,8 @@ function salvarRegisto(){
     <strong>Os dados acima são confiáveis e correspondem à realidade do turno?</strong>
   </div>`;
   footer.innerHTML=`
-    <button onclick="closeValid()" style="flex:1;padding:14px;background:#F1F5F9;border:none;border-radius:10px;color:#64748B;font-size:.88rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Não — Corrigir</button>
-    <button onclick="confirmarSave()" style="flex:2;padding:14px;background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+    <button onclick="closeValid()" style="flex:1;padding:14px;background:#F1F5F9;border:none;border-radius:10px;color:#64748B;font-size:.88rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;">Não — Corrigir</button>
+    <button onclick="confirmarSave()" style="flex:2;padding:14px;background:linear-gradient(135deg,#3E5C87,#2B415E);border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Sim — Guardar registo</button>`;
   document.getElementById('ov2').style.display='flex';
 }
@@ -1370,7 +1382,7 @@ function _showHistorico(hist){
           <div style="font-size:.85rem;font-weight:700;color:var(--tx);">${s.data?fmtDL(s.data):'Sem data'}</div>
           <span style="font-size:.68rem;color:var(--tx3);">${fmtDT(h.savedAt)}</span>
         </div>
-        <div style="font-size:.78rem;color:var(--tx2);line-height:1.6;">Exames: <b style="color:#059669;">${tU+tI}</b> · Positivos: <b style="color:${tP>0?'#DC2626':'inherit'};">${tP}</b></div>
+        <div style="font-size:.78rem;color:var(--tx2);line-height:1.6;">Exames: <b style="color:#3E5C87;">${tU+tI}</b> · Positivos: <b style="color:${tP>0?'#DC2626':'inherit'};">${tP}</b></div>
         <div style="display:flex;gap:6px;margin-top:8px;">
           <button class="bs bse" style="font-size:.72rem;padding:7px 12px;" onclick="restaurarHistorico(${i})">📂 Carregar</button>
           <button class="bs bsd" style="font-size:.72rem;padding:7px 12px;" onclick="apagarHistorico(${i})">🗑 Apagar</button>
