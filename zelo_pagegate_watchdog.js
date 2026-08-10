@@ -29,17 +29,18 @@
       if (getComputedStyle(document.documentElement).visibility !== 'hidden') return;
       document.documentElement.style.visibility = 'visible';
       overlayEl = document.createElement('div');
-      overlayEl.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#0D1B3E;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif;';
+      overlayEl.style.cssText = 'position:fixed;inset:0;z-index:999999;background:linear-gradient(145deg,#0E141C 0%,#16222F 45%,#2B415E 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:Arial,sans-serif;';
       overlayEl.innerHTML =
-        '<div style="max-width:420px;width:100%;background:#fff;border-radius:16px;padding:32px 28px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);">' +
-          '<div style="width:56px;height:56px;border-radius:50%;background:#FFFBEB;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">' +
-            '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.18 14.18A2 2 0 0 0 3.82 21h16.36a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>' +
-          '</div>' +
-          '<div style="font-size:1.05rem;font-weight:700;color:#0D1B3E;margin-bottom:8px;">A sessão está a demorar mais que o normal</div>' +
-          '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:22px;">Isto costuma resolver-se sozinho em ligações mais lentas — esta página continua a tentar em segundo plano. Se não entrar sozinho em breve, verifique a ligação à internet e desative bloqueadores de anúncios para este site.</div>' +
-          '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
-            '<a href="index.html" style="display:inline-block;padding:11px 22px;border-radius:10px;background:#F1F5F9;color:#0D1B3E;text-decoration:none;font-weight:600;font-size:.86rem;">Voltar ao Início</a>' +
-          '</div>' +
+        '<style>@keyframes zeloWatchdogSpin{0%{stroke-dashoffset:239}50%{stroke-dashoffset:55}100%{stroke-dashoffset:239}}</style>' +
+        '<div style="display:flex;flex-direction:column;align-items:center;text-align:center;">' +
+          '<svg width="88" height="88" style="transform:rotate(-90deg);margin-bottom:20px;">' +
+            '<circle cx="44" cy="44" r="38" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="4"/>' +
+            '<circle cx="44" cy="44" r="38" fill="none" stroke="url(#zeloWatchdogGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="239" stroke-dashoffset="239" style="animation:zeloWatchdogSpin 1.8s ease-in-out infinite;"/>' +
+            '<defs><linearGradient id="zeloWatchdogGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#7C9BC4"/><stop offset="100%" stop-color="#A8C0DE"/></linearGradient></defs>' +
+          '</svg>' +
+          '<div style="font-size:1rem;font-weight:700;color:#fff;">A carregar página…</div>' +
+          '<div style="font-size:.82rem;color:rgba(199,210,232,.78);line-height:1.5;margin-top:8px;max-width:300px;">Ligação lenta — esta página continua a tentar em segundo plano.</div>' +
+          '<a href="index.html" style="margin-top:22px;font-size:.76rem;color:rgba(168,192,222,.85);text-decoration:underline;">Problemas a entrar? Voltar ao Início</a>' +
         '</div>';
       document.body.appendChild(overlayEl);
     }
