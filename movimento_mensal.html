@@ -1,933 +1,118 @@
 <!DOCTYPE html>
-<html lang="pt-AO">
+<html lang="pt-AO" data-theme="light">
 <head>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='movimento_mensal';</script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
-<script src="zelo_indexeddb.js"></script>
-<script src="zelo_sync.js"></script>
-<script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
-<title>Movimento Mensal · ZELO</title>
+<title>Movimento Hospitalar · ZELO</title>
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="zelo_tokens.css">
 <style>
-:root{
-  --nv:#0D1B3E;--nv2:#122754;--nv3:#0a3a66;--bl:#1A56DB;--cy:#0EA5E9;--cyl:#22D3EE;
-  --sf:#F4F7FF;--br:#E2E8F0;--br2:#CBD5E1;--tx:#0F172A;--tx2:#334155;--tx3:#64748B;
-  --gr:#059669;--rd:#DC2626;--am:#D97706;--pu:#7C3AED;
-  --r:10px;--r2:16px;--s1:0 2px 10px rgba(13,27,62,.08);--s2:0 10px 32px rgba(13,27,62,.16);
-}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html{scroll-behavior:smooth;}
-body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;}
-
-.topbar{background:var(--nv);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:10px;
-  font-family:'DM Mono',monospace;font-size:.68rem;letter-spacing:.04em;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap;}
-.topbar .dot{width:6px;height:6px;border-radius:50%;background:var(--cyl);box-shadow:0 0 0 3px rgba(34,211,238,.2);flex-shrink:0;}
-.topbar img{width:22px;height:22px;border-radius:6px;flex-shrink:0;}
-.topbar a.back{margin-left:auto;color:#fff;text-decoration:none;display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.1);
-  border:1px solid rgba(255,255,255,.18);border-radius:100px;padding:5px 12px;white-space:nowrap;}
-
-.hero{background:linear-gradient(155deg,var(--nv) 0%,var(--nv2) 55%,var(--nv3) 100%);color:#fff;padding:22px 20px;}
-.hero-in{max-width:1100px;margin:0 auto;}
-.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;}
-.hero h1{font-size:clamp(1.3rem,3.4vw,1.7rem);font-weight:800;letter-spacing:-.02em;}
-.hero .svc-name{color:var(--cyl);}
-.hero p{margin-top:5px;color:#AEC0E0;font-size:.8rem;}
-.hero .trocar{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;text-decoration:none;
-  font-size:.68rem;font-weight:700;padding:7px 13px;border-radius:100px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;}
-.hero .trocar:hover{background:rgba(255,255,255,.18);}
-
-/* mini-placar no cabeçalho — visão instantânea do dia sem scroll */
-.mini-placar{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
-.mini-placar .mp{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:8px 14px;min-width:100px;}
-.mini-placar .mp .l{font-size:.6rem;color:#AEC0E0;text-transform:uppercase;letter-spacing:.04em;font-weight:700;}
-.mini-placar .mp .v{font-size:1.15rem;font-weight:800;color:#fff;font-family:'DM Mono',monospace;}
-.mini-placar .mp.hi .v{color:var(--cyl);}
-
-main{max-width:1100px;margin:0 auto;padding:24px 20px 60px;width:100%;box-sizing:border-box;flex:1;}
-
-.panel{background:#fff;border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--s1);padding:20px;margin-bottom:20px;}
-.panel h2{font-size:.92rem;font-weight:800;margin-bottom:4px;}
-.panel .sub{font-size:.76rem;color:var(--tx3);margin-bottom:16px;}
-
-.selectors{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
-.field{display:flex;flex-direction:column;gap:5px;}
-.field label{font-size:.66rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.03em;}
-.field select,.field input[type=date],.field input[type=text]{border:1.5px solid var(--br);border-radius:var(--r);padding:10px 13px;font-family:'Inter',sans-serif;
-  font-size:.88rem;color:var(--tx);background:#fff;transition:border-color .15s,box-shadow .15s;}
-.field select:focus,.field input:focus{outline:none;border-color:var(--bl);box-shadow:0 0 0 3px rgba(26,86,219,.12);}
-
-/* ── Grupos de campos (secções visuais) ── */
-.grp{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:14px 16px 16px;margin-top:14px;}
-.grp-title{font-size:.72rem;font-weight:800;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px;display:flex;align-items:center;gap:7px;}
-.grp-title svg{width:14px;height:14px;color:var(--bl);flex-shrink:0;}
-.grid-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
-.entry{display:flex;flex-direction:column;gap:6px;}
-.entry label{font-size:.72rem;font-weight:700;color:var(--tx2);}
-.entry input{border:1.5px solid var(--br);border-radius:var(--r);padding:11px 13px;font-family:'DM Mono',monospace;font-size:1rem;
-  font-weight:700;color:var(--nv);text-align:center;background:#fff;transition:border-color .15s,box-shadow .15s,transform .1s;}
-.entry input:focus{outline:none;border-color:var(--bl);box-shadow:0 0 0 3px rgba(26,86,219,.14);transform:translateY(-1px);}
-.entry input.locked{background:#F1F5F9;color:var(--tx3);border-style:dashed;}
-.entry .tag{font-size:.6rem;color:var(--tx3);text-align:center;}
-.entry .tag.req{color:var(--rd);font-weight:700;}
-
-/* ── Placar (painel de resultados automáticos) ── */
-.placar{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-top:6px;}
-.placar .pc{border-radius:14px;padding:14px 10px;text-align:center;border:1px solid transparent;position:relative;overflow:hidden;}
-.placar .pc .l{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;}
-.placar .pc .v{font-size:1.7rem;font-weight:900;font-family:'DM Mono',monospace;line-height:1;}
-.placar .pc .d{font-size:.58rem;margin-top:5px;opacity:.75;}
-.placar .pc.n{background:#F1F5F9;} .placar .pc.n .l{color:var(--tx3);} .placar .pc.n .v{color:var(--tx2);}
-.placar .pc.bl{background:#EFF6FF;} .placar .pc.bl .l{color:#1E40AF;} .placar .pc.bl .v{color:var(--bl);}
-.placar .pc.rd{background:#FEF2F2;} .placar .pc.rd .l{color:#991B1B;} .placar .pc.rd .v{color:var(--rd);}
-.placar .pc.gr{background:#ECFDF5;} .placar .pc.gr .l{color:#065F46;} .placar .pc.gr .v{color:var(--gr);}
-.placar .pc.hi{background:linear-gradient(135deg,var(--nv),var(--nv3));border-color:var(--nv);}
-.placar .pc.hi .l{color:#AEC0E0;} .placar .pc.hi .v{color:#fff;font-size:1.95rem;}
-
-.alert-bar{background:#FFF7ED;border:1.5px solid #FDBA74;border-radius:14px;padding:13px 16px;margin-bottom:18px;display:flex;gap:10px;align-items:flex-start;}
-.alert-bar svg{width:18px;height:18px;color:var(--am);flex-shrink:0;margin-top:1px;}
-.alert-bar .txt{font-size:.78rem;color:#7C2D12;line-height:1.5;}
-.alert-bar b{font-weight:800;}
-
-.save-row{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
-.btn{font-family:'Inter',sans-serif;font-size:.82rem;font-weight:700;border:none;border-radius:100px;padding:11px 22px;cursor:pointer;
-  display:inline-flex;align-items:center;gap:8px;transition:transform .15s,box-shadow .15s;}
-.btn:active{transform:scale(.97);}
-.btn-primary{background:var(--bl);color:#fff;box-shadow:0 8px 20px rgba(26,86,219,.28);}
-.btn-outline{background:#fff;color:var(--tx2);border:1.5px solid var(--br);}
-.btn-outline:hover{border-color:var(--bl);color:var(--bl);}
-
-.table-wrap{overflow-x:auto;border:1px solid var(--br);border-radius:var(--r);}
-table.mm{border-collapse:collapse;width:100%;font-size:.7rem;font-family:'DM Mono',monospace;}
-table.mm th,table.mm td{border:1px solid var(--br);padding:5px 6px;text-align:center;white-space:nowrap;}
-table.mm th{background:var(--nv);color:#fff;font-weight:700;position:sticky;top:0;}
-table.mm td.rowlabel,table.mm th.rowlabel{text-align:left;font-family:'Inter',sans-serif;font-weight:600;font-size:.68rem;
-  position:sticky;left:0;background:#fff;z-index:1;min-width:170px;}
-table.mm th.rowlabel{background:var(--nv);z-index:2;}
-table.mm td.total{font-weight:800;background:#EFF6FF;color:var(--bl);}
-table.mm td.auto{color:var(--tx3);}
-table.mm tr.sep td{border-top:2px solid var(--nv);}
-
-.sign-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px;}
-.sign-row .field{flex:1;min-width:220px;}
-.sign-row input[type=text],.sign-row input[type=date]{border:1.5px solid var(--br);border-radius:var(--r);padding:9px 12px;font-size:.86rem;width:100%;}
-
-.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.68rem;color:var(--tx3);}
-.legend span{display:inline-flex;align-items:center;gap:5px;}
-.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;}
-
-footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
-.foot-grid{max-width:1100px;margin:0 auto;padding:26px 20px 20px;display:flex;justify-content:space-between;
-  align-items:center;gap:20px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.09);}
-.foot-zelo{display:flex;align-items:center;gap:10px;}
-.foot-zelo img{width:30px;height:30px;flex-shrink:0;border-radius:8px;}
-.foot-zelo .l1{font-size:.78rem;font-weight:700;color:#fff;letter-spacing:.02em;}
-.foot-meta{font-family:'DM Mono',monospace;font-size:.66rem;color:#7288B0;text-align:right;line-height:1.6;}
-@media(max-width:480px){.foot-grid{flex-direction:column;align-items:flex-start;}.foot-meta{text-align:left;}}
-
-/* ── Picker de serviço (substitui o combobox) ── */
-.picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:16px;}
-.picker-card{position:relative;border-radius:14px;color:#fff;
-  border:1px solid rgba(255,255,255,.14);transition:transform .15s,box-shadow .15s;}
-.picker-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(13,27,62,.2);}
-.picker-main{display:flex;align-items:center;gap:12px;padding:16px;padding-right:38px;text-decoration:none;color:#fff;}
-.picker-card .ic{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.picker-card .ic svg{width:19px;height:19px;}
-.picker-card .nm{font-size:.9rem;font-weight:800;}
-.picker-card .dl-btn{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:#fff;text-decoration:none;transition:background .15s;}
-.picker-card .dl-btn:hover{background:rgba(255,255,255,.34);}
-
-/* ── Modal de assinatura (obrigatória para exportar PDF) ── */
-.modal-ov{position:fixed;inset:0;background:rgba(13,27,62,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
-.modal-ov.open{display:flex;}
-.modal-box{background:#fff;border-radius:18px;max-width:420px;width:100%;padding:24px;box-shadow:var(--s2);}
-.modal-box h3{font-size:1.05rem;font-weight:800;color:var(--nv);margin-bottom:6px;}
-.modal-box p{font-size:.8rem;color:var(--tx3);margin-bottom:16px;line-height:1.5;}
-.modal-box .field{margin-bottom:12px;}
-.modal-box .btns{display:flex;gap:10px;margin-top:8px;}
-.modal-box .btns .btn{flex:1;justify-content:center;}
+body{
+  font-family:var(--zelo-font-body, 'Source Sans 3', sans-serif);
+  background:var(--zelo-bg, #F5F6F8);
+  color:var(--zelo-ink, #16232E);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  -webkit-font-smoothing:antialiased;
+}
+.topbar{
+  background:var(--zelo-accent-ink, #16222F);
+  color:#fff;
+  padding:14px 20px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.topbar img{width:26px;height:26px;border-radius:7px;background:#fff;padding:2px;flex-shrink:0;}
+.topbar span{font-size:.82rem;font-weight:700;color:#E7ECF7;}
+.topbar a{
+  margin-left:auto;
+  color:#fff;
+  text-decoration:none;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:100px;
+  padding:6px 14px;
+  font-size:.78rem;
+  font-weight:600;
+  white-space:nowrap;
+}
+.topbar a:hover{background:rgba(255,255,255,.18);}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.card{
+  background:var(--zelo-surface, #fff);
+  border:1px solid var(--zelo-line, #DCE2E7);
+  border-radius:var(--zelo-radius-l, 16px);
+  box-shadow:var(--zelo-shadow, 0 8px 24px -12px rgba(22,35,46,.16));
+  padding:40px 34px;
+  max-width:440px;
+  text-align:center;
+}
+.card .ic{
+  width:58px;height:58px;border-radius:16px;
+  background:var(--zelo-accent-soft, #E9EEF4);
+  color:var(--zelo-accent, #3E5C87);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 18px;
+}
+.card .ic svg{width:28px;height:28px;}
+.badge{
+  display:inline-block;
+  font-family:var(--zelo-font-mono, 'IBM Plex Mono', monospace);
+  font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--zelo-warn, #B5502D);
+  background:var(--zelo-warn-soft, #F7E8E1);
+  border-radius:100px;padding:4px 12px;margin-bottom:14px;
+}
+.card h1{
+  font-family:var(--zelo-font-display, 'Fraunces', serif);
+  font-size:1.3rem;font-weight:600;letter-spacing:-.01em;margin-bottom:10px;
+  color:var(--zelo-ink, #16232E);
+}
+.card p{color:var(--zelo-ink-soft, #55636F);font-size:.9rem;line-height:1.6;margin-bottom:26px;}
+.back{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--zelo-accent, #3E5C87);
+  color:#fff;text-decoration:none;
+  font-size:.86rem;font-weight:700;
+  padding:11px 22px;border-radius:10px;
+}
+.back:hover{opacity:.92;}
+footer{
+  text-align:center;padding:16px;
+  color:var(--zelo-ink-faint, #8B98A3);
+  font-size:.68rem;
+  font-family:var(--zelo-font-mono, 'IBM Plex Mono', monospace);
+}
 </style>
 </head>
 <body>
-
 <div class="topbar">
-  <span class="dot"></span>
   <img src="icons/logo.png" alt="ZELO"/>
-  <span>ZELO · Movimento Mensal</span>
-  <a class="back" href="index.html"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Início</a>
+  <span>Hospital do Prenda · ZELO</span>
+  <a href="index.html">← Voltar à Central</a>
 </div>
-
-<div class="hero">
-  <div class="hero-in">
-    <div class="hero-top">
-      <div>
-        <h1>Movimento Mensal <span class="svc-name" id="hServico">—</span></h1>
-        <p>Ministério da Saúde · Hospital do Prenda · Departamento de Estatística — registo diário com cálculo automático, igual ao modelo oficial.</p>
-      </div>
-      <a class="trocar" href="movimento_mensal.html" id="trocarLink" style="display:none;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M21 3 3 21"/></svg>
-        Trocar serviço
-      </a>
-    </div>
-    <div class="mini-placar" id="miniPlacar" style="display:none;">
-      <div class="mp"><div class="l">Dia</div><div class="v" id="mp-dia">—</div></div>
-      <div class="mp"><div class="l">Exist. Anterior</div><div class="v" id="mp-existAnterior">0</div></div>
-      <div class="mp hi"><div class="l">Ficam Existindo</div><div class="v" id="mp-ficam">0</div></div>
-    </div>
-  </div>
-</div>
-
 <main>
-
-  <!-- ── PICKER DE SERVIÇO (mostrado quando não há ?servico= válido na URL) ── -->
-  <div class="panel" id="painelPicker" style="display:none;">
-    <h2>Escolhe o serviço</h2>
-    <div class="sub">O Movimento Mensal é feito por serviço — escolhe abaixo para começar.</div>
-    <div class="picker-grid" id="pickerGrid"></div>
-  </div>
-
-  <!-- ── CONTEÚDO PRINCIPAL (mostrado só depois de um serviço estar escolhido) ── -->
-  <div id="conteudoPrincipal" style="display:none;">
-
-    <div class="panel">
-      <h2>Período</h2>
-      <div class="sub">Escolhe o dia a preencher. O serviço já está fixo — usa "Trocar serviço" acima para mudar.</div>
-      <div class="selectors">
-        <div class="field">
-          <label>Data</label>
-          <div style="display:flex;gap:6px;">
-            <button type="button" class="btn btn-outline" style="padding:9px 12px;" onclick="changeDay(-1)" title="Dia anterior">◀</button>
-            <input type="date" id="selData" onchange="onDataChange()"/>
-            <button type="button" class="btn btn-outline" style="padding:9px 12px;" onclick="changeDay(1)" title="Dia seguinte">▶</button>
-          </div>
-        </div>
-        <div class="field">
-          <label>Código do Serviço</label>
-          <input type="text" id="codigoServico" placeholder="—" oninput="saveCodigo()"/>
-        </div>
-      </div>
-      <div class="save-row">
-        <button class="btn btn-outline" onclick="exportBackup()">⬇ Exportar Backup</button>
-        <button class="btn btn-outline" onclick="document.getElementById('restoreFile').click()">⬆ Restaurar Backup</button>
-        <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="importBackup(this)"/>
-      </div>
-    </div>
-
-    <div class="alert-bar" id="alertFaltas" style="display:none;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <div class="txt" id="alertFaltasTxt"></div>
-    </div>
-
-    <div class="panel">
-      <h2>Registo do Dia <span id="diaLabel" style="color:var(--tx3);font-weight:500;"></span></h2>
-      <div class="sub">Preenche os campos manuais — os automáticos (a cinzento) calculam-se sozinhos. Preenche todos os dias para o cálculo se manter correto.</div>
-
-      <div id="existAnteriorWrap" style="display:none;margin-bottom:4px;">
-        <div class="grp">
-          <div class="grp-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg> Existência Anterior — início do serviço</div>
-          <div class="entry" style="max-width:220px;">
-            <input type="number" id="f_existenciaAnterior" min="0" placeholder="0" oninput="calcAndRender()"/>
-            <div class="tag req" id="existAnteriorTag">Preenche uma única vez — a partir do mês seguinte é sempre automático.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="grp">
-        <div class="grp-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Admissões</div>
-        <div class="grid-form">
-          <div class="entry"><label>Diretos</label><input type="number" id="f_diretos" min="0" placeholder="0" oninput="calcAndRender()"/></div>
-          <div class="entry"><label>Transferidos Internos</label><input type="number" id="f_transferidosInternos" min="0" placeholder="0" oninput="calcAndRender()"/></div>
-        </div>
-      </div>
-
-      <div class="grp">
-        <div class="grp-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg> Saídas</div>
-        <div class="grid-form">
-          <div class="entry"><label>Altas / Vivos</label><input type="number" id="f_altasVivos" min="0" placeholder="0" oninput="calcAndRender()"/></div>
-          <div class="entry"><label>Menos de 48 Horas</label><input type="number" id="f_menos48" min="0" placeholder="0" oninput="calcAndRender()"/></div>
-          <div class="entry"><label>48 Horas ou Mais</label><input type="number" id="f_mais48" min="0" placeholder="0" oninput="calcAndRender()"/></div>
-          <div class="entry"><label>Transf. p/ Outros Serviços</label><input type="number" id="f_transfServicos" min="0" placeholder="0" oninput="calcAndRender()"/></div>
-          <div class="entry"><label>Transf. p/ Outros Hospitais</label><input type="number" id="f_transfHospitais" min="0" placeholder="0" oninput="calcAndRender()"/></div>
-        </div>
-      </div>
-
-      <div class="grp">
-        <div class="grp-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Ocupação</div>
-        <div class="grid-form">
-          <div class="entry"><label>Dia-Cama</label><input type="number" id="f_diaCama" min="0" placeholder="0" oninput="calcAndRender()"/></div>
-          <div class="entry"><label>Dia-Doente</label><input type="number" id="f_diaDoente" min="0" placeholder="0" oninput="calcAndRender()"/></div>
-        </div>
-      </div>
-
-      <div style="margin-top:20px;">
-        <div class="grp-title" style="margin-bottom:10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg> Placar do Dia — cálculo automático</div>
-        <div class="placar">
-          <div class="pc n"><div class="l">Exist. Anterior</div><div class="v" id="c_existenciaAnterior">0</div></div>
-          <div class="pc bl"><div class="l">Admitidos</div><div class="v" id="c_admitidos">0</div><div class="d">Diretos + Transf. Internos</div></div>
-          <div class="pc rd"><div class="l">Saídos</div><div class="v" id="c_saidos">0</div><div class="d">Altas + Falecidos + Transferidos</div></div>
-          <div class="pc rd"><div class="l">Falecidos</div><div class="v" id="c_falecidos">0</div><div class="d">&lt;48h + ≥48h</div></div>
-          <div class="pc n"><div class="l">Transferidos</div><div class="v" id="c_transferidos">0</div><div class="d">Outros serviços + hospitais</div></div>
-          <div class="pc hi"><div class="l">Ficam Existindo</div><div class="v" id="c_ficamExistindo">0</div><div class="d">Ex.Anterior + Admitidos − Saídos</div></div>
-          <div class="pc gr"><div class="l">Adm.+Saídos Mesmo Dia</div><div class="v" id="c_admSaidosMesmoDia">0</div></div>
-        </div>
-      </div>
-
-      <div class="save-row">
-        <button class="btn btn-primary" onclick="saveDay()">💾 Guardar Dia</button>
-        <button class="btn btn-outline" onclick="toggleTabela()" id="btnToggleTabela">📊 Ver Tabela do Mês</button>
-        <button class="btn btn-outline" onclick="requestExportPDF()">⬇ Exportar PDF do Mês</button>
-      </div>
-    </div>
-
-    <div class="panel" id="painelTabela" style="display:none;">
-      <h2>Tabela do Mês <span id="tabelaMesLabel" style="color:var(--tx3);font-weight:500;"></span></h2>
-      <div class="sub">Igual ao modelo oficial — atualizada automaticamente a partir dos dias guardados.</div>
-      <div class="sub" style="margin:2px 0 10px;">Clica num dia da tabela para o abrir no registo acima.</div>
-      <div class="table-wrap"><table class="mm" id="tabelaMensal"></table></div>
-      <div class="legend">
-        <span><i style="background:#fff;border:1px solid var(--br);"></i> Preenchimento manual</span>
-        <span><i style="background:#F1F5F9;"></i> Cálculo automático (protegido)</span>
-        <span><i style="background:#EFF6FF;"></i> Resultado / Total do mês (protegido)</span>
-        <span><i style="background:#F8FAFC;opacity:.4;"></i> Dia inexistente no mês</span>
-      </div>
-      <div class="sub" style="margin-top:10px;font-style:italic;">Nota: alterações a dias já fechados devem ser autorizadas pelo Departamento de Estatística do Hospital do Prenda.</div>
-      <div class="sign-row">
-        <div class="field"><label>Chefe de Enfermagem</label><input type="text" id="chefeEnfermagem" placeholder="Nome completo" oninput="saveMeta()"/></div>
-        <div class="field"><label>Data</label><input type="date" id="dataAssinatura" oninput="saveMeta()"/></div>
-      </div>
-    </div>
+  <div class="card">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+    <div class="badge">Em desenvolvimento</div>
+    <h1>Movimento Hospitalar</h1>
+    <p>Este módulo está temporariamente indisponível enquanto é revisto. Volte a tentar mais tarde.</p>
+    <a class="back" href="index.html">Voltar à Central de Registo</a>
   </div>
 </main>
-
-<!-- ── Modal: assinatura obrigatória para exportar PDF ── -->
-<div class="modal-ov" id="signModal">
-  <div class="modal-box">
-    <h3>Assinatura necessária</h3>
-    <p>Para exportar o PDF do Movimento Mensal é preciso indicar o(a) Chefe de Enfermagem responsável pelo serviço.</p>
-    <div class="field"><label>Chefe de Enfermagem</label><input type="text" id="signNome" placeholder="Nome completo" style="width:100%;"/></div>
-    <div class="field"><label>Data</label><input type="date" id="signData" style="width:100%;"/></div>
-    <div class="btns">
-      <button class="btn btn-outline" onclick="closeSignModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="confirmSignModal()">Confirmar e Exportar</button>
-    </div>
-  </div>
-</div>
-
-<footer>
-  <div class="foot-grid">
-    <div class="foot-zelo">
-      <img src="icons/logo.png" alt="ZELO"/>
-      <div class="l1">ZELO</div>
-    </div>
-    <div class="foot-meta">
-      Uso interno · Luanda, Angola<br/>
-      <span id="footyear"></span> ZELO
-    </div>
-  </div>
-</footer>
-
-<script>
-document.getElementById('footyear').textContent = new Date().getFullYear();
-
-// ══════════════════════════════════════════════════════════════════
-// ARMAZENAMENTO LOCAL — IndexedDB (sem dependência de rede/Firebase)
-// ══════════════════════════════════════════════════════════════════
-// Cache em memória (_idbCache) espelha o IndexedDB. As funções safeGet/
-// safeSet continuam SÍNCRONAS (lêem/escrevem no cache instantaneamente),
-// mas cada escrita é também persistida de forma assíncrona e duradoura
-// no IndexedDB — os dados dos "movimento_*" ficam guardados no dispositivo.
-const IDB_NAME = 'hospital_prenda_movimento';
-const IDB_VERSION = 1;
-const IDB_STORE = 'registos';
-
-let _idbDB = null;
-let _idbCache = {};
-let _idbReadyPromise = null;
-
-function _idbOpen(){
-  return new Promise((resolve, reject) => {
-    if(!window.indexedDB){ reject(new Error('IndexedDB não suportado')); return; }
-    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
-    };
-    req.onsuccess = (e) => resolve(e.target.result);
-    req.onerror = (e) => reject(e.target.error);
-  });
-}
-function _idbGetAll(db){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readonly');
-    const out = {};
-    const cur = tx.objectStore(IDB_STORE).openCursor();
-    cur.onsuccess = (e) => { const c = e.target.result; if(c){ out[c.key]=c.value; c.continue(); } else resolve(out); };
-    cur.onerror = (e) => reject(e.target.error);
-  });
-}
-function _idbPut(db, key, value){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put(value, key);
-    tx.oncomplete = () => resolve(true);
-    tx.onerror = (e) => reject(e.target.error);
-  });
-}
-function _migrateLocalStorageToIndexedDB(){
-  try{
-    if(window.localStorage.getItem('movimento_idb_migrated_v1')) return;
-    let n = 0;
-    Object.keys(window.localStorage).forEach(k=>{
-      if(k.startsWith('movimento_')){
-        const v = window.localStorage.getItem(k);
-        if(v && !(k in _idbCache)){ _idbCache[k]=v; _idbPut(_idbDB,k,v).catch(()=>{}); n++; }
-      }
-    });
-    window.localStorage.setItem('movimento_idb_migrated_v1','1');
-    if(n>0) console.info(`[IndexedDB] Migrados ${n} registo(s) de Movimento Mensal do localStorage.`);
-  }catch(e){ console.warn('Migração falhou (não crítico):', e); }
-}
-function _idbInit(){
-  if(_idbReadyPromise) return _idbReadyPromise;
-  _idbReadyPromise = _idbOpen()
-    .then(db => { _idbDB = db; return _idbGetAll(db); })
-    .then(all => {
-      _idbCache = all || {};
-      _migrateLocalStorageToIndexedDB();
-    })
-    .catch(err => {
-      console.error('IndexedDB indisponível — a usar localStorage como reserva:', err);
-      try{ Object.keys(window.localStorage).forEach(k=>{ if(k.startsWith('movimento_')) _idbCache[k]=window.localStorage.getItem(k); }); }catch(e){}
-    });
-  return _idbReadyPromise;
-}
-function safeGet(k){
-  if(k in _idbCache) return _idbCache[k];
-  try{ return window.localStorage.getItem(k); }catch(e){ return null; }
-}
-function safeSet(k,v){
-  _idbCache[k] = v;
-  if(_idbDB){ _idbPut(_idbDB,k,v).catch(err=>console.error('Falha ao gravar no IndexedDB:',err)); }
-  else{ try{ window.localStorage.setItem(k,v); }catch(e){} }
-}
-_idbInit();
-
-// ══════════════════════════════════════════════════════════════════
-
-const SERVICOS = [
-  {slug:'cirurgia_geral', nome:'Cirurgia Geral', icon:'stretcher', cor:'#DC2626', arquivo:'movimento_excel/CIRURGIA_GERAL_Movimento_2026.xlsx'},
-  {slug:'ortopedia', nome:'Ortopedia', icon:'bone', cor:'#DC2626', arquivo:'movimento_excel/ORTOPEDIA_Movimento_2026.xlsx'},
-  {slug:'neurocirurgia', nome:'Neurocirurgia', icon:'brain', cor:'#DC2626', arquivo:'movimento_excel/NEUROCIRURGIA_Movimento_2026.xlsx'},
-  {slug:'maxilo_facial', nome:'Cirurgia Maxilo-Facial', icon:'jaw', cor:'#DC2626', arquivo:'movimento_excel/CIRURGIA_MAXILO_FACIAL_Movimento_2026.xlsx'},
-  {slug:'nefrologia', nome:'Nefrologia', icon:'droplet', cor:'#7C3AED', arquivo:'movimento_excel/NEFROLOGIA_Movimento_2026.xlsx'},
-  {slug:'uci_cuidados_intermedios', nome:'UCI / Cuidados Intermédios', icon:'activity', cor:'#7C3AED', arquivo:'movimento_excel/UCI_INTERMEDIARIO_UTI_Movimento_2026.xlsx'},
-  {slug:'medicina_homem', nome:'Medicina do Homem', icon:'heartbeat', cor:'#7C3AED', arquivo:'movimento_excel/MEDICINA_DO_HOMEM_Movimento_2026.xlsx'},
-  {slug:'medicina_mulher', nome:'Medicina da Mulher', icon:'heartbeat', cor:'#7C3AED', arquivo:'movimento_excel/MEDICINA_DA_MULHER_Movimento_2026.xlsx'},
-];
-const ICONS = {
-  stretcher:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
-  bone:'<path d="M17 10c.7-.7 1.69-1 2.5-1a3.5 3.5 0 1 0-3.5-3.5c0 .81-.3 1.8-1 2.5L7 16c-.7.7-1.69 1-2.5 1a3.5 3.5 0 1 0 3.5 3.5c0-.81.3-1.8 1-2.5Z"/>',
-  brain:'<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>',
-  jaw:'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/>',
-  droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7Z"/>',
-  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
-  heartbeat:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
-};
-function svcIcon(name){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||ICONS.activity}</svg>`; }
-
-const ROWS = [
-  {key:'existenciaAnterior', label:'Existência Anterior', auto:true},
-  {key:'admitidos', label:'Admitidos', auto:true},
-  {key:'diretos', label:'Diretos', auto:false},
-  {key:'transferidosInternos', label:'Transferidos Internos', auto:false},
-  {key:'saidos', label:'Saídos', auto:true},
-  {key:'altasVivos', label:'Altas / Vivos', auto:false},
-  {key:'falecidos', label:'Falecidos', auto:true},
-  {key:'menos48', label:'Menos de 48 Horas', auto:false},
-  {key:'mais48', label:'48 Horas ou Mais', auto:false},
-  {key:'transferidos', label:'Transferidos', auto:true},
-  {key:'transfServicos', label:'Transf. p/ Outros Serviços', auto:false},
-  {key:'transfHospitais', label:'Transf. p/ Outros Hospitais', auto:false},
-  {key:'ficamExistindo', label:'Ficam Existindo', auto:true},
-  {key:'admSaidosMesmoDia', label:'Adm. e Saídos no Mesmo Dia', auto:true},
-  {key:'diaCama', label:'Dia-Cama', auto:false},
-  {key:'diaDoente', label:'Dia-Doente', auto:false},
-];
-const MANUAL_FIELDS = ['diretos','transferidosInternos','altasVivos','menos48','mais48','transfServicos','transfHospitais','diaCama','diaDoente'];
-
-function n(v){ const x = parseInt(v,10); return isNaN(x) ? 0 : x; }
-function qs(name){ return new URLSearchParams(location.search).get(name); }
-function monthKey(dateStr){ return dateStr.slice(0,7); }
-function dayNum(dateStr){ return parseInt(dateStr.slice(8,10),10); }
-function daysInMonth(dateStr){ const [y,m] = dateStr.split('-').map(Number); return new Date(y,m,0).getDate(); }
-function storageKey(servico, ym){ return 'movimento_'+servico+'_'+ym; }
-
-function loadMonth(servico, ym){
-  try{
-    const raw = safeGet(storageKey(servico, ym));
-    return raw ? JSON.parse(raw) : {days:{}, chefeEnfermagem:'', dataAssinatura:''};
-  }catch(e){ return {days:{}, chefeEnfermagem:'', dataAssinatura:''}; }
-}
-function saveMonth(servico, ym, data){
-  data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
-  safeSet(storageKey(servico, ym), JSON.stringify(data));
-}
-
-function prevMonthKey(ym){
-  const [y,m] = ym.split('-').map(Number);
-  const d = new Date(y, m-2, 1);
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-}
-
-function monthHasData(servico, ym){
-  const d = loadMonth(servico, ym);
-  return Object.keys(d.days).length>0 || (d.existenciaInicial!==undefined && d.existenciaInicial!==null && d.existenciaInicial!=='');
-}
-function findLastMonthWithData(servico, beforeYm, maxLookback=60){
-  let cursor = prevMonthKey(beforeYm);
-  for(let i=0;i<maxLookback;i++){
-    if(monthHasData(servico, cursor)) return cursor;
-    cursor = prevMonthKey(cursor);
-  }
-  return null;
-}
-
-let currentServico = null;
-let currentDate = new Date().toISOString().slice(0,10);
-
-function computeDayFromManual(m, existAnteriorManual, isDay1NoPrev){
-  const existenciaAnterior = isDay1NoPrev ? n(existAnteriorManual) : m._existAnterior;
-  const admitidos = n(m.diretos) + n(m.transferidosInternos);
-  const falecidos = n(m.menos48) + n(m.mais48);
-  const transferidos = n(m.transfServicos) + n(m.transfHospitais);
-  const saidos = n(m.altasVivos) + falecidos + transferidos;
-  const ficamExistindo = existenciaAnterior + admitidos - saidos;
-  const admSaidosMesmoDia = admitidos + saidos;
-  return {
-    existenciaAnterior, admitidos, diretos:n(m.diretos), transferidosInternos:n(m.transferidosInternos),
-    saidos, altasVivos:n(m.altasVivos), falecidos, menos48:n(m.menos48), mais48:n(m.mais48),
-    transferidos, transfServicos:n(m.transfServicos), transfHospitais:n(m.transfHospitais),
-    ficamExistindo, admSaidosMesmoDia, diaCama:n(m.diaCama), diaDoente:n(m.diaDoente)
-  };
-}
-
-function computeMonthChain(servico, ym){
-  const monthData = loadMonth(servico, ym);
-  const totalDias = daysInMonth(ym+'-01');
-  const results = {};
-  let existInicial = monthData.existenciaInicial;
-  if(existInicial === undefined || existInicial === null || existInicial === ''){
-    existInicial = getExistenciaInicialDoMes(servico, ym, monthData);
-  }
-  let prevFicam = n(existInicial);
-  for(let d=1; d<=totalDias; d++){
-    const manual = monthData.days[d] || {};
-    const existAnterior = prevFicam;
-    const r = computeDayFromManual(manual, existAnterior, true);
-    r.existenciaAnterior = existAnterior;
-    r.ficamExistindo = existAnterior + r.admitidos - r.saidos;
-    r.admSaidosMesmoDia = r.admitidos + r.saidos;
-    results[d] = r;
-    prevFicam = r.ficamExistindo;
-  }
-  return {results, totalDias, monthData};
-}
-
-function getExistenciaInicialDoMes(servico, ym, monthData){
-  if(monthData.existenciaInicial !== undefined && monthData.existenciaInicial !== null && monthData.existenciaInicial !== ''){
-    return monthData.existenciaInicial;
-  }
-  const found = findLastMonthWithData(servico, ym);
-  if(!found) return '';
-  const chain = computeMonthChain(servico, found);
-  return chain.results[chain.totalDias].ficamExistindo;
-}
-
-// ── Picker de serviço ──
-function renderPicker(){
-  const grid = document.getElementById('pickerGrid');
-  grid.innerHTML = SERVICOS.map(s=>`
-    <div class="picker-card" style="background:linear-gradient(120deg,var(--nv) 0%,${s.cor} 160%);">
-      <a class="picker-main" href="movimento_mensal.html?servico=${s.slug}">
-        <div class="ic">${svcIcon(s.icon)}</div>
-        <div class="nm">${s.nome}</div>
-      </a>
-      <a class="dl-btn" href="${s.arquivo}" download title="Descarregar Excel — ${s.nome}" onclick="event.stopPropagation();">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </a>
-    </div>
-  `).join('');
-}
-
-function setupPageForServico(){
-  const qServico = qs('servico');
-  const found = SERVICOS.find(s=>s.slug===qServico);
-  if(!found){
-    document.getElementById('painelPicker').style.display = 'block';
-    document.getElementById('conteudoPrincipal').style.display = 'none';
-    document.getElementById('trocarLink').style.display = 'none';
-    document.getElementById('miniPlacar').style.display = 'none';
-    document.getElementById('hServico').textContent = '—';
-    renderPicker();
-    return false;
-  }
-  currentServico = found.slug;
-  document.getElementById('painelPicker').style.display = 'none';
-  document.getElementById('conteudoPrincipal').style.display = 'block';
-  document.getElementById('trocarLink').style.display = 'inline-flex';
-  document.getElementById('miniPlacar').style.display = 'flex';
-  document.getElementById('hServico').textContent = found.nome;
-  return true;
-}
-
-function changeDay(delta){
-  const d = new Date(currentDate+'T00:00:00');
-  d.setDate(d.getDate()+delta);
-  currentDate = d.toISOString().slice(0,10);
-  document.getElementById('selData').value = currentDate;
-  loadForCurrent();
-}
-function jumpToDay(dia){
-  const [y,m] = monthKey(currentDate).split('-');
-  currentDate = `${y}-${m}-${String(dia).padStart(2,'0')}`;
-  document.getElementById('selData').value = currentDate;
-  loadForCurrent();
-  document.querySelector('#conteudoPrincipal .panel').scrollIntoView({behavior:'smooth', block:'start'});
-}
-function onDataChange(){
-  currentDate = document.getElementById('selData').value;
-  loadForCurrent();
-}
-
-function checkDiasEmFalta(){
-  const ym = monthKey(currentDate);
-  const dia = dayNum(currentDate);
-  const monthData = loadMonth(currentServico, ym);
-  const faltam = [];
-  for(let d=1; d<dia; d++){ if(!monthData.days[d]) faltam.push(d); }
-  const bar = document.getElementById('alertFaltas');
-  if(faltam.length){
-    bar.style.display = 'flex';
-    const lista = faltam.map(d=>String(d).padStart(2,'0')).join(', ');
-    document.getElementById('alertFaltasTxt').innerHTML = `<b>${faltam.length} dia(s)</b> deste mês ainda sem registo: ${lista}. Preenche todos os dias para o cálculo automático se manter correto.`;
-  } else {
-    bar.style.display = 'none';
-  }
-}
-
-function loadForCurrent(){
-  document.getElementById('selData').value = currentDate;
-  const dObj = new Date(currentDate+'T00:00:00');
-  document.getElementById('diaLabel').textContent = '— ' + dObj.toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
-
-  try{ document.getElementById('codigoServico').value = localStorage.getItem('servico_codigo_'+currentServico) || ''; }catch(e){}
-
-  const ym = monthKey(currentDate);
-  const dia = dayNum(currentDate);
-  const monthData = loadMonth(currentServico, ym);
-  const dayManual = monthData.days[dia] || {};
-
-  MANUAL_FIELDS.forEach(f=>{ document.getElementById('f_'+f).value = dayManual[f] !== undefined ? dayManual[f] : ''; });
-
-  const existWrap = document.getElementById('existAnteriorWrap');
-  const existInput = document.getElementById('f_existenciaAnterior');
-  const existTag = document.getElementById('existAnteriorTag');
-  if(dia === 1){
-    existWrap.style.display = 'block';
-    const auto = getExistenciaInicialDoMes(currentServico, ym, monthData);
-    if(auto !== '' && auto !== undefined){
-      existInput.value = auto;
-      existInput.readOnly = true;
-      existInput.classList.add('locked');
-      existTag.textContent = 'Automático — calculado a partir do histórico deste serviço.';
-      existTag.classList.remove('req');
-    } else {
-      existInput.value = monthData.existenciaInicial !== undefined ? monthData.existenciaInicial : '';
-      existInput.readOnly = false;
-      existInput.classList.remove('locked');
-      existTag.textContent = 'Primeiro preenchimento deste serviço — insere manualmente. A partir do mês seguinte é sempre automático.';
-      existTag.classList.add('req');
-    }
-  } else {
-    existWrap.style.display = 'none';
-  }
-
-  document.getElementById('chefeEnfermagem').value = monthData.chefeEnfermagem || '';
-  document.getElementById('dataAssinatura').value = monthData.dataAssinatura || '';
-
-  calcAndRender();
-  checkDiasEmFalta();
-  if(document.getElementById('painelTabela').style.display !== 'none') renderTabela();
-}
-
-function currentManualFromForm(){
-  const obj = {};
-  MANUAL_FIELDS.forEach(f=>{ obj[f] = document.getElementById('f_'+f).value; });
-  return obj;
-}
-
-function calcAndRender(){
-  const ym = monthKey(currentDate);
-  const dia = dayNum(currentDate);
-  const manual = currentManualFromForm();
-
-  let existAnterior;
-  if(dia === 1){
-    existAnterior = n(document.getElementById('f_existenciaAnterior').value);
-  } else {
-    const chain = computeMonthChain(currentServico, ym);
-    existAnterior = chain.results[dia-1].ficamExistindo;
-  }
-
-  const r = computeDayFromManual(manual, existAnterior, true);
-  r.existenciaAnterior = existAnterior;
-  r.ficamExistindo = existAnterior + r.admitidos - r.saidos;
-  r.admSaidosMesmoDia = r.admitidos + r.saidos;
-
-  document.getElementById('c_existenciaAnterior').textContent = r.existenciaAnterior;
-  document.getElementById('c_admitidos').textContent = r.admitidos;
-  document.getElementById('c_saidos').textContent = r.saidos;
-  document.getElementById('c_falecidos').textContent = r.falecidos;
-  document.getElementById('c_transferidos').textContent = r.transferidos;
-  document.getElementById('c_ficamExistindo').textContent = r.ficamExistindo;
-  document.getElementById('c_admSaidosMesmoDia').textContent = r.admSaidosMesmoDia;
-
-  document.getElementById('mp-dia').textContent = dia;
-  document.getElementById('mp-existAnterior').textContent = r.existenciaAnterior;
-  document.getElementById('mp-ficam').textContent = r.ficamExistindo;
-}
-
-function saveDay(){
-  const ym = monthKey(currentDate);
-  const dia = dayNum(currentDate);
-  const monthData = loadMonth(currentServico, ym);
-  monthData.days[dia] = currentManualFromForm();
-  if(dia === 1){
-    const existInput = document.getElementById('f_existenciaAnterior');
-    if(!existInput.readOnly) monthData.existenciaInicial = existInput.value;
-  }
-  saveMonth(currentServico, ym, monthData);
-  toast('✅ Dia guardado com sucesso!');
-  checkDiasEmFalta();
-  if(document.getElementById('painelTabela').style.display !== 'none') renderTabela();
-}
-
-function saveMeta(){
-  const ym = monthKey(currentDate);
-  const monthData = loadMonth(currentServico, ym);
-  monthData.chefeEnfermagem = document.getElementById('chefeEnfermagem').value;
-  monthData.dataAssinatura = document.getElementById('dataAssinatura').value;
-  saveMonth(currentServico, ym, monthData);
-}
-
-function saveCodigo(){
-  try{ localStorage.setItem('servico_codigo_'+currentServico, document.getElementById('codigoServico').value); }catch(e){}
-}
-
-function toggleTabela(){
-  const p = document.getElementById('painelTabela');
-  const btn = document.getElementById('btnToggleTabela');
-  if(p.style.display === 'none'){
-    p.style.display = 'block';
-    btn.textContent = '📊 Ocultar Tabela do Mês';
-    renderTabela();
-    p.scrollIntoView({behavior:'smooth', block:'start'});
-  } else {
-    p.style.display = 'none';
-    btn.textContent = '📊 Ver Tabela do Mês';
-  }
-}
-
-function buildMonthRows(){
-  return computeMonthChain(currentServico, monthKey(currentDate));
-}
-
-function renderTabela(){
-  const {results, totalDias, monthData} = buildMonthRows();
-  const dObj = new Date(currentDate+'T00:00:00');
-  document.getElementById('tabelaMesLabel').textContent = '— ' + dObj.toLocaleDateString('pt-PT',{month:'long',year:'numeric'});
-
-  let html = '<thead><tr><th class="rowlabel">Movimento Mensal</th>';
-  for(let d=1; d<=31; d++){
-    html += d<=totalDias
-      ? `<th style="cursor:pointer;${d===dayNum(currentDate)?'background:var(--bl);':''}" onclick="jumpToDay(${d})" title="Abrir dia ${d} no registo">${d}</th>`
-      : `<th style="opacity:.3">${d}</th>`;
-  }
-  html += '<th>TOTAL</th></tr></thead><tbody>';
-
-  ROWS.forEach(row=>{
-    html += `<tr${row.key==='existenciaAnterior'?' class="sep"':''}><td class="rowlabel">${row.label}</td>`;
-    let total = 0;
-    for(let d=1; d<=31; d++){
-      if(d>totalDias){ html += '<td style="opacity:.25">·</td>'; continue; }
-      const v = results[d][row.key];
-      total += v;
-      html += `<td class="${row.auto?'auto':''}">${v}</td>`;
-    }
-    html += `<td class="total">${total}</td></tr>`;
-  });
-  html += '</tbody>';
-  document.getElementById('tabelaMensal').innerHTML = html;
-}
-
-function toast(msg){
-  let t = document.getElementById('mmToast');
-  if(!t){
-    t = document.createElement('div');
-    t.id = 'mmToast';
-    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--nv);color:#fff;padding:11px 22px;border-radius:100px;font-size:.8rem;font-weight:600;z-index:999;box-shadow:0 6px 20px rgba(13,27,62,.3);transition:opacity .3s;';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.style.opacity = '1';
-  clearTimeout(t._to);
-  t._to = setTimeout(()=>{ t.style.opacity = '0'; }, 2200);
-}
-
-// ── Assinatura obrigatória antes de exportar PDF ──
-function requestExportPDF(){
-  const ym = monthKey(currentDate);
-  const monthData = loadMonth(currentServico, ym);
-  if(!monthData.chefeEnfermagem || !monthData.chefeEnfermagem.trim()){
-    document.getElementById('signNome').value = '';
-    document.getElementById('signData').value = new Date().toISOString().slice(0,10);
-    document.getElementById('signModal').classList.add('open');
-    return;
-  }
-  exportPDF();
-}
-function closeSignModal(){ document.getElementById('signModal').classList.remove('open'); }
-function confirmSignModal(){
-  const nome = document.getElementById('signNome').value.trim();
-  if(!nome){ toast('❌ Indica o nome do Chefe de Enfermagem.'); return; }
-  const data = document.getElementById('signData').value || new Date().toISOString().slice(0,10);
-  const ym = monthKey(currentDate);
-  const monthData = loadMonth(currentServico, ym);
-  monthData.chefeEnfermagem = nome;
-  monthData.dataAssinatura = data;
-  saveMonth(currentServico, ym, monthData);
-  document.getElementById('chefeEnfermagem').value = nome;
-  document.getElementById('dataAssinatura').value = data;
-  closeSignModal();
-  exportPDF();
-}
-
-async function exportPDF(){
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
-  const {results, totalDias, monthData} = buildMonthRows();
-  const svcNome = SERVICOS.find(s=>s.slug===currentServico).nome;
-  const dObj = new Date(currentDate+'T00:00:00');
-  const mesLabel = dObj.toLocaleDateString('pt-PT',{month:'long',year:'numeric'}).toUpperCase();
-
-  doc.setFontSize(11); doc.setFont('helvetica','bold');
-  doc.text('MINISTÉRIO DA SAÚDE', 14, 12);
-  doc.text('HOSPITAL DO PRENDA', 14, 18);
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('DEPARTAMENTO DE ESTATÍSTICA', 14, 24);
-  doc.setFont('helvetica','bold');
-  doc.text('SERVIÇO: ' + svcNome.toUpperCase(), 14, 30);
-  doc.setFont('helvetica','normal');
-  doc.text('MOVIMENTO MENSAL — ' + mesLabel, 14, 36);
-
-  const head = [['Movimento Mensal', ...Array.from({length:totalDias},(_,i)=>String(i+1)), 'TOTAL']];
-  const body = ROWS.map(row=>{
-    let total = 0;
-    const cells = [row.label];
-    for(let d=1; d<=totalDias; d++){ const v=results[d][row.key]; total+=v; cells.push(String(v)); }
-    cells.push(String(total));
-    return cells;
-  });
-
-  doc.autoTable({
-    head, body, startY:40, styles:{fontSize:6, cellPadding:1.2, halign:'center'},
-    columnStyles:{0:{halign:'left', cellWidth:38}},
-    headStyles:{fillColor:[13,27,62], fontSize:6},
-    didParseCell:(d)=>{ if(d.column.index===0) return; if(d.column.index===d.table.columns.length-1) d.cell.styles.fillColor=[239,246,255]; }
-  });
-
-  let y = doc.lastAutoTable.finalY + 8;
-  doc.setFontSize(9);
-  doc.text('Chefe de Enfermagem: ' + (monthData.chefeEnfermagem || '—'), 14, y);
-  doc.text('Data: ' + (monthData.dataAssinatura || '—'), 200, y);
-
-  doc.save(`movimento_${currentServico}_${monthKey(currentDate)}.pdf`);
-}
-
-function exportBackup(){
-  const data = {};
-  Object.keys(_idbCache).forEach(k=>{ if(k.startsWith('movimento_')) data[k] = _idbCache[k]; });
-  try{
-    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('servico_codigo_')) data[k] = localStorage.getItem(k); });
-  }catch(e){}
-  const backup = {app:'movimento_mensal', exportedAt:new Date().toISOString(), data};
-  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `movimento_mensal_backup_${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-  toast('✅ Backup exportado!');
-}
-
-function importBackup(input){
-  const file = input.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try{
-      const backup = JSON.parse(e.target.result);
-      const data = backup.data || backup;
-      if(!confirm('Isto vai substituir os dados guardados do Movimento Mensal neste dispositivo. Continuar?')){ input.value=''; return; }
-      Object.keys(data).forEach(k=>{
-        if(k.startsWith('movimento_')) safeSet(k, data[k]);
-        else if(k.startsWith('servico_codigo_')){ try{ localStorage.setItem(k, data[k]); }catch(err){} }
-      });
-      if(currentServico) loadForCurrent();
-      toast('✅ Backup restaurado!');
-    }catch(err){ toast('❌ Ficheiro inválido!'); }
-    input.value = '';
-  };
-  reader.readAsText(file);
-}
-
-function zeloHasItemAccess(role, permissoes, mod, itemSlug){
-  if(role === 'admin') return true;
-  const modPerm = permissoes ? permissoes[mod] : undefined;
-  if(modPerm === false) return false;
-  if(modPerm === true || modPerm === undefined || modPerm === null) return true;
-  if(typeof modPerm === 'object'){
-    if(!itemSlug) return true;
-    return modPerm[itemSlug] !== false;
-  }
-  return true;
-}
-
-window.addEventListener('zelo-gate-ready', function(e){
-  const role = e.detail.role;
-  const permissoes = e.detail.permissoes || {};
-  const qServico = qs('servico');
-  if(qServico && !zeloHasItemAccess(role, permissoes, 'movimento_mensal', qServico)){
-    if(window.ZeloShowBlocked) window.ZeloShowBlocked();
-    return;
-  }
-  if(setupPageForServico()){
-    const qData = qs('data');
-    if(qData) currentDate = qData;
-    // Espera o IndexedDB estar pronto antes do primeiro render, para nunca
-    // sobrepor dados que o utilizador já esteja a escrever no formulário.
-    _idbReadyPromise.then(() => loadForCurrent());
-  }
-});
-</script>
-<script src="zelo_servicos_menu.js"></script>
-<script src="zelo_menu_flutuante.js"></script>
+<footer>Departamento de Estatística Médica · Hospital do Prenda</footer>
 <script src="zelo_theme.js"></script>
 </body>
 </html>
