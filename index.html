@@ -206,6 +206,14 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .tb-search input::placeholder{color:#8CA0C6;}
 .tb-search input:focus{outline:none;border-color:var(--cy);background:rgba(255,255,255,.14);width:210px;}
 .tb-search input:focus + svg, .tb-search:focus-within svg{color:var(--cyl);}
+.tsr-panel{display:none;position:absolute;top:calc(100% + 8px);left:0;width:340px;max-width:80vw;max-height:70vh;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.22);z-index:2100;}
+.tsr-panel.open{display:block;}
+.tsr-item{display:flex;flex-direction:column;gap:1px;width:100%;text-align:left;background:none;border:none;padding:9px 14px;cursor:pointer;font-family:var(--font-body);text-decoration:none;}
+.tsr-item:hover,.tsr-item.active{background:var(--blt);}
+.tsr-label{font-size:.8rem;font-weight:700;color:var(--tx);}
+.tsr-label mark{background:var(--blt);color:var(--bl);border-radius:2px;}
+.tsr-parent{font-size:.68rem;color:var(--tx3);}
+.tsr-empty{padding:16px 14px;font-size:.78rem;color:var(--tx3);text-align:center;}
 .zelo-topbar .tb-right > div, .zelo-topbar .tb-right > button{transition:background .15s,border-color .15s,color .15s,transform .1s;}
 #zeloNotifBtn:hover{background:rgba(255,255,255,.18)!important;border-color:rgba(255,255,255,.32)!important;}
 #zeloNotifBtn:active{transform:scale(.95);}
@@ -1377,7 +1385,8 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="tb-right">
       <div class="tb-search">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="zeloSidebarSearch" placeholder="Pesquisar…"/>
+        <input type="text" id="zeloSidebarSearch" placeholder="Pesquisar serviços, relatórios…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="zeloSearchResults"/>
+        <div id="zeloSearchResults" class="tsr-panel" role="listbox"></div>
       </div>
       <div id="zeloNotifWrap" style="display:none;position:relative;flex-shrink:0;">
         <button id="zeloNotifBtn" title="Notificações" style="position:relative;color:#C7D2E8;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);padding:6px 12px;border-radius:100px;font-size:.7rem;font-family:var(--font-body);cursor:pointer;display:flex;align-items:center;gap:5px;">
@@ -1769,20 +1778,104 @@ document.addEventListener('click', function(e){
 document.getElementById('zeloUserChipBtn').addEventListener('click', function(){
   document.getElementById('zeloUserMenu').classList.toggle('open');
 });
-document.getElementById('zeloSidebarSearch').addEventListener('input', function(){
-  var q = this.value.trim().toLowerCase();
-  document.querySelectorAll('#zeloSidebarNav .sb-group').forEach(function(group){
-    var algumVisivel = false;
-    group.querySelectorAll('.sb-link').forEach(function(link){
-      var txt = (link.textContent || '').trim().toLowerCase();
-      var visivel = !q || txt.includes(q);
-      link.style.display = visivel ? '' : 'none';
-      if(visivel) algumVisivel = true;
-    });
-    var label = group.querySelector('.sb-section-label');
-    if(label) label.style.display = algumVisivel ? '' : 'none';
-    group.style.display = algumVisivel ? '' : 'none';
+/* ── Pesquisa real do cabeçalho: salta directamente para qualquer serviço,
+   relatório, procedimento, movimento ou sistema local pelo nome — em vez de
+   só filtrar os 4 atalhos fixos do topo do menu lateral (Dashboard/
+   Estatística/Sistemas Locais/Informações), que deixava de fora toda a
+   árvore de Serviços (a maior parte do que existe no sistema). Reconstrói o
+   índice só uma vez, a partir dos mesmos dados (SERVICOS_MENU/
+   SISTEMAS_LOCAIS_MENU) que já alimentam o menu lateral. ──*/
+function zeloSearchEscapeHtml(str){
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+var zeloSearchIndex = null;
+function zeloConstruirIndicePesquisa(){
+  var itens = [
+    { label: 'Dashboard', parent: '', href: 'index.html', modulo: null, item: null },
+    { label: 'Estatística', parent: '', href: 'Estatistica.html', modulo: 'estatistica', item: null },
+    { label: 'Informações do ZELO', parent: '', href: 'informacoes_zelo.html', modulo: 'informacoes_zelo', item: null }
+  ];
+  (window.SERVICOS_MENU || []).forEach(function(svc){
+    (svc.relatorios||[]).forEach(function(r){ itens.push({ label: r.label, parent: svc.nome, href: r.file, modulo: r.modulo, item: r.item }); });
+    (svc.procedimentos||[]).forEach(function(p){ itens.push({ label: p.label, parent: svc.nome, href: p.file, modulo: p.modulo, item: p.item }); });
+    (svc.movimento||[]).forEach(function(m){ itens.push({ label: 'Movimento Hospitalar', parent: svc.nome, href: 'movimento_mensal.html?servico=' + m.slug, modulo: m.modulo, item: null }); });
   });
+  (window.SISTEMAS_LOCAIS_MENU || []).forEach(function(s){
+    itens.push({ label: s.nome, parent: 'Sistemas Locais', href: s.file, modulo: s.modulo, item: s.item });
+  });
+  return itens;
+}
+function zeloItemPesquisaVisivel(it){
+  if(!it.modulo) return true;
+  if(typeof window.__zeloHasModuleAccess !== 'function') return true;
+  var role = sessionStorage.getItem('zeloRole') || 'funcionario';
+  var permissoes = {};
+  try{ permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'); }catch(e){}
+  return window.__zeloHasModuleAccess(role, permissoes, it.modulo, it.item);
+}
+function zeloDestacarTexto(texto, q){
+  var i = texto.toLowerCase().indexOf(q);
+  if(i === -1) return zeloSearchEscapeHtml(texto);
+  return zeloSearchEscapeHtml(texto.slice(0,i)) + '<mark>' + zeloSearchEscapeHtml(texto.slice(i,i+q.length)) + '</mark>' + zeloSearchEscapeHtml(texto.slice(i+q.length));
+}
+var zeloSearchActiveIndex = -1;
+function zeloRenderResultadosPesquisa(q){
+  var painel = document.getElementById('zeloSearchResults');
+  var input = document.getElementById('zeloSidebarSearch');
+  zeloSearchActiveIndex = -1;
+  if(!q){ painel.classList.remove('open'); painel.innerHTML=''; input.setAttribute('aria-expanded','false'); return; }
+  if(!zeloSearchIndex) zeloSearchIndex = zeloConstruirIndicePesquisa();
+  var qLower = q.toLowerCase();
+  var resultados = zeloSearchIndex.filter(function(it){
+    if(!zeloItemPesquisaVisivel(it)) return false;
+    return it.label.toLowerCase().includes(qLower) || (it.parent && it.parent.toLowerCase().includes(qLower));
+  }).slice(0, 9);
+  painel.classList.add('open');
+  input.setAttribute('aria-expanded','true');
+  if(!resultados.length){
+    painel.innerHTML = '<div class="tsr-empty">Sem resultados para "' + zeloSearchEscapeHtml(q) + '".</div>';
+    return;
+  }
+  painel.innerHTML = resultados.map(function(it, i){
+    return '<a class="tsr-item" href="' + it.href + '" role="option" data-idx="' + i + '">' +
+      '<span class="tsr-label">' + zeloDestacarTexto(it.label, qLower) + '</span>' +
+      (it.parent ? '<span class="tsr-parent">' + zeloSearchEscapeHtml(it.parent) + '</span>' : '') +
+      '</a>';
+  }).join('');
+}
+function zeloFecharResultadosPesquisa(){
+  document.getElementById('zeloSearchResults').classList.remove('open');
+  document.getElementById('zeloSidebarSearch').setAttribute('aria-expanded','false');
+}
+var zeloSearchInput = document.getElementById('zeloSidebarSearch');
+zeloSearchInput.addEventListener('input', function(){ zeloRenderResultadosPesquisa(this.value.trim()); });
+zeloSearchInput.addEventListener('focus', function(){ if(this.value.trim()) zeloRenderResultadosPesquisa(this.value.trim()); });
+zeloSearchInput.addEventListener('keydown', function(e){
+  var painel = document.getElementById('zeloSearchResults');
+  var opcoes = painel.querySelectorAll('.tsr-item');
+  if(!opcoes.length) return;
+  if(e.key === 'ArrowDown'){
+    e.preventDefault();
+    zeloSearchActiveIndex = Math.min(zeloSearchActiveIndex + 1, opcoes.length - 1);
+  } else if(e.key === 'ArrowUp'){
+    e.preventDefault();
+    zeloSearchActiveIndex = Math.max(zeloSearchActiveIndex - 1, 0);
+  } else if(e.key === 'Enter'){
+    var alvo = zeloSearchActiveIndex >= 0 ? opcoes[zeloSearchActiveIndex] : opcoes[0];
+    if(alvo){ window.location.href = alvo.getAttribute('href'); }
+    return;
+  } else if(e.key === 'Escape'){
+    zeloFecharResultadosPesquisa();
+    return;
+  } else { return; }
+  opcoes.forEach(function(o,i){ o.classList.toggle('active', i === zeloSearchActiveIndex); });
+  if(opcoes[zeloSearchActiveIndex]) opcoes[zeloSearchActiveIndex].scrollIntoView({ block: 'nearest' });
+});
+document.addEventListener('click', function(e){
+  var busca = document.querySelector('.tb-search');
+  if(busca && !busca.contains(e.target)) zeloFecharResultadosPesquisa();
 });
 </script>
 <script>
