@@ -62,8 +62,8 @@
 </script>
 <style>
 :root{
-  --nv:var(--zelo-accent-ink, #123638);--nv2:var(--zelo-accent-dark, #164F52);--nv3:var(--zelo-accent, #1F6F72);
-  --bl:var(--zelo-accent, #1F6F72);--cy:#5BC1BE;--cyl:#8AD6D3;
+  --nv:var(--zelo-accent-ink, #16222F);--nv2:var(--zelo-accent-dark, #2B415E);--nv3:var(--zelo-accent, #3E5C87);
+  --bl:var(--zelo-accent, #3E5C87);--cy:#7C9BC4;--cyl:#A8C0DE;
   --sf:var(--zelo-bg, #F5F6F8);--br:var(--zelo-line, #E2E8F0);--br2:var(--zelo-line-strong, #CBD5E1);
   --tx:var(--zelo-ink, #16232E);--tx2:var(--zelo-ink-soft, #55636F);--tx3:var(--zelo-ink-faint, #8B98A3);
   --gr:var(--zelo-good, #3F7A56);--rd:var(--zelo-warn, #B5502D);--am:#D97706;
@@ -113,7 +113,7 @@ button{font-family:inherit;}
   transition:all .15s;min-height:42px;-webkit-tap-highlight-color:transparent;}
 .qbtn:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4);}
 .qbtn:active{transform:scale(.96);}
-.qbtn.active{background:var(--cy);border-color:var(--cy);color:#04222E;font-weight:800;box-shadow:0 4px 14px rgba(138,214,211,.35);}
+.qbtn.active{background:var(--cy);border-color:var(--cy);color:#04222E;font-weight:800;box-shadow:0 4px 14px rgba(168,192,222,.35);}
 .period-tabs{display:flex;gap:3px;margin-bottom:12px;background:rgba(0,0,0,.18);padding:4px;border-radius:13px;}
 .period-tabs .qbtn{flex:1;text-align:center;background:transparent;border:none;color:#AEC0E0;padding:10px 8px;min-height:38px;}
 .period-tabs .qbtn:hover{background:rgba(255,255,255,.08);}
@@ -1297,7 +1297,7 @@ document.getElementById('btnEstaSemana').addEventListener('click', ()=>{ weekSel
 document.getElementById('btnEsteMes').addEventListener('click', ()=>{ monthSel.value=currentMonthStr(); updateDataLong(); load(); });
 
 function buildTabs(){
-  let html = `<button class="tab active" data-tab="overview" style="--accent:${'#123638'}"><i style="background:#123638"></i>Visão Geral</button>`;
+  let html = `<button class="tab active" data-tab="overview" style="--accent:${'#16222F'}"><i style="background:#16222F"></i>Visão Geral</button>`;
   html += `<button class="tab" data-tab="proc_monitor" style="--accent:#D97706"><i style="background:#D97706"></i>🩺 Monitorizar Procedimentos</button><span class="tab-sep"></span>`;
   CATS.forEach(cat=>{
     SERVICES.filter(s=>s.cat===cat.id).forEach(svc=>{
@@ -1958,7 +1958,7 @@ async function copiarCampos(svc, sections, subtitleText, statusText, btnId){
 }
 
 function pdfHexToRgb(hex){
-  const h = (hex||'#123638').replace('#','');
+  const h = (hex||'#16222F').replace('#','');
   return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
 }
 
@@ -2054,7 +2054,7 @@ async function buildPDFDocumento(svc, subtitleText, fileSuffix, sections, entry,
     for(let p=1; p<=nPages; p++){
       pdf.setPage(p);
       pdf.setFillColor(13,27,62); pdf.rect(0, PH-12, PW, 12, 'F');
-      pdf.setFillColor(31,111,114); pdf.rect(0, PH-12, PW, 1, 'F');
+      pdf.setFillColor(62,92,135); pdf.rect(0, PH-12, PW, 1, 'F');
       pdf.setFillColor(5,150,105); pdf.rect(0, PH-13, PW, 1, 'F');
       try{ pdf.addImage(ZELO_ICON_B64, 'PNG', ML, PH-10.5, 7, 7); }catch(e){}
       pdf.setTextColor(147,197,253); pdf.setFontSize(7.5); pdf.setFont('helvetica','normal');
