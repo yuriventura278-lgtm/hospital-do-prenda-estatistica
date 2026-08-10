@@ -82,16 +82,13 @@ function initKeyboardNav(){
       });
     });});
   }).observe(document.body,{childList:true,subtree:true});
-  function applyTabRows(root){
-    (root||document).querySelectorAll('table tbody tr').forEach(function(tr){
-      if(!tr.dataset.kbInit){tr.setAttribute('tabindex','0');tr.dataset.kbInit='1';}
-    });
-  }
-  applyTabRows();
-  new MutationObserver(function(){applyTabRows();}).observe(document.body,{childList:true,subtree:true});
+  // Nota: esta página não tem tabelas de "lista com botão eliminar por
+  // linha" — todas as tabelas (TAC/ECO/RX) são grelhas de preenchimento
+  // campo a campo. Um tabindex="0" em cada <tr> (herdado de outras páginas
+  // do ZELO que têm listas seleccionáveis) inseria aqui uma paragem morta
+  // no meio do Tab entre cada 3 campos de uma linha, obrigando a um Tab
+  // extra por linha sem fazer nada — por isso não se aplica.
   document.addEventListener('keydown',function(e){
-    var tag=document.activeElement&&document.activeElement.tagName;
-    var inField=(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT');
     if((e.ctrlKey||e.metaKey)&&e.key==='s'){
       e.preventDefault();
       var modal=document.querySelector('.modal[style*="flex"],.modal[style*="block"]');
@@ -103,36 +100,6 @@ function initKeyboardNav(){
     if(e.key==='Escape'){
       var modals=[].slice.call(document.querySelectorAll('.modal')).filter(function(m){return m.style.display==='flex'||m.style.display==='block';});
       if(modals.length){e.preventDefault();var last=modals[modals.length-1];var cls=last.querySelector('button[onclick*="close"],button[onclick*="Close"],button[onclick*="fechar"]');if(cls)cls.click();else last.style.display='none';}
-      return;
-    }
-    if(!inField&&(e.key==='ArrowUp'||e.key==='ArrowDown')){
-      var tr=document.activeElement;
-      if(tr&&tr.tagName==='TR'){
-        e.preventDefault();
-        var rows=[].slice.call(tr.closest('tbody').querySelectorAll('tr[tabindex]'));
-        var idx=rows.indexOf(tr);
-        var next=e.key==='ArrowDown'?rows[idx+1]:rows[idx-1];
-        if(next){next.focus();rows.forEach(function(r){r.classList.remove('kb-focus');});next.classList.add('kb-focus');}
-      }
-      return;
-    }
-    if(!inField&&e.key==='Enter'){
-      var tr=document.activeElement;
-      if(tr&&tr.tagName==='TR'){e.preventDefault();tr.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));tr.click();}
-      return;
-    }
-    if(!inField&&(e.key==='Delete'||e.key==='Backspace')){
-      var tr=document.activeElement;
-      if(tr&&tr.tagName==='TR'){e.preventDefault();var btn=tr.querySelector('button[onclick*="delet"],button[onclick*="remov"],button[title*="Elimin"],button[title*="Apagar"]');if(btn)btn.click();}
-      return;
-    }
-    if((e.ctrlKey||e.metaKey)&&e.key==='c'&&!inField){
-      var tr=document.activeElement;
-      if(tr&&tr.tagName==='TR'){
-        e.preventDefault();
-        var txt=[].slice.call(tr.querySelectorAll('td')).map(function(td){return td.textContent.trim();}).filter(Boolean).join('\t');
-        if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){toast('Linha copiada para a área de transferência','info');});
-      }
       return;
     }
   });
