@@ -432,6 +432,22 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   #zeloAuthGate .zag-version{font-family:var(--font-mono);color:#AAB4C4;}
   #zeloAuthGate .zag-notice{display:flex;align-items:flex-start;gap:8px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:10px 12px;margin-bottom:18px;color:#92400E;font-size:.78rem;line-height:1.4;}
   #zeloAuthGate .zag-notice svg{flex-shrink:0;margin-top:1px;}
+  #zeloAuthGate .zaq-chip-row{display:flex;flex-direction:column;gap:8px;margin-top:22px;}
+  #zeloAuthGate .zaq-chip{position:relative;display:flex;align-items:center;gap:10px;padding:9px 34px 9px 10px;border:1.5px solid #E2E8F0;border-radius:12px;background:#fff;cursor:pointer;font-family:inherit;text-align:left;width:100%;transition:border-color .15s,background .15s;}
+  #zeloAuthGate .zaq-chip:hover{border-color:#3E5C87;background:#EFF6FF;}
+  #zeloAuthGate .zaq-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.76rem;color:#fff;}
+  #zeloAuthGate .zaq-name{font-size:.85rem;font-weight:700;color:#0F172A;line-height:1.3;}
+  #zeloAuthGate .zaq-role{font-size:.68rem;color:#64748B;margin-top:1px;}
+  #zeloAuthGate .zaq-forget{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:none;background:none;color:#AAB4C4;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+  #zeloAuthGate .zaq-forget:hover{background:#FEF2F2;color:#B91C1C;}
+  #zeloAuthGate .zaq-other{display:flex;align-items:center;gap:6px;margin-top:14px;font-size:.8rem;color:#64748B;}
+  #zeloAuthGate .zaq-other a{color:#3E5C87;font-weight:600;text-decoration:none;}
+  #zeloAuthGate .zaq-other a:hover{text-decoration:underline;}
+  #zeloAuthGate .zaq-active{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:12px;background:#F8FAFC;margin-top:22px;}
+  #zeloAuthGate .zaq-active .zaq-avatar{width:36px;height:36px;font-size:.84rem;}
+  #zeloAuthGate .zaq-active-name{font-size:.88rem;font-weight:700;color:#0F172A;}
+  #zeloAuthGate .zaq-active-role{font-size:.7rem;color:#64748B;}
+  #zeloAuthGate .zaq-swap{margin-left:auto;background:none;border:none;font-family:inherit;font-size:.74rem;font-weight:700;color:#3E5C87;cursor:pointer;text-decoration:underline;white-space:nowrap;padding:0;}
   #zeloAuthGate .zag-progress{width:140px;height:3px;background:#E2E8F0;border-radius:3px;overflow:hidden;margin-top:4px;}
   #zeloAuthGate .zag-progress-bar{width:40%;height:100%;background:linear-gradient(90deg,#3E5C87,#A8C0DE);border-radius:3px;animation:zagProgress 1.1s ease-in-out infinite;}
   @keyframes zagProgress{0%{transform:translateX(-100%);}100%{transform:translateX(350%);}}
@@ -474,10 +490,20 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
         <span>Manutenção agendada hoje das 22h às 23h. O sistema pode ficar indisponível.</span>
       </div>
-      <div class="zag-title">Iniciar sessão</div>
-      <div class="zag-sub">Use a sua conta institucional para aceder ao sistema.</div>
+      <div class="zag-title" id="zagTitle">Iniciar sessão</div>
+      <div class="zag-sub" id="zagSub">Use a sua conta institucional para aceder ao sistema.</div>
 
-      <div class="zaf-field">
+      <div id="zeloQuickArea" style="display:none;">
+        <div class="zaq-chip-row" id="zeloQuickChipRow"></div>
+        <div class="zaq-other">
+          <span id="zeloQuickNotYouTxt">Não é nenhum destes?</span>
+          <a href="#" id="zeloQuickOther">Entrar com outra conta</a>
+        </div>
+      </div>
+
+      <div id="zeloActiveUserBar" class="zaq-active" style="display:none;"></div>
+
+      <div class="zaf-field" id="zeloEmailField">
         <label for="zeloAuthEmail">Email</label>
         <div class="zaf-wrap">
           <svg class="zaf-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -485,7 +511,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
         </div>
       </div>
 
-      <div class="zaf-field">
+      <div class="zaf-field" id="zeloPassField">
         <label for="zeloAuthPass">Password</label>
         <div class="zaf-wrap">
           <svg class="zaf-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -496,7 +522,11 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
         </div>
       </div>
 
-      <div class="zaf-row">
+      <div class="zaq-other" id="zeloBackToChips" style="display:none;">
+        <a href="#">← Ver utilizadores deste aparelho</a>
+      </div>
+
+      <div class="zaf-row" id="zeloRememberRow">
         <label>
           <input type="checkbox" id="zeloAuthRemember"/>
           Lembrar-me
@@ -570,6 +600,18 @@ window.__zeloHasModuleAccess = hasModuleAccess;
   var captchaInput=document.getElementById('zeloCaptchaInput');
   var captchaAnswer=0;
   var failCount=0;
+  var zagTitle=document.getElementById('zagTitle');
+  var zagSub=document.getElementById('zagSub');
+  var quickArea=document.getElementById('zeloQuickArea');
+  var quickChipRow=document.getElementById('zeloQuickChipRow');
+  var quickNotYouTxt=document.getElementById('zeloQuickNotYouTxt');
+  var quickOtherLink=document.getElementById('zeloQuickOther');
+  var activeUserBar=document.getElementById('zeloActiveUserBar');
+  var emailField=document.getElementById('zeloEmailField');
+  var passField=document.getElementById('zeloPassField');
+  var backToChipsRow=document.getElementById('zeloBackToChips');
+  var rememberRow=document.getElementById('zeloRememberRow');
+  var formMode='full';
 
   function newCaptcha(){
     var a=Math.floor(Math.random()*9)+1, b=Math.floor(Math.random()*9)+1;
@@ -584,11 +626,21 @@ window.__zeloHasModuleAccess = hasModuleAccess;
     pt:{ brand:'Hospital do Prenda', emailLabel:'Email', passLabel:'Password', emailPh:'nome@hospitaldoprenda.ao',
       remember:'Lembrar-me', forgot:'Esqueceu a password?', caps:'Caps Lock activado', enter:'Entrar',
       captchaPrefix:'Verificação de segurança: quanto é ', foot1:'Sistema Estatístico e Gestão de Ocorrências',
-      version:'Versão 1.0', rights:'Hospital do Prenda — Todos os direitos reservados.' },
+      version:'Versão 1.0', rights:'Hospital do Prenda — Todos os direitos reservados.',
+      signInTitle:'Iniciar sessão', signInSub:'Use a sua conta institucional para aceder ao sistema.',
+      quickTitle:'Quem está a entrar?', quickSub:'Toque no seu nome ou entre com outra conta.',
+      quickNotYou:'Não é nenhum destes?', quickOther:'Entrar com outra conta',
+      quickBack:'Ver utilizadores deste aparelho', quickForget:'Esquecer neste aparelho',
+      quickAdmin:'Administrador', quickStaff:'Funcionário', quickSwap:'trocar' },
     en:{ brand:'Hospital do Prenda', emailLabel:'Email', passLabel:'Password', emailPh:'name@hospitaldoprenda.ao',
       remember:'Remember me', forgot:'Forgot your password?', caps:'Caps Lock is on', enter:'Sign in',
       captchaPrefix:'Security check: what is ', foot1:'ZELO Statistical Monitoring and Incident Reporting System',
-      version:'Version 1.0', rights:'Hospital do Prenda — All rights reserved.' }
+      version:'Version 1.0', rights:'Hospital do Prenda — All rights reserved.',
+      signInTitle:'Sign in', signInSub:'Use your institutional account to access the system.',
+      quickTitle:'Who’s signing in?', quickSub:'Tap your name, or sign in with a different account.',
+      quickNotYou:'Not one of these?', quickOther:'Sign in with another account',
+      quickBack:'See users on this device', quickForget:'Forget on this device',
+      quickAdmin:'Administrator', quickStaff:'Staff', quickSwap:'swap' }
   };
   var currentLang=localStorage.getItem('zeloLang')==='en' ? 'en' : 'pt';
 
@@ -608,9 +660,140 @@ window.__zeloHasModuleAccess = hasModuleAccess;
     document.getElementById('zeloFootSystem').textContent=t.foot1;
     document.getElementById('zeloFootRights').innerHTML='&copy; <span id="zeloFootYear">'+new Date().getFullYear()+'</span> '+t.rights;
     if(captchaBox.classList.contains('show')) captchaQ.textContent=t.captchaPrefix+captchaQ.dataset.a+' + '+captchaQ.dataset.b+'?';
+    refreshFormTexts();
   }
   document.getElementById('zeloLangPT').addEventListener('click', function(){ applyLang('pt'); });
   document.getElementById('zeloLangEN').addEventListener('click', function(){ applyLang('en'); });
+
+  // ── Início rápido: reconhece quem já entrou neste aparelho (só localStorage,
+  //    nunca sincronizado) e mostra atalhos por nome em vez do email em branco.
+  //    Pensado para computadores partilhados nas enfermarias entre turnos. ──
+  var QUICK_KEY='zeloRecentUsers';
+  var AVATAR_COLORS=['#3E5C87','#7A5C3E','#3F7A56','#7A3E6C','#3E7A78','#8A5A2E'];
+
+  function getRecentUsers(){
+    try{
+      var list=JSON.parse(localStorage.getItem(QUICK_KEY)||'[]');
+      return Array.isArray(list) ? list : [];
+    }catch(e){ return []; }
+  }
+  function saveRecentUsers(list){
+    try{ localStorage.setItem(QUICK_KEY, JSON.stringify(list.slice(0,6))); }catch(e){}
+  }
+  function recordRecentUser(email, nome, role){
+    if(!email) return;
+    var list=getRecentUsers().filter(function(u){ return u.email!==email; });
+    list.unshift({ email:email, nome:nome||email, role:role||'funcionario', ts:Date.now() });
+    saveRecentUsers(list);
+  }
+  function forgetRecentUser(email){
+    saveRecentUsers(getRecentUsers().filter(function(u){ return u.email!==email; }));
+  }
+  function initialsFor(nome){
+    var partes=(nome||'').trim().split(/\s+/).filter(Boolean);
+    if(!partes.length) return '?';
+    if(partes.length===1) return partes[0].slice(0,2).toUpperCase();
+    return (partes[0][0]+partes[partes.length-1][0]).toUpperCase();
+  }
+  function colorFor(email){
+    var h=0;
+    for(var i=0;i<(email||'').length;i++) h=(h*31+email.charCodeAt(i))>>>0;
+    return AVATAR_COLORS[h % AVATAR_COLORS.length];
+  }
+  function roleLabel(role){ return role==='admin' ? langDict[currentLang].quickAdmin : langDict[currentLang].quickStaff; }
+
+  function refreshFormTexts(){
+    var t=langDict[currentLang];
+    zagTitle.textContent = (formMode==='full') ? t.signInTitle : t.quickTitle;
+    zagSub.textContent = (formMode==='full') ? t.signInSub : t.quickSub;
+    quickNotYouTxt.textContent=t.quickNotYou;
+    quickOtherLink.textContent=t.quickOther;
+    var backLink=backToChipsRow.querySelector('a');
+    if(backLink) backLink.textContent='← '+t.quickBack;
+    var swapBtn=activeUserBar.querySelector('.zaq-swap');
+    if(swapBtn) swapBtn.textContent=t.quickSwap;
+    quickChipRow.querySelectorAll('.zaq-chip').forEach(function(chip){
+      var roleEl=chip.querySelector('.zaq-role');
+      if(roleEl) roleEl.textContent=roleLabel(chip.dataset.role);
+      var forgetBtn=chip.querySelector('.zaq-forget');
+      if(forgetBtn) forgetBtn.title=t.quickForget;
+    });
+    var activeRoleEl=activeUserBar.querySelector('.zaq-active-role');
+    if(activeRoleEl && activeUserBar.dataset.role) activeRoleEl.textContent=roleLabel(activeUserBar.dataset.role);
+  }
+
+  function renderQuickChips(){
+    var list=getRecentUsers();
+    quickChipRow.innerHTML='';
+    list.forEach(function(u){
+      var chip=document.createElement('button');
+      chip.type='button';
+      chip.className='zaq-chip';
+      chip.dataset.role=u.role;
+      var color=colorFor(u.email);
+      chip.innerHTML=
+        '<span class="zaq-avatar" style="background:'+color+';">'+escapeHtml(initialsFor(u.nome))+'</span>'+
+        '<span><span class="zaq-name">'+escapeHtml(u.nome)+'</span><br><span class="zaq-role">'+escapeHtml(roleLabel(u.role))+'</span></span>'+
+        '<button type="button" class="zaq-forget" title="'+escapeHtml(langDict[currentLang].quickForget)+'" aria-label="'+escapeHtml(langDict[currentLang].quickForget)+'">'+
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'+
+        '</button>';
+      chip.addEventListener('click', function(){ pickQuickUser(u); });
+      chip.querySelector('.zaq-forget').addEventListener('click', function(ev){
+        ev.stopPropagation();
+        forgetRecentUser(u.email);
+        if(renderQuickChips()>0){ showQuickArea(); } else { showFullForm(); }
+      });
+      quickChipRow.appendChild(chip);
+    });
+    return list.length;
+  }
+
+  function showQuickArea(){
+    formMode='quick';
+    quickArea.style.display='';
+    emailField.style.display='none';
+    passField.style.display='none';
+    rememberRow.style.display='none';
+    activeUserBar.style.display='none';
+    backToChipsRow.style.display='none';
+    userInput.value='';
+    passInput.value='';
+    refreshFormTexts();
+  }
+  function showFullForm(){
+    formMode='full';
+    quickArea.style.display='none';
+    emailField.style.display='';
+    passField.style.display='';
+    rememberRow.style.display='flex';
+    activeUserBar.style.display='none';
+    backToChipsRow.style.display='none';
+    refreshFormTexts();
+    userInput.focus();
+  }
+  function pickQuickUser(u){
+    formMode='picked';
+    userInput.value=u.email;
+    quickArea.style.display='none';
+    emailField.style.display='none';
+    passField.style.display='';
+    rememberRow.style.display='flex';
+    backToChipsRow.style.display = getRecentUsers().length ? 'flex' : 'none';
+    activeUserBar.style.display='flex';
+    activeUserBar.dataset.role=u.role;
+    var color=colorFor(u.email);
+    activeUserBar.innerHTML=
+      '<span class="zaq-avatar" style="background:'+color+';">'+escapeHtml(initialsFor(u.nome))+'</span>'+
+      '<span><span class="zaq-active-name">'+escapeHtml(u.nome)+'</span><br><span class="zaq-active-role">'+escapeHtml(roleLabel(u.role))+'</span></span>'+
+      '<button type="button" class="zaq-swap"></button>';
+    activeUserBar.querySelector('.zaq-swap').addEventListener('click', function(){
+      if(getRecentUsers().length){ showQuickArea(); } else { showFullForm(); }
+    });
+    refreshFormTexts();
+    passInput.focus();
+  }
+  quickOtherLink.addEventListener('click', function(e){ e.preventDefault(); showFullForm(); });
+  backToChipsRow.querySelector('a').addEventListener('click', function(e){ e.preventDefault(); showQuickArea(); });
 
   document.getElementById('zeloFootYear').textContent=new Date().getFullYear();
   applyLang(currentLang);
@@ -652,7 +835,7 @@ window.__zeloHasModuleAccess = hasModuleAccess;
     var loading = document.getElementById('zeloAuthLoading');
     if(loading) loading.style.display = 'none';
     form.style.display = '';
-    userInput.focus();
+    if(renderQuickChips()>0){ showQuickArea(); } else { showFullForm(); }
   }
 
   window.zeloLogout = function(){
@@ -680,6 +863,7 @@ window.__zeloHasModuleAccess = hasModuleAccess;
     sessionStorage.setItem('zeloEmail', user.email || '');
     sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
     if(perfil.foto) sessionStorage.setItem('zeloFoto', perfil.foto);
+    recordRecentUser(user.email, perfil.nome, perfil.role);
     window.zeloUltimoAcessoAnterior = perfil.ultimoAcesso || null;
     clearLoginAttempts(user.email);
     touchLastAccess(user.uid);
