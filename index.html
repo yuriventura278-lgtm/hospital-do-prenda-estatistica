@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="zelo_tokens.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
 :root{
   --nv:var(--zelo-accent-ink, #16222F);--nv2:var(--zelo-accent-dark, #2B415E);--nv3:var(--zelo-accent, #3E5C87);
@@ -307,6 +308,12 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .alerta-item:last-child{border-bottom:none;}
 .alerta-badge{flex-shrink:0;min-width:26px;height:22px;border-radius:100px;background:var(--rd);color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 7px;}
 .alerta-badge.ok{background:var(--gr);}
+.cov-chart-wrap{position:relative;width:150px;height:150px;margin:4px auto 10px;}
+.cov-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+.cov-center .n{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;color:var(--tx);line-height:1;}
+.cov-center .l{font-size:.62rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
+.cov-pendentes{font-size:.76rem;color:var(--tx3);text-align:center;margin-bottom:6px;line-height:1.5;}
+.trend-chart-wrap{position:relative;height:180px;}
 .qa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
 .qa-btn{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 10px;border-radius:12px;border:1px solid var(--br);background:var(--sf);color:var(--tx2);text-decoration:none;font-size:.78rem;font-weight:700;text-align:center;transition:border-color .15s,color .15s,background .15s,transform .12s;}
 .qa-btn:hover{border-color:var(--bl);color:var(--bl);background:var(--blxt);transform:translateY(-1px);}
@@ -1150,21 +1157,62 @@ async function carregarUltimosRegistos(){
   }
 }
 
-let alertasOverviewHtml = '';
 let alertasAdminHtml = '';
 function renderAlertas(){
   const el = document.getElementById('alertasList');
   if(!el) return;
-  const combined = alertasOverviewHtml + alertasAdminHtml;
-  if(!combined){ el.textContent = 'Sem alertas de momento.'; el.classList.add('zelo-empty'); return; }
+  if(!alertasAdminHtml){ el.textContent = ''; el.classList.add('zelo-empty'); return; }
   el.classList.remove('zelo-empty');
-  el.innerHTML = combined;
+  el.innerHTML = alertasAdminHtml;
+}
+
+/* ── Gráfico "Cobertura do Dia": donut real, alimentado pelos dados que o
+   iframe do Dashboard já calcula e envia por postMessage (reportaram/total/
+   pendentes) — não é um número estático, actualiza-se sempre que o iframe
+   recalcula o resumo do dia. ── */
+let coverageChartInst = null;
+function corToken(nome, fallback){
+  try{
+    const v = getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+    return v || fallback;
+  }catch(e){ return fallback; }
+}
+function desenharCoverageChart(reportaram, total){
+  const canvas = document.getElementById('coverageChart');
+  if(!canvas || typeof Chart === 'undefined') return;
+  const pendentes = Math.max(total - reportaram, 0);
+  const corBoa = corToken('--gr', '#3F7A56');
+  const corPendente = corToken('--br2', '#CBD5E1');
+  if(coverageChartInst){ coverageChartInst.destroy(); }
+  coverageChartInst = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Reportaram', 'Pendentes'],
+      datasets: [{ data: [reportaram, pendentes], backgroundColor: [corBoa, corPendente], borderWidth: 0 }]
+    },
+    options: {
+      cutout: '72%',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 500 },
+      plugins: { legend: { display: false }, tooltip: { enabled: true } }
+    }
+  });
 }
 window.addEventListener('message', function(e){
   if(!e.data || e.data.type !== 'zelo-dashboard-overview') return;
   const pend = e.data.pendentes || [];
-  alertasOverviewHtml = '<div class="alerta-item"><span class="alerta-badge ' + (pend.length ? '' : 'ok') + '">' + pend.length + '</span> Serviços sem atualização hoje' +
-    (pend.length ? ': ' + pend.slice(0,4).map(escapeHtml).join(', ') + (pend.length>4 ? '…' : '') : '') + '</div>';
+  const total = e.data.total || 0;
+  const reportaram = e.data.reportaram != null ? e.data.reportaram : Math.max(total - pend.length, 0);
+  desenharCoverageChart(reportaram, total);
+  const pctEl = document.getElementById('covPct');
+  if(pctEl) pctEl.textContent = total ? Math.round((reportaram/total)*100) + '%' : '—';
+  const pendTxtEl = document.getElementById('covPendentesTxt');
+  if(pendTxtEl){
+    pendTxtEl.textContent = pend.length
+      ? 'Pendentes: ' + pend.slice(0,4).join(', ') + (pend.length>4 ? '…' : '')
+      : 'Todos os serviços reportaram hoje.';
+  }
   renderAlertas();
   const bd = document.getElementById('sbBadgeServicos');
   if(bd){
@@ -1172,6 +1220,63 @@ window.addEventListener('message', function(e){
     else { bd.textContent = '0'; bd.style.display='flex'; bd.classList.remove('alert'); }
   }
 });
+
+/* ── Gráfico "Procedimentos de Enfermagem — Últimos 7 Dias": conta, por dia,
+   quantos dos 12 serviços de procedimentos gravaram registo — usa os mesmos
+   caminhos REGISTO_PATHS já lidos para "Últimos Registos", só que lendo os
+   últimos 9 dias de cada serviço em vez de só o mais recente, e agrupando
+   pela própria chave de data em vez de reanalisar savedAt. ── */
+let weeklyTrendChartInst = null;
+async function carregarTendenciaSemanal(){
+  const canvas = document.getElementById('weeklyTrendChart');
+  if(!canvas || typeof Chart === 'undefined') return;
+  const contagemPorDia = {};
+  try{
+    await Promise.all(REGISTO_PATHS.map(async function(r){
+      try{
+        const snap = await get(query(ref(db, r.path), orderByChild('savedAt'), limitToLast(9)));
+        if(!snap.exists()) return;
+        snap.forEach(function(child){
+          const dataChave = child.key;
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(dataChave)) return;
+          contagemPorDia[dataChave] = (contagemPorDia[dataChave] || 0) + 1;
+        });
+      }catch(e){}
+    }));
+  }catch(e){ console.warn('Tendência semanal: falha ao carregar', e); }
+
+  const dias = [];
+  for(let i = 6; i >= 0; i--){
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dias.push(d);
+  }
+  const labels = dias.map(function(d){ return d.toLocaleDateString('pt-PT', {weekday:'short'}).replace('.',''); });
+  const valores = dias.map(function(d){
+    const chave = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    return contagemPorDia[chave] || 0;
+  });
+
+  const corAccent = corToken('--bl', '#3E5C87');
+  if(weeklyTrendChartInst){ weeklyTrendChartInst.destroy(); }
+  weeklyTrendChartInst = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ label: 'Serviços com registo', data: valores, backgroundColor: corAccent, borderRadius: 5, maxBarThickness: 34 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 500 },
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: corToken('--br', '#E2E8F0') } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
 
 async function carregarAlertasAdmin(){
   try{
@@ -1221,6 +1326,7 @@ window.zeloDashboardInit = function(role){
     }
   }
   carregarUltimosRegistos();
+  carregarTendenciaSemanal();
   if(role === 'admin') carregarAlertasAdmin();
   else renderAlertas();
 };
@@ -1375,13 +1481,23 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="zelo-main-inner">
         <div class="zelo-row-2">
           <div class="zelo-panel">
-            <h2>Últimos Registos</h2>
-            <div id="ultimosRegistosList" class="zelo-empty">A carregar…</div>
-          </div>
-          <div class="zelo-panel">
-            <h2>Alertas</h2>
+            <h2>Cobertura do Dia</h2>
+            <div class="cov-chart-wrap">
+              <canvas id="coverageChart"></canvas>
+              <div class="cov-center"><div class="n" id="covPct">—</div><div class="l">reportaram</div></div>
+            </div>
+            <div class="cov-pendentes" id="covPendentesTxt"></div>
             <div id="alertasList" class="zelo-empty">A carregar…</div>
           </div>
+          <div class="zelo-panel">
+            <h2>Procedimentos de Enfermagem — Últimos 7 Dias</h2>
+            <div class="trend-chart-wrap"><canvas id="weeklyTrendChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="zelo-panel">
+          <h2>Últimos Registos</h2>
+          <div id="ultimosRegistosList" class="zelo-empty">A carregar…</div>
         </div>
 
         <div class="zelo-panel">
