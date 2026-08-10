@@ -13,7 +13,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>Bloco Operatório — Hospital do Prenda</title>
 <link rel="icon" type="image/png" href="icons/logo.png"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Mono:wght@500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet"/>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -33,16 +33,16 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
-  --nv:#0D1B3E;--bl:#1A56DB;--bl2:#2563EB;--blt:#DBEAFE;--blxt:#EFF6FF;
+  --nv:#1B2A3D;--bl:#3E5C87;--bl2:#5A7AA3;--blt:#DCE4EE;--blxt:#F2F5F9;
   --gr:#059669;--rd:#DC2626;--am:#D97706;--or:#EA580C;--pu:#7C3AED;
   --sf:#F4F7FF;--br:#E2E8F0;--br2:#CBD5E1;
   --tx:#0F172A;--tx2:#334155;--tx3:#64748B;
   --r:10px;--r2:16px;--r3:22px;
-  --s1:0 2px 10px rgba(13,27,62,.08);--s2:0 8px 28px rgba(13,27,62,.13);
+  --s1:0 2px 10px rgba(27,42,61,.08);--s2:0 8px 28px rgba(27,42,61,.13);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;padding-bottom:130px;-webkit-font-smoothing:antialiased;font-size:16px;}
-header{background:linear-gradient(135deg,#0B1730 0%,#162E6B 55%,#1A56DB 100%);position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.35);}
+body{font-family:'Source Sans 3',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;padding-bottom:130px;-webkit-font-smoothing:antialiased;font-size:16px;}
+header{background:linear-gradient(135deg,#111C2B 0%,#2B415E 55%,#3E5C87 100%);position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.35);}
 .hi{padding:14px 16px 12px;display:flex;align-items:center;gap:14px;}
 .ld{width:54px;height:54px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:7px;box-shadow:0 2px 8px rgba(0,0,0,.18);}
 .ld img{width:100%;height:100%;object-fit:contain;}
@@ -51,18 +51,18 @@ header{background:linear-gradient(135deg,#0B1730 0%,#162E6B 55%,#1A56DB 100%);po
 .ht p{font-size:.68rem;color:rgba(255,255,255,.5);margin-top:3px;}
 .ps{background:rgba(0,0,0,.25);padding:7px 16px;display:flex;align-items:center;gap:10px;}
 .pl{font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.45);white-space:nowrap;}
-.as-ind{font-size:.6rem;font-weight:600;color:rgba(255,255,255,.5);white-space:nowrap;font-family:'DM Mono',monospace;}
+.as-ind{font-size:.6rem;font-weight:600;color:rgba(255,255,255,.5);white-space:nowrap;font-family:'IBM Plex Mono',monospace;}
 .pt{flex:1;height:5px;background:rgba(255,255,255,.12);border-radius:100px;overflow:hidden;}
 #pf{height:100%;background:linear-gradient(90deg,#34D399,#60A5FA);width:0%;transition:width .4s ease;border-radius:100px;}
-#pp{font-family:'DM Mono',monospace;font-size:.72rem;color:#60A5FA;min-width:36px;text-align:right;font-weight:600;}
+#pp{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:#60A5FA;min-width:36px;text-align:right;font-weight:600;}
 .wrap{max-width:680px;margin:0 auto;padding:14px 12px;}
 .sec{background:#fff;border:1px solid var(--br);border-radius:var(--r2);margin-bottom:12px;overflow:hidden;box-shadow:var(--s1);}
 .sh{padding:13px 16px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--br);background:linear-gradient(90deg,var(--blxt),#fff 65%);}
 .si{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.ibl{background:#DBEAFE;color:#1E40AF;}.ite{background:#CCFBF1;color:#0F766E;}.igr{background:#DCFCE7;color:#166534;}.ird{background:#FEE2E2;color:#991B1B;}.iam{background:#FEF3C7;color:#92400E;}.ipu{background:#EDE9FE;color:#5B21B6;}.inv{background:#E0E7FF;color:#312E81;}.ior{background:#FFEDD5;color:#9A3412;}
+.ibl{background:#DCE4EE;color:#1E40AF;}.ite{background:#CCFBF1;color:#0F766E;}.igr{background:#DCFCE7;color:#166534;}.ird{background:#FEE2E2;color:#991B1B;}.iam{background:#FEF3C7;color:#92400E;}.ipu{background:#EDE9FE;color:#5B21B6;}.inv{background:#E0E7FF;color:#312E81;}.ior{background:#FFEDD5;color:#9A3412;}
 .st h2{font-size:.76rem;font-weight:700;color:var(--bl);text-transform:uppercase;letter-spacing:.07em;}
 .st p{font-size:.67rem;color:var(--tx3);margin-top:2px;}
-.bdg{background:var(--blt);border:1px solid #BFDBFE;border-radius:100px;padding:3px 10px;font-size:.68rem;font-weight:700;color:var(--bl);font-family:'DM Mono',monospace;opacity:0;transition:opacity .2s;margin-left:auto;flex-shrink:0;}
+.bdg{background:var(--blt);border:1px solid #BFDBFE;border-radius:100px;padding:3px 10px;font-size:.68rem;font-weight:700;color:var(--bl);font-family:'IBM Plex Mono',monospace;opacity:0;transition:opacity .2s;margin-left:auto;flex-shrink:0;}
 .bdg.on{opacity:1;}
 .sb{padding:18px 16px;}
 .f{margin-bottom:16px;}
@@ -71,11 +71,11 @@ label{font-size:.72rem;font-weight:600;color:var(--tx3);margin-bottom:7px;displa
 label .req{color:var(--rd);margin-left:2px;}
 input[type=text],input[type=date],input[type=number],textarea,select{
   width:100%;padding:12px 14px;border:1.5px solid var(--br2);border-radius:var(--r);
-  font-size:1rem;font-family:'Inter',sans-serif;color:var(--tx);background:#FAFBFF;
+  font-size:1rem;font-family:'Source Sans 3',sans-serif;color:var(--tx);background:#FAFBFF;
   line-height:1.5;transition:border-color .15s,box-shadow .15s;
   -webkit-appearance:none;appearance:none;
 }
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(90,122,163,.12);}
 textarea{resize:vertical;min-height:80px;line-height:1.65;}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:38px;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -90,7 +90,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .db input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5;cursor:pointer;width:22px;height:22px;}
 .nd{border-radius:var(--r);padding:13px 10px 11px;text-align:center;border:1.5px solid var(--br);background:var(--blxt);}
 .nd label{justify-content:center;font-size:.62rem;margin-bottom:6px;text-align:center;}
-.val{font-family:'DM Mono',monospace;font-size:2.3rem;font-weight:600;color:var(--nv);line-height:1;}
+.val{font-family:'IBM Plex Mono',monospace;font-size:2.3rem;font-weight:600;color:var(--nv);line-height:1;}
 .nd.rd2{background:#FFF5F5;border-color:#FCA5A5;}.nd.rd2 .val{color:var(--rd);}
 .nd.gr2{background:var(--blxt);border-color:var(--br);}.nd.gr2 .val{color:var(--nv);}
 .nd.am2{background:var(--blxt);border-color:var(--br);}.nd.am2 .val{color:var(--nv);}
@@ -100,14 +100,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .valert.show{display:flex;align-items:center;gap:8px;}
 .rl{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
 .rc{background:#FAFBFF;border:1.5px solid var(--br);border-radius:var(--r);padding:14px;transition:all .15s;}
-.rc.ed{border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.08);}
+.rc.ed{border-color:var(--bl2);background:#fff;box-shadow:0 0 0 3px rgba(90,122,163,.08);}
 .rc.sv{border-color:#86EFAC;background:#F0FDF4;}
 .rc.svr{border-color:#FCA5A5;background:#FFF5F5;}
 .rc.sva{border-color:#FCD34D;background:#FFFBEB;}
 .rc.svp{border-color:#C4B5FD;background:#F5F3FF;}
 .rc.svo{border-color:#FDBA74;background:#FFEDD5;}
 .rh{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
-.rn{background:var(--nv);color:#fff;border-radius:6px;padding:3px 9px;font-size:.72rem;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0;}
+.rn{background:var(--nv);color:#fff;border-radius:6px;padding:3px 9px;font-size:.72rem;font-weight:700;font-family:'IBM Plex Mono',monospace;flex-shrink:0;}
 .rn.rd{background:var(--rd);}.rn.gr{background:var(--gr);}.rn.am{background:var(--am);}.rn.pu{background:var(--pu);}.rn.or{background:var(--or);}
 .rv{font-size:.95rem;font-weight:600;color:var(--tx);flex:1;min-width:0;}
 .ra{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
@@ -115,20 +115,20 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .rbi{background:#E0E7FF;color:#312E81;border-color:#A5B4FC;}
 .rba{background:#DCFCE7;color:#166534;border-color:#86EFAC;}
 .rbo{background:#FEE2E2;color:#991B1B;border-color:#FCA5A5;}
-.bs{border-radius:7px;padding:7px 13px;font-size:.76rem;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .13s;border:none;-webkit-tap-highlight-color:transparent;}
+.bs{border-radius:7px;padding:7px 13px;font-size:.76rem;font-weight:600;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .13s;border:none;-webkit-tap-highlight-color:transparent;}
 .bsv{background:linear-gradient(135deg,var(--gr),#047857);color:#fff;box-shadow:0 2px 8px rgba(5,150,105,.25);}
-.bse{background:#DBEAFE;color:#1E40AF;border:none;}.bse:hover{background:#BFDBFE;}
+.bse{background:#DCE4EE;color:#1E40AF;border:none;}.bse:hover{background:#BFDBFE;}
 .bsd{background:#FEE2E2;color:var(--rd);border:none;}.bsd:hover{background:#FCA5A5;color:#fff;}
 .ul-view{background:#FAFBFF;border:1.5px solid var(--br);border-radius:var(--r);overflow:hidden;}
 .ul-row{display:flex;align-items:center;gap:10px;padding:11px 14px;}
 .ul-row:not(:last-child){border-bottom:1px solid var(--br);}
-.ul-num{font-family:'DM Mono',monospace;font-weight:700;color:var(--bl);min-width:22px;flex-shrink:0;}
+.ul-num{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--bl);min-width:22px;flex-shrink:0;}
 .ul-main{flex:1;min-width:0;}
 .ul-name{font-size:.93rem;font-weight:600;color:var(--tx);}
 .ul-sub{font-size:.75rem;color:var(--tx3);margin-top:1px;}
 .ul-edit-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .ul-edit-bar span{font-size:.78rem;font-weight:700;color:var(--tx2);}
-.ba{width:100%;padding:14px;border:2px dashed var(--br2);border-radius:var(--r);background:transparent;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--tx3);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;}
+.ba{width:100%;padding:14px;border:2px dashed var(--br2);border-radius:var(--r);background:transparent;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--tx3);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;font-family:'Source Sans 3',sans-serif;-webkit-tap-highlight-color:transparent;}
 .ba:hover,.ba:active{border-color:var(--bl2);color:var(--bl);background:var(--blxt);}
 .ba.am{border-color:#FCD34D;color:var(--am);}.ba.am:hover{background:#FFFBEB;}
 .ba.pu{border-color:#C4B5FD;color:var(--pu);}.ba.pu:hover{background:#F5F3FF;}
@@ -160,14 +160,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .co.sel[data-v=Pesado]{border-color:var(--or);background:#FFEDD5;}
 .co.sel[data-v=Crítico]{border-color:var(--rd);background:#FFF5F5;}
 /* ACTION BAR — botões sólidos */
-.ab{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--br);padding:10px 14px;display:flex;gap:8px;z-index:100;box-shadow:0 -6px 24px rgba(13,27,62,.1);}
-.bm{flex:1;padding:15px 10px;border-radius:var(--r);font-size:.82rem;font-weight:700;font-family:'Inter',sans-serif;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .13s;-webkit-tap-highlight-color:transparent;}
+.ab{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--br);padding:10px 14px;display:flex;gap:8px;z-index:100;box-shadow:0 -6px 24px rgba(27,42,61,.1);}
+.bm{flex:1;padding:15px 10px;border-radius:var(--r);font-size:.82rem;font-weight:700;font-family:'Source Sans 3',sans-serif;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .13s;-webkit-tap-highlight-color:transparent;}
 .bm:active{transform:scale(.97);}
 .bpd{background:#7C3AED;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.3);}
-.bwa{background:#25D366;color:#fff;box-shadow:0 4px 14px rgba(37,211,102,.3);}.bgr{background:linear-gradient(135deg,#1A56DB,#1E40AF);color:#fff;box-shadow:0 4px 14px rgba(26,86,219,.3);}
+.bwa{background:#25D366;color:#fff;box-shadow:0 4px 14px rgba(37,211,102,.3);}.bgr{background:linear-gradient(135deg,#3E5C87,#1E40AF);color:#fff;box-shadow:0 4px 14px rgba(26,86,219,.3);}
 .bem{background:#EA4335;color:#fff;box-shadow:0 4px 14px rgba(234,67,53,.3);}
 /* MODAL */
-#ov{display:none;position:fixed;inset:0;background:rgba(13,27,62,.7);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center;}
+#ov{display:none;position:fixed;inset:0;background:rgba(27,42,61,.7);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center;}
 #ov.open{display:flex;}
 #mo{background:#fff;border-radius:var(--r3) var(--r3) 0 0;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;animation:su .28s cubic-bezier(.34,1.2,.64,1);}
 @keyframes su{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
@@ -181,14 +181,14 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .mst{display:flex;align-items:center;gap:7px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--bl);margin-bottom:7px;padding-bottom:5px;border-bottom:1.5px solid var(--blt);}
 .ml2{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;font-size:.88rem;border-bottom:1px solid #F1F5F9;}
 .ml2:last-child{border-bottom:none;}
-.mk{color:var(--tx2);}.mv{font-weight:700;color:var(--tx);font-family:'DM Mono',monospace;}
+.mk{color:var(--tx2);}.mv{font-weight:700;color:var(--tx);font-family:'IBM Plex Mono',monospace;}
 .mf{padding:12px 20px 20px;display:flex;gap:8px;border-top:1px solid var(--br);flex-wrap:wrap;}
-.mf button{flex:1;min-width:110px;padding:13px;border-radius:var(--r);font-size:.82rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all .13s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.mf button{flex:1;min-width:110px;padding:13px;border-radius:var(--r);font-size:.82rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;border:none;transition:all .13s;display:flex;align-items:center;justify-content:center;gap:6px;}
 #mwa{background:#25D366;color:#fff;}
 #mem{background:#EA4335;color:#fff;}
 #mpd{background:#7C3AED;color:#fff;}
 #mcl{background:var(--sf);border:1.5px solid var(--br)!important;color:var(--tx2);flex:0 0 auto;padding:13px 16px;}
-#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--nv);color:#fff;padding:11px 22px;border-radius:100px;font-size:.8rem;font-weight:500;opacity:0;transition:all .3s cubic-bezier(.34,1.2,.64,1);z-index:400;white-space:nowrap;box-shadow:0 6px 20px rgba(13,27,62,.3);pointer-events:none;}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--nv);color:#fff;padding:11px 22px;border-radius:100px;font-size:.8rem;font-weight:500;opacity:0;transition:all .3s cubic-bezier(.34,1.2,.64,1);z-index:400;white-space:nowrap;box-shadow:0 6px 20px rgba(27,42,61,.3);pointer-events:none;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .cw{position:relative;}
 .cd{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid var(--br2);border-radius:var(--r);box-shadow:var(--s2);z-index:600;max-height:220px;overflow-y:auto;display:none;}
@@ -196,10 +196,10 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .ci{padding:12px 14px;cursor:pointer;border-bottom:1px solid var(--br);display:flex;gap:10px;align-items:center;}
 .ci:last-child{border-bottom:none;}
 .ci:hover,.ci:active{background:var(--blxt);}
-.cc{font-family:'DM Mono',monospace;font-size:.78rem;font-weight:700;color:var(--bl);flex-shrink:0;min-width:58px;}
+.cc{font-family:'IBM Plex Mono',monospace;font-size:.78rem;font-weight:700;color:var(--bl);flex-shrink:0;min-width:58px;}
 .cx{font-size:.85rem;color:var(--tx2);}
 .ce{padding:12px 14px;font-size:.85rem;color:var(--tx3);text-align:center;}
-.cb{background:var(--blt);border:1px solid #BFDBFE;border-radius:6px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:.73rem;font-weight:700;color:var(--bl);display:inline-block;}
+.cb{background:var(--blt);border:1px solid #BFDBFE;border-radius:6px;padding:3px 8px;font-family:'IBM Plex Mono',monospace;font-size:.73rem;font-weight:700;color:var(--bl);display:inline-block;}
 @media(max-width:480px){
   .cg{grid-template-columns:repeat(3,1fr);}
   .g3{grid-template-columns:1fr 1fr;}
@@ -210,18 +210,18 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 @keyframes splashFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes splashScaleIn{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
 body:has(#ov.open){overflow:hidden;}
-.zelo-foot{background:linear-gradient(135deg,#0B1730 0%,#162E6B 55%,#1A56DB 100%);margin-top:20px;padding:18px 12px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.zelo-foot{background:linear-gradient(135deg,#111C2B 0%,#2B415E 55%,#3E5C87 100%);margin-top:20px;padding:18px 12px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .zelo-foot img{width:20px;height:20px;border-radius:6px;flex-shrink:0;}
-.zelo-foot span{font-size:.66rem;font-weight:700;letter-spacing:.05em;font-family:'DM Mono',monospace;color:#fff;}
+.zelo-foot span{font-size:.66rem;font-weight:700;letter-spacing:.05em;font-family:'IBM Plex Mono',monospace;color:#fff;}
 </style>
 </head>
 <body>
 <!-- SPLASH SCREEN -->
-<div id="splash" style="position:fixed;inset:0;background:linear-gradient(145deg,#08112A 0%,#0D1B3E 45%,#162E6B 100%);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;overflow-y:auto;">
+<div id="splash" style="position:fixed;inset:0;background:linear-gradient(145deg,#08112A 0%,#1B2A3D 45%,#2B415E 100%);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;overflow-y:auto;">
   <div id="splash-msg" style="display:none;max-width:400px;width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px 20px 16px;backdrop-filter:blur(8px);text-align:center;">
     <p style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:10px;line-height:1.35;">Bem-vindo — Bloco Operatório</p>
     <p style="font-size:.84rem;color:rgba(255,255,255,.8);line-height:1.7;margin-bottom:16px;">Os dados que preenche aqui alimentam directamente as estatísticas do Hospital do Prenda — <strong style="color:#93C5FD;">são vidas</strong>, não apenas números. Preencha com clareza, rigor e dados reais.</p>
-    <button onclick="closeSplash()" style="width:100%;background:linear-gradient(135deg,#1A56DB,#2563EB);border:none;border-radius:10px;color:#fff;font-size:.85rem;font-weight:700;padding:12px 28px;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px;">
+    <button onclick="closeSplash()" style="width:100%;background:linear-gradient(135deg,#3E5C87,#5A7AA3);border:none;border-radius:10px;color:#fff;font-size:.85rem;font-weight:700;padding:12px 28px;cursor:pointer;font-family:'Source Sans 3',sans-serif;display:flex;align-items:center;justify-content:center;gap:7px;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       Começar
     </button>
@@ -311,11 +311,11 @@ function closeSplash(){
   <div class="sb">
     <!-- Botões directos Urgência / Eletiva -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-      <button onclick="addCir('urg')" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:14px 10px;background:linear-gradient(135deg,#D97706,#B45309);border:none;border-radius:14px;color:#fff;font-size:.9rem;font-weight:800;font-family:'Inter',sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(217,119,6,.4);-webkit-tap-highlight-color:transparent;letter-spacing:.01em;">
+      <button onclick="addCir('urg')" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:14px 10px;background:linear-gradient(135deg,#D97706,#B45309);border:none;border-radius:14px;color:#fff;font-size:.9rem;font-weight:800;font-family:'Source Sans 3',sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(217,119,6,.4);-webkit-tap-highlight-color:transparent;letter-spacing:.01em;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Urgência
       </button>
-      <button onclick="addCir('ele')" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:14px 10px;background:linear-gradient(135deg,#7C3AED,#6D28D9);border:none;border-radius:14px;color:#fff;font-size:.9rem;font-weight:800;font-family:'Inter',sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(124,58,237,.4);-webkit-tap-highlight-color:transparent;letter-spacing:.01em;">
+      <button onclick="addCir('ele')" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:14px 10px;background:linear-gradient(135deg,#7C3AED,#6D28D9);border:none;border-radius:14px;color:#fff;font-size:.9rem;font-weight:800;font-family:'Source Sans 3',sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(124,58,237,.4);-webkit-tap-highlight-color:transparent;letter-spacing:.01em;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Eletiva
       </button>
@@ -324,15 +324,15 @@ function closeSplash(){
     <div id="cir-totais" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
       <div style="background:linear-gradient(135deg,rgba(217,119,6,.18),rgba(180,83,9,.12));border:1.5px solid rgba(217,119,6,.35);border-radius:12px;padding:10px 8px;text-align:center;">
         <div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#D97706;margin-bottom:4px;">⚔️ Urgentes</div>
-        <div id="tot-urg-geral" style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:700;color:#D97706;line-height:1;">0</div>
+        <div id="tot-urg-geral" style="font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:700;color:#D97706;line-height:1;">0</div>
       </div>
       <div style="background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(109,40,217,.12));border:1.5px solid rgba(124,58,237,.35);border-radius:12px;padding:10px 8px;text-align:center;">
         <div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7C3AED;margin-bottom:4px;">📋 Eletivas</div>
-        <div id="tot-ele-geral" style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:700;color:#7C3AED;line-height:1;">0</div>
+        <div id="tot-ele-geral" style="font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:700;color:#7C3AED;line-height:1;">0</div>
       </div>
       <div style="background:linear-gradient(135deg,rgba(5,150,105,.18),rgba(4,120,87,.12));border:1.5px solid rgba(5,150,105,.35);border-radius:12px;padding:10px 8px;text-align:center;">
         <div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#059669;margin-bottom:4px;">🔢 Total</div>
-        <div id="tot-cir-geral" style="font-family:'DM Mono',monospace;font-size:1.6rem;font-weight:700;color:#059669;line-height:1;">0</div>
+        <div id="tot-cir-geral" style="font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:700;color:#059669;line-height:1;">0</div>
       </div>
     </div>
     <!-- Painel Urgentes -->
@@ -371,7 +371,7 @@ function closeSplash(){
       <div class="nd rd2"><label>Falta Material</label><div class="val" id="sus-mat">0</div></div>
     </div>
     <div class="rl" id="sus-list"></div>
-    <button onclick="addSus()" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:14px 10px;border:none;border-radius:14px;color:#fff;font-size:.9rem;font-weight:800;font-family:'Inter',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:.01em;width:100%;background:linear-gradient(135deg,#EA580C,#C2410C);box-shadow:0 4px 16px rgba(234,88,12,.4);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Adicionar Suspensa</button>
+    <button onclick="addSus()" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:14px 10px;border:none;border-radius:14px;color:#fff;font-size:.9rem;font-weight:800;font-family:'Source Sans 3',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:.01em;width:100%;background:linear-gradient(135deg,#EA580C,#C2410C);box-shadow:0 4px 16px rgba(234,88,12,.4);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Adicionar Suspensa</button>
   </div>
 </div>
 
@@ -409,17 +409,17 @@ function closeSplash(){
 
 <!-- GUARDAR -->
 <div style="max-width:680px;margin:0 auto;padding:0 12px 4px;">
-  <button onclick="salvarRegisto()" style="width:100%;padding:18px;background:#059669;border:none;border-radius:14px;color:#fff;font-size:1rem;font-weight:800;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 20px rgba(5,150,105,.3);transition:all .15s;-webkit-tap-highlight-color:transparent;" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">
+  <button onclick="salvarRegisto()" style="width:100%;padding:18px;background:#059669;border:none;border-radius:14px;color:#fff;font-size:1rem;font-weight:800;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 20px rgba(5,150,105,.3);transition:all .15s;-webkit-tap-highlight-color:transparent;" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
     Guardar Registo Diário
   </button>
 </div>
 <div style="max-width:680px;margin:0 auto;padding:4px 12px 12px;">
-  <button onclick="novoRegisto()" style="width:100%;padding:14px;background:#F1F5FF;border:1.5px solid #BFDBFE;border-radius:12px;color:#1E40AF;font-size:.9rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .15s;-webkit-tap-highlight-color:transparent;" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">
+  <button onclick="novoRegisto()" style="width:100%;padding:14px;background:#F1F5FF;border:1.5px solid #BFDBFE;border-radius:12px;color:#1E40AF;font-size:.9rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .15s;-webkit-tap-highlight-color:transparent;" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.76"/></svg>
     Novo Registo (limpar documento)
   </button>
-  <button onclick="historicoRegisto()" style="width:100%;padding:16px;margin-top:10px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:14px;color:#1E40AF;font-size:.92rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;-webkit-tap-highlight-color:transparent;">
+  <button onclick="historicoRegisto()" style="width:100%;padding:16px;margin-top:10px;background:#F2F5F9;border:1.5px solid #BFDBFE;border-radius:14px;color:#1E40AF;font-size:.92rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .15s;-webkit-tap-highlight-color:transparent;">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     Histórico de Registo
   </button>
@@ -436,11 +436,11 @@ function closeSplash(){
   <button class="bm bgr" id="main-save-btn" onclick="salvarRegisto()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><span>Guardar</span></button>
 </div>
 <!-- MODAL HISTÓRICO -->
-<div id="ovh" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.7);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center;">
+<div id="ovh" style="display:none;position:fixed;inset:0;background:rgba(27,42,61,.7);backdrop-filter:blur(8px);z-index:200;align-items:flex-end;justify-content:center;">
   <div style="background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;animation:su .28s cubic-bezier(.34,1.2,.64,1);">
     <div class="mh"><div><h3>Histórico de Registos</h3><p id="mh-sub" style="margin:0;"></p></div></div>
     <div class="mb" id="mh-body"></div>
-    <div class="mf"><button onclick="document.getElementById('ovh').style.display='none';" style="flex:1;padding:14px;background:#F1F5F9;border:none;border-radius:10px;color:#64748B;font-size:.88rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Fechar</button></div>
+    <div class="mf"><button onclick="document.getElementById('ovh').style.display='none';" style="flex:1;padding:14px;background:#F1F5F9;border:none;border-radius:10px;color:#64748B;font-size:.88rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;">Fechar</button></div>
   </div>
 </div>
 
@@ -468,9 +468,9 @@ function closeSplash(){
 <div id="toast"></div>
 
 <!-- MODAL CONFIRMAR LIMPAR -->
-<div id="ov-limpar" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.72);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#fff;border-radius:20px;width:100%;max-width:420px;box-shadow:0 16px 48px rgba(13,27,62,.25);overflow:hidden;animation:su .25s cubic-bezier(.34,1.2,.64,1);">
-    <div style="background:linear-gradient(135deg,#1A56DB,#0D1B3E);padding:20px 22px 16px;text-align:center;">
+<div id="ov-limpar" style="display:none;position:fixed;inset:0;background:rgba(27,42,61,.72);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:20px;width:100%;max-width:420px;box-shadow:0 16px 48px rgba(27,42,61,.25);overflow:hidden;animation:su .25s cubic-bezier(.34,1.2,.64,1);">
+    <div style="background:linear-gradient(135deg,#3E5C87,#1B2A3D);padding:20px 22px 16px;text-align:center;">
       <div style="width:52px;height:52px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.76"/></svg>
       </div>
@@ -480,8 +480,8 @@ function closeSplash(){
     <div style="padding:20px 22px;">
       <p style="font-size:.88rem;color:var(--tx2);line-height:1.6;margin-bottom:16px;">Tem a certeza que quer iniciar um novo registo? Todos os dados do turno actual serão apagados.<br/><br/><strong style="color:var(--rd);">Guarde o PDF antes de continuar.</strong></p>
       <div style="display:flex;gap:10px;">
-        <button onclick="confirmarLimpar()" style="flex:1;padding:14px;background:#DC2626;border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Sim, limpar</button>
-        <button onclick="document.getElementById('ov-limpar').style.display='none'" style="flex:1;padding:14px;background:var(--sf);border:1.5px solid var(--br);border-radius:10px;color:var(--tx2);font-size:.9rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;">Cancelar</button>
+        <button onclick="confirmarLimpar()" style="flex:1;padding:14px;background:#DC2626;border:none;border-radius:10px;color:#fff;font-size:.9rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;">Sim, limpar</button>
+        <button onclick="document.getElementById('ov-limpar').style.display='none'" style="flex:1;padding:14px;background:var(--sf);border:1.5px solid var(--br);border-radius:10px;color:var(--tx2);font-size:.9rem;font-weight:700;font-family:'Source Sans 3',sans-serif;cursor:pointer;">Cancelar</button>
       </div>
     </div>
   </div>
@@ -781,7 +781,7 @@ function buildEquipaBody(containerId,eqKey){
     <button class="bs bse" id="${eqKey}-edit-btn" onclick="toggleEqEdit('${eqKey}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar</button>
     </div>
     <div class="rl" id="${eqKey}-unified-list"></div>
-    <button onclick="addMember('${eqKey}','esp')" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:14px 10px;border:none;border-radius:14px;color:#fff;font-size:.9rem;font-weight:800;font-family:'Inter',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:.01em;width:100%;background:linear-gradient(135deg,#0F766E,#0D9488);box-shadow:0 4px 16px rgba(15,118,110,.4);margin-bottom:4px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Adicionar Médico</button>`;
+    <button onclick="addMember('${eqKey}','esp')" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:14px 10px;border:none;border-radius:14px;color:#fff;font-size:.9rem;font-weight:800;font-family:'Source Sans 3',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent;letter-spacing:.01em;width:100%;background:linear-gradient(135deg,#0F766E,#0D9488);box-shadow:0 4px 16px rgba(15,118,110,.4);margin-bottom:4px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Adicionar Médico</button>`;
 }
 function addMember(eqKey,tipo){
   const data=eqKey==='eq1'?eq1:eq2;
@@ -832,7 +832,7 @@ function renderMembers(eqKey,tipo){
       sv.forEach((m,i)=>{
         const row=document.createElement('div');
         row.style.cssText='display:flex;align-items:center;gap:10px;padding:11px 14px;'+(i<sv.length-1?'border-bottom:1px solid var(--br);':'');
-        row.innerHTML=`<span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--bl);min-width:20px;">${i+1}.</span>
+        row.innerHTML=`<span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--bl);min-width:20px;">${i+1}.</span>
           <span style="flex:1;font-size:.92rem;font-weight:600;color:var(--tx);">${m.nome}</span>
           <span style="font-size:.7rem;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;">${EQ_TIPOS[m._tipo]}</span>`;
         list.appendChild(row);
@@ -951,7 +951,7 @@ function renderCir(tipo){
           <div class="ul-name">${c.idade}a ${c.falecido?'<span class="rb2 rbo">Óbito</span>':''}</div>
           <div class="ul-sub">${c.especialidade} · ${c.cidDesc}${c.anest&&c.anest.length?' · '+c.anest.join(', '):''} · <b>${c.destino}</b>${c.obs?' — '+c.obs:''}</div>
         </div>
-        <span class="rb2" style="background:${isM?'#DBEAFE':'#FCE7F3'};color:${isM?'#1E40AF':'#9D174D'};border-color:${isM?'#93C5FD':'#F9A8D4'};">${isM?'M':'F'}</span>`;
+        <span class="rb2" style="background:${isM?'#DCE4EE':'#FCE7F3'};color:${isM?'#1E40AF':'#9D174D'};border-color:${isM?'#93C5FD':'#F9A8D4'};">${isM?'M':'F'}</span>`;
       list.appendChild(row);
     });
     el.appendChild(list);
@@ -964,7 +964,7 @@ function renderCir(tipo){
       const isM=c.genero==='M';
       div.innerHTML=`<div class="rh"><span class="rn" style="${rnStyle}">#${arr.indexOf(c)+1}</span>
         <span class="${tipo==='urg'?'tag-urg':'tag-ele'}">${tagLabel}</span>
-        <span class="rb2" style="background:${isM?'#DBEAFE':'#FCE7F3'};color:${isM?'#1E40AF':'#9D174D'};border-color:${isM?'#93C5FD':'#F9A8D4'};">${isM?'Masculino':'Feminino'}</span>
+        <span class="rb2" style="background:${isM?'#DCE4EE':'#FCE7F3'};color:${isM?'#1E40AF':'#9D174D'};border-color:${isM?'#93C5FD':'#F9A8D4'};">${isM?'Masculino':'Feminino'}</span>
         ${c.falecido?'<span class="rb2 rbo">Óbito</span>':''}</div>
         <div style="font-size:.88rem;font-weight:600;color:var(--tx);">${c.idade}a</div>
         <div style="font-size:.78rem;color:var(--tx3);margin-top:3px;">${c.especialidade} · ${c.cidDesc}${c.anest&&c.anest.length?' · Anest: '+c.anest.join(', '):''} · Destino: <b>${c.destino}</b></div>
@@ -1007,11 +1007,11 @@ function renderCir(tipo){
         </div>
         <div class="f"><label>Observação</label>
           <textarea id="ci-obs-${c.id}" rows="2" placeholder="Notas adicionais sobre esta cirurgia...">${c.obs||''}</textarea></div>
-        <button onclick="saveCir('${tipo}',${c.id})" style="width:100%;padding:15px;background:#059669;border:none;border-radius:12px;color:#fff;font-size:.92rem;font-weight:800;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(5,150,105,.3);margin-top:4px;transition:all .15s;-webkit-tap-highlight-color:transparent;" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">
+        <button onclick="saveCir('${tipo}',${c.id})" style="width:100%;padding:15px;background:#059669;border:none;border-radius:12px;color:#fff;font-size:.92rem;font-weight:800;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(5,150,105,.3);margin-top:4px;transition:all .15s;-webkit-tap-highlight-color:transparent;" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Guardar Cirurgia
         </button>
-        <button onclick="delCir('${tipo}',${c.id})" style="width:100%;padding:12px;background:transparent;border:1.5px solid #FCA5A5;border-radius:10px;color:var(--rd);font-size:.85rem;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-top:8px;-webkit-tap-highlight-color:transparent;">Cancelar</button>`;
+        <button onclick="delCir('${tipo}',${c.id})" style="width:100%;padding:12px;background:transparent;border:1.5px solid #FCA5A5;border-radius:10px;color:var(--rd);font-size:.85rem;font-weight:600;font-family:'Source Sans 3',sans-serif;cursor:pointer;margin-top:8px;-webkit-tap-highlight-color:transparent;">Cancelar</button>`;
     }else{return;}
     el.appendChild(div);
   });
@@ -1096,11 +1096,11 @@ function renderSus(){
         <div class="f" id="su-outro-row-${s.id}" style="display:${s.motivo==='Outro'?'block':'none'};">
           <label>Descrição<span class="req">*</span></label>
           <input type="text" id="su-outro-${s.id}" value="${s.motivoOutro}" placeholder="Descreva o motivo..."/></div>
-        <button onclick="saveSus(${s.id})" style="width:100%;padding:15px;background:#EA580C;border:none;border-radius:12px;color:#fff;font-size:.92rem;font-weight:800;font-family:'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(234,88,12,.3);margin-top:4px;transition:all .15s;-webkit-tap-highlight-color:transparent;" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">
+        <button onclick="saveSus(${s.id})" style="width:100%;padding:15px;background:#EA580C;border:none;border-radius:12px;color:#fff;font-size:.92rem;font-weight:800;font-family:'Source Sans 3',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(234,88,12,.3);margin-top:4px;transition:all .15s;-webkit-tap-highlight-color:transparent;" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           Guardar Suspensão
         </button>
-        <button onclick="delSus(${s.id})" style="width:100%;padding:12px;background:transparent;border:1.5px solid #FCA5A5;border-radius:10px;color:var(--rd);font-size:.85rem;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-top:8px;-webkit-tap-highlight-color:transparent;">Cancelar</button>`;
+        <button onclick="delSus(${s.id})" style="width:100%;padding:12px;background:transparent;border:1.5px solid #FCA5A5;border-radius:10px;color:var(--rd);font-size:.85rem;font-weight:600;font-family:'Source Sans 3',sans-serif;cursor:pointer;margin-top:8px;-webkit-tap-highlight-color:transparent;">Cancelar</button>`;
     }else{return;}
     el.appendChild(div);
   });
@@ -1305,16 +1305,16 @@ function visualizar(){
   const S=(t)=>`<div class="mst">${t}</div>`;
   const chip=(label,val,bg,col)=>`<div style="background:${bg};border:1.5px solid ${col}40;border-radius:10px;padding:10px 8px;text-align:center;">
     <div style="font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${col};margin-bottom:3px;">${label}</div>
-    <div style="font-family:'DM Mono',monospace;font-size:1.7rem;font-weight:800;color:${col};line-height:1;">${val}</div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:1.7rem;font-weight:800;color:${col};line-height:1;">${val}</div>
   </div>`;
 
   let html=`
-  <div style="background:linear-gradient(135deg,#0D1B3E,#1A3A7A);border-radius:14px;padding:16px;margin-bottom:14px;">
+  <div style="background:linear-gradient(135deg,#1B2A3D,#1A3A7A);border-radius:14px;padding:16px;margin-bottom:14px;">
     <div style="font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:12px;">Resumo do Turno · ${pdfDateFmt()}</div>
     <!-- Total grande centrado -->
     <div style="text-align:center;margin-bottom:14px;">
       <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.45);margin-bottom:6px;">Total Cirurgias Realizadas</div>
-      <div style="font-family:'DM Mono',monospace;font-size:3.2rem;font-weight:800;color:#60A5FA;line-height:1;">${totCir}</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:3.2rem;font-weight:800;color:#60A5FA;line-height:1;">${totCir}</div>
     </div>
     <!-- Grid urgentes | eletivas | suspensas | óbitos -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:${selClass?'10px':'0'};">
@@ -1332,7 +1332,7 @@ function visualizar(){
   if(espOrdenado.length>0){
     html+=`<div class="ms">${S('🏥 Especialidades no Bloco')}`;
     const maxN=espOrdenado[0][1];
-    const espCores=['#1A56DB','#7C3AED','#059669','#D97706','#DC2626','#0F766E','#EA580C','#9333EA','#0284C7','#65A30D'];
+    const espCores=['#3E5C87','#7C3AED','#059669','#D97706','#DC2626','#0F766E','#EA580C','#9333EA','#0284C7','#65A30D'];
     espOrdenado.forEach(([esp,n],i)=>{
       const pct=Math.round(n/totCir*100);
       const col=espCores[i%espCores.length];
@@ -1341,7 +1341,7 @@ function visualizar(){
         <div style="flex:1;background:#F1F5F9;border-radius:100px;height:12px;overflow:hidden;">
           <div style="height:100%;background:${col};border-radius:100px;width:${Math.round(n/maxN*100)}%;transition:width .5s;"></div>
         </div>
-        <span style="font-family:'DM Mono',monospace;font-size:.82rem;font-weight:700;color:${col};min-width:48px;text-align:right;">${n} (${pct}%)</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;font-weight:700;color:${col};min-width:48px;text-align:right;">${n} (${pct}%)</span>
       </div>`;
     });
     html+=`</div>`;
@@ -1354,7 +1354,7 @@ function visualizar(){
   if(anestOrdenado.length>0){
     html+=`<div class="ms">${S('💉 Técnicas Anestésicas (por quantidade)')}`;
     const maxA=anestOrdenado[0][1];
-    const anestCores=['#5B21B6','#1A56DB','#059669','#D97706','#DC2626','#0F766E','#EA580C','#9333EA','#0284C7','#65A30D'];
+    const anestCores=['#5B21B6','#3E5C87','#059669','#D97706','#DC2626','#0F766E','#EA580C','#9333EA','#0284C7','#65A30D'];
     anestOrdenado.forEach(([tec,n],i)=>{
       const col=anestCores[i%anestCores.length];
       html+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
@@ -1362,7 +1362,7 @@ function visualizar(){
         <div style="flex:1;background:#F1F5F9;border-radius:100px;height:12px;overflow:hidden;">
           <div style="height:100%;background:${col};border-radius:100px;width:${Math.round(n/maxA*100)}%;transition:width .5s;"></div>
         </div>
-        <span style="font-family:'DM Mono',monospace;font-size:.82rem;font-weight:700;color:${col};min-width:24px;text-align:right;">${n}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:.82rem;font-weight:700;color:${col};min-width:24px;text-align:right;">${n}</span>
       </div>`;
     });
     html+=`</div>`;
@@ -1477,14 +1477,14 @@ async function gerarPDF(silencioso){
     const setT=h=>pdf.setTextColor(hR(h),hG(h),hB(h));
     function chk(n=8){if(y+n>PH-MB){pdf.addPage();y=MT;strip();}}
     function strip(){
-      setF('#0D1B3E');pdf.rect(0,0,PW,11,'F');setF('#1A56DB');pdf.rect(0,10,PW,1,'F');
+      setF('#1B2A3D');pdf.rect(0,0,PW,11,'F');setF('#3E5C87');pdf.rect(0,10,PW,1,'F');
       setT('#93C5FD');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
       pdf.text('ANESTESIA E REANIMAÇÃO · HOSPITAL DO PRENDA · Serviço de Admissão e Arquivo Médico Estatístico',ML,7);
       setT('#FFFFFF');pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);
       pdf.text(pdfDateFmt(),PW-MR,7,{align:'right'});y=15;
     }
     // CABEÇALHO
-    const HDR=42;setF('#0D1B3E');pdf.rect(0,0,PW,HDR,'F');setF('#1A56DB');pdf.rect(0,HDR-1,PW,1,'F');
+    const HDR=42;setF('#1B2A3D');pdf.rect(0,0,PW,HDR,'F');setF('#3E5C87');pdf.rect(0,HDR-1,PW,1,'F');
     const logoCanvas=document.createElement('canvas');logoCanvas.width=300;logoCanvas.height=300;
     const lc=logoCanvas.getContext('2d');lc.fillStyle='#04598C';lc.beginPath();lc.arc(150,150,150,0,Math.PI*2);lc.fill();
     const li=new Image();
@@ -1499,12 +1499,12 @@ async function gerarPDF(silencioso){
     setF('#059669');pdf.rect(0,HDR-2,PW,2,'F');
     if(selClass){
       const pW=32,pX=PW-MR-pW,pY=10;
-      setF('#1A56DB');pdf.roundedRect(pX,pY,pW,20,3,3,'F');setD('#60A5FA');pdf.setLineWidth(.4);pdf.roundedRect(pX,pY,pW,20,3,3,'S');
+      setF('#3E5C87');pdf.roundedRect(pX,pY,pW,20,3,3,'F');setD('#60A5FA');pdf.setLineWidth(.4);pdf.roundedRect(pX,pY,pW,20,3,3,'S');
       setT('#93C5FD');pdf.setFontSize(6);pdf.setFont('helvetica','bold');pdf.text('ESTADO DO BLOCO',pX+pW/2,pY+6,{align:'center'});
       setT('#FFFFFF');pdf.setFontSize(11);pdf.setFont('helvetica','bold');pdf.text(selClass,pX+pW/2,pY+15,{align:'center'});
     }
     y=HDR+5;
-    function secTitle(txt,bg='#1A56DB'){
+    function secTitle(txt,bg='#3E5C87'){
       chk(10);setF(bg);pdf.rect(ML,y,CW,7,'F');
       setT('#FFFFFF');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');pdf.text(txt.toUpperCase(),ML+3,y+5);y+=9;
     }
@@ -1517,15 +1517,15 @@ async function gerarPDF(silencioso){
     function numCards(items){
       chk(18);const n=items.length,cw=(CW-(n-1)*3)/n;
       items.forEach((it,i)=>{
-        const cx=ML+i*(cw+3);setF(it.bg||'#EFF6FF');pdf.roundedRect(cx,y,cw,16,2,2,'F');
+        const cx=ML+i*(cw+3);setF(it.bg||'#F2F5F9');pdf.roundedRect(cx,y,cw,16,2,2,'F');
         setT(it.lc||'#1E40AF');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');pdf.text(it.label,cx+cw/2,y+5.5,{align:'center'});
-        setT(it.vc||'#0D1B3E');pdf.setFontSize(16);pdf.setFont('helvetica','bold');pdf.text(String(it.val),cx+cw/2,y+13.5,{align:'center'});
+        setT(it.vc||'#1B2A3D');pdf.setFontSize(16);pdf.setFont('helvetica','bold');pdf.text(String(it.val),cx+cw/2,y+13.5,{align:'center'});
       });y+=19;
     }
     const sep=(g=4)=>{y+=g;};
 
     // EQUIPA
-    secTitle('Equipa de Serviço','#1A56DB');
+    secTitle('Equipa de Serviço','#3E5C87');
     Object.entries(meds).forEach(([k,v],i)=>tableRow(k,v,i%2===0));sep(5);
 
     // CIRURGIAS URGENTES
@@ -1533,7 +1533,7 @@ async function gerarPDF(silencioso){
       secTitle('Cirurgias Urgentes','#D97706');
       numCards([
         {label:'TOTAL',val:urgSv.length,bg:'#FFFBEB',lc:'#92400E',vc:'#92400E'},
-        {label:'MASC.',val:urgSv.filter(x=>x.genero==='M').length,bg:'#EFF6FF',lc:'#1E40AF',vc:'#1E40AF'},
+        {label:'MASC.',val:urgSv.filter(x=>x.genero==='M').length,bg:'#F2F5F9',lc:'#1E40AF',vc:'#1E40AF'},
         {label:'FEM.',val:urgSv.filter(x=>x.genero==='F').length,bg:'#FDF2F8',lc:'#9D174D',vc:'#9D174D'},
         {label:'ÓBITOS',val:urgSv.filter(x=>x.falecido).length,bg:'#FFF5F5',lc:'#DC2626',vc:'#DC2626'},
       ]);
@@ -1571,7 +1571,7 @@ async function gerarPDF(silencioso){
       secTitle('Cirurgias Eletivas','#7C3AED');
       numCards([
         {label:'TOTAL',val:eleSv.length,bg:'#F5F3FF',lc:'#5B21B6',vc:'#5B21B6'},
-        {label:'MASC.',val:eleSv.filter(x=>x.genero==='M').length,bg:'#EFF6FF',lc:'#1E40AF',vc:'#1E40AF'},
+        {label:'MASC.',val:eleSv.filter(x=>x.genero==='M').length,bg:'#F2F5F9',lc:'#1E40AF',vc:'#1E40AF'},
         {label:'FEM.',val:eleSv.filter(x=>x.genero==='F').length,bg:'#FDF2F8',lc:'#9D174D',vc:'#9D174D'},
         {label:'ÓBITOS',val:eleSv.filter(x=>x.falecido).length,bg:'#FFF5F5',lc:'#DC2626',vc:'#DC2626'},
       ]);
@@ -1638,11 +1638,11 @@ async function gerarPDF(silencioso){
 
     // GÉNERO E FAIXA ETÁRIA
     if(totCir>0){
-      sep(3);secTitle('Género e Faixa Etária','#1A56DB');
+      sep(3);secTitle('Género e Faixa Etária','#3E5C87');
       const todas2=[...urgSv,...eleSv];
       const masc2=todas2.filter(x=>x.genero==='M').length,fem2=todas2.filter(x=>x.genero==='F').length;
       numCards([
-        {label:'MASCULINO ♂',val:masc2,bg:'#EFF6FF',lc:'#1E40AF',vc:'#1E40AF'},
+        {label:'MASCULINO ♂',val:masc2,bg:'#F2F5F9',lc:'#1E40AF',vc:'#1E40AF'},
         {label:'FEMININO ♀',val:fem2,bg:'#FDF2F8',lc:'#9D174D',vc:'#9D174D'},
       ]);sep(3);
       const idades2=todas2.map(c=>parseInt(c.idade)).filter(n=>!isNaN(n)&&n>=0);
@@ -1663,7 +1663,7 @@ async function gerarPDF(silencioso){
         todas3.forEach(c=>{const e=c.especialidade||'Outro';espMap[e]=(espMap[e]||0)+1;});
         const espOrdenado=Object.entries(espMap).sort((a,b)=>b[1]-a[1]);
         const maxN=espOrdenado[0][1];
-        const espCores=['#1A56DB','#7C3AED','#059669','#D97706','#DC2626','#0F766E','#EA580C'];
+        const espCores=['#3E5C87','#7C3AED','#059669','#D97706','#DC2626','#0F766E','#EA580C'];
         espOrdenado.forEach(([esp,n],i)=>{
           chk(10);
           const pct=Math.round(n/todas3.length*100);
@@ -1709,8 +1709,8 @@ async function gerarPDF(silencioso){
     const pg=pdf.internal.getNumberOfPages();
     for(let i=1;i<=pg;i++){
       pdf.setPage(i);
-      setF('#0D1B3E');pdf.rect(0,PH-12,PW,12,'F');
-      setF('#1A56DB');pdf.rect(0,PH-12,PW,1,'F');
+      setF('#1B2A3D');pdf.rect(0,PH-12,PW,12,'F');
+      setF('#3E5C87');pdf.rect(0,PH-12,PW,1,'F');
       setF('#059669');pdf.rect(0,PH-13,PW,1,'F');
       try{ pdf.addImage(ZELO_ICON_B64,'PNG',ML,PH-10.5,7,7); }catch(e){}
       setT('#93C5FD');pdf.setFontSize(7.5);pdf.setFont('helvetica','normal');

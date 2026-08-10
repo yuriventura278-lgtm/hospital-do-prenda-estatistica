@@ -12,7 +12,7 @@
     html{color-scheme:light;}
     html[data-zelo-theme="dark"]{color-scheme:dark;}
     :root[data-zelo-theme="dark"]{
-      --bl:#3B82F6;--bl2:#60A5FA;--cy:#22D3EE;--cyl:#67E8F9;
+      --bl:#7C9BC4;--bl2:#A8C0DE;--cy:#22D3EE;--cyl:#67E8F9;
       --blt:#1E3A5F;--blxt:#152A47;
       --gr:#34D399;--rd:#F87171;--am:#FBBF24;--or:#FB923C;--pu:#A78BFA;
       --sf:#0B1220;--br:#1E293B;--br2:#334155;
@@ -45,7 +45,7 @@
     .zelo-theme-header-btn.on-dark{border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.85);background:rgba(255,255,255,.08);}
     .zelo-theme-header-btn.on-dark:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35);color:#fff;}
     .zelo-theme-header-btn.on-light{border-color:#E2E8F0;color:#64748B;background:transparent;}
-    .zelo-theme-header-btn.on-light:hover{border-color:#1A56DB;color:#1A56DB;}
+    .zelo-theme-header-btn.on-light:hover{border-color:#3E5C87;color:#3E5C87;}
     html[data-zelo-theme="dark"] .zelo-theme-header-btn.on-light{border-color:#334155;color:#CBD5E1;}
   `;
   document.head.appendChild(style);
