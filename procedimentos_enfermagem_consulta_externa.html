@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt" data-theme="light">
 <head>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='procedimentos_enfermagem';</script>
@@ -31,7 +31,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Procedimentos — Consulta Externa</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="zelo_tokens.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <!-- Excel: tenta 4 CDNs em cascata para garantir carregamento -->
@@ -58,18 +59,18 @@
 <style>
 /* ════ CLINICAL MINIMAL v1 ════ */
 :root{
-  --bg:#fafaf9;--surface:#ffffff;
-  --border:oklch(92% 0.003 50);
-  --text:#0a0a0a;--muted:#6b6b6b;
-  --accent:oklch(45% 0.08 230);
-  --accent-tint:oklch(97% 0.01 230);
-  --accent-ring:oklch(89% 0.03 230);
+  --bg:var(--zelo-bg, #fafaf9);--surface:var(--zelo-surface, #ffffff);
+  --border:var(--zelo-line, oklch(92% 0.003 50));
+  --text:var(--zelo-ink, #0a0a0a);--muted:var(--zelo-ink-soft, #6b6b6b);
+  --accent:var(--zelo-accent, #3E5C87);
+  --accent-tint:var(--zelo-accent-soft, #E9EEF4);
+  --accent-ring:#B9C6D9;
   /* compat */
-  --accent2:var(--muted);--surface2:#f5f5f4;
+  --accent2:var(--muted);--surface2:var(--zelo-surface-2, #f5f5f4);
   --danger:#c0392b;--warn:#b45309;
   --green:#047857;--purple:#5b21b6;--orange:#c2410c;
-  --font-head:'Inter',sans-serif;
-  --font-body:'IBM Plex Mono',monospace;
+  --font-head:var(--zelo-font-body, 'Source Sans 3', sans-serif);
+  --font-body:var(--zelo-font-mono, 'IBM Plex Mono', monospace);
   --nav-w:220px;--hdr-h:56px;--top-h:var(--hdr-h);
 }
 
@@ -446,7 +447,7 @@ html.dark .feriado-notice .svc-icon{color:#f87171;}
 .backup-opts{display:flex;flex-direction:column;gap:8px;}
 .bopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px 14px;border-radius:6px;
   border:1px solid var(--border);background:var(--bg);cursor:pointer;text-align:left;width:100%;}
-.bopt:hover{border-color:var(--accent,#1A56DB);background:var(--surface);}
+.bopt:hover{border-color:var(--accent,#3E5C87);background:var(--surface);}
 .bopt strong{font-family:var(--font-head);font-size:.78rem;font-weight:700;color:var(--text);}
 .bopt span{font-family:var(--font-head);font-size:.66rem;color:var(--muted);}
 
@@ -1854,7 +1855,7 @@ function _fbMostrarAvisoNovosDados(remoto, date){
   if (document.getElementById('fb-novos-dados-banner')) return;
   const banner = document.createElement('div');
   banner.id = 'fb-novos-dados-banner';
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#1A56DB;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#3E5C87;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
   const autorNome = remoto?.snapshot?.raw?.criadoPor?.nome;
   const quandoDt = remoto?.savedAt ? new Date(remoto.savedAt) : null;
   const horaFmt = quandoDt ? `${String(quandoDt.getHours()).padStart(2,'0')}:${String(quandoDt.getMinutes()).padStart(2,'0')}` : null;
@@ -1862,7 +1863,7 @@ function _fbMostrarAvisoNovosDados(remoto, date){
     ? `🔄 Dados mais recentes guardados por <strong>${_escHtml(autorNome)}</strong>${horaFmt ? ' às ' + horaFmt : ''}.`
     : '🔄 Outro utilizador guardou dados mais recentes para este dia.';
   banner.innerHTML = '<span>' + msgAviso + '</span>' +
-    '<button type="button" data-act="atualizar" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>' +
+    '<button type="button" data-act="atualizar" style="background:#fff;color:#3E5C87;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>' +
     '<button type="button" data-act="dispensar" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.8rem;">Agora não</button>';
   // O botao "Atualizar" aplica explicitamente os dados pendentes ANTES de recarregar -- sem isto,
   // recarregar nao mudava nada localmente e o aviso reaparecia sempre, preso num ciclo.
@@ -5032,14 +5033,14 @@ function _mkOpts(horiz) {
   return {
     indexAxis: ax, responsive: true, maintainAspectRatio: false,
     plugins: {
-      legend: { labels: { font:{family:'Inter',size:11}, color:_CP.text, boxWidth:10, padding:14 } },
+      legend: { labels: { font:{family:'Source Sans 3',size:11}, color:_CP.text, boxWidth:10, padding:14 } },
       tooltip: { backgroundColor:'#fff', borderColor:'rgba(0,0,0,.08)', borderWidth:1,
         titleColor:'#0a0a0a', bodyColor:_CP.text,
-        titleFont:{family:'Inter',weight:'600',size:11}, bodyFont:{family:'IBM Plex Mono',size:11} }
+        titleFont:{family:'Source Sans 3',weight:'600',size:11}, bodyFont:{family:'IBM Plex Mono',size:11} }
     },
     scales: {
-      x: { grid:{color:_CP.grid}, ticks:{font:{family:horiz?'IBM Plex Mono':'Inter',size:10},color:_CP.text,maxRotation:horiz?0:38} },
-      y: { grid:{color:_CP.grid}, ticks:{font:{family:horiz?'Inter':'IBM Plex Mono',size:10},color:_CP.text}, beginAtZero:true }
+      x: { grid:{color:_CP.grid}, ticks:{font:{family:horiz?'IBM Plex Mono':'Source Sans 3',size:10},color:_CP.text,maxRotation:horiz?0:38} },
+      y: { grid:{color:_CP.grid}, ticks:{font:{family:horiz?'Source Sans 3':'IBM Plex Mono',size:10},color:_CP.text}, beginAtZero:true }
     }
   };
 }
