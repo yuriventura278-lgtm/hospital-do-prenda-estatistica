@@ -6,6 +6,7 @@
 <script>window.ZELO_ITEM='controlo_faltas_gepedema';</script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
 <script>zeloRequestPersistentStorage();</script>
@@ -1726,5 +1727,102 @@ window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
+<script>
+// ── Backup automático em pasta local (ver zelo_auto_backup.js) ──────────
+// Este módulo não sincroniza com o Firebase — os dados vivem só no
+// IndexedDB deste dispositivo (base "ControloFaltasHP", lojas "faltas"
+// por dia e "ferias" por intervalo). Abre-se aqui uma segunda ligação de
+// leitura à mesma base (o IndexedDB permite-o) em vez de reutilizar
+// "db"/idbGetAll, que vivem fechados dentro da função que corre a página.
+(function () {
+  if (typeof ZeloAutoBackup === 'undefined') return;
+
+  function _isoLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function _abrirDB() {
+    return new Promise(function (resolve) {
+      if (!window.indexedDB) { resolve(null); return; }
+      const req = indexedDB.open('ControloFaltasHP', 2);
+      req.onsuccess = function (e) { resolve(e.target.result); };
+      req.onerror = function () { resolve(null); };
+    });
+  }
+  function _getAll(db, store) {
+    if (!db || !db.objectStoreNames.contains(store)) return Promise.resolve([]);
+    return new Promise(function (resolve) {
+      try {
+        const tx = db.transaction(store, 'readonly');
+        const req = tx.objectStore(store).getAll();
+        req.onsuccess = function () { resolve(req.result || []); };
+        req.onerror = function () { resolve([]); };
+      } catch (e) { resolve([]); }
+    });
+  }
+  async function _tudo() {
+    const db = await _abrirDB();
+    const [faltas, ferias] = await Promise.all([_getAll(db, 'faltas'), _getAll(db, 'ferias')]);
+    return { faltas: faltas, ferias: ferias };
+  }
+  function _limitesDoPeriodo(cadencia, fimISO) {
+    const fim = new Date(fimISO + 'T00:00:00');
+    let inicio;
+    switch (cadencia) {
+      case 'diario': inicio = new Date(fim); break;
+      case 'semanal': inicio = new Date(fim); inicio.setDate(inicio.getDate() - 6); break;
+      case 'mensal': inicio = new Date(fim.getFullYear(), fim.getMonth(), 1); break;
+      case 'trimestral': inicio = new Date(fim.getFullYear(), Math.floor(fim.getMonth() / 3) * 3, 1); break;
+      case 'semestral': inicio = new Date(fim.getFullYear(), fim.getMonth() < 6 ? 0 : 6, 1); break;
+      case 'anual': inicio = new Date(fim.getFullYear(), 0, 1); break;
+    }
+    return { inicioISO: _isoLocal(inicio), fimISO: _isoLocal(fim) };
+  }
+  function _fimDoPeriodoContendo(cadencia, dataISO) {
+    const d = new Date(dataISO + 'T00:00:00');
+    let fim;
+    switch (cadencia) {
+      case 'diario': fim = new Date(d); break;
+      case 'semanal': { const dow = (d.getDay() + 6) % 7; fim = new Date(d); fim.setDate(fim.getDate() + (6 - dow)); break; }
+      case 'mensal': fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); break;
+      case 'trimestral': fim = new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 0); break;
+      case 'semestral': fim = new Date(d.getFullYear(), d.getMonth() < 6 ? 6 : 12, 0); break;
+      case 'anual': fim = new Date(d.getFullYear(), 12, 0); break;
+    }
+    return _isoLocal(fim);
+  }
+
+  window.ZBK_periodosDisponiveis = async function (cadencia) {
+    const { faltas, ferias } = await _tudo();
+    const hojeISO = _isoLocal(new Date());
+    const vistos = {};
+    function marcar(dataISO) {
+      if (!dataISO || !/^\d{4}-\d{2}-\d{2}$/.test(dataISO)) return;
+      const fimISO = _fimDoPeriodoContendo(cadencia, dataISO);
+      if (fimISO >= hojeISO) return; // nunca o período em curso
+      const chave = ZeloAutoBackup._periodoAtual(cadencia, new Date(fimISO + 'T00:00:00'));
+      vistos[chave] = fimISO;
+    }
+    faltas.forEach(function (r) { marcar(r && r.date); });
+    ferias.forEach(function (r) { marcar(r && r.fim); });
+    return Object.keys(vistos).map(function (chave) { return { chave: chave, dataRefISO: vistos[chave] }; });
+  };
+
+  window.ZBK_getBackupJSON = async function (cadencia, fimISO) {
+    const limites = _limitesDoPeriodo(cadencia, fimISO);
+    const { faltas, ferias } = await _tudo();
+    const faltasNoPeriodo = faltas.filter(function (r) {
+      return r && r.date >= limites.inicioISO && r.date <= limites.fimISO;
+    });
+    const feriasNoPeriodo = ferias.filter(function (r) {
+      return r && r.fim >= limites.inicioISO && r.fim <= limites.fimISO;
+    });
+    const conteudo = { periodo: { inicio: limites.inicioISO, fim: limites.fimISO }, faltas: faltasNoPeriodo, ferias: feriasNoPeriodo };
+    return { nome: 'backup_controlo_faltas_gepedema_' + cadencia + '_' + limites.fimISO + '.json', conteudo: conteudo };
+  };
+
+  ZeloAutoBackup.montarUI('controlo_faltas_gepedema');
+  ZeloAutoBackup.iniciar('controlo_faltas_gepedema');
+})();
+</script>
 </body>
 </html>

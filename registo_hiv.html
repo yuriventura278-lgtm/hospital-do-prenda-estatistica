@@ -6,6 +6,7 @@
 <script>window.ZELO_ITEM='registo_hiv';</script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>Registo VIH — Hospital do Prenda</title>
@@ -968,6 +969,78 @@ function _zeloAtualizarBackupTrigger(){
 }
 _zeloAtualizarBackupTrigger();
 window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
+</script>
+<script>
+// ── Backup automático em pasta local (ver zelo_auto_backup.js) ──────────
+// Este módulo não sincroniza com o Firebase (é só local — ver comentário
+// "Sem sincronização entre dispositivos" mais acima), por isso os
+// períodos vêm directamente do histórico local (hiv_reg_v1_hist), em vez
+// de ZeloAutoBackup.criarBackupFirebase(), que pressupõe dados no Firebase.
+// Cada registo do histórico cobre um intervalo escolhido pelo utilizador
+// (dataInicio_dataFim, guardado em "key") — agrupa-se aqui pela data de
+// fim desse intervalo.
+(function () {
+  if (typeof ZeloAutoBackup === 'undefined') return;
+
+  function _isoLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function _getHist() {
+    try { return JSON.parse(localStorage.getItem('hiv_reg_v1_hist') || '[]'); } catch (e) { return []; }
+  }
+  function _limitesDoPeriodo(cadencia, fimISO) {
+    const fim = new Date(fimISO + 'T00:00:00');
+    let inicio;
+    switch (cadencia) {
+      case 'diario': inicio = new Date(fim); break;
+      case 'semanal': inicio = new Date(fim); inicio.setDate(inicio.getDate() - 6); break;
+      case 'mensal': inicio = new Date(fim.getFullYear(), fim.getMonth(), 1); break;
+      case 'trimestral': inicio = new Date(fim.getFullYear(), Math.floor(fim.getMonth() / 3) * 3, 1); break;
+      case 'semestral': inicio = new Date(fim.getFullYear(), fim.getMonth() < 6 ? 0 : 6, 1); break;
+      case 'anual': inicio = new Date(fim.getFullYear(), 0, 1); break;
+    }
+    return { inicioISO: _isoLocal(inicio), fimISO: _isoLocal(fim) };
+  }
+  function _fimDoPeriodoContendo(cadencia, dataISO) {
+    const d = new Date(dataISO + 'T00:00:00');
+    let fim;
+    switch (cadencia) {
+      case 'diario': fim = new Date(d); break;
+      case 'semanal': { const dow = (d.getDay() + 6) % 7; fim = new Date(d); fim.setDate(fim.getDate() + (6 - dow)); break; }
+      case 'mensal': fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); break;
+      case 'trimestral': fim = new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 0); break;
+      case 'semestral': fim = new Date(d.getFullYear(), d.getMonth() < 6 ? 6 : 12, 0); break;
+      case 'anual': fim = new Date(d.getFullYear(), 12, 0); break;
+    }
+    return _isoLocal(fim);
+  }
+
+  window.ZBK_periodosDisponiveis = function (cadencia) {
+    const hojeISO = _isoLocal(new Date());
+    const vistos = {};
+    _getHist().forEach(function (h) {
+      const sf = (h.key || '').split('_')[1];
+      if (!sf || !/^\d{4}-\d{2}-\d{2}$/.test(sf)) return;
+      const fimISO = _fimDoPeriodoContendo(cadencia, sf);
+      if (fimISO >= hojeISO) return; // nunca o período em curso
+      const chave = ZeloAutoBackup._periodoAtual(cadencia, new Date(fimISO + 'T00:00:00'));
+      vistos[chave] = fimISO;
+    });
+    return Object.keys(vistos).map(function (chave) { return { chave: chave, dataRefISO: vistos[chave] }; });
+  };
+
+  window.ZBK_getBackupJSON = function (cadencia, fimISO) {
+    const limites = _limitesDoPeriodo(cadencia, fimISO);
+    const registos = _getHist().filter(function (h) {
+      const sf = (h.key || '').split('_')[1];
+      return sf && sf >= limites.inicioISO && sf <= limites.fimISO;
+    });
+    return { nome: 'backup_registo_hiv_' + cadencia + '_' + limites.fimISO + '.json', conteudo: registos };
+  };
+
+  ZeloAutoBackup.montarUI('registo_hiv');
+  ZeloAutoBackup.iniciar('registo_hiv');
+})();
 </script>
 </body>
 </html>
