@@ -1,0 +1,70 @@
+ZELO — Pasta de Backup Protegida (Windows)
+============================================
+
+O que isto é
+------------
+Dois scripts para Windows que criam, em cada computador do hospital, uma
+pasta dedicada aos backups automáticos do ZELO com:
+
+  - Ícone próprio (cadeado), para se distinguir de uma pasta normal;
+  - Protecção contra eliminação — contas Windows "Padrão" não conseguem
+    apagar a pasta nem o que está lá dentro (o Windows recusa, com "Acesso
+    negado"), mesmo sem querer, pela Reciclagem ou de outra forma;
+  - Ocultação da navegação normal do Explorador, para não aparecer
+    à vista de qualquer pessoa que abra "Este Computador";
+  - Um atalho "Abrir Backup ZELO" no ambiente de trabalho que pede um
+    código antes de mostrar o conteúdo da pasta.
+
+Importante ser honesto sobre os limites
+----------------------------------------
+O Windows não tem uma função nativa de "pasta com palavra-passe" (isso só
+existe com BitLocker a cifrar o disco inteiro, ou software de terceiros).
+O que este conjunto de scripts oferece é o equivalente prático mais
+próximo, usando só ferramentas do próprio Windows:
+
+  - A eliminação é IMPEDIDA de verdade ao nível do sistema (permissões
+    NTFS) — isto é uma protecção real, não apenas visual.
+  - O "código de acesso" ao abrir a pasta é uma barreira de conveniência
+    (evita que alguém tropece na pasta e a abra por engano) — não é
+    encriptação. Alguém com conhecimentos avançados e conta de
+    Administrador consegue sempre contornar isto, tal como consegue
+    contornar qualquer protecção baseada em permissões do Windows.
+  - Para a protecção fazer sentido, os computadores do hospital devem
+    ter os funcionários a usar contas Windows "Padrão" (não
+    Administrador) no dia-a-dia — só a conta de Administrador (a de TI)
+    deve conseguir desfazer isto.
+
+Como instalar (uma vez por computador)
+---------------------------------------
+1. Copia a pasta "pasta_backup_protegida" (com os 2 ficheiros .ps1) para
+   o computador, por exemplo para o Ambiente de Trabalho.
+2. Clica com o botão direito em "Instalar_Pasta_Backup_Protegida.ps1" e
+   escolhe "Executar com o PowerShell". Se aparecer um aviso do
+   Controlo de Conta de Utilizador, escolhe "Sim" (o script precisa de
+   privilégios de Administrador só durante a instalação).
+3. Segue as perguntas no ecrã:
+     - Caminho da pasta (Enter para aceitar o sugerido); ou o caminho de outra
+     - Código de acesso (define e confirma).
+4. No fim aparece o caminho completo da pasta criada — guarda-o.
+
+Como ligar a pasta ao sistema ZELO
+------------------------------------
+1. Abre qualquer página do ZELO e clica no botão de Backup Automático,
+   no cabeçalho, e depois em "Escolher pasta".
+2. Como a pasta está oculta, pode não aparecer se navegares clicando
+   pastas normalmente no selector do navegador — em vez disso, cola o
+   caminho completo (mostrado no fim da instalação) na barra de endereço
+   da janela do selector e prime Enter, depois confirma a selecção.
+3. A partir daí o ZELO grava sozinho nessa pasta, organizado por
+   página e por período (Diário/Semanal/Mensal/Trimestral/...), sem
+   mais nada a fazer.
+
+Como abrir a pasta mais tarde (para copiar para uma pen, por exemplo)
+-------------------------------------------------------------------------
+Usa o atalho "Abrir Backup ZELO" no ambiente de trabalho. Vai pedir o
+código definido na instalação e depois abre a pasta no Explorador.
+
+Se precisares de repetir a instalação (mudar de pasta ou de código)
+---------------------------------------------------------------------
+Corre "Instalar_Pasta_Backup_Protegida.ps1" outra vez como Administrador
+— substitui a configuração anterior neste computador.

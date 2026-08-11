@@ -452,6 +452,7 @@
           '<p id="zbkSuporte" style="display:none;color:#DC2626;font-size:.75rem;">O seu navegador não suporta esta funcionalidade — funciona apenas no Google Chrome ou Microsoft Edge (computador).</p>' +
           '<div id="zbkCorpo">' +
             '<p style="font-size:.75rem;color:#64748B;line-height:1.5;margin:0;">Escolha uma pasta no computador. O sistema grava automaticamente uma cópia em JSON dos registos guardados — Diário, Semanal, Mensal, Trimestral, Semestral e Anual — sempre que esta página estiver aberta à volta da meia-noite, ou assim que a abrir de novo.</p>' +
+            '<p style="font-size:.7rem;color:#64748B;line-height:1.5;margin:8px 0 0;background:#F8FAFC;border-radius:8px;padding:8px 10px;">🔒 Queres que a pasta escolhida fique protegida contra remoção acidental e só se abra com um código? <a href="pasta_backup_protegida/LEIA-ME.txt" target="_blank" rel="noopener" style="color:#1E40AF;font-weight:700;">Ver instruções (Windows)</a>.</p>' +
             '<div id="zbkStatus" style="margin:10px 0;padding:10px 12px;background:#F8FAFC;border-radius:10px;font-size:.72rem;color:#334155;"><div id="zbkPastaNome">A verificar…</div></div>' +
             '<div id="zbkCadencias" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:.68rem;color:#64748B;margin-bottom:12px;"></div>' +
             '<div style="display:flex;flex-direction:column;gap:8px;">' +
