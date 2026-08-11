@@ -68,3 +68,34 @@ Se precisares de repetir a instalação (mudar de pasta ou de código)
 ---------------------------------------------------------------------
 Corre "Instalar_Pasta_Backup_Protegida.ps1" outra vez como Administrador
 — substitui a configuração anterior neste computador.
+
+Como isto foi validado
+-------------------------
+Estes scripts foram escritos e revistos com cuidado, mas NÃO foram
+corridos numa máquina Windows real — o ambiente onde foram desenvolvidos
+não tem acesso a Windows para testar. A sintaxe do PowerShell e do
+"icacls" (o comando que aplica a protecção contra eliminação) foi
+verificada contra a documentação oficial da Microsoft, e a lógica foi
+revista várias vezes à procura de erros — incluindo uma correcção
+importante: a primeira versão negava "Apagar" ao grupo "Utilizadores",
+mas numa conta de Administrador local (fora de um domínio) o Windows
+não a remove do grupo "Utilizadores" ao torná-la Administrador — ficaria
+nos dois grupos ao mesmo tempo, e uma permissão "Negar" aplica-se sempre,
+por isso isso teria bloqueado também a própria conta de TI. A versão
+actual evita este problema concedendo aos "Utilizadores" só as
+permissões de ler/criar/escrever (sem "Apagar"), em vez de negar
+explicitamente — assim uma conta de Administrador continua a conseguir
+remover a protecção quando for mesmo preciso.
+
+Recomendação: antes de instalar nos computadores do hospital, testa
+primeiro num único computador (ou numa máquina virtual Windows) que não
+seja crítico, confirmando que:
+  1. A pasta fica visível e com o ícone certo (se a "ocultares" de novo,
+     confirma primeiro que o ícone aparece antes de esconder);
+  2. Uma conta Windows "Padrão" não consegue apagar a pasta nem o que
+     está lá dentro (tenta apagar — deve dar "Acesso negado");
+  3. A conta de Administrador CONSEGUE apagar, se for preciso desfazer;
+  4. O atalho "Abrir Backup ZELO" pede o código e abre a pasta certa;
+  5. O botão "Escolher pasta" do ZELO consegue mesmo escrever ali.
+Se algum destes passos falhar, por favor reporta o erro exacto (a
+mensagem do PowerShell) para eu poder corrigir.

@@ -108,12 +108,27 @@ attrib +h +s $destino
 Write-Host 'Pasta ocultada da navegação normal do Explorador.' -ForegroundColor Green
 
 # ── 7. Impedir contas padrão de apagar a pasta ou o seu conteúdo ────────
-# Nega especificamente "Apagar" e "Apagar subpastas/ficheiros" ao grupo
-# incorporado "Utilizadores" (contas padrão), preservando leitura/escrita
-# — o sistema ZELO continua a conseguir gravar/actualizar ficheiros de
-# backup normalmente, só não é possível eliminá-los por engano.
-icacls $destino /deny '*S-1-5-32-545:(OI)(CI)(DE,DC)' | Out-Null
-Write-Host 'Protecção contra eliminação aplicada (contas padrão não conseguem apagar).' -ForegroundColor Green
+# IMPORTANTE: isto usa uma lista de permissões explícita (em vez de negar
+# "Apagar" ao grupo "Utilizadores" com /deny) de propósito. Numa conta de
+# Administrador local normal (fora de um domínio), o Windows torna essa
+# conta membro do grupo "Administradores" SEM a remover do grupo
+# "Utilizadores" — continua a pertencer aos dois. Se negássemos "Apagar"
+# ao grupo "Utilizadores", isso bloquearia TAMBÉM os Administradores
+# (uma permissão "Negar" aplica-se sempre, seja qual for o outro grupo
+# que também concede acesso), contradizendo a ideia de só a conta de TI
+# conseguir remover isto de propósito.
+# Em vez disso: quebra-se a herança e concede-se aos "Utilizadores"
+# exactamente as permissões para ler, criar e escrever ficheiros — mas
+# sem "Apagar" nem "Apagar subpastas/ficheiros" — enquanto os
+# Administradores e o SYSTEM recebem controlo total à parte. Assim, uma
+# conta de Administrador consegue apagar (via o controlo total que tem
+# por ser Administrador), mas uma conta padrão nunca recebe essa
+# permissão em lado nenhum.
+icacls $destino /inheritance:r | Out-Null
+icacls $destino /grant:r '*S-1-5-18:(OI)(CI)F' | Out-Null                                       # SYSTEM: controlo total
+icacls $destino /grant:r '*S-1-5-32-544:(OI)(CI)F' | Out-Null                                   # Administradores: controlo total
+icacls $destino /grant:r '*S-1-5-32-545:(OI)(CI)(RC,RD,WD,AD,REA,WEA,RA,X)' | Out-Null           # Utilizadores: ler/criar/escrever, sem apagar
+Write-Host 'Protecção contra eliminação aplicada (contas padrão não conseguem apagar; Administradores continuam a poder).' -ForegroundColor Green
 
 # ── 8. Atalho no ambiente de trabalho (todos os utilizadores) ───────────
 $desktopComum = [Environment]::GetFolderPath('CommonDesktopDirectory')
