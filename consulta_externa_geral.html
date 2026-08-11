@@ -1022,6 +1022,10 @@ CE.FAIXAS_ORDEM = ["0-4 anos","5-9 anos","10-14 anos","15-24 anos","25-45 anos",
 CE.MUNICIPIOS_LUANDA = ["Belas","Cacuaco","Cazenga","Icolo e Bengo","Ingombota","Kilamba Kiaxi",
   "Luanda","Maianga","Quiçama","Rangel","Samba","Sambizanga","Talatona","Viana"];
 
+CE.OUTRAS_PROVINCIAS = ["Bengo","Benguela","Bié","Cabinda","Cuando Cubango","Cuanza Norte",
+  "Cuanza Sul","Cunene","Huambo","Huíla","Lunda Norte","Lunda Sul","Malanje","Moxico",
+  "Namibe","Uíge","Zaire"];
+
 /* ============================================================
    PDF — fábrica partilhada (mesmo sistema visual do Banco de Urgência:
    mm, cores hex 6 dígitos, radius > 0). Usada pelo Relatório e pelo Registo Diário.
@@ -1736,7 +1740,12 @@ CE.Registo = (function(){
         '<div class="la-head"><b>Proveniência</b></div>' +
         '<div class="prov-add-row">' +
           '<select class="prov-select"><option value="">Selecione o município…</option>' +
-            CE.MUNICIPIOS_LUANDA.map(function(m){ return '<option value="' + m + '">' + m + '</option>'; }).join('') +
+            '<optgroup label="Luanda">' +
+              CE.MUNICIPIOS_LUANDA.map(function(m){ return '<option value="' + m + '">' + m + '</option>'; }).join('') +
+            '</optgroup>' +
+            '<optgroup label="Outras Províncias">' +
+              CE.OUTRAS_PROVINCIAS.map(function(m){ return '<option value="' + m + '">' + m + '</option>'; }).join('') +
+            '</optgroup>' +
             '<option value="__outro__">Outro (especificar)</option>' +
           '</select>' +
           '<input type="text" class="prov-outro-input" placeholder="Especifique a zona" style="display:none;">' +
