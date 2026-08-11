@@ -10,7 +10,12 @@
 // Cada página que queira usar isto define, antes de chamar
 // ZeloAutoBackup.iniciar(...), duas funções globais opcionais:
 //   window.ZBK_getBackupJSON(cadencia, periodoRefISO) → { nome, conteudo }
+//     (pode devolver directamente ou uma Promise que resolva para isso —
+//     páginas cujos dados vêm do Firebase, não de localStorage, precisam
+//     de ler de forma assíncrona; ambos os casos são suportados)
 //   window.ZBK_gerarPDF(cadencia, periodoRefISO) → Promise<{ nome, blob }>
+//   window.ZBK_periodosDisponiveis(cadencia) → lista de {chave,dataRefISO},
+//     também podendo devolver uma Promise
 // Se uma delas não existir, esse tipo de ficheiro simplesmente não é
 // gravado nessa página (ex.: uma página sem PDF só grava o JSON).
 //
@@ -237,7 +242,7 @@
     let gravouJson = false, gravouPdf = false, tentouAlgo = false, jsonMudou = false;
     try {
       if (typeof global.ZBK_getBackupJSON === 'function') {
-        const r = global.ZBK_getBackupJSON(cadencia, dataRefISO);
+        const r = await global.ZBK_getBackupJSON(cadencia, dataRefISO);
         if (r && r.conteudo && Object.keys(r.conteudo).length) {
           tentouAlgo = true;
           const hashConteudo = _hashTexto(JSON.stringify(r.conteudo));
@@ -276,10 +281,10 @@
   // lista completa (permite recuperar o histórico todo na primeira
   // configuração da pasta, não só o período mais recente). Sem essa função,
   // cai-se apenas no último período terminado (comportamento mínimo).
-  function _periodosAConsiderar(slug, cadencia, agora) {
+  async function _periodosAConsiderar(slug, cadencia, agora) {
     if (typeof global.ZBK_periodosDisponiveis === 'function') {
       try {
-        const lista = global.ZBK_periodosDisponiveis(cadencia) || [];
+        const lista = (await global.ZBK_periodosDisponiveis(cadencia)) || [];
         return lista.filter(p => p && p.chave && p.dataRefISO);
       } catch (e) { console.warn('[ZeloAutoBackup] ZBK_periodosDisponiveis falhou', e); }
     }
@@ -296,7 +301,7 @@
     const agora = new Date();
     const resultado = {};
     for (const cadencia of CADENCIAS) {
-      const periodos = _periodosAConsiderar(slug, cadencia, agora);
+      const periodos = await _periodosAConsiderar(slug, cadencia, agora);
       if (periodos.length === 0) { resultado[cadencia] = 'sem dados'; continue; }
       let atualizados = 0, semAlteracoes = 0, falhas = 0, ultimoMotivo = null;
       for (const p of periodos) {
