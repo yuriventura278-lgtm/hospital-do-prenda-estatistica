@@ -6,6 +6,7 @@
 <script>window.ZELO_ITEM='psicologia_atendimento';</script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -1018,5 +1019,99 @@ function seedDemo(){
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
 <script src="zelo_save_feedback.js"></script>
+<script>
+// ── Backup automático em pasta local (ver zelo_auto_backup.js) ──────────
+// Ao contrário das páginas com histórico "por dia" (uma entrada por
+// data), aqui cada atendimento vive no Firebase com a sua própria chave
+// (FB_BASE+'/atendimentos/'+id — ver mais acima), com a data guardada
+// dentro do próprio registo. Por isso não se pode usar
+// ZeloAutoBackup.criarBackupFirebase() directamente — agrupa-se aqui
+// pela data interna de cada atendimento.
+(function () {
+  if (typeof ZeloAutoBackup === 'undefined') return;
+
+  var FB_BASE_PSICO = 'registos_sistemas_locais/psicologia_atendimento';
+  function _isoLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  let cacheAt = null, cachePromessa = null, cacheTs = 0;
+  const CACHE_MS = 60 * 1000;
+  async function _lerAtendimentos() {
+    const agora = Date.now();
+    if (cacheAt && (agora - cacheTs) < CACHE_MS) return cacheAt;
+    if (cachePromessa) return cachePromessa;
+    cachePromessa = (async () => {
+      try {
+        const dados = window.__fbGet ? await window.__fbGet(FB_BASE_PSICO + '/atendimentos') : null;
+        cacheAt = dados || {};
+      } catch (e) {
+        console.warn('[BackupAuto] falha ao ler atendimentos', e);
+        cacheAt = cacheAt || {};
+      }
+      cacheTs = Date.now();
+      cachePromessa = null;
+      return cacheAt;
+    })();
+    return cachePromessa;
+  }
+
+  function _limitesDoPeriodo(cadencia, fimISO) {
+    const fim = new Date(fimISO + 'T00:00:00');
+    let inicio;
+    switch (cadencia) {
+      case 'diario': inicio = new Date(fim); break;
+      case 'semanal': inicio = new Date(fim); inicio.setDate(inicio.getDate() - 6); break;
+      case 'mensal': inicio = new Date(fim.getFullYear(), fim.getMonth(), 1); break;
+      case 'trimestral': inicio = new Date(fim.getFullYear(), Math.floor(fim.getMonth() / 3) * 3, 1); break;
+      case 'semestral': inicio = new Date(fim.getFullYear(), fim.getMonth() < 6 ? 0 : 6, 1); break;
+      case 'anual': inicio = new Date(fim.getFullYear(), 0, 1); break;
+    }
+    return { inicioISO: _isoLocal(inicio), fimISO: _isoLocal(fim) };
+  }
+  function _fimDoPeriodoContendo(cadencia, dataISO) {
+    const d = new Date(dataISO + 'T00:00:00');
+    let fim;
+    switch (cadencia) {
+      case 'diario': fim = new Date(d); break;
+      case 'semanal': { const dow = (d.getDay() + 6) % 7; fim = new Date(d); fim.setDate(fim.getDate() + (6 - dow)); break; }
+      case 'mensal': fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); break;
+      case 'trimestral': fim = new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 0); break;
+      case 'semestral': fim = new Date(d.getFullYear(), d.getMonth() < 6 ? 6 : 12, 0); break;
+      case 'anual': fim = new Date(d.getFullYear(), 12, 0); break;
+    }
+    return _isoLocal(fim);
+  }
+
+  window.ZBK_periodosDisponiveis = async function (cadencia) {
+    const atendimentos = await _lerAtendimentos();
+    const hojeISO = _isoLocal(new Date());
+    const vistos = {};
+    Object.keys(atendimentos).forEach(function (id) {
+      const a = atendimentos[id];
+      if (!a || !/^\d{4}-\d{2}-\d{2}$/.test(a.data || '')) return;
+      const fimISO = _fimDoPeriodoContendo(cadencia, a.data);
+      if (fimISO >= hojeISO) return; // nunca o período em curso
+      const chave = ZeloAutoBackup._periodoAtual(cadencia, new Date(fimISO + 'T00:00:00'));
+      vistos[chave] = fimISO;
+    });
+    return Object.keys(vistos).map(function (chave) { return { chave: chave, dataRefISO: vistos[chave] }; });
+  };
+
+  window.ZBK_getBackupJSON = async function (cadencia, fimISO) {
+    const limites = _limitesDoPeriodo(cadencia, fimISO);
+    const atendimentos = await _lerAtendimentos();
+    const registos = {};
+    Object.keys(atendimentos).forEach(function (id) {
+      const a = atendimentos[id];
+      if (a && a.data >= limites.inicioISO && a.data <= limites.fimISO) registos[id] = a;
+    });
+    return { nome: 'backup_psicologia_atendimento_' + cadencia + '_' + limites.fimISO + '.json', conteudo: registos };
+  };
+
+  ZeloAutoBackup.montarUI('psicologia_atendimento');
+  ZeloAutoBackup.iniciar('psicologia_atendimento');
+})();
+</script>
 </body>
 </html>
