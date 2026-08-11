@@ -334,12 +334,198 @@
     setInterval(() => { verificarEExecutar(slug).catch(() => {}); }, VERIFICACAO_MS);
   }
 
+  // ── Fábrica de ZBK_getBackupJSON/ZBK_periodosDisponiveis para páginas cujos
+  // dados diários vivem no Firebase Realtime Database, num nó em que cada
+  // filho directo é uma data "AAAA-MM-DD" (ex.: registos_sistemas_locais/
+  // laboratorio/2026-08-10) — o mesmo formato usado pela sincronização em
+  // tempo real (onValue) que estas páginas já têm. Lê o nó inteiro UMA vez
+  // (com cache de 60s, partilhada entre as 6 cadências e todos os períodos
+  // verificados no mesmo ciclo) em vez de um pedido por dia.
+  function criarBackupFirebase(caminhoBase) {
+    let cacheTodos = null, cachePromessa = null, cacheTs = 0;
+    const CACHE_MS = 60 * 1000;
+
+    async function _lerTodos() {
+      const agora = Date.now();
+      if (cacheTodos && (agora - cacheTs) < CACHE_MS) return cacheTodos;
+      if (cachePromessa) return cachePromessa;
+      cachePromessa = (async () => {
+        try {
+          const dados = (typeof global.__fbGet === 'function') ? await global.__fbGet(caminhoBase) : null;
+          cacheTodos = dados || {};
+        } catch (e) {
+          console.warn('[ZeloAutoBackup] falha ao ler ' + caminhoBase, e);
+          cacheTodos = cacheTodos || {};
+        }
+        cacheTs = Date.now();
+        cachePromessa = null;
+        return cacheTodos;
+      })();
+      return cachePromessa;
+    }
+
+    function _limitesDoPeriodo(cadencia, fimISO) {
+      const fim = new Date(fimISO + 'T00:00:00');
+      let inicio;
+      switch (cadencia) {
+        case 'diario': inicio = new Date(fim); break;
+        case 'semanal': inicio = new Date(fim); inicio.setDate(inicio.getDate() - 6); break;
+        case 'mensal': inicio = new Date(fim.getFullYear(), fim.getMonth(), 1); break;
+        case 'trimestral': inicio = new Date(fim.getFullYear(), Math.floor(fim.getMonth() / 3) * 3, 1); break;
+        case 'semestral': inicio = new Date(fim.getFullYear(), fim.getMonth() < 6 ? 0 : 6, 1); break;
+        case 'anual': inicio = new Date(fim.getFullYear(), 0, 1); break;
+      }
+      return { inicioISO: _ymd(inicio), fimISO: _ymd(fim) };
+    }
+    function _fimDoPeriodoContendo(cadencia, dataISO) {
+      const d = new Date(dataISO + 'T00:00:00');
+      let fim;
+      switch (cadencia) {
+        case 'diario': fim = new Date(d); break;
+        case 'semanal': { const dow = (d.getDay() + 6) % 7; fim = new Date(d); fim.setDate(fim.getDate() + (6 - dow)); break; }
+        case 'mensal': fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); break;
+        case 'trimestral': fim = new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 0); break;
+        case 'semestral': fim = new Date(d.getFullYear(), d.getMonth() < 6 ? 6 : 12, 0); break;
+        case 'anual': fim = new Date(d.getFullYear(), 12, 0); break;
+      }
+      return _ymd(fim);
+    }
+
+    async function ZBK_periodosDisponiveis(cadencia) {
+      const todos = await _lerTodos();
+      const hojeISO = _ymd(new Date());
+      const vistos = {};
+      Object.keys(todos).forEach(function (d) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+        if (!todos[d]) return;
+        const fimISO = _fimDoPeriodoContendo(cadencia, d);
+        if (fimISO >= hojeISO) return; // nunca o período em curso
+        const chave = _periodoAtual(cadencia, new Date(fimISO + 'T00:00:00'));
+        vistos[chave] = fimISO;
+      });
+      return Object.keys(vistos).map(function (chave) { return { chave: chave, dataRefISO: vistos[chave] }; });
+    }
+
+    async function ZBK_getBackupJSON(cadencia, fimISO) {
+      const limites = _limitesDoPeriodo(cadencia, fimISO);
+      const todos = await _lerTodos();
+      const registos = {};
+      Object.keys(todos).forEach(function (d) {
+        if (d >= limites.inicioISO && d <= limites.fimISO && todos[d]) registos[d] = todos[d];
+      });
+      const nomeBase = caminhoBase.split('/').pop();
+      return { nome: 'backup_' + nomeBase + '_' + cadencia + '_' + limites.fimISO + '.json', conteudo: registos };
+    }
+
+    return { ZBK_getBackupJSON: ZBK_getBackupJSON, ZBK_periodosDisponiveis: ZBK_periodosDisponiveis };
+  }
+
+  // ── Widget de UI partilhado: injecta o modal "Backup Automático" (uma
+  // única vez por página) e um botão de atalho no cabeçalho, ligados ao
+  // slug indicado. Poupa cada página de reimplementar o mesmo modal HTML/
+  // CSS/JS — só precisa de chamar ZeloAutoBackup.montarUI('slug').
+  const _ROTULOS_CADENCIA = { diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
+
+  function _encontrarInsercaoBotao() {
+    const grupo = document.querySelector('header .header-right, header .hdr-actions, header .header-actions, header .tb-right, header .h-right, .zelo-topbar .tb-right');
+    if (grupo) return { pai: grupo, antesDe: null };
+    const inicio = document.querySelector('header a[href="index.html"], .topbar a[href="index.html"], .hi a[href="index.html"], .top a[href="index.html"]');
+    if (inicio && inicio.parentNode) return { pai: inicio.parentNode, antesDe: inicio };
+    const cabecalho = document.querySelector('header, .zelo-topbar, .topbar, .top');
+    if (cabecalho) return { pai: cabecalho, antesDe: null };
+    return null;
+  }
+
+  function montarUI(slug) {
+    if (document.getElementById('zbkModal')) return; // já montado (ex.: chamada dupla)
+
+    const modal = document.createElement('div');
+    modal.id = 'zbkModal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(13,27,62,.72);backdrop-filter:blur(8px);z-index:9500;align-items:center;justify-content:center;padding:16px;';
+    modal.innerHTML =
+      '<div style="background:#fff;border-radius:20px;width:100%;max-width:440px;box-shadow:0 16px 48px rgba(13,27,62,.25);max-height:90vh;overflow:auto;font-family:system-ui,sans-serif;">' +
+        '<div style="padding:20px 22px 4px;display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
+          '<h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Backup Automático</h3>' +
+          '<button type="button" id="zbkFechar" aria-label="Fechar" style="background:#F1F5F9;border:none;border-radius:9px;width:30px;height:30px;cursor:pointer;color:#334155;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+        '</div>' +
+        '<div style="padding:10px 22px 22px;">' +
+          '<p id="zbkSuporte" style="display:none;color:#DC2626;font-size:.75rem;">O seu navegador não suporta esta funcionalidade — funciona apenas no Google Chrome ou Microsoft Edge (computador).</p>' +
+          '<div id="zbkCorpo">' +
+            '<p style="font-size:.75rem;color:#64748B;line-height:1.5;margin:0;">Escolha uma pasta no computador. O sistema grava automaticamente uma cópia em JSON dos registos guardados — Diário, Semanal, Mensal, Trimestral, Semestral e Anual — sempre que esta página estiver aberta à volta da meia-noite, ou assim que a abrir de novo.</p>' +
+            '<div id="zbkStatus" style="margin:10px 0;padding:10px 12px;background:#F8FAFC;border-radius:10px;font-size:.72rem;color:#334155;"><div id="zbkPastaNome">A verificar…</div></div>' +
+            '<div id="zbkCadencias" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:.68rem;color:#64748B;margin-bottom:12px;"></div>' +
+            '<div style="display:flex;flex-direction:column;gap:8px;">' +
+              '<button type="button" id="zbkEscolher" style="width:100%;padding:13px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;color:#1E40AF;font-size:.85rem;font-weight:700;font-family:inherit;cursor:pointer;">Escolher pasta</button>' +
+              '<button type="button" id="zbkVerificar" style="width:100%;padding:13px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;color:#166534;font-size:.85rem;font-weight:700;font-family:inherit;cursor:pointer;">Verificar agora</button>' +
+              '<button type="button" id="zbkEsquecer" style="width:100%;padding:13px;background:#FEF2F2;border:1.5px solid #FECACA;border-radius:10px;color:#991B1B;font-size:.85rem;font-weight:700;font-family:inherit;cursor:pointer;">Esquecer pasta</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    function abrir() { modal.style.display = 'flex'; atualizarStatus(); }
+    function fechar() { modal.style.display = 'none'; }
+    modal.addEventListener('click', function (e) { if (e.target === modal) fechar(); });
+    document.getElementById('zbkFechar').addEventListener('click', fechar);
+
+    async function atualizarStatus() {
+      const suporteMsg = document.getElementById('zbkSuporte');
+      const corpo = document.getElementById('zbkCorpo');
+      if (!suportado()) { suporteMsg.style.display = 'block'; corpo.style.display = 'none'; return; }
+      suporteMsg.style.display = 'none';
+      corpo.style.display = 'block';
+      const pasta = await obterPastaAtiva(false);
+      const nomeEl = document.getElementById('zbkPastaNome');
+      if (pasta.estado === 'ok') nomeEl.textContent = '📁 Pasta escolhida: ' + pasta.handle.name;
+      else if (pasta.estado === 'sem_permissao') nomeEl.textContent = '⚠️ Autorização da pasta expirou — clique em "Escolher pasta" para renovar.';
+      else nomeEl.textContent = 'Nenhuma pasta escolhida ainda.';
+      const cadEl = document.getElementById('zbkCadencias');
+      cadEl.innerHTML = Object.keys(_ROTULOS_CADENCIA).map(function (c) {
+        const marca = localStorage.getItem(_chaveMarca(slug, c));
+        return '<div>' + _ROTULOS_CADENCIA[c] + ': ' + (marca ? '✅ ' + marca : '— ainda não') + '</div>';
+      }).join('');
+    }
+
+    document.getElementById('zbkEscolher').addEventListener('click', async function () {
+      try {
+        await escolherPasta();
+        atualizarStatus();
+        verificarEExecutar(slug).then(atualizarStatus);
+      } catch (e) { /* utilizador cancelou o selector — nada a fazer */ }
+    });
+    document.getElementById('zbkEsquecer').addEventListener('click', async function () {
+      await esquecerPasta();
+      atualizarStatus();
+    });
+    document.getElementById('zbkVerificar').addEventListener('click', async function () {
+      await verificarEExecutar(slug);
+      atualizarStatus();
+    });
+
+    const local = _encontrarInsercaoBotao();
+    if (local) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'zbkAbrirBtn';
+      btn.title = 'Backup automático';
+      btn.setAttribute('aria-label', 'Backup automático');
+      btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;gap:5px;color:inherit;background:rgba(120,120,120,.12);border:1px solid rgba(120,120,120,.28);padding:7px 12px;border-radius:100px;font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;';
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/></svg> Backup';
+      btn.addEventListener('click', abrir);
+      if (local.antesDe && local.antesDe.parentNode === local.pai) local.pai.insertBefore(btn, local.antesDe);
+      else local.pai.appendChild(btn);
+    }
+  }
+
   global.ZeloAutoBackup = {
     suportado,
     escolherPasta,
     esquecerPasta,
     obterPastaAtiva,
     verificarEExecutar,
+    criarBackupFirebase,
+    montarUI,
     iniciar,
     gravarNaPasta,
     _periodoAtual, _ultimoPeriodoTerminado, // expostas para testes
