@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
@@ -4452,6 +4453,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
 <script src="zelo_save_feedback.js"></script>
+<script>
+if (typeof ZeloAutoBackup !== 'undefined') {
+  Object.assign(window, ZeloAutoBackup.criarBackupFirebase('registos_sistemas_locais/consulta_externa'));
+  ZeloAutoBackup.montarUI('consulta_externa');
+  ZeloAutoBackup.iniciar('consulta_externa');
+}
+</script>
 </body>
 </html>
 

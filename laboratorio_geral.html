@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -4125,6 +4126,12 @@ function _zeloAtualizarBackupTrigger(){
 }
 _zeloAtualizarBackupTrigger();
 window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
+
+if (typeof ZeloAutoBackup !== 'undefined') {
+  Object.assign(window, ZeloAutoBackup.criarBackupFirebase('registos_sistemas_locais/laboratorio'));
+  ZeloAutoBackup.montarUI('laboratorio');
+  ZeloAutoBackup.iniciar('laboratorio');
+}
 </script>
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>

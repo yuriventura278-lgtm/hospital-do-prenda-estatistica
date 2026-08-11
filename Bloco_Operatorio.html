@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
@@ -1794,5 +1795,12 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
 <script src="zelo_save_feedback.js"></script>
+<script>
+if (typeof ZeloAutoBackup !== 'undefined') {
+  Object.assign(window, ZeloAutoBackup.criarBackupFirebase('registos/bloco_operatorio'));
+  ZeloAutoBackup.montarUI('bloco_operatorio_banco');
+  ZeloAutoBackup.iniciar('bloco_operatorio_banco');
+}
+</script>
 </body>
 </html>

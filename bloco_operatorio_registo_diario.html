@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
@@ -5426,5 +5427,12 @@ function exportDiarioPDF() {
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
+<script>
+if (typeof ZeloAutoBackup !== 'undefined') {
+  Object.assign(window, ZeloAutoBackup.criarBackupFirebase('registos_sistemas_locais/bloco_operatorio'));
+  ZeloAutoBackup.montarUI('bloco_operatorio');
+  ZeloAutoBackup.iniciar('bloco_operatorio');
+}
+</script>
 </body>
 </html>
