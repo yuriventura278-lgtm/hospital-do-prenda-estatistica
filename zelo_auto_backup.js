@@ -445,11 +445,22 @@
     modal.innerHTML =
       '<div style="background:#fff;border-radius:20px;width:100%;max-width:440px;box-shadow:0 16px 48px rgba(13,27,62,.25);max-height:90vh;overflow:auto;font-family:system-ui,sans-serif;">' +
         '<div style="padding:20px 22px 4px;display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
-          '<h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Backup Automático</h3>' +
+          '<h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0;">Backup e Exportação</h3>' +
           '<button type="button" id="zbkFechar" aria-label="Fechar" style="background:#F1F5F9;border:none;border-radius:9px;width:30px;height:30px;cursor:pointer;color:#334155;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
         '</div>' +
         '<div style="padding:10px 22px 22px;">' +
-          '<p id="zbkSuporte" style="display:none;color:#DC2626;font-size:.75rem;">O seu navegador não suporta esta funcionalidade — funciona apenas no Google Chrome ou Microsoft Edge (computador).</p>' +
+          '<div style="border-bottom:1px solid #E2E8F0;padding-bottom:16px;margin-bottom:16px;">' +
+            '<h4 style="font-size:.78rem;font-weight:800;color:#0F172A;margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em;">Exportar uma cópia agora</h4>' +
+            '<p style="font-size:.72rem;color:#64748B;line-height:1.5;margin:0 0 10px;">Descarrega já um ficheiro .json com os dados até hoje — funciona em qualquer navegador, sem depender de escolher pasta.</p>' +
+            '<div style="display:flex;gap:8px;">' +
+              '<select id="zbkExpCadencia" style="flex:1;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:.8rem;font-family:inherit;color:#334155;background:#fff;">' +
+                Object.keys(_ROTULOS_CADENCIA).map(function (c) { return '<option value="' + c + '">' + _ROTULOS_CADENCIA[c] + '</option>'; }).join('') +
+              '</select>' +
+              '<button type="button" id="zbkExportar" style="padding:10px 16px;background:#0F172A;border:none;border-radius:10px;color:#fff;font-size:.8rem;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;">Descarregar</button>' +
+            '</div>' +
+          '</div>' +
+          '<h4 style="font-size:.78rem;font-weight:800;color:#0F172A;margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em;">Backup automático numa pasta</h4>' +
+          '<p id="zbkSuporte" style="display:none;color:#DC2626;font-size:.75rem;">O seu navegador não suporta esta funcionalidade — funciona apenas no Google Chrome ou Microsoft Edge (computador). Podes sempre usar a exportação manual acima.</p>' +
           '<div id="zbkCorpo">' +
             '<p style="font-size:.75rem;color:#64748B;line-height:1.5;margin:0;">Escolha uma pasta no computador. O sistema grava automaticamente uma cópia em JSON dos registos guardados — Diário, Semanal, Mensal, Trimestral, Semestral e Anual — sempre que esta página estiver aberta à volta da meia-noite, ou assim que a abrir de novo.</p>' +
             '<p style="font-size:.7rem;color:#64748B;line-height:1.5;margin:8px 0 0;background:#F8FAFC;border-radius:8px;padding:8px 10px;">🔒 Queres que a pasta escolhida fique protegida contra remoção acidental e só se abra com um código? <a href="pasta_backup_protegida/LEIA-ME.txt" target="_blank" rel="noopener" style="color:#1E40AF;font-weight:700;">Ver instruções (Windows)</a>.</p>' +
@@ -464,6 +475,41 @@
         '</div>' +
       '</div>';
     document.body.appendChild(modal);
+
+    document.getElementById('zbkExportar').addEventListener('click', async function () {
+      const btn = document.getElementById('zbkExportar');
+      const cadencia = document.getElementById('zbkExpCadencia').value;
+      const textoOriginal = btn.textContent;
+      btn.textContent = 'A preparar…';
+      btn.disabled = true;
+      try {
+        if (typeof global.ZBK_getBackupJSON !== 'function') {
+          alert('Esta página ainda não suporta exportação.');
+          return;
+        }
+        const hojeISO = _ymd(new Date());
+        const r = await global.ZBK_getBackupJSON(cadencia, hojeISO);
+        if (!r || !r.conteudo || (Array.isArray(r.conteudo) ? r.conteudo.length === 0 : Object.keys(r.conteudo).length === 0)) {
+          alert('Ainda não há dados guardados neste período para exportar.');
+          return;
+        }
+        const blob = new Blob([JSON.stringify(r.conteudo, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = r.nome || ('backup_' + slug + '_' + cadencia + '_' + hojeISO + '.json');
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+      } catch (e) {
+        console.warn('[ZeloAutoBackup] falha ao exportar', e);
+        alert('Não foi possível exportar agora. Tente novamente.');
+      } finally {
+        btn.textContent = textoOriginal;
+        btn.disabled = false;
+      }
+    });
 
     function abrir() { modal.style.display = 'flex'; atualizarStatus(); }
     function fechar() { modal.style.display = 'none'; }
