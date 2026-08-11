@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
@@ -2896,5 +2897,107 @@ window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
 <script src="zelo_save_feedback.js"></script>
+<script>
+// ── Backup automático em pasta local (ver zelo_auto_backup.js) ──────────
+// A farmácia não guarda os dados no Firebase divididos por dia (é um único
+// nó com o estado corrente do inventário — ver ZELO_FB_PATH, mais acima
+// neste ficheiro), por isso não pode usar
+// ZeloAutoBackup.criarBackupFirebase() como as páginas com histórico
+// diário. Em vez disso, os períodos são calculados a partir da data de
+// cada movimento (entradas/saídas/ajustes) dentro desse nó.
+//
+// Nota: este bloco define os seus próprios auxiliares (caminho do
+// Firebase, formatação de datas) em vez de reutilizar os já existentes
+// mais acima na página, porque esses vivem dentro de uma IIFE isolada
+// ("use strict") e não ficam acessíveis a partir de um <script> separado.
+(function () {
+  if (typeof ZeloAutoBackup === 'undefined') return;
+
+  var FB_PATH_FARMACIA = 'registos_sistemas_locais/farmacia_central';
+  function _isoLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  let cacheRemoto = null, cachePromessa = null, cacheTs = 0;
+  const CACHE_MS = 60 * 1000;
+  async function _lerRemoto() {
+    const agora = Date.now();
+    if (cacheRemoto && (agora - cacheTs) < CACHE_MS) return cacheRemoto;
+    if (cachePromessa) return cachePromessa;
+    cachePromessa = (async () => {
+      try {
+        cacheRemoto = (window.__fbGet ? await window.__fbGet(FB_PATH_FARMACIA) : null) || {};
+      } catch (e) {
+        console.warn('[BackupAuto] falha ao ler ' + FB_PATH_FARMACIA, e);
+        cacheRemoto = cacheRemoto || {};
+      }
+      cacheTs = Date.now();
+      cachePromessa = null;
+      return cacheRemoto;
+    })();
+    return cachePromessa;
+  }
+
+  function _limitesDoPeriodo(cadencia, fimISO) {
+    const fim = new Date(fimISO + 'T00:00:00');
+    let inicio;
+    switch (cadencia) {
+      case 'diario': inicio = new Date(fim); break;
+      case 'semanal': inicio = new Date(fim); inicio.setDate(inicio.getDate() - 6); break;
+      case 'mensal': inicio = new Date(fim.getFullYear(), fim.getMonth(), 1); break;
+      case 'trimestral': inicio = new Date(fim.getFullYear(), Math.floor(fim.getMonth() / 3) * 3, 1); break;
+      case 'semestral': inicio = new Date(fim.getFullYear(), fim.getMonth() < 6 ? 0 : 6, 1); break;
+      case 'anual': inicio = new Date(fim.getFullYear(), 0, 1); break;
+    }
+    return { inicioISO: _isoLocal(inicio), fimISO: _isoLocal(fim) };
+  }
+  function _fimDoPeriodoContendo(cadencia, dataISO) {
+    const d = new Date(dataISO + 'T00:00:00');
+    let fim;
+    switch (cadencia) {
+      case 'diario': fim = new Date(d); break;
+      case 'semanal': { const dow = (d.getDay() + 6) % 7; fim = new Date(d); fim.setDate(fim.getDate() + (6 - dow)); break; }
+      case 'mensal': fim = new Date(d.getFullYear(), d.getMonth() + 1, 0); break;
+      case 'trimestral': fim = new Date(d.getFullYear(), Math.floor(d.getMonth() / 3) * 3 + 3, 0); break;
+      case 'semestral': fim = new Date(d.getFullYear(), d.getMonth() < 6 ? 6 : 12, 0); break;
+      case 'anual': fim = new Date(d.getFullYear(), 12, 0); break;
+    }
+    return _isoLocal(fim);
+  }
+
+  window.ZBK_periodosDisponiveis = async function (cadencia) {
+    const remoto = await _lerRemoto();
+    const movimentos = (remoto.snapshot && remoto.snapshot.movimentos) || [];
+    const hojeISO = _isoLocal(new Date());
+    const vistos = {};
+    movimentos.forEach(function (m) {
+      if (!m || !/^\d{4}-\d{2}-\d{2}$/.test(m.data || '')) return;
+      const fimISO = _fimDoPeriodoContendo(cadencia, m.data);
+      if (fimISO >= hojeISO) return; // nunca o período em curso
+      const chave = ZeloAutoBackup._periodoAtual(cadencia, new Date(fimISO + 'T00:00:00'));
+      vistos[chave] = fimISO;
+    });
+    return Object.keys(vistos).map(function (chave) { return { chave: chave, dataRefISO: vistos[chave] }; });
+  };
+
+  window.ZBK_getBackupJSON = async function (cadencia, fimISO) {
+    const limites = _limitesDoPeriodo(cadencia, fimISO);
+    const remoto = await _lerRemoto();
+    const movimentos = ((remoto.snapshot && remoto.snapshot.movimentos) || []).filter(function (m) {
+      return m && m.data >= limites.inicioISO && m.data <= limites.fimISO;
+    });
+    const conteudo = {
+      periodo: { inicio: limites.inicioISO, fim: limites.fimISO },
+      movimentos: movimentos,
+      produtosNota: 'Lista de produtos/stock reflecte o estado actual do inventário, não um histórico por período — a farmácia não guarda snapshots diários.',
+      produtos: (remoto.snapshot && remoto.snapshot.produtos) || []
+    };
+    return { nome: 'backup_farmacia_central_' + cadencia + '_' + limites.fimISO + '.json', conteudo: conteudo };
+  };
+
+  ZeloAutoBackup.montarUI('farmacia_central');
+  ZeloAutoBackup.iniciar('farmacia_central');
+})();
+</script>
 </body>
 </html>
