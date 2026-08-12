@@ -1486,6 +1486,12 @@ document.addEventListener('DOMContentLoaded', function(){
           </a>
         </div>
         <div class="sb-group">
+          <button type="button" class="sb-link" id="sbAssistenteZelo" style="width:100%;border:none;background:none;font:inherit;text-align:left;cursor:pointer;">
+            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></span>
+            <span>Assistente Zelo</span>
+          </button>
+        </div>
+        <div class="sb-group">
           <div class="sb-link sb-parent" data-module="servicos">
             <button type="button" class="sb-parent-link" id="sbServicosLabel">
               <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
@@ -1810,6 +1816,10 @@ document.getElementById('sbSistemasLabel').addEventListener('click', zeloAlterna
 document.getElementById('sbSistemasToggle').addEventListener('click', zeloAlternarArvoreSistemasLocais);
 document.getElementById('zeloMenuToggle').addEventListener('click', function(){
   document.getElementById('zeloSidebar').classList.toggle('open');
+});
+document.getElementById('sbAssistenteZelo').addEventListener('click', function(){
+  document.getElementById('zeloSidebar').classList.remove('open');
+  if(typeof window.zeloAbrirAssistente === 'function') window.zeloAbrirAssistente();
 });
 document.addEventListener('click', function(e){
   var sidebar = document.getElementById('zeloSidebar');

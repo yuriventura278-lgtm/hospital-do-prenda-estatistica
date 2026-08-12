@@ -671,6 +671,10 @@
       if (!jaCumprimentou) { jaCumprimentou = true; var r = respostaSaudacao(); adicionarMsg(r, 'bot'); falar(r); }
       input.focus();
     }
+    // Exposto para outros pontos de entrada (ex.: item "Assistente Zelo" no
+    // menu flutuante — zelo_menu_flutuante.js) poderem abrir o mesmo painel
+    // sem duplicar o botão flutuante.
+    window.zeloAbrirAssistente = abrir;
     function fechar(){
       overlay.classList.remove('open');
       panel.classList.remove('open');

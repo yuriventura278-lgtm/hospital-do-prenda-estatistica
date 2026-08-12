@@ -96,6 +96,7 @@
   var ICON_STATS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
   var ICON_INFO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
   var ICON_SAIR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
+  var ICON_ZELO_ASSIST = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>';
 
   function temAcesso(modulo, item){
     // window.hasModuleAccess só existe nas 4 páginas-índice que a expõem
@@ -230,6 +231,9 @@
           <a class="zmf-link" href="index.html"><span class="zmf-ic">${ICON_DASH}</span>Dashboard</a>
         </div>
         <div class="zmf-group">
+          <button type="button" class="zmf-link" id="zmf-assistente-zelo"><span class="zmf-ic">${ICON_ZELO_ASSIST}</span>Assistente Zelo</button>
+        </div>
+        <div class="zmf-group">
           <div class="zmf-parent-row">
             <button type="button" class="zmf-link" id="zmf-servicos-label" style="flex:1;"><span class="zmf-ic">${ICON_SVC}</span>Serviços</button>
             <button type="button" class="zmf-toggle" id="zmf-servicos-toggle" aria-expanded="false">${ICON_CHEV}</button>
@@ -301,6 +305,15 @@
 
     var sairBtn = panel.querySelector('#zmf-sair');
     if(sairBtn) sairBtn.addEventListener('click', function(){ window.zeloLogout(); });
+
+    // "Assistente Zelo" — abre o painel do zelo_assistente.js (o botão
+    // flutuante próprio dele continua a existir; este item é só mais um
+    // caminho até ao mesmo painel, para quem prefira usar o menu).
+    var assistenteBtn = panel.querySelector('#zmf-assistente-zelo');
+    if(assistenteBtn) assistenteBtn.addEventListener('click', function(){
+      fechar();
+      if(typeof window.zeloAbrirAssistente === 'function') window.zeloAbrirAssistente();
+    });
   }
 
   function iniciar(){
