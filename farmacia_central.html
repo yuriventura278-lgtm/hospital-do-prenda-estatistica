@@ -2999,5 +2999,14 @@ window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
   ZeloAutoBackup.iniciar('farmacia_central');
 })();
 </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        if (reg && reg.update) reg.update().catch(() => {});
+      }).catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>

@@ -2150,5 +2150,14 @@ renderTurnoClock();
 setInterval(renderTurnoClock, 30000);
 </script>
 <script src="zelo_theme.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        if (reg && reg.update) reg.update().catch(() => {});
+      }).catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>

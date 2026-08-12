@@ -60,5 +60,14 @@ footer{text-align:center;padding:16px;color:var(--tx3);font-size:.68rem;font-fam
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        if (reg && reg.update) reg.update().catch(() => {});
+      }).catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>
