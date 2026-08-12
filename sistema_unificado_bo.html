@@ -192,11 +192,23 @@ table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);bor
 .score-badge.neutral{background:var(--surface-3);color:var(--ink-soft);}
 
 /* Body map */
-.bodymap{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:8px 0;}
+.bodymap{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;}
+.bodyfigs{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;width:100%;}
 .bodymap figure{margin:0;text-align:center;}
 .bodymap figcaption{font-size:11px;color:var(--ink-soft);font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;}
-.bodymap svg{width:110px;height:200px;}
-.bodymap svg path,.bodymap svg circle{stroke:var(--line-strong);fill:var(--surface-2);}
+/* Só os bonecos levam este tamanho — os ícones da paleta mantêm o seu. */
+.bodymap figure svg{width:132px;height:209px;touch-action:manipulation;}
+.bodymap figure svg.corpo-alvo{cursor:crosshair;border:1px dashed var(--line);border-radius:8px;background:var(--surface);}
+.bodymap figure svg.corpo-alvo:hover{border-color:var(--accent);}
+/* Paleta de símbolos */
+.marca-tools{display:flex;flex-wrap:wrap;gap:6px;width:100%;}
+.marca-tool{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.marca-tool:hover{border-color:var(--accent);}
+.marca-tool.on{background:var(--accent);border-color:var(--accent-dark);color:#fff;}
+.marca-tool.apagar.on{background:var(--bad);border-color:var(--bad);color:#fff;}
+.marca-tool .mkico{width:16px;height:16px;flex:0 0 auto;}
+.marca-tool svg.ic{font-size:14px;}
+@media (max-width:520px){ .marca-tool span{font-size:11px;} }
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
 .legend span{display:inline-flex;align-items:center;gap:5px;}
 .legend .mk{width:14px;height:14px;border:1.5px solid var(--accent);display:inline-block;}
@@ -228,6 +240,13 @@ table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);bor
 .rv-tbl th{background:var(--accent-soft);}
 .rv-empty{color:#8B98A3 !important;font-style:italic;font-size:11px;}
 .rv-chart{height:180px;margin-top:8px;}
+.rv-body{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin-top:8px;}
+.rv-body figure{margin:0;text-align:center;}
+.rv-body svg{width:104px;height:165px;}
+.rv-body figcaption{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:#55636F !important;font-weight:700;margin-top:2px;}
+.rv-leg{display:flex;flex-direction:column;gap:5px;font-size:10.5px;padding-top:6px;}
+.rv-leg span{display:flex;align-items:center;gap:6px;}
+.rv-leg svg{width:15px;height:15px;flex:0 0 auto;}
 .rv-sign{display:flex;gap:40px;margin-top:26px;}
 .rv-sign div{flex:1;border-top:1px solid #16232E;padding-top:4px;font-size:10.5px;text-align:center;color:#55636F !important;}
 @media print{
@@ -530,13 +549,7 @@ table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);bor
       <div class="field"><label>Informações relevantes para a equipa da S.R.P.A.</label><textarea name="infoSRPA"></textarea></div>
       <h3>Anotações — Cateter Periférico / Placa de Bisturi / Garrote / Local da Cirurgia</h3>
       <div class="bodymap" id="bodyMap"></div>
-      <div class="legend">
-        <span><i class="mk sq"></i> Placa de bisturi elétrico</span>
-        <span><i class="mk ci"></i> Cateter periférico</span>
-        <span><i class="mk tr"></i> Garrote pneumático</span>
-        <span><i class="mk di"></i> Local da cirurgia</span>
-      </div>
-      <div class="field" style="margin-top:8px;"><label>Descrição / localização (frente e verso)</label><textarea name="anotacoesCorpo" placeholder="Ex.: placa de bisturi na coxa esquerda (verso); cateter periférico no antebraço direito..."></textarea></div>
+      <div class="field" style="margin-top:8px;"><label>Observações adicionais (opcional)</label><textarea name="anotacoesCorpo" placeholder="Ex.: cateter substituído às 14h; garrote retirado por queixas de dor..."></textarea></div>
     </div>
     <div class="card">
       <h2>Material Especial</h2>
@@ -1016,7 +1029,7 @@ function blankRecord(){
     material:[], equipamento:[], instrumental:[],
     statusOperacao:{execucao:{},recuperacao:{},finalizada:{}},
     svIntra:[], sorosIntra:[], drenIntra:[], svPos:[], sorosPos:[], drenPos:[], medicacao:[],
-    adrete:{}, dorAlim:{}, elpo:{}, encaminhadoPara:[]
+    adrete:{}, dorAlim:{}, elpo:{}, encaminhadoPara:[], marcasCorpo:[]
   };
 }
 
@@ -1341,6 +1354,7 @@ async function openRecord(id){
   currentRecord = await dbGet(id);
   if(!currentRecord.statusOperacao) currentRecord.statusOperacao = {execucao:{},recuperacao:{},finalizada:{}};
   if(!currentRecord.elpo) currentRecord.elpo = {};
+  if(!currentRecord.marcasCorpo) currentRecord.marcasCorpo = [];
   currentStep = 0;
   fillFormFromRecord();
   showForm();
@@ -1610,12 +1624,128 @@ function updateElpoTotal(){
   el.className="score-badge "+(tot>=20?"bad":tot>=16?"warn":"good");
 }
 
-/* ============ BODY MAP (frente/verso) ============ */
+/* ============ MAPA CORPORAL INTERACTIVO (frente/verso) ============
+   Tal como na folha em papel, o enfermeiro marca no próprio corpo onde ficou
+   cada dispositivo: escolhe o símbolo e toca na zona do corpo. Cada marca fica
+   guardada com o lado (frente/verso) e a posição, e é reproduzida na
+   pré-visualização e no PDF. */
+const MARCA_TIPOS = [
+  ['placa',   'Placa de bisturi elétrico', 'quadrado'],
+  ['cateter', 'Cateter periférico',        'circulo'],
+  ['garrote', 'Garrote pneumático',        'triangulo'],
+  ['local',   'Local da cirurgia',         'losango']
+];
+let marcaTipoActivo = 'cateter';
+let marcaApagar = false;
+
+/* Contorno humano (braços e pernas afastados), igual em frente e verso. */
+const CORPO_PATH = "M60 14c-6.1 0-11 4.9-11 11 0 4.2 2.3 7.8 5.7 9.7-4.6 1-8 2.5-9.9 4.6-1.9 2.1-3 5.1-3.6 8.7L36 71.5 22.6 92.2c-.8 1.2-1.6 2.2-3.4 3.6l-7.5 6c-1.4 1.1-1.7 3-.7 4.3 1 1.3 2.9 1.5 4.3.5l8.2-6c2.4-1.8 3.8-3.3 5-5.2l12.2-18.6-2.2 15.7c-.4 2.9-.5 5-.3 7.2l2.4 25.6-1.6 30.4c-.1 1.9-.2 3.3-.6 5l-2.4 11.2c-.4 1.7.7 3.3 2.4 3.6 1.7.3 3.3-.8 3.6-2.5l2.5-11.6c.5-2.2.7-4 .8-6.2l1.6-29.7 3.6-19.9h4.8l3.6 19.9 1.6 29.7c.1 2.2.3 4 .8 6.2l2.5 11.6c.3 1.7 1.9 2.8 3.6 2.5 1.7-.3 2.8-1.9 2.4-3.6l-2.4-11.2c-.4-1.7-.5-3.1-.6-5l-1.6-30.4 2.4-25.6c.2-2.2.1-4.3-.3-7.2l-2.2-15.7 12.2 18.6c1.2 1.9 2.6 3.4 5 5.2l8.2 6c1.4 1 3.3.8 4.3-.5 1-1.3.7-3.2-.7-4.3l-7.5-6c-1.8-1.4-2.6-2.4-3.4-3.6L84 71.5l-5.2-23.5c-.6-3.6-1.7-6.6-3.6-8.7-1.9-2.1-5.3-3.6-9.9-4.6 3.4-1.9 5.7-5.5 5.7-9.7 0-6.1-4.9-11-11-11z";
+
+function marcaShape(tipo, x, y, cor){
+  const t = { quadrado:`<rect x="${x-5.5}" y="${y-5.5}" width="11" height="11" rx="1"/>`,
+              circulo:`<circle cx="${x}" cy="${y}" r="5.5"/>`,
+              triangulo:`<polygon points="${x},${y-6} ${x+6},${y+5} ${x-6},${y+5}"/>`,
+              losango:`<polygon points="${x},${y-6.5} ${x+6},${y} ${x},${y+6.5} ${x-6},${y}"/>` };
+  const forma = (MARCA_TIPOS.find(m=>m[0]===tipo)||MARCA_TIPOS[1])[2];
+  return `<g fill="none" stroke="${cor}" stroke-width="2.2">${t[forma]}</g>`;
+}
+/* Gera o SVG de um lado do corpo. `cores` literais quando é para imagem/PDF
+   (as variáveis CSS não são resolvidas num SVG serializado). */
+function svgCorpo(rec, lado, opc){
+  const o = opc||{};
+  const traco = o.traco || 'var(--ink-soft)';
+  const fundo = o.fundo || 'var(--surface-2)';
+  const corMarca = o.marca || 'var(--accent)';
+  const marcas = (rec.marcasCorpo||[]).filter(m=>m.lado===lado);
+  const pontos = marcas.map((m,i)=>{
+    const alvo = o.interactivo ? `<circle cx="${m.x}" cy="${m.y}" r="11" fill="transparent" class="marca-alvo" data-lado="${lado}" data-idx="${i}" style="cursor:pointer"/>` : '';
+    return marcaShape(m.tipo, m.x, m.y, corMarca) + alvo;
+  }).join('');
+  return `<svg viewBox="0 0 120 190" data-lado="${lado}"${o.interactivo?' class="corpo-alvo"':''}>
+    <path d="${CORPO_PATH}" fill="${fundo}" stroke="${traco}" stroke-width="2"/>
+    ${pontos}</svg>`;
+}
 function buildBodyMap(){
-  const svg = `<svg viewBox="0 0 90 170"><path d="M45 8a9 9 0 100 18 9 9 0 000-18zM33 30c0-4 5-6 12-6s12 2 12 6l4 26-6 3-2-18v22l3 40h-6l-5-34-5 34h-6l3-40V41l-2 18-6-3z"/><path d="M27 34l-8 22 5 3 6-18zM63 34l8 22-5 3-6-18z"/></svg>`;
+  if(!currentRecord.marcasCorpo) currentRecord.marcasCorpo = [];
+  const bloqueado = soLeitura();
+  const ferramentas = MARCA_TIPOS.map(([tipo,label])=>
+    `<button type="button" class="marca-tool${marcaTipoActivo===tipo&&!marcaApagar?' on':''}" data-tipo="${tipo}" title="${label}">
+       <svg viewBox="0 0 20 20" class="mkico">${marcaShape(tipo,10,10,'currentColor').replace(/stroke-width="2.2"/,'stroke-width="2"')}</svg><span>${label}</span></button>`).join('');
   document.getElementById('bodyMap').innerHTML = `
-    <figure>${svg}<figcaption>Frente</figcaption></figure>
-    <figure>${svg}<figcaption>Verso</figcaption></figure>`;
+    ${bloqueado?'':`<div class="marca-tools">
+      ${ferramentas}
+      <button type="button" class="marca-tool apagar${marcaApagar?' on':''}" data-apagar="1" title="Apagar marcas">${ic('trash')}<span>Apagar</span></button>
+      <button type="button" class="marca-tool" data-limpar="1" title="Remover todas as marcas">${ic('close')}<span>Limpar tudo</span></button>
+    </div>
+    <div class="hint" style="width:100%;margin:0 0 4px;">${marcaApagar?'Toque numa marca para a remover.':'Escolha o símbolo e toque na zona do corpo para o marcar.'}</div>`}
+    <div class="bodyfigs">
+      <figure>${svgCorpo(currentRecord,'frente',{interactivo:!bloqueado})}<figcaption>Frente</figcaption></figure>
+      <figure>${svgCorpo(currentRecord,'verso',{interactivo:!bloqueado})}<figcaption>Verso</figcaption></figure>
+    </div>
+    ${bloqueado?`<div class="legend">${MARCA_TIPOS.map(([t,l])=>`<span><svg viewBox="0 0 20 20" class="mkico">${marcaShape(t,10,10,'currentColor')}</svg>${l}</span>`).join("")}</div>`:''}`;
+  if(bloqueado) return;
+  const cont = document.getElementById('bodyMap');
+  cont.querySelectorAll('.marca-tool[data-tipo]').forEach(b=> b.addEventListener('click', ()=>{
+    marcaTipoActivo = b.dataset.tipo; marcaApagar = false; buildBodyMap();
+  }));
+  cont.querySelector('.marca-tool[data-apagar]').addEventListener('click', ()=>{ marcaApagar = !marcaApagar; buildBodyMap(); });
+  cont.querySelector('.marca-tool[data-limpar]').addEventListener('click', ()=>{
+    if(!(currentRecord.marcasCorpo||[]).length) return;
+    if(confirm("Remover todas as marcas do corpo?")){ currentRecord.marcasCorpo = []; buildBodyMap(); updateStepBadges(); }
+  });
+  // Remover uma marca (modo apagar) — antes de tratar o clique no corpo.
+  cont.querySelectorAll('.marca-alvo').forEach(alvo=> alvo.addEventListener('click', (ev)=>{
+    if(!marcaApagar) return;
+    ev.stopPropagation();
+    const lado = alvo.dataset.lado, i = parseInt(alvo.dataset.idx);
+    const doLado = currentRecord.marcasCorpo.filter(m=>m.lado===lado);
+    const marca = doLado[i];
+    currentRecord.marcasCorpo.splice(currentRecord.marcasCorpo.indexOf(marca), 1);
+    buildBodyMap(); updateStepBadges();
+  }));
+  // Colocar uma marca nova onde o utilizador tocou.
+  cont.querySelectorAll('svg.corpo-alvo').forEach(svg=> svg.addEventListener('click', (ev)=>{
+    if(marcaApagar) return;
+    const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    currentRecord.marcasCorpo.push({
+      lado: svg.dataset.lado, tipo: marcaTipoActivo,
+      x: Math.round(p.x*10)/10, y: Math.round(p.y*10)/10
+    });
+    buildBodyMap(); updateStepBadges();
+  }));
+}
+/* Resumo textual das marcas — usado no PDF e como texto alternativo. */
+function marcasResumo(rec){
+  const ms = rec.marcasCorpo||[];
+  if(!ms.length) return "";
+  return MARCA_TIPOS.map(([tipo,label])=>{
+    const f = ms.filter(m=>m.tipo===tipo);
+    if(!f.length) return null;
+    const fr = f.filter(m=>m.lado==='frente').length, vs = f.length-fr;
+    return `${label}: ${fr?fr+" na frente":""}${fr&&vs?" · ":""}${vs?vs+" no verso":""}`;
+  }).filter(Boolean).join(" | ");
+}
+/* Converte o SVG do corpo em PNG, para poder entrar no PDF. */
+function svgParaPng(svgStr, larguraPx){
+  return new Promise(resolve=>{
+    try{
+      const alturaPx = Math.round(larguraPx*190/120);
+      const img = new Image();
+      const svg64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${larguraPx}" height="${alturaPx}" viewBox="0 0 120 190">${svgStr.replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')}</svg>`)));
+      img.onload = ()=>{
+        const cv = document.createElement('canvas');
+        cv.width = larguraPx; cv.height = alturaPx;
+        const cx = cv.getContext('2d');
+        cx.fillStyle = '#fff'; cx.fillRect(0,0,cv.width,cv.height);
+        cx.drawImage(img,0,0);
+        resolve(cv.toDataURL('image/png'));
+      };
+      img.onerror = ()=> resolve(null);
+      img.src = svg64;
+    }catch(e){ resolve(null); }
+  });
 }
 
 /* ============ TABELAS REPETÍVEIS ============ */
@@ -1870,6 +2000,11 @@ function openRenderView(alvo){
 
   <div class="rv-sec"><h4>Operação Realizada</h4>
     ${rvKV([["Operação",r.operacao],["Duração / Porte / CID",`${r.duracao||"—"} min / ${r.porte||"—"} / ${r.cid||"—"}`],["Anestesia",r.anestesia],["Início",`${r.inicioData||"—"} ${r.inicioHora||""}`],["Fim",`${r.fimData||"—"} ${r.fimHora||""}`],["Anotações (cateter/garrote/local)",r.anotacoesCorpo]])}
+    <div class="rv-body">
+      <figure>${svgCorpo(r,'frente',{traco:'#55636F',fundo:'#F5F6F8',marca:'#2B415E'})}<figcaption>Frente</figcaption></figure>
+      <figure>${svgCorpo(r,'verso',{traco:'#55636F',fundo:'#F5F6F8',marca:'#2B415E'})}<figcaption>Verso</figcaption></figure>
+      <div class="rv-leg">${MARCA_TIPOS.map(([t,l])=>`<span><svg viewBox="0 0 20 20">${marcaShape(t,10,10,'#2B415E')}</svg>${l}</span>`).join("")}</div>
+    </div>
     <div style="margin-top:6px;"><b style="font-size:11px;">Material Especial</b>${rvTable('material',[["designacao","Designação"],["qtd","Qtd"],["autorizacao","Autoriz."],["complemento","Complem."],["materialAtendido","Atendido"]],r)}</div>
     <div style="margin-top:6px;"><b style="font-size:11px;">Equipamento</b>${rvTable('equipamento',[["designacao","Designação"],["quantidade","Qtd"]],r)}</div>
     <div style="margin-top:6px;"><b style="font-size:11px;">Instrumental</b>${rvTable('instrumental',[["designacao","Designação"],["quantidade","Qtd"]],r)}</div>
@@ -2014,6 +2149,22 @@ async function exportPDF(alvo){
   pair("Rotulagem e Peças Anatómicas", R.rotulagemPecasTexto);
   pair("Informações para a equipa da S.R.P.A.", R.infoSRPA);
   pair("Anotações — cateter/placa bisturi/garrote/local", R.anotacoesCorpo);
+  if((R.marcasCorpo||[]).length){
+    pair("Marcas assinaladas no corpo", marcasResumo(R));
+    const [pngF, pngV] = await Promise.all([
+      svgParaPng(svgCorpo(R,'frente',{traco:'#666666',fundo:'#FFFFFF',marca:'#1F2F45'}), 260),
+      svgParaPng(svgCorpo(R,'verso', {traco:'#666666',fundo:'#FFFFFF',marca:'#1F2F45'}), 260)
+    ]);
+    if(pngF && pngV){
+      checkBreak(180);
+      doc.setFontSize(8.5); doc.setTextColor(90,90,90);
+      doc.text("Frente", marginL+40, y); doc.text("Verso", marginL+190, y); y+=6;
+      doc.setTextColor(0,0,0);
+      doc.addImage(pngF,'PNG', marginL, y, 105, 166);
+      doc.addImage(pngV,'PNG', marginL+150, y, 105, 166);
+      y += 174;
+    }
+  }
   tableSection("Material Especial","material",[["designacao","Designação"],["qtd","Qtd"],["autorizacao","Autorização"],["complemento","Complemento"],["materialAtendido","Material Atendido"]]);
   tableSection("Equipamento Necessário","equipamento",[["designacao","Designação"],["quantidade","Quantidade"]]);
   tableSection("Instrumental Necessário","instrumental",[["designacao","Designação"],["quantidade","Quantidade"]]);
