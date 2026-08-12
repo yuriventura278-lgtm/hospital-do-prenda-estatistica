@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="pt-AO" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>ZELO · Bloco Operatório — Hospital do Prenda</title>
+<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ===== ZELO design tokens (mirrors zelo_tokens.css) ===== */
+:root{
+  --bg:#F5F6F8; --surface:#FFFFFF; --surface-2:#ECF0F3; --surface-3:#E2E8EC;
+  --ink:#16232E; --ink-soft:#55636F; --ink-faint:#8B98A3;
+  --line:#DCE2E7; --line-strong:#C4CDD4;
+  --accent:#3E5C87; --accent-dark:#2B415E; --accent-ink:#1F2F45; --accent-soft:#E9EEF4;
+  --warn:#B5502D; --warn-ink:#7A3115; --warn-soft:#F7E8E1;
+  --good:#3F7A56; --good-ink:#2A5138; --good-soft:#E5F0E7;
+  --bad:#C0392B; --bad-soft:#FBEAE7;
+  --radius-s:6px; --radius:10px; --radius-l:16px;
+  --shadow-sm:0 1px 2px rgba(22,35,46,.08);
+  --shadow:0 1px 2px rgba(22,35,46,.06), 0 8px 24px -12px rgba(22,35,46,.16);
+  --font-display:'Fraunces', ui-serif, Georgia, serif;
+  --font-body:'Source Sans 3', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+:root[data-theme="dark"]{
+  --bg:#0F151B; --surface:#161F27; --surface-2:#1C2732; --surface-3:#25313C;
+  --ink:#E7EDF1; --ink-soft:#A2B1BC; --ink-faint:#6E7C87;
+  --line:#2A3843; --line-strong:#3A4A56;
+  --accent:#7C9BC4; --accent-dark:#A8C0DE; --accent-ink:#C7D6EA; --accent-soft:#1C2836;
+  --warn:#E28A5E; --warn-ink:#F6CDA9; --warn-soft:#33221A;
+  --good:#83BF97; --good-ink:#C6E7D0; --good-soft:#1B3024;
+  --bad:#E27A6E; --bad-soft:#33201C;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{font-family:var(--font-body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;padding-bottom:74px;line-height:1.45;}
+svg.ic{width:1em;height:1em;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;vertical-align:-.125em;}
+
+/* ===== Header ===== */
+header.app{background:linear-gradient(150deg,var(--accent-dark) 0%,var(--accent-ink) 60%,#16222F 100%);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50;box-shadow:var(--shadow-sm);}
+header.app .logo{width:42px;height:42px;flex:0 0 auto;border-radius:11px;background:#fff;padding:4px;object-fit:contain;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+header.app .titles{flex:1;min-width:0;}
+header.app h1{font-size:15px;margin:0;font-weight:700;line-height:1.2;font-family:var(--font-display);letter-spacing:-.01em;}
+header.app p{margin:2px 0 0;font-size:11px;color:#C7D6EA;line-height:1.2;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase;}
+header.app .hbtn{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.24);color:#fff;border-radius:9px;padding:8px 10px;font-size:13px;cursor:pointer;flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;}
+header.app .hbtn:hover{background:rgba(255,255,255,.22);}
+header.app .hbtn.iconly{padding:8px;font-size:15px;}
+
+main{max-width:980px;margin:0 auto;padding:14px;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:16px;margin-bottom:14px;}
+.card h2{font-size:13px;margin:0 0 12px;color:var(--accent-ink);text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid var(--accent);padding-bottom:8px;display:flex;align-items:center;gap:8px;font-weight:700;}
+:root[data-theme="dark"] .card h2{color:var(--accent-dark);}
+.card h2 svg.ic{font-size:16px;color:var(--accent);}
+.card h3{font-size:12.5px;margin:16px 0 8px;color:var(--accent-ink);font-weight:700;display:flex;align-items:center;gap:6px;}
+:root[data-theme="dark"] .card h3{color:var(--accent-dark);}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.field label{font-size:11.5px;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;gap:5px;}
+.field input[type=text],.field input[type=number],.field input[type=date],.field input[type=time],.field select,.field textarea{border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:14px;background:var(--surface-2);color:var(--ink);width:100%;font-family:inherit;}
+.field textarea{resize:vertical;min-height:56px;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);background:var(--surface);}
+.field input[readonly]{background:var(--surface-3);font-weight:700;}
+.chip-group{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:20px;padding:7px 13px;font-size:12.5px;cursor:pointer;user-select:none;color:var(--ink);transition:.12s;}
+.chip:hover{border-color:var(--accent);}
+.chip.on{background:var(--accent);border-color:var(--accent-dark);color:#fff;font-weight:700;}
+table.snv{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.snv th,table.snv td{border:1px solid var(--line);padding:6px 5px;text-align:center;}
+table.snv th{background:var(--accent-dark);color:#fff;font-weight:600;font-size:11.5px;}
+table.snv input,table.snv select{width:100%;border:none;background:transparent;text-align:center;font-size:12.5px;padding:3px;color:var(--ink);font-family:inherit;}
+table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);border-radius:4px;}
+.addrow-btn{border:1px dashed var(--accent);background:var(--accent-soft);color:var(--accent-ink);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px;margin-top:8px;}
+:root[data-theme="dark"] .addrow-btn{color:var(--accent-dark);}
+.delrow-btn{border:1px solid var(--bad);color:var(--bad);background:var(--bad-soft);border-radius:8px;padding:4px 8px;font-size:11px;cursor:pointer;}
+.svr{margin-top:8px;overflow-x:auto;}
+.checklist-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);font-size:13px;}
+.checklist-item:last-child{border-bottom:none;}
+.checklist-item .txt{flex:1;}
+.snsel{display:flex;gap:4px;flex:0 0 auto;flex-wrap:wrap;}
+.snsel button{border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:6px 10px;font-size:11.5px;cursor:pointer;font-weight:700;color:var(--ink-soft);}
+.snsel button.on-sim{background:var(--good);color:#fff;border-color:var(--good);}
+.snsel button.on-nao{background:var(--bad);color:#fff;border-color:var(--bad);}
+.snsel button.on-na{background:var(--ink-faint);color:#fff;border-color:var(--ink-faint);}
+
+/* ===== Tabs ===== */
+.tabs{display:flex;overflow-x:auto;gap:6px;margin-bottom:14px;-webkit-overflow-scrolling:touch;padding-bottom:4px;position:sticky;top:66px;background:var(--bg);z-index:30;padding-top:4px;}
+.tabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--accent-ink);border-radius:20px;padding:9px 13px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;position:relative;}
+:root[data-theme="dark"] .tabs button{color:var(--ink);}
+.tabs button svg.ic{font-size:15px;color:var(--accent);}
+.tabs button.active{background:var(--accent-dark);color:#fff;border-color:var(--accent-dark);}
+.tabs button.active svg.ic{color:#fff;}
+.tabs button .badge{width:8px;height:8px;border-radius:50%;background:var(--line-strong);flex:0 0 auto;}
+.tabs button .badge.part{background:var(--warn);}
+.tabs button .badge.done{background:var(--good);}
+.step{display:none;}
+.step.active{display:block;}
+
+/* ===== Action bars ===== */
+.actionbar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:8px;box-shadow:0 -2px 8px rgba(0,0,0,.06);z-index:40;}
+.btn{border:none;border-radius:9px;padding:12px 14px;font-size:13.5px;font-weight:700;cursor:pointer;flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:inherit;}
+.btn svg.ic{font-size:16px;}
+.btn.primary{background:var(--accent);color:#fff;}
+.btn.ghost{background:var(--surface-2);color:var(--accent-ink);}
+:root[data-theme="dark"] .btn.ghost{color:var(--ink);}
+.btn.dark{background:var(--accent-dark);color:#fff;}
+.btn.danger{background:var(--bad);color:#fff;}
+.btn.block{width:100%;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ===== Dashboard ===== */
+.list-item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;transition:.12s;}
+.list-item:hover{border-color:var(--accent);box-shadow:var(--shadow-sm);}
+.list-item .info{min-width:0;}
+.list-item .info b{display:block;font-size:14px;color:var(--accent-ink);}
+:root[data-theme="dark"] .list-item .info b{color:var(--ink);}
+.list-item .info span{font-size:12px;color:var(--ink-soft);}
+.status-pill{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;}
+.status-pill.rascunho{background:var(--warn-soft);color:var(--warn-ink);}
+.status-pill.finalizado{background:var(--good-soft);color:var(--good-ink);}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;}
+.stat-box{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;position:relative;overflow:hidden;}
+.stat-box .ic-bg{position:absolute;right:-6px;top:-6px;font-size:44px;color:var(--accent-soft);}
+:root[data-theme="dark"] .stat-box .ic-bg{color:var(--surface-2);}
+.stat-box .num{font-size:24px;font-weight:800;color:var(--accent-ink);position:relative;}
+:root[data-theme="dark"] .stat-box .num{color:var(--ink);}
+.stat-box .lbl{font-size:11px;color:var(--ink-soft);margin-top:2px;position:relative;}
+.search{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:14px;margin-bottom:10px;background:var(--surface-2);color:var(--ink);font-family:inherit;}
+.empty{text-align:center;color:var(--ink-soft);padding:30px 10px;font-size:13px;}
+.empty svg.ic{font-size:38px;color:var(--line-strong);display:block;margin:0 auto 10px;}
+.toast{position:fixed;bottom:82px;left:50%;transform:translateX(-50%);background:var(--accent-ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:80;box-shadow:var(--shadow);opacity:0;transition:opacity .25s;pointer-events:none;display:flex;align-items:center;gap:8px;}
+.toast.show{opacity:1;}
+.hint{font-size:11.5px;color:var(--ink-soft);margin-top:-2px;margin-bottom:8px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media (max-width:480px){.two-col{grid-template-columns:1fr;}}
+.period-bar,.tab-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.period-bar button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--accent-ink);border-radius:20px;padding:8px 13px;font-size:12px;font-weight:600;cursor:pointer;}
+:root[data-theme="dark"] .period-bar button{color:var(--ink);}
+.period-bar button.active{background:var(--accent);color:#fff;border-color:var(--accent-dark);}
+.custom-range{display:none;gap:8px;margin-bottom:12px;}
+.custom-range.show{display:grid;grid-template-columns:1fr 1fr auto;}
+.chart-wrap{position:relative;height:220px;margin-top:8px;}
+.chart-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+@media (min-width:760px){.chart-grid.two{grid-template-columns:1fr 1fr;}}
+.tab-nav button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--accent-ink);border-radius:9px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+:root[data-theme="dark"] .tab-nav button{color:var(--ink);}
+.tab-nav button svg.ic{font-size:16px;}
+.tab-nav button.active{background:var(--accent-dark);color:#fff;border-color:var(--accent-dark);}
+.panel-view{display:none;}
+.panel-view.active{display:block;}
+
+/* Scores */
+.score-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-weight:800;font-size:13px;}
+.score-badge.good{background:var(--good-soft);color:var(--good-ink);}
+.score-badge.warn{background:var(--warn-soft);color:var(--warn-ink);}
+.score-badge.bad{background:var(--bad-soft);color:var(--bad);}
+.score-badge.neutral{background:var(--surface-3);color:var(--ink-soft);}
+
+/* Body map */
+.bodymap{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:8px 0;}
+.bodymap figure{margin:0;text-align:center;}
+.bodymap figcaption{font-size:11px;color:var(--ink-soft);font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:.05em;}
+.bodymap svg{width:110px;height:200px;}
+.bodymap svg path,.bodymap svg circle{stroke:var(--line-strong);fill:var(--surface-2);}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.legend .mk{width:14px;height:14px;border:1.5px solid var(--accent);display:inline-block;}
+.legend .mk.sq{border-radius:2px;}
+.legend .mk.ci{border-radius:50%;}
+.legend .mk.tr{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:13px solid var(--accent);border-top:none;}
+.legend .mk.di{transform:rotate(45deg);}
+
+/* ===== RenderView (print preview) ===== */
+#renderView{display:none;position:fixed;inset:0;background:var(--bg);z-index:100;overflow:auto;padding:0 0 40px;}
+#renderView.show{display:block;}
+.rv-toolbar{position:sticky;top:0;background:var(--accent-ink);color:#fff;display:flex;gap:8px;padding:12px 16px;align-items:center;z-index:5;}
+.rv-toolbar .sp{flex:1;font-weight:700;font-family:var(--font-display);}
+.rv-toolbar button{border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.14);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;font-family:inherit;}
+.rv-paper{max-width:820px;margin:18px auto;background:#fff;color:#16232E;box-shadow:var(--shadow);border-radius:6px;padding:34px 40px;font-size:12px;}
+.rv-paper *{color:#16232E !important;}
+.rv-head{display:flex;align-items:center;gap:14px;border-bottom:2.5px solid var(--accent);padding-bottom:12px;margin-bottom:16px;}
+.rv-head img{width:52px;height:52px;border-radius:12px;}
+.rv-head .t1{font-size:16px;font-weight:800;font-family:var(--font-display);}
+.rv-head .t2{font-size:11px;color:#55636F !important;text-transform:uppercase;letter-spacing:.05em;}
+.rv-sec{margin-top:16px;break-inside:avoid;}
+.rv-sec h4{font-size:12px;text-transform:uppercase;letter-spacing:.04em;background:var(--accent-soft);color:var(--accent-ink) !important;padding:6px 10px;border-radius:5px;margin:0 0 8px;font-weight:800;}
+.rv-kv{display:grid;grid-template-columns:1fr 1fr;gap:2px 22px;}
+.rv-kv.one{grid-template-columns:1fr;}
+.rv-kv div{padding:3px 0;border-bottom:1px dotted #DCE2E7;display:flex;gap:8px;font-size:11.5px;}
+.rv-kv b{color:#55636F !important;font-weight:600;min-width:44%;}
+.rv-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;}
+.rv-tbl th,.rv-tbl td{border:1px solid #C4CDD4;padding:4px 6px;text-align:left;}
+.rv-tbl th{background:var(--accent-soft);}
+.rv-empty{color:#8B98A3 !important;font-style:italic;font-size:11px;}
+.rv-chart{height:180px;margin-top:8px;}
+.rv-sign{display:flex;gap:40px;margin-top:26px;}
+.rv-sign div{flex:1;border-top:1px solid #16232E;padding-top:4px;font-size:10.5px;text-align:center;color:#55636F !important;}
+@media print{
+  body{padding:0;background:#fff;}
+  header.app,.actionbar,.rv-toolbar,#mainDash,#mainForm,.toast{display:none !important;}
+  #renderView{position:static;background:#fff;overflow:visible;padding:0;}
+  #renderView.show{display:block;}
+  .rv-paper{box-shadow:none;margin:0;max-width:none;border-radius:0;padding:12mm;}
+  .rv-sec{page-break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <img class="logo" src="icons/logo.png" alt="ZELO">
+  <div class="titles">
+    <h1 id="headerTitle">Bloco Operatório</h1>
+    <p>Ficha Operatória &amp; Cirurgia Segura</p>
+  </div>
+  <button class="hbtn iconly" id="themeBtn" title="Alternar tema" aria-label="Alternar tema"></button>
+  <button class="hbtn" id="backBtn" style="display:none;"></button>
+</header>
+
+<main id="mainDash">
+  <div class="tab-nav">
+    <button data-view="registos" class="active"></button>
+    <button data-view="painel"></button>
+  </div>
+
+  <div class="panel-view active" id="viewRegistos">
+    <div class="card"><div class="stat-grid" id="statGrid"></div></div>
+    <div class="card">
+      <h2>Registos do Bloco Operatório</h2>
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:4px;">
+        <div class="field" style="flex:1;">
+          <label>Data da Operação</label>
+          <input type="date" id="dateFilter">
+        </div>
+        <button type="button" class="btn ghost" id="clearDateFilter" style="flex:0 0 auto;padding:9px 14px;">Ver Todos</button>
+      </div>
+      <div class="hint" id="dateFilterCount"></div>
+      <input type="text" class="search" id="searchInput" placeholder="Procurar por nome, processo ou operação...">
+      <div id="listArea"></div>
+    </div>
+  </div>
+
+  <div class="panel-view" id="viewPainel">
+    <div class="card">
+      <h2>Período do Relatório</h2>
+      <div class="period-bar" id="periodBar">
+        <button data-p="hoje">Hoje</button>
+        <button data-p="semana">Esta Semana</button>
+        <button data-p="mes" class="active">Este Mês</button>
+        <button data-p="ano">Este Ano</button>
+        <button data-p="tudo">Tudo</button>
+        <button data-p="custom">Personalizado</button>
+      </div>
+      <div class="custom-range" id="customRange">
+        <div class="field"><label>De</label><input type="date" id="customFrom"></div>
+        <div class="field"><label>Até</label><input type="date" id="customTo"></div>
+        <button class="btn dark" id="applyCustomRange" style="flex:0 0 auto;align-self:end;">Aplicar</button>
+      </div>
+      <div class="stat-grid" id="painelStatGrid"></div>
+    </div>
+    <div class="card">
+      <h2>Cirurgias por Dia — Período Seleccionado</h2>
+      <div class="chart-wrap"><canvas id="chartPorDia"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="chart-grid two">
+        <div><h3>Por Tipo de Cirurgia</h3><div class="chart-wrap"><canvas id="chartTipoCirurgia"></canvas></div></div>
+        <div><h3>Por Tipo de Paciente</h3><div class="chart-wrap"><canvas id="chartTipoPaciente"></canvas></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Operações por Cirurgião (Top 8)</h3>
+      <div class="chart-wrap"><canvas id="chartCirurgiao"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Cumprimento do Checklist de Cirurgia Segura</h3>
+      <div class="hint">Percentagem de "Sim" em cada fase, sobre os registos do período.</div>
+      <div class="chart-wrap"><canvas id="chartChecklist"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Status das Operações</h3>
+      <div class="chart-wrap"><canvas id="chartStatusOp"></canvas></div>
+    </div>
+    <div class="card">
+      <button class="btn dark block" id="exportReportPdfBtn">Exportar Relatório do Período (PDF)</button>
+    </div>
+  </div>
+</main>
+
+<main id="mainForm" style="display:none;">
+  <div class="tabs" id="tabsBar">
+    <button data-step="0">1. Paciente</button>
+    <button data-step="1">2. Equipa</button>
+    <button data-step="2">3. Pré-Op</button>
+    <button data-step="3">4. Cirurgia Segura</button>
+    <button data-step="4">5. Operação</button>
+    <button data-step="5">6. Intra-Op</button>
+    <button data-step="6">7. Pós-Op</button>
+    <button data-step="7">8. Escalas &amp; Alta</button>
+    <button data-step="8">9. Status &amp; Achados</button>
+  </div>
+
+  <form id="recordForm" onsubmit="return false;">
+
+  <!-- STEP 0: PACIENTE -->
+  <div class="step" data-step="0">
+    <div class="card">
+      <h2>Identificação</h2>
+      <div class="grid">
+        <div class="field"><label>Nº de Processo Clínico</label><input type="text" name="processo"></div>
+        <div class="field"><label>NUP Nº</label><input type="text" name="nup"></div>
+        <div class="field"><label>Data do Anúncio</label><input type="date" name="dataAnuncio"></div>
+        <div class="field"><label>Data da Operação</label><input type="date" name="dataOperacao"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Paciente</h2>
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1;"><label>Nome</label><input type="text" name="nome"></div>
+        <div class="field"><label>Nascimento</label><input type="date" name="nascimento"></div>
+        <div class="field"><label>Idade <span style="color:var(--accent);font-weight:700;">(auto)</span></label><input type="number" name="idade" min="0"></div>
+        <div class="field"><label>Sexo</label><select name="sexo"><option value=""></option><option>Masculino</option><option>Feminino</option></select></div>
+        <div class="field"><label>Telefone</label><input type="text" name="telefone"></div>
+        <div class="field" style="grid-column:1/-1;"><label>Morada</label><input type="text" name="morada"></div>
+        <div class="field"><label>Bairro</label><input type="text" name="bairro"></div>
+        <div class="field"><label>Município</label><input type="text" name="municipio"></div>
+        <div class="field"><label>Província</label><input type="text" name="provincia"></div>
+        <div class="field"><label>Sector de Origem</label><input type="text" name="sectorOrigem"></div>
+        <div class="field"><label>Enfermaria</label><input type="text" name="enfermaria"></div>
+        <div class="field"><label>Cama</label><input type="text" name="cama"></div>
+        <div class="field"><label>Encaminhado ao B.O. às</label><input type="time" name="encaminhadoHora"></div>
+      </div>
+      <h3>Tipo do Paciente</h3>
+      <div class="chip-group" id="chipTipoPaciente">
+        <div class="chip" data-val="Internado">Internado</div>
+        <div class="chip" data-val="Ambulatório">Ambulatório</div>
+        <div class="chip" data-val="Emergência">Emergência</div>
+        <div class="chip" data-val="Urgência Relativa">Urgência Relativa</div>
+        <div class="chip" data-val="Urgência">Urgência</div>
+        <div class="chip" data-val="Electiva">Electiva</div>
+      </div>
+      <div class="field" style="margin-top:10px;"><label>Observação</label><textarea name="observacao"></textarea></div>
+    </div>
+    <div class="card">
+      <h2>Procedimento</h2>
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1;"><label>Procedimento Cirúrgico</label><input type="text" name="procedimentoCirurgico"></div>
+        <div class="field" style="grid-column:1/-1;"><label>Local Anatómico</label><input type="text" name="localAnatomico"></div>
+        <div class="field"><label>Lateralidade</label>
+          <select name="lateralidade"><option value=""></option><option value="D">Direito</option><option value="E">Esquerdo</option><option value="NA">Não Aplicável</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1: EQUIPA & DIAGNÓSTICO -->
+  <div class="step" data-step="1">
+    <div class="card">
+      <h2>Equipa Médica</h2>
+      <div class="grid">
+        <div class="field"><label>Cirurgião Principal</label><input type="text" name="cirurgiao"></div>
+        <div class="field"><label>1º Ajudante</label><input type="text" name="ajudante1"></div>
+        <div class="field"><label>2º Ajudante</label><input type="text" name="ajudante2"></div>
+        <div class="field"><label>3º Ajudante</label><input type="text" name="ajudante3"></div>
+        <div class="field"><label>Anestesista</label><input type="text" name="anestesista"></div>
+        <div class="field"><label>1º Médico Interno</label><input type="text" name="medInterno1"></div>
+        <div class="field"><label>2º Médico Interno</label><input type="text" name="medInterno2"></div>
+        <div class="field"><label>Instrumentista</label><input type="text" name="instrumentista"></div>
+        <div class="field"><label>Técnico de Anestesia</label><input type="text" name="tecnicoAnestesia"></div>
+        <div class="field"><label>Circulante</label><input type="text" name="circulante"></div>
+      </div>
+      <h3>Alergias e Profilaxia</h3>
+      <div class="grid">
+        <div class="field"><label>Alergias</label><input type="text" name="alergias"></div>
+        <div class="field"><label>Local</label><input type="text" name="alergiasLocal"></div>
+        <div class="field"><label>Profilaxia Antibiótica</label><input type="text" name="profilaxiaAntibiotica"></div>
+        <div class="field"><label>Profilaxia Tromboembólica</label><input type="text" name="profilaxiaTromboembolica"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Diagnóstico</h2>
+      <div class="field"><label>Diagnóstico Pré-Operatório</label><textarea name="diagPre"></textarea></div>
+      <div class="field"><label>Diagnóstico Pós-Operatório</label><textarea name="diagPos"></textarea></div>
+    </div>
+    <div class="card">
+      <h2>Sangue / Soros / Contagens</h2>
+      <div class="grid">
+        <div class="field"><label>Sangue</label><input type="text" name="sangue"></div>
+        <div class="field"><label>Qtd. de Soros</label><input type="text" name="qtdSoros"></div>
+        <div class="field"><label>Contagem de pinças completa (S/N)</label><select name="contagemPincas"><option value=""></option><option value="S">S</option><option value="N">N</option></select></div>
+        <div class="field"><label>Contagem de compressas completa (S/N)</label><select name="contagemCompressas"><option value=""></option><option value="S">S</option><option value="N">N</option></select></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: PRÉ-OPERATÓRIO -->
+  <div class="step" data-step="2">
+    <div class="card">
+      <h2>Registos de Enfermagem no Pré-Operatório</h2>
+      <div class="hint">Toque em SIM / NÃO para cada coluna (SER e Bloco Operatório).</div>
+      <div id="preOpChecklist"></div>
+      <h3>Identificação</h3>
+      <div class="grid">
+        <div class="field"><label>Ident. Enfer. (SER)</label><input type="text" name="identEnferSER"></div>
+        <div class="field"><label>Nº Ordem (SER)</label><input type="text" name="ordemEnferSER"></div>
+        <div class="field"><label>Ident. Enfer. do B.O.</label><input type="text" name="identEnferBO"></div>
+        <div class="field"><label>Nº Ordem (B.O.)</label><input type="text" name="ordemEnferBO"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: CHECKLIST CIRURGIA SEGURA -->
+  <div class="step" data-step="3">
+    <div class="card">
+      <h2>Antes da Indução Anestésica</h2>
+      <div class="grid">
+        <div class="field"><label>Início Anestesia</label><input type="time" name="inicioAnestesia"></div>
+        <div class="field"><label>ASA</label>
+          <select name="asa"><option value=""></option><option value="I">ASA I</option><option value="II">ASA II</option><option value="III">ASA III</option><option value="IV">ASA IV</option><option value="V">ASA V</option><option value="VI">ASA VI</option><option value="E">E (urgência)</option></select>
+        </div>
+      </div>
+      <h3>Paciente confirma</h3>
+      <div id="pacienteConfirmaList"></div>
+      <h3>Checklist da Anestesia Executado</h3>
+      <div id="checklistAnestesiaList"></div>
+    </div>
+    <div class="card">
+      <h2>Antes da Incisão na Pele</h2>
+      <div class="grid">
+        <div class="field"><label>Início da Cirurgia</label><input type="time" name="inicioCirurgia"></div>
+        <div class="field"><label>Confirmação da equipa com nome e função</label>
+          <select name="confirmacaoEquipa"><option value=""></option><option value="sim">Sim</option><option value="nao">Não</option></select>
+        </div>
+      </div>
+      <h3>Cirurgião, Anestesista e Enfermeiro confirmam</h3>
+      <div id="confirmamList"></div>
+      <h3>Prevenção de Eventos Críticos</h3>
+      <div id="prevencaoList"></div>
+    </div>
+    <div class="card">
+      <h2>Antes do Doente Sair da Sala Operatória</h2>
+      <div class="grid">
+        <div class="field"><label>Fim da Cirurgia</label><input type="time" name="fimCirurgia"></div>
+        <div class="field"><label>Fim da Anestesia</label><input type="time" name="fimAnestesia"></div>
+      </div>
+      <h3>Procedimento Realizado (Enfermeiro confirma com a equipa)</h3>
+      <div id="procedimentoRealizadoList"></div>
+      <h3>Rotulagem e Incidentes</h3>
+      <div class="grid">
+        <div class="field"><label>Rotulagem de Peças Anatómicas</label>
+          <select name="rotulagemPecas"><option value=""></option><option value="na">N.A</option><option value="s">S</option><option value="n">N</option></select>
+        </div>
+        <div class="field"><label>Incidentes com Equipamentos</label>
+          <select name="incidentesEquipamentos"><option value=""></option><option value="na">N.A</option><option value="s">S</option><option value="n">N</option></select>
+        </div>
+      </div>
+      <h3>Índice de Apgar Cirúrgico</h3>
+      <div class="grid">
+        <div class="field"><label>Estimativa de Perda de Sangue (ml)</label><input type="number" name="apgarPerdaSangue"></div>
+        <div class="field"><label>Menor Tensão Arterial Média (mmHg)</label><input type="number" name="apgarTensaoArterial"></div>
+        <div class="field"><label>Menor Frequência Cardíaca (bpm)</label><input type="number" name="apgarFrequenciaCardiaca"></div>
+      </div>
+      <div class="field" style="margin-top:8px;"><label>Índice de Apgar Cirúrgico (total /10)</label><input type="text" id="apgarTotal" readonly></div>
+      <div class="field"><label>Cirurgião / Anestesista / Enfermeiro informam</label><textarea name="informamFinal"></textarea></div>
+    </div>
+  </div>
+
+  <!-- STEP 4: OPERAÇÃO -->
+  <div class="step" data-step="4">
+    <div class="card">
+      <h2>Operação Realizada</h2>
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1;"><label>Operação</label><input type="text" name="operacao"></div>
+        <div class="field"><label>Duração (min) <span style="color:var(--accent);font-weight:700;">(auto)</span></label><input type="text" name="duracao"></div>
+        <div class="field"><label>Porte</label><input type="text" name="porte"></div>
+        <div class="field"><label>CID</label><input type="text" name="cid"></div>
+        <div class="field"><label>Anestesia</label><input type="text" name="anestesia"></div>
+      </div>
+      <h3>Início da Operação</h3>
+      <div class="grid">
+        <div class="field"><label>Data</label><input type="date" name="inicioData"></div>
+        <div class="field"><label>Hora</label><input type="time" name="inicioHora"></div>
+      </div>
+      <h3>Fim da Operação</h3>
+      <div class="grid">
+        <div class="field"><label>Data</label><input type="date" name="fimData"></div>
+        <div class="field"><label>Hora</label><input type="time" name="fimHora"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Riscos, Passos Críticos e Rotulagem</h2>
+      <div class="field"><label>Riscos relacionados com o paciente (Anestesia)</label><textarea name="riscosAnest"></textarea></div>
+      <div class="field"><label>Passos críticos ou fora de rotina (Cirurgia)</label><textarea name="passosCriticos"></textarea></div>
+      <div class="field"><label>Rotulagem e Peças Anatómicas (descrição)</label><textarea name="rotulagemPecasTexto"></textarea></div>
+      <div class="field"><label>Informações relevantes para a equipa da S.R.P.A.</label><textarea name="infoSRPA"></textarea></div>
+      <h3>Anotações — Cateter Periférico / Placa de Bisturi / Garrote / Local da Cirurgia</h3>
+      <div class="bodymap" id="bodyMap"></div>
+      <div class="legend">
+        <span><i class="mk sq"></i> Placa de bisturi elétrico</span>
+        <span><i class="mk ci"></i> Cateter periférico</span>
+        <span><i class="mk tr"></i> Garrote pneumático</span>
+        <span><i class="mk di"></i> Local da cirurgia</span>
+      </div>
+      <div class="field" style="margin-top:8px;"><label>Descrição / localização (frente e verso)</label><textarea name="anotacoesCorpo" placeholder="Ex.: placa de bisturi na coxa esquerda (verso); cateter periférico no antebraço direito..."></textarea></div>
+    </div>
+    <div class="card">
+      <h2>Material Especial</h2>
+      <div class="svr"><table class="snv" id="tblMaterial">
+        <thead><tr><th>Designação</th><th>Qtd.</th><th>Autorização</th><th>Complemento</th><th>Material Atendido</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="material">+ Adicionar material</button>
+    </div>
+    <div class="card">
+      <h2>Equipamento Necessário</h2>
+      <div class="svr"><table class="snv" id="tblEquipamento">
+        <thead><tr><th>Designação</th><th>Quantidade</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="equipamento">+ Adicionar equipamento</button>
+    </div>
+    <div class="card">
+      <h2>Instrumental Necessário</h2>
+      <div class="svr"><table class="snv" id="tblInstrumental">
+        <thead><tr><th>Designação</th><th>Quantidade</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="instrumental">+ Adicionar instrumental</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: INTRA-OPERATÓRIO -->
+  <div class="step" data-step="5">
+    <div class="card">
+      <h2>1 — Admissão</h2>
+      <div class="grid">
+        <div class="field"><label>Entrada na Sala</label><input type="time" name="admEntradaSala"></div>
+        <div class="field"><label>Início da Anestesia</label><input type="time" name="admInicioAnestesia"></div>
+        <div class="field"><label>Início da Cirurgia</label><input type="time" name="admInicioCirurgia"></div>
+        <div class="field"><label>Fim da Anestesia</label><input type="time" name="admFimAnestesia"></div>
+        <div class="field"><label>Fim da Cirurgia</label><input type="time" name="admFimCirurgia"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>2 — Técnica Anestésica</h2>
+      <h3>Anestesia Geral</h3>
+      <div class="chip-group" id="chipTecnicaGeral">
+        <div class="chip" data-val="Endotraqueal">Endotraqueal</div>
+        <div class="chip" data-val="Endovenosa">Endovenosa</div>
+        <div class="chip" data-val="Inalatória">Inalatória</div>
+        <div class="chip" data-val="Combinada">Combinada</div>
+      </div>
+      <h3>Anestesia Loco-Regional</h3>
+      <div class="chip-group" id="chipTecnicaLocoregional">
+        <div class="chip" data-val="Raquianestesia">Raquianestesia</div>
+        <div class="chip" data-val="Peridural">Peridural</div>
+        <div class="chip" data-val="Plexo Braqueal">Plexo Braqueal</div>
+        <div class="chip" data-val="Bloqueio N. Periféricos">Bloqueio N. Periféricos</div>
+        <div class="chip" data-val="Local">Local</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>3 — Via Aérea</h2>
+      <div id="viaAereaList"></div>
+      <h2 style="margin-top:16px;">4 — Tipo de Cirurgia</h2>
+      <div class="chip-group" id="chipTipoCirurgia">
+        <div class="chip" data-val="Limpa">Limpa</div>
+        <div class="chip" data-val="Limpa Contaminada">Limpa Contaminada</div>
+        <div class="chip" data-val="Contaminada">Contaminada</div>
+        <div class="chip" data-val="Infectada">Infectada</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>5 — Posicionamento</h2>
+      <div class="chip-group" id="chipPosicionamento">
+        <div class="chip" data-val="Decúbito Dorsal">Decúbito Dorsal</div>
+        <div class="chip" data-val="Decúbito Lateral Dto.">Decúbito Lateral Dto.</div>
+        <div class="chip" data-val="Decúbito Lateral Esq.">Decúbito Lateral Esq.</div>
+        <div class="chip" data-val="Decúbito Ventral">Decúbito Ventral</div>
+        <div class="chip" data-val="Posição de Litotomia">Posição de Litotomia</div>
+        <div class="chip" data-val="Posição de Proclive">Posição de Proclive</div>
+        <div class="chip" data-val="Posição de Trendelemburg">Posição de Trendelemburg</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>6 — Ferida Operatória / 7 — Curativo</h2>
+      <div class="grid">
+        <div class="field"><label>Estado da Ferida</label>
+          <select name="feridaEstado"><option value=""></option><option>Aberta</option><option>Fechada</option></select>
+        </div>
+        <div class="field"><label>Local Cirúrgico</label><input type="text" name="feridaLocal"></div>
+        <div class="field"><label>Tipo de Curativo</label>
+          <select name="tipoCurativo"><option value=""></option><option>Simples</option><option>Compressivo</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>8 — Garrote Pneumático</h2>
+      <div class="grid">
+        <div class="field"><label>Hora Insuflado</label><input type="time" name="garroteHoraIns"></div>
+        <div class="field"><label>Pressão</label><input type="text" name="garrotePressaoIns"></div>
+        <div class="field"><label>Membro</label><input type="text" name="garroteMembroIns"></div>
+        <div class="field"><label>Hora Desinsuflado</label><input type="time" name="garroteHoraDes"></div>
+      </div>
+      <h2 style="margin-top:16px;">9 — Glicémia (Intra-operatório)</h2>
+      <div class="grid">
+        <div class="field"><label>Hora</label><input type="time" name="glicemiaIntraHora"></div>
+        <div class="field"><label>Glicémia</label><input type="text" name="glicemiaIntraValor"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>10 — Sinais Vitais (Intra-Operatório)</h2>
+      <div class="svr"><table class="snv" id="tblSVIntra">
+        <thead><tr><th>Hora</th><th>TA Sist.</th><th>TA Diast.</th><th>Pulso</th><th>SpO2</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="svIntra">+ Adicionar leitura</button>
+    </div>
+    <div class="card">
+      <h2>11 — Soros / Sangue (Intra-Operatório)</h2>
+      <div class="svr"><table class="snv" id="tblSorosIntra">
+        <thead><tr><th>Horário</th><th>Gelafundim</th><th>Lactato Ringer</th><th>S. Fisiológico</th><th>Sangue</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="sorosIntra">+ Adicionar registo</button>
+    </div>
+    <div class="card">
+      <h2>12 — Drenagens (Intra-Operatório)</h2>
+      <div class="svr"><table class="snv" id="tblDrenIntra">
+        <thead><tr><th>Horário</th><th>Diurese</th><th>Dreno Gástrico</th><th>Dreno Vácuo</th><th>Dreno Torácico</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="drenIntra">+ Adicionar registo</button>
+    </div>
+  </div>
+
+  <!-- STEP 6: PÓS-OPERATÓRIO -->
+  <div class="step" data-step="6">
+    <div class="card">
+      <h2>Registos de Enfermagem no Pós-Operatório</h2>
+      <div class="grid">
+        <div class="field"><label>Hora de Entrada</label><input type="time" name="horaEntradaPos"></div>
+        <div class="field"><label>Hora de Saída</label><input type="time" name="horaSaidaPos"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>1 — Sinais Vitais (Pós-Operatório)</h2>
+      <div class="svr"><table class="snv" id="tblSVPos">
+        <thead><tr><th>Hora</th><th>TA Sist.</th><th>TA Diast.</th><th>Pulso</th><th>SpO2</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="svPos">+ Adicionar leitura</button>
+    </div>
+    <div class="card">
+      <h2>2 — Soros / Sangue / Glicémia</h2>
+      <div class="svr"><table class="snv" id="tblSorosPos">
+        <thead><tr><th>Horário</th><th>S. Fisiológico</th><th>Lactato Ringer 500cc</th><th>Sangue</th><th>Glicémia</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="sorosPos">+ Adicionar registo</button>
+    </div>
+    <div class="card">
+      <h2>3 — Drenagens</h2>
+      <div class="svr"><table class="snv" id="tblDrenPos">
+        <thead><tr><th>Horário</th><th>Diurese</th><th>Drenos (Vacuodreno)</th><th>Dreno Gástrico</th><th>Outras</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="drenPos">+ Adicionar registo</button>
+    </div>
+    <div class="card">
+      <h2>4 — Medicação Administrada</h2>
+      <div class="svr"><table class="snv" id="tblMedicacao">
+        <thead><tr><th>Horário</th><th>Medicamento</th><th>Dose</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <button type="button" class="addrow-btn" data-add="medicacao">+ Adicionar medicação</button>
+    </div>
+    <div class="card">
+      <h2>Anotações de Enfermagem no Pós-Operatório</h2>
+      <div class="field"><textarea name="anotacoesPos" rows="5"></textarea></div>
+    </div>
+  </div>
+
+  <!-- STEP 7: ESCALAS & ALTA -->
+  <div class="step" data-step="7">
+    <div class="card">
+      <h2>Escala de Aldrete (Adrete)</h2>
+      <div class="grid">
+        <div class="field"><label>Tipo de Paciente (escala)</label>
+          <select name="adreteTipo"><option value=""></option><option value="ambulatorio">Ambulatório</option><option value="internado">Internado</option></select>
+        </div>
+      </div>
+      <h3>Pontuação (0, 1 ou 2 — Entrada / Saída)</h3>
+      <div id="adreteList"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+        <div>Entrada: <span id="adreteTotalEntrada" class="score-badge neutral">—</span></div>
+        <div>Saída: <span id="adreteTotalSaida" class="score-badge neutral">—</span></div>
+      </div>
+      <div class="hint">Aldrete ≥ 9 (de 10) sugere critério de alta da recuperação pós-anestésica.</div>
+    </div>
+    <div class="card">
+      <h2>Dor / Alimentação / Micção</h2>
+      <div id="dorAlimList"></div>
+    </div>
+    <div class="card">
+      <h2>Escala de Glasgow</h2>
+      <div class="grid">
+        <div class="field"><label>Abertura dos Olhos</label>
+          <select name="glasgowAbertura"><option value=""></option><option value="4">Espontânea (4)</option><option value="3">À fala (3)</option><option value="2">À dor (2)</option><option value="1">Sem resposta (1)</option></select>
+        </div>
+        <div class="field"><label>Melhor Resposta Verbal</label>
+          <select name="glasgowVerbal"><option value=""></option><option value="5">Orientado (5)</option><option value="4">Confuso (4)</option><option value="3">Palavras inapropriadas (3)</option><option value="2">Incompreensível (2)</option><option value="1">Ausente (1)</option></select>
+        </div>
+        <div class="field"><label>Melhor Resposta Motora</label>
+          <select name="glasgowMotora"><option value=""></option><option value="6">Obedece ordens verbais (6)</option><option value="5">Localiza a dor (5)</option><option value="4">Retirada à dor (4)</option><option value="3">Flexão à dor (3)</option><option value="2">Extensão à dor (2)</option><option value="1">Ausência de dor (1)</option></select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px;"><label>Total Glasgow</label><input type="text" id="glasgowTotal" readonly></div>
+    </div>
+    <div class="card">
+      <h2>Escala ELPO — Risco de Lesões por Pressão (Posicionamento Cirúrgico)</h2>
+      <div class="hint">Cada item de 1 a 5. Escore total 7–35. Escore ≥ 20 sugere maior risco de lesão por pressão perioperatória.</div>
+      <div id="elpoList"></div>
+      <div style="margin-top:10px;">Total ELPO: <span id="elpoTotal" class="score-badge neutral">—</span></div>
+    </div>
+    <div class="card">
+      <h2>Alta Anestésica</h2>
+      <div class="grid">
+        <div class="field"><label>Alta autorizada pelo Dr.</label><input type="text" name="altaAutorizadaPor"></div>
+        <div class="field"><label>Data</label><input type="date" name="altaData"></div>
+        <div class="field"><label>Hora</label><input type="time" name="altaHora"></div>
+      </div>
+      <h3>Encaminhado paciente para</h3>
+      <div class="chip-group" id="chipEncaminhado">
+        <div class="chip" data-val="Cirurgia">Cirurgia</div>
+        <div class="chip" data-val="Ortopedia">Ortopedia</div>
+        <div class="chip" data-val="Maxilo">Maxilo</div>
+        <div class="chip" data-val="Neurocirurgia">Neurocirurgia</div>
+        <div class="chip" data-val="Alta Ambulatório">Alta Ambulatório</div>
+        <div class="chip" data-val="S.O.H">S.O.H</div>
+        <div class="chip" data-val="S.O.M">S.O.M</div>
+        <div class="chip" data-val="U.C.I">U.C.I</div>
+        <div class="chip" data-val="U.C.I.I">U.C.I.I</div>
+        <div class="chip" data-val="NEFRO">NEFRO</div>
+      </div>
+      <div class="field" style="margin-top:10px;"><label>Coordenador do Sector</label><input type="text" name="coordenadorSector"></div>
+    </div>
+  </div>
+
+  <!-- STEP 8: STATUS & ACHADOS -->
+  <div class="step" data-step="8">
+    <div class="card">
+      <h2>Status da Operação</h2>
+      <div class="svr"><table class="snv" id="tblStatus">
+        <thead><tr><th>Status</th><th>Sala</th><th>Data Início</th><th>Data Fim</th><th>Motivo Cancelamento</th><th>Motivo Finalização</th></tr></thead>
+        <tbody>
+          <tr><td style="text-align:left;font-weight:600;">Execução</td><td><input data-status="execucao" data-col="sala" type="text"></td><td><input data-status="execucao" data-col="dataInicio" type="date"></td><td><input data-status="execucao" data-col="dataFim" type="date"></td><td><input data-status="execucao" data-col="motivoCancel" type="text"></td><td><input data-status="execucao" data-col="motivoFinal" type="text"></td></tr>
+          <tr><td style="text-align:left;font-weight:600;">Em recuperação</td><td><input data-status="recuperacao" data-col="sala" type="text"></td><td><input data-status="recuperacao" data-col="dataInicio" type="date"></td><td><input data-status="recuperacao" data-col="dataFim" type="date"></td><td><input data-status="recuperacao" data-col="motivoCancel" type="text"></td><td><input data-status="recuperacao" data-col="motivoFinal" type="text"></td></tr>
+          <tr><td style="text-align:left;font-weight:600;">Finalizada</td><td><input data-status="finalizada" data-col="sala" type="text"></td><td><input data-status="finalizada" data-col="dataInicio" type="date"></td><td><input data-status="finalizada" data-col="dataFim" type="date"></td><td><input data-status="finalizada" data-col="motivoCancel" type="text"></td><td><input data-status="finalizada" data-col="motivoFinal" type="text"></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h2>Informe</h2>
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1;"><label>Nome do Médico que fez o informe (por extenso e número da ordem)</label><input type="text" name="medicoInforme"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Achados Operatórios</h2>
+      <div class="field"><textarea name="achadosOperatorios" rows="8"></textarea></div>
+    </div>
+    <div class="card">
+      <h2>Descrição da Operação</h2>
+      <div class="field"><textarea name="descricaoOperacao" rows="10"></textarea></div>
+    </div>
+  </div>
+
+  </form>
+</main>
+
+<!-- RENDER / PRINT VIEW -->
+<div id="renderView">
+  <div class="rv-toolbar">
+    <span class="sp">Pré-visualização da Ficha</span>
+    <button id="rvPrint"></button>
+    <button id="rvPdf"></button>
+    <button id="rvClose"></button>
+  </div>
+  <div class="rv-paper" id="rvPaper"></div>
+</div>
+
+<div class="actionbar" id="dashActionbar">
+  <button class="btn dark block" id="newRecordBtn">+ Novo Registo</button>
+</div>
+<div class="actionbar" id="formActionbar" style="display:none;">
+  <button class="btn ghost" id="prevStepBtn">Anterior</button>
+  <button class="btn ghost" id="saveDraftBtn">Guardar</button>
+  <button class="btn primary" id="nextStepBtn">Seguinte</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ SVG ICONS ============ */
+const ICONS = {
+  patient:'<path d="M12 12a4 4 0 100-8 4 4 0 000 8z"/><path d="M4 21a8 8 0 0116 0"/>',
+  team:'<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0"/><path d="M16 7a3 3 0 010 6"/><path d="M17 20a6 6 0 00-4-5.7"/>',
+  clipboard:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 11h6M9 15h4"/>',
+  shield:'<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',
+  scalpel:'<path d="M4 20l7-7"/><path d="M14 3l7 7-6 1-2-2z"/><path d="M11 13l-2-2"/>',
+  activity:'<path d="M3 12h4l3 8 4-16 3 8h4"/>',
+  bed:'<path d="M3 8v11M3 13h18v6M21 13a4 4 0 00-4-4H8v4"/><circle cx="6.5" cy="10.5" r="1.5"/>',
+  scale:'<path d="M12 3v18M7 21h10"/><path d="M12 6l-6 5a3 3 0 006 0zM12 6l6 5a3 3 0 01-6 0z"/>',
+  clipcheck:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 13l2 2 4-4"/>',
+  chart:'<path d="M4 20V4M20 20H4M8 16v-4M12 16V8M16 16v-7"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  back:'<path d="M15 18l-6-6 6-6"/>',
+  next:'<path d="M9 6l6 6-6 6"/>',
+  save:'<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h7"/><path d="M8 21v-6h8v6"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  pdf:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M9 13h1.5a1.5 1.5 0 010 3H9zM9 16v-3"/>',
+  print:'<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>',
+  moon:'<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  file:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/>',
+  close:'<path d="M6 6l12 12M18 6L6 18"/>'
+};
+function ic(name){ return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]||''}</svg>`; }
+const STEP_ICONS = ['patient','team','clipboard','shield','scalpel','activity','bed','scale','clipcheck'];
+
+/* ============ DB ============ */
+const DB_NAME = "boUnificadoDB";
+const STORE = "registosBO";
+let db;
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains(STORE)){
+        const os = d.createObjectStore(STORE, {keyPath:"id", autoIncrement:true});
+        os.createIndex("processo","processo",{unique:false});
+        os.createIndex("status","status",{unique:false});
+        os.createIndex("dataOperacao","dataOperacao",{unique:false});
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = e => reject(e);
+  });
+}
+function dbGetAll(){ return new Promise((resolve,reject)=>{ const tx=db.transaction(STORE,"readonly"); const r=tx.objectStore(STORE).getAll(); r.onsuccess=()=>resolve(r.result); r.onerror=reject; }); }
+function dbPut(rec){ return new Promise((resolve,reject)=>{ const tx=db.transaction(STORE,"readwrite"); const r=tx.objectStore(STORE).put(rec); r.onsuccess=()=>resolve(r.result); r.onerror=reject; }); }
+function dbDelete(id){ return new Promise((resolve,reject)=>{ const tx=db.transaction(STORE,"readwrite"); const r=tx.objectStore(STORE).delete(id); r.onsuccess=()=>resolve(); r.onerror=reject; }); }
+function dbGet(id){ return new Promise((resolve,reject)=>{ const tx=db.transaction(STORE,"readonly"); const r=tx.objectStore(STORE).get(id); r.onsuccess=()=>resolve(r.result); r.onerror=reject; }); }
+
+/* ============ CHECKLIST DEFINITIONS ============ */
+const PRE_OP_ITEMS = [
+"Confirmar consentimento cirúrgico e anestésico assinado",
+"Confirmar consentimento anestésico assinado",
+"Local da cirurgia marcado (tinta indelével)",
+"Confirmar jejum",
+"Confirmar alergias",
+"Reserva de sangue confirmada (se pedida)",
+"Confirmar higiene pessoal e o uso de roupa",
+"Confirmar se retirou adornos pessoais (brincos, relógios, colares, lentes de contacto)",
+"Confirmar se retirou prótese dentária",
+"Confirmar acesso venoso periférico (branula nº G18 ou G16)",
+"Confirmar se retirou pinturas dos lábios, esmalte das unhas e postiços volumosos",
+"Confirmar tricotomia",
+"Confirmar se trouxe exames complementares de diagnóstico (RX, análises clínicas)",
+"Confirmar condições de saúde do paciente (infeções respiratórias agudas, outras)",
+"Confirmar sinais vitais, peso e altura",
+"Confirmar se retirou gesso (doente ortopédico)",
+"Confirmar protocolo de cirurgia proctológica",
+"Confirmar protocolo de profilaxia tromboembólica",
+"Confirmar protocolo de profilaxia antibiótica",
+"Confirmar folha de consulta pré-anestésica",
+"Confirmar folha de consulta de enfermagem (ver no sistema do paralelo)"
+];
+const PACIENTE_CONFIRMA_ITEMS = [
+["identidade","Identidade"],["localCirurgia","Local da Cirurgia"],["consentimentoCirurgico","Consentimento Cirúrgico"],
+["alergias2","Alergias"],["consentimentoAnestesico","Consentimento Anestésico"],["localCirurgiaMarcado","Local da Cirurgia Marcado"]
+];
+const CHECKLIST_ANESTESIA_ITEMS = [
+["equipamentosViaAerea","Equipamentos da Via Aérea"],["sistemaVentilacao","Sistema de Ventilação incluindo O2"],["agentesInalatorios","Agentes Inalatórios"],
+["equipamentosAspiracao","Equipamentos de Aspiração"],["drogasDispositivos","Drogas e Dispositivos de Medicação"],["oximetroPulso","Oxímetro de Pulso"],
+["viaAereaDificil","Via Aérea Difícil / Risco de Aspiração"],["riscoPerdasSanguineas","Risco de Perdas Sanguíneas + 500 mL"],["fluidoterapia","Fluidoterapia"],["tipagemSangue","Tipagem / Unidades de Sangue"]
+];
+const CONFIRMAM_ITEMS = [
+["nomePaciente","Nome do Paciente"],["localCirurgia2","Local da Cirurgia"],["procedimentoCirurgico2","Procedimento Cirúrgico"],
+["profilaxiaAntibiotica60","Profilaxia Antibiótica 60 minutos"],["profilaxiaTromboembolica2","Profilaxia Tromboembólica"]
+];
+const PREVENCAO_ITEMS = [
+["cirurgiaoReveTempo","Cirurgião reve: Tempo de Cirurgia"],["cirurgiaoRevePerdas","Cirurgião reve: Perdas Sanguíneas"],["anestesistaReveRiscos","Anestesista reve: Riscos relacionados com o paciente"],
+["enfermeiroEsterilizacao","Enfermeiro confirma: Esterilização DM"],["enfermeiroFuncionamento","Enfermeiro confirma: Funcionamento DM / Equipamentos"],["enfermeiroExames","Enfermeiro confirma: Exames Laboratoriais / Radiológicos"]
+];
+const PROCEDIMENTO_REALIZADO_ITEMS = [
+["contagemCompressasPequenas","Contagem de compressas pequenas"],["contagemCompressasGrandes","Contagem de compressas grandes"],["contagemInstrumentos","Contagem de instrumentos cirúrgicos"],["contagemPerfuroCortantes","Contagem de perfuro cortantes"]
+];
+const VIA_AEREA_ITEMS = [
+["orotraqueal","Orotraqueal"],["nasotraqueal","Nasotraqueal"],["mascaraFacial","Máscara Facial"],["mascaraLaringea","Máscara Laríngea"]
+];
+const ADRETE_ITEMS = [
+["mobilidade","Mobilidade", ["Movimenta todas as extremidades (2)","Movimenta duas extremidades (1)","Não movimenta nenhuma extremidade (0)"]],
+["respiracao","Respiração", ["Inspirações profundas, tosse (2)","Dispneia, respiração limitada (1)","Apneia (0)"]],
+["circulacao","Circulação (Tensão Arterial)", ["TA ± 20 mmHg do valor pré-anestésico (2)","TA ± 20-50 mmHg do valor pré-anestésico (1)","TA ± 50 mmHg do valor pré-anestésico (0)"]],
+["conscienciaOuCurativo","Consciência (internado) / Curativo (ambulatório)", ["Completamente acordado / Seco e limpo (2)","Desperta ao ser chamado / Um pouco manchado (1)","Inconsciente / Muito manchado de sangue (0)"]],
+["saturacao","Saturação de Oxigénio", ["SpO2 > 90% em ar ambiente (2)","SpO2 > 90% Oxigénio Complementar (1)","SpO2 > 90% Oxigénio Suplementar (0)"]]
+];
+const DOR_ALIM_ITEMS = [
+["dor","Dor", ["Sem queixas de dor (2)","Dor leve, resolvido com medicação (1)","Dor intensa, necessidade de medicação parenteral (0)"]],
+["alimentacao","Alimentação", ["Capacidade de beber líquidos (2)","Náuseas (1)","Vómitos (0)"]],
+["miccao","Micção", ["Espontânea (2)"]]
+];
+const ELPO_ITEMS = [
+["tempoCirurgia","Tempo de cirurgia", ["> 6 horas (5)","> 4 a 6 horas (4)","> 2 a 4 horas (3)","> 1 a 2 horas (2)","≤ 1 hora (1)"]],
+["posicaoCirurgica","Posição cirúrgica", ["Litotomia (5)","Trendelenburg (4)","Ventral / prona (3)","Lateral (2)","Dorsal / supina (1)"]],
+["tipoAnestesia","Tipo de anestesia", ["Geral + regional (5)","Geral (4)","Regional (3)","Sedação (2)","Local (1)"]],
+["superficieSuporte","Superfície de suporte", ["Mesa cirúrgica sem apoio (5)","Colchão padrão (4)","Apoios de espuma (3)","Apoios viscoelásticos parciais (2)","Superfície viscoelástica total (1)"]],
+["posicaoMembros","Posição dos membros", ["Sobrecarga acentuada (5)","Sobrecarga moderada (4)","Sobrecarga ligeira (3)","Anatómica com apoio (2)","Anatómica neutra (1)"]],
+["comorbidades","Comorbidades", ["≥ 4 comorbidades (5)","3 comorbidades (4)","2 comorbidades (3)","1 comorbidade (2)","Nenhuma (1)"]],
+["idadeElpo","Idade", ["≥ 80 anos (5)","60–79 anos (4)","40–59 anos (3)","18–39 anos (2)","< 18 anos (1)"]]
+];
+const CHECKLIST_PHASES = [
+  {key:"pacienteConfirma", items:PACIENTE_CONFIRMA_ITEMS, label:"Paciente Confirma"},
+  {key:"checklistAnestesia", items:CHECKLIST_ANESTESIA_ITEMS, label:"Checklist Anestesia"},
+  {key:"confirmam", items:CONFIRMAM_ITEMS, label:"Equipa Confirma (Incisão)"},
+  {key:"prevencao", items:PREVENCAO_ITEMS, label:"Prevenção Eventos Críticos"},
+  {key:"procedimentoRealizado", items:PROCEDIMENTO_REALIZADO_ITEMS, label:"Procedimento Realizado"}
+];
+
+/* ============ STATE ============ */
+let currentRecord = null;
+let currentStep = 0;
+let charts = {};
+let currentPeriod = "mes";
+let customFromDate = null, customToDate = null;
+
+/* ============ UTIL ============ */
+function toast(msg){ const t=document.getElementById('toast'); t.innerHTML=ic('check')+msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function blankRecord(){
+  return {
+    status:"rascunho", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
+    tipoPaciente:"",
+    preOpChecklist: PRE_OP_ITEMS.map(txt=>({item:txt, ser:"", bo:""})),
+    pacienteConfirma:{}, checklistAnestesia:{}, confirmam:{}, prevencao:{}, procedimentoRealizado:{},
+    tecnicaGeral:[], tecnicaLocoregional:[], viaAerea:{}, tipoCirurgia:"", posicionamento:"",
+    material:[], equipamento:[], instrumental:[],
+    statusOperacao:{execucao:{},recuperacao:{},finalizada:{}},
+    svIntra:[], sorosIntra:[], drenIntra:[], svPos:[], sorosPos:[], drenPos:[], medicacao:[],
+    adrete:{}, dorAlim:{}, elpo:{}, encaminhadoPara:[]
+  };
+}
+
+/* ============ THEME ============ */
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  try{ localStorage.setItem('boTheme', t); }catch(e){}
+  document.getElementById('themeBtn').innerHTML = t==='dark' ? ic('sun') : ic('moon');
+}
+document.getElementById('themeBtn').addEventListener('click', ()=>{
+  const cur = document.documentElement.getAttribute('data-theme');
+  applyTheme(cur==='dark'?'light':'dark');
+});
+(function initTheme(){
+  let t='light';
+  try{ t = localStorage.getItem('boTheme') || (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); }catch(e){}
+  applyTheme(t);
+})();
+
+/* ============ STATIC ICON INJECTION ============ */
+document.getElementById('backBtn').innerHTML = ic('back')+'Voltar';
+document.querySelectorAll('#tabsBar button').forEach((b,i)=>{ b.innerHTML = ic(STEP_ICONS[i])+'<span>'+b.textContent+'</span><span class="badge" data-badge="'+i+'"></span>'; });
+document.querySelector('.tab-nav button[data-view="registos"]').innerHTML = ic('list')+'Registos';
+document.querySelector('.tab-nav button[data-view="painel"]').innerHTML = ic('chart')+'Painel & Relatórios';
+document.getElementById('newRecordBtn').innerHTML = ic('plus')+'Novo Registo';
+document.getElementById('prevStepBtn').innerHTML = ic('back')+'Anterior';
+document.getElementById('saveDraftBtn').innerHTML = ic('save')+'Guardar';
+document.getElementById('nextStepBtn').innerHTML = 'Seguinte'+ic('next');
+document.getElementById('rvPrint').innerHTML = ic('print')+'Imprimir';
+document.getElementById('rvPdf').innerHTML = ic('pdf')+'PDF';
+document.getElementById('rvClose').innerHTML = ic('close')+'Fechar';
+
+/* ============ TAB NAV (Registos / Painel) ============ */
+document.querySelectorAll('.tab-nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-nav button').forEach(b=>b.classList.toggle('active', b===btn));
+    const view = btn.dataset.view;
+    document.getElementById('viewRegistos').classList.toggle('active', view==='registos');
+    document.getElementById('viewPainel').classList.toggle('active', view==='painel');
+    if(view==='painel') renderPainel();
+  });
+});
+
+/* ============ PERÍODO ============ */
+document.querySelectorAll('#periodBar button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#periodBar button').forEach(b=>b.classList.toggle('active', b===btn));
+    currentPeriod = btn.dataset.p;
+    document.getElementById('customRange').classList.toggle('show', currentPeriod==='custom');
+    if(currentPeriod!=='custom') renderPainel();
+  });
+});
+document.getElementById('applyCustomRange').addEventListener('click', ()=>{
+  customFromDate = document.getElementById('customFrom').value || null;
+  customToDate = document.getElementById('customTo').value || null;
+  renderPainel();
+});
+function periodBounds(){
+  const today = new Date();
+  const iso = d => d.toISOString().slice(0,10);
+  if(currentPeriod==="hoje"){ const t=iso(today); return {from:t, to:t}; }
+  if(currentPeriod==="semana"){
+    const d = new Date(today); const dow = (d.getDay()+6)%7;
+    const start = new Date(d); start.setDate(d.getDate()-dow);
+    return {from:iso(start), to:iso(today)};
+  }
+  if(currentPeriod==="mes"){ const start = new Date(today.getFullYear(), today.getMonth(), 1); return {from:iso(start), to:iso(today)}; }
+  if(currentPeriod==="ano"){ const start = new Date(today.getFullYear(), 0, 1); return {from:iso(start), to:iso(today)}; }
+  if(currentPeriod==="custom"){ return {from:customFromDate, to:customToDate}; }
+  return {from:null, to:null};
+}
+function filterByPeriod(all){
+  const {from,to} = periodBounds();
+  if(!from && !to) return all;
+  return all.filter(r=>{
+    const d = r.dataOperacao || "";
+    if(!d) return false;
+    if(from && d < from) return false;
+    if(to && d > to) return false;
+    return true;
+  });
+}
+
+/* ============ DASHBOARD: REGISTOS ============ */
+let selectedDate = null;
+function formatDateBR(iso){ if(!iso) return ""; const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`; }
+async function renderDashboard(){
+  const all = await dbGetAll();
+  all.sort((a,b)=> new Date(b.updatedAt) - new Date(a.updatedAt));
+  const total = all.length;
+  const finalizados = all.filter(r=>r.status==="finalizado").length;
+  const rascunhos = total - finalizados;
+  const hojeStr = new Date().toISOString().slice(0,10);
+  const hoje = all.filter(r=> (r.dataOperacao||"") === hojeStr).length;
+  if(selectedDate === null){
+    const datasComRegisto = all.map(r=> r.dataOperacao).filter(Boolean).sort();
+    selectedDate = datasComRegisto.length ? datasComRegisto[datasComRegisto.length-1] : hojeStr;
+    document.getElementById('dateFilter').value = selectedDate;
+  }
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-box"><div class="ic-bg">${ic('file')}</div><div class="num">${total}</div><div class="lbl">Total de Registos</div></div>
+    <div class="stat-box"><div class="ic-bg">${ic('check')}</div><div class="num">${finalizados}</div><div class="lbl">Finalizados</div></div>
+    <div class="stat-box"><div class="ic-bg">${ic('clipboard')}</div><div class="num">${rascunhos}</div><div class="lbl">Rascunhos</div></div>
+    <div class="stat-box"><div class="ic-bg">${ic('calendar')}</div><div class="num">${hoje}</div><div class="lbl">Operações Hoje</div></div>
+  `;
+  renderList(all);
+}
+function renderList(all){
+  const q = (document.getElementById('searchInput').value||"").toLowerCase();
+  const dateVal = document.getElementById('dateFilter').value;
+  let filtered = all.filter(r=>{
+    if(dateVal && (r.dataOperacao||"") !== dateVal) return false;
+    if(!q) return true;
+    return (r.nome||"").toLowerCase().includes(q) || (r.processo||"").toLowerCase().includes(q) || (r.operacao||"").toLowerCase().includes(q);
+  });
+  if(dateVal){ filtered = filtered.slice().sort((a,b)=> (a.inicioHora||a.encaminhadoHora||"").localeCompare(b.inicioHora||b.encaminhadoHora||"")); }
+  const countLbl = document.getElementById('dateFilterCount');
+  countLbl.textContent = dateVal ? `${filtered.length} registo(s) em ${formatDateBR(dateVal)}` : `${filtered.length} registo(s) — a mostrar todos os dias`;
+  const area = document.getElementById('listArea');
+  if(filtered.length===0){ area.innerHTML = `<div class="empty">${ic('search')}Nenhum registo encontrado${dateVal? " nesta data.":"."}</div>`; return; }
+  area.innerHTML = filtered.map(r=>`
+    <div class="list-item" data-id="${r.id}">
+      <div class="info">
+        <b>${esc(r.nome) || "(sem nome)"}</b>
+        <span>${esc(r.operacao) || "Operação não indicada"} · Processo ${esc(r.processo)||"—"} · ${r.dataOperacao||"sem data"}${r.inicioHora?(" · "+r.inicioHora):""}</span>
+      </div>
+      <span class="status-pill ${r.status}">${r.status==="finalizado"?"Finalizado":"Rascunho"}</span>
+    </div>
+  `).join("");
+  area.querySelectorAll('.list-item').forEach(el=> el.addEventListener('click', ()=> openRecord(parseInt(el.dataset.id))));
+}
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+document.getElementById('searchInput').addEventListener('input', async ()=>{ const all = await dbGetAll(); all.sort((a,b)=> new Date(b.updatedAt)-new Date(a.updatedAt)); renderList(all); });
+document.getElementById('dateFilter').addEventListener('change', async ()=>{ selectedDate = document.getElementById('dateFilter').value || ""; const all = await dbGetAll(); all.sort((a,b)=> new Date(b.updatedAt)-new Date(a.updatedAt)); renderList(all); });
+document.getElementById('clearDateFilter').addEventListener('click', async ()=>{ document.getElementById('dateFilter').value = ""; selectedDate = ""; const all = await dbGetAll(); all.sort((a,b)=> new Date(b.updatedAt)-new Date(a.updatedAt)); renderList(all); });
+
+/* ============ PAINEL ============ */
+function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
+function countBy(arr, fn){ const m = {}; arr.forEach(x=>{ const k = fn(x) || "Não definido"; m[k] = (m[k]||0)+1; }); return m; }
+async function renderPainel(){
+  const all = await dbGetAll();
+  const filtered = filterByPeriod(all);
+  const total = filtered.length;
+  const finalizados = filtered.filter(r=>r.status==="finalizado").length;
+  const rascunhos = total - finalizados;
+  let duracoesNum = filtered.map(r=> parseFloat((r.duracao||"").replace(/[^0-9.]/g,""))).filter(n=>!isNaN(n) && n>0);
+  const duracaoMedia = duracoesNum.length ? Math.round(duracoesNum.reduce((a,b)=>a+b,0)/duracoesNum.length) : null;
+  document.getElementById('painelStatGrid').innerHTML = `
+    <div class="stat-box"><div class="ic-bg">${ic('file')}</div><div class="num">${total}</div><div class="lbl">Registos no Período</div></div>
+    <div class="stat-box"><div class="ic-bg">${ic('check')}</div><div class="num">${finalizados}</div><div class="lbl">Finalizados</div></div>
+    <div class="stat-box"><div class="ic-bg">${ic('clipboard')}</div><div class="num">${rascunhos}</div><div class="lbl">Rascunhos</div></div>
+    <div class="stat-box"><div class="ic-bg">${ic('clock')}</div><div class="num">${duracaoMedia!==null ? duracaoMedia : "—"}</div><div class="lbl">Duração Média (min)</div></div>
+  `;
+  const porDia = {};
+  filtered.forEach(r=>{ const d = r.dataOperacao || "sem data"; porDia[d] = (porDia[d]||0)+1; });
+  const diasOrdenados = Object.keys(porDia).sort();
+  destroyChart('porDia');
+  charts.porDia = new Chart(document.getElementById('chartPorDia'), {
+    type:'line',
+    data:{ labels:diasOrdenados, datasets:[{ label:'Cirurgias', data:diasOrdenados.map(d=>porDia[d]), borderColor:'#3E5C87', backgroundColor:'rgba(62,92,135,0.15)', tension:0.25, fill:true }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+  const pal = ['#2B415E','#3E5C87','#7C9BC4','#B5502D','#3F7A56','#8B98A3'];
+  const tipoCirurgiaCount = countBy(filtered, r=>r.tipoCirurgia);
+  destroyChart('tipoCirurgia');
+  charts.tipoCirurgia = new Chart(document.getElementById('chartTipoCirurgia'), {
+    type:'doughnut',
+    data:{ labels:Object.keys(tipoCirurgiaCount), datasets:[{ data:Object.values(tipoCirurgiaCount), backgroundColor:pal }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10}}}} }
+  });
+  const tipoPacienteCount = countBy(filtered, r=>r.tipoPaciente);
+  destroyChart('tipoPaciente');
+  charts.tipoPaciente = new Chart(document.getElementById('chartTipoPaciente'), {
+    type:'doughnut',
+    data:{ labels:Object.keys(tipoPacienteCount), datasets:[{ data:Object.values(tipoPacienteCount), backgroundColor:pal }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:10, font:{size:10}}}} }
+  });
+  const cirurgiaoCount = countBy(filtered, r=>r.cirurgiao);
+  const topCirurgioes = Object.entries(cirurgiaoCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  destroyChart('cirurgiao');
+  charts.cirurgiao = new Chart(document.getElementById('chartCirurgiao'), {
+    type:'bar',
+    data:{ labels:topCirurgioes.map(x=>x[0]), datasets:[{ label:'Operações', data:topCirurgioes.map(x=>x[1]), backgroundColor:'#3E5C87' }] },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+  const checklistLabels = [], checklistPct = [];
+  CHECKLIST_PHASES.forEach(phase=>{
+    let sim=0, respondido=0;
+    filtered.forEach(r=>{ const obj = r[phase.key] || {}; phase.items.forEach(([k])=>{ const v = obj[k]; if(v==="sim"||v==="nao"){ respondido++; if(v==="sim") sim++; } }); });
+    checklistLabels.push(phase.label);
+    checklistPct.push(respondido ? Math.round((sim/respondido)*100) : 0);
+  });
+  destroyChart('checklist');
+  charts.checklist = new Chart(document.getElementById('chartChecklist'), {
+    type:'bar',
+    data:{ labels:checklistLabels, datasets:[{ label:'% Sim', data:checklistPct, backgroundColor:checklistPct.map(p=> p>=90?'#3F7A56':p>=70?'#B5502D':'#C0392B') }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } } }
+  });
+  destroyChart('statusOp');
+  charts.statusOp = new Chart(document.getElementById('chartStatusOp'), {
+    type:'doughnut',
+    data:{ labels:['Finalizados','Rascunhos'], datasets:[{ data:[finalizados, rascunhos], backgroundColor:['#3F7A56','#B5502D'] }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
+  });
+}
+
+/* ============ NAVEGAÇÃO DASH <-> FORM ============ */
+function showDash(){
+  document.getElementById('mainDash').style.display='block';
+  document.getElementById('mainForm').style.display='none';
+  document.getElementById('dashActionbar').style.display='flex';
+  document.getElementById('formActionbar').style.display='none';
+  document.getElementById('backBtn').style.display='none';
+  document.getElementById('headerTitle').textContent = 'Bloco Operatório';
+  renderDashboard();
+  if(document.getElementById('viewPainel').classList.contains('active')) renderPainel();
+}
+function showForm(){
+  document.getElementById('mainDash').style.display='none';
+  document.getElementById('mainForm').style.display='block';
+  document.getElementById('dashActionbar').style.display='none';
+  document.getElementById('formActionbar').style.display='flex';
+  document.getElementById('backBtn').style.display='inline-flex';
+  document.getElementById('headerTitle').textContent = currentRecord.nome ? currentRecord.nome : 'Novo Registo';
+  window.scrollTo(0,0);
+}
+document.getElementById('backBtn').addEventListener('click', ()=>{ syncFormToRecord(); showDash(); });
+
+async function openRecord(id){
+  currentRecord = await dbGet(id);
+  if(!currentRecord.statusOperacao) currentRecord.statusOperacao = {execucao:{},recuperacao:{},finalizada:{}};
+  if(!currentRecord.elpo) currentRecord.elpo = {};
+  currentStep = 0;
+  fillFormFromRecord();
+  showForm();
+  goStep(0);
+}
+document.getElementById('newRecordBtn').addEventListener('click', ()=>{
+  currentRecord = blankRecord();
+  const today = new Date().toISOString().slice(0,10);
+  currentRecord.dataOperacao = today;
+  currentStep = 0;
+  fillFormFromRecord();
+  showForm();
+  goStep(0);
+  toast("Novo registo iniciado");
+});
+
+/* ============ STEPS ============ */
+const LAST_STEP = 8;
+document.querySelectorAll('#tabsBar button').forEach(btn=> btn.addEventListener('click', ()=>{ syncFormToRecord(); goStep(parseInt(btn.dataset.step)); }));
+function goStep(n){
+  currentStep = n;
+  document.querySelectorAll('.step').forEach(s=> s.classList.toggle('active', parseInt(s.dataset.step)===n));
+  document.querySelectorAll('#tabsBar button').forEach(b=> b.classList.toggle('active', parseInt(b.dataset.step)===n));
+  document.getElementById('prevStepBtn').style.visibility = n===0 ? 'hidden':'visible';
+  document.getElementById('nextStepBtn').innerHTML = n===LAST_STEP ? ('Concluir'+ic('check')) : ('Seguinte'+ic('next'));
+  updateStepBadges();
+  window.scrollTo(0,0);
+}
+document.getElementById('prevStepBtn').addEventListener('click', ()=>{ if(currentStep>0){ syncFormToRecord(); goStep(currentStep-1);} });
+document.getElementById('nextStepBtn').addEventListener('click', async ()=>{
+  syncFormToRecord();
+  if(currentStep<LAST_STEP){ goStep(currentStep+1); }
+  else {
+    const miss = missingCritical();
+    if(miss.length && !confirm("Campos importantes em falta:\n\n• "+miss.join("\n• ")+"\n\nFinalizar mesmo assim?")) return;
+    currentRecord.status="finalizado"; await saveCurrent(); toast("Registo finalizado e guardado"); showDash();
+  }
+});
+document.getElementById('saveDraftBtn').addEventListener('click', async ()=>{ syncFormToRecord(); await saveCurrent(); toast("Rascunho guardado"); });
+async function saveCurrent(){ currentRecord.updatedAt = new Date().toISOString(); const id = await dbPut(currentRecord); currentRecord.id = id; }
+function missingCritical(){
+  const m=[];
+  if(!currentRecord.nome) m.push("Nome do paciente");
+  if(!currentRecord.dataOperacao) m.push("Data da operação");
+  if(!currentRecord.procedimentoCirurgico && !currentRecord.operacao) m.push("Procedimento / operação");
+  if(!currentRecord.cirurgiao) m.push("Cirurgião principal");
+  return m;
+}
+
+/* ============ STEP COMPLETION BADGES ============ */
+function stepFilled(n){
+  const r = currentRecord; if(!r) return 0;
+  const anyStr = keys => keys.some(k=> (r[k]||"").toString().trim());
+  const allStr = keys => keys.every(k=> (r[k]||"").toString().trim());
+  const objAns = (obj,items)=> items.filter(it=>{const k=Array.isArray(it)?it[0]:it; return (obj||{})[k];}).length;
+  let has=false, full=false;
+  switch(n){
+    case 0: has=anyStr(['nome','processo','nup','dataOperacao','procedimentoCirurgico']); full=allStr(['nome','dataOperacao','procedimentoCirurgico'])&&!!r.tipoPaciente; break;
+    case 1: has=anyStr(['cirurgiao','anestesista','diagPre']); full=!!r.cirurgiao&&!!r.anestesista; break;
+    case 2: { const c=r.preOpChecklist||[]; const done=c.filter(x=>x.ser||x.bo).length; has=done>0; full=done>=c.length*0.8; break; }
+    case 3: { const t=objAns(r.pacienteConfirma,PACIENTE_CONFIRMA_ITEMS)+objAns(r.checklistAnestesia,CHECKLIST_ANESTESIA_ITEMS)+objAns(r.confirmam,CONFIRMAM_ITEMS)+objAns(r.prevencao,PREVENCAO_ITEMS)+objAns(r.procedimentoRealizado,PROCEDIMENTO_REALIZADO_ITEMS); const tot=PACIENTE_CONFIRMA_ITEMS.length+CHECKLIST_ANESTESIA_ITEMS.length+CONFIRMAM_ITEMS.length+PREVENCAO_ITEMS.length+PROCEDIMENTO_REALIZADO_ITEMS.length; has=t>0; full=t>=tot*0.8; break; }
+    case 4: has=anyStr(['operacao','inicioHora'])||((r.material||[]).length>0); full=!!r.operacao&&!!r.inicioHora; break;
+    case 5: has=(r.tecnicaGeral||[]).length>0||(r.tecnicaLocoregional||[]).length>0||!!r.tipoCirurgia||(r.svIntra||[]).length>0; full=!!r.tipoCirurgia&&!!r.posicionamento; break;
+    case 6: has=(r.svPos||[]).length>0||anyStr(['horaEntradaPos','anotacoesPos']); full=(r.svPos||[]).length>0; break;
+    case 7: { const adr=Object.keys(r.adrete||{}).length; has=adr>0||anyStr(['glasgowAbertura','altaAutorizadaPor'])||Object.keys(r.elpo||{}).length>0; full=adr>=8; break; }
+    case 8: has=anyStr(['achadosOperatorios','descricaoOperacao','medicoInforme']); full=!!r.descricaoOperacao; break;
+  }
+  return full?2:(has?1:0);
+}
+function updateStepBadges(){
+  document.querySelectorAll('#tabsBar .badge').forEach(b=>{
+    const n=parseInt(b.dataset.badge); const s=stepFilled(n);
+    b.className='badge'+(s===2?' done':s===1?' part':'');
+  });
+}
+
+/* ============ CHIPS ============ */
+function setupChipSingle(containerId, storeKey){
+  const c = document.getElementById(containerId);
+  c.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      currentRecord[storeKey] = (currentRecord[storeKey]===chip.dataset.val) ? "" : chip.dataset.val;
+      refreshChipSingle(containerId, storeKey); updateStepBadges();
+    });
+  });
+}
+function refreshChipSingle(containerId, storeKey){ document.querySelectorAll(`#${containerId} .chip`).forEach(chip=> chip.classList.toggle('on', currentRecord[storeKey]===chip.dataset.val)); }
+function setupChipGroup(containerId, storeArrayKey){
+  const c = document.getElementById(containerId);
+  c.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      if(!currentRecord[storeArrayKey]) currentRecord[storeArrayKey] = [];
+      const arr = currentRecord[storeArrayKey];
+      const idx = arr.indexOf(chip.dataset.val);
+      if(idx>-1) arr.splice(idx,1); else arr.push(chip.dataset.val);
+      refreshChipGroup(containerId, storeArrayKey); updateStepBadges();
+    });
+  });
+}
+function refreshChipGroup(containerId, storeArrayKey){ const cur = currentRecord[storeArrayKey] || []; document.querySelectorAll(`#${containerId} .chip`).forEach(chip=> chip.classList.toggle('on', cur.includes(chip.dataset.val))); }
+
+/* ============ SIM/NÃO CHECKLISTS ============ */
+function buildSimNaoList(container, items, storeKey, options){
+  const opts = options || ["sim","nao"];
+  container.innerHTML = items.map(it=>{
+    const key = Array.isArray(it) ? it[0] : it;
+    const label = Array.isArray(it) ? it[1] : it;
+    const btns = opts.map(o=>{
+      const lbl = o==="sim"?"Sim":o==="nao"?"Não":o==="na"?"N.A":o==="s"?"S":o==="n"?"N":o==="facil"?"Fácil":o==="dificil"?"Difícil":o;
+      return `<button type="button" data-key="${key}" data-val="${o}" class="opt-${storeKey}">${lbl}</button>`;
+    }).join("");
+    return `<div class="checklist-item"><span class="txt">${label}</span><div class="snsel">${btns}</div></div>`;
+  }).join("");
+  container.querySelectorAll(`button.opt-${storeKey}`).forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const key = b.dataset.key, val = b.dataset.val;
+      if(!currentRecord[storeKey]) currentRecord[storeKey] = {};
+      currentRecord[storeKey][key] = (currentRecord[storeKey][key]===val)?"":val;
+      refreshSimNaoList(container, storeKey); updateStepBadges();
+    });
+  });
+  refreshSimNaoList(container, storeKey);
+}
+function refreshSimNaoList(container, storeKey){
+  container.querySelectorAll('button').forEach(b=>{
+    const cur = (currentRecord[storeKey]||{})[b.dataset.key];
+    b.classList.remove('on-sim','on-nao','on-na');
+    if(cur === b.dataset.val){
+      if(b.dataset.val==="sim"||b.dataset.val==="facil") b.classList.add('on-sim');
+      else if(b.dataset.val==="nao"||b.dataset.val==="dificil") b.classList.add('on-nao');
+      else b.classList.add('on-na');
+    }
+  });
+}
+function buildPreOpChecklist(){
+  const container = document.getElementById('preOpChecklist');
+  container.innerHTML = currentRecord.preOpChecklist.map((row,i)=>`
+    <div class="checklist-item">
+      <span class="txt">${row.item}</span>
+      <div class="snsel">
+        <button type="button" data-i="${i}" data-col="ser" data-val="sim" class="preop-btn">SER Sim</button>
+        <button type="button" data-i="${i}" data-col="ser" data-val="nao" class="preop-btn">SER Não</button>
+        <button type="button" data-i="${i}" data-col="bo" data-val="sim" class="preop-btn">B.O Sim</button>
+        <button type="button" data-i="${i}" data-col="bo" data-val="nao" class="preop-btn">B.O Não</button>
+      </div>
+    </div>
+  `).join("");
+  container.querySelectorAll('.preop-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const i = parseInt(b.dataset.i), col = b.dataset.col, val = b.dataset.val;
+      currentRecord.preOpChecklist[i][col] = (currentRecord.preOpChecklist[i][col]===val)?"":val;
+      refreshPreOpChecklist(); updateStepBadges();
+    });
+  });
+  refreshPreOpChecklist();
+}
+function refreshPreOpChecklist(){
+  document.querySelectorAll('.preop-btn').forEach(b=>{
+    const i = parseInt(b.dataset.i), col = b.dataset.col;
+    const cur = currentRecord.preOpChecklist[i][col];
+    b.classList.remove('on-sim','on-nao');
+    if(cur === b.dataset.val){ b.classList.add(b.dataset.val==="sim"?"on-sim":"on-nao"); }
+  });
+}
+
+/* ============ ADRETE + DOR/ALIM + ELPO ============ */
+function buildAdreteList(){
+  const c = document.getElementById('adreteList');
+  c.innerHTML = ADRETE_ITEMS.map(([key,label,opts])=>`
+    <div style="margin-bottom:10px;">
+      <div style="font-size:12.5px;font-weight:700;color:var(--accent-ink);margin-bottom:5px;">${label}</div>
+      <div class="two-col" style="margin-top:6px;">
+        <div class="field"><label>Entrada</label><select data-adrete-entrada="${key}"><option value="">—</option><option value="2">2</option><option value="1">1</option><option value="0">0</option></select></div>
+        <div class="field"><label>Saída</label><select data-adrete-saida="${key}"><option value="">—</option><option value="2">2</option><option value="1">1</option><option value="0">0</option></select></div>
+      </div>
+    </div>
+  `).join("");
+  c.querySelectorAll('select[data-adrete-entrada]').forEach(inp=>{ inp.addEventListener('change', ()=>{ if(!currentRecord.adrete) currentRecord.adrete={}; currentRecord.adrete[inp.dataset.adreteEntrada+"_entrada"] = inp.value; updateAdreteTotals(); updateStepBadges(); }); });
+  c.querySelectorAll('select[data-adrete-saida]').forEach(inp=>{ inp.addEventListener('change', ()=>{ if(!currentRecord.adrete) currentRecord.adrete={}; currentRecord.adrete[inp.dataset.adreteSaida+"_saida"] = inp.value; updateAdreteTotals(); updateStepBadges(); }); });
+}
+function updateAdreteTotals(){
+  const a = currentRecord.adrete||{};
+  let te=0,ts=0,ce=0,cs=0;
+  ADRETE_ITEMS.forEach(([k])=>{ const e=a[k+"_entrada"],s=a[k+"_saida"]; if(e!==""&&e!=null){te+=parseInt(e)||0;ce++;} if(s!==""&&s!=null){ts+=parseInt(s)||0;cs++;} });
+  const badge=(el,val,cnt)=>{ if(!cnt){el.className="score-badge neutral";el.textContent="—";return;} el.textContent=val+" / 10"; el.className="score-badge "+(val>=9?"good":val>=7?"warn":"bad"); };
+  badge(document.getElementById('adreteTotalEntrada'),te,ce);
+  badge(document.getElementById('adreteTotalSaida'),ts,cs);
+}
+function buildDorAlimList(){
+  const c = document.getElementById('dorAlimList');
+  c.innerHTML = DOR_ALIM_ITEMS.map(([key,label,opts])=>`
+    <div class="field" style="margin-bottom:6px;">
+      <label>${label}</label>
+      <select data-dor="${key}"><option value="">—</option>${opts.map(o=>{const s=o.match(/\((\d)\)/)[1]; return `<option value="${s}">${o}</option>`;}).join("")}</select>
+    </div>
+  `).join("");
+  c.querySelectorAll('select[data-dor]').forEach(sel=>{ sel.addEventListener('change', ()=>{ if(!currentRecord.dorAlim) currentRecord.dorAlim={}; currentRecord.dorAlim[sel.dataset.dor] = sel.value; }); });
+}
+function buildElpoList(){
+  const c = document.getElementById('elpoList');
+  c.innerHTML = ELPO_ITEMS.map(([key,label,opts])=>`
+    <div class="field" style="margin-bottom:6px;">
+      <label>${label}</label>
+      <select data-elpo="${key}"><option value="">—</option>${opts.map(o=>{const s=o.match(/\((\d)\)/)[1]; return `<option value="${s}">${o}</option>`;}).join("")}</select>
+    </div>
+  `).join("");
+  c.querySelectorAll('select[data-elpo]').forEach(sel=>{ sel.addEventListener('change', ()=>{ if(!currentRecord.elpo) currentRecord.elpo={}; currentRecord.elpo[sel.dataset.elpo] = sel.value; updateElpoTotal(); updateStepBadges(); }); });
+}
+function updateElpoTotal(){
+  const e=currentRecord.elpo||{}; let tot=0,cnt=0;
+  ELPO_ITEMS.forEach(([k])=>{ if(e[k]!==""&&e[k]!=null){ tot+=parseInt(e[k])||0; cnt++; } });
+  const el=document.getElementById('elpoTotal');
+  if(!cnt){ el.className="score-badge neutral"; el.textContent="—"; return; }
+  el.textContent = tot+" / 35 "+(tot>=20?"(maior risco)":"(menor risco)");
+  el.className="score-badge "+(tot>=20?"bad":tot>=16?"warn":"good");
+}
+
+/* ============ BODY MAP (frente/verso) ============ */
+function buildBodyMap(){
+  const svg = `<svg viewBox="0 0 90 170"><path d="M45 8a9 9 0 100 18 9 9 0 000-18zM33 30c0-4 5-6 12-6s12 2 12 6l4 26-6 3-2-18v22l3 40h-6l-5-34-5 34h-6l3-40V41l-2 18-6-3z"/><path d="M27 34l-8 22 5 3 6-18zM63 34l8 22-5 3-6-18z"/></svg>`;
+  document.getElementById('bodyMap').innerHTML = `
+    <figure>${svg}<figcaption>Frente</figcaption></figure>
+    <figure>${svg}<figcaption>Verso</figcaption></figure>`;
+}
+
+/* ============ TABELAS REPETÍVEIS ============ */
+const TABLE_CONFIGS = {
+  material: {tbody:'#tblMaterial tbody', cols:['designacao','qtd','autorizacao','complemento','materialAtendido'], types:['text','text','text','text','text']},
+  equipamento: {tbody:'#tblEquipamento tbody', cols:['designacao','quantidade'], types:['text','text']},
+  instrumental: {tbody:'#tblInstrumental tbody', cols:['designacao','quantidade'], types:['text','text']},
+  svIntra: {tbody:'#tblSVIntra tbody', cols:['hora','taSist','taDiast','pulso','spo2'], types:['time','number','number','number','number']},
+  sorosIntra: {tbody:'#tblSorosIntra tbody', cols:['horario','gelafundim','lactatoRinger','sFisiologico','sangue'], types:['time','text','text','text','text']},
+  drenIntra: {tbody:'#tblDrenIntra tbody', cols:['horario','diurese','drenoGastrico','drenoVacuo','drenoToracico'], types:['time','text','text','text','text']},
+  svPos: {tbody:'#tblSVPos tbody', cols:['hora','taSist','taDiast','pulso','spo2'], types:['time','number','number','number','number']},
+  sorosPos: {tbody:'#tblSorosPos tbody', cols:['horario','sFisiologico','lactatoRinger500','sangue','glicemia'], types:['time','text','text','text','text']},
+  drenPos: {tbody:'#tblDrenPos tbody', cols:['horario','diurese','drenosVacuodreno','drenoGastrico','outras'], types:['time','text','text','text','text']},
+  medicacao: {tbody:'#tblMedicacao tbody', cols:['horario','medicamento','dose'], types:['time','text','text']}
+};
+function renderTable(key){
+  const cfg = TABLE_CONFIGS[key];
+  const tbody = document.querySelector(cfg.tbody);
+  const rows = currentRecord[key] || [];
+  tbody.innerHTML = rows.map((row,i)=>{
+    const cells = cfg.cols.map((c,ci)=>`<td><input type="${cfg.types[ci]}" data-tbl="${key}" data-i="${i}" data-col="${c}" value="${esc(row[c]!==undefined?row[c]:'')}"></td>`).join("");
+    return `<tr>${cells}<td><button type="button" class="delrow-btn" data-del="${key}" data-i="${i}">✕</button></td></tr>`;
+  }).join("");
+  tbody.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', ()=>{ currentRecord[key][parseInt(inp.dataset.i)][inp.dataset.col] = inp.value; }));
+  tbody.querySelectorAll('.delrow-btn').forEach(btn=> btn.addEventListener('click', ()=>{ currentRecord[key].splice(parseInt(btn.dataset.i),1); renderTable(key); updateStepBadges(); }));
+}
+document.querySelectorAll('[data-add]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const key = btn.dataset.add;
+    if(!currentRecord[key]) currentRecord[key] = [];
+    const cfg = TABLE_CONFIGS[key];
+    const blank = {}; cfg.cols.forEach(c=> blank[c]="");
+    currentRecord[key].push(blank);
+    renderTable(key); updateStepBadges();
+  });
+});
+
+/* ============ STATUS DA OPERAÇÃO ============ */
+function fillStatusTable(){
+  document.querySelectorAll('#tblStatus input').forEach(inp=>{
+    const st = inp.dataset.status, col = inp.dataset.col;
+    inp.value = (currentRecord.statusOperacao[st] && currentRecord.statusOperacao[st][col]) || "";
+  });
+}
+document.querySelectorAll('#tblStatus input').forEach(inp=>{
+  inp.addEventListener('input', ()=>{
+    const st = inp.dataset.status, col = inp.dataset.col;
+    if(!currentRecord.statusOperacao[st]) currentRecord.statusOperacao[st] = {};
+    currentRecord.statusOperacao[st][col] = inp.value;
+  });
+});
+
+/* ============ AUTO-CALC: GLASGOW / APGAR / IDADE / DURAÇÃO ============ */
+function updateGlasgowTotal(){
+  const form = document.getElementById('recordForm');
+  const a = parseInt(form.glasgowAbertura.value)||0, v = parseInt(form.glasgowVerbal.value)||0, m = parseInt(form.glasgowMotora.value)||0;
+  const total = a+v+m;
+  document.getElementById('glasgowTotal').value = total>0 ? (total+" / 15") : "";
+}
+function apgarScore(val,thresholds){ for(let i=0;i<thresholds.length;i++){ if(val<=thresholds[i]) return i; } return thresholds.length; }
+function updateApgarTotal(){
+  const form=document.getElementById('recordForm');
+  const eblRaw=form.apgarPerdaSangue.value, mapRaw=form.apgarTensaoArterial.value, hrRaw=form.apgarFrequenciaCardiaca.value;
+  if(eblRaw===""&&mapRaw===""&&hrRaw===""){ document.getElementById('apgarTotal').value=""; return; }
+  const ebl=parseFloat(eblRaw), map=parseFloat(mapRaw), hr=parseFloat(hrRaw);
+  let s=0;
+  if(!isNaN(ebl)) s+= ebl<=100?3: ebl<=600?2: ebl<=1000?1:0;
+  if(!isNaN(map)) s+= map>=70?3: map>=55?2: map>=40?1:0;
+  if(!isNaN(hr)) s+= hr<=55?4: hr<=65?3: hr<=75?2: hr<=85?1:0;
+  document.getElementById('apgarTotal').value = s+" / 10";
+}
+function calcIdade(){
+  const form=document.getElementById('recordForm');
+  const nasc=form.nascimento.value; if(!nasc) return;
+  const ref = form.dataOperacao.value ? new Date(form.dataOperacao.value) : new Date();
+  const b=new Date(nasc); if(isNaN(b)) return;
+  let age=ref.getFullYear()-b.getFullYear();
+  const mm=ref.getMonth()-b.getMonth();
+  if(mm<0||(mm===0&&ref.getDate()<b.getDate())) age--;
+  if(age>=0&&age<170){ form.idade.value=age; currentRecord.idade=String(age); }
+}
+function calcDuracao(){
+  const form=document.getElementById('recordForm');
+  const d1=form.inicioData.value, h1=form.inicioHora.value, d2=form.fimData.value, h2=form.fimHora.value;
+  if(!h1||!h2) return;
+  const day1 = d1 || d2 || '2000-01-01', day2 = d2 || d1 || day1;
+  const t1=new Date(day1+'T'+h1), t2=new Date(day2+'T'+h2);
+  if(isNaN(t1)||isNaN(t2)) return;
+  let mins=Math.round((t2-t1)/60000);
+  if(mins<0) mins+=1440;
+  if(mins>=0){ form.duracao.value=String(mins); currentRecord.duracao=String(mins); }
+}
+document.getElementById('recordForm').addEventListener('change', (e)=>{
+  const n=e.target.name;
+  if(['glasgowAbertura','glasgowVerbal','glasgowMotora'].includes(n)) updateGlasgowTotal();
+  if(['apgarPerdaSangue','apgarTensaoArterial','apgarFrequenciaCardiaca'].includes(n)) updateApgarTotal();
+  if(['nascimento','dataOperacao'].includes(n)) calcIdade();
+  if(['inicioData','inicioHora','fimData','fimHora'].includes(n)) calcDuracao();
+  updateStepBadges();
+});
+document.getElementById('recordForm').addEventListener('input', (e)=>{
+  if(['apgarPerdaSangue','apgarTensaoArterial','apgarFrequenciaCardiaca'].includes(e.target.name)) updateApgarTotal();
+});
+
+/* ============ FORM <-> RECORD SYNC ============ */
+const SIMPLE_FIELDS = [
+"processo","nup","dataAnuncio","dataOperacao","nome","nascimento","idade","sexo","telefone","morada","bairro","municipio","provincia","sectorOrigem","enfermaria","cama","encaminhadoHora","observacao",
+"procedimentoCirurgico","localAnatomico","lateralidade",
+"cirurgiao","ajudante1","ajudante2","ajudante3","anestesista","medInterno1","medInterno2","instrumentista","tecnicoAnestesia","circulante",
+"diagPre","diagPos","sangue","qtdSoros","contagemPincas","contagemCompressas","alergias","alergiasLocal","profilaxiaAntibiotica","profilaxiaTromboembolica",
+"identEnferSER","ordemEnferSER","identEnferBO","ordemEnferBO",
+"inicioAnestesia","asa","inicioCirurgia","confirmacaoEquipa","fimCirurgia","fimAnestesia","rotulagemPecas","incidentesEquipamentos","apgarPerdaSangue","apgarTensaoArterial","apgarFrequenciaCardiaca","informamFinal",
+"operacao","duracao","porte","cid","anestesia","inicioData","inicioHora","fimData","fimHora","riscosAnest","passosCriticos","rotulagemPecasTexto","infoSRPA","anotacoesCorpo",
+"admEntradaSala","admInicioAnestesia","admInicioCirurgia","admFimAnestesia","admFimCirurgia","feridaEstado","feridaLocal","tipoCurativo",
+"garroteHoraIns","garrotePressaoIns","garroteMembroIns","garroteHoraDes","glicemiaIntraHora","glicemiaIntraValor",
+"horaEntradaPos","horaSaidaPos","anotacoesPos",
+"adreteTipo","glasgowAbertura","glasgowVerbal","glasgowMotora","altaAutorizadaPor","altaData","altaHora","coordenadorSector",
+"medicoInforme","achadosOperatorios","descricaoOperacao"
+];
+function fillFormFromRecord(){
+  const form = document.getElementById('recordForm');
+  SIMPLE_FIELDS.forEach(f=>{ if(form[f]) form[f].value = currentRecord[f] || ""; });
+  setupChipSingle('chipTipoPaciente','tipoPaciente'); refreshChipSingle('chipTipoPaciente','tipoPaciente');
+  buildPreOpChecklist();
+  buildSimNaoList(document.getElementById('pacienteConfirmaList'), PACIENTE_CONFIRMA_ITEMS, 'pacienteConfirma', ["sim","nao"]);
+  buildSimNaoList(document.getElementById('checklistAnestesiaList'), CHECKLIST_ANESTESIA_ITEMS, 'checklistAnestesia', ["sim","nao"]);
+  buildSimNaoList(document.getElementById('confirmamList'), CONFIRMAM_ITEMS, 'confirmam', ["sim","nao"]);
+  buildSimNaoList(document.getElementById('prevencaoList'), PREVENCAO_ITEMS, 'prevencao', ["sim","nao"]);
+  buildSimNaoList(document.getElementById('procedimentoRealizadoList'), PROCEDIMENTO_REALIZADO_ITEMS, 'procedimentoRealizado', ["sim","nao"]);
+  buildSimNaoList(document.getElementById('viaAereaList'), VIA_AEREA_ITEMS, 'viaAerea', ["facil","dificil"]);
+  setupChipGroup('chipTecnicaGeral','tecnicaGeral'); refreshChipGroup('chipTecnicaGeral','tecnicaGeral');
+  setupChipGroup('chipTecnicaLocoregional','tecnicaLocoregional'); refreshChipGroup('chipTecnicaLocoregional','tecnicaLocoregional');
+  setupChipSingle('chipTipoCirurgia','tipoCirurgia'); refreshChipSingle('chipTipoCirurgia','tipoCirurgia');
+  setupChipSingle('chipPosicionamento','posicionamento'); refreshChipSingle('chipPosicionamento','posicionamento');
+  setupChipGroup('chipEncaminhado','encaminhadoPara'); refreshChipGroup('chipEncaminhado','encaminhadoPara');
+  ['material','equipamento','instrumental','svIntra','sorosIntra','drenIntra','svPos','sorosPos','drenPos','medicacao'].forEach(renderTable);
+  fillStatusTable();
+  buildBodyMap();
+  buildAdreteList(); buildDorAlimList(); buildElpoList();
+  document.querySelectorAll('select[data-adrete-entrada]').forEach(inp=>{ inp.value = (currentRecord.adrete||{})[inp.dataset.adreteEntrada+"_entrada"]||""; });
+  document.querySelectorAll('select[data-adrete-saida]').forEach(inp=>{ inp.value = (currentRecord.adrete||{})[inp.dataset.adreteSaida+"_saida"]||""; });
+  document.querySelectorAll('select[data-dor]').forEach(sel=>{ sel.value = (currentRecord.dorAlim||{})[sel.dataset.dor]||""; });
+  document.querySelectorAll('select[data-elpo]').forEach(sel=>{ sel.value = (currentRecord.elpo||{})[sel.dataset.elpo]||""; });
+  updateGlasgowTotal(); updateApgarTotal(); updateAdreteTotals(); updateElpoTotal(); updateStepBadges();
+}
+function syncFormToRecord(){
+  if(!currentRecord) return;
+  const form = document.getElementById('recordForm');
+  SIMPLE_FIELDS.forEach(f=>{ if(form[f]) currentRecord[f] = form[f].value; });
+}
+
+/* ============ EXTRA FORM BUTTONS ============ */
+(function addExtraButtons(){
+  const bar = document.createElement('div');
+  bar.style.cssText = "display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;";
+  bar.innerHTML = `
+    <button type="button" class="btn dark" id="renderBtn" style="flex:1;min-width:130px;">${ic('print')}Pré-visualizar</button>
+    <button type="button" class="btn ghost" id="exportPdfBtn" style="flex:1;min-width:110px;">${ic('pdf')}PDF</button>
+    <button type="button" class="btn ghost" id="duplicateBtn" style="flex:1;min-width:110px;">${ic('copy')}Duplicar</button>
+    <button type="button" class="btn danger" id="deleteRecordBtn" style="flex:1;min-width:110px;">${ic('trash')}Eliminar</button>
+  `;
+  document.getElementById('tabsBar').insertAdjacentElement('afterend', bar);
+})();
+document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
+document.getElementById('renderBtn').addEventListener('click', ()=>{ syncFormToRecord(); openRenderView(); });
+document.getElementById('duplicateBtn').addEventListener('click', async ()=>{
+  syncFormToRecord();
+  const copy = JSON.parse(JSON.stringify(currentRecord));
+  delete copy.id; copy.status="rascunho"; copy.createdAt=new Date().toISOString(); copy.updatedAt=new Date().toISOString();
+  copy.nome=(copy.nome||"")+" (cópia)";
+  const id=await dbPut(copy); copy.id=id; currentRecord=copy;
+  fillFormFromRecord(); showForm(); goStep(0); toast("Registo duplicado");
+});
+document.getElementById('deleteRecordBtn').addEventListener('click', async ()=>{
+  if(!currentRecord.id){ toast("Este registo ainda não foi guardado."); return; }
+  if(confirm("Eliminar este registo definitivamente?")){ await dbDelete(currentRecord.id); toast("Registo eliminado"); showDash(); }
+});
+
+/* ============ RENDER VIEW (pré-visualização estilo folha) ============ */
+function rvVal(v){ return (v==null||v==="")?'<span class="rv-empty">—</span>':esc(v); }
+function rvKV(pairs, one){ return `<div class="rv-kv${one?' one':''}">`+pairs.map(([l,v])=>`<div><b>${l}</b><span>${rvVal(v)}</span></div>`).join("")+`</div>`; }
+function rvTable(key, headers){
+  const rows=currentRecord[key]||[];
+  if(!rows.length) return '<div class="rv-empty">Sem registos.</div>';
+  return `<table class="rv-tbl"><thead><tr>${headers.map(h=>`<th>${h[1]}</th>`).join("")}</tr></thead><tbody>`+
+    rows.map(r=>`<tr>${headers.map(h=>`<td>${rvVal(r[h[0]])}</td>`).join("")}</tr>`).join("")+`</tbody></table>`;
+}
+function rvSimNao(obj,items,map){ return items.map(([k,l])=>`<div><b>${l}</b><span>${rvVal((map)? (map[(obj||{})[k]]||(obj||{})[k]) : (obj||{})[k])}</span></div>`).join(""); }
+function openRenderView(){
+  const r=currentRecord; const simnao={sim:"Sim",nao:"Não"}, nasn={na:"N.A",s:"S",n:"N"}, facdif={facil:"Fácil",dificil:"Difícil"};
+  const enc=(r.encaminhadoPara||[]).join(", ");
+  const elpoTot=(()=>{let t=0,c=0;ELPO_ITEMS.forEach(([k])=>{const v=(r.elpo||{})[k];if(v){t+=parseInt(v)||0;c++;}});return c?`${t}/35 ${t>=20?"(maior risco)":"(menor risco)"}`:"";})();
+  const adreteTot=(who)=>{let t=0,c=0;ADRETE_ITEMS.forEach(([k])=>{const v=(r.adrete||{})[k+"_"+who];if(v!==""&&v!=null){t+=parseInt(v)||0;c++;}});return c?`${t}/10`:"";};
+  const gA=parseInt(r.glasgowAbertura)||0,gV=parseInt(r.glasgowVerbal)||0,gM=parseInt(r.glasgowMotora)||0,gT=gA+gV+gM;
+  const html = `
+  <div class="rv-head">
+    <img src="icons/logo.png" alt="ZELO">
+    <div><div class="t1">HOSPITAL DO PRENDA — Bloco Operatório</div>
+    <div class="t2">Ficha Operatória Unificada &amp; Checklist de Cirurgia Segura · ${r.dataOperacao||""}</div></div>
+  </div>
+
+  <div class="rv-sec"><h4>Identificação &amp; Paciente</h4>
+    ${rvKV([["Nome",r.nome],["Processo / NUP",`${r.processo||"—"} / ${r.nup||"—"}`],["Nascimento / Idade",`${r.nascimento||"—"} / ${r.idade||"—"}`],["Sexo",r.sexo],["Data Anúncio / Operação",`${r.dataAnuncio||"—"} / ${r.dataOperacao||"—"}`],["Tipo de Paciente",r.tipoPaciente],["Telefone",r.telefone],["Morada / Bairro",`${r.morada||"—"} / ${r.bairro||"—"}`],["Município / Província",`${r.municipio||"—"} / ${r.provincia||"—"}`],["Sector / Enfermaria / Cama",`${r.sectorOrigem||"—"} / ${r.enfermaria||"—"} / ${r.cama||"—"}`],["Procedimento Cirúrgico",r.procedimentoCirurgico],["Local Anatómico / Lat.",`${r.localAnatomico||"—"} / ${r.lateralidade||"—"}`]])}
+  </div>
+
+  <div class="rv-sec"><h4>Equipa Médica &amp; Diagnóstico</h4>
+    ${rvKV([["Cirurgião",r.cirurgiao],["1º/2º/3º Ajudante",`${r.ajudante1||"—"} / ${r.ajudante2||"—"} / ${r.ajudante3||"—"}`],["Anestesista",r.anestesista],["Internos",`${r.medInterno1||"—"} / ${r.medInterno2||"—"}`],["Instrumentista",r.instrumentista],["Téc. Anestesia / Circulante",`${r.tecnicoAnestesia||"—"} / ${r.circulante||"—"}`],["Diagnóstico Pré-Op",r.diagPre],["Diagnóstico Pós-Op",r.diagPos],["Alergias / Local",`${r.alergias||"—"} / ${r.alergiasLocal||"—"}`],["Profilaxia AB / Trombo",`${r.profilaxiaAntibiotica||"—"} / ${r.profilaxiaTromboembolica||"—"}`],["Sangue / Soros",`${r.sangue||"—"} / ${r.qtdSoros||"—"}`],["Contagem pinças / compressas",`${r.contagemPincas||"—"} / ${r.contagemCompressas||"—"}`]])}
+  </div>
+
+  <div class="rv-sec"><h4>Registos de Enfermagem — Pré-Operatório</h4>
+    <table class="rv-tbl"><thead><tr><th>Item</th><th>SER</th><th>B.O</th></tr></thead><tbody>
+    ${(r.preOpChecklist||[]).map(x=>`<tr><td>${esc(x.item)}</td><td>${rvVal(simnao[x.ser]||x.ser)}</td><td>${rvVal(simnao[x.bo]||x.bo)}</td></tr>`).join("")}
+    </tbody></table>
+    ${rvKV([["Ident. Enfer. (SER) / Nº",`${r.identEnferSER||"—"} / ${r.ordemEnferSER||"—"}`],["Ident. Enfer. (B.O) / Nº",`${r.identEnferBO||"—"} / ${r.ordemEnferBO||"—"}`]])}
+  </div>
+
+  <div class="rv-sec"><h4>Checklist de Cirurgia Segura</h4>
+    ${rvKV([["Início Anestesia / ASA",`${r.inicioAnestesia||"—"} / ${r.asa||"—"}`],["Início / Fim Cirurgia",`${r.inicioCirurgia||"—"} / ${r.fimCirurgia||"—"}`],["Confirmação Equipa",simnao[r.confirmacaoEquipa]||r.confirmacaoEquipa],["Fim Anestesia",r.fimAnestesia]])}
+    <div class="rv-kv" style="margin-top:6px;">${rvSimNao(r.pacienteConfirma,PACIENTE_CONFIRMA_ITEMS,simnao)}${rvSimNao(r.checklistAnestesia,CHECKLIST_ANESTESIA_ITEMS,simnao)}${rvSimNao(r.confirmam,CONFIRMAM_ITEMS,simnao)}${rvSimNao(r.prevencao,PREVENCAO_ITEMS,simnao)}${rvSimNao(r.procedimentoRealizado,PROCEDIMENTO_REALIZADO_ITEMS,simnao)}</div>
+    ${rvKV([["Rotulagem Peças",nasn[r.rotulagemPecas]||r.rotulagemPecas],["Incidentes Equip.",nasn[r.incidentesEquipamentos]||r.incidentesEquipamentos],["Apgar Cirúrgico",`${document.getElementById('apgarTotal').value||"—"} (EBL ${r.apgarPerdaSangue||"—"}ml · TAM ${r.apgarTensaoArterial||"—"} · FC ${r.apgarFrequenciaCardiaca||"—"})`],["Informações finais",r.informamFinal]])}
+  </div>
+
+  <div class="rv-sec"><h4>Operação Realizada</h4>
+    ${rvKV([["Operação",r.operacao],["Duração / Porte / CID",`${r.duracao||"—"} min / ${r.porte||"—"} / ${r.cid||"—"}`],["Anestesia",r.anestesia],["Início",`${r.inicioData||"—"} ${r.inicioHora||""}`],["Fim",`${r.fimData||"—"} ${r.fimHora||""}`],["Anotações (cateter/garrote/local)",r.anotacoesCorpo]])}
+    <div style="margin-top:6px;"><b style="font-size:11px;">Material Especial</b>${rvTable('material',[["designacao","Designação"],["qtd","Qtd"],["autorizacao","Autoriz."],["complemento","Complem."],["materialAtendido","Atendido"]])}</div>
+    <div style="margin-top:6px;"><b style="font-size:11px;">Equipamento</b>${rvTable('equipamento',[["designacao","Designação"],["quantidade","Qtd"]])}</div>
+    <div style="margin-top:6px;"><b style="font-size:11px;">Instrumental</b>${rvTable('instrumental',[["designacao","Designação"],["quantidade","Qtd"]])}</div>
+  </div>
+
+  <div class="rv-sec"><h4>Intra-Operatório</h4>
+    ${rvKV([["Entrada/Início An./Início Cir.",`${r.admEntradaSala||"—"} / ${r.admInicioAnestesia||"—"} / ${r.admInicioCirurgia||"—"}`],["Fim An./Fim Cir.",`${r.admFimAnestesia||"—"} / ${r.admFimCirurgia||"—"}`],["Técnica Geral",(r.tecnicaGeral||[]).join(", ")],["Loco-Regional",(r.tecnicaLocoregional||[]).join(", ")],["Tipo Cirurgia",r.tipoCirurgia],["Posicionamento",r.posicionamento],["Ferida / Curativo",`${r.feridaEstado||"—"} · ${r.tipoCurativo||"—"}`],["Garrote",`${r.garroteHoraIns||"—"}→${r.garroteHoraDes||"—"} ${r.garrotePressaoIns||""} ${r.garroteMembroIns||""}`],["Glicémia Intra",`${r.glicemiaIntraHora||"—"} ${r.glicemiaIntraValor||""}`]])}
+    <div class="rv-chart"><canvas id="rvVitals"></canvas></div>
+    <div style="margin-top:6px;">${rvTable('svIntra',[["hora","Hora"],["taSist","TA S"],["taDiast","TA D"],["pulso","Pulso"],["spo2","SpO2"]])}</div>
+  </div>
+
+  <div class="rv-sec"><h4>Pós-Operatório</h4>
+    ${rvKV([["Hora Entrada / Saída",`${r.horaEntradaPos||"—"} / ${r.horaSaidaPos||"—"}`],["Anotações Pós-Op",r.anotacoesPos]])}
+    <div style="margin-top:6px;">${rvTable('svPos',[["hora","Hora"],["taSist","TA S"],["taDiast","TA D"],["pulso","Pulso"],["spo2","SpO2"]])}</div>
+    <div style="margin-top:6px;">${rvTable('medicacao',[["horario","Hora"],["medicamento","Medicamento"],["dose","Dose"]])}</div>
+  </div>
+
+  <div class="rv-sec"><h4>Escalas &amp; Alta</h4>
+    ${rvKV([["Aldrete Entrada / Saída",`${adreteTot('entrada')||"—"} / ${adreteTot('saida')||"—"}`],["Glasgow",gT?`${gT}/15 (O${gA} V${gV} M${gM})`:"—"],["ELPO",elpoTot],["Dor / Alim. / Micção",`${(r.dorAlim||{}).dor||"—"} / ${(r.dorAlim||{}).alimentacao||"—"} / ${(r.dorAlim||{}).miccao||"—"}`],["Alta autorizada por",r.altaAutorizadaPor],["Alta Data / Hora",`${r.altaData||"—"} ${r.altaHora||""}`],["Encaminhado para",enc],["Coordenador do Sector",r.coordenadorSector]])}
+  </div>
+
+  <div class="rv-sec"><h4>Status, Achados &amp; Descrição</h4>
+    ${rvKV([["Nome do Médico (informe)",r.medicoInforme]],true)}
+    <div style="margin-top:6px;"><b style="font-size:11px;">Achados Operatórios</b><div>${rvVal(r.achadosOperatorios)}</div></div>
+    <div style="margin-top:6px;"><b style="font-size:11px;">Descrição da Operação</b><div>${rvVal(r.descricaoOperacao)}</div></div>
+    <div class="rv-sign"><div>Cirurgião</div><div>Anestesista</div><div>Enfermeiro(a)</div></div>
+  </div>`;
+  document.getElementById('rvPaper').innerHTML = html;
+  document.getElementById('renderView').classList.add('show');
+  document.body.style.overflow='hidden';
+  drawRvVitals();
+}
+function drawRvVitals(){
+  const cv=document.getElementById('rvVitals'); if(!cv) return;
+  const rows=(currentRecord.svIntra||[]).concat(currentRecord.svPos||[]).filter(x=>x.hora);
+  if(!rows.length){ cv.parentElement.style.display='none'; return; }
+  destroyChart('rvVitals');
+  charts.rvVitals=new Chart(cv,{ type:'line',
+    data:{ labels:rows.map(x=>x.hora), datasets:[
+      {label:'TA Sist',data:rows.map(x=>parseFloat(x.taSist)||null),borderColor:'#B5502D',tension:.2,spanGaps:true},
+      {label:'TA Diast',data:rows.map(x=>parseFloat(x.taDiast)||null),borderColor:'#3E5C87',tension:.2,spanGaps:true},
+      {label:'Pulso',data:rows.map(x=>parseFloat(x.pulso)||null),borderColor:'#3F7A56',tension:.2,spanGaps:true},
+      {label:'SpO2',data:rows.map(x=>parseFloat(x.spo2)||null),borderColor:'#8B98A3',borderDash:[4,3],tension:.2,spanGaps:true}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:10,font:{size:9}}}},scales:{y:{beginAtZero:false}}}
+  });
+}
+document.getElementById('rvClose').addEventListener('click', ()=>{ document.getElementById('renderView').classList.remove('show'); document.body.style.overflow=''; });
+document.getElementById('rvPrint').addEventListener('click', ()=> window.print());
+document.getElementById('rvPdf').addEventListener('click', exportPDF);
+
+/* ============ PDF: FICHA INDIVIDUAL ============ */
+function statusTxt(v,map){ return map[v] || (v||"—"); }
+async function exportPDF(){
+  syncFormToRecord();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:"pt", format:"a4"});
+  const marginL = 40; let y = 40; const pageH = 800;
+  const simnao = {sim:"Sim", nao:"Não"}, nasn = {na:"N.A", s:"S", n:"N"}, facdif = {facil:"Fácil", dificil:"Difícil"};
+  function checkBreak(extra){ if(y> pageH - (extra||20)){ doc.addPage(); y=40; } }
+  function h1(txt){ checkBreak(30); doc.setFontSize(13); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94); doc.text(txt, marginL, y); y+=18; doc.setDrawColor(62,92,135); doc.setLineWidth(1.2); doc.line(marginL,y-12,555,y-12); doc.setTextColor(0,0,0); }
+  function h2(txt){ checkBreak(20); doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.setTextColor(31,47,69); doc.text(txt, marginL, y); y+=14; doc.setTextColor(0,0,0); }
+  function line(txt){ checkBreak(14); doc.setFontSize(9.5); doc.setFont(undefined,'normal'); const split=doc.splitTextToSize(txt,515); split.forEach(s=>{ checkBreak(12); doc.text(s, marginL, y); y+=12; }); }
+  function pair(label,val){ line(`${label}: ${val || "—"}`); }
+  function tableSection(title, key, headers){
+    checkBreak(20); doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.setTextColor(31,47,69); doc.text(title, marginL, y); y+=14; doc.setTextColor(0,0,0);
+    const rows = currentRecord[key]||[];
+    if(rows.length===0){ line("Sem registos."); return; }
+    rows.forEach(r=>{ line(headers.map(([col,lbl])=> `${lbl}: ${r[col]||"—"}`).join("  ·  ")); });
+  }
+  doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94);
+  doc.text("HOSPITAL DO PRENDA — Bloco Operatório", marginL, y); y+=18;
+  doc.setFontSize(11); doc.setTextColor(90,90,90); doc.setFont(undefined,'normal');
+  doc.text("Ficha Operatória Unificada & Checklist de Cirurgia Segura", marginL, y); y+=20;
+  doc.setTextColor(0,0,0);
+  h1("Identificação e Paciente");
+  pair("Nº de Processo / NUP", `${currentRecord.processo||"—"} / ${currentRecord.nup||"—"}`);
+  pair("Data do Anúncio / Data da Operação", `${currentRecord.dataAnuncio||"—"} / ${currentRecord.dataOperacao||"—"}`);
+  pair("Nome", currentRecord.nome);
+  pair("Nascimento / Idade / Sexo", `${currentRecord.nascimento||"—"} / ${currentRecord.idade||"—"} / ${currentRecord.sexo||"—"}`);
+  pair("Morada / Bairro", `${currentRecord.morada||"—"} / ${currentRecord.bairro||"—"}`);
+  pair("Município / Província / Telefone", `${currentRecord.municipio||"—"} / ${currentRecord.provincia||"—"} / ${currentRecord.telefone||"—"}`);
+  pair("Tipo do Paciente", currentRecord.tipoPaciente);
+  pair("Sector de Origem / Enfermaria / Cama", `${currentRecord.sectorOrigem||"—"} / ${currentRecord.enfermaria||"—"} / ${currentRecord.cama||"—"}`);
+  pair("Encaminhado ao B.O. às", currentRecord.encaminhadoHora);
+  pair("Observação", currentRecord.observacao);
+  pair("Procedimento Cirúrgico", currentRecord.procedimentoCirurgico);
+  pair("Local Anatómico / Lateralidade", `${currentRecord.localAnatomico||"—"} / ${currentRecord.lateralidade||"—"}`);
+  h1("Equipa Médica e Diagnóstico");
+  pair("Cirurgião / 1º / 2º / 3º Ajudante", `${currentRecord.cirurgiao||"—"} / ${currentRecord.ajudante1||"—"} / ${currentRecord.ajudante2||"—"} / ${currentRecord.ajudante3||"—"}`);
+  pair("Anestesista / 1º / 2º Interno", `${currentRecord.anestesista||"—"} / ${currentRecord.medInterno1||"—"} / ${currentRecord.medInterno2||"—"}`);
+  pair("Instrumentista / Téc. Anestesia / Circulante", `${currentRecord.instrumentista||"—"} / ${currentRecord.tecnicoAnestesia||"—"} / ${currentRecord.circulante||"—"}`);
+  pair("Diagnóstico Pré-Operatório", currentRecord.diagPre);
+  pair("Diagnóstico Pós-Operatório", currentRecord.diagPos);
+  pair("Sangue / Qtd. Soros", `${currentRecord.sangue||"—"} / ${currentRecord.qtdSoros||"—"}`);
+  pair("Contagem pinças / compressas completa (S/N)", `${currentRecord.contagemPincas||"—"} / ${currentRecord.contagemCompressas||"—"}`);
+  pair("Alergias / Local", `${currentRecord.alergias||"—"} / ${currentRecord.alergiasLocal||"—"}`);
+  pair("Profilaxia Antibiótica / Tromboembólica", `${currentRecord.profilaxiaAntibiotica||"—"} / ${currentRecord.profilaxiaTromboembolica||"—"}`);
+  h1("Registos de Enfermagem no Pré-Operatório");
+  (currentRecord.preOpChecklist||[]).forEach(row=> line(`• ${row.item} — SER: ${statusTxt(row.ser,simnao)} · B.O: ${statusTxt(row.bo,simnao)}`));
+  pair("Ident. Enfer. (SER) / Nº Ordem", `${currentRecord.identEnferSER||"—"} / ${currentRecord.ordemEnferSER||"—"}`);
+  pair("Ident. Enfer. (B.O) / Nº Ordem", `${currentRecord.identEnferBO||"—"} / ${currentRecord.ordemEnferBO||"—"}`);
+  h1("Checklist de Cirurgia Segura");
+  h2("Antes da Indução Anestésica");
+  pair("Início Anestesia / ASA", `${currentRecord.inicioAnestesia||"—"} / ${currentRecord.asa||"—"}`);
+  PACIENTE_CONFIRMA_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.pacienteConfirma||{})[k],simnao)}`));
+  CHECKLIST_ANESTESIA_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.checklistAnestesia||{})[k],simnao)}`));
+  h2("Antes da Incisão na Pele");
+  pair("Início da Cirurgia / Confirmação da Equipa", `${currentRecord.inicioCirurgia||"—"} / ${statusTxt(currentRecord.confirmacaoEquipa,simnao)}`);
+  CONFIRMAM_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.confirmam||{})[k],simnao)}`));
+  PREVENCAO_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.prevencao||{})[k],simnao)}`));
+  h2("Antes do Doente Sair da Sala Operatória");
+  pair("Fim Cirurgia / Fim Anestesia", `${currentRecord.fimCirurgia||"—"} / ${currentRecord.fimAnestesia||"—"}`);
+  PROCEDIMENTO_REALIZADO_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.procedimentoRealizado||{})[k],simnao)}`));
+  pair("Rotulagem de Peças Anatómicas", statusTxt(currentRecord.rotulagemPecas,nasn));
+  pair("Incidentes com Equipamentos", statusTxt(currentRecord.incidentesEquipamentos,nasn));
+  pair("Apgar Cirúrgico (total)", document.getElementById('apgarTotal').value || "—");
+  pair("Apgar (perda sangue/TA média/FC)", `${currentRecord.apgarPerdaSangue||"—"} mL / ${currentRecord.apgarTensaoArterial||"—"} mmHg / ${currentRecord.apgarFrequenciaCardiaca||"—"} bpm`);
+  pair("Informações finais da equipa", currentRecord.informamFinal);
+  h1("Operação Realizada");
+  pair("Operação", currentRecord.operacao);
+  pair("Duração / Porte / CID", `${currentRecord.duracao||"—"} min / ${currentRecord.porte||"—"} / ${currentRecord.cid||"—"}`);
+  pair("Anestesia", currentRecord.anestesia);
+  pair("Início da Operação", `${currentRecord.inicioData||"—"} às ${currentRecord.inicioHora||"—"}`);
+  pair("Fim da Operação", `${currentRecord.fimData||"—"} às ${currentRecord.fimHora||"—"}`);
+  pair("Riscos relacionados com o paciente (Anest.)", currentRecord.riscosAnest);
+  pair("Passos críticos / fora de rotina (Cirurgia)", currentRecord.passosCriticos);
+  pair("Rotulagem e Peças Anatómicas", currentRecord.rotulagemPecasTexto);
+  pair("Informações para a equipa da S.R.P.A.", currentRecord.infoSRPA);
+  pair("Anotações — cateter/placa bisturi/garrote/local", currentRecord.anotacoesCorpo);
+  tableSection("Material Especial","material",[["designacao","Designação"],["qtd","Qtd"],["autorizacao","Autorização"],["complemento","Complemento"],["materialAtendido","Material Atendido"]]);
+  tableSection("Equipamento Necessário","equipamento",[["designacao","Designação"],["quantidade","Quantidade"]]);
+  tableSection("Instrumental Necessário","instrumental",[["designacao","Designação"],["quantidade","Quantidade"]]);
+  h1("Intra-Operatório");
+  pair("Entrada Sala / Início Anestesia / Início Cirurgia", `${currentRecord.admEntradaSala||"—"} / ${currentRecord.admInicioAnestesia||"—"} / ${currentRecord.admInicioCirurgia||"—"}`);
+  pair("Fim Anestesia / Fim Cirurgia", `${currentRecord.admFimAnestesia||"—"} / ${currentRecord.admFimCirurgia||"—"}`);
+  pair("Técnica Anestésica Geral", (currentRecord.tecnicaGeral||[]).join(", "));
+  pair("Técnica Loco-Regional", (currentRecord.tecnicaLocoregional||[]).join(", "));
+  VIA_AEREA_ITEMS.forEach(([k,l])=>{ const v=(currentRecord.viaAerea||{})[k]; if(v) line(`• Via Aérea — ${l}: ${statusTxt(v,facdif)}`); });
+  pair("Tipo de Cirurgia", currentRecord.tipoCirurgia);
+  pair("Posicionamento", currentRecord.posicionamento);
+  pair("Ferida Operatória (estado / local)", `${currentRecord.feridaEstado||"—"} / ${currentRecord.feridaLocal||"—"}`);
+  pair("Tipo de Curativo", currentRecord.tipoCurativo);
+  pair("Garrote Pneumático (insuflado/pressão/membro/desinsuflado)", `${currentRecord.garroteHoraIns||"—"} / ${currentRecord.garrotePressaoIns||"—"} / ${currentRecord.garroteMembroIns||"—"} / ${currentRecord.garroteHoraDes||"—"}`);
+  pair("Glicémia Intra-Op (hora / valor)", `${currentRecord.glicemiaIntraHora||"—"} / ${currentRecord.glicemiaIntraValor||"—"}`);
+  tableSection("Sinais Vitais (Intra-Op)","svIntra",[["hora","Hora"],["taSist","TA Sist"],["taDiast","TA Diast"],["pulso","Pulso"],["spo2","SpO2"]]);
+  tableSection("Soros/Sangue (Intra-Op)","sorosIntra",[["horario","Horário"],["gelafundim","Gelafundim"],["lactatoRinger","Lactato Ringer"],["sFisiologico","S.Fisiológico"],["sangue","Sangue"]]);
+  tableSection("Drenagens (Intra-Op)","drenIntra",[["horario","Horário"],["diurese","Diurese"],["drenoGastrico","Dr.Gástrico"],["drenoVacuo","Dr.Vácuo"],["drenoToracico","Dr.Torácico"]]);
+  h1("Pós-Operatório");
+  pair("Hora de Entrada / Saída", `${currentRecord.horaEntradaPos||"—"} / ${currentRecord.horaSaidaPos||"—"}`);
+  tableSection("Sinais Vitais (Pós-Op)","svPos",[["hora","Hora"],["taSist","TA Sist"],["taDiast","TA Diast"],["pulso","Pulso"],["spo2","SpO2"]]);
+  tableSection("Soros/Sangue/Glicémia (Pós-Op)","sorosPos",[["horario","Horário"],["sFisiologico","S.Fisiológico"],["lactatoRinger500","Lactato Ringer 500cc"],["sangue","Sangue"],["glicemia","Glicémia"]]);
+  tableSection("Drenagens (Pós-Op)","drenPos",[["horario","Horário"],["diurese","Diurese"],["drenosVacuodreno","Vacuodreno"],["drenoGastrico","Dr.Gástrico"],["outras","Outras"]]);
+  tableSection("Medicação Administrada","medicacao",[["horario","Horário"],["medicamento","Medicamento"],["dose","Dose"]]);
+  pair("Anotações de Enfermagem (Pós-Op)", currentRecord.anotacoesPos);
+  h1("Escalas & Alta");
+  pair("Tipo de Escala Adrete", currentRecord.adreteTipo==="ambulatorio"?"Ambulatório":currentRecord.adreteTipo==="internado"?"Internado":"—");
+  ADRETE_ITEMS.forEach(([key,label])=>{ const ent = (currentRecord.adrete||{})[key+"_entrada"]||"—"; const sai = (currentRecord.adrete||{})[key+"_saida"]||"—"; line(`• ${label} — Entrada: ${ent} · Saída: ${sai}`); });
+  DOR_ALIM_ITEMS.forEach(([key,label])=> line(`• ${label}: ${(currentRecord.dorAlim||{})[key] || "—"}`));
+  pair("Glasgow (Abertura/Verbal/Motora)", `${currentRecord.glasgowAbertura||"—"} / ${currentRecord.glasgowVerbal||"—"} / ${currentRecord.glasgowMotora||"—"}`);
+  pair("Total Glasgow", document.getElementById('glasgowTotal').value || "—");
+  { let t=0,c=0; ELPO_ITEMS.forEach(([k])=>{const v=(currentRecord.elpo||{})[k]; if(v){t+=parseInt(v)||0;c++;}}); pair("Escala ELPO (risco lesão por pressão)", c? `${t}/35 ${t>=20?"(maior risco)":"(menor risco)"}` : "—"); }
+  pair("Alta autorizada por / Data / Hora", `${currentRecord.altaAutorizadaPor||"—"} / ${currentRecord.altaData||"—"} / ${currentRecord.altaHora||"—"}`);
+  pair("Encaminhado para", (currentRecord.encaminhadoPara||[]).join(", "));
+  pair("Coordenador do Sector", currentRecord.coordenadorSector);
+  h1("Status da Operação e Informe");
+  ["execucao","recuperacao","finalizada"].forEach(st=>{
+    const d = currentRecord.statusOperacao[st] || {};
+    const lbl = st==="execucao"?"Execução":st==="recuperacao"?"Em recuperação":"Finalizada";
+    line(`• ${lbl} — Sala: ${d.sala||"—"} · Início: ${d.dataInicio||"—"} · Fim: ${d.dataFim||"—"} · Cancel.: ${d.motivoCancel||"—"} · Finaliz.: ${d.motivoFinal||"—"}`);
+  });
+  pair("Nome do Médico (informe)", currentRecord.medicoInforme);
+  h1("Achados Operatórios"); line(currentRecord.achadosOperatorios || "—");
+  h1("Descrição da Operação"); line(currentRecord.descricaoOperacao || "—");
+  const fname = `BO_${(currentRecord.nome||"paciente").replace(/[^a-zA-Z0-9]+/g,"_")}_${(currentRecord.nup||currentRecord.processo||"")}.pdf`;
+  doc.save(fname);
+}
+
+/* ============ PDF: RELATÓRIO PERIÓDICO ============ */
+async function exportReportPDF(){
+  const all = await dbGetAll();
+  const filtered = filterByPeriod(all);
+  const { from, to } = periodBounds();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:"pt", format:"a4"});
+  const marginL = 40; let y = 40;
+  function checkBreak(extra){ if(y> 800-(extra||20)){ doc.addPage(); y=40; } }
+  function h1(txt){ checkBreak(30); doc.setFontSize(13); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94); doc.text(txt, marginL, y); y+=18; doc.setDrawColor(62,92,135); doc.setLineWidth(1.2); doc.line(marginL,y-12,555,y-12); doc.setTextColor(0,0,0); }
+  function line(txt){ checkBreak(14); doc.setFontSize(9.5); doc.setFont(undefined,'normal'); const split=doc.splitTextToSize(txt,515); split.forEach(s=>{ checkBreak(12); doc.text(s, marginL, y); y+=12; }); }
+  function pair(label,val){ line(`${label}: ${val || "—"}`); }
+  function addChartImage(chartKey, title){
+    const chart = charts[chartKey]; if(!chart) return;
+    checkBreak(200); doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.setTextColor(31,47,69);
+    doc.text(title, marginL, y); y+=12; doc.setTextColor(0,0,0);
+    const imgData = chart.toBase64Image();
+    doc.addImage(imgData, 'PNG', marginL, y, 515, 170); y += 184;
+  }
+  doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94);
+  doc.text("HOSPITAL DO PRENDA — Bloco Operatório", marginL, y); y+=18;
+  doc.setFontSize(11); doc.setTextColor(90,90,90); doc.setFont(undefined,'normal');
+  doc.text("Relatório Periódico — Painel do Sistema Unificado", marginL, y); y+=20;
+  doc.setTextColor(0,0,0);
+  h1("Período do Relatório");
+  const periodLabel = {hoje:"Hoje", semana:"Esta Semana", mes:"Este Mês", ano:"Este Ano", tudo:"Todos os Registos", custom:"Personalizado"}[currentPeriod] || currentPeriod;
+  pair("Período", periodLabel);
+  pair("Intervalo de Datas", `${from||"início"} a ${to||"hoje"}`);
+  pair("Gerado em", new Date().toLocaleString('pt-PT'));
+  h1("Resumo Estatístico");
+  const total = filtered.length;
+  const finalizados = filtered.filter(r=>r.status==="finalizado").length;
+  pair("Total de Registos no Período", String(total));
+  pair("Finalizados / Rascunhos", `${finalizados} / ${total-finalizados}`);
+  addChartImage('porDia', 'Cirurgias por Dia');
+  addChartImage('tipoCirurgia', 'Distribuição por Tipo de Cirurgia');
+  addChartImage('tipoPaciente', 'Distribuição por Tipo de Paciente');
+  addChartImage('cirurgiao', 'Operações por Cirurgião (Top 8)');
+  addChartImage('checklist', 'Cumprimento do Checklist de Cirurgia Segura (% Sim por Fase)');
+  addChartImage('statusOp', 'Status dos Registos');
+  h1("Lista de Registos no Período");
+  if(filtered.length===0){ line("Nenhum registo no período seleccionado."); }
+  filtered.sort((a,b)=> (a.dataOperacao||"").localeCompare(b.dataOperacao||"")).forEach(r=>{
+    line(`• ${r.dataOperacao||"sem data"} — ${r.nome||"(sem nome)"} — ${r.operacao||"operação não indicada"} — Cirurgião: ${r.cirurgiao||"—"} — ${r.status==="finalizado"?"Finalizado":"Rascunho"}`);
+  });
+  doc.save(`Relatorio_BO_${periodLabel.replace(/\s+/g,"_")}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+document.getElementById('exportReportPdfBtn').addEventListener('click', exportReportPDF);
+
+/* ============ INIT ============ */
+openDB().then(()=>{ showDash(); });
+</script>
+</body>
+</html>
