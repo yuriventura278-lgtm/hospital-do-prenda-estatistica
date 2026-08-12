@@ -320,6 +320,9 @@
       .zas-chip{font-size:.66rem;font-weight:700;color:#1A56DB;background:#EFF6FF;border:1px solid #DBEAFE;border-radius:100px;
         padding:5px 10px;cursor:pointer;}
       .zas-chip:hover{background:#DBEAFE;}
+      .zas-aviso-voz{display:flex;align-items:flex-start;gap:6px;margin:0 10px 8px;padding:7px 9px;border-radius:9px;
+        background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;font-size:.62rem;line-height:1.35;flex-shrink:0;}
+      .zas-aviso-voz svg{flex-shrink:0;margin-top:1px;}
       .zas-input-row{display:flex;gap:6px;padding:10px;border-top:1px solid #E2E8F0;flex-shrink:0;background:#fff;}
       #zas-input{flex:1;min-width:0;border:1px solid #E2E8F0;border-radius:100px;padding:8px 13px;font-size:.78rem;font-family:inherit;outline:none;}
       #zas-input:focus{border-color:#93C5FD;}
@@ -337,6 +340,7 @@
       html[data-zelo-theme="dark"] .zas-input-row{background:#111A2E;border-color:#1E293B;}
       html[data-zelo-theme="dark"] #zas-input{background:#0B1220;border-color:#1E293B;color:#F1F5F9;}
       html[data-zelo-theme="dark"] #zas-mic{background:#1E293B;color:#67E8F9;}
+      html[data-zelo-theme="dark"] .zas-aviso-voz{background:#2A1F0A;border-color:#78350F;color:#FCD34D;}
     `;
     document.head.appendChild(style);
   }
@@ -367,8 +371,9 @@
         '<button type="button" class="zas-chip" data-msg="abrir bloco operatório">Abrir Bloco Operatório</button>' +
         '<button type="button" class="zas-chip" data-msg="onde encontro a farmácia">Onde fica a Farmácia?</button>' +
       '</div>' +
+      (vozDisponivel ? '<div class="zas-aviso-voz"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg><span>Ao usar o microfone, o áudio é processado pelo reconhecimento de voz do navegador (fora deste dispositivo) para virar texto. Sem microfone, escrevendo, tudo fica só neste computador.</span></div>' : '') +
       '<div class="zas-input-row">' +
-        (vozDisponivel ? '<button type="button" class="zas-round-btn" id="zas-mic" title="Falar">' + ICON_MIC + '</button>' : '') +
+        (vozDisponivel ? '<button type="button" class="zas-round-btn" id="zas-mic" title="Falar (o áudio passa pelo reconhecimento de voz do navegador)">' + ICON_MIC + '</button>' : '') +
         '<input type="text" id="zas-input" placeholder="Escreva um comando…" autocomplete="off">' +
         '<button type="button" class="zas-round-btn" id="zas-send" title="Enviar">' + ICON_SEND + '</button>' +
       '</div>';
