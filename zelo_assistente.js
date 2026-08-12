@@ -182,55 +182,77 @@
     return c ? c.label : 'Outros';
   }
 
-  // ── Consulta de números reais (Firebase Realtime Database) ──
+  // ── Consulta de números reais ──
   // Fase piloto: só para os serviços abaixo, cuja estrutura de dados já foi
   // confirmada ficheiro a ficheiro (cada serviço grava os seus campos de
-  // forma diferente — não há um "número de pacientes" universal). Ler dados
-  // aqui não tem custo de IA nenhum — é só uma leitura normal da mesma base
-  // de dados que todas as páginas já usam.
-  function somaCampos(obj){
-    var t = 0;
-    (Array.isArray(obj) ? obj : Object.values(obj || {})).forEach(function (v) { t += Number(v) || 0; });
-    return t;
-  }
+  // forma diferente — não há um "número de pacientes" universal). Hoje/ontem
+  // lê a Realtime Database (mesma base que as páginas já usam); meses
+  // passados NÃO estão no Firebase nem no GitHub — o relatório mensal
+  // (.github/workflows/relatorio-mensal.yml → scripts/monthly-report.mjs)
+  // arquiva-os no Firebase Storage e depois apaga o histórico da Realtime
+  // Database, precisamente para não ficarem num repositório público. Ler
+  // isto não tem custo de IA nenhum, é só uma leitura normal da mesma conta.
+  // "diario" extrai um objecto de números de UM dia (mesma forma quer o dia
+  // venha da Realtime Database quer venha do arquivo mensal), "formatar"
+  // transforma esse total (de um dia ou já somado de vários) nas linhas
+  // mostradas ao utilizador — assim hoje/ontem e mês passado usam a mesma
+  // lógica de contagem, sem duplicar regras.
   var RESUMOS_SERVICO = {
     'Bloco Operatório': {
       fbPath: function (data) { return 'registos/bloco_operatorio/' + data; },
-      resumir: function (rec) {
+      arquivoPath: function (ym) { return 'arquivo/' + ym + '/registos/bloco_operatorio.json'; },
+      diario: function (rec) {
         var snap = rec && rec.snapshot;
         if (!snap) return null;
-        var urg = (snap.urgData || []).filter(function (x) { return x.saved; }).length;
-        var ele = (snap.eleData || []).filter(function (x) { return x.saved; }).length;
-        var sus = (snap.susData || []).filter(function (x) { return x.saved; }).length;
-        return [['Cirurgias urgentes', urg], ['Cirurgias eletivas', ele], ['Total de cirurgias realizadas', urg + ele], ['Cirurgias suspensas', sus]];
+        return {
+          urg: (snap.urgData || []).filter(function (x) { return x.saved; }).length,
+          ele: (snap.eleData || []).filter(function (x) { return x.saved; }).length,
+          sus: (snap.susData || []).filter(function (x) { return x.saved; }).length
+        };
+      },
+      formatar: function (t) {
+        return [['Cirurgias urgentes', t.urg], ['Cirurgias eletivas', t.ele], ['Total de cirurgias realizadas', t.urg + t.ele], ['Cirurgias suspensas', t.sus]];
       }
     },
     'Imagiologia': {
       fbPath: function (data) { return 'registos/imagiologia/' + data; },
-      resumir: function (rec) {
+      arquivoPath: function (ym) { return 'arquivo/' + ym + '/registos/imagiologia.json'; },
+      diario: function (rec) {
         if (!rec) return null;
         function somaLinha(r) { return (Number(r.prx) || 0) + (Number(r.rx) || 0) + (Number(r.peco) || 0) + (Number(r.eco) || 0) + (Number(r.ptac) || 0) + (Number(r.tac) || 0); }
         var totalLinhas = (rec.bu || []).reduce(function (s, r) { return s + somaLinha(r); }, 0) + (rec.int || []).reduce(function (s, r) { return s + somaLinha(r); }, 0);
         var totalAut = (Number(rec.autPrx) || 0) + (Number(rec.autRx) || 0) + (Number(rec.autPeco) || 0) + (Number(rec.autEco) || 0) + (Number(rec.autPtac) || 0) + (Number(rec.autTac) || 0);
-        return [['Total de exames de imagem', totalLinhas + totalAut], ['ECGs realizados', Number(rec.ecg) || 0]];
+        return { exames: totalLinhas + totalAut, ecg: Number(rec.ecg) || 0 };
+      },
+      formatar: function (t) {
+        return [['Total de exames de imagem', t.exames], ['ECGs realizados', t.ecg]];
       }
     },
     'Hemoterapia': {
       fbPath: function (data) { return 'registos_sistemas_locais/hemoterapia/' + data; },
-      resumir: function (rec) {
+      arquivoPath: function (ym) { return 'arquivo/' + ym + '/registos_sistemas_locais/hemoterapia.json'; },
+      diario: function (rec) {
         var snap = rec && rec.snapshot;
         if (!snap) return null;
         var t = snap.transfusoes || {}, d = snap.doadores || {}, s = snap.serologia || {};
-        return [
-          ['Unidades transfundidas', (Number(t.plaquetas) || 0) + (Number(t.plasmas) || 0) + (Number(t.globulos) || 0) + (Number(t.crio) || 0)],
-          ['Doadores', (Number(d.voluntarios) || 0) + (Number(d.familiares) || 0) + (Number(d.habituais) || 0)],
-          ['Serologias realizadas', (Number(s.vih) || 0) + (Number(s.hbs) || 0) + (Number(s.vdrl) || 0) + (Number(s.hcv) || 0)]
-        ];
+        return {
+          transf: (Number(t.plaquetas) || 0) + (Number(t.plasmas) || 0) + (Number(t.globulos) || 0) + (Number(t.crio) || 0),
+          doad: (Number(d.voluntarios) || 0) + (Number(d.familiares) || 0) + (Number(d.habituais) || 0),
+          serol: (Number(s.vih) || 0) + (Number(s.hbs) || 0) + (Number(s.vdrl) || 0) + (Number(s.hcv) || 0)
+        };
+      },
+      formatar: function (t) {
+        return [['Unidades transfundidas', t.transf], ['Doadores', t.doad], ['Serologias realizadas', t.serol]];
       }
     },
     'Procedimentos de Enfermagem · Geral': {
+      // Sem arquivoPath de propósito: o relatório mensal arquiva "Procedimentos
+      // de Enfermagem" repartido por especialidade (registos_enf/<especialidade>),
+      // não neste caminho agregado "geral" — ainda não confirmei ao certo como
+      // juntar essas 12 partes sem risco de um total errado, por isso prefiro
+      // dizer que não sei a arriscar um número que pareça certo e não seja.
       fbPath: function (data) { return 'registos_enf/geral/' + data; },
-      resumir: function (rec) {
+      diario: function (rec) {
         var raw = rec && rec.snapshot && rec.snapshot.raw;
         if (!raw || !raw.specs) return null;
         var total = 0;
@@ -238,10 +260,26 @@
           var sp = raw.specs[spId] || {};
           total += somaCampos(sp.dia) + somaCampos(sp.noite);
         });
-        return [['Total de procedimentos de enfermagem registados', total]];
+        return { total: total };
+      },
+      formatar: function (t) {
+        return [['Total de procedimentos de enfermagem registados', t.total]];
       }
     }
   };
+  function somaCampos(obj){
+    var t = 0;
+    (Array.isArray(obj) ? obj : Object.values(obj || {})).forEach(function (v) { t += Number(v) || 0; });
+    return t;
+  }
+  function somarContagens(lista){
+    var total = {};
+    lista.forEach(function (o) {
+      if (!o) return;
+      Object.keys(o).forEach(function (k) { total[k] = (total[k] || 0) + (Number(o[k]) || 0); });
+    });
+    return total;
+  }
 
   function hojeISO(offsetDias){
     var d = new Date();
@@ -251,6 +289,26 @@
   function extrairData(textoNorm){
     if (/ontem/.test(textoNorm)) return { data: hojeISO(-1), label: 'ontem' };
     return { data: hojeISO(0), label: 'hoje' };
+  }
+
+  var MESES = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  function labelMes(ano, mesIdx){
+    return new Date(ano, mesIdx, 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+  }
+  function extrairMesPassado(textoNorm){
+    if (/mes passado/.test(textoNorm)) {
+      var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
+      return { ym: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), label: labelMes(d.getFullYear(), d.getMonth()) };
+    }
+    for (var i = 0; i < MESES.length; i++) {
+      if (!palavraInteira(textoNorm, MESES[i])) continue;
+      var anoMatch = textoNorm.match(/\b(20\d{2})\b/);
+      var hoje = new Date();
+      var ano = anoMatch ? parseInt(anoMatch[1], 10) : hoje.getFullYear();
+      if (!anoMatch && i >= hoje.getMonth()) ano -= 1; // sem ano dado e o mês ainda não terminou este ano → assume o ano anterior
+      return { ym: ano + '-' + String(i + 1).padStart(2, '0'), label: labelMes(ano, i) };
+    }
+    return null;
   }
 
   var _fbLeituraPromise = null;
@@ -273,6 +331,65 @@
     return _fbLeituraPromise;
   }
 
+  var _fbStoragePromise = null;
+  function obterStorageLeitura(){
+    if (_fbStoragePromise) return _fbStoragePromise;
+    var cfgUrl = new URL('zelo_firebase_config.js', document.baseURI).href;
+    _fbStoragePromise = Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js'),
+      import(cfgUrl)
+    ]).then(function (m) {
+      var appMod = m[0], stMod = m[1], cfgMod = m[2];
+      var apps = appMod.getApps();
+      var app = apps.length ? apps[0] : appMod.initializeApp(cfgMod.firebaseConfig);
+      var storage = stMod.getStorage(app);
+      return function (path) {
+        return stMod.getBytes(stMod.ref(storage, path)).then(function (buf) {
+          return JSON.parse(new TextDecoder('utf-8').decode(buf));
+        }).catch(function (e) {
+          if (e && e.code === 'storage/object-not-found') return null; // sem arquivo para esse mês — não é falha de ligação
+          throw e;
+        });
+      };
+    });
+    return _fbStoragePromise;
+  }
+
+  function consultarDadosDia(nomeCanonico, cfg, alvoData){
+    return obterFirebaseLeitura().then(function (ler) {
+      return ler(cfg.fbPath(alvoData.data));
+    }).then(function (rec) {
+      var t = rec ? cfg.diario(rec) : null;
+      if (!t) return { texto: 'Não há registo guardado de ' + nomeCanonico + ' para ' + alvoData.label + ' (' + alvoData.data + ').' };
+      var linhas = cfg.formatar(t);
+      var texto = nomeCanonico + ' — ' + alvoData.label + ' (' + alvoData.data + '):\n' +
+        linhas.map(function (l) { return '• ' + l[0] + ': ' + l[1]; }).join('\n');
+      return { texto: texto };
+    }).catch(function () {
+      return { texto: 'Não consegui ligar ao Firebase agora para consultar ' + nomeCanonico + '. Tente de novo daqui a pouco.' };
+    });
+  }
+
+  function consultarDadosMes(nomeCanonico, cfg, mesAlvo){
+    if (!cfg.arquivoPath) {
+      return Promise.resolve({ texto: 'Para meses passados ainda não tenho a leitura de ' + nomeCanonico + ' confirmada — prefiro não arriscar um número errado. Para hoje/ontem já consigo responder normalmente.' });
+    }
+    return obterStorageLeitura().then(function (ler) {
+      return ler(cfg.arquivoPath(mesAlvo.ym));
+    }).then(function (arquivo) {
+      if (!arquivo) return { texto: 'Não há arquivo guardado de ' + nomeCanonico + ' para ' + mesAlvo.label + ' — ou porque ainda não passou o dia 2 do mês seguinte (quando o relatório mensal corre), ou porque não houve registos nesse mês.' };
+      var diarios = Object.keys(arquivo).map(function (data) { return cfg.diario(arquivo[data]); }).filter(Boolean);
+      if (!diarios.length) return { texto: 'Não há registos guardados de ' + nomeCanonico + ' em ' + mesAlvo.label + '.' };
+      var linhas = cfg.formatar(somarContagens(diarios));
+      var texto = nomeCanonico + ' — ' + mesAlvo.label + ' (' + diarios.length + ' dia(s) com registo):\n' +
+        linhas.map(function (l) { return '• ' + l[0] + ': ' + l[1]; }).join('\n');
+      return { texto: texto };
+    }).catch(function () {
+      return { texto: 'Não consegui ligar ao arquivo do Firebase Storage agora para consultar ' + nomeCanonico + '. Tente de novo daqui a pouco.' };
+    });
+  }
+
   function consultarDados(nomeCanonico, textoNorm){
     var cfg = RESUMOS_SERVICO[nomeCanonico];
     if (!cfg) {
@@ -283,20 +400,9 @@
     if (!temAcessoModulo(u.role, u.permissoes, 'estatistica', slug)) {
       return { texto: 'Não tem permissão para consultar números/estatísticas de ' + nomeCanonico + '.' };
     }
-    var alvoData = extrairData(textoNorm);
-    return obterFirebaseLeitura().then(function (ler) {
-      return ler(cfg.fbPath(alvoData.data));
-    }).then(function (rec) {
-      var linhas = rec ? cfg.resumir(rec) : null;
-      if (!linhas || !linhas.length) {
-        return { texto: 'Não há registo guardado de ' + nomeCanonico + ' para ' + alvoData.label + ' (' + alvoData.data + ').' };
-      }
-      var texto = nomeCanonico + ' — ' + alvoData.label + ' (' + alvoData.data + '):\n' +
-        linhas.map(function (l) { return '• ' + l[0] + ': ' + l[1]; }).join('\n');
-      return { texto: texto };
-    }).catch(function () {
-      return { texto: 'Não consegui ligar ao Firebase agora para consultar ' + nomeCanonico + '. Tente de novo daqui a pouco.' };
-    });
+    var mesAlvo = extrairMesPassado(textoNorm);
+    if (mesAlvo) return consultarDadosMes(nomeCanonico, cfg, mesAlvo);
+    return consultarDadosDia(nomeCanonico, cfg, extrairData(textoNorm));
   }
 
   // ── Motor de intenções ──
@@ -314,7 +420,8 @@
       '• Indicar onde fica algo: "onde encontro o laboratório"\n' +
       '• Abrir uma acção específica: "abrir procedimentos de enfermagem do bloco operatório", "estatísticas de imagiologia"\n' +
       '• Dizer números reais de hoje/ontem para Bloco Operatório, Imagiologia, Hemoterapia e Procedimentos de Enfermagem · Geral: "quantas cirurgias hoje no bloco operatório"\n' +
-      'Para os outros serviços ainda não sei ler números — e continuo sem preencher formulários por voz.';
+      '• O mesmo para um mês passado, em Bloco Operatório, Imagiologia e Hemoterapia (o Firebase apaga o dia-a-dia depois de arquivado, mas eu vou buscar o arquivo mensal): "quantos exames de imagiologia em julho", "quantas transfusões no mês passado"\n' +
+      'Para os outros serviços, e para meses passados de Procedimentos de Enfermagem · Geral, ainda não sei ler números — e continuo sem preencher formulários por voz.';
   }
   function respostaIdentidade(){
     return 'Sou o Zelo, o assistente do sistema do Hospital do Prenda. Funciono inteiramente no seu navegador — não envio nada para fora, não tenho custos, e só reconheço comandos e perguntas de estrutura, não conversa livre.';
