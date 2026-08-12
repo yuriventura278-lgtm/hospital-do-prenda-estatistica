@@ -1640,6 +1640,12 @@ let marcaApagar = false;
 
 /* Contorno humano (braços e pernas afastados), igual em frente e verso. */
 const CORPO_PATH = "M60 14c-6.1 0-11 4.9-11 11 0 4.2 2.3 7.8 5.7 9.7-4.6 1-8 2.5-9.9 4.6-1.9 2.1-3 5.1-3.6 8.7L36 71.5 22.6 92.2c-.8 1.2-1.6 2.2-3.4 3.6l-7.5 6c-1.4 1.1-1.7 3-.7 4.3 1 1.3 2.9 1.5 4.3.5l8.2-6c2.4-1.8 3.8-3.3 5-5.2l12.2-18.6-2.2 15.7c-.4 2.9-.5 5-.3 7.2l2.4 25.6-1.6 30.4c-.1 1.9-.2 3.3-.6 5l-2.4 11.2c-.4 1.7.7 3.3 2.4 3.6 1.7.3 3.3-.8 3.6-2.5l2.5-11.6c.5-2.2.7-4 .8-6.2l1.6-29.7 3.6-19.9h4.8l3.6 19.9 1.6 29.7c.1 2.2.3 4 .8 6.2l2.5 11.6c.3 1.7 1.9 2.8 3.6 2.5 1.7-.3 2.8-1.9 2.4-3.6l-2.4-11.2c-.4-1.7-.5-3.1-.6-5l-1.6-30.4 2.4-25.6c.2-2.2.1-4.3-.3-7.2l-2.2-15.7 12.2 18.6c1.2 1.9 2.6 3.4 5 5.2l8.2 6c1.4 1 3.3.8 4.3-.5 1-1.3.7-3.2-.7-4.3l-7.5-6c-1.8-1.4-2.6-2.4-3.4-3.6L84 71.5l-5.2-23.5c-.6-3.6-1.7-6.6-3.6-8.7-1.9-2.1-5.3-3.6-9.9-4.6 3.4-1.9 5.7-5.5 5.7-9.7 0-6.1-4.9-11-11-11z";
+/* O contorno exterior é igual dos dois lados (o corpo visto de frente e de
+   trás tem a mesma silhueta) — o que distingue as duas vistas, tal como nos
+   diagramas médicos reais, são as marcas anatómicas interiores: a frente
+   mostra as clavículas e o esterno; o verso mostra a coluna e as omoplatas. */
+const CORPO_DET_FRENTE = "M42 42q18 9 36 0M60 46v52";
+const CORPO_DET_VERSO  = "M60 40v66M46 48q-7 15 2 30M74 48q7 15-2 30";
 
 function marcaShape(tipo, x, y, cor){
   const t = { quadrado:`<rect x="${x-5.5}" y="${y-5.5}" width="11" height="11" rx="1"/>`,
@@ -1661,8 +1667,10 @@ function svgCorpo(rec, lado, opc){
     const alvo = o.interactivo ? `<circle cx="${m.x}" cy="${m.y}" r="11" fill="transparent" class="marca-alvo" data-lado="${lado}" data-idx="${i}" style="cursor:pointer"/>` : '';
     return marcaShape(m.tipo, m.x, m.y, corMarca) + alvo;
   }).join('');
+  const detalhe = lado==='verso' ? CORPO_DET_VERSO : CORPO_DET_FRENTE;
   return `<svg viewBox="0 0 120 190" data-lado="${lado}"${o.interactivo?' class="corpo-alvo"':''}>
     <path d="${CORPO_PATH}" fill="${fundo}" stroke="${traco}" stroke-width="2"/>
+    <path d="${detalhe}" fill="none" stroke="${traco}" stroke-width="1.2" stroke-linecap="round" opacity="0.75"/>
     ${pontos}</svg>`;
 }
 function buildBodyMap(){
