@@ -159,21 +159,28 @@
     return lista;
   }
 
+  function chaveCorrespondeATipo(chave, tipoPedido){
+    if (tipoPedido === 'estatisticas') return chave === 'estatisticas';
+    if (tipoPedido === 'movimento') return chave === 'movimento';
+    if (tipoPedido === 'procedimentos') return chave === 'procedimentos';
+    if (tipoPedido === 'registo_diario') return chave === 'registo diario';
+    if (tipoPedido === 'processo_operatorio') return chave === 'processo operatorio';
+    return false;
+  }
+  // Devolve { acao, aviso } — "aviso" só vem preenchido quando foi pedida uma
+  // opção específica (ex.: "estatísticas de X") que este serviço não tem, ou
+  // que existe mas o utilizador não pode abrir, para nunca abrir outra coisa
+  // sem dizer que a opção pedida não foi essa (ver instrução de nunca ocultar).
   function escolherAcao(lista, tipoPedido){
     var acessiveis = lista.filter(function (a) { return a.acessivel; });
-    if (!acessiveis.length) return null;
     if (tipoPedido) {
-      var m = acessiveis.find(function (a) {
-        if (tipoPedido === 'estatisticas') return a.chave === 'estatisticas';
-        if (tipoPedido === 'movimento') return a.chave === 'movimento';
-        if (tipoPedido === 'procedimentos') return a.chave === 'procedimentos';
-        if (tipoPedido === 'registo_diario') return a.chave === 'registo diario';
-        if (tipoPedido === 'processo_operatorio') return a.chave === 'processo operatorio';
-        return false;
-      });
-      if (m) return m;
+      var existe = lista.some(function (a) { return chaveCorrespondeATipo(a.chave, tipoPedido); });
+      var acessivel = acessiveis.find(function (a) { return chaveCorrespondeATipo(a.chave, tipoPedido); });
+      if (acessivel) return { acao: acessivel };
+      if (existe) return { acao: acessiveis[0] || null, aviso: 'não tem permissão para essa opção específica' };
+      return { acao: acessiveis[0] || null, aviso: 'este serviço não tem essa opção' };
     }
-    return acessiveis[0];
+    return { acao: acessiveis[0] || null };
   }
 
   function categoriaDoServico(svc){
@@ -430,18 +437,29 @@
   function processar(textoOriginal){
     var textoNorm = normalizar(textoOriginal);
     if (!textoNorm) return { texto: 'Não ouvi nada. Pode repetir?' };
+    // "Zelo, abrir bloco operatório" / "ei Zelo, ajuda" — retira o endereçamento
+    // pelo nome antes de tudo o resto, para uma frase curta destas não ser
+    // confundida com uma saudação (ver regex de saudação abaixo). Só quando há
+    // texto a seguir — "zelo" sozinho continua a cair na saudação normalmente.
+    textoNorm = textoNorm.replace(/^(ei\s+)?zelo[,]?\s+/, '') || textoNorm;
 
-    // Confirmação pendente
+    // Confirmação pendente — só interpreta como sim/não se a frase não nomear
+    // logo um serviço novo (senão "abrir a farmácia" enquanto há uma pergunta
+    // pendente sobre outro serviço acabava por abrir esse outro por engano,
+    // só por conter a palavra "abrir").
     if (pendente) {
-      if (/(^| )(sim|pode|abre|abrir|confirmo|ok|vai)( |$)/.test(textoNorm)) {
-        var p = pendente; pendente = null;
-        return { texto: 'A abrir ' + p.label + '…', navegarPara: p.file };
+      var jaTemNovoAlvo = localizarServicos(textoNorm).length > 0;
+      if (!jaTemNovoAlvo) {
+        if (/(^| )(sim|pode|abre|abrir|confirmo|ok|vai)( |$)/.test(textoNorm)) {
+          var p = pendente; pendente = null;
+          return { texto: 'A abrir ' + p.label + '…', navegarPara: p.file };
+        }
+        if (/(^| )(nao|cancela|cancelar|deixa|esquece)( |$)/.test(textoNorm)) {
+          pendente = null;
+          return { texto: 'Ok, não abro.' };
+        }
       }
-      if (/(^| )(nao|cancela|cancelar|deixa|esquece)( |$)/.test(textoNorm)) {
-        pendente = null;
-        return { texto: 'Ok, não abro.' };
-      }
-      pendente = null; // qualquer outra coisa cancela a pergunta pendente e segue o fluxo normal
+      pendente = null; // um comando novo reconhecido, ou algo que não é nem sim nem não, cancela a pergunta pendente
     }
 
     if (/(^| )(ola|ol[a]|oi|bom dia|boa tarde|boa noite|ei zelo|zelo)( |$)/.test(textoNorm) && textoNorm.length < 20) {
@@ -474,14 +492,16 @@
     var u = estadoUtilizador();
     var lista = acoesDoServico(alvo, u.role, u.permissoes);
     var tipoPedido = tipoAcaoPedida(textoNorm);
-    var acao = escolherAcao(lista, tipoPedido);
+    var escolha = escolherAcao(lista, tipoPedido);
+    var acao = escolha.acao;
+    var prefixoAviso = escolha.aviso ? ('Nota: ' + escolha.aviso + '. ') : '';
 
     if (ondeQuer) {
       if (alvo.tipo === 'servico') {
         var cat = categoriaDoServico(alvo.svc);
         if (!acao) return { texto: nome + ' está em Serviços → ' + cat + ', mas não tem permissão para abrir nenhuma das opções desse serviço.' };
         pendente = { file: acao.file, label: nome + ' — ' + acao.label };
-        return { texto: nome + ' está em Serviços → ' + cat + '. Quer que eu abra agora (' + acao.label + ')?' };
+        return { texto: prefixoAviso + nome + ' está em Serviços → ' + cat + '. Quer que eu abra agora (' + acao.label + ')?' };
       }
       if (!acao) return { texto: nome + ' está em Sistemas Locais, mas não tem permissão para o abrir.' };
       pendente = { file: acao.file, label: nome };
@@ -491,7 +511,7 @@
     // "abrir X" (verbo explícito) ou apenas o nome do serviço dito sozinho
     if (!acao) return { texto: 'Não tem permissão para aceder a ' + nome + '.' };
     var extra = lista.filter(function (a) { return a.acessivel && a !== acao; }).map(function (a) { return a.label; });
-    var texto = 'A abrir ' + nome + (acao.label && acao.label !== nome ? ' — ' + acao.label : '') + '…';
+    var texto = prefixoAviso + 'A abrir ' + nome + (acao.label && acao.label !== nome ? ' — ' + acao.label : '') + '…';
     if (extra.length) texto += ' (também disponível: ' + extra.join(', ') + ')';
     return { texto: texto, navegarPara: acao.file };
   }
