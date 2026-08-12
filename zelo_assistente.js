@@ -182,6 +182,123 @@
     return c ? c.label : 'Outros';
   }
 
+  // ── Consulta de números reais (Firebase Realtime Database) ──
+  // Fase piloto: só para os serviços abaixo, cuja estrutura de dados já foi
+  // confirmada ficheiro a ficheiro (cada serviço grava os seus campos de
+  // forma diferente — não há um "número de pacientes" universal). Ler dados
+  // aqui não tem custo de IA nenhum — é só uma leitura normal da mesma base
+  // de dados que todas as páginas já usam.
+  function somaCampos(obj){
+    var t = 0;
+    (Array.isArray(obj) ? obj : Object.values(obj || {})).forEach(function (v) { t += Number(v) || 0; });
+    return t;
+  }
+  var RESUMOS_SERVICO = {
+    'Bloco Operatório': {
+      fbPath: function (data) { return 'registos/bloco_operatorio/' + data; },
+      resumir: function (rec) {
+        var snap = rec && rec.snapshot;
+        if (!snap) return null;
+        var urg = (snap.urgData || []).filter(function (x) { return x.saved; }).length;
+        var ele = (snap.eleData || []).filter(function (x) { return x.saved; }).length;
+        var sus = (snap.susData || []).filter(function (x) { return x.saved; }).length;
+        return [['Cirurgias urgentes', urg], ['Cirurgias eletivas', ele], ['Total de cirurgias realizadas', urg + ele], ['Cirurgias suspensas', sus]];
+      }
+    },
+    'Imagiologia': {
+      fbPath: function (data) { return 'registos/imagiologia/' + data; },
+      resumir: function (rec) {
+        if (!rec) return null;
+        function somaLinha(r) { return (Number(r.prx) || 0) + (Number(r.rx) || 0) + (Number(r.peco) || 0) + (Number(r.eco) || 0) + (Number(r.ptac) || 0) + (Number(r.tac) || 0); }
+        var totalLinhas = (rec.bu || []).reduce(function (s, r) { return s + somaLinha(r); }, 0) + (rec.int || []).reduce(function (s, r) { return s + somaLinha(r); }, 0);
+        var totalAut = (Number(rec.autPrx) || 0) + (Number(rec.autRx) || 0) + (Number(rec.autPeco) || 0) + (Number(rec.autEco) || 0) + (Number(rec.autPtac) || 0) + (Number(rec.autTac) || 0);
+        return [['Total de exames de imagem', totalLinhas + totalAut], ['ECGs realizados', Number(rec.ecg) || 0]];
+      }
+    },
+    'Hemoterapia': {
+      fbPath: function (data) { return 'registos_sistemas_locais/hemoterapia/' + data; },
+      resumir: function (rec) {
+        var snap = rec && rec.snapshot;
+        if (!snap) return null;
+        var t = snap.transfusoes || {}, d = snap.doadores || {}, s = snap.serologia || {};
+        return [
+          ['Unidades transfundidas', (Number(t.plaquetas) || 0) + (Number(t.plasmas) || 0) + (Number(t.globulos) || 0) + (Number(t.crio) || 0)],
+          ['Doadores', (Number(d.voluntarios) || 0) + (Number(d.familiares) || 0) + (Number(d.habituais) || 0)],
+          ['Serologias realizadas', (Number(s.vih) || 0) + (Number(s.hbs) || 0) + (Number(s.vdrl) || 0) + (Number(s.hcv) || 0)]
+        ];
+      }
+    },
+    'Procedimentos de Enfermagem · Geral': {
+      fbPath: function (data) { return 'registos_enf/geral/' + data; },
+      resumir: function (rec) {
+        var raw = rec && rec.snapshot && rec.snapshot.raw;
+        if (!raw || !raw.specs) return null;
+        var total = 0;
+        Object.keys(raw.specs).forEach(function (spId) {
+          var sp = raw.specs[spId] || {};
+          total += somaCampos(sp.dia) + somaCampos(sp.noite);
+        });
+        return [['Total de procedimentos de enfermagem registados', total]];
+      }
+    }
+  };
+
+  function hojeISO(offsetDias){
+    var d = new Date();
+    d.setDate(d.getDate() + (offsetDias || 0));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function extrairData(textoNorm){
+    if (/ontem/.test(textoNorm)) return { data: hojeISO(-1), label: 'ontem' };
+    return { data: hojeISO(0), label: 'hoje' };
+  }
+
+  var _fbLeituraPromise = null;
+  function obterFirebaseLeitura(){
+    if (_fbLeituraPromise) return _fbLeituraPromise;
+    var cfgUrl = new URL('zelo_firebase_config.js', document.baseURI).href;
+    _fbLeituraPromise = Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js'),
+      import(cfgUrl)
+    ]).then(function (m) {
+      var appMod = m[0], dbMod = m[1], cfgMod = m[2];
+      var apps = appMod.getApps();
+      var app = apps.length ? apps[0] : appMod.initializeApp(cfgMod.firebaseConfig);
+      var db = dbMod.getDatabase(app);
+      return function (path) {
+        return dbMod.get(dbMod.ref(db, path)).then(function (snap) { return snap.exists() ? snap.val() : null; });
+      };
+    });
+    return _fbLeituraPromise;
+  }
+
+  function consultarDados(nomeCanonico, textoNorm){
+    var cfg = RESUMOS_SERVICO[nomeCanonico];
+    if (!cfg) {
+      return { texto: 'Ainda não sei consultar números de ' + nomeCanonico + ' — por agora só consigo para Bloco Operatório, Imagiologia, Hemoterapia e Procedimentos de Enfermagem · Geral.' };
+    }
+    var u = estadoUtilizador();
+    var slug = window.zeloSlugifyServico ? window.zeloSlugifyServico(nomeCanonico) : null;
+    if (!temAcessoModulo(u.role, u.permissoes, 'estatistica', slug)) {
+      return { texto: 'Não tem permissão para consultar números/estatísticas de ' + nomeCanonico + '.' };
+    }
+    var alvoData = extrairData(textoNorm);
+    return obterFirebaseLeitura().then(function (ler) {
+      return ler(cfg.fbPath(alvoData.data));
+    }).then(function (rec) {
+      var linhas = rec ? cfg.resumir(rec) : null;
+      if (!linhas || !linhas.length) {
+        return { texto: 'Não há registo guardado de ' + nomeCanonico + ' para ' + alvoData.label + ' (' + alvoData.data + ').' };
+      }
+      var texto = nomeCanonico + ' — ' + alvoData.label + ' (' + alvoData.data + '):\n' +
+        linhas.map(function (l) { return '• ' + l[0] + ': ' + l[1]; }).join('\n');
+      return { texto: texto };
+    }).catch(function () {
+      return { texto: 'Não consegui ligar ao Firebase agora para consultar ' + nomeCanonico + '. Tente de novo daqui a pouco.' };
+    });
+  }
+
   // ── Motor de intenções ──
   var pendente = null; // { tipo:'confirmar_abrir', file, label }
   var ultimoServico = null; // memória de curto prazo: último serviço mencionado, para "e as estatísticas disso?"
@@ -196,7 +313,8 @@
       '• Abrir um serviço: "abrir ortopedia", "ir para a farmácia"\n' +
       '• Indicar onde fica algo: "onde encontro o laboratório"\n' +
       '• Abrir uma acção específica: "abrir procedimentos de enfermagem do bloco operatório", "estatísticas de imagiologia"\n' +
-      'Ainda não consigo responder a perguntas livres sobre números/estatísticas nem preencher formulários por voz — para isso é preciso abrir a página certa, que eu indico.';
+      '• Dizer números reais de hoje/ontem para Bloco Operatório, Imagiologia, Hemoterapia e Procedimentos de Enfermagem · Geral: "quantas cirurgias hoje no bloco operatório"\n' +
+      'Para os outros serviços ainda não sei ler números — e continuo sem preencher formulários por voz.';
   }
   function respostaIdentidade(){
     return 'Sou o Zelo, o assistente do sistema do Hospital do Prenda. Funciono inteiramente no seu navegador — não envio nada para fora, não tenho custos, e só reconheço comandos e perguntas de estrutura, não conversa livre.';
@@ -231,6 +349,7 @@
 
     var ondeQuer = /(onde (encontro|fica|esta|está|posso encontrar)|em que (sitio|pagina) (fica|encontro))/.test(textoNorm);
     var abrirQuer = /(abrir|abre|ir para|ir a|entrar em|entrar na|entrar no|mostrar|mostra|quero ver|leva me|vai para)/.test(textoNorm);
+    var querNumeros = /(quantos|quantas|numero de|número de|quantidade de|total de)/.test(textoNorm) && !abrirQuer && !ondeQuer;
 
     var alvos = localizarServicos(textoNorm);
     if (!alvos.length) {
@@ -241,11 +360,14 @@
     }
     var alvo = alvos[0];
     var nome = alvo.tipo === 'servico' ? alvo.svc.nome : alvo.sistema.nome;
+    ultimoServico = alvo;
+
+    if (querNumeros) return consultarDados(nome, textoNorm);
+
     var u = estadoUtilizador();
     var lista = acoesDoServico(alvo, u.role, u.permissoes);
     var tipoPedido = tipoAcaoPedida(textoNorm);
     var acao = escolherAcao(lista, tipoPedido);
-    ultimoServico = alvo;
 
     if (ondeQuer) {
       if (alvo.tipo === 'servico') {
@@ -392,6 +514,7 @@
       div.textContent = texto;
       log.appendChild(div);
       log.scrollTop = log.scrollHeight;
+      return div;
     }
 
     function enviar(texto){
@@ -400,6 +523,16 @@
       adicionarMsg(texto, 'user');
       input.value = '';
       var r = processar(texto);
+      if (r && typeof r.then === 'function') {
+        var espera = adicionarMsg('A consultar dados…', 'bot');
+        r.then(function (resultado) {
+          espera.textContent = resultado.texto;
+          log.scrollTop = log.scrollHeight;
+          falar(resultado.texto);
+          if (resultado.navegarPara) setTimeout(function () { window.location.href = resultado.navegarPara; }, 700);
+        });
+        return;
+      }
       adicionarMsg(r.texto, 'bot');
       falar(r.texto);
       if (r.navegarPara) setTimeout(function () { window.location.href = r.navegarPara; }, 700);
