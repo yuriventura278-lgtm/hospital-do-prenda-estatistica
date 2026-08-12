@@ -1,42 +1,71 @@
 <!DOCTYPE html>
 <html lang="pt-AO" data-theme="light">
 <head>
+<script>document.documentElement.style.visibility='hidden';</script>
+<script>window.ZELO_MODULE='sistemas_independentes';</script>
+<script>window.ZELO_ITEM='bloco_operatorio_ficha_operatoria';</script>
+<script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_pagegate_watchdog.js"></script>
+<script src="zelo_indexeddb.js"></script>
+<script src="zelo_sync.js"></script>
+<script src="zelo_auto_backup.js"></script>
+<script>zeloRequestPersistentStorage();</script>
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
+    window.__fbReady = false;
+  }
+</script>
+<!-- Terminar sessão (usado pelo menu flutuante do ZELO) -->
+<script type="module">
+  import { auth, signOut } from './zelo_auth.js';
+  window.zeloLogout = function(){
+    signOut(auth).catch(function(){}).finally(function(){ window.location.replace('index.html'); });
+  };
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>ZELO · Bloco Operatório — Hospital do Prenda</title>
+<title>ZELO · Bloco Operatório — Ficha Operatória</title>
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="zelo_tokens.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-/* ===== ZELO design tokens (mirrors zelo_tokens.css) ===== */
+/* ===== Tokens ZELO ─ consumidos de zelo_tokens.css =====
+   Cada variável local aponta para o token partilhado. Como o zelo_tokens.css
+   redefine os --zelo-* em :root nos modos escuros, estas variáveis locais
+   seguem automaticamente o tema — sem precisar de um segundo bloco escuro. */
 :root{
-  --bg:#F5F6F8; --surface:#FFFFFF; --surface-2:#ECF0F3; --surface-3:#E2E8EC;
-  --ink:#16232E; --ink-soft:#55636F; --ink-faint:#8B98A3;
-  --line:#DCE2E7; --line-strong:#C4CDD4;
-  --accent:#3E5C87; --accent-dark:#2B415E; --accent-ink:#1F2F45; --accent-soft:#E9EEF4;
-  --warn:#B5502D; --warn-ink:#7A3115; --warn-soft:#F7E8E1;
-  --good:#3F7A56; --good-ink:#2A5138; --good-soft:#E5F0E7;
+  --bg:var(--zelo-bg); --surface:var(--zelo-surface); --surface-2:var(--zelo-surface-2); --surface-3:var(--zelo-surface-3);
+  --ink:var(--zelo-ink); --ink-soft:var(--zelo-ink-soft); --ink-faint:var(--zelo-ink-faint);
+  --line:var(--zelo-line); --line-strong:var(--zelo-line-strong);
+  --accent:var(--zelo-accent); --accent-dark:var(--zelo-accent-dark); --accent-ink:var(--zelo-accent-ink); --accent-soft:var(--zelo-accent-soft);
+  --warn:var(--zelo-warn); --warn-ink:var(--zelo-warn-ink); --warn-soft:var(--zelo-warn-soft);
+  --good:var(--zelo-good); --good-ink:var(--zelo-good-ink); --good-soft:var(--zelo-good-soft);
   --bad:#C0392B; --bad-soft:#FBEAE7;
-  --radius-s:6px; --radius:10px; --radius-l:16px;
-  --shadow-sm:0 1px 2px rgba(22,35,46,.08);
-  --shadow:0 1px 2px rgba(22,35,46,.06), 0 8px 24px -12px rgba(22,35,46,.16);
-  --font-display:'Fraunces', ui-serif, Georgia, serif;
-  --font-body:'Source Sans 3', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --radius-s:var(--zelo-radius-s); --radius:var(--zelo-radius-m); --radius-l:var(--zelo-radius-l);
+  --shadow-sm:var(--zelo-shadow-sm); --shadow:var(--zelo-shadow);
+  --font-display:var(--zelo-font-display); --font-body:var(--zelo-font-body); --font-mono:var(--zelo-font-mono);
 }
-:root[data-theme="dark"]{
-  --bg:#0F151B; --surface:#161F27; --surface-2:#1C2732; --surface-3:#25313C;
-  --ink:#E7EDF1; --ink-soft:#A2B1BC; --ink-faint:#6E7C87;
-  --line:#2A3843; --line-strong:#3A4A56;
-  --accent:#7C9BC4; --accent-dark:#A8C0DE; --accent-ink:#C7D6EA; --accent-soft:#1C2836;
-  --warn:#E28A5E; --warn-ink:#F6CDA9; --warn-soft:#33221A;
-  --good:#83BF97; --good-ink:#C6E7D0; --good-soft:#1B3024;
-  --bad:#E27A6E; --bad-soft:#33201C;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.35);
-  --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.5);
+/* O vermelho de perigo não existe nos tokens partilhados — segue aqui a mesma
+   convenção de guarda usada pelo zelo_tokens.css para os modos escuros. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bad:#E27A6E; --bad-soft:#33201C; }
 }
+:root[data-theme="dark"]{ --bad:#E27A6E; --bad-soft:#33201C; }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{font-family:var(--font-body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;padding-bottom:74px;line-height:1.45;}
@@ -55,10 +84,8 @@ header.app .hbtn.iconly{padding:8px;font-size:15px;}
 main{max-width:980px;margin:0 auto;padding:14px;}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:16px;margin-bottom:14px;}
 .card h2{font-size:13px;margin:0 0 12px;color:var(--accent-ink);text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid var(--accent);padding-bottom:8px;display:flex;align-items:center;gap:8px;font-weight:700;}
-:root[data-theme="dark"] .card h2{color:var(--accent-dark);}
 .card h2 svg.ic{font-size:16px;color:var(--accent);}
 .card h3{font-size:12.5px;margin:16px 0 8px;color:var(--accent-ink);font-weight:700;display:flex;align-items:center;gap:6px;}
-:root[data-theme="dark"] .card h3{color:var(--accent-dark);}
 .grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0;}
 .field label{font-size:11.5px;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;gap:5px;}
@@ -76,7 +103,6 @@ table.snv th{background:var(--accent-dark);color:#fff;font-weight:600;font-size:
 table.snv input,table.snv select{width:100%;border:none;background:transparent;text-align:center;font-size:12.5px;padding:3px;color:var(--ink);font-family:inherit;}
 table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);border-radius:4px;}
 .addrow-btn{border:1px dashed var(--accent);background:var(--accent-soft);color:var(--accent-ink);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px;margin-top:8px;}
-:root[data-theme="dark"] .addrow-btn{color:var(--accent-dark);}
 .delrow-btn{border:1px solid var(--bad);color:var(--bad);background:var(--bad-soft);border-radius:8px;padding:4px 8px;font-size:11px;cursor:pointer;}
 .svr{margin-top:8px;overflow-x:auto;}
 .checklist-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);font-size:13px;}
@@ -91,7 +117,6 @@ table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);bor
 /* ===== Tabs ===== */
 .tabs{display:flex;overflow-x:auto;gap:6px;margin-bottom:14px;-webkit-overflow-scrolling:touch;padding-bottom:4px;position:sticky;top:66px;background:var(--bg);z-index:30;padding-top:4px;}
 .tabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--accent-ink);border-radius:20px;padding:9px 13px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;position:relative;}
-:root[data-theme="dark"] .tabs button{color:var(--ink);}
 .tabs button svg.ic{font-size:15px;color:var(--accent);}
 .tabs button.active{background:var(--accent-dark);color:#fff;border-color:var(--accent-dark);}
 .tabs button.active svg.ic{color:#fff;}
@@ -107,18 +132,27 @@ table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);bor
 .btn svg.ic{font-size:16px;}
 .btn.primary{background:var(--accent);color:#fff;}
 .btn.ghost{background:var(--surface-2);color:var(--accent-ink);}
-:root[data-theme="dark"] .btn.ghost{color:var(--ink);}
 .btn.dark{background:var(--accent-dark);color:#fff;}
 .btn.danger{background:var(--bad);color:#fff;}
 .btn.block{width:100%;}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
 
 /* ===== Dashboard ===== */
-.list-item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;transition:.12s;}
+.list-item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;transition:.12s;}
 .list-item:hover{border-color:var(--accent);box-shadow:var(--shadow-sm);}
-.list-item .info{min-width:0;}
+.list-item .info{min-width:0;cursor:pointer;}
+.list-item .info b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Acções por registo — ocupam a linha inteira por baixo da informação */
+.row-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;padding-top:9px;border-top:1px solid var(--line);}
+.row-actions button{border:1px solid var(--line);background:var(--surface-2);color:var(--accent-ink);border-radius:8px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-family:inherit;}
+.row-actions button svg.ic{font-size:14px;}
+.row-actions button:hover{border-color:var(--accent);background:var(--accent-soft);}
+.row-actions button.ra-open{background:var(--accent);border-color:var(--accent);color:#fff;}
+.row-actions button.ra-open:hover{background:var(--accent-dark);border-color:var(--accent-dark);}
+.row-actions button.ra-del{color:var(--bad);border-color:var(--bad-soft);background:var(--bad-soft);}
+.row-actions button.ra-del:hover{background:var(--bad);border-color:var(--bad);color:#fff;}
+@media (max-width:520px){ .row-actions button span{display:none;} .row-actions button{padding:8px 12px;} }
 .list-item .info b{display:block;font-size:14px;color:var(--accent-ink);}
-:root[data-theme="dark"] .list-item .info b{color:var(--ink);}
 .list-item .info span{font-size:12px;color:var(--ink-soft);}
 .status-pill{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;}
 .status-pill.rascunho{background:var(--warn-soft);color:var(--warn-ink);}
@@ -126,9 +160,7 @@ table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);bor
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;}
 .stat-box{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;position:relative;overflow:hidden;}
 .stat-box .ic-bg{position:absolute;right:-6px;top:-6px;font-size:44px;color:var(--accent-soft);}
-:root[data-theme="dark"] .stat-box .ic-bg{color:var(--surface-2);}
 .stat-box .num{font-size:24px;font-weight:800;color:var(--accent-ink);position:relative;}
-:root[data-theme="dark"] .stat-box .num{color:var(--ink);}
 .stat-box .lbl{font-size:11px;color:var(--ink-soft);margin-top:2px;position:relative;}
 .search{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:14px;margin-bottom:10px;background:var(--surface-2);color:var(--ink);font-family:inherit;}
 .empty{text-align:center;color:var(--ink-soft);padding:30px 10px;font-size:13px;}
@@ -140,7 +172,6 @@ table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);bor
 @media (max-width:480px){.two-col{grid-template-columns:1fr;}}
 .period-bar,.tab-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
 .period-bar button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--accent-ink);border-radius:20px;padding:8px 13px;font-size:12px;font-weight:600;cursor:pointer;}
-:root[data-theme="dark"] .period-bar button{color:var(--ink);}
 .period-bar button.active{background:var(--accent);color:#fff;border-color:var(--accent-dark);}
 .custom-range{display:none;gap:8px;margin-bottom:12px;}
 .custom-range.show{display:grid;grid-template-columns:1fr 1fr auto;}
@@ -148,7 +179,6 @@ table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);bor
 .chart-grid{display:grid;grid-template-columns:1fr;gap:14px;}
 @media (min-width:760px){.chart-grid.two{grid-template-columns:1fr 1fr;}}
 .tab-nav button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--accent-ink);border-radius:9px;padding:10px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;}
-:root[data-theme="dark"] .tab-nav button{color:var(--ink);}
 .tab-nav button svg.ic{font-size:16px;}
 .tab-nav button.active{background:var(--accent-dark);color:#fff;border-color:var(--accent-dark);}
 .panel-view{display:none;}
@@ -218,7 +248,7 @@ table.snv input:focus,table.snv select:focus{outline:2px solid var(--accent);bor
     <h1 id="headerTitle">Bloco Operatório</h1>
     <p>Ficha Operatória &amp; Cirurgia Segura</p>
   </div>
-  <button class="hbtn iconly" id="themeBtn" title="Alternar tema" aria-label="Alternar tema"></button>
+  <button class="hbtn iconly" id="theme-toggle" title="Alternar tema" aria-label="Alternar tema claro/escuro"></button>
   <button class="hbtn" id="backBtn" style="display:none;"></button>
 </header>
 
@@ -950,8 +980,34 @@ let customFromDate = null, customToDate = null;
 
 /* ============ UTIL ============ */
 function toast(msg){ const t=document.getElementById('toast'); t.innerHTML=ic('check')+msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
-function blankRecord(){
+/* Utilizador da sessão ZELO (preenchido pelo zelo_pagegate.js). */
+function zeloUser(){
   return {
+    nome: sessionStorage.getItem('zeloNome') || '',
+    email: sessionStorage.getItem('zeloEmail') || '',
+    role: sessionStorage.getItem('zeloRole') || ''
+  };
+}
+function soLeitura(){
+  const u = zeloUser();
+  if(u.role === 'admin') return false;
+  let p = {}; try{ p = JSON.parse(sessionStorage.getItem('zeloPermissoes')||'{}'); }catch(e){}
+  const mod = p['sistemas_independentes'];
+  if(mod === 'leitura') return true;
+  if(mod && typeof mod === 'object' && mod._nivel === 'leitura') return true;
+  return false;
+}
+/* Identificador estável e único por registo — ao contrário do id
+   auto-incrementado do IndexedDB, não colide entre dispositivos, por isso
+   pode servir de chave na sincronização com o Firebase. */
+function novoUid(){
+  return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,10);
+}
+function blankRecord(){
+  const u = zeloUser();
+  return {
+    uid: novoUid(),
+    registadoPor: u.nome, registadoPorEmail: u.email,
     status:"rascunho", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
     tipoPaciente:"",
     preOpChecklist: PRE_OP_ITEMS.map(txt=>({item:txt, ser:"", bo:""})),
@@ -964,20 +1020,32 @@ function blankRecord(){
   };
 }
 
-/* ============ THEME ============ */
+/* ============ TEMA (partilhado com o resto do ZELO) ============
+   O zelo_theme.js guarda a preferência em localStorage['zeloTema'] e marca
+   <html data-zelo-theme>. O zelo_tokens.css, por sua vez, lê data-theme.
+   Mantemos os dois atributos em espelho para o tema escolhido numa página do
+   ZELO valer também aqui (e vice-versa). O botão tem id="theme-toggle", pelo
+   que o zelo_theme.js não injecta um segundo botão no cabeçalho. */
 function applyTheme(t){
   document.documentElement.setAttribute('data-theme', t);
-  try{ localStorage.setItem('boTheme', t); }catch(e){}
-  document.getElementById('themeBtn').innerHTML = t==='dark' ? ic('sun') : ic('moon');
+  document.documentElement.setAttribute('data-zelo-theme', t);
+  try{ localStorage.setItem('zeloTema', t); }catch(e){}
+  const btn = document.getElementById('theme-toggle');
+  if(btn) btn.innerHTML = t==='dark' ? ic('sun') : ic('moon');
 }
-document.getElementById('themeBtn').addEventListener('click', ()=>{
-  const cur = document.documentElement.getAttribute('data-theme');
+document.getElementById('theme-toggle').addEventListener('click', ()=>{
+  const cur = document.documentElement.getAttribute('data-zelo-theme')==='dark' ? 'dark' : 'light';
   applyTheme(cur==='dark'?'light':'dark');
 });
 (function initTheme(){
   let t='light';
-  try{ t = localStorage.getItem('boTheme') || (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); }catch(e){}
+  try{ t = localStorage.getItem('zeloTema') || (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); }catch(e){}
   applyTheme(t);
+  // Se o zelo_theme.js (ou outra página numa aba irmã) mudar o tema, seguimos.
+  new MutationObserver(()=>{
+    const z = document.documentElement.getAttribute('data-zelo-theme') || 'light';
+    if(document.documentElement.getAttribute('data-theme') !== z) applyTheme(z);
+  }).observe(document.documentElement, {attributes:true, attributeFilter:['data-zelo-theme']});
 })();
 
 /* ============ STATIC ICON INJECTION ============ */
@@ -1081,23 +1149,102 @@ function renderList(all){
   countLbl.textContent = dateVal ? `${filtered.length} registo(s) em ${formatDateBR(dateVal)}` : `${filtered.length} registo(s) — a mostrar todos os dias`;
   const area = document.getElementById('listArea');
   if(filtered.length===0){ area.innerHTML = `<div class="empty">${ic('search')}Nenhum registo encontrado${dateVal? " nesta data.":"."}</div>`; return; }
-  area.innerHTML = filtered.map(r=>`
+  const bloqueado = soLeitura();
+  area.innerHTML = filtered.map(r=>{
+    const fin = r.status==="finalizado";
+    const autor = r.registadoPor ? ` · ${esc(r.registadoPor)}` : "";
+    return `
     <div class="list-item" data-id="${r.id}">
-      <div class="info">
+      <div class="info" data-act="abrir">
         <b>${esc(r.nome) || "(sem nome)"}</b>
-        <span>${esc(r.operacao) || "Operação não indicada"} · Processo ${esc(r.processo)||"—"} · ${r.dataOperacao||"sem data"}${r.inicioHora?(" · "+r.inicioHora):""}</span>
+        <span>${esc(r.operacao||r.procedimentoCirurgico) || "Operação não indicada"} · Processo ${esc(r.processo)||"—"} · ${r.dataOperacao||"sem data"}${r.inicioHora?(" · "+r.inicioHora):""}${autor}</span>
       </div>
-      <span class="status-pill ${r.status}">${r.status==="finalizado"?"Finalizado":"Rascunho"}</span>
-    </div>
-  `).join("");
-  area.querySelectorAll('.list-item').forEach(el=> el.addEventListener('click', ()=> openRecord(parseInt(el.dataset.id))));
+      <span class="status-pill ${r.status}">${fin?"Finalizado":"Rascunho"}</span>
+      <div class="row-actions">
+        <button type="button" class="ra-open" data-act="abrir" title="Abrir e editar">${ic('scalpel')}<span>Abrir</span></button>
+        <button type="button" data-act="ver" title="Pré-visualizar a ficha">${ic('print')}<span>Ver ficha</span></button>
+        <button type="button" data-act="pdf" title="Exportar PDF deste paciente">${ic('pdf')}<span>PDF</span></button>
+        ${bloqueado?"":`
+        <button type="button" data-act="estado" title="${fin?"Reabrir como rascunho":"Marcar como finalizado"}">${ic(fin?'clipboard':'check')}<span>${fin?"Reabrir":"Finalizar"}</span></button>
+        <button type="button" data-act="dup" title="Duplicar registo">${ic('copy')}<span>Duplicar</span></button>
+        <button type="button" class="ra-del" data-act="del" title="Eliminar registo">${ic('trash')}<span>Eliminar</span></button>`}
+      </div>
+    </div>`;
+  }).join("");
+  area.querySelectorAll('[data-act]').forEach(el=>{
+    el.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      const id = parseInt(el.closest('.list-item').dataset.id);
+      accaoRegisto(el.dataset.act, id);
+    });
+  });
 }
 function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ============ ACÇÕES POR REGISTO (directamente na lista) ============
+   Abrir/editar, ver a ficha, exportar o PDF do paciente, finalizar ou reabrir,
+   duplicar e eliminar — sem ter de entrar no registo primeiro. */
+async function accaoRegisto(acto, id){
+  const rec = await dbGet(id);
+  if(!rec){ toast("Registo não encontrado"); return; }
+  const bloqueado = soLeitura();
+
+  if(acto === 'abrir'){ openRecord(id); return; }
+  if(acto === 'ver'){ openRenderView(rec); return; }
+  if(acto === 'pdf'){ toast("A gerar PDF…"); exportPDF(rec); return; }
+
+  if(bloqueado){ toast("Modo só de leitura"); return; }
+
+  if(acto === 'estado'){
+    const finalizar = rec.status !== 'finalizado';
+    if(finalizar){
+      const faltam = [];
+      if(!rec.nome) faltam.push("Nome do paciente");
+      if(!rec.dataOperacao) faltam.push("Data da operação");
+      if(!rec.procedimentoCirurgico && !rec.operacao) faltam.push("Procedimento / operação");
+      if(!rec.cirurgiao) faltam.push("Cirurgião principal");
+      if(faltam.length && !confirm("Campos importantes em falta:\n\n• "+faltam.join("\n• ")+"\n\nFinalizar mesmo assim?")) return;
+    }
+    rec.status = finalizar ? 'finalizado' : 'rascunho';
+    rec.actualizadoPor = zeloUser().nome;
+    rec.updatedAt = new Date().toISOString();
+    await dbPut(rec); syncParaNuvem(rec);
+    if(currentRecord && currentRecord.id === rec.id) currentRecord.status = rec.status;
+    toast(finalizar ? "Registo finalizado" : "Registo reaberto");
+    renderDashboard(); return;
+  }
+
+  if(acto === 'dup'){
+    const u = zeloUser();
+    const copia = JSON.parse(JSON.stringify(rec));
+    delete copia.id;
+    copia.uid = novoUid();
+    copia.status = 'rascunho';
+    copia.createdAt = copia.updatedAt = new Date().toISOString();
+    copia.registadoPor = u.nome; copia.registadoPorEmail = u.email;
+    copia.nome = (copia.nome||"") + " (cópia)";
+    const novoId = await dbPut(copia); copia.id = novoId;
+    syncParaNuvem(copia);
+    toast("Registo duplicado"); renderDashboard(); return;
+  }
+
+  if(acto === 'del'){
+    const quem = rec.nome || "(sem nome)";
+    if(!confirm(`Eliminar definitivamente o registo de ${quem}?\n\nSerá removido também dos outros dispositivos.`)) return;
+    await dbDelete(id);
+    if(rec.uid && typeof window.zeloQueueWrite === 'function'){
+      window.zeloQueueWrite(`${FB_BASE}/${rec.dataOperacao||'sem_data'}/${rec.uid}`, null);
+    }
+    if(currentRecord && currentRecord.id === id) currentRecord = null;
+    toast("Registo eliminado"); renderDashboard(); return;
+  }
+}
 document.getElementById('searchInput').addEventListener('input', async ()=>{ const all = await dbGetAll(); all.sort((a,b)=> new Date(b.updatedAt)-new Date(a.updatedAt)); renderList(all); });
 document.getElementById('dateFilter').addEventListener('change', async ()=>{ selectedDate = document.getElementById('dateFilter').value || ""; const all = await dbGetAll(); all.sort((a,b)=> new Date(b.updatedAt)-new Date(a.updatedAt)); renderList(all); });
 document.getElementById('clearDateFilter').addEventListener('click', async ()=>{ document.getElementById('dateFilter').value = ""; selectedDate = ""; const all = await dbGetAll(); all.sort((a,b)=> new Date(b.updatedAt)-new Date(a.updatedAt)); renderList(all); });
 
 /* ============ PAINEL ============ */
+function graficosDisponiveis(){ return typeof Chart !== 'undefined'; }
 function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
 function countBy(arr, fn){ const m = {}; arr.forEach(x=>{ const k = fn(x) || "Não definido"; m[k] = (m[k]||0)+1; }); return m; }
 async function renderPainel(){
@@ -1114,6 +1261,7 @@ async function renderPainel(){
     <div class="stat-box"><div class="ic-bg">${ic('clipboard')}</div><div class="num">${rascunhos}</div><div class="lbl">Rascunhos</div></div>
     <div class="stat-box"><div class="ic-bg">${ic('clock')}</div><div class="num">${duracaoMedia!==null ? duracaoMedia : "—"}</div><div class="lbl">Duração Média (min)</div></div>
   `;
+  if(!graficosDisponiveis()){ toast("Gráficos indisponíveis sem internet"); return; }
   const porDia = {};
   filtered.forEach(r=>{ const d = r.dataOperacao || "sem data"; porDia[d] = (porDia[d]||0)+1; });
   const diasOrdenados = Object.keys(porDia).sort();
@@ -1232,7 +1380,59 @@ document.getElementById('nextStepBtn').addEventListener('click', async ()=>{
   }
 });
 document.getElementById('saveDraftBtn').addEventListener('click', async ()=>{ syncFormToRecord(); await saveCurrent(); toast("Rascunho guardado"); });
-async function saveCurrent(){ currentRecord.updatedAt = new Date().toISOString(); const id = await dbPut(currentRecord); currentRecord.id = id; }
+async function saveCurrent(){
+  const u = zeloUser();
+  if(!currentRecord.uid) currentRecord.uid = novoUid();
+  if(!currentRecord.registadoPor){ currentRecord.registadoPor = u.nome; currentRecord.registadoPorEmail = u.email; }
+  currentRecord.actualizadoPor = u.nome;
+  currentRecord.updatedAt = new Date().toISOString();
+  const id = await dbPut(currentRecord);
+  currentRecord.id = id;
+  syncParaNuvem(currentRecord);   // não bloqueia o guardar: offline vai para fila
+}
+
+/* ============ SINCRONIZAÇÃO ENTRE DISPOSITIVOS ============
+   O registo local (IndexedDB) é sempre a cópia que manda; o Firebase serve só
+   para partilhar entre dispositivos. Uma escrita falhada (sem rede) fica na
+   fila do zelo_sync.js e reenvia sozinha quando a ligação voltar. */
+const FB_BASE = 'registos_sistemas_locais/bloco_operatorio_ficha';
+function syncParaNuvem(rec){
+  if(typeof window.zeloQueueWrite !== 'function') return;
+  const dia = rec.dataOperacao || 'sem_data';
+  try{
+    const copia = JSON.parse(JSON.stringify(rec));
+    delete copia.id;               // o id local não faz sentido noutro dispositivo
+    window.zeloQueueWrite(`${FB_BASE}/${dia}/${rec.uid}`, copia);
+  }catch(e){ console.warn('ZELO BO: não foi possível enviar o registo para a nuvem.', e); }
+}
+/* Traz da nuvem os registos que este dispositivo ainda não tem (ou que estão
+   mais recentes lá) e funde-os no IndexedDB local, comparando updatedAt. */
+async function puxarDaNuvem(){
+  if(!window.__fbReady || typeof window.__fbGet !== 'function') return 0;
+  let remoto;
+  try{ remoto = await window.__fbGet(FB_BASE); }
+  catch(e){ console.warn('ZELO BO: falha ao ler registos da nuvem.', e); return 0; }
+  if(!remoto) return 0;
+  const locais = await dbGetAll();
+  const porUid = {};
+  locais.forEach(r=>{ if(r.uid) porUid[r.uid] = r; });
+  let novos = 0;
+  for(const dia of Object.keys(remoto)){
+    const registosDoDia = remoto[dia] || {};
+    for(const uid of Object.keys(registosDoDia)){
+      const rem = registosDoDia[uid];
+      if(!rem || typeof rem !== 'object') continue;
+      const loc = porUid[uid];
+      if(loc && !((rem.updatedAt||'') > (loc.updatedAt||''))) continue; // local já está igual ou mais recente
+      const fundido = Object.assign({}, rem, {uid: uid});
+      if(loc) fundido.id = loc.id;  // preserva a chave local para substituir em vez de duplicar
+      else delete fundido.id;
+      await dbPut(fundido);
+      novos++;
+    }
+  }
+  return novos;
+}
 function missingCritical(){
   const m=[];
   if(!currentRecord.nome) m.push("Nome do paciente");
@@ -1469,23 +1669,40 @@ document.querySelectorAll('#tblStatus input').forEach(inp=>{
 });
 
 /* ============ AUTO-CALC: GLASGOW / APGAR / IDADE / DURAÇÃO ============ */
-function updateGlasgowTotal(){
-  const form = document.getElementById('recordForm');
-  const a = parseInt(form.glasgowAbertura.value)||0, v = parseInt(form.glasgowVerbal.value)||0, m = parseInt(form.glasgowMotora.value)||0;
-  const total = a+v+m;
-  document.getElementById('glasgowTotal').value = total>0 ? (total+" / 15") : "";
+/* Calculadores puros — funcionam sobre qualquer registo, não só o que está
+   aberto no formulário (usados também na lista, no PDF e na pré-visualização). */
+function calcGlasgow(rec){
+  const a=parseInt(rec.glasgowAbertura)||0, v=parseInt(rec.glasgowVerbal)||0, m=parseInt(rec.glasgowMotora)||0;
+  const total=a+v+m;
+  return { a, v, m, total, texto: total>0 ? (total+" / 15") : "" };
 }
-function apgarScore(val,thresholds){ for(let i=0;i<thresholds.length;i++){ if(val<=thresholds[i]) return i; } return thresholds.length; }
-function updateApgarTotal(){
-  const form=document.getElementById('recordForm');
-  const eblRaw=form.apgarPerdaSangue.value, mapRaw=form.apgarTensaoArterial.value, hrRaw=form.apgarFrequenciaCardiaca.value;
-  if(eblRaw===""&&mapRaw===""&&hrRaw===""){ document.getElementById('apgarTotal').value=""; return; }
+function calcApgar(rec){
+  const eblRaw=rec.apgarPerdaSangue, mapRaw=rec.apgarTensaoArterial, hrRaw=rec.apgarFrequenciaCardiaca;
+  if((eblRaw===""||eblRaw==null)&&(mapRaw===""||mapRaw==null)&&(hrRaw===""||hrRaw==null)) return { total:null, texto:"" };
   const ebl=parseFloat(eblRaw), map=parseFloat(mapRaw), hr=parseFloat(hrRaw);
   let s=0;
   if(!isNaN(ebl)) s+= ebl<=100?3: ebl<=600?2: ebl<=1000?1:0;
   if(!isNaN(map)) s+= map>=70?3: map>=55?2: map>=40?1:0;
   if(!isNaN(hr)) s+= hr<=55?4: hr<=65?3: hr<=75?2: hr<=85?1:0;
-  document.getElementById('apgarTotal').value = s+" / 10";
+  return { total:s, texto: s+" / 10" };
+}
+function calcAdrete(rec, quando){
+  let t=0,c=0;
+  ADRETE_ITEMS.forEach(([k])=>{ const v=(rec.adrete||{})[k+"_"+quando]; if(v!==""&&v!=null){ t+=parseInt(v)||0; c++; } });
+  return c ? { total:t, texto:`${t} / 10` } : { total:null, texto:"" };
+}
+function calcElpo(rec){
+  let t=0,c=0;
+  ELPO_ITEMS.forEach(([k])=>{ const v=(rec.elpo||{})[k]; if(v!==""&&v!=null){ t+=parseInt(v)||0; c++; } });
+  return c ? { total:t, texto:`${t} / 35 ${t>=20?"(maior risco)":"(menor risco)"}` } : { total:null, texto:"" };
+}
+function updateGlasgowTotal(){
+  syncFormToRecord();
+  document.getElementById('glasgowTotal').value = calcGlasgow(currentRecord).texto;
+}
+function updateApgarTotal(){
+  syncFormToRecord();
+  document.getElementById('apgarTotal').value = calcApgar(currentRecord).texto;
 }
 function calcIdade(){
   const form=document.getElementById('recordForm');
@@ -1584,28 +1801,41 @@ document.getElementById('renderBtn').addEventListener('click', ()=>{ syncFormToR
 document.getElementById('duplicateBtn').addEventListener('click', async ()=>{
   syncFormToRecord();
   const copy = JSON.parse(JSON.stringify(currentRecord));
-  delete copy.id; copy.status="rascunho"; copy.createdAt=new Date().toISOString(); copy.updatedAt=new Date().toISOString();
+  const u = zeloUser();
+  delete copy.id;
+  copy.uid = novoUid();            // cópia é um registo novo, com identidade própria
+  copy.status="rascunho"; copy.createdAt=new Date().toISOString(); copy.updatedAt=new Date().toISOString();
+  copy.registadoPor = u.nome; copy.registadoPorEmail = u.email;
   copy.nome=(copy.nome||"")+" (cópia)";
   const id=await dbPut(copy); copy.id=id; currentRecord=copy;
+  syncParaNuvem(copy);
   fillFormFromRecord(); showForm(); goStep(0); toast("Registo duplicado");
 });
 document.getElementById('deleteRecordBtn').addEventListener('click', async ()=>{
   if(!currentRecord.id){ toast("Este registo ainda não foi guardado."); return; }
-  if(confirm("Eliminar este registo definitivamente?")){ await dbDelete(currentRecord.id); toast("Registo eliminado"); showDash(); }
+  if(confirm("Eliminar este registo definitivamente?\n\nSerá removido também dos outros dispositivos.")){
+    await dbDelete(currentRecord.id);
+    // Remove também da nuvem (null apaga o nó no Realtime Database).
+    if(currentRecord.uid && typeof window.zeloQueueWrite === 'function'){
+      window.zeloQueueWrite(`${FB_BASE}/${currentRecord.dataOperacao||'sem_data'}/${currentRecord.uid}`, null);
+    }
+    toast("Registo eliminado"); showDash();
+  }
 });
 
 /* ============ RENDER VIEW (pré-visualização estilo folha) ============ */
+let rvRecord = null;   // registo actualmente mostrado na pré-visualização
 function rvVal(v){ return (v==null||v==="")?'<span class="rv-empty">—</span>':esc(v); }
 function rvKV(pairs, one){ return `<div class="rv-kv${one?' one':''}">`+pairs.map(([l,v])=>`<div><b>${l}</b><span>${rvVal(v)}</span></div>`).join("")+`</div>`; }
-function rvTable(key, headers){
-  const rows=currentRecord[key]||[];
+function rvTable(key, headers, rec){
+  const rows=(rec||currentRecord)[key]||[];
   if(!rows.length) return '<div class="rv-empty">Sem registos.</div>';
   return `<table class="rv-tbl"><thead><tr>${headers.map(h=>`<th>${h[1]}</th>`).join("")}</tr></thead><tbody>`+
     rows.map(r=>`<tr>${headers.map(h=>`<td>${rvVal(r[h[0]])}</td>`).join("")}</tr>`).join("")+`</tbody></table>`;
 }
 function rvSimNao(obj,items,map){ return items.map(([k,l])=>`<div><b>${l}</b><span>${rvVal((map)? (map[(obj||{})[k]]||(obj||{})[k]) : (obj||{})[k])}</span></div>`).join(""); }
-function openRenderView(){
-  const r=currentRecord; const simnao={sim:"Sim",nao:"Não"}, nasn={na:"N.A",s:"S",n:"N"}, facdif={facil:"Fácil",dificil:"Difícil"};
+function openRenderView(alvo){
+  const r=alvo||currentRecord; const simnao={sim:"Sim",nao:"Não"}, nasn={na:"N.A",s:"S",n:"N"}, facdif={facil:"Fácil",dificil:"Difícil"};
   const enc=(r.encaminhadoPara||[]).join(", ");
   const elpoTot=(()=>{let t=0,c=0;ELPO_ITEMS.forEach(([k])=>{const v=(r.elpo||{})[k];if(v){t+=parseInt(v)||0;c++;}});return c?`${t}/35 ${t>=20?"(maior risco)":"(menor risco)"}`:"";})();
   const adreteTot=(who)=>{let t=0,c=0;ADRETE_ITEMS.forEach(([k])=>{const v=(r.adrete||{})[k+"_"+who];if(v!==""&&v!=null){t+=parseInt(v)||0;c++;}});return c?`${t}/10`:"";};
@@ -1635,26 +1865,26 @@ function openRenderView(){
   <div class="rv-sec"><h4>Checklist de Cirurgia Segura</h4>
     ${rvKV([["Início Anestesia / ASA",`${r.inicioAnestesia||"—"} / ${r.asa||"—"}`],["Início / Fim Cirurgia",`${r.inicioCirurgia||"—"} / ${r.fimCirurgia||"—"}`],["Confirmação Equipa",simnao[r.confirmacaoEquipa]||r.confirmacaoEquipa],["Fim Anestesia",r.fimAnestesia]])}
     <div class="rv-kv" style="margin-top:6px;">${rvSimNao(r.pacienteConfirma,PACIENTE_CONFIRMA_ITEMS,simnao)}${rvSimNao(r.checklistAnestesia,CHECKLIST_ANESTESIA_ITEMS,simnao)}${rvSimNao(r.confirmam,CONFIRMAM_ITEMS,simnao)}${rvSimNao(r.prevencao,PREVENCAO_ITEMS,simnao)}${rvSimNao(r.procedimentoRealizado,PROCEDIMENTO_REALIZADO_ITEMS,simnao)}</div>
-    ${rvKV([["Rotulagem Peças",nasn[r.rotulagemPecas]||r.rotulagemPecas],["Incidentes Equip.",nasn[r.incidentesEquipamentos]||r.incidentesEquipamentos],["Apgar Cirúrgico",`${document.getElementById('apgarTotal').value||"—"} (EBL ${r.apgarPerdaSangue||"—"}ml · TAM ${r.apgarTensaoArterial||"—"} · FC ${r.apgarFrequenciaCardiaca||"—"})`],["Informações finais",r.informamFinal]])}
+    ${rvKV([["Rotulagem Peças",nasn[r.rotulagemPecas]||r.rotulagemPecas],["Incidentes Equip.",nasn[r.incidentesEquipamentos]||r.incidentesEquipamentos],["Apgar Cirúrgico",`${calcApgar(r).texto||"—"} (EBL ${r.apgarPerdaSangue||"—"}ml · TAM ${r.apgarTensaoArterial||"—"} · FC ${r.apgarFrequenciaCardiaca||"—"})`],["Informações finais",r.informamFinal]])}
   </div>
 
   <div class="rv-sec"><h4>Operação Realizada</h4>
     ${rvKV([["Operação",r.operacao],["Duração / Porte / CID",`${r.duracao||"—"} min / ${r.porte||"—"} / ${r.cid||"—"}`],["Anestesia",r.anestesia],["Início",`${r.inicioData||"—"} ${r.inicioHora||""}`],["Fim",`${r.fimData||"—"} ${r.fimHora||""}`],["Anotações (cateter/garrote/local)",r.anotacoesCorpo]])}
-    <div style="margin-top:6px;"><b style="font-size:11px;">Material Especial</b>${rvTable('material',[["designacao","Designação"],["qtd","Qtd"],["autorizacao","Autoriz."],["complemento","Complem."],["materialAtendido","Atendido"]])}</div>
-    <div style="margin-top:6px;"><b style="font-size:11px;">Equipamento</b>${rvTable('equipamento',[["designacao","Designação"],["quantidade","Qtd"]])}</div>
-    <div style="margin-top:6px;"><b style="font-size:11px;">Instrumental</b>${rvTable('instrumental',[["designacao","Designação"],["quantidade","Qtd"]])}</div>
+    <div style="margin-top:6px;"><b style="font-size:11px;">Material Especial</b>${rvTable('material',[["designacao","Designação"],["qtd","Qtd"],["autorizacao","Autoriz."],["complemento","Complem."],["materialAtendido","Atendido"]],r)}</div>
+    <div style="margin-top:6px;"><b style="font-size:11px;">Equipamento</b>${rvTable('equipamento',[["designacao","Designação"],["quantidade","Qtd"]],r)}</div>
+    <div style="margin-top:6px;"><b style="font-size:11px;">Instrumental</b>${rvTable('instrumental',[["designacao","Designação"],["quantidade","Qtd"]],r)}</div>
   </div>
 
   <div class="rv-sec"><h4>Intra-Operatório</h4>
     ${rvKV([["Entrada/Início An./Início Cir.",`${r.admEntradaSala||"—"} / ${r.admInicioAnestesia||"—"} / ${r.admInicioCirurgia||"—"}`],["Fim An./Fim Cir.",`${r.admFimAnestesia||"—"} / ${r.admFimCirurgia||"—"}`],["Técnica Geral",(r.tecnicaGeral||[]).join(", ")],["Loco-Regional",(r.tecnicaLocoregional||[]).join(", ")],["Tipo Cirurgia",r.tipoCirurgia],["Posicionamento",r.posicionamento],["Ferida / Curativo",`${r.feridaEstado||"—"} · ${r.tipoCurativo||"—"}`],["Garrote",`${r.garroteHoraIns||"—"}→${r.garroteHoraDes||"—"} ${r.garrotePressaoIns||""} ${r.garroteMembroIns||""}`],["Glicémia Intra",`${r.glicemiaIntraHora||"—"} ${r.glicemiaIntraValor||""}`]])}
     <div class="rv-chart"><canvas id="rvVitals"></canvas></div>
-    <div style="margin-top:6px;">${rvTable('svIntra',[["hora","Hora"],["taSist","TA S"],["taDiast","TA D"],["pulso","Pulso"],["spo2","SpO2"]])}</div>
+    <div style="margin-top:6px;">${rvTable('svIntra',[["hora","Hora"],["taSist","TA S"],["taDiast","TA D"],["pulso","Pulso"],["spo2","SpO2"]],r)}</div>
   </div>
 
   <div class="rv-sec"><h4>Pós-Operatório</h4>
     ${rvKV([["Hora Entrada / Saída",`${r.horaEntradaPos||"—"} / ${r.horaSaidaPos||"—"}`],["Anotações Pós-Op",r.anotacoesPos]])}
-    <div style="margin-top:6px;">${rvTable('svPos',[["hora","Hora"],["taSist","TA S"],["taDiast","TA D"],["pulso","Pulso"],["spo2","SpO2"]])}</div>
-    <div style="margin-top:6px;">${rvTable('medicacao',[["horario","Hora"],["medicamento","Medicamento"],["dose","Dose"]])}</div>
+    <div style="margin-top:6px;">${rvTable('svPos',[["hora","Hora"],["taSist","TA S"],["taDiast","TA D"],["pulso","Pulso"],["spo2","SpO2"]],r)}</div>
+    <div style="margin-top:6px;">${rvTable('medicacao',[["horario","Hora"],["medicamento","Medicamento"],["dose","Dose"]],r)}</div>
   </div>
 
   <div class="rv-sec"><h4>Escalas &amp; Alta</h4>
@@ -1667,14 +1897,17 @@ function openRenderView(){
     <div style="margin-top:6px;"><b style="font-size:11px;">Descrição da Operação</b><div>${rvVal(r.descricaoOperacao)}</div></div>
     <div class="rv-sign"><div>Cirurgião</div><div>Anestesista</div><div>Enfermeiro(a)</div></div>
   </div>`;
+  rvRecord = r;
   document.getElementById('rvPaper').innerHTML = html;
   document.getElementById('renderView').classList.add('show');
   document.body.style.overflow='hidden';
-  drawRvVitals();
+  drawRvVitals(r);
 }
-function drawRvVitals(){
+function drawRvVitals(rec){
   const cv=document.getElementById('rvVitals'); if(!cv) return;
-  const rows=(currentRecord.svIntra||[]).concat(currentRecord.svPos||[]).filter(x=>x.hora);
+  if(!graficosDisponiveis()){ cv.parentElement.style.display='none'; return; }
+  const r=rec||currentRecord;
+  const rows=(r.svIntra||[]).concat(r.svPos||[]).filter(x=>x.hora);
   if(!rows.length){ cv.parentElement.style.display='none'; return; }
   destroyChart('rvVitals');
   charts.rvVitals=new Chart(cv,{ type:'line',
@@ -1689,12 +1922,23 @@ function drawRvVitals(){
 }
 document.getElementById('rvClose').addEventListener('click', ()=>{ document.getElementById('renderView').classList.remove('show'); document.body.style.overflow=''; });
 document.getElementById('rvPrint').addEventListener('click', ()=> window.print());
-document.getElementById('rvPdf').addEventListener('click', exportPDF);
+document.getElementById('rvPdf').addEventListener('click', ()=> exportPDF(rvRecord));
 
 /* ============ PDF: FICHA INDIVIDUAL ============ */
+/* A biblioteca de PDF vem de um CDN. Se o hospital estiver sem internet e ela
+   não tiver sido carregada, avisamos em vez de rebentar sem explicação — o
+   registo local continua intacto e a ficha pode ser impressa pela
+   pré-visualização (Ctrl+P), que não depende de nenhuma biblioteca externa. */
+function pdfDisponivel(){
+  if(window.jspdf && window.jspdf.jsPDF) return true;
+  toast("PDF indisponível sem internet — use “Ver ficha” e Imprimir");
+  return false;
+}
 function statusTxt(v,map){ return map[v] || (v||"—"); }
-async function exportPDF(){
-  syncFormToRecord();
+async function exportPDF(alvo){
+  if(!pdfDisponivel()) return;
+  if(!alvo) syncFormToRecord();
+  const R = alvo || currentRecord;
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:"pt", format:"a4"});
   const marginL = 40; let y = 40; const pageH = 800;
@@ -1706,7 +1950,7 @@ async function exportPDF(){
   function pair(label,val){ line(`${label}: ${val || "—"}`); }
   function tableSection(title, key, headers){
     checkBreak(20); doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.setTextColor(31,47,69); doc.text(title, marginL, y); y+=14; doc.setTextColor(0,0,0);
-    const rows = currentRecord[key]||[];
+    const rows = R[key]||[];
     if(rows.length===0){ line("Sem registos."); return; }
     rows.forEach(r=>{ line(headers.map(([col,lbl])=> `${lbl}: ${r[col]||"—"}`).join("  ·  ")); });
   }
@@ -1716,110 +1960,111 @@ async function exportPDF(){
   doc.text("Ficha Operatória Unificada & Checklist de Cirurgia Segura", marginL, y); y+=20;
   doc.setTextColor(0,0,0);
   h1("Identificação e Paciente");
-  pair("Nº de Processo / NUP", `${currentRecord.processo||"—"} / ${currentRecord.nup||"—"}`);
-  pair("Data do Anúncio / Data da Operação", `${currentRecord.dataAnuncio||"—"} / ${currentRecord.dataOperacao||"—"}`);
-  pair("Nome", currentRecord.nome);
-  pair("Nascimento / Idade / Sexo", `${currentRecord.nascimento||"—"} / ${currentRecord.idade||"—"} / ${currentRecord.sexo||"—"}`);
-  pair("Morada / Bairro", `${currentRecord.morada||"—"} / ${currentRecord.bairro||"—"}`);
-  pair("Município / Província / Telefone", `${currentRecord.municipio||"—"} / ${currentRecord.provincia||"—"} / ${currentRecord.telefone||"—"}`);
-  pair("Tipo do Paciente", currentRecord.tipoPaciente);
-  pair("Sector de Origem / Enfermaria / Cama", `${currentRecord.sectorOrigem||"—"} / ${currentRecord.enfermaria||"—"} / ${currentRecord.cama||"—"}`);
-  pair("Encaminhado ao B.O. às", currentRecord.encaminhadoHora);
-  pair("Observação", currentRecord.observacao);
-  pair("Procedimento Cirúrgico", currentRecord.procedimentoCirurgico);
-  pair("Local Anatómico / Lateralidade", `${currentRecord.localAnatomico||"—"} / ${currentRecord.lateralidade||"—"}`);
+  pair("Nº de Processo / NUP", `${R.processo||"—"} / ${R.nup||"—"}`);
+  pair("Data do Anúncio / Data da Operação", `${R.dataAnuncio||"—"} / ${R.dataOperacao||"—"}`);
+  pair("Nome", R.nome);
+  pair("Nascimento / Idade / Sexo", `${R.nascimento||"—"} / ${R.idade||"—"} / ${R.sexo||"—"}`);
+  pair("Morada / Bairro", `${R.morada||"—"} / ${R.bairro||"—"}`);
+  pair("Município / Província / Telefone", `${R.municipio||"—"} / ${R.provincia||"—"} / ${R.telefone||"—"}`);
+  pair("Tipo do Paciente", R.tipoPaciente);
+  pair("Sector de Origem / Enfermaria / Cama", `${R.sectorOrigem||"—"} / ${R.enfermaria||"—"} / ${R.cama||"—"}`);
+  pair("Encaminhado ao B.O. às", R.encaminhadoHora);
+  pair("Observação", R.observacao);
+  pair("Procedimento Cirúrgico", R.procedimentoCirurgico);
+  pair("Local Anatómico / Lateralidade", `${R.localAnatomico||"—"} / ${R.lateralidade||"—"}`);
   h1("Equipa Médica e Diagnóstico");
-  pair("Cirurgião / 1º / 2º / 3º Ajudante", `${currentRecord.cirurgiao||"—"} / ${currentRecord.ajudante1||"—"} / ${currentRecord.ajudante2||"—"} / ${currentRecord.ajudante3||"—"}`);
-  pair("Anestesista / 1º / 2º Interno", `${currentRecord.anestesista||"—"} / ${currentRecord.medInterno1||"—"} / ${currentRecord.medInterno2||"—"}`);
-  pair("Instrumentista / Téc. Anestesia / Circulante", `${currentRecord.instrumentista||"—"} / ${currentRecord.tecnicoAnestesia||"—"} / ${currentRecord.circulante||"—"}`);
-  pair("Diagnóstico Pré-Operatório", currentRecord.diagPre);
-  pair("Diagnóstico Pós-Operatório", currentRecord.diagPos);
-  pair("Sangue / Qtd. Soros", `${currentRecord.sangue||"—"} / ${currentRecord.qtdSoros||"—"}`);
-  pair("Contagem pinças / compressas completa (S/N)", `${currentRecord.contagemPincas||"—"} / ${currentRecord.contagemCompressas||"—"}`);
-  pair("Alergias / Local", `${currentRecord.alergias||"—"} / ${currentRecord.alergiasLocal||"—"}`);
-  pair("Profilaxia Antibiótica / Tromboembólica", `${currentRecord.profilaxiaAntibiotica||"—"} / ${currentRecord.profilaxiaTromboembolica||"—"}`);
+  pair("Cirurgião / 1º / 2º / 3º Ajudante", `${R.cirurgiao||"—"} / ${R.ajudante1||"—"} / ${R.ajudante2||"—"} / ${R.ajudante3||"—"}`);
+  pair("Anestesista / 1º / 2º Interno", `${R.anestesista||"—"} / ${R.medInterno1||"—"} / ${R.medInterno2||"—"}`);
+  pair("Instrumentista / Téc. Anestesia / Circulante", `${R.instrumentista||"—"} / ${R.tecnicoAnestesia||"—"} / ${R.circulante||"—"}`);
+  pair("Diagnóstico Pré-Operatório", R.diagPre);
+  pair("Diagnóstico Pós-Operatório", R.diagPos);
+  pair("Sangue / Qtd. Soros", `${R.sangue||"—"} / ${R.qtdSoros||"—"}`);
+  pair("Contagem pinças / compressas completa (S/N)", `${R.contagemPincas||"—"} / ${R.contagemCompressas||"—"}`);
+  pair("Alergias / Local", `${R.alergias||"—"} / ${R.alergiasLocal||"—"}`);
+  pair("Profilaxia Antibiótica / Tromboembólica", `${R.profilaxiaAntibiotica||"—"} / ${R.profilaxiaTromboembolica||"—"}`);
   h1("Registos de Enfermagem no Pré-Operatório");
-  (currentRecord.preOpChecklist||[]).forEach(row=> line(`• ${row.item} — SER: ${statusTxt(row.ser,simnao)} · B.O: ${statusTxt(row.bo,simnao)}`));
-  pair("Ident. Enfer. (SER) / Nº Ordem", `${currentRecord.identEnferSER||"—"} / ${currentRecord.ordemEnferSER||"—"}`);
-  pair("Ident. Enfer. (B.O) / Nº Ordem", `${currentRecord.identEnferBO||"—"} / ${currentRecord.ordemEnferBO||"—"}`);
+  (R.preOpChecklist||[]).forEach(row=> line(`• ${row.item} — SER: ${statusTxt(row.ser,simnao)} · B.O: ${statusTxt(row.bo,simnao)}`));
+  pair("Ident. Enfer. (SER) / Nº Ordem", `${R.identEnferSER||"—"} / ${R.ordemEnferSER||"—"}`);
+  pair("Ident. Enfer. (B.O) / Nº Ordem", `${R.identEnferBO||"—"} / ${R.ordemEnferBO||"—"}`);
   h1("Checklist de Cirurgia Segura");
   h2("Antes da Indução Anestésica");
-  pair("Início Anestesia / ASA", `${currentRecord.inicioAnestesia||"—"} / ${currentRecord.asa||"—"}`);
-  PACIENTE_CONFIRMA_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.pacienteConfirma||{})[k],simnao)}`));
-  CHECKLIST_ANESTESIA_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.checklistAnestesia||{})[k],simnao)}`));
+  pair("Início Anestesia / ASA", `${R.inicioAnestesia||"—"} / ${R.asa||"—"}`);
+  PACIENTE_CONFIRMA_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((R.pacienteConfirma||{})[k],simnao)}`));
+  CHECKLIST_ANESTESIA_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((R.checklistAnestesia||{})[k],simnao)}`));
   h2("Antes da Incisão na Pele");
-  pair("Início da Cirurgia / Confirmação da Equipa", `${currentRecord.inicioCirurgia||"—"} / ${statusTxt(currentRecord.confirmacaoEquipa,simnao)}`);
-  CONFIRMAM_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.confirmam||{})[k],simnao)}`));
-  PREVENCAO_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.prevencao||{})[k],simnao)}`));
+  pair("Início da Cirurgia / Confirmação da Equipa", `${R.inicioCirurgia||"—"} / ${statusTxt(R.confirmacaoEquipa,simnao)}`);
+  CONFIRMAM_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((R.confirmam||{})[k],simnao)}`));
+  PREVENCAO_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((R.prevencao||{})[k],simnao)}`));
   h2("Antes do Doente Sair da Sala Operatória");
-  pair("Fim Cirurgia / Fim Anestesia", `${currentRecord.fimCirurgia||"—"} / ${currentRecord.fimAnestesia||"—"}`);
-  PROCEDIMENTO_REALIZADO_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((currentRecord.procedimentoRealizado||{})[k],simnao)}`));
-  pair("Rotulagem de Peças Anatómicas", statusTxt(currentRecord.rotulagemPecas,nasn));
-  pair("Incidentes com Equipamentos", statusTxt(currentRecord.incidentesEquipamentos,nasn));
-  pair("Apgar Cirúrgico (total)", document.getElementById('apgarTotal').value || "—");
-  pair("Apgar (perda sangue/TA média/FC)", `${currentRecord.apgarPerdaSangue||"—"} mL / ${currentRecord.apgarTensaoArterial||"—"} mmHg / ${currentRecord.apgarFrequenciaCardiaca||"—"} bpm`);
-  pair("Informações finais da equipa", currentRecord.informamFinal);
+  pair("Fim Cirurgia / Fim Anestesia", `${R.fimCirurgia||"—"} / ${R.fimAnestesia||"—"}`);
+  PROCEDIMENTO_REALIZADO_ITEMS.forEach(([k,l])=> line(`• ${l}: ${statusTxt((R.procedimentoRealizado||{})[k],simnao)}`));
+  pair("Rotulagem de Peças Anatómicas", statusTxt(R.rotulagemPecas,nasn));
+  pair("Incidentes com Equipamentos", statusTxt(R.incidentesEquipamentos,nasn));
+  pair("Apgar Cirúrgico (total)", calcApgar(R).texto || "—");
+  pair("Apgar (perda sangue/TA média/FC)", `${R.apgarPerdaSangue||"—"} mL / ${R.apgarTensaoArterial||"—"} mmHg / ${R.apgarFrequenciaCardiaca||"—"} bpm`);
+  pair("Informações finais da equipa", R.informamFinal);
   h1("Operação Realizada");
-  pair("Operação", currentRecord.operacao);
-  pair("Duração / Porte / CID", `${currentRecord.duracao||"—"} min / ${currentRecord.porte||"—"} / ${currentRecord.cid||"—"}`);
-  pair("Anestesia", currentRecord.anestesia);
-  pair("Início da Operação", `${currentRecord.inicioData||"—"} às ${currentRecord.inicioHora||"—"}`);
-  pair("Fim da Operação", `${currentRecord.fimData||"—"} às ${currentRecord.fimHora||"—"}`);
-  pair("Riscos relacionados com o paciente (Anest.)", currentRecord.riscosAnest);
-  pair("Passos críticos / fora de rotina (Cirurgia)", currentRecord.passosCriticos);
-  pair("Rotulagem e Peças Anatómicas", currentRecord.rotulagemPecasTexto);
-  pair("Informações para a equipa da S.R.P.A.", currentRecord.infoSRPA);
-  pair("Anotações — cateter/placa bisturi/garrote/local", currentRecord.anotacoesCorpo);
+  pair("Operação", R.operacao);
+  pair("Duração / Porte / CID", `${R.duracao||"—"} min / ${R.porte||"—"} / ${R.cid||"—"}`);
+  pair("Anestesia", R.anestesia);
+  pair("Início da Operação", `${R.inicioData||"—"} às ${R.inicioHora||"—"}`);
+  pair("Fim da Operação", `${R.fimData||"—"} às ${R.fimHora||"—"}`);
+  pair("Riscos relacionados com o paciente (Anest.)", R.riscosAnest);
+  pair("Passos críticos / fora de rotina (Cirurgia)", R.passosCriticos);
+  pair("Rotulagem e Peças Anatómicas", R.rotulagemPecasTexto);
+  pair("Informações para a equipa da S.R.P.A.", R.infoSRPA);
+  pair("Anotações — cateter/placa bisturi/garrote/local", R.anotacoesCorpo);
   tableSection("Material Especial","material",[["designacao","Designação"],["qtd","Qtd"],["autorizacao","Autorização"],["complemento","Complemento"],["materialAtendido","Material Atendido"]]);
   tableSection("Equipamento Necessário","equipamento",[["designacao","Designação"],["quantidade","Quantidade"]]);
   tableSection("Instrumental Necessário","instrumental",[["designacao","Designação"],["quantidade","Quantidade"]]);
   h1("Intra-Operatório");
-  pair("Entrada Sala / Início Anestesia / Início Cirurgia", `${currentRecord.admEntradaSala||"—"} / ${currentRecord.admInicioAnestesia||"—"} / ${currentRecord.admInicioCirurgia||"—"}`);
-  pair("Fim Anestesia / Fim Cirurgia", `${currentRecord.admFimAnestesia||"—"} / ${currentRecord.admFimCirurgia||"—"}`);
-  pair("Técnica Anestésica Geral", (currentRecord.tecnicaGeral||[]).join(", "));
-  pair("Técnica Loco-Regional", (currentRecord.tecnicaLocoregional||[]).join(", "));
-  VIA_AEREA_ITEMS.forEach(([k,l])=>{ const v=(currentRecord.viaAerea||{})[k]; if(v) line(`• Via Aérea — ${l}: ${statusTxt(v,facdif)}`); });
-  pair("Tipo de Cirurgia", currentRecord.tipoCirurgia);
-  pair("Posicionamento", currentRecord.posicionamento);
-  pair("Ferida Operatória (estado / local)", `${currentRecord.feridaEstado||"—"} / ${currentRecord.feridaLocal||"—"}`);
-  pair("Tipo de Curativo", currentRecord.tipoCurativo);
-  pair("Garrote Pneumático (insuflado/pressão/membro/desinsuflado)", `${currentRecord.garroteHoraIns||"—"} / ${currentRecord.garrotePressaoIns||"—"} / ${currentRecord.garroteMembroIns||"—"} / ${currentRecord.garroteHoraDes||"—"}`);
-  pair("Glicémia Intra-Op (hora / valor)", `${currentRecord.glicemiaIntraHora||"—"} / ${currentRecord.glicemiaIntraValor||"—"}`);
+  pair("Entrada Sala / Início Anestesia / Início Cirurgia", `${R.admEntradaSala||"—"} / ${R.admInicioAnestesia||"—"} / ${R.admInicioCirurgia||"—"}`);
+  pair("Fim Anestesia / Fim Cirurgia", `${R.admFimAnestesia||"—"} / ${R.admFimCirurgia||"—"}`);
+  pair("Técnica Anestésica Geral", (R.tecnicaGeral||[]).join(", "));
+  pair("Técnica Loco-Regional", (R.tecnicaLocoregional||[]).join(", "));
+  VIA_AEREA_ITEMS.forEach(([k,l])=>{ const v=(R.viaAerea||{})[k]; if(v) line(`• Via Aérea — ${l}: ${statusTxt(v,facdif)}`); });
+  pair("Tipo de Cirurgia", R.tipoCirurgia);
+  pair("Posicionamento", R.posicionamento);
+  pair("Ferida Operatória (estado / local)", `${R.feridaEstado||"—"} / ${R.feridaLocal||"—"}`);
+  pair("Tipo de Curativo", R.tipoCurativo);
+  pair("Garrote Pneumático (insuflado/pressão/membro/desinsuflado)", `${R.garroteHoraIns||"—"} / ${R.garrotePressaoIns||"—"} / ${R.garroteMembroIns||"—"} / ${R.garroteHoraDes||"—"}`);
+  pair("Glicémia Intra-Op (hora / valor)", `${R.glicemiaIntraHora||"—"} / ${R.glicemiaIntraValor||"—"}`);
   tableSection("Sinais Vitais (Intra-Op)","svIntra",[["hora","Hora"],["taSist","TA Sist"],["taDiast","TA Diast"],["pulso","Pulso"],["spo2","SpO2"]]);
   tableSection("Soros/Sangue (Intra-Op)","sorosIntra",[["horario","Horário"],["gelafundim","Gelafundim"],["lactatoRinger","Lactato Ringer"],["sFisiologico","S.Fisiológico"],["sangue","Sangue"]]);
   tableSection("Drenagens (Intra-Op)","drenIntra",[["horario","Horário"],["diurese","Diurese"],["drenoGastrico","Dr.Gástrico"],["drenoVacuo","Dr.Vácuo"],["drenoToracico","Dr.Torácico"]]);
   h1("Pós-Operatório");
-  pair("Hora de Entrada / Saída", `${currentRecord.horaEntradaPos||"—"} / ${currentRecord.horaSaidaPos||"—"}`);
+  pair("Hora de Entrada / Saída", `${R.horaEntradaPos||"—"} / ${R.horaSaidaPos||"—"}`);
   tableSection("Sinais Vitais (Pós-Op)","svPos",[["hora","Hora"],["taSist","TA Sist"],["taDiast","TA Diast"],["pulso","Pulso"],["spo2","SpO2"]]);
   tableSection("Soros/Sangue/Glicémia (Pós-Op)","sorosPos",[["horario","Horário"],["sFisiologico","S.Fisiológico"],["lactatoRinger500","Lactato Ringer 500cc"],["sangue","Sangue"],["glicemia","Glicémia"]]);
   tableSection("Drenagens (Pós-Op)","drenPos",[["horario","Horário"],["diurese","Diurese"],["drenosVacuodreno","Vacuodreno"],["drenoGastrico","Dr.Gástrico"],["outras","Outras"]]);
   tableSection("Medicação Administrada","medicacao",[["horario","Horário"],["medicamento","Medicamento"],["dose","Dose"]]);
-  pair("Anotações de Enfermagem (Pós-Op)", currentRecord.anotacoesPos);
+  pair("Anotações de Enfermagem (Pós-Op)", R.anotacoesPos);
   h1("Escalas & Alta");
-  pair("Tipo de Escala Adrete", currentRecord.adreteTipo==="ambulatorio"?"Ambulatório":currentRecord.adreteTipo==="internado"?"Internado":"—");
-  ADRETE_ITEMS.forEach(([key,label])=>{ const ent = (currentRecord.adrete||{})[key+"_entrada"]||"—"; const sai = (currentRecord.adrete||{})[key+"_saida"]||"—"; line(`• ${label} — Entrada: ${ent} · Saída: ${sai}`); });
-  DOR_ALIM_ITEMS.forEach(([key,label])=> line(`• ${label}: ${(currentRecord.dorAlim||{})[key] || "—"}`));
-  pair("Glasgow (Abertura/Verbal/Motora)", `${currentRecord.glasgowAbertura||"—"} / ${currentRecord.glasgowVerbal||"—"} / ${currentRecord.glasgowMotora||"—"}`);
-  pair("Total Glasgow", document.getElementById('glasgowTotal').value || "—");
-  { let t=0,c=0; ELPO_ITEMS.forEach(([k])=>{const v=(currentRecord.elpo||{})[k]; if(v){t+=parseInt(v)||0;c++;}}); pair("Escala ELPO (risco lesão por pressão)", c? `${t}/35 ${t>=20?"(maior risco)":"(menor risco)"}` : "—"); }
-  pair("Alta autorizada por / Data / Hora", `${currentRecord.altaAutorizadaPor||"—"} / ${currentRecord.altaData||"—"} / ${currentRecord.altaHora||"—"}`);
-  pair("Encaminhado para", (currentRecord.encaminhadoPara||[]).join(", "));
-  pair("Coordenador do Sector", currentRecord.coordenadorSector);
+  pair("Tipo de Escala Adrete", R.adreteTipo==="ambulatorio"?"Ambulatório":R.adreteTipo==="internado"?"Internado":"—");
+  ADRETE_ITEMS.forEach(([key,label])=>{ const ent = (R.adrete||{})[key+"_entrada"]||"—"; const sai = (R.adrete||{})[key+"_saida"]||"—"; line(`• ${label} — Entrada: ${ent} · Saída: ${sai}`); });
+  DOR_ALIM_ITEMS.forEach(([key,label])=> line(`• ${label}: ${(R.dorAlim||{})[key] || "—"}`));
+  pair("Glasgow (Abertura/Verbal/Motora)", `${R.glasgowAbertura||"—"} / ${R.glasgowVerbal||"—"} / ${R.glasgowMotora||"—"}`);
+  pair("Total Glasgow", calcGlasgow(R).texto || "—");
+  pair("Escala ELPO (risco lesão por pressão)", calcElpo(R).texto || "—");
+  pair("Alta autorizada por / Data / Hora", `${R.altaAutorizadaPor||"—"} / ${R.altaData||"—"} / ${R.altaHora||"—"}`);
+  pair("Encaminhado para", (R.encaminhadoPara||[]).join(", "));
+  pair("Coordenador do Sector", R.coordenadorSector);
   h1("Status da Operação e Informe");
   ["execucao","recuperacao","finalizada"].forEach(st=>{
-    const d = currentRecord.statusOperacao[st] || {};
+    const d = R.statusOperacao[st] || {};
     const lbl = st==="execucao"?"Execução":st==="recuperacao"?"Em recuperação":"Finalizada";
     line(`• ${lbl} — Sala: ${d.sala||"—"} · Início: ${d.dataInicio||"—"} · Fim: ${d.dataFim||"—"} · Cancel.: ${d.motivoCancel||"—"} · Finaliz.: ${d.motivoFinal||"—"}`);
   });
-  pair("Nome do Médico (informe)", currentRecord.medicoInforme);
-  h1("Achados Operatórios"); line(currentRecord.achadosOperatorios || "—");
-  h1("Descrição da Operação"); line(currentRecord.descricaoOperacao || "—");
-  const fname = `BO_${(currentRecord.nome||"paciente").replace(/[^a-zA-Z0-9]+/g,"_")}_${(currentRecord.nup||currentRecord.processo||"")}.pdf`;
+  pair("Nome do Médico (informe)", R.medicoInforme);
+  h1("Achados Operatórios"); line(R.achadosOperatorios || "—");
+  h1("Descrição da Operação"); line(R.descricaoOperacao || "—");
+  const fname = `BO_${(R.nome||"paciente").replace(/[^a-zA-Z0-9]+/g,"_")}_${(R.nup||R.processo||"")}.pdf`;
   doc.save(fname);
 }
 
 /* ============ PDF: RELATÓRIO PERIÓDICO ============ */
 async function exportReportPDF(){
+  if(!pdfDisponivel()) return;
   const all = await dbGetAll();
   const filtered = filterByPeriod(all);
   const { from, to } = periodBounds();
@@ -1867,8 +2112,99 @@ async function exportReportPDF(){
 }
 document.getElementById('exportReportPdfBtn').addEventListener('click', exportReportPDF);
 
+/* ============ BACKUP AUTOMÁTICO (zelo_auto_backup.js) ============
+   Os dados desta página vivem no IndexedDB local (que é a cópia que manda),
+   por isso os ficheiros de backup são gerados a partir daí — continuam a ser
+   gravados mesmo sem internet, ao contrário de uma leitura do Firebase. */
+function _periodoLimites(cadencia, refISO){
+  const d = new Date(refISO + 'T12:00:00');
+  const iso = x => x.toISOString().slice(0,10);
+  let ini, fim;
+  if(cadencia === 'diario'){ ini = fim = new Date(d); }
+  else if(cadencia === 'semanal'){
+    const dow = (d.getDay()+6)%7;                       // segunda = 0
+    ini = new Date(d); ini.setDate(d.getDate()-dow);
+    fim = new Date(ini); fim.setDate(ini.getDate()+6);
+  }
+  else if(cadencia === 'mensal'){ ini = new Date(d.getFullYear(), d.getMonth(), 1); fim = new Date(d.getFullYear(), d.getMonth()+1, 0); }
+  else if(cadencia === 'trimestral'){ const t = Math.floor(d.getMonth()/3); ini = new Date(d.getFullYear(), t*3, 1); fim = new Date(d.getFullYear(), t*3+3, 0); }
+  else if(cadencia === 'semestral'){ const s = d.getMonth()<6?0:1; ini = new Date(d.getFullYear(), s*6, 1); fim = new Date(d.getFullYear(), s*6+6, 0); }
+  else { ini = new Date(d.getFullYear(), 0, 1); fim = new Date(d.getFullYear(), 11, 31); }
+  return { de: iso(ini), ate: iso(fim) };
+}
+async function _registosDoPeriodo(cadencia, refISO){
+  const todos = await dbGetAll();
+  const { de, ate } = _periodoLimites(cadencia, refISO);
+  return { de, ate, registos: todos.filter(r=>{ const d = r.dataOperacao||""; return d && d >= de && d <= ate; }) };
+}
+window.ZBK_getBackupJSON = async function(cadencia, periodoRefISO){
+  const { de, ate, registos } = await _registosDoPeriodo(cadencia, periodoRefISO);
+  return {
+    nome: `bloco_operatorio_ficha_${cadencia}_${de}_a_${ate}.json`,
+    conteudo: JSON.stringify({
+      sistema: 'Bloco Operatório — Ficha Operatória & Cirurgia Segura',
+      hospital: 'Hospital do Prenda',
+      cadencia, periodo:{ de, ate },
+      geradoEm: new Date().toISOString(),
+      totalRegistos: registos.length,
+      registos
+    }, null, 2)
+  };
+};
+window.ZBK_periodosDisponiveis = async function(cadencia){
+  const todos = await dbGetAll();
+  const chaves = new Map();
+  todos.forEach(r=>{
+    const d = r.dataOperacao; if(!d) return;
+    const { de } = _periodoLimites(cadencia, d);
+    if(!chaves.has(de)) chaves.set(de, { chave: de, dataRefISO: d });
+  });
+  return Array.from(chaves.values()).sort((a,b)=> a.chave.localeCompare(b.chave));
+};
+window.ZBK_gerarPDF = async function(cadencia, periodoRefISO){
+  if(!(window.jspdf && window.jspdf.jsPDF)) throw new Error('Biblioteca de PDF indisponível (sem ligação ao CDN).');
+  const { de, ate, registos } = await _registosDoPeriodo(cadencia, periodoRefISO);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt', format:'a4'});
+  const marginL = 40; let y = 40;
+  function quebra(extra){ if(y > 800-(extra||20)){ doc.addPage(); y = 40; } }
+  function linha(txt){ quebra(14); doc.setFontSize(9.5); doc.setFont(undefined,'normal');
+    doc.splitTextToSize(txt, 515).forEach(s=>{ quebra(12); doc.text(s, marginL, y); y += 12; }); }
+  doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94);
+  doc.text('HOSPITAL DO PRENDA — Bloco Operatório', marginL, y); y += 18;
+  doc.setFontSize(11); doc.setFont(undefined,'normal'); doc.setTextColor(90,90,90);
+  doc.text(`Ficha Operatória — backup ${cadencia} (${de} a ${ate})`, marginL, y); y += 22;
+  doc.setTextColor(0,0,0);
+  linha(`Total de registos no período: ${registos.length}`);
+  linha(`Gerado em: ${new Date().toLocaleString('pt-PT')}`); y += 6;
+  registos.sort((a,b)=> (a.dataOperacao||'').localeCompare(b.dataOperacao||'')).forEach(r=>{
+    linha(`• ${r.dataOperacao||'sem data'} — ${r.nome||'(sem nome)'} — ${r.operacao||r.procedimentoCirurgico||'operação não indicada'}`);
+    linha(`   Processo ${r.processo||'—'} · Cirurgião: ${r.cirurgiao||'—'} · Anestesista: ${r.anestesista||'—'} · ${r.status==='finalizado'?'Finalizado':'Rascunho'}`);
+  });
+  if(!registos.length) linha('Nenhum registo neste período.');
+  return { nome: `bloco_operatorio_ficha_${cadencia}_${de}_a_${ate}.pdf`, blob: doc.output('blob') };
+};
+
 /* ============ INIT ============ */
-openDB().then(()=>{ showDash(); });
+openDB().then(async ()=>{
+  showDash();
+  if(soLeitura()) toast("Modo só de leitura");
+  // Traz o que outros dispositivos registaram, e só depois refresca a lista.
+  try{
+    const novos = await puxarDaNuvem();
+    if(novos){ selectedDate = null; showDash(); toast(`${novos} registo(s) sincronizado(s)`); }
+  }catch(e){ console.warn('ZELO BO: sincronização inicial falhou — os dados locais continuam intactos.', e); }
+});
+</script>
+
+<script src="zelo_servicos_menu.js"></script>
+<script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script>
+if (typeof ZeloAutoBackup !== 'undefined') {
+  ZeloAutoBackup.montarUI('bloco_operatorio_ficha_operatoria');
+  ZeloAutoBackup.iniciar('bloco_operatorio_ficha_operatoria');
+}
 </script>
 </body>
 </html>

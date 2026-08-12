@@ -56,6 +56,7 @@ const SERVICOS_MENU = [
     relatorios: [
       { label: 'Relatório Diário', file: 'Bloco_Operatorio.html', modulo: 'servicos', item: 'bloco_operatorio' },
       { label: 'Registo Diário', file: 'bloco_operatorio_registo_diario.html', modulo: 'sistemas_independentes', item: 'bloco_operatorio_registo_diario' },
+      { label: 'Ficha Operatória', file: 'sistema_unificado_bo.html', modulo: 'sistemas_independentes', item: 'bloco_operatorio_ficha_operatoria' },
     ],
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_bloco_operatorio.html', modulo: 'procedimentos_enfermagem', item: 'bloco_operatorio' }],
     temEstatisticas: true, estatisticasFile: 'bloco_operatorio_registo_diario.html' },
