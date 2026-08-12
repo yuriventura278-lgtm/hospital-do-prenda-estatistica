@@ -480,7 +480,7 @@
     if (!alvos.length) {
       return { texto: 'Ainda não tenho esse comando disponível. Este Zelo funciona por comandos reconhecidos (é gratuito e corre só no seu navegador). Diga "ajuda" para ver exemplos.' };
     }
-    if (alvos.length > 1 && !ondeQuer) {
+    if (alvos.length > 1) {
       return { texto: 'Está a falar de qual: ' + alvos.map(function (a) { return a.tipo === 'servico' ? a.svc.nome : a.sistema.nome; }).join(' ou ') + '?' };
     }
     var alvo = alvos[0];
