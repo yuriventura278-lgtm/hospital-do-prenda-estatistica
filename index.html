@@ -1504,6 +1504,7 @@ document.addEventListener('DOMContentLoaded', function(){
           </div>
           <div class="sb-subtree" id="sbServicosTree"></div>
         </div>
+        <div id="sbDestaques"></div>
         <div class="sb-group">
           <div class="sb-section-label">Análise</div>
           <a href="Estatistica.html" class="sb-link" data-module="estatistica">
@@ -1613,7 +1614,7 @@ window.zeloApplyRole = function(role){
 window.zeloApplyPermissoes = function(role, permissoes){
   document.querySelectorAll('.sb-link[data-module]').forEach(function(link){
     var mod = link.dataset.module;
-    var permitido = window.__zeloHasModuleAccess(role, permissoes, mod);
+    var permitido = window.__zeloHasModuleAccess(role, permissoes, mod, link.dataset.item || null);
     link.style.display = permitido ? '' : 'none';
   });
   zeloAtualizarVisibilidadeArvoreServicos(role, permissoes);
@@ -1788,13 +1789,29 @@ function zeloConstruirArvoreSistemasLocais(){
   var tree = document.getElementById('sbSistemasTree');
   if(!tree || tree.dataset.built) return;
   tree.dataset.built = '1';
-  var itens = window.SISTEMAS_LOCAIS_MENU || [];
+  var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return !s.destaque; });
   tree.innerHTML = itens.map(function(s){
     return '<a class="sb-sis-link" href="' + s.file + '" data-modulo="' + s.modulo + '"' +
       (s.item ? ' data-item="' + s.item + '"' : '') + '>' + s.nome + '</a>';
   }).join('');
 }
 zeloConstruirArvoreSistemasLocais();
+// Itens de SISTEMAS_LOCAIS_MENU marcados "destaque" saem da árvore
+// colapsável "Sistemas Locais" e aparecem como atalho próprio, antes da
+// Estatística (ver #sbDestaques logo a seguir à árvore "Serviços").
+function zeloConstruirDestaques(){
+  var host = document.getElementById('sbDestaques');
+  if(!host || host.dataset.built) return;
+  host.dataset.built = '1';
+  var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return s.destaque; });
+  host.innerHTML = itens.map(function(s){
+    return '<div class="sb-group"><a href="' + s.file + '" class="sb-link" data-module="' + s.modulo + '"' +
+      (s.item ? ' data-item="' + s.item + '"' : '') + '>' +
+      '<span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></span>' +
+      '<span>' + s.nome + '</span></a></div>';
+  }).join('');
+}
+zeloConstruirDestaques();
 function zeloAtualizarVisibilidadeSistemasLocais(role, permissoes){
   var tree = document.getElementById('sbSistemasTree');
   if(!tree) return;

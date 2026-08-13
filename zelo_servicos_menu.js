@@ -137,7 +137,9 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
   { nome: 'Dias-Cama & Dias-Doente', file: 'dias_cama_doente.html', modulo: 'sistemas_independentes', item: 'dias_cama_doente' },
   { nome: 'Registo VIH · Geral', file: 'registo_hiv.html', modulo: 'sistemas_independentes', item: 'registo_hiv' },
-  { nome: 'Secretaria Geral', file: 'secretaria_geral.html', modulo: 'sistemas_independentes', item: 'secretaria_geral' },
+  // destaque: true — em vez de ficar dentro da árvore "Sistemas Locais" nos
+  // menus, aparece como atalho próprio no topo, antes da Estatística.
+  { nome: 'Secretaria Geral', file: 'secretaria_geral.html', modulo: 'sistemas_independentes', item: 'secretaria_geral', destaque: true },
 ];
 
 // Slug estável a partir do nome do serviço — usado como id do cartão em

@@ -183,9 +183,18 @@
   }
 
   function construirSistemasLocais(){
-    var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return temAcesso(s.modulo, s.item); });
+    var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return !s.destaque && temAcesso(s.modulo, s.item); });
     return itens.map(function(s){
       return '<a class="zmf-sis-link" href="' + s.file + '">' + s.nome + '</a>';
+    }).join('');
+  }
+
+  // Itens de SISTEMAS_LOCAIS_MENU marcados "destaque" saem da árvore
+  // colapsável e aparecem como atalho próprio no topo do menu.
+  function construirDestaques(){
+    var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return s.destaque && temAcesso(s.modulo, s.item); });
+    return itens.map(function(s){
+      return '<div class="zmf-group"><a class="zmf-link" href="' + s.file + '"><span class="zmf-ic">' + ICON_SIS + '</span>' + s.nome + '</a></div>';
     }).join('');
   }
 
@@ -218,6 +227,7 @@
     // que expande para uma lista vazia.
     var sistemasLocaisHtml = construirSistemasLocais();
     var temSistemasLocais = sistemasLocaisHtml.trim() !== '';
+    var destaquesHtml = construirDestaques();
     panel.innerHTML = `
       <div class="zmf-head">
         <img src="icons/logo.png" alt="ZELO"/>
@@ -248,6 +258,7 @@
           </div>
           <div class="zmf-subtree" id="zmf-sistemas-tree">${sistemasLocaisHtml}</div>
         </div>` : ''}
+        ${destaquesHtml}
         <div class="zmf-section-label">Análise</div>
         <div class="zmf-group">
           <a class="zmf-link" href="Estatistica.html"><span class="zmf-ic">${ICON_STATS}</span>Estatística</a>

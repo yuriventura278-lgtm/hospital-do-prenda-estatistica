@@ -503,9 +503,10 @@
         pendente = { file: acao.file, label: nome + ' — ' + acao.label };
         return { texto: prefixoAviso + nome + ' está em Serviços → ' + cat + '. Quer que eu abra agora (' + acao.label + ')?' };
       }
-      if (!acao) return { texto: nome + ' está em Sistemas Locais, mas não tem permissão para o abrir.' };
+      var localizacao = alvo.sistema.destaque ? 'no menu, no atalho próprio' : 'em Sistemas Locais';
+      if (!acao) return { texto: nome + ' está ' + localizacao + ', mas não tem permissão para o abrir.' };
       pendente = { file: acao.file, label: nome };
-      return { texto: nome + ' está em Sistemas Locais. Quer que eu abra agora?' };
+      return { texto: nome + ' está ' + localizacao + '. Quer que eu abra agora?' };
     }
 
     // "abrir X" (verbo explícito) ou apenas o nome do serviço dito sozinho
