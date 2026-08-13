@@ -100,28 +100,47 @@
     return null;
   }
 
-  // Devolve: { encontrados: [...], ambiguo: bool } a partir do texto normalizado.
+  // Devolve a lista de serviços encontrados no texto, com uma propriedade
+  // extra .composto (true/false) para o motor de intenções distinguir dois
+  // casos que ambos dão "mais do que um serviço encontrado":
+  //  - ambiguidade genuína: 1 só apelido dito, mas que aponta para vários
+  //    nomes (ex.: "medicina" → Medicina Homem OU Medicina Mulher) — não dá
+  //    para adivinhar qual, tem de perguntar.
+  //  - frase composta: vários apelidos DIFERENTES ditos na mesma frase (ex.:
+  //    "abrir bloco operatório e depois farmácia") — sabe-se exactamente o
+  //    que foi pedido, só não consegue tratar mais do que um de cada vez.
+  // Cada apelido encontrado "consome" o trecho de texto correspondente (para
+  // um apelido mais curto, ex. "medicina", não voltar a corresponder dentro
+  // de um apelido mais específico já usado, ex. "medicina homem") — por isso
+  // continua a percorrer as chaves da mais longa para a mais curta.
   function localizarServicos(textoNorm){
     var nomesEncontrados = [];
+    var chavesEncontradas = 0;
+    var restante = textoNorm;
     for (var k = 0; k < APELIDOS_CHAVES.length; k++) {
       var chave = APELIDOS_CHAVES[k];
-      if (palavraInteira(textoNorm, chave)) {
-        var alvo = APELIDOS[chave];
-        var nomes = Array.isArray(alvo) ? alvo : [alvo];
-        nomes.forEach(function (n) { if (nomesEncontrados.indexOf(n) === -1) nomesEncontrados.push(n); });
-        break; // apelido mais longo/específico já encontrado — não continuar a testar mais curtos
-      }
+      var re = new RegExp('(^|\\s)' + chave.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s|$)');
+      var m = re.exec(restante);
+      if (!m) continue;
+      chavesEncontradas++;
+      var alvo = APELIDOS[chave];
+      var nomes = Array.isArray(alvo) ? alvo : [alvo];
+      nomes.forEach(function (n) { if (nomesEncontrados.indexOf(n) === -1) nomesEncontrados.push(n); });
+      var inicio = m.index + m[1].length;
+      restante = restante.slice(0, inicio) + ' '.repeat(chave.length) + restante.slice(inicio + chave.length);
     }
     if (!nomesEncontrados.length) {
       // rede de segurança: nome oficial completo mencionado por extenso
       (window.SERVICOS_MENU || []).forEach(function (svc) {
-        if (palavraInteira(textoNorm, normalizar(svc.nome)) && nomesEncontrados.indexOf(svc.nome) === -1) nomesEncontrados.push(svc.nome);
+        if (palavraInteira(textoNorm, normalizar(svc.nome)) && nomesEncontrados.indexOf(svc.nome) === -1) { nomesEncontrados.push(svc.nome); chavesEncontradas++; }
       });
       (window.SISTEMAS_LOCAIS_MENU || []).forEach(function (s) {
-        if (palavraInteira(textoNorm, normalizar(s.nome)) && nomesEncontrados.indexOf(s.nome) === -1) nomesEncontrados.push(s.nome);
+        if (palavraInteira(textoNorm, normalizar(s.nome)) && nomesEncontrados.indexOf(s.nome) === -1) { nomesEncontrados.push(s.nome); chavesEncontradas++; }
       });
     }
-    return nomesEncontrados.map(encontrarServicoPorNome).filter(Boolean);
+    var resultado = nomesEncontrados.map(encontrarServicoPorNome).filter(Boolean);
+    resultado.composto = chavesEncontradas > 1;
+    return resultado;
   }
 
   // Detecta o tipo de acção pedido dentro de um serviço com várias opções.
@@ -479,13 +498,28 @@
     if (!alvos.length) {
       return { texto: 'Ainda não tenho esse comando disponível. Este Zelo funciona por comandos reconhecidos (é gratuito e corre só no seu navegador). Diga "ajuda" para ver exemplos.' };
     }
+    // Aviso quando a frase pedia mais do que um serviço distinto (ex.: "abrir
+    // bloco operatório e depois farmácia") — o Zelo só trata um pedido de
+    // cada vez, mas em vez de ignorar o resto em silêncio, avisa quais ficam
+    // por tratar para serem repetidos a seguir. Ambiguidade genuína (um só
+    // apelido a apontar para vários nomes, ex.: "medicina") continua a
+    // perguntar qual, porque aí não se sabe mesmo o que foi pedido.
+    var avisoComposto = '';
     if (alvos.length > 1) {
-      return { texto: 'Está a falar de qual: ' + alvos.map(function (a) { return a.tipo === 'servico' ? a.svc.nome : a.sistema.nome; }).join(' ou ') + '?' };
+      if (!alvos.composto) {
+        return { texto: 'Está a falar de qual: ' + alvos.map(function (a) { return a.tipo === 'servico' ? a.svc.nome : a.sistema.nome; }).join(' ou ') + '?' };
+      }
+      var outros = alvos.slice(1).map(function (a) { return a.tipo === 'servico' ? a.svc.nome : a.sistema.nome; });
+      avisoComposto = ' De cada vez só consigo tratar um pedido — diga-me depois separadamente sobre ' + outros.join(' e ') + '.';
+      alvos = [alvos[0]];
     }
     var alvo = alvos[0];
     var nome = alvo.tipo === 'servico' ? alvo.svc.nome : alvo.sistema.nome;
 
-    if (querNumeros) return consultarDados(nome, textoNorm);
+    if (querNumeros) {
+      var respostaNumeros = consultarDados(nome, textoNorm);
+      return avisoComposto ? respostaNumeros.then(function (r) { r.texto += avisoComposto; return r; }) : respostaNumeros;
+    }
 
     var u = estadoUtilizador();
     var lista = acoesDoServico(alvo, u.role, u.permissoes);
@@ -497,21 +531,22 @@
     if (ondeQuer) {
       if (alvo.tipo === 'servico') {
         var cat = categoriaDoServico(alvo.svc);
-        if (!acao) return { texto: nome + ' está em Serviços → ' + cat + ', mas não tem permissão para abrir nenhuma das opções desse serviço.' };
+        if (!acao) return { texto: nome + ' está em Serviços → ' + cat + ', mas não tem permissão para abrir nenhuma das opções desse serviço.' + avisoComposto };
         pendente = { file: acao.file, label: nome + ' — ' + acao.label };
-        return { texto: prefixoAviso + nome + ' está em Serviços → ' + cat + '. Quer que eu abra agora (' + acao.label + ')?' };
+        return { texto: prefixoAviso + nome + ' está em Serviços → ' + cat + '. Quer que eu abra agora (' + acao.label + ')?' + avisoComposto };
       }
       var localizacao = alvo.sistema.destaque ? 'no menu, no atalho próprio' : 'em Sistemas Locais';
-      if (!acao) return { texto: nome + ' está ' + localizacao + ', mas não tem permissão para o abrir.' };
+      if (!acao) return { texto: nome + ' está ' + localizacao + ', mas não tem permissão para o abrir.' + avisoComposto };
       pendente = { file: acao.file, label: nome };
-      return { texto: nome + ' está ' + localizacao + '. Quer que eu abra agora?' };
+      return { texto: nome + ' está ' + localizacao + '. Quer que eu abra agora?' + avisoComposto };
     }
 
     // "abrir X" (verbo explícito) ou apenas o nome do serviço dito sozinho
-    if (!acao) return { texto: 'Não tem permissão para aceder a ' + nome + '.' };
+    if (!acao) return { texto: 'Não tem permissão para aceder a ' + nome + '.' + avisoComposto };
     var extra = lista.filter(function (a) { return a.acessivel && a !== acao; }).map(function (a) { return a.label; });
     var texto = prefixoAviso + 'A abrir ' + nome + (acao.label && acao.label !== nome ? ' — ' + acao.label : '') + '…';
     if (extra.length) texto += ' (também disponível: ' + extra.join(', ') + ')';
+    texto += avisoComposto;
     return { texto: texto, navegarPara: acao.file };
   }
 
@@ -717,12 +752,18 @@
       return div;
     }
 
-    function enviar(texto){
-      texto = String(texto || '').trim();
-      if (!texto) return;
-      adicionarMsg(texto, 'user');
-      input.value = '';
+    // Fila simples: se um segundo comando chegar (voz ou texto) enquanto uma
+    // consulta assíncrona ao Firebase ainda está a decorrer, fica à espera
+    // em vez de correr ao mesmo tempo — evita duas respostas a chegarem fora
+    // de ordem ou a falarem por cima uma da outra.
+    var filaEnviar = [];
+    var aProcessar = false;
+    function processarFila(){
+      if (aProcessar || !filaEnviar.length) return;
+      aProcessar = true;
+      var texto = filaEnviar.shift();
       var r = processar(texto);
+      function concluir(){ aProcessar = false; processarFila(); }
       if (r && typeof r.then === 'function') {
         var espera = adicionarMsg('A consultar dados…', 'bot');
         r.then(function (resultado) {
@@ -730,12 +771,23 @@
           log.scrollTop = log.scrollHeight;
           falar(resultado.texto);
           if (resultado.navegarPara) setTimeout(function () { window.location.href = resultado.navegarPara; }, 700);
+          concluir();
         });
         return;
       }
       adicionarMsg(r.texto, 'bot');
       falar(r.texto);
       if (r.navegarPara) setTimeout(function () { window.location.href = r.navegarPara; }, 700);
+      concluir();
+    }
+
+    function enviar(texto){
+      texto = String(texto || '').trim();
+      if (!texto) return;
+      adicionarMsg(texto, 'user');
+      input.value = '';
+      filaEnviar.push(texto);
+      processarFila();
     }
 
     function abrir(){
