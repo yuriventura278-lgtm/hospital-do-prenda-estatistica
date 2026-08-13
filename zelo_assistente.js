@@ -670,6 +670,63 @@
   // ainda vazio) e nunca mais se repete sozinha.
   window.zeloTentarSaudarEntrada = tentarSaudarEntrada;
 
+  // ── Aviso de preenchimento em falta nos Procedimentos de Enfermagem ──
+  // Ao contrário da saudação da página inicial (1x/dia), este aviso soa
+  // sempre que a pessoa entra numa das 13 páginas de Procedimentos de
+  // Enfermagem — cada uma avisa só da sua própria especialidade (window.
+  // ZELO_ITEM, definido no topo de cada uma dessas páginas). O relatório
+  // mensal arquiva e limpa a Realtime Database no dia 2 de cada mês, por
+  // isso o nó registos_enf/<especialidade> só tem os dias do mês corrente —
+  // uma única leitura já dá a lista toda de dias preenchidos, sem precisar
+  // de até 30 pedidos separados.
+  function labelEspecialidadeEnfermagem(slug){
+    if (slug === 'geral') return 'Geral';
+    var menu = window.SERVICOS_MENU || [];
+    for (var i = 0; i < menu.length; i++) {
+      var procs = menu[i].procedimentos || [];
+      for (var j = 0; j < procs.length; j++) {
+        if (procs[j].item === slug) return menu[i].nome;
+      }
+    }
+    return slug;
+  }
+  function porExtenso(itens){
+    if (itens.length === 1) return itens[0];
+    return itens.slice(0, -1).join(', ') + ' e ' + itens[itens.length - 1];
+  }
+  function tentarAvisarProcedimentosEnfermagem(){
+    if (window.ZELO_MODULE !== 'procedimentos_enfermagem') return;
+    var slug = window.ZELO_ITEM;
+    if (!slug) return;
+    var nome = (sessionStorage.getItem('zeloNome') || '').split(' ')[0];
+    if (!nome) return;
+    var agora = dataHoraAngola();
+    var partes = agora.data.split('-');
+    var diaHoje = parseInt(partes[2], 10);
+    if (diaHoje <= 1) return; // dia 1 do mês — ainda não há "até ontem" para avaliar
+    obterFirebaseLeitura().then(function (ler) {
+      return ler('registos_enf/' + slug);
+    }).then(function (mes) {
+      mes = mes || {};
+      var diasFalta = [];
+      for (var d = 1; d < diaHoje; d++) {
+        var chave = partes[0] + '-' + partes[1] + '-' + String(d).padStart(2, '0');
+        if (!mes[chave]) diasFalta.push(String(d));
+      }
+      var especialidade = labelEspecialidadeEnfermagem(slug);
+      var texto = 'Olá, ' + nome + '. Lema do Zelo: dados de qualidade geram decisão de qualidade. ';
+      if (diasFalta.length) {
+        texto += 'Em Procedimentos de Enfermagem de ' + especialidade + ', ainda falta preencher o' +
+          (diasFalta.length > 1 ? 's dias ' : ' dia ') + porExtenso(diasFalta) + ' deste mês. ';
+      } else {
+        texto += 'Em Procedimentos de Enfermagem de ' + especialidade + ', está tudo preenchido até ontem. Parabéns. ';
+      }
+      texto += 'Lembre-se: os dados contam a história do hospital, e você também é responsável por transformar essa ' +
+        'história em conhecimento para a tomada de decisão. Qualquer dúvida, ligue para a extensão 1403, Serviço de Estatística.';
+      falar(texto);
+    }).catch(function () {}); // sem ligação agora — fica em silêncio, sem incomodar com erros a cada entrada na página
+  }
+
   // ── UI ──
   function injetarEstilos(){
     var style = document.createElement('style');
@@ -889,6 +946,7 @@
     // Pequeno atraso: dá tempo à página para assentar e às vozes do
     // navegador (speechSynthesis.getVoices()) para carregarem.
     setTimeout(tentarSaudarEntrada, 1200);
+    setTimeout(tentarAvisarProcedimentosEnfermagem, 1200);
   }
 
   if (document.readyState === 'loading') {
