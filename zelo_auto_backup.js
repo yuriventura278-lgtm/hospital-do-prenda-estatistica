@@ -257,7 +257,12 @@
         }
       }
     } catch (e) { console.warn('[ZeloAutoBackup] falha ao gravar JSON', e); }
-    if (jsonMudou) {
+    // O PDF diário deixou de se gerar sozinho (pedido explícito) — o backup
+    // em JSON do dia continua automático como sempre (é o que garante nunca
+    // perder dados); só o PDF do dia passa a ser sempre manual, pelo botão
+    // "Exportar PDF" de cada página. As restantes cadências (semanal,
+    // mensal, trimestral, semestral, anual) continuam com PDF automático.
+    if (jsonMudou && cadencia !== 'diario') {
       try {
         if (typeof global.ZBK_gerarPDF === 'function') {
           const r = await global.ZBK_gerarPDF(cadencia, dataRefISO);
