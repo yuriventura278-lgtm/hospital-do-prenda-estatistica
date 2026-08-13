@@ -76,7 +76,7 @@
     'hospital de dia': 'Hospital de Dia',
     'imagiologia': 'Imagiologia', 'radiologia': 'Imagiologia', 'raio x': 'Imagiologia',
     'laboratorio': 'Laboratório', 'laboratorio clinico': 'Laboratório',
-    'hemoterapia': 'Hemoterapia', 'banco de sangue': 'Hemoterapia',
+    'hemoterapia': 'Hemoterapia', 'banco de sangue': 'Hemoterapia', 'transfusoes': 'Hemoterapia', 'transfusao': 'Hemoterapia',
     'fisioterapia': 'Fisioterapia', 'fisio': 'Fisioterapia',
     'psicologia': 'Psicologia Clínica', 'psicologia clinica': 'Psicologia Clínica',
     'farmacia': 'Farmácia',
@@ -942,6 +942,75 @@
     }).catch(function () {}); // sem ligação agora — fica em silêncio, sem incomodar com erros a cada entrada na página
   }
 
+  // ── Notificação em Procedimentos de Enfermagem · Geral de quem gravou/editou noutras especialidades ──
+  // Só corre na página "geral" (window.ZELO_ITEM === 'geral'). Lê o histórico
+  // de alterações (já gravado por cada uma das 12 especialidades — o mesmo
+  // usado no botão "Histórico de alterações" de cada página) e fala só as
+  // entradas mais recentes do que a última vez que esta pessoa entrou em
+  // Geral neste aparelho. A primeira entrada de sempre não fala nada (só
+  // marca "agora" como referência) — sem isto, a primeira vez despejava todo
+  // o histórico acumulado de uma vez.
+  var ESPECIALIDADES_ENFERMAGEM = [
+    'banco_urgencia', 'bloco_operatorio', 'cirurgia_geral', 'consulta_externa', 'hospital_dia',
+    'maxilo_facial', 'medicina_homem', 'medicina_mulher', 'nefrologia', 'neurocirurgia',
+    'ortopedia', 'uci_cuidados_intermedios'
+  ];
+  function formatarDiaMes(dataISO){
+    var partes = dataISO.split('-');
+    return partes[2].replace(/^0/, '') + '/' + partes[1].replace(/^0/, '');
+  }
+  var notificacaoGeralEmCurso = false;
+  function tentarNotificarGeralDeAlteracoes(){
+    if (!(window.ZELO_MODULE === 'procedimentos_enfermagem' && window.ZELO_ITEM === 'geral')) return;
+    if (!(sessionStorage.getItem('zeloNome') || '')) return;
+    if (notificacaoGeralEmCurso) return;
+    notificacaoGeralEmCurso = true;
+    var CHAVE_ULTIMA_VISITA = 'zeloUltimaVisitaGeral';
+    var ultimaVisitaISO = localStorage.getItem(CHAVE_ULTIMA_VISITA);
+    var agoraISO = new Date().toISOString();
+    if (!ultimaVisitaISO) {
+      localStorage.setItem(CHAVE_ULTIMA_VISITA, agoraISO);
+      notificacaoGeralEmCurso = false;
+      return;
+    }
+    obterFirebaseLeitura().then(function (ler) {
+      return Promise.all(ESPECIALIDADES_ENFERMAGEM.map(function (slug) {
+        return ler('registos_enf/' + slug).then(function (mes) { return { slug: slug, mes: mes }; });
+      }));
+    }).then(function (resultados) {
+      var eventos = [];
+      resultados.forEach(function (r) {
+        if (!r.mes) return;
+        Object.keys(r.mes).forEach(function (dataISO) {
+          var historico = r.mes[dataISO] && r.mes[dataISO].historico;
+          if (!historico) return;
+          var entradas = Object.values(historico).filter(function (e) { return e && e.ts; })
+            .sort(function (a, b) { return a.ts < b.ts ? -1 : 1; });
+          entradas.forEach(function (entrada, idx) {
+            if (entrada.ts <= ultimaVisitaISO) return;
+            eventos.push({
+              nome: (entrada.nome || 'Alguém').split(' ')[0],
+              especialidade: labelEspecialidadeEnfermagem(r.slug),
+              data: dataISO,
+              tipo: idx === 0 ? 'preencheu' : 'editou',
+              ts: entrada.ts
+            });
+          });
+        });
+      });
+      localStorage.setItem(CHAVE_ULTIMA_VISITA, agoraISO);
+      if (!eventos.length) return;
+      eventos.sort(function (a, b) { return a.ts < b.ts ? -1 : 1; });
+      var MAX_FALADOS = 5;
+      var frases = eventos.slice(0, MAX_FALADOS).map(function (e) {
+        return e.nome + ' ' + e.tipo + ' o procedimento de ' + e.especialidade + ' do dia ' + formatarDiaMes(e.data) + '.';
+      });
+      var texto = 'Desde a última vez que entrou aqui: ' + frases.join(' ');
+      if (eventos.length > MAX_FALADOS) texto += ' E mais ' + (eventos.length - MAX_FALADOS) + ' actualização' + (eventos.length - MAX_FALADOS > 1 ? 'ões' : '') + '.';
+      falar(texto);
+    }).catch(function () {}).then(function () { notificacaoGeralEmCurso = false; });
+  }
+
   // ── UI ──
   function injetarEstilos(){
     var style = document.createElement('style');
@@ -1203,9 +1272,13 @@
     // navegador (speechSynthesis.getVoices()) para carregarem.
     setTimeout(tentarSaudarEntrada, 1200);
     setTimeout(tentarAvisarPreenchimento, 1200);
+    setTimeout(tentarNotificarGeralDeAlteracoes, 1200);
     // Ver nota acima de tentarAvisarPreenchimento: cobre o caso de a sessão
     // só ficar confirmada depois dos 1200ms fixos.
-    window.addEventListener('zelo-gate-ready', function () { tentarAvisarPreenchimento(); });
+    window.addEventListener('zelo-gate-ready', function () {
+      tentarAvisarPreenchimento();
+      tentarNotificarGeralDeAlteracoes();
+    });
   }
 
   if (document.readyState === 'loading') {
