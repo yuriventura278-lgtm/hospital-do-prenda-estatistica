@@ -880,15 +880,35 @@
     var ficheiro = window.location.pathname.split('/').pop();
     return ficheiro === '' || ficheiro === 'index.html';
   }
+  // Quando a pessoa já tinha entrado hoje, saiu (fechou o separador/sessão) e
+  // está a voltar agora — não é a primeira entrada do dia, mas também não faz
+  // sentido ficar em silêncio: uma saudação curta de boas-vindas, sem repetir
+  // a recomendação (essa já foi dita na primeira entrada de hoje).
+  var BOAS_VINDAS_VOLTA = [
+    'Bem-vindo(a) de volta, NOME!',
+    'Olá de novo, NOME! Que bom ver-te outra vez por aqui hoje.',
+    'De volta, NOME? Sou o Zelo, sempre por perto.',
+    'Olá, NOME — bem-vindo(a) de volta ao ZELO.'
+  ];
   // Só sauda quando já há sessão iniciada (sessionStorage.zeloNome) — não na
-  // página de login — e só uma vez por dia (guardado em localStorage, por
-  // isso vale para o dispositivo todo, não por separador/página).
+  // página de login. A saudação completa (com recomendação) só acontece uma
+  // vez por dia, guardada em localStorage (vale para o dispositivo todo, não
+  // por separador/página); uma nova entrada no mesmo dia — sessão nova neste
+  // separador (sessionStorage próprio, que não sobrevive a fechar o
+  // separador/browser) — recebe só as boas-vindas de volta, mais curtas. Uma
+  // simples recarga da mesma página/sessão não repete nada.
   function tentarSaudarEntrada(){
     if (!estaNaPaginaInicial()) return;
     var nome = (sessionStorage.getItem('zeloNome') || '').split(' ')[0];
     if (!nome) return;
+    if (sessionStorage.getItem('zeloSaudacaoSessao')) return;
+    sessionStorage.setItem('zeloSaudacaoSessao', '1');
     var agora = dataHoraAngola();
-    if (localStorage.getItem('zeloSaudacaoDia') === agora.data) return;
+    if (localStorage.getItem('zeloSaudacaoDia') === agora.data) {
+      var boasVindas = BOAS_VINDAS_VOLTA[Math.floor(Math.random() * BOAS_VINDAS_VOLTA.length)].replace('NOME', nome);
+      falar(boasVindas);
+      return;
+    }
     localStorage.setItem('zeloSaudacaoDia', agora.data);
     var abertura = ABERTURAS_ENTRADA_DIA[Math.floor(Math.random() * ABERTURAS_ENTRADA_DIA.length)];
     var transicao = TRANSICOES_RECOMENDACAO[Math.floor(Math.random() * TRANSICOES_RECOMENDACAO.length)];
