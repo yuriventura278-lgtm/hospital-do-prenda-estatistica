@@ -709,12 +709,14 @@
   // pessoa já tem no ecrã, depois de os ter carregado pelos botões normais
   // da página (o mesmo que já podia ver ou exportar em PDF) — o Zelo não vai
   // buscar nada por fora, só narra o que já está visível e permitido.
-  // Reconhece dois padrões de "cartão rótulo + valor" já usados em páginas
-  // de estatísticas/painéis (.stat-summary-card e .kpi); nos restantes casos
-  // lê o texto visível do elemento tal como está.
+  // Reconhece os padrões de "cartão rótulo + valor" já usados em páginas de
+  // estatísticas/painéis/KPIs (cada página do sistema tem o seu próprio, por
+  // terem sido construídas em alturas diferentes); nos restantes casos lê o
+  // texto visível do elemento tal como está.
   var PADROES_CARTAO = [
     { cartao: '.stat-summary-card', rotulo: '.stat-summary-label', valor: '.stat-summary-value' },
-    { cartao: '.kpi', rotulo: '.kpi-lbl', valor: '.kpi-val' }
+    { cartao: '.kpi', rotulo: '.kpi-lbl', valor: '.kpi-val' },
+    { cartao: '.nd', rotulo: 'label', valor: '.val' }
   ];
   function textoDeElemento(el){
     if (!el) return '';
