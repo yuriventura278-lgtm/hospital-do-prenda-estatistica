@@ -739,6 +739,17 @@
       });
       if (partes.length) return partes.join('. ');
     }
+    // Tabelas: célula a célula ficam coladas sem espaço no innerText puro
+    // (ex.: "Pensos12") — lê linha a linha, com vírgulas entre células.
+    var tabela = el.querySelector('table');
+    if (tabela) {
+      var linhas = [];
+      tabela.querySelectorAll('tr').forEach(function (tr) {
+        var celulas = Array.prototype.map.call(tr.querySelectorAll('th,td'), function (c) { return c.textContent.trim(); }).filter(Boolean);
+        if (celulas.length) linhas.push(celulas.join(', '));
+      });
+      if (linhas.length) return linhas.join('. ');
+    }
     return (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
   }
   // Exposto para as páginas ligarem um botão "🔊 Ler em voz" a qualquer
