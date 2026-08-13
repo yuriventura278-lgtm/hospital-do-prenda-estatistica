@@ -30,13 +30,14 @@ function aplicarModoLeitura(){
   }
 }
 
-function aplicarAcesso(role, permissoes, uid){
+function aplicarAcesso(role, permissoes, uid, offline){
   resolvido = true;
   if (moduleKey && !hasModuleAccess(role, permissoes || {}, moduleKey, itemKey)) {
     showBlockedScreen(role, permissoes);
     return;
   }
   document.documentElement.style.visibility = 'visible';
+  if (offline) mostrarAvisoOffline();
   if (moduleKey && getModuleAccessLevel(role, permissoes || {}, moduleKey) === 'leitura') {
     aplicarModoLeitura();
   }
@@ -89,6 +90,41 @@ async function _obterPerfilComRetentativa(uid, tentativas){
     catch (e) { ultimoErro = e; console.warn('ZELO: falha momentânea ao ler o perfil (tentativa ' + (i + 1) + '/' + tentativas + ')', e); }
   }
   throw ultimoErro;
+}
+
+// ── Acesso sem internet (perfil em cache) ──
+// Sem isto, qualquer falha de rede ao confirmar as permissões (mesmo já
+// tendo entrado antes neste aparelho) bloqueava a página inteira atrás do
+// ecrã "Não foi possível confirmar a sessão" — o utilizador ficava sem
+// conseguir sequer ABRIR a página, mesmo offline-first sendo o resto do
+// sistema (dados locais, fila de sincronização). Guarda-se aqui, em
+// localStorage (sobrevive a fechar o browser, ao contrário do
+// sessionStorage), o último perfil confirmado com sucesso; se uma leitura
+// nova falhar por causa da rede, usa-se este perfil para deixar entrar na
+// mesma — mostrando um aviso — em vez de bloquear. Não há prazo de validade:
+// o objetivo aqui é nunca impedir o acesso, e assim que a rede voltar (na
+// reconfirmação periódica de startInactivityWatch, a cada 2min) o perfil
+// mais recente é lido e o cache actualizado sozinho.
+function _chaveCachePerfil(uid){ return 'zeloPerfilCache_' + uid; }
+function _guardarPerfilCache(uid, perfil){
+  try { localStorage.setItem(_chaveCachePerfil(uid), JSON.stringify({ perfil: perfil, ts: Date.now() })); }
+  catch (e) {}
+}
+function _lerPerfilCache(uid){
+  try {
+    var raw = localStorage.getItem(_chaveCachePerfil(uid));
+    if (!raw) return null;
+    var obj = JSON.parse(raw);
+    return (obj && obj.perfil) ? obj.perfil : null;
+  } catch (e) { return null; }
+}
+function mostrarAvisoOffline(){
+  if (document.getElementById('zelo-offline-banner')) return;
+  var banner = document.createElement('div');
+  banner.id = 'zelo-offline-banner';
+  banner.textContent = '📴 Sem ligação à internet — a usar as últimas permissões guardadas neste aparelho. Os dados continuam a ser guardados aqui e sincronizam automaticamente quando a ligação voltar.';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999996;background:#334155;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.76rem;font-weight:600;padding:8px 12px;';
+  document.body.insertBefore(banner, document.body.firstChild);
 }
 
 function showSlowConnectionScreen(){
@@ -147,13 +183,21 @@ onAuthStateChanged(auth, async function (user) {
     return;
   }
   var perfil;
+  var offline = false;
   try {
     perfil = await _obterPerfilComRetentativa(user.uid, 2);
   } catch (e) {
     if (resolvido) return;
-    console.error('ZELO: não foi possível ler o perfil do utilizador após várias tentativas — a sessão não foi terminada.', e);
-    showSlowConnectionScreen();
-    return;
+    var cache = _lerPerfilCache(user.uid);
+    if (cache) {
+      console.warn('ZELO: sem ligação para confirmar o perfil — a usar o último guardado neste aparelho.', e);
+      perfil = cache;
+      offline = true;
+    } else {
+      console.error('ZELO: não foi possível ler o perfil do utilizador após várias tentativas — a sessão não foi terminada.', e);
+      showSlowConnectionScreen();
+      return;
+    }
   }
   if (resolvido) return;
   if (!perfil || perfil.ativo === false) {
@@ -161,11 +205,12 @@ onAuthStateChanged(auth, async function (user) {
     window.location.replace('index.html');
     return;
   }
+  if (!offline) _guardarPerfilCache(user.uid, perfil);
   sessionStorage.setItem('zeloRole', perfil.role || 'funcionario');
   sessionStorage.setItem('zeloNome', perfil.nome || user.email);
   sessionStorage.setItem('zeloEmail', user.email || '');
   sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
-  aplicarAcesso(perfil.role || 'funcionario', perfil.permissoes || {}, user.uid);
+  aplicarAcesso(perfil.role || 'funcionario', perfil.permissoes || {}, user.uid, offline);
 });
 
 window.ZeloShowBlocked = showBlockedScreen;
