@@ -643,11 +643,12 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
       <div class="dash-hero">
         <div class="dash-hero-txt"><b id="dash-greeting">Olá</b><span id="dash-date"></span></div>
       </div>
-      <div class="kpis">
+      <div class="kpis" id="dash-kpis-wrap">
         <div class="kpi k-obs"><b id="dash-agendados">0</b><span>Agendados Hoje</span></div>
         <div class="kpi k-alta"><b id="dash-realizadas">0</b><span>Realizadas Hoje</span></div>
         <div class="kpi k-obito"><b id="dash-canceladas">0</b><span>Ausentes Hoje</span></div>
       </div>
+      <button type="button" class="btn btn-out block" style="margin-bottom:14px;" onclick="window.zeloLerElemento('#dash-kpis-wrap','Resumo de hoje')">🔊 Ler em voz</button>
 
       <div class="sec open">
         <div class="sec-h"><span class="n">1</span><div class="htxt"><b>Especialidades Atendidas Hoje</b></div></div>
@@ -732,11 +733,12 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
         <div class="sec open">
           <div class="sec-h"><span class="n">R</span><div class="htxt"><b>Totais Gerais do Dia</b><span class="sec-desc">Soma de todos os médicos</span></div></div>
           <div class="sec-b-wrap"><div class="sec-b-inner"><div class="sec-b">
-            <div class="row3">
-              <div><label>Consultas Agendadas</label><input type="number" id="resumo-agendados" value="0" disabled></div>
-              <div><label>Consultas Realizadas</label><input type="number" id="resumo-realizadas" value="0" disabled></div>
-              <div><label>Pacientes Ausentes</label><input type="number" id="resumo-canceladas" value="0" disabled></div>
+            <div class="row3" id="resumo-totais-gerais">
+              <div class="nd"><label>Consultas Agendadas</label><input type="number" id="resumo-agendados" value="0" disabled></div>
+              <div class="nd"><label>Consultas Realizadas</label><input type="number" id="resumo-realizadas" value="0" disabled></div>
+              <div class="nd"><label>Pacientes Ausentes</label><input type="number" id="resumo-canceladas" value="0" disabled></div>
             </div>
+            <button type="button" class="btn btn-out block" style="margin-top:8px;" onclick="window.zeloLerElemento('#resumo-totais-gerais','Totais gerais do dia')">🔊 Ler em voz</button>
           </div></div></div>
         </div>
         <div class="sec open">
@@ -849,6 +851,7 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
           <div class="actions">
             <button class="btn btn-navy" id="btn-gerar-relatorio"><svg class="svc-icon"><use href="#i-chart"/></svg>Gerar Relatório</button>
             <button class="btn btn-navy" id="btn-pdf-relatorio"><svg class="svc-icon"><use href="#i-pdf"/></svg>Exportar PDF</button>
+            <button type="button" class="btn btn-out" onclick="window.zeloLerElemento('#relatorio-output','Relatório')">🔊 Ler em voz</button>
           </div>
           <button class="btn btn-navy block" id="btn-pdf-mes-completo" style="margin-top:10px;">
             <svg class="svc-icon"><use href="#i-download"/></svg>Exportar Relatório Mensal Completo (Todas as Especialidades)
