@@ -530,19 +530,40 @@
   function idiomaVoz(){
     return localStorage.getItem('zeloVozIdioma') || 'pt-PT';
   }
+  // Em vários navegadores (Chrome incluído) getVoices() devolve uma lista
+  // vazia na primeira chamada da página — só vem preenchida depois do evento
+  // "voiceschanged". Sem isto, a primeira fala de cada página (normalmente a
+  // saudação automática) arriscava sair sem escolher a voz certa em pt-PT/pt-BR.
+  // Só espera uma vez por página — chamadas seguintes já têm a lista pronta.
+  var _vozesJaEsperadas = false;
+  function vozesProntas(cb){
+    if (window.speechSynthesis.getVoices().length || _vozesJaEsperadas) { cb(); return; }
+    _vozesJaEsperadas = true;
+    var resolvido = false;
+    function resolver(){
+      if (resolvido) return;
+      resolvido = true;
+      window.speechSynthesis.removeEventListener('voiceschanged', resolver);
+      cb();
+    }
+    window.speechSynthesis.addEventListener('voiceschanged', resolver);
+    setTimeout(resolver, 400); // não bloqueia para sempre se o evento nunca disparar
+  }
   function falar(texto){
     if (!window.speechSynthesis) return;
     if ((localStorage.getItem('zeloVoz') || 'on') === 'off') return;
-    try {
-      window.speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(texto.replace(/[•\n]/g, '. '));
-      var idioma = idiomaVoz();
-      u.lang = idioma;
-      var vozes = window.speechSynthesis.getVoices();
-      var voz = vozes.find(function (v) { return v.lang === idioma; }) || vozes.find(function (v) { return /pt/i.test(v.lang); });
-      if (voz) u.voice = voz;
-      window.speechSynthesis.speak(u);
-    } catch (e) {}
+    vozesProntas(function () {
+      try {
+        window.speechSynthesis.cancel();
+        var u = new SpeechSynthesisUtterance(texto.replace(/[•\n]/g, '. '));
+        var idioma = idiomaVoz();
+        u.lang = idioma;
+        var vozes = window.speechSynthesis.getVoices();
+        var voz = vozes.find(function (v) { return v.lang === idioma; }) || vozes.find(function (v) { return /pt/i.test(v.lang); });
+        if (voz) u.voice = voz;
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    });
   }
 
   // ── Saudação automática de entrada no sistema (uma vez por dia, por voz) ──
@@ -582,8 +603,8 @@
     if (localStorage.getItem('zeloSaudacaoDia') === agora.data) return;
     localStorage.setItem('zeloSaudacaoDia', agora.data);
     var lembrete = LEMBRETES_SAUDACAO[Math.floor(Math.random() * LEMBRETES_SAUDACAO.length)];
-    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '! Aqui é o Zelo. Desejo-lhe um bom turno de trabalho. ' +
-      'Um lembrete: ' + lembrete;
+    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '. Eu sou o assistente Zelo. ' +
+      'Desejo-te um bom turno de trabalho. E uma recomendação: ' + lembrete;
     falar(texto);
   }
 
