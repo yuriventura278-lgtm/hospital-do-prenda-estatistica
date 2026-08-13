@@ -926,6 +926,94 @@ CE.ESPECIALIDADES_COM_PROCEDIMENTOS = CE.ESPECIALIDADES.slice();
 /* Todas têm Tabela de Material, exceto a Estomatologia (o modelo dela não tem tabela de material, só de procedimentos). */
 CE.ESPECIALIDADES_COM_MATERIAIS = CE.ESPECIALIDADES.filter(function(e){ return e !== 'Estomatologia'; });
 
+/* Diagnósticos mais comuns por especialidade — lista de referência para sugestão
+   rápida no campo "Diagnóstico" (não é uma lista exaustiva de toda a nosologia,
+   é um vocabulário de apoio para uniformizar a escrita; o profissional pode
+   sempre escrever qualquer outro diagnóstico à mão). */
+CE.DIAGNOSTICOS_POR_ESPECIALIDADE = {
+  "Medicina Interna": ["Hipertensão arterial","Diabetes mellitus tipo 2","Diabetes mellitus tipo 1","Anemia",
+    "Insuficiência cardíaca","Insuficiência renal crónica","Gastroenterite aguda","Infeção do trato urinário",
+    "Malária","Tuberculose pulmonar","Hepatite B","Hepatite C","HIV/SIDA","Obesidade","Dislipidemia",
+    "Síndrome metabólica","Hipotiroidismo","Hipertiroidismo","Doença pulmonar obstrutiva crónica","Sequelas de AVC"],
+  "Ortopedia": ["Fratura do fémur","Fratura do rádio","Fratura da tíbia","Fratura do úmero",
+    "Osteoartrose do joelho","Osteoartrose da anca","Lombalgia","Hérnia discal","Luxação do ombro",
+    "Entorse do tornozelo","Osteomielite","Escoliose","Tendinite","Bursite","Síndrome do túnel cárpico",
+    "Pé boto","Displasia da anca","Osteoporose","Rotura do menisco","Rotura do ligamento cruzado"],
+  "Neurocirurgia": ["Traumatismo crânio-encefálico","Hematoma subdural","Hematoma epidural",
+    "Hérnia discal lombar","Hérnia discal cervical","Tumor cerebral","Hidrocefalia",
+    "Hemorragia subaracnoideia","AVC hemorrágico","Estenose do canal lombar","Meningioma",
+    "Fratura da coluna vertebral","Espinha bífida","Aneurisma cerebral","Abcesso cerebral"],
+  "Maxilo Facial": ["Fratura da mandíbula","Fratura do zigoma","Fratura do osso nasal",
+    "Fratura naso-orbito-etmoidal","Abcesso dentário","Quisto odontogénico",
+    "Anquilose temporomandibular","Fenda labial","Fenda palatina","Osteomielite maxilar",
+    "Tumor de glândula salivar","Trauma dentoalveolar","Luxação temporomandibular"],
+  "Neurologia": ["Epilepsia","Enxaqueca","Acidente vascular cerebral","Doença de Parkinson",
+    "Esclerose múltipla","Neuropatia periférica","Paralisia facial","Cefaleia tensional","Meningite",
+    "Encefalite","Demência","Miastenia gravis","Convulsão febril","Radiculopatia","Ataxia"],
+  "Cardiologia": ["Hipertensão arterial","Insuficiência cardíaca","Arritmia cardíaca",
+    "Fibrilhação auricular","Enfarte agudo do miocárdio","Angina de peito","Doença valvular cardíaca",
+    "Miocardiopatia","Pericardite","Doença cardíaca reumática","Cardiopatia congénita",
+    "Endocardite","Hipertensão pulmonar"],
+  "Gastroenterologia": ["Gastrite","Úlcera péptica","Doença do refluxo gastroesofágico","Hepatite",
+    "Cirrose hepática","Pancreatite","Colecistite","Litíase biliar","Doença inflamatória intestinal",
+    "Síndrome do intestino irritável","Parasitose intestinal","Hemorroidas","Obstipação crónica",
+    "Diarreia crónica","Esofagite"],
+  "Oftalmologia": ["Catarata","Glaucoma","Conjuntivite","Erro refrativo","Retinopatia diabética",
+    "Degeneração macular","Ceratite","Blefarite","Pterígio","Estrabismo","Uveíte",
+    "Descolamento da retina","Tracoma","Ambliopia"],
+  "Optometria": ["Miopia","Hipermetropia","Astigmatismo","Presbiopia","Ambliopia","Estrabismo",
+    "Vista cansada","Baixa acuidade visual","Alteração da visão binocular"],
+  "Estomatologia": ["Cárie dentária","Gengivite","Periodontite","Abcesso dentário","Pulpite",
+    "Má oclusão dentária","Bruxismo","Halitose","Quisto dentígero","Fluorose dentária","Estomatite"],
+  "Urologia": ["Infeção do trato urinário","Litíase renal","Hiperplasia benigna da próstata",
+    "Insuficiência renal","Incontinência urinária","Hidronefrose","Varicocele","Fimose",
+    "Cancro da próstata","Cistite","Retenção urinária","Cólica renal","Bexiga neurogénica"],
+  "Neuropsicologia": ["Défice cognitivo","Perturbação da memória","Défice de atenção",
+    "Perturbação da linguagem","Sequelas de traumatismo crânio-encefálico",
+    "Declínio cognitivo associado à idade","Perturbação do neurodesenvolvimento"],
+  "Psicologia": ["Ansiedade","Depressão","Perturbação de stress pós-traumático","Perturbação do sono",
+    "Perturbação de adaptação","Luto complicado","Perturbação de pânico","Perturbação do comportamento",
+    "Baixa autoestima","Dificuldades de aprendizagem","Perturbação do espectro do autismo"],
+  "Reumatologia": ["Artrite reumatoide","Osteoartrose","Lúpus eritematoso sistémico","Gota",
+    "Espondilite anquilosante","Fibromialgia","Síndrome de Sjögren","Febre reumática","Vasculite",
+    "Tendinite","Bursite"],
+  "Cirurgia Geral": ["Apendicite aguda","Hérnia inguinal","Hérnia umbilical","Colecistite",
+    "Litíase biliar","Obstrução intestinal","Peritonite","Abcesso abdominal","Hemorroidas",
+    "Fístula perianal","Tumor abdominal","Trauma abdominal","Quisto sebáceo","Lipoma"],
+  "Endocrinologia": ["Diabetes mellitus tipo 1","Diabetes mellitus tipo 2","Hipotiroidismo",
+    "Hipertiroidismo","Bócio","Obesidade","Síndrome metabólica","Insuficiência adrenal",
+    "Hipogonadismo","Osteoporose","Dislipidemia"],
+  "Coloproctologia": ["Hemorroidas","Fissura anal","Fístula perianal","Abcesso perianal",
+    "Prolapso retal","Doença de Crohn","Colite ulcerosa","Pólipo do cólon","Cancro colorretal",
+    "Incontinência fecal"],
+  "Angiologia": ["Varizes dos membros inferiores","Trombose venosa profunda",
+    "Insuficiência venosa crónica","Doença arterial periférica","Aneurisma da aorta",
+    "Úlcera venosa","Linfedema","Tromboflebite","Isquemia dos membros"],
+  "Anestesia": ["Avaliação pré-anestésica","Anestesia geral","Anestesia locorregional",
+    "Dor pós-operatória","Complicação anestésica"],
+  "Otorrinolaringologia": ["Otite média","Sinusite","Faringite","Amigdalite","Rinite alérgica",
+    "Perda auditiva","Vertigem","Desvio do septo nasal","Pólipo nasal","Epistaxe","Laringite",
+    "Corpo estranho no ouvido/nariz","Hipertrofia das adenoides"],
+  "Medicina Intensiva": ["Choque séptico","Insuficiência respiratória aguda","Falência multiorgânica",
+    "Choque hipovolémico","Coma","Síndrome de dificuldade respiratória aguda",
+    "Paragem cardiorrespiratória revertida","Politraumatismo grave"],
+  "Dermatologia": ["Dermatite atópica","Eczema","Psoríase","Micose cutânea","Acne","Urticária",
+    "Escabiose","Vitiligo","Herpes zoster","Celulite infeciosa","Verruga viral","Alopecia","Queimadura"],
+  "Alergologia": ["Rinite alérgica","Asma alérgica","Urticária","Dermatite atópica",
+    "Alergia alimentar","Alergia medicamentosa","Choque anafilático","Conjuntivite alérgica"],
+  "Infecciologia": ["Malária","Tuberculose","HIV/SIDA","Hepatite B","Hepatite C","Febre tifoide",
+    "Cólera","Meningite","Sífilis","Dengue","Sarampo","Pneumonia","Sepsis"],
+  "Nefrologia": ["Insuficiência renal crónica","Insuficiência renal aguda","Síndrome nefrótico",
+    "Glomerulonefrite","Litíase renal","Hipertensão renovascular","Doença renal poliquística","Pielonefrite"],
+  "Pneumologia": ["Asma","Doença pulmonar obstrutiva crónica","Pneumonia","Tuberculose pulmonar",
+    "Bronquite crónica","Derrame pleural","Bronquiectasia","Fibrose pulmonar","Embolia pulmonar"],
+  "Fisioterapia": ["Lombalgia","Cervicalgia","Sequelas de AVC","Paralisia cerebral",
+    "Sequelas de fratura","Reabilitação pós-cirúrgica","Tendinite","Capsulite adesiva",
+    "Reabilitação respiratória","Paralisia facial"],
+  "Hospital de Dia": ["Quimioterapia","Transfusão sanguínea","Hidratação endovenosa",
+    "Curativo","Administração de medicação endovenosa"]
+};
+
 CE.MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho",
   "Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
@@ -1818,8 +1906,8 @@ CE.Registo = (function(){
 
     // Diagnóstico (pesquisa + quantidade)
     var diagInput = pagina.querySelector('.diag-busca-input');
-    diagInput.addEventListener('input', function(){ mostrarSugestoesPatologia(diagInput); });
-    diagInput.addEventListener('focus', function(){ mostrarSugestoesPatologia(diagInput); });
+    diagInput.addEventListener('input', function(){ mostrarSugestoesPatologia(diagInput, especialidade); });
+    diagInput.addEventListener('focus', function(){ mostrarSugestoesPatologia(diagInput, especialidade); });
     diagInput.addEventListener('blur', function(){
       setTimeout(function(){ pagina.querySelector('.pat-sugestoes').classList.remove('on'); }, 200);
     });
@@ -2803,22 +2891,41 @@ CE.Registo = (function(){
       cachePatologias = lista.sort();
     });
   }
-  function mostrarSugestoesPatologia(textarea){
+  // Junta os diagnósticos de referência da especialidade (CE.DIAGNOSTICOS_POR_ESPECIALIDADE)
+  // com os já usados em qualquer especialidade (cachePatologias) — os da própria
+  // especialidade vêm primeiro, sem repetir os que já aparecem nos dois lados.
+  function listaSugestoesBase(especialidade){
+    var especificos = (CE.DIAGNOSTICOS_POR_ESPECIALIDADE && CE.DIAGNOSTICOS_POR_ESPECIALIDADE[especialidade]) || [];
+    var vistos = {};
+    var combinada = [];
+    especificos.forEach(function(d){
+      var chave = d.toLowerCase();
+      if (!vistos[chave]){ vistos[chave] = true; combinada.push(d); }
+    });
+    cachePatologias.forEach(function(d){
+      var chave = d.toLowerCase();
+      if (!vistos[chave]){ vistos[chave] = true; combinada.push(d); }
+    });
+    return combinada;
+  }
+  function mostrarSugestoesPatologia(textarea, especialidade){
     var container = textarea.closest('.field, .diag-busca-wrap').querySelector('.pat-sugestoes');
     if (!container) return;
+    var base = listaSugestoesBase(especialidade);
     var termo = textarea.value.trim().toLowerCase();
     var correspondencias;
     if (!termo){
-      // campo vazio (ex: acabou de clicar/focar) -> mostra os diagnósticos já usados, para escolher rapidamente
-      correspondencias = cachePatologias.slice(0, 8);
+      // campo vazio (ex: acabou de clicar/focar) -> mostra os diagnósticos da especialidade
+      // e os já usados, para escolher rapidamente
+      correspondencias = base.slice(0, 8);
     } else {
       // 1) correspondência direta (substring)
-      var diretas = cachePatologias.filter(function(p){
+      var diretas = base.filter(function(p){
         return p.toLowerCase().indexOf(termo) > -1 && p.toLowerCase() !== termo;
       });
       // 2) correspondência aproximada (tolera erros de escrita/ortografia)
       var tolerancia = CE.distanciaAceitavel(termo.length);
-      var aproximadas = cachePatologias
+      var aproximadas = base
         .filter(function(p){ return diretas.indexOf(p) === -1; })
         .map(function(p){
           var palavras = p.toLowerCase().split(' ').concat([p.toLowerCase()]);
