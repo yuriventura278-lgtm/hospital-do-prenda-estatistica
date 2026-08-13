@@ -446,6 +446,7 @@
       '• Abrir uma acção específica: "abrir procedimentos de enfermagem do bloco operatório", "estatísticas de imagiologia"\n' +
       '• Dizer números reais de hoje/ontem para Bloco Operatório, Imagiologia, Hemoterapia e Procedimentos de Enfermagem · Geral: "quantas cirurgias hoje no bloco operatório"\n' +
       '• O mesmo para um mês passado, em Bloco Operatório, Imagiologia e Hemoterapia (o Firebase apaga o dia-a-dia depois de arquivado, mas eu vou buscar o arquivo mensal): "quantos exames de imagiologia em julho", "quantas transfusões no mês passado"\n' +
+      '• Dúvidas de uso do sistema: "como guardar em PDF", "como guardo os dados", ou contacto do Serviço de Estatística: "email do serviço de estatística", "extensão da estatística", "onde fica a estatística", "quem é o chefe de estatística"\n' +
       'Para os outros serviços, e para meses passados de Procedimentos de Enfermagem · Geral, ainda não sei ler números — e continuo sem preencher formulários por voz.';
   }
   function respostaIdentidade(){
@@ -454,6 +455,38 @@
   function respostaCriador(){
     return 'Fui criado pelo Yuri Matias, o meu criador. O Zelo nasceu a 10 de julho de 2026.';
   }
+
+  // ── Perguntas frequentes (sobre o Serviço de Estatística e uso do sistema) ──
+  // Respostas fixas, verificadas por ordem — a primeira que corresponder ao
+  // texto ganha. Para o que não está aqui nem é um serviço/comando
+  // reconhecido, o Zelo diz que não tem acesso a essa informação (ver o
+  // final de processar()), em vez de inventar uma resposta.
+  var PERGUNTAS_FREQUENTES = [
+    {
+      re: /((email|correio electronico|correio eletronico|e mail).*estatistica|estatistica.*(email|correio electronico|correio eletronico|e mail))/,
+      resposta: function () { return 'O email do Serviço de Estatística é estatisticahp@gmail.com.'; }
+    },
+    {
+      re: /((extensao|ramal|numero de telefone|telefone|contacto).*estatistica|estatistica.*(extensao|ramal|numero de telefone|telefone|contacto))/,
+      resposta: function () { return 'A extensão do Serviço de Estatística é 1403.'; }
+    },
+    {
+      re: /(chefe (do |de )?servico de estatistica|chefe de estatistica medica|quem (e|dirige|chefia) (o )?servico de estatistica)/,
+      resposta: function () { return 'O chefe do Serviço de Estatística Médica é o Yuri Matias.'; }
+    },
+    {
+      re: /((onde fica|onde fica localizado|onde esta localizado|localizacao|onde fica situado|onde estamos localizados|onde encontro).*estatistica|estatistica.*(onde fica|localizacao|localizado))/,
+      resposta: function () { return 'O Serviço de Estatística fica na Cave, no corredor dos departamentos, próximo à sala da Nutrição.'; }
+    },
+    {
+      re: /(guardar (em )?pdf|exportar (em )?pdf|gerar (o )?pdf|salvar (em )?pdf|como (faco|tiro) (o |um )?pdf)/,
+      resposta: function () { return 'Para guardar em PDF, procure o botão "Exportar PDF" ou "Gerar PDF" na página onde estiver a trabalhar — normalmente fica junto aos outros botões de ação, no topo ou no fundo da página.'; }
+    },
+    {
+      re: /(como (guardo|salvo|gravo)|como guardar (o |os )?(registo|dados|documento)|como salvar (o |os )?(registo|dados|documento))/,
+      resposta: function () { return 'Os dados ficam guardados à medida que preenche os campos. Para confirmar que foram enviados, procure o botão "Guardar" ou "Gravar" na página e espere pela confirmação de gravação.'; }
+    }
+  ];
 
   function processar(textoOriginal){
     var textoNorm = normalizar(textoOriginal);
@@ -493,6 +526,11 @@
     if (/(quem (te |o |vos )?criou|quem e o (teu |seu )?criador|quem criou o zelo|quem fez o zelo|quem desenvolveu o zelo|quem construiu o zelo|quando (foste|foi) criado)/.test(textoNorm)) {
       return { texto: respostaCriador() };
     }
+    for (var pf = 0; pf < PERGUNTAS_FREQUENTES.length; pf++) {
+      if (PERGUNTAS_FREQUENTES[pf].re.test(textoNorm)) {
+        return { texto: PERGUNTAS_FREQUENTES[pf].resposta() };
+      }
+    }
     if (/(quem es tu|quem es|o que es|apresenta te)/.test(textoNorm)) {
       return { texto: respostaIdentidade() };
     }
@@ -506,7 +544,7 @@
 
     var alvos = localizarServicos(textoNorm);
     if (!alvos.length) {
-      return { texto: 'Ainda não tenho esse comando disponível. Este Zelo funciona por comandos reconhecidos (é gratuito e corre só no seu navegador). Diga "ajuda" para ver exemplos.' };
+      return { texto: 'Não tenho acesso a essa informação. Este Zelo funciona por comandos e perguntas reconhecidas (é gratuito e corre só no seu navegador) — diga "ajuda" para ver exemplos.' };
     }
     // Aviso quando a frase pedia mais do que um serviço distinto (ex.: "abrir
     // bloco operatório e depois farmácia") — o Zelo só trata um pedido de
