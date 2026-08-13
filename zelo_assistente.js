@@ -728,6 +728,13 @@
       cartoes.forEach(function (c) {
         var rotulo = c.querySelector(padrao.rotulo);
         var valor = c.querySelector(padrao.valor);
+        // Algumas páginas não dão uma classe própria ao valor — nesse caso,
+        // o último elemento-filho que não é o próprio rótulo já costuma ser
+        // o valor (rótulo primeiro, valor a seguir, é o padrão comum).
+        if (!valor && rotulo) {
+          var filhos = Array.prototype.filter.call(c.children, function (f) { return f !== rotulo; });
+          valor = filhos[filhos.length - 1] || null;
+        }
         if (rotulo && valor) partes.push(rotulo.textContent.trim() + ': ' + valor.textContent.trim());
       });
       if (partes.length) return partes.join('. ');
