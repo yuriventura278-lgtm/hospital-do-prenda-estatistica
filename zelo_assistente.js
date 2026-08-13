@@ -414,7 +414,6 @@
 
   // ── Motor de intenções ──
   var pendente = null; // { tipo:'confirmar_abrir', file, label }
-  var ultimoServico = null; // memória de curto prazo: último serviço mencionado, para "e as estatísticas disso?"
 
   function respostaSaudacao(){
     var u = estadoUtilizador();
@@ -485,7 +484,6 @@
     }
     var alvo = alvos[0];
     var nome = alvo.tipo === 'servico' ? alvo.svc.nome : alvo.sistema.nome;
-    ultimoServico = alvo;
 
     if (querNumeros) return consultarDados(nome, textoNorm);
 
