@@ -566,11 +566,13 @@
     var nome = alvo.tipo === 'servico' ? alvo.svc.nome : alvo.sistema.nome;
 
     // Dados registados do hospital (números de cirurgias, exames, etc.) são
-    // sensíveis — o Zelo já não os lê nem partilha por voz. consultarDados()
-    // e tudo o que depende dela (RESUMOS_SERVICO, obterFirebaseLeitura,
-    // obterStorageLeitura, consultarDadosDia/Mes) ficam no ficheiro,
-    // propositadamente sem serem chamados, só para o caso de um dia isto
-    // vir a ser reactivado.
+    // sensíveis — o Zelo já não os lê nem partilha por voz aqui. consultarDados()
+    // e o que só ela usa (RESUMOS_SERVICO, obterStorageLeitura,
+    // consultarDadosDia/Mes, extrairMesPassado/extrairData/hojeISO) ficam no
+    // ficheiro, propositadamente sem serem chamados, só para o caso de um dia
+    // isto vir a ser reactivado. obterFirebaseLeitura() continua activa — é
+    // também usada por tentarAvisarPreenchimento() (dias em falta), que não
+    // foi desligada por esta alteração (ver nota nessa função).
     if (querNumeros) {
       return { texto: respostaDadosSensiveis() + avisoComposto };
     }
@@ -826,6 +828,15 @@
   // Quando há dias em falta, avisa sempre que a página abre (é preciso
   // insistir). Quando o mês está todo em dia, os parabéns só soam 1x por dia
   // — repeti-los a cada entrada na página seria cansativo sem necessidade.
+  //
+  // Nota (dados sensíveis): isto lê o Firebase para saber SÓ quais dias têm
+  // ou não um registo guardado — nunca o conteúdo desses registos (números,
+  // dados clínicos). Ficou activo mesmo depois de "quantas cirurgias hoje"
+  // etc. passarem a recusar (ver processar()), por ser informação de
+  // acompanhamento de preenchimento, não dados clínicos. Se isto também
+  // dever parar de ler o Firebase, é só comentar a chamada a
+  // setTimeout(tentarAvisarPreenchimento,...) e o addEventListener
+  // 'zelo-gate-ready' correspondente, lá em baixo em iniciar().
   //
   // zelo_pagegate.js só grava sessionStorage.zeloNome DEPOIS de confirmar a
   // sessão com o Firebase — numa ligação lenta isso pode demorar bem mais do
