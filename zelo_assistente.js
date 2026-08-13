@@ -613,6 +613,42 @@
       } catch (e) {}
     });
   }
+  // Versão sem espera por vozesProntas() — precisa de falar já, de forma
+  // síncrona, porque quem chama isto (a confirmação de eliminar, ver abaixo)
+  // segue logo a seguir com um window.confirm() nativo, que bloqueia a
+  // página; se ficasse à espera do evento "voiceschanged" (até 400ms), essa
+  // espera nunca chegava a correr enquanto o confirm() estivesse aberto.
+  function falarSincrono(texto){
+    if (!window.speechSynthesis) return;
+    if ((localStorage.getItem('zeloVoz') || 'on') === 'off') return;
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(texto.replace(/[•\n]/g, '. '));
+      var idioma = idiomaVoz();
+      u.lang = idioma;
+      var voz = escolherVoz(idioma, window.speechSynthesis.getVoices());
+      if (voz) u.voice = voz;
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  // ── Confirmação por voz antes de eliminar ──
+  // Muitas páginas já pedem confirmação antes de eliminar dados (janela
+  // confirm() nativa do navegador, com uma mensagem própria de cada página)
+  // — isto não substitui esse clique, só acrescenta a mesma pergunta em voz
+  // no preciso momento em que a janela aparece, para reforçar antes de uma
+  // acção irreversível. O Zelo não ouve "sim"/"não" aqui de propósito — quem
+  // decide continua a ser sempre um clique: um erro de reconhecimento de voz
+  // a apagar um registo clínico seria demasiado arriscado.
+  var PALAVRAS_ELIMINAR = /elimin|apag|remov|exclu/i;
+  var confirmNativo = window.confirm;
+  window.confirm = function (mensagem) {
+    var texto = String(mensagem || '');
+    if (PALAVRAS_ELIMINAR.test(texto)) {
+      falarSincrono(texto.replace(/[⚠️]/g, '').replace(/\n+/g, '. '));
+    }
+    return confirmNativo.call(window, mensagem);
+  };
 
   // ── Saudação automática de entrada no sistema (uma vez por dia, por voz) ──
   // Angola usa UTC+1 o ano inteiro (Africa/Luanda, sem hora de Verão), por
