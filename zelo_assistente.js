@@ -586,13 +586,28 @@
   // motor/sistema operativo), por isso a escolha da voz masculina é por
   // nomes conhecidos de vozes portuguesas masculinas nos motores mais comuns
   // (Windows/Edge, macOS/iOS, Google) — corre tudo local, sem custos.
-  var NOMES_VOZ_MASCULINA = ['duarte', 'helder', 'diogo', 'bruno', 'joaquim', 'rui', 'miguel', 'fabio', 'fábio', 'daniel', 'ricardo', 'male'];
+  var NOMES_VOZ_MASCULINA = [
+    'duarte', 'helder', 'diogo', 'bruno', 'joaquim', 'rui', 'miguel', 'fabio', 'fábio', 'daniel', 'ricardo',
+    'antonio', 'antónio', 'felipe', 'male', 'masculino', 'homem'
+  ];
   function ehVozMasculina(v){
     if (v.gender === 'male') return true; // alguns motores expõem isto, embora não seja padrão
     var nome = (v.name || '').toLowerCase();
     return NOMES_VOZ_MASCULINA.some(function (n) { return nome.indexOf(n) !== -1; });
   }
+  // A detecção automática por nome não cobre todos os aparelhos (alguns
+  // motores de voz não dão pistas nenhumas de género no nome) — por isso
+  // quem usa pode escolher a voz exacta no painel (ver "escolher voz" no
+  // cabeçalho), e essa escolha manual tem sempre prioridade sobre a
+  // detecção automática.
+  function vozEscolhidaManualmente(vozes){
+    var nomeEscolhido = localStorage.getItem('zeloVozEscolhidaNome');
+    if (!nomeEscolhido) return null;
+    return vozes.find(function (v) { return v.name === nomeEscolhido; }) || null;
+  }
   function escolherVoz(idioma, vozes){
+    var manual = vozEscolhidaManualmente(vozes);
+    if (manual) return manual;
     var doIdioma = vozes.filter(function (v) { return v.lang === idioma; });
     if (!doIdioma.length) doIdioma = vozes.filter(function (v) { return /pt/i.test(v.lang); });
     if (!doIdioma.length) return null;
@@ -821,6 +836,10 @@
       .zas-icon-btn:hover{background:rgba(255,255,255,.24);}
       .zas-icon-btn.muted{opacity:.5;}
       .zas-idioma-btn{font-size:.6rem;font-weight:800;letter-spacing:.02em;}
+      #zas-voz-config{display:none;padding:8px 12px;background:#F1F5F9;border-bottom:1px solid #E2E8F0;flex-shrink:0;}
+      #zas-voz-config.open{display:block;}
+      #zas-voz-config label{font-size:.62rem;font-weight:700;color:#475569;display:block;margin-bottom:4px;}
+      #zas-voz-select{width:100%;font-size:.72rem;padding:6px 8px;border-radius:8px;border:1px solid #CBD5E1;background:#fff;color:#0F172A;font-family:inherit;}
       #zas-log{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:#F8FAFC;}
       .zas-msg{max-width:86%;padding:8px 11px;border-radius:11px;font-size:.78rem;line-height:1.4;white-space:pre-line;}
       .zas-msg.bot{background:#fff;border:1px solid #E2E8F0;color:#0F172A;align-self:flex-start;border-bottom-left-radius:3px;}
@@ -850,6 +869,9 @@
       html[data-zelo-theme="dark"] #zas-input{background:#0B1220;border-color:#1E293B;color:#F1F5F9;}
       html[data-zelo-theme="dark"] #zas-mic{background:#1E293B;color:#67E8F9;}
       html[data-zelo-theme="dark"] .zas-aviso-voz{background:#2A1F0A;border-color:#78350F;color:#FCD34D;}
+      html[data-zelo-theme="dark"] #zas-voz-config{background:#0B1220;border-color:#1E293B;}
+      html[data-zelo-theme="dark"] #zas-voz-config label{color:#94A3B8;}
+      html[data-zelo-theme="dark"] #zas-voz-select{background:#111A2E;border-color:#1E293B;color:#F1F5F9;}
     `;
     document.head.appendChild(style);
   }
@@ -859,6 +881,7 @@
   var ICON_CLOSE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
   var ICON_SPEAKER_ON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
   var ICON_SPEAKER_OFF = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M23 9l-6 6M17 9l6 6"/></svg>';
+  var ICON_GEAR = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 
   function montarPainel(){
     var btn = document.createElement('button');
@@ -874,7 +897,12 @@
         '<div><div class="zas-title">Zelo</div><div class="zas-sub">Assistente local · grátis</div></div>' +
         '<button type="button" class="zas-icon-btn zas-idioma-btn" id="zas-idioma-toggle" title="Idioma da voz — clique para alternar entre Português de Portugal e do Brasil">' + (idiomaInicial === 'pt-BR' ? 'BR' : 'PT') + '</button>' +
         '<button type="button" class="zas-icon-btn' + (vozLigada ? '' : ' muted') + '" id="zas-voz-toggle" title="Ligar/desligar voz do Zelo">' + (vozLigada ? ICON_SPEAKER_ON : ICON_SPEAKER_OFF) + '</button>' +
+        '<button type="button" class="zas-icon-btn" id="zas-voz-config-toggle" title="Escolher a voz exacta deste aparelho">' + ICON_GEAR + '</button>' +
         '<button type="button" class="zas-icon-btn" id="zas-close" title="Fechar">' + ICON_CLOSE + '</button>' +
+      '</div>' +
+      '<div id="zas-voz-config">' +
+        '<label for="zas-voz-select">Voz do Zelo neste aparelho</label>' +
+        '<select id="zas-voz-select"><option value="">A carregar vozes…</option></select>' +
       '</div>' +
       '<div id="zas-log"></div>' +
       '<div class="zas-chips">' +
@@ -986,6 +1014,34 @@
       localStorage.setItem('zeloVozIdioma', novo);
       this.textContent = novo === 'pt-BR' ? 'BR' : 'PT';
       if (recognition) recognition.lang = novo;
+    });
+
+    // Seletor manual de voz: a detecção automática (ehVozMasculina) não
+    // reconhece o nome da voz em todos os aparelhos — isto dá uma garantia
+    // sempre certa, escolhendo de entre as vozes portuguesas que o próprio
+    // aparelho tem disponíveis.
+    var vozConfigPainel = panel.querySelector('#zas-voz-config');
+    var vozSelect = panel.querySelector('#zas-voz-select');
+    function preencherSeletorVoz(){
+      if (!window.speechSynthesis) return;
+      var vozes = window.speechSynthesis.getVoices().filter(function (v) { return /pt/i.test(v.lang); });
+      if (!vozes.length) return; // ainda não carregaram — o listener de voiceschanged tenta de novo
+      var escolhidaAtual = localStorage.getItem('zeloVozEscolhidaNome') || '';
+      vozSelect.innerHTML = '<option value="">Automática (tenta escolher uma voz masculina)</option>' +
+        vozes.map(function (v) {
+          return '<option value="' + v.name.replace(/"/g, '&quot;') + '"' + (v.name === escolhidaAtual ? ' selected' : '') + '>' + v.name + ' (' + v.lang + ')</option>';
+        }).join('');
+    }
+    preencherSeletorVoz();
+    if (window.speechSynthesis) window.speechSynthesis.addEventListener('voiceschanged', preencherSeletorVoz);
+    panel.querySelector('#zas-voz-config-toggle').addEventListener('click', function () {
+      vozConfigPainel.classList.toggle('open');
+      if (vozConfigPainel.classList.contains('open')) preencherSeletorVoz();
+    });
+    vozSelect.addEventListener('change', function () {
+      if (vozSelect.value) localStorage.setItem('zeloVozEscolhidaNome', vozSelect.value);
+      else localStorage.removeItem('zeloVozEscolhidaNome');
+      falar('Voz escolhida.');
     });
 
     if (vozDisponivel) {
