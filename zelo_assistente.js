@@ -890,6 +890,11 @@
     'De volta, NOME? Sou o Zelo, sempre por perto.',
     'Olá, NOME — bem-vindo(a) de volta ao ZELO.'
   ];
+  // Nota do Serviço de Estatística, pedida para vir sempre no fim da
+  // saudação completa (não na de "bem-vindo de volta", mais curta e que já
+  // não repete a recomendação) — texto fixo, por ser uma instrução
+  // operacional, não uma frase de cortesia a variar.
+  var NOTA_ESTATISTICA = ' Nota importante: o Serviço de Estatística agradece se, antes das suas atividades, levar os dados produzidos do último turno. Não guarde registos estatísticos no departamento — peça ao secretário do serviço para os levar à Estatística.';
   // Só sauda quando já há sessão iniciada (sessionStorage.zeloNome) — não na
   // página de login. A saudação completa (com recomendação) só acontece uma
   // vez por dia, guardada em localStorage (vale para o dispositivo todo, não
@@ -913,7 +918,7 @@
     var abertura = ABERTURAS_ENTRADA_DIA[Math.floor(Math.random() * ABERTURAS_ENTRADA_DIA.length)];
     var transicao = TRANSICOES_RECOMENDACAO[Math.floor(Math.random() * TRANSICOES_RECOMENDACAO.length)];
     var lembrete = LEMBRETES_SAUDACAO[Math.floor(Math.random() * LEMBRETES_SAUDACAO.length)];
-    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '. ' + abertura + ' ' + transicao + ' ' + lembrete;
+    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '. ' + abertura + ' ' + transicao + ' ' + lembrete + NOTA_ESTATISTICA;
     falar(texto);
   }
   // Exposto para o index.html chamar assim que o login terminar. É preciso
