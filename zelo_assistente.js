@@ -545,6 +545,37 @@
     } catch (e) {}
   }
 
+  // ── Saudação automática de entrada no sistema (uma vez por dia, por voz) ──
+  // Angola usa UTC+1 o ano inteiro (Africa/Luanda, sem hora de Verão), por
+  // isso a escolha entre "bom dia"/"boa tarde"/"boa noite" usa sempre a hora
+  // desse fuso, independentemente do fuso do dispositivo de quem acede.
+  function dataHoraAngola(){
+    var partes = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false
+    }).formatToParts(new Date());
+    var obj = {};
+    partes.forEach(function (p) { obj[p.type] = p.value; });
+    return { data: obj.year + '-' + obj.month + '-' + obj.day, hora: parseInt(obj.hour, 10) };
+  }
+  function saudacaoPorHora(hora){
+    if (hora >= 5 && hora < 12) return 'Bom dia';
+    if (hora >= 12 && hora < 19) return 'Boa tarde';
+    return 'Boa noite';
+  }
+  // Só sauda quando já há sessão iniciada (sessionStorage.zeloNome) — não na
+  // página de login — e só uma vez por dia (guardado em localStorage, por
+  // isso vale para o dispositivo todo, não por separador/página).
+  function tentarSaudarEntrada(){
+    var nome = (sessionStorage.getItem('zeloNome') || '').split(' ')[0];
+    if (!nome) return;
+    var agora = dataHoraAngola();
+    if (localStorage.getItem('zeloSaudacaoDia') === agora.data) return;
+    localStorage.setItem('zeloSaudacaoDia', agora.data);
+    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '! Aqui é o Zelo. Desejo-lhe um bom dia de trabalho. ' +
+      'Um lembrete: tenha sempre atenção ao escrever e ao guardar os registos — cada dado certo faz diferença para o doente e para a equipa.';
+    falar(texto);
+  }
+
   // ── UI ──
   function injetarEstilos(){
     var style = document.createElement('style');
@@ -744,6 +775,9 @@
   function iniciar(){
     injetarEstilos();
     montarPainel();
+    // Pequeno atraso: dá tempo à página para assentar e às vozes do
+    // navegador (speechSynthesis.getVoices()) para carregarem.
+    setTimeout(tentarSaudarEntrada, 1200);
   }
 
   if (document.readyState === 'loading') {
