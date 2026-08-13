@@ -782,7 +782,16 @@
       });
       if (linhas.length) return linhas.join('. ');
     }
-    return (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+    var texto = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+    // Quando o próprio botão "Ler em voz" está dentro do contentor lido
+    // (ex.: um botão único no topo da página, a ler tudo o resto), o texto
+    // desse botão não pode fazer parte da narração — sem isto lia-se a
+    // ler-se a si próprio antes de chegar aos dados a sério.
+    el.querySelectorAll('button').forEach(function (b) {
+      var textoBotao = (b.innerText || b.textContent || '').replace(/\s+/g, ' ').trim();
+      if (textoBotao) texto = texto.split(textoBotao).join(' ');
+    });
+    return texto.replace(/\s+/g, ' ').trim();
   }
   // Exposto para as páginas ligarem um botão "🔊 Ler em voz" a qualquer
   // contentor já carregado no ecrã (dia, mês, trimestre, semestre, ano).
