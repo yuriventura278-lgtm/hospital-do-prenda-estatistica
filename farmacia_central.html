@@ -1823,6 +1823,27 @@ function renderValidades(){
     return"<tr><td>"+esc(p.descricao||"—")+"</td><td>"+esc(l.lote)+"</td><td>"+MESES[+pt[1]-1].slice(0,3)+" "+pt[0]+"</td><td class='num'>"+(l.dias<0?"—":fmt(l.dias))+"</td><td>"+valTag(l.dias)+"</td></tr>";
   }).join(""):"<tr><td colspan='5' class='empty'>Sem lotes com validade a menos de 180 dias. Registe a validade nas entradas para activar o controlo.</td></tr>";
 }
+// Resumo de stock por voz — só 1x por dia (localStorage), e só se houver
+// algo a assinalar; tudo em dia fica em silêncio, sem "parabéns" repetido a
+// cada entrada — o objectivo é avisar do que precisa de atenção, não ser
+// mais uma mensagem de rotina.
+function zeloResumoStockVoz(){
+  if (typeof window.zeloFalar!=="function") return;
+  var chave="zeloFarmaciaResumoDia",h=hoje();
+  if (localStorage.getItem(chave)===h) return;
+  localStorage.setItem(chave,h);
+  var mv=prodsComMov();
+  var act=state.produtos.filter(function(p){return p.estado!=="Inativo";});
+  var lowN=act.filter(function(p){return p.stock>0&&p.stock<=p.stockMin;}).length;
+  var zeroN=act.filter(function(p){return p.stock<=0&&mv[p.id];}).length;
+  var valN=lotesDetalhe().filter(function(l){return l.dias!==null&&l.disp>0&&l.dias<=90;}).length;
+  if (!lowN&&!zeroN&&!valN) return;
+  var partes=[];
+  if (zeroN) partes.push(zeroN+(zeroN===1?" produto esgotado":" produtos esgotados"));
+  if (lowN) partes.push(lowN+(lowN===1?" produto com stock baixo":" produtos com stock baixo"));
+  if (valN) partes.push(valN+(valN===1?" lote com validade a expirar em breve":" lotes com validade a expirar em breve"));
+  window.zeloFalar("Resumo da farmácia: "+partes.join(", ")+".");
+}
 function movCard(m){
   var p=state.produtos.find(function(x){return x.id===m.produtoId;})||{};
   var inn=m.tipo==="entrada";
@@ -2872,6 +2893,7 @@ function boot(){
               $("ftAno").textContent=new Date().getFullYear();
               perInit();
               render();
+              zeloResumoStockVoz();
               autoBackupBoot();
               setInterval(renderHeader,30000);
             },450);

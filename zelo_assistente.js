@@ -937,6 +937,11 @@
   // ainda vazio) e nunca mais se repete sozinha.
   window.zeloTentarSaudarEntrada = tentarSaudarEntrada;
 
+  // Exposto para páginas cuja lógica de dados vive num closure próprio (ex:
+  // farmacia_central.html) poderem falar através da mesma fila/voz/mudo do
+  // Zelo, em vez de cada página reimplementar a sua própria leitura de voz.
+  window.zeloFalar = falar;
+
   // ── Aviso de preenchimento em falta ──
   // Cada página com este aviso diz como encontrar os seus próprios dados no
   // Firebase (window.ZELO_MODULE/ZELO_ITEM, já definidos no topo de cada
