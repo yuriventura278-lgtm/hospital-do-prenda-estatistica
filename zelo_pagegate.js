@@ -13,7 +13,13 @@ function aplicarModoLeitura(){
   function bloquear(){
     var banner = document.createElement('div');
     banner.textContent = '🔒 Modo só de leitura — não é possível guardar alterações neste módulo.';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999997;background:#92400E;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.8rem;font-weight:700;padding:9px 12px;';
+    // Se o aviso de "sem ligação" (mostrarAvisoOffline) já estiver visível no
+    // topo, este banner ficava exactamente por cima dele (ambos fixos em
+    // top:0) — o de leitura, com z-index maior, tapava por completo o de
+    // offline. Empilha-o por baixo desse quando os dois coexistem.
+    var avisoOffline = document.getElementById('zelo-offline-banner');
+    var topo = avisoOffline ? avisoOffline.getBoundingClientRect().height : 0;
+    banner.style.cssText = 'position:fixed;top:' + topo + 'px;left:0;right:0;z-index:999997;background:#92400E;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.8rem;font-weight:700;padding:9px 12px;';
     document.body.insertBefore(banner, document.body.firstChild);
     // Sair (zeloLogout) nunca deve ficar bloqueado — ficar só de leitura num módulo
     // não pode impedir o utilizador de terminar a sessão.
