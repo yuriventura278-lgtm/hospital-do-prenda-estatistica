@@ -841,8 +841,11 @@ usersBody.addEventListener('click', async function(e){
       alert('Não é possível desativar esta conta: é o único Administrador ativo do sistema.');
       return;
     }
-    if(uid === currentUid && !novoAtivo){
-      if(!confirm('Vais desativar a tua própria conta e perder o acesso. Continuar?')) return;
+    if(!novoAtivo){
+      const msg = uid === currentUid
+        ? 'Vais desativar a tua própria conta e perder o acesso. Continuar?'
+        : 'Desativar a conta de ' + (u.nome || u.email) + '? A pessoa deixa de conseguir entrar no ZELO até ser reativada. Continuar?';
+      if(!confirm(msg)) return;
     }
     try{
       await update(ref(db, 'users/' + uid), { ativo: novoAtivo });

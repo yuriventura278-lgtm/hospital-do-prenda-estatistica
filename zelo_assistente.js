@@ -818,7 +818,7 @@
   // acção irreversível. O Zelo não ouve "sim"/"não" aqui de propósito — quem
   // decide continua a ser sempre um clique: um erro de reconhecimento de voz
   // a apagar um registo clínico seria demasiado arriscado.
-  var PALAVRAS_ELIMINAR = /elimin|apag|remov|exclu/i;
+  var PALAVRAS_ELIMINAR = /elimin|apag|remov|exclu|desativ/i;
   var confirmNativo = window.confirm;
   window.confirm = function (mensagem) {
     var texto = String(mensagem || '');
