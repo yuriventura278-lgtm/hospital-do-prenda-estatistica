@@ -1164,10 +1164,17 @@ function renderOcorr(){
 
 // ── CLASSIFICAÇÃO ─────────────────────────────────────────
 function selClass(el){
+  const anterior=classUCI;
   classUCI=el.dataset.v;
   document.querySelectorAll('.co').forEach(o=>o.classList.toggle('sel',o===el));
   const b=document.getElementById('bdg-class');
   if(b){b.textContent=classUCI;b.classList.add('on');}
+  // Reforço por voz só ao MUDAR para "Crítico" (o estado mais grave e mais
+  // raro) — não repete se já estava em Crítico, nem fala de Estável/Instável,
+  // para não ser mais um som de rotina a cada clique.
+  if(classUCI==='Crítico' && anterior!=='Crítico' && typeof window.zeloFalar==='function'){
+    window.zeloFalar('Classificação da UCI registada como Crítico.');
+  }
   upd();ss();saveDraft();
 }
 
