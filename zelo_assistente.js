@@ -1127,11 +1127,12 @@
             .sort(function (a, b) { return a.ts < b.ts ? -1 : 1; });
           entradas.forEach(function (entrada, idx) {
             if (entrada.ts <= ultimaVisitaISO) return;
+            if (idx !== 0) return; // só fala de preenchimentos novos — edições ficam em silêncio
             eventos.push({
               nome: (entrada.nome || 'Alguém').split(' ')[0],
               especialidade: labelEspecialidadeEnfermagem(r.slug),
               data: dataISO,
-              tipo: idx === 0 ? 'preencheu' : 'editou',
+              tipo: 'preencheu',
               ts: entrada.ts
             });
           });
