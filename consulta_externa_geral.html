@@ -2617,6 +2617,9 @@ CE.Registo = (function(){
       if (sessaoLocal){
         sessaoAtualId = sessaoLocal.id;
         carregarSessaoParaEdicao(sessaoLocal, []);
+        esconderGate(); // o "gate" pode ter ficado visível de uma verificação anterior, feita
+                         // antes destes dados remotos chegarem — sem isto, o ecrã continuava a
+                         // dizer "Ainda sem registo hoje" mesmo já tendo os dados carregados.
       }
     }
   }
