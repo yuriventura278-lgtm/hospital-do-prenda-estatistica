@@ -847,13 +847,31 @@
   }
   // Alguns turnos são de noite — "bom dia de trabalho" ficaria estranho a
   // seguir a "boa noite", por isso o desejo usa sempre "turno", que serve a
-  // qualquer hora. O lembrete varia entre algumas frases para não soar
-  // sempre igual ao fim de semanas de uso diário.
+  // qualquer hora. A abertura (quem é o Zelo + desejo de bom turno) e a
+  // recomendação variam cada uma entre várias frases escolhidas ao acaso,
+  // para não soar sempre igual ao fim de semanas de uso diário — mas nunca
+  // ao mesmo tempo que se repete a mesma combinação todos os dias.
+  var ABERTURAS_ENTRADA_DIA = [
+    'Eu sou o assistente Zelo. Desejo-te um bom turno de trabalho.',
+    'Aqui é o Zelo. Espero que o turno corra bem.',
+    'Sou o Zelo, sempre por perto. Bom turno de trabalho.',
+    'O Zelo está por aqui, como sempre. Desejo-te um bom turno.'
+  ];
+  var TRANSICOES_RECOMENDACAO = [
+    'E uma recomendação:',
+    'Já agora, uma dica:',
+    'Um lembrete rápido:',
+    'Deixo-te aqui uma sugestão:'
+  ];
   var LEMBRETES_SAUDACAO = [
     'tenha sempre atenção ao escrever e ao guardar os registos — cada dado certo faz diferença para o doente e para a equipa.',
     'confirme bem os dados antes de guardar — um registo certo hoje poupa tempo e dúvidas mais tarde.',
     'escreva com calma e reveja antes de guardar — a qualidade dos registos começa em cada detalhe.',
-    'antes de guardar, dê sempre uma segunda olhadela aos dados — vale a pena o cuidado extra.'
+    'antes de guardar, dê sempre uma segunda olhadela aos dados — vale a pena o cuidado extra.',
+    'não deixe o registo do dia para depois — o que fica para trás é mais fácil de se esquecer.',
+    'se algum campo ficar em dúvida, confirme com a equipa antes de guardar — é sempre melhor perguntar do que adivinhar.',
+    'um registo bem preenchido hoje é um problema a menos amanhã — vale o minuto extra.',
+    'dados incompletos contam metade da história — tente preencher tudo o que se aplica ao dia.'
   ];
   // Só sauda na página inicial (index.html) — é aí que se entra no sistema;
   // abrir directamente outra página (ex.: um separador deixado aberto, ou um
@@ -872,9 +890,10 @@
     var agora = dataHoraAngola();
     if (localStorage.getItem('zeloSaudacaoDia') === agora.data) return;
     localStorage.setItem('zeloSaudacaoDia', agora.data);
+    var abertura = ABERTURAS_ENTRADA_DIA[Math.floor(Math.random() * ABERTURAS_ENTRADA_DIA.length)];
+    var transicao = TRANSICOES_RECOMENDACAO[Math.floor(Math.random() * TRANSICOES_RECOMENDACAO.length)];
     var lembrete = LEMBRETES_SAUDACAO[Math.floor(Math.random() * LEMBRETES_SAUDACAO.length)];
-    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '. Eu sou o assistente Zelo. ' +
-      'Desejo-te um bom turno de trabalho. E uma recomendação: ' + lembrete;
+    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '. ' + abertura + ' ' + transicao + ' ' + lembrete;
     falar(texto);
   }
   // Exposto para o index.html chamar assim que o login terminar. É preciso
@@ -956,6 +975,30 @@
   // fixo (cobre o caso rápido) como no evento 'zelo-gate-ready' que essa
   // página já dispara mal a sessão fica confirmada (cobre o caso lento); a
   // flag abaixo impede que as duas tentativas falem por cima uma da outra.
+  // Aberturas do aviso de dias em falta (parte fixa: "Em {serviço}, este mês:
+  // {lista de dias}." nunca varia — é a informação em si, tem de chegar
+  // sempre igual e sem ambiguidade).
+  var ABERTURAS_AVISO_FALTA = [
+    'Olá, NOME. Lema do Zelo: dados de qualidade geram decisão de qualidade.',
+    'Olá, NOME. Aviso do Zelo — ainda há dias por preencher.',
+    'Olá, NOME. Antes de continuares, uma nota sobre o preenchimento.',
+    'Olá, NOME. Reparei que ainda faltam alguns dias este mês.'
+  ];
+  // Aberturas dos parabéns quando está tudo em dia (a parte "Em {serviço},
+  // está tudo preenchido até ontem." também não varia, pelo mesmo motivo).
+  var ABERTURAS_PARABENS_EM_DIA = [
+    'Parabéns, NOME, pela dedicação em enviar os ITENS a tempo e horas.',
+    'Muito bem, NOME! Continuas em dia com os ITENS.',
+    'Boa, NOME — os ITENS estão todos a tempo este mês.',
+    'NOME, os teus ITENS continuam impecáveis este mês. Parabéns pela dedicação.'
+  ];
+  // Fecho ("lembrete") de todas as mensagens de preenchimento — a extensão e
+  // o serviço de contacto mantêm-se sempre iguais em cada variante.
+  var LEMBRETES_FECHO_PREENCHIMENTO = [
+    ' Lembre-se: os dados contam a história do hospital, e você também é responsável por transformar essa história em conhecimento para a tomada de decisão. Qualquer dúvida, ligue para a extensão 1403, Serviço de Estatística.',
+    ' Um lembrete: cada registo é um pedaço da história do hospital — e essa história ajuda a decidir melhor. Dúvidas, ligue para a extensão 1403, Serviço de Estatística.',
+    ' Vale sempre lembrar: dados bem guardados hoje tornam-se boas decisões amanhã. Qualquer dúvida, é só ligar para a extensão 1403, Serviço de Estatística.'
+  ];
   var avisoPreenchimentoEmCurso = false;
   function tentarAvisarPreenchimento(){
     var cfg = configAvisoPreenchimento();
@@ -981,16 +1024,16 @@
       var texto;
       if (diasFalta.length) {
         var diasPorExtenso = diasFalta.map(function (d) { return 'dia ' + d + ', ainda sem registo'; }).join('; ');
-        texto = 'Olá, ' + nome + '. Lema do Zelo: dados de qualidade geram decisão de qualidade. ' +
-          'Em ' + cfg.servicoLabel + ', este mês: ' + diasPorExtenso + '.';
+        var aberturaAviso = ABERTURAS_AVISO_FALTA[Math.floor(Math.random() * ABERTURAS_AVISO_FALTA.length)].replace('NOME', nome);
+        texto = aberturaAviso + ' Em ' + cfg.servicoLabel + ', este mês: ' + diasPorExtenso + '.';
       } else {
         if (localStorage.getItem(chaveOkHoje) === agora.data) return;
         localStorage.setItem(chaveOkHoje, agora.data);
-        texto = 'Parabéns, ' + nome + ', pela dedicação em enviar os ' + cfg.itemPlural + ' a tempo e horas. ' +
-          'Em ' + cfg.servicoLabel + ', está tudo preenchido até ontem.';
+        var aberturaParabens = ABERTURAS_PARABENS_EM_DIA[Math.floor(Math.random() * ABERTURAS_PARABENS_EM_DIA.length)]
+          .replace('NOME', nome).replace('ITENS', cfg.itemPlural);
+        texto = aberturaParabens + ' Em ' + cfg.servicoLabel + ', está tudo preenchido até ontem.';
       }
-      texto += ' Lembre-se: os dados contam a história do hospital, e você também é responsável por transformar essa ' +
-        'história em conhecimento para a tomada de decisão. Qualquer dúvida, ligue para a extensão 1403, Serviço de Estatística.';
+      texto += LEMBRETES_FECHO_PREENCHIMENTO[Math.floor(Math.random() * LEMBRETES_FECHO_PREENCHIMENTO.length)];
       falar(texto);
     }).catch(function () {}); // sem ligação agora — fica em silêncio, sem incomodar com erros a cada entrada na página
   }
