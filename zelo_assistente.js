@@ -741,6 +741,15 @@
     }
     return slug;
   }
+  // Tabela dos serviços "de página única" (não são por especialidade, como
+  // Procedimentos de Enfermagem) — para juntar mais um basta acrescentar
+  // aqui a linha com o caminho no Firebase e o nome a dizer.
+  var TABELA_AVISO_PREENCHIMENTO = {
+    'servicos|bloco_operatorio': { fbPathBase: 'registos/bloco_operatorio', servicoLabel: 'Bloco Operatório', itemPlural: 'registos' },
+    'servicos|laboratorio_clinico': { fbPathBase: 'registos/laboratorio_clinico', servicoLabel: 'Laboratório', itemPlural: 'registos' },
+    'servicos|consulta_externa': { fbPathBase: 'registos/consulta_externa', servicoLabel: 'Consulta Externa', itemPlural: 'registos' },
+    'sistemas_independentes|hemoterapia': { fbPathBase: 'registos_sistemas_locais/hemoterapia', servicoLabel: 'Hemoterapia', itemPlural: 'registos' }
+  };
   function configAvisoPreenchimento(){
     if (window.ZELO_MODULE === 'procedimentos_enfermagem' && window.ZELO_ITEM) {
       return {
@@ -750,15 +759,15 @@
         chaveAviso: 'enf_' + window.ZELO_ITEM
       };
     }
-    if (window.ZELO_MODULE === 'servicos' && window.ZELO_ITEM === 'bloco_operatorio') {
-      return {
-        fbPathBase: 'registos/bloco_operatorio',
-        servicoLabel: 'Bloco Operatório',
-        itemPlural: 'registos',
-        chaveAviso: 'bloco_operatorio'
-      };
-    }
-    return null;
+    var chave = window.ZELO_MODULE + '|' + window.ZELO_ITEM;
+    var cfg = TABELA_AVISO_PREENCHIMENTO[chave];
+    if (!cfg) return null;
+    return {
+      fbPathBase: cfg.fbPathBase,
+      servicoLabel: cfg.servicoLabel,
+      itemPlural: cfg.itemPlural,
+      chaveAviso: chave
+    };
   }
   // Quando há dias em falta, avisa sempre que a página abre (é preciso
   // insistir). Quando o mês está todo em dia, os parabéns só soam 1x por dia
