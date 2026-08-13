@@ -670,15 +670,15 @@
   // ainda vazio) e nunca mais se repete sozinha.
   window.zeloTentarSaudarEntrada = tentarSaudarEntrada;
 
-  // ── Aviso de preenchimento em falta nos Procedimentos de Enfermagem ──
-  // Ao contrário da saudação da página inicial (1x/dia), este aviso soa
-  // sempre que a pessoa entra numa das 13 páginas de Procedimentos de
-  // Enfermagem — cada uma avisa só da sua própria especialidade (window.
-  // ZELO_ITEM, definido no topo de cada uma dessas páginas). O relatório
-  // mensal arquiva e limpa a Realtime Database no dia 2 de cada mês, por
-  // isso o nó registos_enf/<especialidade> só tem os dias do mês corrente —
-  // uma única leitura já dá a lista toda de dias preenchidos, sem precisar
-  // de até 30 pedidos separados.
+  // ── Aviso de preenchimento em falta ──
+  // Cada página com este aviso diz como encontrar os seus próprios dados no
+  // Firebase (window.ZELO_MODULE/ZELO_ITEM, já definidos no topo de cada
+  // página para as permissões) — começa em Procedimentos de Enfermagem (uma
+  // configuração por especialidade) e Bloco Operatório; outros serviços
+  // podem juntar-se aqui da mesma forma. O relatório mensal arquiva e limpa
+  // a Realtime Database no dia 2 de cada mês, por isso cada caminho aqui só
+  // tem os dias do mês corrente — uma única leitura já dá a lista toda de
+  // dias preenchidos, sem precisar de até 30 pedidos separados.
   function labelEspecialidadeEnfermagem(slug){
     if (slug === 'geral') return 'Geral';
     var menu = window.SERVICOS_MENU || [];
@@ -694,18 +694,40 @@
     if (itens.length === 1) return itens[0];
     return itens.slice(0, -1).join(', ') + ' e ' + itens[itens.length - 1];
   }
-  function tentarAvisarProcedimentosEnfermagem(){
-    if (window.ZELO_MODULE !== 'procedimentos_enfermagem') return;
-    var slug = window.ZELO_ITEM;
-    if (!slug) return;
+  function configAvisoPreenchimento(){
+    if (window.ZELO_MODULE === 'procedimentos_enfermagem' && window.ZELO_ITEM) {
+      return {
+        fbPathBase: 'registos_enf/' + window.ZELO_ITEM,
+        servicoLabel: 'Procedimentos de Enfermagem de ' + labelEspecialidadeEnfermagem(window.ZELO_ITEM),
+        itemPlural: 'procedimentos',
+        chaveAviso: 'enf_' + window.ZELO_ITEM
+      };
+    }
+    if (window.ZELO_MODULE === 'servicos' && window.ZELO_ITEM === 'bloco_operatorio') {
+      return {
+        fbPathBase: 'registos/bloco_operatorio',
+        servicoLabel: 'Bloco Operatório',
+        itemPlural: 'registos',
+        chaveAviso: 'bloco_operatorio'
+      };
+    }
+    return null;
+  }
+  // Quando há dias em falta, avisa sempre que a página abre (é preciso
+  // insistir). Quando o mês está todo em dia, os parabéns só soam 1x por dia
+  // — repeti-los a cada entrada na página seria cansativo sem necessidade.
+  function tentarAvisarPreenchimento(){
+    var cfg = configAvisoPreenchimento();
+    if (!cfg) return;
     var nome = (sessionStorage.getItem('zeloNome') || '').split(' ')[0];
     if (!nome) return;
     var agora = dataHoraAngola();
     var partes = agora.data.split('-');
     var diaHoje = parseInt(partes[2], 10);
     if (diaHoje <= 1) return; // dia 1 do mês — ainda não há "até ontem" para avaliar
+    var chaveOkHoje = 'zeloAvisoPreenchimentoOK_' + cfg.chaveAviso;
     obterFirebaseLeitura().then(function (ler) {
-      return ler('registos_enf/' + slug);
+      return ler(cfg.fbPathBase);
     }).then(function (mes) {
       mes = mes || {};
       var diasFalta = [];
@@ -713,15 +735,18 @@
         var chave = partes[0] + '-' + partes[1] + '-' + String(d).padStart(2, '0');
         if (!mes[chave]) diasFalta.push(String(d));
       }
-      var especialidade = labelEspecialidadeEnfermagem(slug);
-      var texto = 'Olá, ' + nome + '. Lema do Zelo: dados de qualidade geram decisão de qualidade. ';
+      var texto;
       if (diasFalta.length) {
-        texto += 'Em Procedimentos de Enfermagem de ' + especialidade + ', ainda falta preencher o' +
-          (diasFalta.length > 1 ? 's dias ' : ' dia ') + porExtenso(diasFalta) + ' deste mês. ';
+        texto = 'Olá, ' + nome + '. Lema do Zelo: dados de qualidade geram decisão de qualidade. ' +
+          'Em ' + cfg.servicoLabel + ', ainda falta preencher o' + (diasFalta.length > 1 ? 's dias ' : ' dia ') +
+          porExtenso(diasFalta) + ' deste mês.';
       } else {
-        texto += 'Em Procedimentos de Enfermagem de ' + especialidade + ', está tudo preenchido até ontem. Parabéns. ';
+        if (localStorage.getItem(chaveOkHoje) === agora.data) return;
+        localStorage.setItem(chaveOkHoje, agora.data);
+        texto = 'Parabéns, ' + nome + ', pela dedicação em enviar os ' + cfg.itemPlural + ' a tempo e horas. ' +
+          'Em ' + cfg.servicoLabel + ', está tudo preenchido até ontem.';
       }
-      texto += 'Lembre-se: os dados contam a história do hospital, e você também é responsável por transformar essa ' +
+      texto += ' Lembre-se: os dados contam a história do hospital, e você também é responsável por transformar essa ' +
         'história em conhecimento para a tomada de decisão. Qualquer dúvida, ligue para a extensão 1403, Serviço de Estatística.';
       falar(texto);
     }).catch(function () {}); // sem ligação agora — fica em silêncio, sem incomodar com erros a cada entrada na página
@@ -946,7 +971,7 @@
     // Pequeno atraso: dá tempo à página para assentar e às vozes do
     // navegador (speechSynthesis.getVoices()) para carregarem.
     setTimeout(tentarSaudarEntrada, 1200);
-    setTimeout(tentarAvisarProcedimentosEnfermagem, 1200);
+    setTimeout(tentarAvisarPreenchimento, 1200);
   }
 
   if (document.readyState === 'loading') {
