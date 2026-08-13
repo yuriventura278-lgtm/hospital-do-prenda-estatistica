@@ -14,12 +14,13 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, update, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbUpdate = (path,val)=>update(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
     window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
     window.__fbReady = true;
@@ -1634,7 +1635,7 @@ function persist(date) {
   if(window.zeloQueueWrite){
     const _fbSavedAt = new Date().toISOString();
     _fbUltimoEnvioSavedAt[d] = _fbSavedAt; // é a nossa própria gravação — não avisar sobre ela
-    zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + d, {savedAt: _fbSavedAt, snapshot: buildFirebaseSnapshot(data)});
+    zeloQueueUpdate('registos_enf/' + FB_SLUG + '/' + d, {savedAt: _fbSavedAt, snapshot: buildFirebaseSnapshot(data)});
     try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + d, _fbSavedAt); }catch(e){}
     _registarHistoricoAlteracao(d, data, _fbSavedAt);
   }
@@ -1805,7 +1806,7 @@ async function _fbSyncArmazenado(date){
     const data = JSON.parse(raw);
     const savedAt = new Date().toISOString();
     _fbUltimoEnvioSavedAt[date] = savedAt;
-    await zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + date, {savedAt: savedAt, snapshot: {sub: _buildSubFromData(data), raw: data}});
+    await zeloQueueUpdate('registos_enf/' + FB_SLUG + '/' + date, {savedAt: savedAt, snapshot: {sub: _buildSubFromData(data), raw: data}});
     try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
   }catch(e){ console.warn('ZELO: falha ao reenviar', date, e); }
 }
@@ -1910,7 +1911,7 @@ async function _fbEscutarDia(date){
         if (localRaw && window.zeloQueueWrite && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot.raw)) {
           const curaSavedAt = new Date().toISOString();
           _fbUltimoEnvioSavedAt[date] = curaSavedAt;
-          zeloQueueWrite('registos_enf/' + FB_SLUG + '/' + date, {savedAt: curaSavedAt, snapshot: {raw: mesclado}});
+          zeloQueueUpdate('registos_enf/' + FB_SLUG + '/' + date, {savedAt: curaSavedAt, snapshot: {raw: mesclado}});
           try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
         }
       }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes dos Procedimentos.', e); }

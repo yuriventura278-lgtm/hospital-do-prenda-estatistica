@@ -27,21 +27,31 @@
 
   // Tenta escrever imediatamente no Firebase; se falhar (ou estiver offline),
   // guarda em fila local para reenviar mais tarde — a escrita nunca se perde.
-  async function zeloQueueWrite(path, data) {
-    if (window.__fbReady && window.__fbSet) {
+  // op='set' (omisso) substitui tudo o que estiver nesse caminho — é o que
+  // sempre foi. op='update' só mexe nas chaves indicadas em "data", sem
+  // apagar outras chaves-irmãs já lá guardadas (ex.: um nó do dia que também
+  // tem um "historico" ao lado dos campos principais).
+  async function zeloQueueWrite(path, data, op) {
+    op = op === 'update' ? 'update' : 'set';
+    var fbFn = op === 'update' ? window.__fbUpdate : window.__fbSet;
+    if (window.__fbReady && fbFn) {
       try {
-        await window.__fbSet(path, data);
+        await fbFn(path, data);
         return { ok: true, queued: false };
       } catch (e) {
         console.warn('ZELO sync: falha ao enviar para o Firebase — colocado em fila para reenvio automático.', e);
       }
     }
     try {
-      await QUEUE_DB.put('pending', { id: novoId(), path: path, data: data, ts: Date.now() });
+      await QUEUE_DB.put('pending', { id: novoId(), path: path, data: data, op: op, ts: Date.now() });
     } catch (e) {
       console.error('ZELO sync: não foi possível gravar nem sequer a fila local de sincronização.', e);
     }
     return { ok: false, queued: true };
+  }
+  // Atalho para a escrita parcial — ver nota acima sobre op='update'.
+  function zeloQueueUpdate(path, data) {
+    return zeloQueueWrite(path, data, 'update');
   }
 
   async function zeloPendingCount() {
@@ -60,7 +70,10 @@
       const pendentes = await QUEUE_DB.getAll('pending');
       for (const item of pendentes) {
         try {
-          await window.__fbSet(item.path, item.data);
+          // Itens gravados antes desta distinção existir não têm "op" — eram
+          // sempre set(), por isso omisso continua a significar 'set'.
+          const fbFn = item.op === 'update' && window.__fbUpdate ? window.__fbUpdate : window.__fbSet;
+          await fbFn(item.path, item.data);
           await QUEUE_DB.delete('pending', item.id);
           enviados++;
         } catch (e) {
@@ -76,6 +89,7 @@
   }
 
   window.zeloQueueWrite = zeloQueueWrite;
+  window.zeloQueueUpdate = zeloQueueUpdate;
   window.zeloPendingCount = zeloPendingCount;
   window.zeloFlushQueue = zeloFlushQueue;
 
