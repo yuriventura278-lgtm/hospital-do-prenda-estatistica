@@ -562,6 +562,16 @@
     if (hora >= 12 && hora < 19) return 'Boa tarde';
     return 'Boa noite';
   }
+  // Alguns turnos são de noite — "bom dia de trabalho" ficaria estranho a
+  // seguir a "boa noite", por isso o desejo usa sempre "turno", que serve a
+  // qualquer hora. O lembrete varia entre algumas frases para não soar
+  // sempre igual ao fim de semanas de uso diário.
+  var LEMBRETES_SAUDACAO = [
+    'tenha sempre atenção ao escrever e ao guardar os registos — cada dado certo faz diferença para o doente e para a equipa.',
+    'confirme bem os dados antes de guardar — um registo certo hoje poupa tempo e dúvidas mais tarde.',
+    'escreva com calma e reveja antes de guardar — a qualidade dos registos começa em cada detalhe.',
+    'antes de guardar, dê sempre uma segunda olhadela aos dados — vale a pena o cuidado extra.'
+  ];
   // Só sauda quando já há sessão iniciada (sessionStorage.zeloNome) — não na
   // página de login — e só uma vez por dia (guardado em localStorage, por
   // isso vale para o dispositivo todo, não por separador/página).
@@ -571,8 +581,9 @@
     var agora = dataHoraAngola();
     if (localStorage.getItem('zeloSaudacaoDia') === agora.data) return;
     localStorage.setItem('zeloSaudacaoDia', agora.data);
-    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '! Aqui é o Zelo. Desejo-lhe um bom dia de trabalho. ' +
-      'Um lembrete: tenha sempre atenção ao escrever e ao guardar os registos — cada dado certo faz diferença para o doente e para a equipa.';
+    var lembrete = LEMBRETES_SAUDACAO[Math.floor(Math.random() * LEMBRETES_SAUDACAO.length)];
+    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '! Aqui é o Zelo. Desejo-lhe um bom turno de trabalho. ' +
+      'Um lembrete: ' + lembrete;
     falar(texto);
   }
 
