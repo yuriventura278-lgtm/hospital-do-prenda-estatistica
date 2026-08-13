@@ -444,16 +444,17 @@
       '• Abrir um serviço: "abrir ortopedia", "ir para a farmácia"\n' +
       '• Indicar onde fica algo: "onde encontro o laboratório"\n' +
       '• Abrir uma acção específica: "abrir procedimentos de enfermagem do bloco operatório", "estatísticas de imagiologia"\n' +
-      '• Dizer números reais de hoje/ontem para Bloco Operatório, Imagiologia, Hemoterapia e Procedimentos de Enfermagem · Geral: "quantas cirurgias hoje no bloco operatório"\n' +
-      '• O mesmo para um mês passado, em Bloco Operatório, Imagiologia e Hemoterapia (o Firebase apaga o dia-a-dia depois de arquivado, mas eu vou buscar o arquivo mensal): "quantos exames de imagiologia em julho", "quantas transfusões no mês passado"\n' +
       '• Dúvidas de uso do sistema: "como guardar em PDF", "como guardo os dados", ou contacto do Serviço de Estatística: "email do serviço de estatística", "extensão da estatística", "onde fica a estatística", "quem é o chefe de estatística"\n' +
-      'Para os outros serviços, e para meses passados de Procedimentos de Enfermagem · Geral, ainda não sei ler números — e continuo sem preencher formulários por voz.';
+      'Não dou números nem outros dados registados do hospital por voz (são informações sensíveis) — para isso, aceda à página do serviço. Também continuo sem preencher formulários por voz.';
   }
   function respostaIdentidade(){
     return 'Sou o Zelo, o assistente do sistema do Hospital do Prenda. Funciono inteiramente no seu navegador — não envio nada para fora, não tenho custos, e só reconheço comandos e perguntas de estrutura, não conversa livre.';
   }
   function respostaCriador(){
     return 'Fui criado pelo Yuri Matias, o meu criador. O Zelo nasceu a 10 de julho de 2026.';
+  }
+  function respostaDadosSensiveis(){
+    return 'Não posso dar números nem outros dados registados do hospital por voz — são informações sensíveis e não tenho acesso para as partilhar desta forma. Para consultar esses números, aceda à página do serviço correspondente no sistema.';
   }
 
   // ── Perguntas frequentes (sobre o Serviço de Estatística e uso do sistema) ──
@@ -564,9 +565,14 @@
     var alvo = alvos[0];
     var nome = alvo.tipo === 'servico' ? alvo.svc.nome : alvo.sistema.nome;
 
+    // Dados registados do hospital (números de cirurgias, exames, etc.) são
+    // sensíveis — o Zelo já não os lê nem partilha por voz. consultarDados()
+    // e tudo o que depende dela (RESUMOS_SERVICO, obterFirebaseLeitura,
+    // obterStorageLeitura, consultarDadosDia/Mes) ficam no ficheiro,
+    // propositadamente sem serem chamados, só para o caso de um dia isto
+    // vir a ser reactivado.
     if (querNumeros) {
-      var respostaNumeros = consultarDados(nome, textoNorm);
-      return avisoComposto ? respostaNumeros.then(function (r) { r.texto += avisoComposto; return r; }) : respostaNumeros;
+      return { texto: respostaDadosSensiveis() + avisoComposto };
     }
 
     var u = estadoUtilizador();
