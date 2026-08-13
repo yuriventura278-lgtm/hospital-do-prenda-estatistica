@@ -941,7 +941,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-reg" onclick="copyDayData()" title="Copiar os dados preenchidos do dia para a área de transferência (Ctrl+Shift+C)"><span class="icon-svg" data-icon="clipboard"></span> Copiar Dados do Dia</button>
       </div>
       <!-- KPIs -->
-      <div class="kpi-grid">
+      <div class="kpi-grid" id="kpi-grid-diario">
         <div class="kpi ca"><div class="kpi-label">Total Exames</div><div class="kpi-val" id="kpi-total">0</div></div>
         <div class="kpi cd"><div class="kpi-label">B. Urgência</div><div class="kpi-val" id="kpi-bu">0</div></div>
         <div class="kpi cb"><div class="kpi-label">Internamento</div><div class="kpi-val" id="kpi-int">0</div></div>
@@ -1037,6 +1037,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
       <div class="btn-group">
         <button class="btn-h btn-save" id="main-save-btn" style="font-size:.6rem;padding:8px 20px;" onclick="saveAll()"><span class="icon-svg" data-icon="save"></span> <span>Guardar Registo</span></button>
         <button class="btn-h btn-out" style="font-size:.6rem;padding:8px 20px;" onclick="exportDailyPDF()"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
+        <button class="btn-h btn-out" style="font-size:.6rem;padding:8px 20px;" onclick="window.zeloLerElemento('#kpi-grid-diario','Resumo do dia')">🔊 Ler em voz</button>
       </div>
     </div>
 
@@ -1057,6 +1058,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-h btn-save" style="font-size:.62rem;padding:6px 13px;" onclick="saveMonthlyReport()"><span class="icon-svg" data-icon="save"></span> Guardar Mês</button>
         <button class="btn-load sec" onclick="exportMonthlyPDF()"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendMonthlyEmail()" title="Enviar o resumo do relatório mensal para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
+        <button class="btn-load sec" onclick="window.zeloLerElemento('#mrpt-content','Relatório mensal')">🔊 Ler em voz</button>
         <span id="mrpt-savestat" style="font-family:var(--font-body);font-size:.6rem;color:var(--muted);margin-left:4px;"></span>
       </div>
       <div id="mrpt-content">
@@ -1088,6 +1090,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-load" onclick="loadPeriodReport('semanal')"><span class="icon-svg" data-icon="refresh"></span> Carregar</button>
         <button class="btn-load sec" onclick="exportPeriodPDF('semanal')"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendPeriodEmail('semanal')" title="Enviar o resumo do relatório para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
+        <button class="btn-load sec" onclick="window.zeloLerElemento('#wrp-content','Relatório semanal')">🔊 Ler em voz</button>
       </div>
       <div id="wrp-content"><div class="no-data"><span class="nd-icon icon-svg" data-icon="calendarWeek"></span><span class="nd-txt">Seleccione a semana e clique em Carregar</span></div></div>
     </div>
@@ -1115,6 +1118,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-load" onclick="loadPeriodReport('trimestral')"><span class="icon-svg" data-icon="refresh"></span> Carregar</button>
         <button class="btn-load sec" onclick="exportPeriodPDF('trimestral')"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendPeriodEmail('trimestral')" title="Enviar o resumo do relatório para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
+        <button class="btn-load sec" onclick="window.zeloLerElemento('#trp-content','Relatório trimestral')">🔊 Ler em voz</button>
       </div>
       <div id="trp-content"><div class="no-data"><span class="nd-icon icon-svg" data-icon="dashboard"></span><span class="nd-txt">Seleccione o trimestre e clique em Carregar</span></div></div>
     </div>
@@ -1140,6 +1144,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-load" onclick="loadPeriodReport('semestral')"><span class="icon-svg" data-icon="refresh"></span> Carregar</button>
         <button class="btn-load sec" onclick="exportPeriodPDF('semestral')"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendPeriodEmail('semestral')" title="Enviar o resumo do relatório para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
+        <button class="btn-load sec" onclick="window.zeloLerElemento('#srp-content','Relatório semestral')">🔊 Ler em voz</button>
       </div>
       <div id="srp-content"><div class="no-data"><span class="nd-icon icon-svg" data-icon="trendingUp"></span><span class="nd-txt">Seleccione o semestre e clique em Carregar</span></div></div>
     </div>
@@ -1160,6 +1165,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-load" onclick="loadPeriodReport('anual')"><span class="icon-svg" data-icon="refresh"></span> Carregar</button>
         <button class="btn-load sec" onclick="exportPeriodPDF('anual')"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendPeriodEmail('anual')" title="Enviar o resumo do relatório para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
+        <button class="btn-load sec" onclick="window.zeloLerElemento('#arp-content','Relatório anual')">🔊 Ler em voz</button>
       </div>
       <div id="arp-content"><div class="no-data"><span class="nd-icon icon-svg" data-icon="calendarYear"></span><span class="nd-txt">Seleccione o ano e clique em Carregar</span></div></div>
     </div>
