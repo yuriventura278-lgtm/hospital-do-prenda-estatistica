@@ -249,8 +249,9 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
     <section class="view on" id="v-dash">
       <div class="tools" style="justify-content:flex-end;margin-top:0">
         <button class="btn btn-g" id="btnPdfDash"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>PDF</button>
+        <button class="btn btn-g" onclick="window.zeloLerElemento('#dashGrid','Resumo da farmácia')">🔊 Ler em voz</button>
       </div>
-      <div class="grid">
+      <div class="grid" id="dashGrid">
         <div class="card"><div class="lb">Produtos registados</div><div class="vl" id="dTot">—</div><div class="hint">catálogo activo</div></div>
         <div class="card k-ok"><div class="lb">Unidades em stock</div><div class="vl" id="dStockU">—</div><div class="hint">total que ficou disponível</div></div>
         <div class="card"><div class="lb">Valor do stock</div><div class="vl" id="dStockVal" style="font-size:20px">—</div><div class="hint">preço × unidades</div></div>
@@ -319,8 +320,9 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
         <input type="date" id="gData" style="flex:1;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px">
         <button class="btn btn-g" id="btnDiaHoje">Hoje</button>
         <button class="btn btn-g" id="btnPdfDia"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>PDF</button>
+        <button class="btn btn-g" onclick="window.zeloLerElemento('#diaGrid','Resumo do dia')">🔊 Ler em voz</button>
       </div>
-      <div class="grid" style="margin-bottom:12px">
+      <div class="grid" id="diaGrid" style="margin-bottom:12px">
         <div class="card k-ok"><div class="lb">Entradas</div><div class="vl" id="gIn">—</div><div class="hint" id="gInQ"></div></div>
         <div class="card k-bad"><div class="lb">Saídas</div><div class="vl" id="gOut">—</div><div class="hint" id="gOutQ"></div></div>
         <div class="card k-warn"><div class="lb">Ajustes</div><div class="vl" id="gAj">—</div><div class="hint">correcções de inventário</div></div>
@@ -387,6 +389,7 @@ footer.pagefoot .pf-tag{display:inline-block;background:var(--cyanS);color:var(-
         </select>
         <select id="rClasse" style="flex:1"><option value="">Todas as classes</option></select>
         <button class="btn btn-g" id="btnPdfRel"><svg class="svgi" viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>PDF</button>
+        <button class="btn btn-g" onclick="window.zeloLerElemento('#rSum','Relatório')">🔊 Ler em voz</button>
       </div>
       <div class="sumbar" id="rSum"></div>
       <div class="tblwrap"><table>
@@ -2109,7 +2112,7 @@ function relData(){
 function renderRelatorio(){
   var d=relData();
   $("rMes").textContent=d.r.label;
-  $("rSum").innerHTML=d.chips.map(function(c,i){return'<span class="chip'+(i?" n":"")+'">'+esc(c)+'</span>';}).join("");
+  $("rSum").innerHTML=d.chips.map(function(c,i){return'<span class="chip'+(i?" n":"")+'">'+esc(c)+'</span>';}).join(" ");
   $("rHead").innerHTML="<tr>"+d.head.map(function(h,i){return"<th"+(d.num.indexOf(i)>=0?' style="text-align:right"':"")+">"+esc(h)+"</th>";}).join("")+"</tr>";
   $("rBody").innerHTML=d.rows.length?d.rows.map(function(row){
     return"<tr>"+row.map(function(cell,i){return"<td"+(d.num.indexOf(i)>=0?" class='num'":"")+">"+esc(cell)+"</td>";}).join("")+"</tr>";
