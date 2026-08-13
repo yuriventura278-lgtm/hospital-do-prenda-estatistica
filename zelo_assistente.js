@@ -748,14 +748,26 @@
       cartoes.forEach(function (c) {
         var rotulo = c.querySelector(padrao.rotulo);
         var valor = c.querySelector(padrao.valor);
-        // Algumas páginas não dão uma classe própria ao valor — nesse caso,
-        // o último elemento-filho que não é o próprio rótulo já costuma ser
-        // o valor (rótulo primeiro, valor a seguir, é o padrão comum).
-        if (!valor && rotulo) {
-          var filhos = Array.prototype.filter.call(c.children, function (f) { return f !== rotulo; });
-          valor = filhos[filhos.length - 1] || null;
+        var textoValor = null;
+        if (valor) {
+          textoValor = valor.textContent.trim();
+        } else if (rotulo) {
+          // Algumas páginas não dão uma classe própria ao valor. Campos
+          // editáveis (input/select/textarea, ex.: um total preenchido à
+          // mão) não têm o valor no textContent — é preciso ler .value; sem
+          // isto, cartões com um campo destes liam antes o texto de dica a
+          // seguir (ex.: "Manual") em vez do número. Sem nenhum dos dois, o
+          // último elemento-filho que não é o rótulo costuma ser o valor.
+          var campo = c.querySelector('input, select, textarea');
+          if (campo) {
+            textoValor = String(campo.value || '0').trim();
+          } else {
+            var filhos = Array.prototype.filter.call(c.children, function (f) { return f !== rotulo; });
+            var ultimoFilho = filhos[filhos.length - 1];
+            if (ultimoFilho) textoValor = ultimoFilho.textContent.trim();
+          }
         }
-        if (rotulo && valor) partes.push(rotulo.textContent.trim() + ': ' + valor.textContent.trim());
+        if (rotulo && textoValor !== null) partes.push(rotulo.textContent.trim() + ': ' + textoValor);
       });
       if (partes.length) return partes.join('. ');
     }
