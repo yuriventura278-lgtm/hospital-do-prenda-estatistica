@@ -171,7 +171,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
         </div>
         <div class="table-wrap">
           <table id="usersTable">
-            <thead><tr><th></th><th>Nome</th><th>Email</th><th>Cargo</th><th>Papel</th><th>Estado</th><th>Criado em</th><th>Último Acesso</th><th>Ações</th></tr></thead>
+            <thead><tr><th></th><th>Nome</th><th>Email</th><th>Cargo</th><th>Serviço</th><th>Papel</th><th>Estado</th><th>Criado em</th><th>Último Acesso</th><th>Ações</th></tr></thead>
             <tbody id="usersBody"></tbody>
           </table>
         </div>
@@ -195,6 +195,9 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
             <div class="field"><label for="cPass">Password inicial</label><input id="cPass" type="text" minlength="6" required/></div>
             <div class="field"><label for="cCargo">Cargo</label>
               <select id="cCargo"></select>
+            </div>
+            <div class="field"><label for="cServico">Serviço</label>
+              <select id="cServico"></select>
             </div>
             <div class="field"><label for="cRole">Papel</label>
               <select id="cRole"></select>
@@ -290,6 +293,19 @@ function cargoOptionsHtml(selecionado){
   }).join('');
 }
 document.getElementById('cCargo').innerHTML = cargoOptionsHtml();
+
+const SERVICOS = [
+  'Hemoterapia', 'Farmácia', 'Neurocirurgia', 'Maxilo Facial', 'Medicina Homem', 'Medicina Mulher',
+  'Ortopedia', 'UCI', 'UTI', 'Nefrologia', 'Laboratório', 'Consulta Externa', 'Secretaria',
+  'Supervisão', 'Gabinete do Utente', 'RH', 'Imagiologia', 'Hospital de Dia', 'Banco de Urgência',
+  'Centro de Hemodiálise', 'Outro'
+];
+function servicoOptionsHtml(selecionado){
+  return '<option value="">— Selecionar —</option>' + SERVICOS.map(function(s){
+    return '<option value="' + escapeHtml(s) + '" ' + (s === selecionado ? 'selected' : '') + '>' + escapeHtml(s) + '</option>';
+  }).join('');
+}
+document.getElementById('cServico').innerHTML = servicoOptionsHtml();
 
 // Papéis — Administrador continua a ser o caso especial com acesso total
 // (ver hasModuleAccess em zelo_auth.js); os restantes são só rótulos por
@@ -552,10 +568,10 @@ function ensurePdfLibs(cb){
   });
 }
 
-const EXPORT_USER_COLS = ['Nome','Email','Cargo','Papel','Estado','Criado em','Último Acesso','Permissões'];
+const EXPORT_USER_COLS = ['Nome','Email','Cargo','Serviço','Papel','Estado','Criado em','Último Acesso','Permissões'];
 function linhaExportUser(u){
   return [
-    u.nome||'', u.email||'', u.cargo||'',
+    u.nome||'', u.email||'', u.cargo||'', u.servico||'',
     roleLabel(u.role),
     u.ativo===false?'Inativo':'Ativo',
     u.criadoEm ? new Date(u.criadoEm).toLocaleString('pt-PT') : '',
@@ -643,6 +659,7 @@ const AUDIT_LABELS = {
   alterar_papel: 'Papel alterado',
   alterar_permissoes: 'Permissões alteradas',
   alterar_cargo: 'Cargo alterado',
+  alterar_servico: 'Serviço alterado',
 };
 
 const AUDIT_ICONS = {
@@ -656,6 +673,7 @@ const AUDIT_ICONS = {
   alterar_papel:            { color:'var(--bl)', svg:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>' },
   alterar_permissoes:       { color:'var(--pu)', svg:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>' },
   alterar_cargo:            { color:'var(--bl)', svg:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>' },
+  alterar_servico:          { color:'var(--bl)', svg:'<path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/>' },
 };
 const AUDIT_ICON_DEFAULT = { color:'var(--tx3)', svg:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>' };
 
@@ -672,6 +690,7 @@ function renderAudit(auditObj){
     if(ev.alvoEmail) detalhes.push('Alvo: ' + escapeHtml(ev.alvoEmail));
     if(ev.novoRole) detalhes.push('Novo papel: ' + roleLabel(ev.novoRole));
     if(ev.novoCargo !== undefined) detalhes.push('Novo cargo: ' + (escapeHtml(ev.novoCargo) || '—'));
+    if(ev.novoServico !== undefined) detalhes.push('Novo serviço: ' + (escapeHtml(ev.novoServico) || '—'));
     if(ev.erro) detalhes.push('Erro: ' + escapeHtml(ev.erro));
     const icon = AUDIT_ICONS[ev.action] || AUDIT_ICON_DEFAULT;
     return `
@@ -702,6 +721,7 @@ function renderUsersTable(entries){
       <td>${escapeHtml(u.nome) || '—'}</td>
       <td>${escapeHtml(u.email) || '—'}</td>
       <td><select class="cargo-select" data-uid="${uid}" style="padding:5px 7px;border:1.5px solid var(--br);border-radius:7px;font-family:'Inter',sans-serif;font-size:.78rem;">${cargoOptionsHtml(u.cargo)}</select></td>
+      <td><select class="servico-select" data-uid="${uid}" style="padding:5px 7px;border:1.5px solid var(--br);border-radius:7px;font-family:'Inter',sans-serif;font-size:.78rem;">${servicoOptionsHtml(u.servico)}</select></td>
       <td><select class="role-select" data-uid="${uid}" style="padding:5px 7px;border:1.5px solid var(--br);border-radius:7px;font-family:'Inter',sans-serif;font-size:.78rem;border-left-color:${roleColor(u.role)};color:${roleColor(u.role)};">${roleOptionsHtml(u.role)}</select></td>
       <td><span class="pill ${u.ativo === false ? 'inativo' : 'ativo'}">${u.ativo === false ? 'Inativo' : 'Ativo'}</span></td>
       <td>${fmtDate(u.criadoEm)}</td>
@@ -723,7 +743,7 @@ function applyUserFilters(){
   const ativoFilter = document.getElementById('userFilterAtivo').value;
   let entries = Object.entries(currentUsersCache);
   entries = entries.filter(([uid, u]) => {
-    const matchQ = !q || (u.nome||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q);
+    const matchQ = !q || (u.nome||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q) || (u.servico||'').toLowerCase().includes(q);
     const matchRole = !roleFilter || (u.role === roleFilter) || (roleFilter === 'funcionario' && !u.role);
     const isAtivo = u.ativo !== false;
     const matchAtivo = !ativoFilter || (ativoFilter === 'ativo' ? isAtivo : !isAtivo);
@@ -762,6 +782,18 @@ usersBody.addEventListener('change', async function(e){
     }catch(err){
       console.error('ZELO: falha ao alterar cargo', err);
       alert('Não foi possível guardar o cargo (' + (err && err.message || 'erro desconhecido') + ').');
+    }
+    return;
+  }
+  const servicoSel = e.target.closest('select.servico-select');
+  if(servicoSel){
+    const uid = servicoSel.dataset.uid;
+    try{
+      await update(ref(db, 'users/' + uid), { servico: servicoSel.value });
+      await logAuditEvent(currentUid, currentEmail, 'alterar_servico', { alvoUid: uid, novoServico: servicoSel.value });
+    }catch(err){
+      console.error('ZELO: falha ao alterar serviço', err);
+      alert('Não foi possível guardar o serviço (' + (err && err.message || 'erro desconhecido') + ').');
     }
     return;
   }
@@ -844,6 +876,7 @@ createForm.addEventListener('submit', async function(e){
   const pass = document.getElementById('cPass').value;
   const role = document.getElementById('cRole').value;
   const cargo = document.getElementById('cCargo').value;
+  const servico = document.getElementById('cServico').value;
 
   createBtn.disabled = true;
   createBtn.textContent = 'A criar…';
@@ -855,7 +888,7 @@ createForm.addEventListener('submit', async function(e){
     cred = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
     const newUid = cred.user.uid;
     try{
-      await set(ref(db, 'users/' + newUid), { nome, email, role, cargo, ativo: true, criadoEm: Date.now() });
+      await set(ref(db, 'users/' + newUid), { nome, email, role, cargo, servico, ativo: true, criadoEm: Date.now() });
     }catch(writeErr){
       // Reverter a conta criada no Firebase Auth para não deixar um utilizador "fantasma" sem perfil
       try{ await deleteUser(cred.user); }catch(delErr){ console.error('Falha ao reverter conta órfã', delErr); }
