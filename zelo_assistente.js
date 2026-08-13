@@ -626,10 +626,18 @@
     'escreva com calma e reveja antes de guardar — a qualidade dos registos começa em cada detalhe.',
     'antes de guardar, dê sempre uma segunda olhadela aos dados — vale a pena o cuidado extra.'
   ];
+  // Só sauda na página inicial (index.html) — é aí que se entra no sistema;
+  // abrir directamente outra página (ex.: um separador deixado aberto, ou um
+  // link partilhado) não conta como "entrar", por isso não sauda aí.
+  function estaNaPaginaInicial(){
+    var ficheiro = window.location.pathname.split('/').pop();
+    return ficheiro === '' || ficheiro === 'index.html';
+  }
   // Só sauda quando já há sessão iniciada (sessionStorage.zeloNome) — não na
   // página de login — e só uma vez por dia (guardado em localStorage, por
   // isso vale para o dispositivo todo, não por separador/página).
   function tentarSaudarEntrada(){
+    if (!estaNaPaginaInicial()) return;
     var nome = (sessionStorage.getItem('zeloNome') || '').split(' ')[0];
     if (!nome) return;
     var agora = dataHoraAngola();
