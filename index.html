@@ -880,6 +880,9 @@ window.__zeloHasModuleAccess = hasModuleAccess;
     sessionStorage.setItem('zeloEmail', user.email || '');
     sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
     if(perfil.foto) sessionStorage.setItem('zeloFoto', perfil.foto);
+    // Esta página não recarrega ao entrar — a tentativa automática do Zelo já
+    // correu antes de haver sessão, por isso repete-se agora que já existe.
+    if(typeof window.zeloTentarSaudarEntrada === 'function') window.zeloTentarSaudarEntrada();
     recordRecentUser(user.email, perfil.nome, perfil.role);
     window.zeloUltimoAcessoAnterior = perfil.ultimoAcesso || null;
     clearLoginAttempts(user.email);

@@ -663,6 +663,12 @@
       'Desejo-te um bom turno de trabalho. E uma recomendação: ' + lembrete;
     falar(texto);
   }
+  // Exposto para o index.html chamar assim que o login terminar. É preciso
+  // porque o index.html é uma SPA — o login acontece na mesma carga da
+  // página (sem recarregar), por isso a tentativa automática 1200ms depois
+  // de abrir a página corre ANTES de haver sessão (sessionStorage.zeloNome
+  // ainda vazio) e nunca mais se repete sozinha.
+  window.zeloTentarSaudarEntrada = tentarSaudarEntrada;
 
   // ── UI ──
   function injetarEstilos(){
