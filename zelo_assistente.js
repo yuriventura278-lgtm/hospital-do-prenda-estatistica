@@ -989,9 +989,11 @@
       chaveAviso: chave
     };
   }
-  // Quando há dias em falta, avisa sempre que a página abre (é preciso
-  // insistir). Quando o mês está todo em dia, os parabéns só soam 1x por dia
-  // — repeti-los a cada entrada na página seria cansativo sem necessidade.
+  // Quando há dias em falta, avisa uma vez por sessão (não a cada
+  // navegação/recarregamento dentro da mesma entrada no sistema — só volta a
+  // insistir se a pessoa sair e entrar de novo). Quando o mês está todo em
+  // dia, os parabéns só soam 1x por dia — repeti-los a cada entrada na
+  // página seria cansativo sem necessidade.
   //
   // Nota (dados sensíveis): isto lê o Firebase para saber SÓ quais dias têm
   // ou não um registo guardado — nunca o conteúdo desses registos (números,
@@ -1057,6 +1059,13 @@
       }
       var texto;
       if (diasFalta.length) {
+        // Só volta a falar dos dias em falta uma vez por sessão — se a
+        // pessoa continuar a navegar/recarregar páginas deste serviço sem
+        // sair do sistema, o aviso não se repete. Volta a falar só depois
+        // de sair (sessionStorage é limpo no logout) e entrar de novo.
+        var chaveFaltaSessao = 'zeloAvisoPreenchimentoFaltaSessao_' + cfg.chaveAviso;
+        if (sessionStorage.getItem(chaveFaltaSessao)) return;
+        sessionStorage.setItem(chaveFaltaSessao, '1');
         var diasPorExtenso = diasFalta.map(function (d) { return 'dia ' + d + ', ainda sem registo'; }).join('; ');
         var aberturaAviso = ABERTURAS_AVISO_FALTA[Math.floor(Math.random() * ABERTURAS_AVISO_FALTA.length)].replace('NOME', nome);
         texto = aberturaAviso + ' Em ' + cfg.servicoLabel + ', este mês: ' + diasPorExtenso + '.';
