@@ -523,16 +523,24 @@
   var recognition = null;
   var ouvindo = false;
 
+  // Não há como testar reconhecimento de voz real sem utilizadores a falar —
+  // em vez de fixar pt-PT ou pt-BR a adivinhar qual reconhece melhor o
+  // sotaque local, fica à escolha de quem usa (ver botão "PT"/"BR" no
+  // cabeçalho do painel), guardada em localStorage para as próximas vezes.
+  function idiomaVoz(){
+    return localStorage.getItem('zeloVozIdioma') || 'pt-PT';
+  }
   function falar(texto){
     if (!window.speechSynthesis) return;
     if ((localStorage.getItem('zeloVoz') || 'on') === 'off') return;
     try {
       window.speechSynthesis.cancel();
       var u = new SpeechSynthesisUtterance(texto.replace(/[•\n]/g, '. '));
-      u.lang = 'pt-PT';
+      var idioma = idiomaVoz();
+      u.lang = idioma;
       var vozes = window.speechSynthesis.getVoices();
-      var pt = vozes.find(function (v) { return /pt/i.test(v.lang); });
-      if (pt) u.voice = pt;
+      var voz = vozes.find(function (v) { return v.lang === idioma; }) || vozes.find(function (v) { return /pt/i.test(v.lang); });
+      if (voz) u.voice = voz;
       window.speechSynthesis.speak(u);
     } catch (e) {}
   }
@@ -562,6 +570,7 @@
         display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
       .zas-icon-btn:hover{background:rgba(255,255,255,.24);}
       .zas-icon-btn.muted{opacity:.5;}
+      .zas-idioma-btn{font-size:.6rem;font-weight:800;letter-spacing:.02em;}
       #zas-log{flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:#F8FAFC;}
       .zas-msg{max-width:86%;padding:8px 11px;border-radius:11px;font-size:.78rem;line-height:1.4;white-space:pre-line;}
       .zas-msg.bot{background:#fff;border:1px solid #E2E8F0;color:#0F172A;align-self:flex-start;border-bottom-left-radius:3px;}
@@ -609,9 +618,11 @@
     var overlay = document.createElement('div'); overlay.id = 'zas-overlay';
     var panel = document.createElement('div'); panel.id = 'zas-panel';
     var vozLigada = (localStorage.getItem('zeloVoz') || 'on') !== 'off';
+    var idiomaInicial = idiomaVoz();
     panel.innerHTML =
       '<div class="zas-head">' +
         '<div><div class="zas-title">Zelo</div><div class="zas-sub">Assistente local · grátis</div></div>' +
+        '<button type="button" class="zas-icon-btn zas-idioma-btn" id="zas-idioma-toggle" title="Idioma da voz — clique para alternar entre Português de Portugal e do Brasil">' + (idiomaInicial === 'pt-BR' ? 'BR' : 'PT') + '</button>' +
         '<button type="button" class="zas-icon-btn' + (vozLigada ? '' : ' muted') + '" id="zas-voz-toggle" title="Ligar/desligar voz do Zelo">' + (vozLigada ? ICON_SPEAKER_ON : ICON_SPEAKER_OFF) + '</button>' +
         '<button type="button" class="zas-icon-btn" id="zas-close" title="Fechar">' + ICON_CLOSE + '</button>' +
       '</div>' +
@@ -703,10 +714,16 @@
       this.innerHTML = ligar ? ICON_SPEAKER_ON : ICON_SPEAKER_OFF;
       if (!ligar && window.speechSynthesis) window.speechSynthesis.cancel();
     });
+    panel.querySelector('#zas-idioma-toggle').addEventListener('click', function () {
+      var novo = idiomaVoz() === 'pt-PT' ? 'pt-BR' : 'pt-PT';
+      localStorage.setItem('zeloVozIdioma', novo);
+      this.textContent = novo === 'pt-BR' ? 'BR' : 'PT';
+      if (recognition) recognition.lang = novo;
+    });
 
     if (vozDisponivel) {
       recognition = new SpeechRecognitionCtor();
-      recognition.lang = 'pt-PT';
+      recognition.lang = idiomaVoz();
       recognition.continuous = false;
       recognition.interimResults = false;
       var micBtn = panel.querySelector('#zas-mic');
