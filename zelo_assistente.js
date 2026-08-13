@@ -451,6 +451,9 @@
   function respostaIdentidade(){
     return 'Sou o Zelo, o assistente do sistema do Hospital do Prenda. Funciono inteiramente no seu navegador — não envio nada para fora, não tenho custos, e só reconheço comandos e perguntas de estrutura, não conversa livre.';
   }
+  function respostaCriador(){
+    return 'Fui criado pelo Yuri Matias, o meu criador. O Zelo nasceu a 10 de julho de 2026.';
+  }
 
   function processar(textoOriginal){
     var textoNorm = normalizar(textoOriginal);
@@ -480,14 +483,21 @@
       pendente = null; // um comando novo reconhecido, ou algo que não é nem sim nem não, cancela a pergunta pendente
     }
 
-    if (/(^| )(ola|ol[a]|oi|bom dia|boa tarde|boa noite|ei zelo|zelo)( |$)/.test(textoNorm) && textoNorm.length < 20) {
-      return { texto: respostaSaudacao() };
-    }
+    // Estas perguntas específicas vêm antes da saudação genérica de propósito:
+    // frases como "quem criou o zelo" acabam na palavra "zelo" e têm menos de
+    // 20 caracteres, por isso cairiam na saudação abaixo (pensada só para
+    // "zelo" dito sozinho ou "ei zelo") se fossem verificadas depois.
     if (/(ajuda|o que sabes fazer|que comandos|como funcionas|o que consegues fazer)/.test(textoNorm)) {
       return { texto: respostaAjuda() };
     }
+    if (/(quem (te |o |vos )?criou|quem e o (teu |seu )?criador|quem criou o zelo|quem fez o zelo|quem desenvolveu o zelo|quem construiu o zelo|quando (foste|foi) criado)/.test(textoNorm)) {
+      return { texto: respostaCriador() };
+    }
     if (/(quem es tu|quem es|o que es|apresenta te)/.test(textoNorm)) {
       return { texto: respostaIdentidade() };
+    }
+    if (/(^| )(ola|ol[a]|oi|bom dia|boa tarde|boa noite|ei zelo|zelo)( |$)/.test(textoNorm) && textoNorm.length < 20) {
+      return { texto: respostaSaudacao() };
     }
 
     var ondeQuer = /(onde (encontro|fica|esta|está|posso encontrar)|em que (sitio|pagina) (fica|encontro))/.test(textoNorm);
