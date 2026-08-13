@@ -1205,6 +1205,14 @@ const ECO_EXAMES = [
   'Ecografia das Partes Moles','Doppler','Ecografia Obstétrica','Eco Fast Total'
 ];
 
+// Contador manual "Pacientes Examinados"/"Exames Realizados", tal como já
+// existe em TAC_CONTADORES/RX_CONTADORES. Sem "Corretas"/"Defeituosas" nem
+// Placas — a Ecografia é digital, sem filmes/placas para controlo de
+// qualidade.
+const ECO_CONTADORES = [
+  'Pacientes Examinados','Exames Realizados'
+];
+
 // "Pacientes Examinados"/"Exames Realizados" à frente, tal como na folha
 // "RAIO X" (antes só existiam Corretas/Defeituosas — faltava por completo o
 // campo "Pacientes Examinados").
@@ -1491,9 +1499,12 @@ function renderECOTable(){
   rows+=`<tr class="section-hdr eco"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Exames Realizados — Ecografia</td></tr>`;
   ECO_EXAMES.forEach(e=>{ rows+=mkRow('eco',e,e); });
   rows+=buildSubtotalRow('eco',ECO_EXAMES,'subeco','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Ecografia');
+  rows+=`<tr class="section-hdr eco"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Contadores — Ecografia</td></tr>`;
+  ECO_CONTADORES.forEach(e=>{ rows+=mkRow('eco',e,e); });
+  rows+=buildSubtotalRow('eco',ECO_CONTADORES,'subeco_cnt','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Contadores');
   document.getElementById('tbody-eco').innerHTML=rows;
-  appendTotalRow('eco',ECO_EXAMES,'tbody-eco','TOTAL ECOGRAFIA');
-  updateGrandDisplay('eco',ECO_EXAMES,'eco-grand-display');
+  appendTotalRow('eco',[...ECO_EXAMES,...ECO_CONTADORES],'tbody-eco','TOTAL ECOGRAFIA');
+  updateGrandDisplay('eco',[...ECO_EXAMES,...ECO_CONTADORES],'eco-grand-display');
 }
 
 function renderRXTable(){
@@ -1584,8 +1595,9 @@ function setItem(section,key,col,val,opts){
   }
   if(section==='eco'){
     updateSubtotalRow('eco',ECO_EXAMES,'subeco');
-    updateSectionTotals('eco',ECO_EXAMES,'tbody-eco');
-    updateGrandDisplay('eco',ECO_EXAMES,'eco-grand-display');
+    updateSubtotalRow('eco',ECO_CONTADORES,'subeco_cnt');
+    updateSectionTotals('eco',[...ECO_EXAMES,...ECO_CONTADORES],'tbody-eco');
+    updateGrandDisplay('eco',[...ECO_EXAMES,...ECO_CONTADORES],'eco-grand-display');
   }
   if(section==='rx'){
     updateSubtotalRow('rx',RX_CONTADORES,'subrx_cnt');
@@ -1621,7 +1633,7 @@ function updateKPIs(){
     tacBu+=Number(d.bu||0); tacAut+=Number(d.aut||0); tacInt+=Number(d.int||0);
     grandBu+=Number(d.bu||0); grandAut+=Number(d.aut||0); grandInt+=Number(d.int||0);
   });
-  ECO_EXAMES.forEach(k=>{
+  [...ECO_EXAMES,...ECO_CONTADORES].forEach(k=>{
     const d=currentData.eco[k]||{};
     ecoT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
     ecoBu+=Number(d.bu||0); ecoAut+=Number(d.aut||0); ecoInt+=Number(d.int||0);
@@ -1672,7 +1684,7 @@ function _calcTotal(data){
   let t=0;
   const calc=(sec,keys)=>{ keys.forEach(k=>{ const d=sec?.[k]||{}; t+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0); }); };
   calc(data.tac,[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
-  calc(data.eco,ECO_EXAMES);
+  calc(data.eco,[...ECO_EXAMES,...ECO_CONTADORES]);
   calc(data.rx,[...RX_CONTADORES,...RX_PLACAS]);
   return t;
 }
@@ -2251,7 +2263,7 @@ function _aggregate(dates,allData){
   const agg={ tac:{}, eco:{}, rx:{}, _grandBu:0, _grandAut:0, _grandInt:0 };
   const initSec=(sec,keys)=>keys.forEach(k=>{ if(!agg[sec][k]) agg[sec][k]={bu:0,aut:0,int:0}; });
   initSec('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
-  initSec('eco',ECO_EXAMES);
+  initSec('eco',[...ECO_EXAMES,...ECO_CONTADORES]);
   initSec('rx',[...RX_CONTADORES,...RX_PLACAS]);
   dates.forEach(d=>{
     const data=allData[d]; if(!data) return;
@@ -2261,14 +2273,14 @@ function _aggregate(dates,allData){
       agg[sec][k].int+=Number(data[sec]?.[k]?.int||0);
     });
     addSec('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
-    addSec('eco',ECO_EXAMES);
+    addSec('eco',[...ECO_EXAMES,...ECO_CONTADORES]);
     addSec('rx',[...RX_CONTADORES,...RX_PLACAS]);
   });
   const sumSec=(sec,keys)=>keys.forEach(k=>{
     agg._grandBu+=agg[sec][k].bu; agg._grandAut+=agg[sec][k].aut; agg._grandInt+=agg[sec][k].int;
   });
   sumSec('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
-  sumSec('eco',ECO_EXAMES);
+  sumSec('eco',[...ECO_EXAMES,...ECO_CONTADORES]);
   sumSec('rx',[...RX_CONTADORES,...RX_PLACAS]);
   return agg;
 }
@@ -2293,7 +2305,7 @@ function renderStats(allData,period){
 
   let tacT=0,ecoT=0,rxT=0;
   [...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS].forEach(k=>{ const d=agg.tac[k]||{}; tacT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
-  ECO_EXAMES.forEach(k=>{ const d=agg.eco[k]||{}; ecoT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
+  [...ECO_EXAMES,...ECO_CONTADORES].forEach(k=>{ const d=agg.eco[k]||{}; ecoT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
   [...RX_CONTADORES,...RX_PLACAS].forEach(k=>{ const d=agg.rx[k]||{}; rxT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
 
   const startD=fmtDate(dates[0]),endD=fmtDate(dates[dates.length-1]);
@@ -2457,6 +2469,7 @@ function renderStats(allData,period){
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> TAC — Contadores','tac',TAC_CONTADORES,'')
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> TAC — Placas por Tamanho','tac',TAC_PLACAS,'')
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Ecografia — Detalhe por Exame','eco',ECO_EXAMES,'eco')
+    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Ecografia — Contadores','eco',ECO_CONTADORES,'')
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M17 21h2a2 2 0 0 1 2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg> Raio X — Contadores','rx',RX_CONTADORES,'rx')
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Raio X — Placas por Tamanho','rx',RX_PLACAS,'rx')
     + footer;
@@ -2525,7 +2538,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   if(showResume){
   const _secSum=(sec,keys)=>{let bu=0,aut=0,int2=0; keys.forEach(k=>{const d=agg[sec][k]||{}; bu+=+(d.bu||0); aut+=+(d.aut||0); int2+=+(d.int||0);}); return{bu,aut,int2,t:bu+aut+int2};};
   const rxS  = _secSum('rx',[...RX_CONTADORES,...RX_PLACAS]);
-  const ecoS = _secSum('eco',ECO_EXAMES);
+  const ecoS = _secSum('eco',[...ECO_EXAMES,...ECO_CONTADORES]);
   const tacS = _secSum('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
   const totBu=rxS.bu+ecoS.bu+tacS.bu, totAut=rxS.aut+ecoS.aut+tacS.aut, totInt=rxS.int2+ecoS.int2+tacS.int2;
   doc.autoTable({
@@ -2613,6 +2626,17 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
       styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[30,41,59],textColor:255,fontStyle:'bold'},
       columnStyles:{0:{halign:'left'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',fontStyle:'bold'}},
       alternateRowStyles:{fillColor:[248,250,252]},
+    });
+  }
+
+  const ecoCntRows=ECO_CONTADORES.map(k=>{const d=agg.eco[k]||{};const bu=+(d.bu||0),aut=+(d.aut||0),int2=+(d.int||0),t=bu+aut+int2;return[k,bu,aut,int2,t];});
+  if(ecoCntRows.length){
+    let sb=0,sa=0,si=0;ecoCntRows.forEach(r=>{sb+=r[1];sa+=r[2];si+=r[3];});
+    ecoCntRows.push(['TOTAL CONTADORES',sb,sa,si,sb+sa+si]);
+    doc.autoTable({startY:_pdfProximoStartY(doc),head:[['Ecografia — Contadores','B. Urgência','Autorizados','Internamentos','Total']],body:ecoCntRows,
+      styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[8,145,178],textColor:255,fontStyle:'bold'},
+      columnStyles:{0:{halign:'left'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',fontStyle:'bold'}},
+      alternateRowStyles:{fillColor:[236,254,255]},
     });
   }
 
