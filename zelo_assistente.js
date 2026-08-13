@@ -434,10 +434,29 @@
   // ── Motor de intenções ──
   var pendente = null; // { tipo:'confirmar_abrir', file, label }
 
+  // Sem IA nem ligação a servidores, o Zelo não "aprende" nem inventa piadas
+  // novas — a única forma honesta de não soar sempre igual é escolher ao
+  // acaso entre frases já escritas à mão, algumas mais leves/bem-humoradas,
+  // mantendo sempre a mesma informação a seguir (para nunca confundir).
+  var ABERTURAS_SAUDACAO = [
+    'Sou o Zelo.',
+    'Sou o Zelo — sempre por perto.',
+    'Zelo às ordens — não faço café, mas ajudo a encontrar o que precisa.',
+    'Sou o Zelo. Prometo não me perder no meio do turno.'
+  ];
+  // A frase "Não tenho acesso a essa informação." mantém-se sempre igual (é
+  // a resposta certa e directa); só a continuação varia, para não soar
+  // sempre em modo de mensagem de erro.
+  var CAUDAS_NAO_SEI = [
+    ' Este Zelo funciona por comandos e perguntas reconhecidas (é gratuito e corre só no seu navegador) — diga "ajuda" para ver exemplos.',
+    ' Não sou uma inteligência artificial, só reconheço comandos fixos — diga "ajuda" para ver o que já sei fazer.',
+    ' Essa ainda não está no meu leque. Diga "ajuda" e vemos o que consigo.'
+  ];
   function respostaSaudacao(){
     var u = estadoUtilizador();
     var ola = u.nome ? ('Olá, ' + u.nome + '! ') : 'Olá! ';
-    return ola + 'Sou o Zelo. Posso ajudar a navegar pelo sistema — por exemplo, diga "abrir bloco operatório" ou "onde encontro a farmácia". Diga "ajuda" para ver mais.';
+    var abertura = ABERTURAS_SAUDACAO[Math.floor(Math.random() * ABERTURAS_SAUDACAO.length)];
+    return ola + abertura + ' Posso ajudar a navegar pelo sistema — por exemplo, diga "abrir bloco operatório" ou "onde encontro a farmácia". Diga "ajuda" para ver mais.';
   }
   function respostaAjuda(){
     return 'Isto é o que sei fazer, sem precisar de ligação a servidores nem custos:\n' +
@@ -545,7 +564,8 @@
 
     var alvos = localizarServicos(textoNorm);
     if (!alvos.length) {
-      return { texto: 'Não tenho acesso a essa informação. Este Zelo funciona por comandos e perguntas reconhecidas (é gratuito e corre só no seu navegador) — diga "ajuda" para ver exemplos.' };
+      var caudaNaoSei = CAUDAS_NAO_SEI[Math.floor(Math.random() * CAUDAS_NAO_SEI.length)];
+      return { texto: 'Não tenho acesso a essa informação.' + caudaNaoSei };
     }
     // Aviso quando a frase pedia mais do que um serviço distinto (ex.: "abrir
     // bloco operatório e depois farmácia") — o Zelo só trata um pedido de
