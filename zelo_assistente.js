@@ -834,11 +834,11 @@
   // desse fuso, independentemente do fuso do dispositivo de quem acede.
   function dataHoraAngola(){
     var partes = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false
+      timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false, weekday: 'short'
     }).formatToParts(new Date());
     var obj = {};
     partes.forEach(function (p) { obj[p.type] = p.value; });
-    return { data: obj.year + '-' + obj.month + '-' + obj.day, hora: parseInt(obj.hour, 10) };
+    return { data: obj.year + '-' + obj.month + '-' + obj.day, hora: parseInt(obj.hour, 10), diaSemana: obj.weekday };
   }
   function saudacaoPorHora(hora){
     if (hora >= 5 && hora < 12) return 'Bom dia';
@@ -856,6 +856,14 @@
     'Aqui é o Zelo. Espero que o turno corra bem.',
     'Sou o Zelo, sempre por perto. Bom turno de trabalho.',
     'O Zelo está por aqui, como sempre. Desejo-te um bom turno.'
+  ];
+  // Só na primeira entrada de uma segunda-feira: em vez da abertura normal,
+  // pergunta pelo fim de semana e deseja uma boa semana de trabalho.
+  var ABERTURAS_ENTRADA_SEGUNDA = [
+    'Sou o Zelo. Espero que tenhas passado bem o fim de semana — desejo-te uma óptima semana de trabalho.',
+    'Bom regresso! Espero que o fim de semana tenha corrido bem. Boa semana de trabalho.',
+    'Sou o Zelo. Espero que tenhas descansado bem no fim de semana — vamos a uma boa semana!',
+    'Nova semana a começar. Espero que o fim de semana tenha sido bom — desejo-te uma semana de trabalho produtiva.'
   ];
   var TRANSICOES_RECOMENDACAO = [
     'E uma recomendação:',
@@ -915,7 +923,8 @@
       return;
     }
     localStorage.setItem('zeloSaudacaoDia', agora.data);
-    var abertura = ABERTURAS_ENTRADA_DIA[Math.floor(Math.random() * ABERTURAS_ENTRADA_DIA.length)];
+    var listaAberturas = agora.diaSemana === 'Mon' ? ABERTURAS_ENTRADA_SEGUNDA : ABERTURAS_ENTRADA_DIA;
+    var abertura = listaAberturas[Math.floor(Math.random() * listaAberturas.length)];
     var transicao = TRANSICOES_RECOMENDACAO[Math.floor(Math.random() * TRANSICOES_RECOMENDACAO.length)];
     var lembrete = LEMBRETES_SAUDACAO[Math.floor(Math.random() * LEMBRETES_SAUDACAO.length)];
     var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '. ' + abertura + ' ' + transicao + ' ' + lembrete + NOTA_ESTATISTICA;
