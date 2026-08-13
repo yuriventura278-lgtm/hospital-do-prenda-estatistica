@@ -742,6 +742,8 @@
     { cartao: '.kpi', rotulo: 'span', valor: 'b' },
     { cartao: '.emp-row', rotulo: '.name', valor: '.count' },
     { cartao: '.card', rotulo: '.lb', valor: '.vl' },
+    { cartao: '.stat-tile', rotulo: '.l', valor: '.v' },
+    { cartao: '.stat-mini', rotulo: '.l', valor: '.n' },
     { cartao: '.nd', rotulo: 'label', valor: '.val' }
   ];
   function textoDeElemento(el){
