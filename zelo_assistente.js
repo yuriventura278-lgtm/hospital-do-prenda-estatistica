@@ -582,6 +582,22 @@
     window.speechSynthesis.addEventListener('voiceschanged', resolver);
     setTimeout(resolver, 400); // não bloqueia para sempre se o evento nunca disparar
   }
+  // A Web Speech API não tem um campo fiável de género de voz (varia por
+  // motor/sistema operativo), por isso a escolha da voz masculina é por
+  // nomes conhecidos de vozes portuguesas masculinas nos motores mais comuns
+  // (Windows/Edge, macOS/iOS, Google) — corre tudo local, sem custos.
+  var NOMES_VOZ_MASCULINA = ['duarte', 'helder', 'diogo', 'bruno', 'joaquim', 'rui', 'miguel', 'fabio', 'fábio', 'daniel', 'ricardo', 'male'];
+  function ehVozMasculina(v){
+    if (v.gender === 'male') return true; // alguns motores expõem isto, embora não seja padrão
+    var nome = (v.name || '').toLowerCase();
+    return NOMES_VOZ_MASCULINA.some(function (n) { return nome.indexOf(n) !== -1; });
+  }
+  function escolherVoz(idioma, vozes){
+    var doIdioma = vozes.filter(function (v) { return v.lang === idioma; });
+    if (!doIdioma.length) doIdioma = vozes.filter(function (v) { return /pt/i.test(v.lang); });
+    if (!doIdioma.length) return null;
+    return doIdioma.find(ehVozMasculina) || doIdioma[0];
+  }
   function falar(texto){
     if (!window.speechSynthesis) return;
     if ((localStorage.getItem('zeloVoz') || 'on') === 'off') return;
@@ -591,8 +607,7 @@
         var u = new SpeechSynthesisUtterance(texto.replace(/[•\n]/g, '. '));
         var idioma = idiomaVoz();
         u.lang = idioma;
-        var vozes = window.speechSynthesis.getVoices();
-        var voz = vozes.find(function (v) { return v.lang === idioma; }) || vozes.find(function (v) { return /pt/i.test(v.lang); });
+        var voz = escolherVoz(idioma, window.speechSynthesis.getVoices());
         if (voz) u.voice = voz;
         window.speechSynthesis.speak(u);
       } catch (e) {}
