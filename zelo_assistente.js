@@ -737,6 +737,7 @@
     { cartao: '.stat-summary-card', rotulo: '.stat-summary-label', valor: '.stat-summary-value' },
     { cartao: '.kpi', rotulo: '.kpi-lbl', valor: '.kpi-val' },
     { cartao: '.kpi', rotulo: '.kpi-label', valor: '.kpi-val' },
+    { cartao: '.kpi-box', rotulo: '.kpi-label', valor: '.kpi-val' },
     { cartao: '.nd', rotulo: 'label', valor: '.val' }
   ];
   function textoDeElemento(el){
