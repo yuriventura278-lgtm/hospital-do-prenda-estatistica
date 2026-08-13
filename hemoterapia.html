@@ -9,12 +9,13 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, update, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbUpdate = (path,val)=>update(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
     // Escuta em tempo real: cb é chamado de imediato com o valor actual e,
     // depois, sempre que outro dispositivo altera este caminho — sem sondagem.
@@ -1368,7 +1369,7 @@ async function _fbSyncHemoterapia(date){
     const savedAt = new Date().toISOString();
     _fbUltimoEnvioSavedAt[date] = savedAt; // marca este envio para nos ignorarmos a nós próprios quando o listener ecoar
     const criadoPor = {nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null};
-    await zeloQueueWrite('registos_sistemas_locais/hemoterapia/' + date, {
+    await zeloQueueUpdate('registos_sistemas_locais/hemoterapia/' + date, {
       savedAt: savedAt,
       snapshot: rec,
       criadoPor: criadoPor
