@@ -703,6 +703,44 @@
     } catch (e) {}
   }
 
+  // ── Ler em voz dados já visíveis no ecrã ──
+  // Diferente da consulta de números por Firebase (desligada — dados
+  // sensíveis, ver processar()): isto lê em voz alta dados que a própria
+  // pessoa já tem no ecrã, depois de os ter carregado pelos botões normais
+  // da página (o mesmo que já podia ver ou exportar em PDF) — o Zelo não vai
+  // buscar nada por fora, só narra o que já está visível e permitido.
+  // Reconhece dois padrões de "cartão rótulo + valor" já usados em páginas
+  // de estatísticas/painéis (.stat-summary-card e .kpi); nos restantes casos
+  // lê o texto visível do elemento tal como está.
+  var PADROES_CARTAO = [
+    { cartao: '.stat-summary-card', rotulo: '.stat-summary-label', valor: '.stat-summary-value' },
+    { cartao: '.kpi', rotulo: '.kpi-lbl', valor: '.kpi-val' }
+  ];
+  function textoDeElemento(el){
+    if (!el) return '';
+    for (var p = 0; p < PADROES_CARTAO.length; p++) {
+      var padrao = PADROES_CARTAO[p];
+      var cartoes = el.querySelectorAll(padrao.cartao);
+      if (!cartoes.length) continue;
+      var partes = [];
+      cartoes.forEach(function (c) {
+        var rotulo = c.querySelector(padrao.rotulo);
+        var valor = c.querySelector(padrao.valor);
+        if (rotulo && valor) partes.push(rotulo.textContent.trim() + ': ' + valor.textContent.trim());
+      });
+      if (partes.length) return partes.join('. ');
+    }
+    return (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+  // Exposto para as páginas ligarem um botão "🔊 Ler em voz" a qualquer
+  // contentor já carregado no ecrã (dia, mês, trimestre, semestre, ano).
+  window.zeloLerElemento = function (seletor, titulo) {
+    var el = typeof seletor === 'string' ? document.querySelector(seletor) : seletor;
+    var corpo = textoDeElemento(el);
+    if (!corpo) { falar('Ainda não há dados carregados para ler aqui.'); return; }
+    falar((titulo ? titulo + '. ' : '') + corpo);
+  };
+
   // ── Confirmação por voz antes de eliminar ──
   // Muitas páginas já pedem confirmação antes de eliminar dados (janela
   // confirm() nativa do navegador, com uma mensagem própria de cada página)
