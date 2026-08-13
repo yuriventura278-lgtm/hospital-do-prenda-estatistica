@@ -748,6 +748,15 @@
   // Quando há dias em falta, avisa sempre que a página abre (é preciso
   // insistir). Quando o mês está todo em dia, os parabéns só soam 1x por dia
   // — repeti-los a cada entrada na página seria cansativo sem necessidade.
+  //
+  // zelo_pagegate.js só grava sessionStorage.zeloNome DEPOIS de confirmar a
+  // sessão com o Firebase — numa ligação lenta isso pode demorar bem mais do
+  // que os 1200ms fixos abaixo, fazendo esta função desistir cedo demais
+  // (sem sessão ainda) e nunca mais tentar. Por isso corre tanto no timer
+  // fixo (cobre o caso rápido) como no evento 'zelo-gate-ready' que essa
+  // página já dispara mal a sessão fica confirmada (cobre o caso lento); a
+  // flag abaixo impede que as duas tentativas falem por cima uma da outra.
+  var avisoPreenchimentoEmCurso = false;
   function tentarAvisarPreenchimento(){
     var cfg = configAvisoPreenchimento();
     if (!cfg) return;
@@ -757,6 +766,8 @@
     var partes = agora.data.split('-');
     var diaHoje = parseInt(partes[2], 10);
     if (diaHoje <= 1) return; // dia 1 do mês — ainda não há "até ontem" para avaliar
+    if (avisoPreenchimentoEmCurso) return;
+    avisoPreenchimentoEmCurso = true;
     var chaveOkHoje = 'zeloAvisoPreenchimentoOK_' + cfg.chaveAviso;
     obterFirebaseLeitura().then(function (ler) {
       return ler(cfg.fbPathBase);
@@ -1004,6 +1015,9 @@
     // navegador (speechSynthesis.getVoices()) para carregarem.
     setTimeout(tentarSaudarEntrada, 1200);
     setTimeout(tentarAvisarPreenchimento, 1200);
+    // Ver nota acima de tentarAvisarPreenchimento: cobre o caso de a sessão
+    // só ficar confirmada depois dos 1200ms fixos.
+    window.addEventListener('zelo-gate-ready', function () { tentarAvisarPreenchimento(); });
   }
 
   if (document.readyState === 'loading') {
