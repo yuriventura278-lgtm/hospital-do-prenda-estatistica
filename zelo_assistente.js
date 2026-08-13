@@ -690,10 +690,6 @@
     }
     return slug;
   }
-  function porExtenso(itens){
-    if (itens.length === 1) return itens[0];
-    return itens.slice(0, -1).join(', ') + ' e ' + itens[itens.length - 1];
-  }
   function configAvisoPreenchimento(){
     if (window.ZELO_MODULE === 'procedimentos_enfermagem' && window.ZELO_ITEM) {
       return {
@@ -737,9 +733,9 @@
       }
       var texto;
       if (diasFalta.length) {
+        var diasPorExtenso = diasFalta.map(function (d) { return 'dia ' + d + ', ainda sem registo'; }).join('; ');
         texto = 'Olá, ' + nome + '. Lema do Zelo: dados de qualidade geram decisão de qualidade. ' +
-          'Em ' + cfg.servicoLabel + ', ainda falta preencher o' + (diasFalta.length > 1 ? 's dias ' : ' dia ') +
-          porExtenso(diasFalta) + ' deste mês.';
+          'Em ' + cfg.servicoLabel + ', este mês: ' + diasPorExtenso + '.';
       } else {
         if (localStorage.getItem(chaveOkHoje) === agora.data) return;
         localStorage.setItem(chaveOkHoje, agora.data);
