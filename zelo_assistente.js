@@ -1041,6 +1041,35 @@
     ' Vale sempre lembrar: dados bem guardados hoje tornam-se boas decisões amanhã. Qualquer dúvida, é só ligar para a extensão 1403, Serviço de Estatística.'
   ];
   var avisoPreenchimentoEmCurso = false;
+  // Junta uma lista de itens em texto natural: "A", "A e B", "A, B e C" —
+  // usado para não terminar frases com uma vírgula a mais antes do último.
+  function _juntarComE(itens){
+    if (itens.length === 0) return '';
+    if (itens.length === 1) return itens[0];
+    if (itens.length === 2) return itens[0] + ' e ' + itens[1];
+    return itens.slice(0, -1).join(', ') + ' e ' + itens[itens.length - 1];
+  }
+  // Comprime uma lista de dias em falta (ex.: ['1','2','3','5','7','8','9'])
+  // em intervalos por extenso ("os dias 1 até 3, o dia 5, os dias 7 até 9"),
+  // em vez de dizer dia a dia — insuportável de ouvir quando faltam muitos
+  // dias seguidos. `dias` já vem em ordem crescente (o loop que a monta
+  // percorre de 1 até ontem).
+  function _formatarDiasEmFalta(dias){
+    var grupos = [];
+    var inicio = null, anterior = null;
+    dias.forEach(function (dStr) {
+      var d = parseInt(dStr, 10);
+      if (inicio === null) { inicio = d; anterior = d; return; }
+      if (d === anterior + 1) { anterior = d; return; }
+      grupos.push([inicio, anterior]);
+      inicio = d; anterior = d;
+    });
+    if (inicio !== null) grupos.push([inicio, anterior]);
+    var frases = grupos.map(function (g) {
+      return g[0] === g[1] ? ('o dia ' + g[0]) : ('os dias ' + g[0] + ' até ' + g[1]);
+    });
+    return _juntarComE(frases);
+  }
   function tentarAvisarPreenchimento(){
     var cfg = configAvisoPreenchimento();
     if (!cfg) return;
@@ -1078,9 +1107,9 @@
         var chaveFaltaSessao = 'zeloAvisoPreenchimentoFaltaSessao_' + cfg.chaveAviso;
         if (sessionStorage.getItem(chaveFaltaSessao)) return;
         sessionStorage.setItem(chaveFaltaSessao, '1');
-        var diasPorExtenso = diasFalta.map(function (d) { return 'dia ' + d + ', ainda sem registo'; }).join('; ');
+        var diasPorExtenso = _formatarDiasEmFalta(diasFalta);
         var aberturaAviso = ABERTURAS_AVISO_FALTA[Math.floor(Math.random() * ABERTURAS_AVISO_FALTA.length)].replace('NOME', nome);
-        texto = aberturaAviso + ' Em ' + cfg.servicoLabel + ', este mês: ' + diasPorExtenso + '.';
+        texto = aberturaAviso + ' Em ' + cfg.servicoLabel + ', este mês, ainda sem registo: ' + diasPorExtenso + '.';
       } else {
         if (localStorage.getItem(chaveOkHoje) === agora.data) return;
         localStorage.setItem(chaveOkHoje, agora.data);
