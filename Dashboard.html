@@ -14,6 +14,8 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"></noscript>
 <link rel="stylesheet" href="zelo_tokens.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
@@ -74,6 +76,8 @@ main{padding:20px 22px 64px;max-width:1400px;margin:0 auto;}
   font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit;margin-left:auto;transition:background .12s;}
 .btn-carregar:hover{background:var(--accent-dark);}
 .btn-carregar:disabled{opacity:.6;cursor:default;}
+.btn-pdf{margin-left:8px;background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.btn-pdf:hover{background:var(--accent-soft);}
 .period-label{font-size:.68rem;color:var(--tx3);font-weight:500;width:100%;}
 
 /* ── Secções por serviço ── */
@@ -82,6 +86,7 @@ main{padding:20px 22px 64px;max-width:1400px;margin:0 auto;}
 .svc-hdr{display:flex;align-items:flex-end;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
 .svc-eyebrow{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--svc-cor,var(--accent));margin-bottom:2px;}
 .svc-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.08rem;color:var(--tx);line-height:1.2;}
+.svc-atualizado{font-size:.62rem;color:var(--tx3);margin-top:3px;min-height:1em;}
 .svc-voz-btn{margin-left:auto;background:transparent;border:1px solid var(--br);border-radius:100px;
   padding:6px 14px;font-size:.68rem;font-weight:600;color:var(--tx2);cursor:pointer;font-family:inherit;transition:all .12s;}
 .svc-voz-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -121,6 +126,7 @@ main{padding:20px 22px 64px;max-width:1400px;margin:0 auto;}
     </div>
     <div class="period-fields" id="periodFields"></div>
     <button class="btn-carregar" id="btnCarregar">Carregar</button>
+    <button class="btn-carregar btn-pdf" id="btnExportarPDF">Exportar PDF</button>
     <div class="period-label" id="periodResumoLabel"></div>
   </div>
 
@@ -295,7 +301,7 @@ function barChartConfig(labels, data, opts){
       indexAxis: opts.horizontal ? 'y' : 'x',
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { x: { ticks: { font: { size: 10 }, color: txMuted }, grid: { display: !opts.horizontal, color: grid } }, y: { ticks: { font: { size: 10 }, color: txMuted }, grid: { display: !!opts.horizontal, color: grid }, beginAtZero: true } }
+      scales: { x: { ticks: { font: { size: 10 }, color: txMuted, precision: 0 }, grid: { display: !opts.horizontal, color: grid }, beginAtZero: !!opts.horizontal }, y: { ticks: { font: { size: 10 }, color: txMuted, precision: 0 }, grid: { display: !!opts.horizontal, color: grid }, beginAtZero: !opts.horizontal } }
     }
   };
 }
@@ -326,7 +332,7 @@ function lineChartConfig(labels, data, opts){
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { x: { ticks: { font: { size: 9 }, color: txMuted, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { display:false } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, color: txMuted }, grid: { color: grid } } }
+      scales: { x: { ticks: { font: { size: 9 }, color: txMuted, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { display:false } }, y: { beginAtZero: true, ticks: { font: { size: 10 }, color: txMuted, precision: 0 }, grid: { color: grid } } }
     }
   };
 }
@@ -359,13 +365,39 @@ const SECOES = [
 document.getElementById('secoes').innerHTML = SECOES.map(function(s){
   return '<div class="svc-section" id="sec-'+s.id+'" style="--svc-cor:'+s.cor+';">'+
     '<div class="svc-hdr"><div><div class="svc-eyebrow">'+s.eyebrow+'</div>'+
-    '<div class="svc-title">'+s.titulo+'</div></div>'+
+    '<div class="svc-title">'+s.titulo+'</div>'+
+    '<div class="svc-atualizado" id="upd-'+s.id+'"></div></div>'+
     '<button class="svc-voz-btn" onclick="narrarSecao(\''+s.id+'\')">Ler em voz</button></div>'+
     '<div id="corpo-'+s.id+'"><div class="svc-loading">A carregar…</div></div>'+
     '</div>';
 }).join('');
 
-function renderSecao(id, kpis, charts){
+// Última gravação (savedAt) encontrada nos registos usados por cada secção —
+// mostrada no cabeçalho para o utilizador saber se está a ver dados frescos.
+function _maisRecente(atual, candidato){
+  if (!candidato) return atual;
+  if (!atual) return candidato;
+  return candidato > atual ? candidato : atual;
+}
+function _ultimaDoHist(hist, dates){
+  let u = null;
+  dates.forEach(function(d){ if (hist[d] && hist[d].savedAt) u = _maisRecente(u, hist[d].savedAt); });
+  return u;
+}
+function _formatarAtualizacao(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const diffMin = Math.round((Date.now()-d.getTime())/60000);
+  if (diffMin < 1) return 'Atualizado agora mesmo';
+  if (diffMin < 60) return 'Atualizado há '+diffMin+' min';
+  const diffH = Math.round(diffMin/60);
+  if (diffH < 24) return 'Atualizado há '+diffH+' h';
+  return 'Atualizado em '+pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+' às '+pad2(d.getHours())+':'+pad2(d.getMinutes());
+}
+
+const _kpisPDF = {};
+function renderSecao(id, kpis, charts, ultimaAtualizacao){
   // charts: [{title, canvasId, config}]
   var html = '<div class="svc-kpis">' + kpisHTML(kpis) + '</div>';
   if (charts.length){
@@ -376,9 +408,15 @@ function renderSecao(id, kpis, charts){
   }
   document.getElementById('corpo-'+id).innerHTML = html;
   charts.forEach(function(c){ desenharGrafico(c.canvasId, c.config); });
+  _kpisPDF[id] = kpis;
+  var updEl = document.getElementById('upd-'+id);
+  if (updEl) updEl.textContent = _formatarAtualizacao(ultimaAtualizacao);
 }
 function renderSecaoVazia(id, msg){
   document.getElementById('corpo-'+id).innerHTML = '<div class="svc-empty">'+(msg||'Sem dados para este período.')+'</div>';
+  _kpisPDF[id] = null;
+  var updEl = document.getElementById('upd-'+id);
+  if (updEl) updEl.textContent = '';
 }
 
 /* ── 1. Procedimentos de Enfermagem — por Serviço ──
@@ -407,7 +445,7 @@ function _totalProcNoSub(sub){
 async function carregarProcedimentos(periodo){
   const slugs = Object.keys(PROC_SLUGS);
   const historicos = await Promise.all(slugs.map(function(slug){ return lerHistoricoCompleto('registos_enf/'+slug); }));
-  let total = 0;
+  let total = 0, ultimaAtualizacao = null;
   const porDia = {}; periodo.dates.forEach(function(d){ porDia[d] = 0; });
   const porServico = slugs.map(function(slug, i){
     let n = 0;
@@ -417,17 +455,18 @@ async function carregarProcedimentos(periodo){
       const sub = snap && snap.sub;
       const dia = _totalProcNoSub(sub);
       n += dia; porDia[d] += dia;
+      if (hist[d] && hist[d].savedAt) ultimaAtualizacao = _maisRecente(ultimaAtualizacao, hist[d].savedAt);
     });
     total += n;
     return { nome: PROC_SLUGS[slug], v: n };
   });
   const rows = ordenarDesc(porServico);
   if (total === 0){ renderSecaoVazia('proc'); _secaoDados.proc=null; return; }
-  const charts = [ { title:'Por Serviço', canvasId:'chart-proc', config: barChartConfig(rows.map(r=>r.nome), rows.map(r=>r.v), {horizontal:true, color:'#D97706'}) } ];
-  if (periodo.dates.length > 1) charts.push({ title:'Evolução Diária', canvasId:'chart-proc-evol', config: lineChartConfig(periodo.dates.map(d=>d.slice(8,10)+'/'+d.slice(5,7)), periodo.dates.map(d=>porDia[d]), {color:'#D97706'}) });
+  const charts = [ { title:'Por Serviço', canvasId:'chart-proc', config: barChartConfig(rows.map(r=>r.nome), rows.map(r=>r.v), {horizontal:true, color:'#B5502D'}) } ];
+  if (periodo.dates.length > 1) charts.push({ title:'Evolução Diária', canvasId:'chart-proc-evol', config: lineChartConfig(periodo.dates.map(d=>d.slice(8,10)+'/'+d.slice(5,7)), periodo.dates.map(d=>porDia[d]), {color:'#B5502D'}) });
   renderSecao('proc',
     [ {val: total, lbl:'Total de Procedimentos'}, {val: rows.length, lbl:'Serviços com Registo'} ],
-    charts
+    charts, ultimaAtualizacao
   );
   _secaoDados.proc = { total, rows, periodoFalado: periodo.periodoFalado };
 }
@@ -446,6 +485,7 @@ const BLOCO_SPECIALTIES = ['Cirurgia Geral','Ortopedia','Maxilo Facial','Urologi
 const BLOCO_ANEST_TAGS = {GOT:'Gerais Endotraqueal', GEV:'Gerais Endovenosa', DISS:'Dissociativa', BAL:'Balanceada', COMB:'Combinadas', 'REG.':'Raquidianas', EPI:'Epidurales', BN:'Bloqueio Nervoso', LOC:'Locais'};
 async function carregarBloco(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/bloco_operatorio');
+  const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   let totUrg=0, totElet=0;
   const especT = {}; BLOCO_SPECIALTIES.forEach(s=>especT[s]={urg:0,elet:0});
   const anestT = {};
@@ -467,11 +507,11 @@ async function carregarBloco(periodo){
   if (total === 0){ renderSecaoVazia('bloco'); _secaoDados.bloco=null; return; }
   const especRows = ordenarDesc(BLOCO_SPECIALTIES.map(function(s){ return { nome:s, v:(especT[s].urg||0)+(especT[s].elet||0) }; }));
   const anestRows = ordenarDesc(Object.keys(anestT).map(function(k){ return {nome:k, v:anestT[k]}; }));
-  const charts = [ { title:'Por Especialidade (Urgente + Eletiva)', canvasId:'chart-bloco-esp', config: barChartConfig(especRows.map(r=>r.nome), especRows.map(r=>r.v), {horizontal:true, color:'#DC2626'}) } ];
+  const charts = [ { title:'Por Especialidade (Urgente + Eletiva)', canvasId:'chart-bloco-esp', config: barChartConfig(especRows.map(r=>r.nome), especRows.map(r=>r.v), {horizontal:true, color:'#9B3B3B'}) } ];
   if (anestRows.length) charts.push({ title:'Técnicas Anestésicas', canvasId:'chart-bloco-anest', config: pieChartConfig(anestRows.map(r=>r.nome), anestRows.map(r=>r.v)) });
   renderSecao('bloco',
     [ {val:total, lbl:'Total Cirurgias'}, {val:totUrg, lbl:'Urgentes'}, {val:totElet, lbl:'Eletivas'} ],
-    charts
+    charts, ultimaAtualizacao
   );
   _secaoDados.bloco = { total, totUrg, totElet, especRows, anestRows, periodoFalado: periodo.periodoFalado };
 }
@@ -489,6 +529,7 @@ function narrarBloco(){
    registos_sistemas_locais/consulta_externa/{data}.snapshot = { sessoes:[{especialidade, totalDoentes, diagnosticos:{}, ...}] } */
 async function carregarConsultaExterna(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/consulta_externa');
+  const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   let total = 0;
   const porEspec = {}, diagnosticos = {};
   periodo.dates.forEach(function(d){
@@ -505,9 +546,9 @@ async function carregarConsultaExterna(periodo){
   if (total === 0){ renderSecaoVazia('ce'); _secaoDados.ce=null; return; }
   const especRows = ordenarDesc(Object.keys(porEspec).map(function(k){ return {nome:k, v:porEspec[k]}; }));
   const diagRows = ordenarDesc(Object.keys(diagnosticos).map(function(k){ return {nome:k, v:diagnosticos[k]}; })).slice(0,8);
-  const charts = [ { title:'Por Especialidade', canvasId:'chart-ce-esp', config: barChartConfig(especRows.map(r=>r.nome), especRows.map(r=>r.v), {horizontal:true, color:'#059669'}) } ];
+  const charts = [ { title:'Por Especialidade', canvasId:'chart-ce-esp', config: barChartConfig(especRows.map(r=>r.nome), especRows.map(r=>r.v), {horizontal:true, color:'#3F7A56'}) } ];
   if (diagRows.length) charts.push({ title:'Principais Diagnósticos', canvasId:'chart-ce-diag', config: doughnutChartConfig(diagRows.map(r=>r.nome), diagRows.map(r=>r.v)) });
-  renderSecao('ce', [ {val:total, lbl:'Total de Doentes'}, {val:especRows.length, lbl:'Especialidades'} ], charts);
+  renderSecao('ce', [ {val:total, lbl:'Total de Doentes'}, {val:especRows.length, lbl:'Especialidades'} ], charts, ultimaAtualizacao);
   _secaoDados.ce = { total, especRows, diagRows, periodoFalado: periodo.periodoFalado };
 }
 function narrarConsultaExterna(){
@@ -523,6 +564,7 @@ function narrarConsultaExterna(){
    registos_sistemas_locais/imagiologia/{data}.snapshot = { tac:{exame:{bu,aut,int}}, eco:{...}, rx:{...} } */
 async function carregarImagiologia(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/imagiologia');
+  const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   const modalidades = { tac:0, eco:0, rx:0 };
   let bu=0, aut=0, int_=0;
   periodo.dates.forEach(function(d){
@@ -542,8 +584,8 @@ async function carregarImagiologia(periodo){
   const origemRows = ordenarDesc([{nome:'Banco de Urgência', v:bu}, {nome:'Autorizados', v:aut}, {nome:'Internamento', v:int_}]);
   renderSecao('imag', [ {val:total, lbl:'Total de Exames'} ], [
     { title:'Por Modalidade', canvasId:'chart-imag-mod', config: pieChartConfig(modRows.map(r=>r.nome), modRows.map(r=>r.v)) },
-    { title:'Por Origem', canvasId:'chart-imag-orig', config: barChartConfig(origemRows.map(r=>r.nome), origemRows.map(r=>r.v), {color:'#0EA5E9'}) },
-  ]);
+    { title:'Por Origem', canvasId:'chart-imag-orig', config: barChartConfig(origemRows.map(r=>r.nome), origemRows.map(r=>r.v), {color:'#3E7EA6'}) },
+  ], ultimaAtualizacao);
   _secaoDados.imag = { total, modRows, origemRows, periodoFalado: periodo.periodoFalado };
 }
 function narrarImagiologia(){
@@ -559,6 +601,7 @@ function narrarImagiologia(){
    registos_sistemas_locais/laboratorio/{data}.snapshot = { exames:{nome:{bu,int}}, positivos:{nome:{bu,int}} } */
 async function carregarLaboratorio(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/laboratorio');
+  const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   let total = 0, totalPositivos = 0;
   const porExame = {};
   periodo.dates.forEach(function(d){
@@ -572,11 +615,11 @@ async function carregarLaboratorio(periodo){
   });
   if (total === 0){ renderSecaoVazia('lab'); _secaoDados.lab=null; return; }
   const topExames = ordenarDesc(Object.keys(porExame).map(function(k){ return {nome:k, v:porExame[k]}; })).slice(0,8);
-  const charts = [ { title:'Principais Exames', canvasId:'chart-lab', config: barChartConfig(topExames.map(r=>r.nome), topExames.map(r=>r.v), {horizontal:true, color:'#7C3AED'}) } ];
+  const charts = [ { title:'Principais Exames', canvasId:'chart-lab', config: barChartConfig(topExames.map(r=>r.nome), topExames.map(r=>r.v), {horizontal:true, color:'#6B4E9E'}) } ];
   if (totalPositivos > 0) charts.push({ title:'Resultados Positivos vs. Sem Alteração', canvasId:'chart-lab-pos', config: pieChartConfig(['Positivos','Sem alteração'], [totalPositivos, Math.max(total-totalPositivos,0)]) });
   renderSecao('lab',
     [ {val:total, lbl:'Total de Exames'}, {val:totalPositivos, lbl:'Resultados Positivos'} ],
-    charts
+    charts, ultimaAtualizacao
   );
   _secaoDados.lab = { total, totalPositivos, topExames, periodoFalado: periodo.periodoFalado };
 }
@@ -593,6 +636,7 @@ function narrarLaboratorio(){
    registos_sistemas_locais/hemoterapia/{data}.snapshot = { transfusoes:{plaquetas,plasmas,globulos,crio}, doadores:{voluntarios,familiares,habituais}, serologia:{vih,hbs,vdrl,hcv,outros} } */
 async function carregarHemoterapia(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/hemoterapia');
+  const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   const transf = {plaquetas:0, plasmas:0, globulos:0, crio:0};
   const doad = {voluntarios:0, familiares:0, habituais:0};
   const sero = {vih:0, hbs:0, vdrl:0, hcv:0, outros:0};
@@ -611,10 +655,10 @@ async function carregarHemoterapia(periodo){
   const transfRows = ordenarDesc(Object.keys(transf).map(function(k){ return {nome:transfLabels[k], v:transf[k]}; }));
   const doadRows = ordenarDesc(Object.keys(doad).map(function(k){ return {nome:doadLabels[k], v:doad[k]}; }));
   const seroRows = ordenarDesc(Object.keys(sero).map(function(k){ return {nome:seroLabels[k], v:sero[k]}; }));
-  const charts = [ { title:'Transfusões por Tipo', canvasId:'chart-hemo-transf', config: barChartConfig(transfRows.map(r=>r.nome), transfRows.map(r=>r.v), {color:'#DB2777'}) } ];
-  if (doadRows.length) charts.push({ title:'Doadores por Tipo', canvasId:'chart-hemo-doad', config: barChartConfig(doadRows.map(r=>r.nome), doadRows.map(r=>r.v), {color:'#BE185D'}) });
+  const charts = [ { title:'Transfusões por Tipo', canvasId:'chart-hemo-transf', config: barChartConfig(transfRows.map(r=>r.nome), transfRows.map(r=>r.v), {color:'#A6467A'}) } ];
+  if (doadRows.length) charts.push({ title:'Doadores por Tipo', canvasId:'chart-hemo-doad', config: barChartConfig(doadRows.map(r=>r.nome), doadRows.map(r=>r.v), {color:'#7A3A5A'}) });
   if (seroRows.length) charts.push({ title:'Serologia Positiva', canvasId:'chart-hemo-sero', config: pieChartConfig(seroRows.map(r=>r.nome), seroRows.map(r=>r.v)) });
-  renderSecao('hemo', [ {val:totalTransf, lbl:'Total Transfusões'}, {val:totalDoad, lbl:'Total Doadores'}, {val:totalSero, lbl:'Serologias Positivas'} ], charts);
+  renderSecao('hemo', [ {val:totalTransf, lbl:'Total Transfusões'}, {val:totalDoad, lbl:'Total Doadores'}, {val:totalSero, lbl:'Serologias Positivas'} ], charts, ultimaAtualizacao);
   _secaoDados.hemo = { totalTransf, totalDoad, transfRows, doadRows, seroRows, periodoFalado: periodo.periodoFalado };
 }
 function narrarHemoterapia(){
@@ -651,7 +695,7 @@ async function carregarFarmacia(){
   charts.push({ title:'Estado Geral do Stock', canvasId:'chart-farm-estado', config: pieChartConfig(['Normal','Stock Baixo','Esgotado'], [normal, baixo.length, esgotados.length]) });
   renderSecao('farm',
     [ {val:produtos.length, lbl:'Produtos no Stock'}, {val:esgotados.length, lbl:'Esgotados'}, {val:baixo.length, lbl:'Stock Baixo'} ],
-    charts
+    charts, dados && dados.savedAt
   );
   _secaoDados.farm = { totalProdutos: produtos.length, esgotados: esgotados.length, baixo: baixo.length };
 }
@@ -676,6 +720,7 @@ window.narrarSecao = function(id){
 };
 
 /* ── Carregar tudo para o período seleccionado ── */
+let _ultimoPeriodo = null;
 async function carregarTudo(){
   const periodo = calcularPeriodo();
   if (!periodo || !periodo.dates.length){ return; }
@@ -693,9 +738,76 @@ async function carregarTudo(){
   ]);
   document.getElementById('periodResumoLabel').textContent = 'A mostrar: ' + periodo.label;
   btn.disabled = false; btn.textContent = 'Carregar';
+  _ultimoPeriodo = periodo;
 }
 document.getElementById('btnCarregar').addEventListener('click', carregarTudo);
 esperarFirebase().then(function(){ carregarTudo(); });
+
+/* ── Exportar PDF — resumo do período actualmente carregado, com os KPIs
+   e os próprios gráficos (capturados como imagem dos canvas já desenhados)
+   de cada secção, na mesma ordem em que aparecem no ecrã. ── */
+async function exportarPDF(){
+  const jspdfNS = window.jspdf;
+  if (!jspdfNS || !jspdfNS.jsPDF){ alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return; }
+  if (!_ultimoPeriodo){ alert('Carregue um período antes de exportar.'); return; }
+  const btn = document.getElementById('btnExportarPDF');
+  btn.disabled = true; const txtOriginal = btn.textContent; btn.textContent = 'A gerar…';
+  try{
+    const { jsPDF } = jspdfNS;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
+    const marginX = 14; let y = 18;
+    doc.setFont('helvetica','bold'); doc.setFontSize(16);
+    doc.text('Dashboard — Hospital do Prenda', marginX, y);
+    y += 7;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(110);
+    doc.text(_ultimoPeriodo.label + ' · gerado em ' + new Date().toLocaleString('pt-PT'), marginX, y);
+    doc.setTextColor(0);
+    y += 9;
+
+    SECOES.forEach(function(s){
+      if (y > pageH - 30){ doc.addPage(); y = 18; }
+      doc.setFont('helvetica','bold'); doc.setFontSize(12);
+      doc.text(s.titulo, marginX, y);
+      y += 6;
+      const kpis = _kpisPDF[s.id];
+      if (!kpis){
+        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(140);
+        doc.text('Sem dados para este período.', marginX, y);
+        doc.setTextColor(0);
+        y += 10;
+        return;
+      }
+      doc.autoTable({
+        startY: y, margin: { left: marginX, right: marginX }, theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 1.2 },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 65 } },
+        body: kpis.map(function(k){ return [k.lbl, String(k.val)]; }),
+      });
+      y = doc.lastAutoTable.finalY + 3;
+      const canvases = document.querySelectorAll('#sec-'+s.id+' canvas');
+      let x = marginX;
+      const imgW = 86, imgH = 48;
+      canvases.forEach(function(cv){
+        try{
+          if (x + imgW > pageW - marginX){ x = marginX; y += imgH + 5; }
+          if (y + imgH > pageH - 14){ doc.addPage(); y = 18; x = marginX; }
+          doc.addImage(cv.toDataURL('image/png', 1.0), 'PNG', x, y, imgW, imgH);
+          x += imgW + 6;
+        }catch(e){ console.warn('ZELO Dashboard: falha ao capturar gráfico', e); }
+      });
+      y += imgH + 10;
+    });
+
+    doc.save('dashboard_' + _ultimoPeriodo.label.replace(/[^\w-]+/g,'_') + '.pdf');
+  }catch(e){
+    console.error('ZELO Dashboard: falha ao exportar PDF', e);
+    alert('Não foi possível gerar o PDF. Tente novamente.');
+  }finally{
+    btn.disabled = false; btn.textContent = txtOriginal;
+  }
+}
+document.getElementById('btnExportarPDF').addEventListener('click', exportarPDF);
 </script>
 
 <footer style="max-width:1400px;margin:0 auto;padding:0 20px 30px;color:var(--tx3);font-size:.66rem;text-align:center;">
