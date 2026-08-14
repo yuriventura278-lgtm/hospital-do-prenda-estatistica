@@ -2778,6 +2778,47 @@ CE.Registo = (function(){
     });
   }
 
+  /* ---------- Sincronização completa (todas as datas) ----------
+     _fbEscutarDia() só traz dados doutros dispositivos para a data que está
+     aberta no formulário de registo. O resumo do dia e os relatórios/
+     histórico liam sempre do IndexedDB local, que nunca recebia essa
+     actualização — um dispositivo usado só para consultar relatórios ficava
+     sem ver o que fora gravado só noutro computador. Esta função lê de uma
+     vez TODO o histórico guardado no Firebase e funde-o no armazenamento
+     local antes de qualquer resumo/relatório ser calculado. */
+  var _fbSincTudoPromise = null;
+  function _fbSincronizarTudo(){
+    if (_fbSincTudoPromise) return _fbSincTudoPromise;
+    _fbSincTudoPromise = (async function(){
+      try{
+        var pronto = await _fbEsperarPronto();
+        if (!pronto || !window.__fbGet) return;
+        var tudo = await window.__fbGet('registos_sistemas_locais/consulta_externa');
+        if (!tudo) return;
+        var locais = await CE.Store.getAllSessoes();
+        for (var data in tudo){
+          var remoto = tudo[data];
+          var sessoesRemotas = remoto && remoto.snapshot && remoto.snapshot.sessoes;
+          if (!sessoesRemotas || !sessoesRemotas.length) continue;
+          if (remoto.savedAt === _fbBaselineSavedAt[data]) continue; // já é a nossa própria versão
+          // Só aplica se for de facto mais recente do que o que já está
+          // gravado localmente para este dia — evita apagar uma gravação
+          // feita neste mesmo aparelho que ainda não chegou ao Firebase
+          // (ex.: offline, à espera do zeloQueueWrite reenviar).
+          var maisRecenteLocal = locais.filter(function(s){ return s.data === data; })
+            .reduce(function(m, s){ return Math.max(m, s.createdAt||0); }, 0);
+          var remotoMs = Date.parse(remoto.savedAt);
+          if (isNaN(remotoMs) || remotoMs <= maisRecenteLocal) continue;
+          await _fbAplicarSessoesRemotas(data, sessoesRemotas);
+          _fbBaselineSavedAt[data] = remoto.savedAt;
+          locais = await CE.Store.getAllSessoes(); // refresca para a data seguinte comparar bem
+        }
+      }catch(e){ console.warn('ZELO: falha ao sincronizar o histórico da Consulta Externa.', e); }
+    })();
+    _fbSincTudoPromise.finally(function(){ _fbSincTudoPromise = null; });
+    return _fbSincTudoPromise;
+  }
+
   /* ---------- Guardar Especialidade do Dia (só no Resumo) ---------- */
   async function guardarEspecialidadeDia(){
     var especialidade = document.getElementById('f-especialidade').value;
@@ -3111,6 +3152,7 @@ CE.Dashboard = (function(){
     var diasSemana = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
     document.getElementById('dash-date').textContent = diasSemana[d.getDay()] + ', ' + d.toLocaleDateString('pt-PT');
 
+    await _fbSincronizarTudo();
     var hoje = todayISO();
     var sessoes = await CE.Store.getAllSessoes();
     var registos = await CE.Store.getAllRegistos();
@@ -3286,6 +3328,7 @@ CE.Historico = (function(){
     var de = document.getElementById('h-de').value;
     var ate = document.getElementById('h-ate').value;
 
+    await _fbSincronizarTudo();
     var sessoes = await CE.Store.getAllSessoes();
     sessoes = sessoes.filter(function(s){
       if (especialidade && s.especialidade !== especialidade) return false;
@@ -3638,6 +3681,7 @@ CE.Relatorio = (function(){
     var periodo = computePeriodo();
     var especialidadeFiltro = document.getElementById('r-especialidade').value;
 
+    await _fbSincronizarTudo();
     var todasSessoes = await CE.Store.getAllSessoes();
     var todosRegistos = await CE.Store.getAllRegistos();
 
