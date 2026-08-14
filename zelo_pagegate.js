@@ -187,6 +187,15 @@ function mostrarAvisoOffline(){
   document.body.insertBefore(banner, document.body.firstChild);
   _zeloEmpurrarCabecalhoDaPagina();
 }
+// Assim que a ligação voltar, tira o aviso sozinho — sem isto, ficava
+// visível (e a tapar o cabeçalho) até a pessoa actualizar a página à mão,
+// mesmo já estando tudo a sincronizar normalmente em segundo plano.
+window.addEventListener('online', function(){
+  var banner = document.getElementById('zelo-offline-banner');
+  if (!banner) return;
+  banner.remove();
+  _zeloEmpurrarCabecalhoDaPagina(); // recalcula (e restaura) a posição do cabeçalho
+});
 
 function showSlowConnectionScreen(){
   document.documentElement.style.visibility = 'visible';
