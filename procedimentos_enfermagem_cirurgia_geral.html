@@ -1169,11 +1169,16 @@ function fmtDate(d) {
   const [y,m,dd] = d.split('-');
   return `${dd}/${m}/${y}`;
 }
+// Nomes dos meses por extenso, para a leitura em voz (ex.: "leitura mensal
+// de agosto de 2026") — global de propósito: existe também um MESES_PT
+// local dentro de zeloConverterDataDMY(), com o mesmo conteúdo mas isolado
+// nesse selector de data, sem visibilidade aqui.
+const MESES_PT_FALADO = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 // Data por extenso ("14 de agosto de 2026"), só para a leitura em voz — o
 // título mostrado no ecrã continua a usar fmtDate (DD/MM/AAAA).
 function _fmtDataFalada(d) {
   const [y,m,dd] = d.split('-');
-  return parseInt(dd,10) + ' de ' + MESES_PT[parseInt(m,10)-1].toLowerCase() + ' de ' + y;
+  return parseInt(dd,10) + ' de ' + MESES_PT_FALADO[parseInt(m,10)-1].toLowerCase() + ' de ' + y;
 }
 function datesInRange(s, e) {
   const dates = [], cur = new Date(s + 'T00:00:00'), end = new Date(e + 'T00:00:00');
@@ -2898,7 +2903,7 @@ function loadMensal() {
   if(!m) { showToast('⚠️ Seleccione o mês'); return; }
   const [y,mo] = m.split('-');
   const last = new Date(+y, +mo, 0).getDate();
-  renderReport('men-content', datesInRange(`${m}-01`,`${m}-${String(last).padStart(2,'0')}`), m, 'purple', spec, 'leitura mensal de ' + MESES_PT[+mo-1].toLowerCase() + ' de ' + y);
+  renderReport('men-content', datesInRange(`${m}-01`,`${m}-${String(last).padStart(2,'0')}`), m, 'purple', spec, 'leitura mensal de ' + MESES_PT_FALADO[+mo-1].toLowerCase() + ' de ' + y);
 }
 
 const MONTH_ABBR_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
