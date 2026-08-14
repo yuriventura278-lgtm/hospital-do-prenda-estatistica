@@ -438,25 +438,19 @@
   // novas — a única forma honesta de não soar sempre igual é escolher ao
   // acaso entre frases já escritas à mão, algumas mais leves/bem-humoradas,
   // mantendo sempre a mesma informação a seguir (para nunca confundir).
-  var ABERTURAS_SAUDACAO = [
-    'Sou o Zelo.',
-    'Sou o Zelo — sempre por perto.',
-    'Zelo às ordens — não faço café, mas ajudo a encontrar o que precisa.',
-    'Sou o Zelo. Prometo não me perder no meio do turno.'
-  ];
-  // A frase "Não tenho acesso a essa informação." mantém-se sempre igual (é
-  // a resposta certa e directa); só a continuação varia, para não soar
-  // sempre em modo de mensagem de erro.
-  var CAUDAS_NAO_SEI = [
-    ' Este Zelo funciona por comandos e perguntas reconhecidas (é gratuito e corre só no seu navegador) — diga "ajuda" para ver exemplos.',
-    ' Não sou uma inteligência artificial, só reconheço comandos fixos — diga "ajuda" para ver o que já sei fazer.',
-    ' Essa ainda não está no meu leque. Diga "ajuda" e vemos o que consigo.'
+  // A frase-base ("O meu criador, Yuri Matias, ainda não me programou para
+  // responder a isso.") mantém-se sempre igual (é a resposta certa e
+  // directa); só a abertura varia, para não soar sempre em modo de
+  // mensagem de erro.
+  var ABERTURAS_NAO_SEI = [
+    'Essa ainda não sei responder.',
+    'Essa está fora do que já sei fazer.',
+    'Ainda não tenho essa resposta pronta.'
   ];
   function respostaSaudacao(){
     var u = estadoUtilizador();
-    var ola = u.nome ? ('Olá, ' + u.nome + '! ') : 'Olá! ';
-    var abertura = ABERTURAS_SAUDACAO[Math.floor(Math.random() * ABERTURAS_SAUDACAO.length)];
-    return ola + abertura + ' Posso ajudar a navegar pelo sistema — por exemplo, diga "abrir bloco operatório" ou "onde encontro a farmácia". Diga "ajuda" para ver mais.';
+    var nome = u.nome ? (', ' + u.nome) : '';
+    return 'Olá' + nome + '. Eu sou o assistente Zelo, o que posso fazer por você hoje?';
   }
   function respostaAjuda(){
     return 'Isto é o que sei fazer, sem precisar de ligação a servidores nem custos:\n' +
@@ -470,7 +464,7 @@
     return 'Sou o Zelo, o assistente do sistema do Hospital do Prenda. Funciono inteiramente no seu navegador — não envio nada para fora, não tenho custos, e só reconheço comandos e perguntas de estrutura, não conversa livre.';
   }
   function respostaCriador(){
-    return 'Fui criado pelo Yuri Matias, o meu criador. O Zelo nasceu a 10 de julho de 2026.';
+    return 'Fui criado pelo Yuri Matias. Antes, era só uma página web normal — mas oficialmente, em 10 de julho de 2026, fui anunciado formalmente numa reunião de conselho clínico.';
   }
   function respostaDadosSensiveis(){
     return 'Não posso dar números nem outros dados registados do hospital por voz — são informações sensíveis e não tenho acesso para as partilhar desta forma. Para consultar esses números, aceda à página do serviço correspondente no sistema.';
@@ -564,8 +558,8 @@
 
     var alvos = localizarServicos(textoNorm);
     if (!alvos.length) {
-      var caudaNaoSei = CAUDAS_NAO_SEI[Math.floor(Math.random() * CAUDAS_NAO_SEI.length)];
-      return { texto: 'Não tenho acesso a essa informação.' + caudaNaoSei };
+      var aberturaNaoSei = ABERTURAS_NAO_SEI[Math.floor(Math.random() * ABERTURAS_NAO_SEI.length)];
+      return { texto: aberturaNaoSei + ' O meu criador, Yuri Matias, ainda não me programou para responder a isso.' };
     }
     // Aviso quando a frase pedia mais do que um serviço distinto (ex.: "abrir
     // bloco operatório e depois farmácia") — o Zelo só trata um pedido de
