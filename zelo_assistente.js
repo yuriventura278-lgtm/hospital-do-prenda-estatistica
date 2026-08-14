@@ -1084,7 +1084,7 @@
   // Fecho fixo de sexta-feira — substitui o pick aleatório de
   // LEMBRETES_FECHO_PREENCHIMENTO nesse dia específico: sem variedade aqui
   // de propósito, é um pedido concreto e igual todas as semanas.
-  var LEMBRETE_SEXTA_FEIRA = ' Hoje é sexta-feira: tenha como meta do dia lançar ou entregar as folhas de procedimentos do serviço na Estatística — todos os pendentes desta semana, por favor.';
+  var LEMBRETE_SEXTA_FEIRA = ' Hoje é sexta-feira: tenha como meta do dia lançar ou entregar as folhas de procedimentos do serviço na Estatística — todos os pendentes desta semana, caso não tenha feito, por favor.';
   function tentarAvisarPreenchimento(){
     var cfg = configAvisoPreenchimento();
     if (!cfg) return;
@@ -1159,9 +1159,17 @@
       // O lembrete fixo de sexta-feira (entregar as folhas de papel na
       // Estatística) só faz sentido em Procedimentos de Enfermagem — é o
       // único serviço com folhas de procedimentos em papel a entregar.
-      texto += (agora.diaSemana === 'Fri' && window.ZELO_MODULE === 'procedimentos_enfermagem')
-        ? LEMBRETE_SEXTA_FEIRA
-        : LEMBRETES_FECHO_PREENCHIMENTO[Math.floor(Math.random() * LEMBRETES_FECHO_PREENCHIMENTO.length)];
+      // Quando há dias em falta, a lista concreta é repetida logo a seguir
+      // ao pedido de entrega — é exactamente o que a pessoa precisa de
+      // saber para separar as folhas de papel a levar à Estatística.
+      if (agora.diaSemana === 'Fri' && window.ZELO_MODULE === 'procedimentos_enfermagem') {
+        texto += LEMBRETE_SEXTA_FEIRA;
+        if (diasFalta.length) {
+          texto += ' Os procedimentos que estão em falta são: ' + _formatarDiasEmFalta(diasFalta) + ' — caso tenha em falta.';
+        }
+      } else {
+        texto += LEMBRETES_FECHO_PREENCHIMENTO[Math.floor(Math.random() * LEMBRETES_FECHO_PREENCHIMENTO.length)];
+      }
       falar(texto);
     }).catch(function () {}).then(function () { avisoPreenchimentoEmCurso = false; });
     // ^ reposto no fim (sucesso ou falha): sem isto, se a leitura ao
