@@ -1057,10 +1057,17 @@
       return ler(cfg.fbPathBase);
     }).then(function (mes) {
       mes = mes || {};
+      // Cruza com o que está guardado LOCALMENTE neste aparelho (quando a
+      // página expõe isso) antes de considerar um dia em falta — só ler o
+      // Firebase dava falsos avisos quando o dia foi gravado offline e a
+      // sincronização (zeloQueueWrite) ainda não chegou lá, mesmo já
+      // estando guardado. Um dia só conta como em falta se NÃO estiver nem
+      // no Firebase nem localmente.
+      var diasLocais = (typeof window.zeloDiasComRegistoLocal === 'function') ? (window.zeloDiasComRegistoLocal() || []) : [];
       var diasFalta = [];
       for (var d = 1; d < diaHoje; d++) {
         var chave = partes[0] + '-' + partes[1] + '-' + String(d).padStart(2, '0');
-        if (!mes[chave]) diasFalta.push(String(d));
+        if (!mes[chave] && diasLocais.indexOf(chave) === -1) diasFalta.push(String(d));
       }
       var texto;
       if (diasFalta.length) {

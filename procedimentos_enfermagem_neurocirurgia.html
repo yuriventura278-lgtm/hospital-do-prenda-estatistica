@@ -3039,6 +3039,19 @@ function _keyDateStr(k) {
   const m = k.match(/(\d{8})$/);
   return m ? m[1] : null;
 }
+
+// Exposto para o Zelo (zelo_assistente.js) poder cruzar, no aviso de "dias
+// em falta", os dias já guardados LOCALMENTE (mesmo que a sincronização com
+// o Firebase ainda esteja pendente) — evita avisos errados de "falta" quando
+// o dispositivo gravou offline e ainda não sincronizou.
+window.zeloDiasComRegistoLocal = function(){
+  var out = [];
+  _storageKeys('enf5_').forEach(function(k){
+    var d = _keyDateStr(k);
+    if (d && d.length === 8) out.push(d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8));
+  });
+  return out;
+};
 function _collectBackupData(filterFn) {
   const all = {};
   _storageKeys('enf5_').concat(_storageKeys('enf4_')).forEach(function(k) {
