@@ -5159,8 +5159,8 @@ function _drawBarChart(chartId, data, horiz) {
 // Patch renderReport para injectar gráficos após render
 var _origRR = typeof renderReport === 'function' ? renderReport : null;
 if (_origRR) {
-  renderReport = function(containerId, dates, title, colorClass, filterSpec) {
-    _origRR(containerId, dates, title, colorClass, filterSpec);
+  renderReport = function(containerId, dates, title, colorClass, filterSpec, periodoFalado) {
+    _origRR(containerId, dates, title, colorClass, filterSpec, periodoFalado);
     var MAP = {
       'rpt-day-content':['rpt-day-chart','rpt-day-chart-wrap','rpt-day-interp'],
       'sem-content':    ['sem-chart',    'sem-chart-wrap',    'sem-interp'],
