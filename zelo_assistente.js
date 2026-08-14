@@ -1033,6 +1033,14 @@
     'Boa, NOME — os ITENS estão todos a tempo este mês.',
     'NOME, os teus ITENS continuam impecáveis este mês. Parabéns pela dedicação.'
   ];
+  // Aberturas para quando só falta o dia de ontem — caso especial: em vez do
+  // aviso de "dias em falta", reconhece o comprometimento (é normal ainda
+  // não ter dado tempo de preencher o dia anterior logo ao entrar).
+  var ABERTURAS_QUASE_EM_DIA = [
+    'Parabéns, NOME, pelo comprometimento — só falta o registo de ontem.',
+    'Muito bem, NOME! Está quase tudo em dia, falta só preencher ontem.',
+    'Boa, NOME — nota-se o comprometimento, só falta o dia de ontem.'
+  ];
   // Fecho ("lembrete") de todas as mensagens de preenchimento — a extensão e
   // o serviço de contacto mantêm-se sempre iguais em cada variante.
   var LEMBRETES_FECHO_PREENCHIMENTO = [
@@ -1106,6 +1114,7 @@
         if (!mes[chave] && diasLocais.indexOf(chave) === -1) diasFalta.push(String(d));
       }
       var texto;
+      var soFaltaOntem = diasFalta.length === 1 && diasFalta[0] === String(diaHoje - 1);
       if (diasFalta.length) {
         // Só volta a falar dos dias em falta uma vez por sessão — se a
         // pessoa continuar a navegar/recarregar páginas deste serviço sem
@@ -1114,21 +1123,31 @@
         var chaveFaltaSessao = 'zeloAvisoPreenchimentoFaltaSessao_' + cfg.chaveAviso;
         if (sessionStorage.getItem(chaveFaltaSessao)) return;
         sessionStorage.setItem(chaveFaltaSessao, '1');
-        var diasPorExtenso = _formatarDiasEmFalta(diasFalta);
-        // Do dia 20 ao fim do mês, com dias por preencher, o aviso muda de
-        // tom — deixa de ser a variante casual e passa a insistir na
-        // urgência de fecho de mês, sempre com a mesma frase (a seriedade
-        // não pede variedade).
-        if (diaHoje >= 20) {
-          var diasRestantesMes = _diasNoMes(partes[0], partes[1]) - diaHoje;
-          var fraseRestantes = diasRestantesMes === 0
-            ? 'Hoje é o último dia do mês'
-            : ('Faltam ' + diasRestantesMes + (diasRestantesMes === 1 ? ' dia' : ' dias') + ' para o mês terminar');
-          texto = 'Olá, ' + nome + '. ' + fraseRestantes + ' e ainda tens dias em falta em ' + cfg.servicoLabel + ': ' +
-            diasPorExtenso + '. Precisamos levar este trabalho a sério — estes dados não são só números, eles representam o hospital.';
+        if (soFaltaOntem) {
+          // Falta só o dia de ontem: ainda é "em falta" tecnicamente, mas
+          // entrar no sistema sem ainda ter tido oportunidade de preencher
+          // ontem é normal — reconhece o comprometimento em vez de soar
+          // como um aviso, e mesmo assim lembra que os dados não são só
+          // números, são decisões.
+          var aberturaQuase = ABERTURAS_QUASE_EM_DIA[Math.floor(Math.random() * ABERTURAS_QUASE_EM_DIA.length)].replace('NOME', nome);
+          texto = aberturaQuase + ' Em ' + cfg.servicoLabel + ', falta só o registo de ontem — encare estes dados não como apenas números, mas como decisões.';
         } else {
-          var aberturaAviso = ABERTURAS_AVISO_FALTA[Math.floor(Math.random() * ABERTURAS_AVISO_FALTA.length)].replace('NOME', nome);
-          texto = aberturaAviso + ' Em ' + cfg.servicoLabel + ', este mês, ainda sem registo: ' + diasPorExtenso + '.';
+          var diasPorExtenso = _formatarDiasEmFalta(diasFalta);
+          // Do dia 20 ao fim do mês, com dias por preencher, o aviso muda de
+          // tom — deixa de ser a variante casual e passa a insistir na
+          // urgência de fecho de mês, sempre com a mesma frase (a seriedade
+          // não pede variedade).
+          if (diaHoje >= 20) {
+            var diasRestantesMes = _diasNoMes(partes[0], partes[1]) - diaHoje;
+            var fraseRestantes = diasRestantesMes === 0
+              ? 'Hoje é o último dia do mês'
+              : ('Faltam ' + diasRestantesMes + (diasRestantesMes === 1 ? ' dia' : ' dias') + ' para o mês terminar');
+            texto = 'Olá, ' + nome + '. ' + fraseRestantes + ' e ainda tens dias em falta em ' + cfg.servicoLabel + ': ' +
+              diasPorExtenso + '. Precisamos levar este trabalho a sério — estes dados não são só números, eles representam o hospital.';
+          } else {
+            var aberturaAviso = ABERTURAS_AVISO_FALTA[Math.floor(Math.random() * ABERTURAS_AVISO_FALTA.length)].replace('NOME', nome);
+            texto = aberturaAviso + ' Em ' + cfg.servicoLabel + ', este mês, ainda sem registo: ' + diasPorExtenso + '.';
+          }
         }
       } else {
         if (localStorage.getItem(chaveOkHoje) === agora.data) return;
@@ -1137,7 +1156,10 @@
           .replace('NOME', nome).replace('ITENS', cfg.itemPlural);
         texto = aberturaParabens + ' Em ' + cfg.servicoLabel + ', está tudo preenchido até ontem.';
       }
-      texto += (agora.diaSemana === 'Fri')
+      // O lembrete fixo de sexta-feira (entregar as folhas de papel na
+      // Estatística) só faz sentido em Procedimentos de Enfermagem — é o
+      // único serviço com folhas de procedimentos em papel a entregar.
+      texto += (agora.diaSemana === 'Fri' && window.ZELO_MODULE === 'procedimentos_enfermagem')
         ? LEMBRETE_SEXTA_FEIRA
         : LEMBRETES_FECHO_PREENCHIMENTO[Math.floor(Math.random() * LEMBRETES_FECHO_PREENCHIMENTO.length)];
       falar(texto);
