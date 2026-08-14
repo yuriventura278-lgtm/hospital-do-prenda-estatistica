@@ -741,7 +741,7 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
         <button class="btn-load" onclick="loadDiario()">Carregar</button>
         <button class="btn-load" onclick="exportDiarioPDF()"><svg class="svc-icon" aria-hidden="true"><use href="#i-pdf"/></svg> Exportar PDF</button>
         <button class="email-btn" onclick="emailReport('rpt-day-content','Resumo Diário')"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Email</button>
-        <button class="btn-load" onclick="window.zeloLerElemento('#rpt-day-content','Dados do dia')">🔊 Ler em voz</button>
+        <button class="btn-load" onclick="zeloNarrarRelatorioProcedimentos('rpt-day-content')">🔊 Ler em voz</button>
       </div>
       <div id="rpt-day-content"><div class="no-data">Seleccione uma data e clique em Carregar.</div></div>
       <div id="rpt-day-chart-wrap" class="chart-wrap" style="display:none">
@@ -775,7 +775,7 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
         <button class="btn-load" onclick="loadMensal()">Carregar</button>
         <button class="btn-load" onclick="exportMensalPDF()"><svg class="svc-icon" aria-hidden="true"><use href="#i-pdf"/></svg> Exportar PDF</button>
         <button class="email-btn" onclick="emailReport('men-content','Mensal')"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Email</button>
-        <button class="btn-load" onclick="window.zeloLerElemento('#men-content','Dados do mês')">🔊 Ler em voz</button>
+        <button class="btn-load" onclick="zeloNarrarRelatorioProcedimentos('men-content')">🔊 Ler em voz</button>
       </div>
       <div id="men-content"><div class="no-data">Seleccione o mês e clique em Carregar.</div></div>
       <div id="men-chart-wrap" class="chart-wrap" style="display:none">
@@ -794,7 +794,7 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
         <button class="btn-load" onclick="loadTrimestral()">Carregar</button>
         <button class="btn-load" onclick="exportTrimestralPDF()"><svg class="svc-icon" aria-hidden="true"><use href="#i-pdf"/></svg> Exportar PDF</button>
         <button class="email-btn" onclick="emailReport('tri-content','Trimestral')"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Email</button>
-        <button class="btn-load" onclick="window.zeloLerElemento('#tri-content','Dados do trimestre')">🔊 Ler em voz</button>
+        <button class="btn-load" onclick="zeloNarrarRelatorioProcedimentos('tri-content')">🔊 Ler em voz</button>
       </div>
       <div id="tri-content"><div class="no-data">Seleccione o trimestre e clique em Carregar.</div></div>
       <div id="tri-chart-wrap" class="chart-wrap" style="display:none">
@@ -813,7 +813,7 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
         <button class="btn-load" onclick="loadSemestral()">Carregar</button>
         <button class="btn-load" onclick="exportSemestralPDF()"><svg class="svc-icon" aria-hidden="true"><use href="#i-pdf"/></svg> Exportar PDF</button>
         <button class="email-btn" onclick="emailReport('seme-content','Semestral')"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Email</button>
-        <button class="btn-load" onclick="window.zeloLerElemento('#seme-content','Dados do semestre')">🔊 Ler em voz</button>
+        <button class="btn-load" onclick="zeloNarrarRelatorioProcedimentos('seme-content')">🔊 Ler em voz</button>
       </div>
       <div id="seme-content"><div class="no-data">Seleccione o semestre e clique em Carregar.</div></div>
       <div id="seme-chart-wrap" class="chart-wrap" style="display:none">
@@ -830,7 +830,7 @@ html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!impo
         <button class="btn-load" onclick="loadAnual()">Carregar</button>
         <button class="btn-load" onclick="exportAnualPDF()"><svg class="svc-icon" aria-hidden="true"><use href="#i-pdf"/></svg> Exportar PDF</button>
         <button class="email-btn" onclick="emailReport('anu-content','Anual')"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Email</button>
-        <button class="btn-load" onclick="window.zeloLerElemento('#anu-content','Dados do ano')">🔊 Ler em voz</button>
+        <button class="btn-load" onclick="zeloNarrarRelatorioProcedimentos('anu-content')">🔊 Ler em voz</button>
       </div>
       <div id="anu-content"><div class="no-data">Introduza o ano e clique em Carregar.</div></div>
       <div id="anu-chart-wrap" class="chart-wrap" style="display:none">
@@ -2778,6 +2778,41 @@ function switchTurno(specId, turno) {
 // ════════════════════════════════════════════════════════════
 //  AGGREGATE (para relatórios)
 // ════════════════════════════════════════════════════════════
+// Guarda o último relatório renderizado por contentor, para o botão "Ler em
+// voz" narrar de forma inteligente a partir dos DADOS (agregado), não do
+// ecrã célula a célula.
+var _procReportData = {};
+
+// "Ler em voz" inteligente dos relatórios de procedimentos — narra: total →
+// Dia/Noite → por categoria → por grupo (Ambulatório/Urgência/Internamento)
+// → por serviço (só quando o relatório cobre mais do que um serviço, como
+// na página Geral). Nunca lê percentagens.
+function zeloNarrarRelatorioProcedimentos(containerId){
+  if (typeof window.zeloFalar !== 'function') return;
+  const d = _procReportData[containerId];
+  if (!d) { window.zeloFalar('Ainda não há dados para ler neste período.'); return; }
+  const partes = [];
+  partes.push('Em ' + d.title + ', foram registados um total de ' + d.grand + (d.grand===1?' procedimento':' procedimentos') +
+    ': ' + d.grandD + ' no turno Dia e ' + d.grandN + ' no turno Noite.');
+  const catRows = CATEGORIES.map(c => ({ nome: c.label, n: (d.catD[c.id]||0) + (d.catN[c.id]||0) }))
+    .filter(r => r.n>0).sort((a,b) => b.n-a.n);
+  if (catRows.length) partes.push('Por categoria: ' + catRows.map(r => r.nome + ' com ' + r.n).join(', ') + '.');
+  const grupos = [];
+  if (d.amb) grupos.push('Ambulatório ' + d.amb);
+  if (d.urg) grupos.push('Urgência ' + d.urg);
+  if (d.int) grupos.push('Internamento ' + d.int);
+  if (grupos.length) partes.push('Por grupo: ' + grupos.join(', ') + '.');
+  if (d.filteredSpecs && d.filteredSpecs.length > 1) {
+    const espRows = d.filteredSpecs.map(sp => {
+      const sd = d.specData[sp.id] || {};
+      const n = Object.values(sd).reduce((a,v) => a+(v.d||0)+(v.n||0), 0);
+      return { nome: sp.label, n };
+    }).filter(r => r.n>0).sort((a,b) => b.n-a.n);
+    if (espRows.length) partes.push('Por serviço: ' + espRows.map(r => r.nome + ' com ' + r.n).join(', ') + '.');
+  }
+  window.zeloFalar(partes.join(' '));
+}
+
 function aggregate(dates, filterSpecId) {
   // Quando filtramos por serviço consolidado, lemos as fontes corretas
   let filteredSpecs;
@@ -2843,8 +2878,10 @@ function renderReport(containerId, dates, title, colorClass, filterSpec) {
           specData, filteredSpecs } = aggregate(dates, filterSpec);
   if(grand===0) {
     const _cEl=document.getElementById(containerId); if(_cEl) _cEl.innerHTML = `<div class="no-data"><span>📭</span>Sem dados para este período.</div>`;
+    _procReportData[containerId] = null;
     return;
   }
+  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title };
   let html = `<div class="sum-grid">
     <div class="sum-card c3"><span class="sum-label">∑ Total Geral</span><span class="sum-val">${grand}</span><div class="sum-sub">Dia: ${grandD} · Noite: ${grandN}</div></div>
   </div>`;
@@ -2959,8 +2996,10 @@ function renderTrimestralReport(containerId, year, q, filterSpec) {
   const _cEl = document.getElementById(containerId);
   if(grand===0) {
     if(_cEl) _cEl.innerHTML = `<div class="no-data"><span>📭</span>Sem dados para este período.</div>`;
+    _procReportData[containerId] = null;
     return;
   }
+  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title: `T${q} ${year}` };
 
   let html = `<div class="sum-grid">
     <div class="sum-card c3"><span class="sum-label">∑ Total Geral</span><span class="sum-val">${grand}</span><div class="sum-sub">Dia: ${grandD} · Noite: ${grandN}</div></div>
