@@ -7,11 +7,64 @@ var embedded = window.self !== window.top;
 var resolvido = false;
 var stopInactivityWatch = null;
 
+// IDs dos banners fixos que este ficheiro pode mostrar no topo da página
+// (offline, modo só de leitura) — ambos position:fixed;top:0, com z-index
+// muito alto para ficarem sempre visíveis. Sem mais nada, isso tapava por
+// completo o cabeçalho da própria página (logo, título, menu do
+// utilizador), que também costuma ser fixo no topo — a pessoa deixava de
+// ver essa informação enquanto o aviso estivesse presente.
+var ZELO_BANNER_TOPO_IDS = ['zelo-offline-banner', 'zelo-readonly-banner'];
+function _zeloAlturaBannersTopo(){
+  var total = 0;
+  ZELO_BANNER_TOPO_IDS.forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) total += el.getBoundingClientRect().height;
+  });
+  return total;
+}
+// Empurra para baixo qualquer cabeçalho fixo da própria página (detectado
+// genericamente: position:fixed e colado ao topo, top<=1px) pela altura
+// total dos banners acima — cada página tem a sua própria estrutura, por
+// isso não depende de nenhuma classe/id específico. Guarda o "top"
+// original em cada elemento (data-zelo-topo-original) para poder
+// recalcular correctamente se um segundo banner aparecer/desaparecer
+// depois (ex.: offline + só-leitura ao mesmo tempo).
+function _zeloEmpurrarCabecalhoDaPagina(){
+  requestAnimationFrame(function(){
+    var altura = _zeloAlturaBannersTopo();
+    var candidatos = document.querySelectorAll('body *');
+    for (var i = 0; i < candidatos.length; i++){
+      var el = candidatos[i];
+      if (ZELO_BANNER_TOPO_IDS.indexOf(el.id) !== -1) continue;
+      var jaTocado = el.dataset.zeloTopoOriginal !== undefined;
+      var estilo = window.getComputedStyle(el);
+      if (estilo.position !== 'fixed') continue;
+      var topoAtual = parseFloat(estilo.top);
+      if (!jaTocado && (isNaN(topoAtual) || topoAtual > 1)) continue; // não estava colado ao topo — não mexer
+      if (!jaTocado) el.dataset.zeloTopoOriginal = estilo.top;
+      var base = parseFloat(el.dataset.zeloTopoOriginal) || 0;
+      el.style.top = (base + altura) + 'px';
+    }
+    // Convenção usada em index.html: a sidebar e o espaçamento do conteúdo
+    // dependem desta variável para saberem quanto espaço o cabeçalho
+    // ocupa — aumentá-la também os empurra para baixo, coerente com o
+    // cabeçalho. Não existe noutras páginas, por isso não faz nada nelas.
+    if (getComputedStyle(document.documentElement).getPropertyValue('--zelo-topbar-h')){
+      if (document.documentElement.dataset.zeloTopbarHOriginal === undefined){
+        document.documentElement.dataset.zeloTopbarHOriginal = getComputedStyle(document.documentElement).getPropertyValue('--zelo-topbar-h').trim();
+      }
+      var baseTopbarH = parseFloat(document.documentElement.dataset.zeloTopbarHOriginal) || 0;
+      document.documentElement.style.setProperty('--zelo-topbar-h', (baseTopbarH + altura) + 'px');
+    }
+  });
+}
+
 // Bloqueia a edição da página inteira quando o utilizador só tem permissão de leitura
 // naquele módulo — evita ter de alterar cada página de banco/procedimento uma a uma.
 function aplicarModoLeitura(){
   function bloquear(){
     var banner = document.createElement('div');
+    banner.id = 'zelo-readonly-banner';
     banner.textContent = '🔒 Modo só de leitura — não é possível guardar alterações neste módulo.';
     // Se o aviso de "sem ligação" (mostrarAvisoOffline) já estiver visível no
     // topo, este banner ficava exactamente por cima dele (ambos fixos em
@@ -21,6 +74,7 @@ function aplicarModoLeitura(){
     var topo = avisoOffline ? avisoOffline.getBoundingClientRect().height : 0;
     banner.style.cssText = 'position:fixed;top:' + topo + 'px;left:0;right:0;z-index:999997;background:#92400E;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.8rem;font-weight:700;padding:9px 12px;';
     document.body.insertBefore(banner, document.body.firstChild);
+    _zeloEmpurrarCabecalhoDaPagina();
     // Sair (zeloLogout) nunca deve ficar bloqueado — ficar só de leitura num módulo
     // não pode impedir o utilizador de terminar a sessão.
     document.querySelectorAll('input, select, textarea, button').forEach(function(el){
@@ -131,6 +185,7 @@ function mostrarAvisoOffline(){
   banner.textContent = '📴 Sem ligação à internet — a usar as últimas permissões guardadas neste aparelho. Os dados continuam a ser guardados aqui e sincronizam automaticamente quando a ligação voltar.';
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999996;background:#334155;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.76rem;font-weight:600;padding:8px 12px;';
   document.body.insertBefore(banner, document.body.firstChild);
+  _zeloEmpurrarCabecalhoDaPagina();
 }
 
 function showSlowConnectionScreen(){

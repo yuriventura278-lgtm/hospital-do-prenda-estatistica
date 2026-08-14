@@ -1119,8 +1119,13 @@
         // Só volta a falar dos dias em falta uma vez por sessão — se a
         // pessoa continuar a navegar/recarregar páginas deste serviço sem
         // sair do sistema, o aviso não se repete. Volta a falar só depois
-        // de sair (sessionStorage é limpo no logout) e entrar de novo.
-        var chaveFaltaSessao = 'zeloAvisoPreenchimentoFaltaSessao_' + cfg.chaveAviso;
+        // de sair (sessionStorage é limpo no logout) e entrar de novo — ou
+        // assim que o mês mudar, mesmo dentro da mesma sessão (a chave
+        // inclui ano-mês): uma sessão que atravesse a virada do mês (ex.:
+        // aparelho deixado ligado durante a noite) tem sempre direito a um
+        // aviso novo sobre o mês novo, em vez de ficar calada até à
+        // próxima entrada no sistema.
+        var chaveFaltaSessao = 'zeloAvisoPreenchimentoFaltaSessao_' + cfg.chaveAviso + '_' + partes[0] + '-' + partes[1];
         if (sessionStorage.getItem(chaveFaltaSessao)) return;
         sessionStorage.setItem(chaveFaltaSessao, '1');
         if (soFaltaOntem) {
