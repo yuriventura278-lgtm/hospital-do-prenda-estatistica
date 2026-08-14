@@ -3017,9 +3017,14 @@ function zeloNarrarRelatorioProcedimentos(containerId){
   const partes = [];
   partes.push('Em ' + d.title + ', foram registados um total de ' + d.grand + (d.grand===1?' procedimento':' procedimentos') +
     ': ' + d.grandD + ' no turno Dia e ' + d.grandN + ' no turno Noite.');
-  const catRows = CATEGORIES.map(c => ({ nome: c.label, n: (d.catD[c.id]||0) + (d.catN[c.id]||0) }))
-    .filter(r => r.n>0).sort((a,b) => b.n-a.n);
-  if (catRows.length) partes.push('Por categoria: ' + catRows.map(r => r.nome + ' com ' + r.n).join(', ') + '.');
+  const procRows = [];
+  CATEGORIES.forEach(c => c.procs.forEach(proc => {
+    const pk = c.id + '||' + proc;
+    const n = (d.procD[pk]||0) + (d.procN[pk]||0);
+    if (n>0) procRows.push({ nome: proc, n });
+  }));
+  procRows.sort((a,b) => b.n-a.n);
+  if (procRows.length) partes.push('Por procedimento: ' + procRows.map(r => r.nome + ' com ' + r.n).join(', ') + '.');
   const grupos = [];
   if (d.amb) grupos.push('Ambulatório ' + d.amb);
   if (d.urg) grupos.push('Urgência ' + d.urg);
@@ -3107,7 +3112,7 @@ function renderReport(containerId, dates, title, colorClass, filterSpec) {
     _procReportData[containerId] = null;
     return;
   }
-  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title };
+  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, procD, procN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title };
   let html = `<div class="sum-grid">
     <div class="sum-card" style="background:#f0fdf4;border:1px solid #86efac;border-radius:5px;padding:13px;text-align:center;">
       <span class="sum-label" style="color:#166534;">🏥 Consulta Externa</span>
@@ -3248,7 +3253,7 @@ function renderTrimestralReport(containerId, year, q, filterSpec) {
     _procReportData[containerId] = null;
     return;
   }
-  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title: `T${q} ${year}` };
+  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, procD, procN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title: `T${q} ${year}` };
 
   let html = `<div class="sum-grid">
     <div class="sum-card" style="background:#f0fdf4;border:1px solid #86efac;border-radius:5px;padding:13px;text-align:center;">
