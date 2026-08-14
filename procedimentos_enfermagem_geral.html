@@ -1443,13 +1443,20 @@ const dateInput = document.getElementById('regDate');
 // no mesmo dia em que o utilizador estava, em vez de saltar sempre para hoje.
 function _ultimoDiaVistoKey(){ return 'enf5_ultimoDiaVisto_' + (window.ZELO_ITEM || 'geral'); }
 (function initDate() {
-  let usarHoje = true;
+  // "Último dia visto" passa a viver na sessão (sessionStorage), não no
+  // dispositivo (localStorage): ao voltar a entrar no sistema (nova sessão
+  // — sessionStorage é limpo no logout), a data volta sempre a ser o dia
+  // anterior a hoje, por padrão. Mas dentro da MESMA entrada no sistema, se
+  // a pessoa trocar de dia e depois só actualizar a página (F5), continua
+  // no mesmo dia onde estava, em vez de saltar para o padrão outra vez.
+  let usarPadrao = true;
   try{
-    const salvo = localStorage.getItem(_ultimoDiaVistoKey());
-    if (salvo) { dateInput.value = salvo; usarHoje = false; }
+    const salvo = sessionStorage.getItem(_ultimoDiaVistoKey());
+    if (salvo) { dateInput.value = salvo; usarPadrao = false; }
   }catch(e){}
-  if (usarHoje) {
+  if (usarPadrao) {
     const n = new Date();
+    n.setDate(n.getDate() - 1); // por padrão, o dia anterior a hoje
     const yy = n.getFullYear(), mm = String(n.getMonth()+1).padStart(2,'0'), dd = String(n.getDate()).padStart(2,'0');
     dateInput.value = `${yy}-${mm}-${dd}`;
   }
@@ -2478,7 +2485,7 @@ dateInput.addEventListener('change', () => {
   // gravar nada nem mudar quem/quando foi a última alteração real.
   if (_diaAlterado) persist(currentLoadedDate);
   currentLoadedDate = dateInput.value; // ★ avança o ponteiro
-  try{ localStorage.setItem(_ultimoDiaVistoKey(), currentLoadedDate); }catch(e){}
+  try{ sessionStorage.setItem(_ultimoDiaVistoKey(), currentLoadedDate); }catch(e){}
   const ddEl = document.getElementById('date-disp'); if(ddEl) ddEl.textContent = _fmtDataDisp(dateInput.value);
   loadFromStorage();                   // ★ carrega o NOVO dia
 });
