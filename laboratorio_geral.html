@@ -1037,7 +1037,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
       <div class="btn-group">
         <button class="btn-h btn-save" id="main-save-btn" style="font-size:.6rem;padding:8px 20px;" onclick="saveAll()"><span class="icon-svg" data-icon="save"></span> <span>Guardar Registo</span></button>
         <button class="btn-h btn-out" style="font-size:.6rem;padding:8px 20px;" onclick="exportDailyPDF()"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
-        <button class="btn-h btn-out" style="font-size:.6rem;padding:8px 20px;" onclick="window.zeloLerElemento('#kpi-grid-diario','Resumo do dia')">🔊 Ler em voz</button>
+        <button class="btn-h btn-out" style="font-size:.6rem;padding:8px 20px;" onclick="zeloNarrarResumoDiario()">🔊 Ler em voz</button>
       </div>
     </div>
 
@@ -1058,7 +1058,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-h btn-save" style="font-size:.62rem;padding:6px 13px;" onclick="saveMonthlyReport()"><span class="icon-svg" data-icon="save"></span> Guardar Mês</button>
         <button class="btn-load sec" onclick="exportMonthlyPDF()"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendMonthlyEmail()" title="Enviar o resumo do relatório mensal para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
-        <button class="btn-load sec" onclick="window.zeloLerElemento('#mrpt-content','Relatório mensal')">🔊 Ler em voz</button>
+        <button class="btn-load sec" onclick="zeloNarrarRelatorioMensal()">🔊 Ler em voz</button>
         <span id="mrpt-savestat" style="font-family:var(--font-body);font-size:.6rem;color:var(--muted);margin-left:4px;"></span>
       </div>
       <div id="mrpt-content">
@@ -1090,7 +1090,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-load" onclick="loadPeriodReport('semanal')"><span class="icon-svg" data-icon="refresh"></span> Carregar</button>
         <button class="btn-load sec" onclick="exportPeriodPDF('semanal')"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendPeriodEmail('semanal')" title="Enviar o resumo do relatório para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
-        <button class="btn-load sec" onclick="window.zeloLerElemento('#wrp-content','Relatório semanal')">🔊 Ler em voz</button>
+        <button class="btn-load sec" onclick="zeloNarrarRelatorioPeriodo('semanal')">🔊 Ler em voz</button>
       </div>
       <div id="wrp-content"><div class="no-data"><span class="nd-icon icon-svg" data-icon="calendarWeek"></span><span class="nd-txt">Seleccione a semana e clique em Carregar</span></div></div>
     </div>
@@ -1118,7 +1118,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-load" onclick="loadPeriodReport('trimestral')"><span class="icon-svg" data-icon="refresh"></span> Carregar</button>
         <button class="btn-load sec" onclick="exportPeriodPDF('trimestral')"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendPeriodEmail('trimestral')" title="Enviar o resumo do relatório para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
-        <button class="btn-load sec" onclick="window.zeloLerElemento('#trp-content','Relatório trimestral')">🔊 Ler em voz</button>
+        <button class="btn-load sec" onclick="zeloNarrarRelatorioPeriodo('trimestral')">🔊 Ler em voz</button>
       </div>
       <div id="trp-content"><div class="no-data"><span class="nd-icon icon-svg" data-icon="dashboard"></span><span class="nd-txt">Seleccione o trimestre e clique em Carregar</span></div></div>
     </div>
@@ -1144,7 +1144,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-load" onclick="loadPeriodReport('semestral')"><span class="icon-svg" data-icon="refresh"></span> Carregar</button>
         <button class="btn-load sec" onclick="exportPeriodPDF('semestral')"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendPeriodEmail('semestral')" title="Enviar o resumo do relatório para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
-        <button class="btn-load sec" onclick="window.zeloLerElemento('#srp-content','Relatório semestral')">🔊 Ler em voz</button>
+        <button class="btn-load sec" onclick="zeloNarrarRelatorioPeriodo('semestral')">🔊 Ler em voz</button>
       </div>
       <div id="srp-content"><div class="no-data"><span class="nd-icon icon-svg" data-icon="trendingUp"></span><span class="nd-txt">Seleccione o semestre e clique em Carregar</span></div></div>
     </div>
@@ -1165,7 +1165,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <button class="btn-load" onclick="loadPeriodReport('anual')"><span class="icon-svg" data-icon="refresh"></span> Carregar</button>
         <button class="btn-load sec" onclick="exportPeriodPDF('anual')"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendPeriodEmail('anual')" title="Enviar o resumo do relatório para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
-        <button class="btn-load sec" onclick="window.zeloLerElemento('#arp-content','Relatório anual')">🔊 Ler em voz</button>
+        <button class="btn-load sec" onclick="zeloNarrarRelatorioPeriodo('anual')">🔊 Ler em voz</button>
       </div>
       <div id="arp-content"><div class="no-data"><span class="nd-icon icon-svg" data-icon="calendarYear"></span><span class="nd-txt">Seleccione o ano e clique em Carregar</span></div></div>
     </div>
@@ -2000,6 +2000,34 @@ function updateKPIs() {
 }
 
 function setTxt(id, v) { const el=document.getElementById(id); if(el) el.textContent=v; }
+
+// ── "Ler em voz" inteligente do resumo diário — narra a partir dos DADOS
+// (mesmo cálculo do updateKPIs), não do ecrã célula a célula: total →
+// B.Urgência/Internamento → secções em destaque → positivos.
+function zeloNarrarResumoDiario(){
+  if (typeof window.zeloFalar !== 'function') return;
+  let gBu=0, gInt=0;
+  allExames().forEach(e=>{ gBu+= +(cd.exames[e]?.bu||0); gInt+= +(cd.exames[e]?.int||0); });
+  const total = gBu+gInt;
+  if (!total) { window.zeloFalar('Ainda não há exames registados neste dia.'); return; }
+  let pos=0;
+  allPositivos().forEach(e=>{ pos+= +(cd.positivos[e]?.bu||0)+ +(cd.positivos[e]?.int||0); });
+  const secRows = EXAM_SECTIONS.map(sec => {
+    const extras = _extraExames[sec.id]||[];
+    let t=0;
+    [...sec.exames,...extras].forEach(e=>{ t+= +(cd.exames[e]?.bu||0)+ +(cd.exames[e]?.int||0); });
+    return { nome: sec.label, n: t };
+  }).filter(r => r.n>0).sort((a,b) => b.n-a.n);
+
+  const partes = [];
+  partes.push('No dia ' + fmtDate(currentDate) + ', o laboratório realizou um total de ' + total +
+    (total===1?' exame':' exames') + ': ' + gBu + ' de banco de urgência e ' + gInt + ' de internamento.');
+  if (secRows.length) {
+    partes.push('Por secção: ' + secRows.map(r => r.nome + ' com ' + r.n).join(', ') + '.');
+  }
+  partes.push(pos ? (pos + (pos===1?' resultado positivo.':' resultados positivos.')) : 'Sem resultados positivos registados.');
+  window.zeloFalar(partes.join(' '));
+}
 
 // ─── ADD EXAM ───
 function addExam() {
@@ -3464,6 +3492,9 @@ function aggregateMonths(months){
   return { agg, daysWithData };
 }
 
+// Guarda o último agregado renderizado por tipo de período, para o botão
+// "Ler em voz" narrar de forma inteligente a partir dos DADOS.
+var _periodReportAgg = {};
 function renderPeriodTable(contentId, agg){
   // Mostra apenas os exames com dados no período seleccionado
   let html = '<div class="card" style="padding:0;overflow:hidden;">';
@@ -3511,6 +3542,7 @@ function loadPeriodReport(type){
   }
   const contentId = type==='trimestral' ? 'trp-content' : type==='semestral' ? 'srp-content' : type==='semanal' ? 'wrp-content' : 'arp-content';
   renderPeriodTable(contentId, agg);
+  _periodReportAgg[type] = (daysWithData>0) ? { agg: agg, label: periodLabel(type) } : null;
   // Período ainda em curso → faixa de aviso e nota no toast
   const restam = periodDaysRemaining(type);
   if(restam !== null && restam >= 0){
@@ -3521,6 +3553,52 @@ function loadPeriodReport(type){
     ? (' · Atenção: período em curso, ' + (restam===0 ? 'termina hoje' : 'faltam '+restam+' dia'+(restam>1?'s':'')) + ' — dados incompletos')
     : '';
   showToast(daysWithData>0?'success':'info', (daysWithData>0 ? ('Relatório carregado — '+daysWithData+' dia(s) com registos em '+periodLabel(type)) : ('Sem registos guardados em '+periodLabel(type))) + nota, nota ? 5500 : 3200);
+}
+
+// ── Leitura em voz inteligente dos relatórios ──
+// Reaproveitado por Semanal/Trimestral/Semestral/Anual (todos com o mesmo
+// formato de agregado {exame: {bu,int}}) e pelo Mensal (mrptData, que usa a
+// mesma forma). Narra: total → B.Urgência/Internamento → secções em
+// destaque. Nunca lê percentagens.
+function _secaoRowsDeAgregado(agg){
+  return MRPT_SECTIONS.map(sec => {
+    let t=0;
+    sec.exames.forEach(e=>{ t+= +(agg[e]?.bu||0) + +(agg[e]?.int||0); });
+    return { nome: sec.label.charAt(0)+sec.label.slice(1).toLowerCase(), n: t };
+  }).filter(r => r.n>0).sort((a,b) => b.n-a.n);
+}
+function zeloNarrarRelatorioPeriodo(type){
+  if (typeof window.zeloFalar !== 'function') return;
+  const dados = _periodReportAgg[type];
+  if (!dados) { window.zeloFalar('Ainda não há dados carregados para ler aqui.'); return; }
+  const agg = dados.agg;
+  let gBu=0, gInt=0;
+  MRPT_ALL.forEach(e=>{ gBu+= +(agg[e]?.bu||0); gInt+= +(agg[e]?.int||0); });
+  const total = gBu+gInt;
+  if (!total) { window.zeloFalar('Ainda não há exames registados em ' + dados.label + '.'); return; }
+  const partes = [];
+  partes.push('Em ' + dados.label + ', o laboratório realizou um total de ' + total +
+    (total===1?' exame':' exames') + ': ' + gBu + ' de banco de urgência e ' + gInt + ' de internamento.');
+  const secRows = _secaoRowsDeAgregado(agg);
+  if (secRows.length) partes.push('Por secção: ' + secRows.map(r => r.nome + ' com ' + r.n).join(', ') + '.');
+  window.zeloFalar(partes.join(' '));
+}
+function zeloNarrarRelatorioMensal(){
+  if (typeof window.zeloFalar !== 'function') return;
+  let gBu=0, gInt=0;
+  MRPT_ALL.forEach(e=>{ gBu+= +(mrptData[e]?.bu||0); gInt+= +(mrptData[e]?.int||0); });
+  const total = gBu+gInt;
+  if (!total) { window.zeloFalar('Ainda não há exames registados neste relatório mensal.'); return; }
+  const partes = [];
+  partes.push('No relatório mensal, o laboratório registou um total de ' + total +
+    (total===1?' exame':' exames') + ': ' + gBu + ' de banco de urgência e ' + gInt + ' de internamento.');
+  const secRows = _secaoRowsDeAgregado(mrptData);
+  if (secRows.length) partes.push('Por secção: ' + secRows.map(r => r.nome + ' com ' + r.n).join(', ') + '.');
+  let pBu=0, pInt=0;
+  MRPT_POS_LIST.forEach(e=>{ pBu+= +(mrptPosData[e]?.bu||0); pInt+= +(mrptPosData[e]?.int||0); });
+  const pos = pBu+pInt;
+  partes.push(pos ? (pos + (pos===1?' resultado positivo.':' resultados positivos.')) : 'Sem resultados positivos registados.');
+  window.zeloFalar(partes.join(' '));
 }
 
 function exportPeriodPDF(type){
