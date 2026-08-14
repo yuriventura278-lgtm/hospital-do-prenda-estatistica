@@ -754,7 +754,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
         <label>Mês</label><input type="month" id="stat-date-mensal" style="background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);font-size:.68rem;padding:5px 8px;border-radius:4px;outline:none;">
         <button class="btn-load" onclick="renderStat('mensal')">↺ Carregar</button>
         <button class="btn-load" style="background:var(--accent);" onclick="exportStatPDFFromPeriod('mensal')"><svg class='ic'><use href='#ic-file'/></svg> PDF Mensal</button>
-        <button class="btn-load" onclick="window.zeloLerElemento('#stat-summary-mensal','Dados do mês')">🔊 Ler em voz</button>
+        <button class="btn-load" onclick="zeloNarrarStatSummary('mensal')">🔊 Ler em voz</button>
       </div>
       <div class="stat-summary-row" id="stat-summary-mensal"></div>
       <div class="card"><div class="card-body" style="overflow-x:auto;"><table class="stat-table" id="stat-mensal"></table></div>
@@ -776,7 +776,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
         </select>
         <button class="btn-load" onclick="loadTrimestral()">↺ Carregar</button>
         <button class="btn-load" style="background:var(--accent);" onclick="exportStatPDFFromPeriod('trimestral')"><svg class='ic'><use href='#ic-file'/></svg> PDF Trimestral</button>
-        <button class="btn-load" onclick="window.zeloLerElemento('#stat-summary-trimestral','Dados do trimestre')">🔊 Ler em voz</button>
+        <button class="btn-load" onclick="zeloNarrarStatSummary('trimestral')">🔊 Ler em voz</button>
       </div>
       <div class="stat-summary-row" id="stat-summary-trimestral"></div>
       <div class="card"><div class="card-body" style="overflow-x:auto;"><table class="stat-table" id="stat-trimestral"></table></div>
@@ -797,7 +797,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
         </select>
         <button class="btn-load" onclick="loadSemestral()">↺ Carregar</button>
         <button class="btn-load" style="background:var(--accent);" onclick="exportStatPDFFromPeriod('semestral')"><svg class='ic'><use href='#ic-file'/></svg> PDF Semestral</button>
-        <button class="btn-load" onclick="window.zeloLerElemento('#stat-summary-semestral','Dados do semestre')">🔊 Ler em voz</button>
+        <button class="btn-load" onclick="zeloNarrarStatSummary('semestral')">🔊 Ler em voz</button>
       </div>
       <div class="stat-summary-row" id="stat-summary-semestral"></div>
       <div class="card"><div class="card-body" style="overflow-x:auto;"><table class="stat-table" id="stat-semestral"></table></div>
@@ -814,7 +814,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
         <label>Ano</label><input type="number" id="anu-year" style="width:74px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);font-size:.68rem;padding:5px 8px;border-radius:4px;outline:none;">
         <button class="btn-load" onclick="loadAnual()">↺ Carregar</button>
         <button class="btn-load" style="background:var(--accent);" onclick="exportStatPDFFromPeriod('anual')"><svg class='ic'><use href='#ic-file'/></svg> PDF Anual</button>
-        <button class="btn-load" onclick="window.zeloLerElemento('#stat-summary-anual','Dados do ano')">🔊 Ler em voz</button>
+        <button class="btn-load" onclick="zeloNarrarStatSummary('anual')">🔊 Ler em voz</button>
       </div>
       <div class="stat-summary-row" id="stat-summary-anual"></div>
       <div class="card"><div class="card-body" style="overflow-x:auto;"><table class="stat-table" id="stat-anual"></table></div>
@@ -1787,8 +1787,12 @@ async function loadAnual(){
 }
 
 // ═══ RENDER STAT SUMMARY ═══
+// Guarda o último agregado renderizado por período, para o botão "Ler em
+// voz" narrar de forma inteligente a partir dos DADOS.
+let _lastStatAgg={};
 function renderStatSummary(period,agg,count){
   const el=document.getElementById("stat-summary-"+period); if(!el) return;
+  _lastStatAgg[period]={agg,count};
   if(!count&&!agg.transfusoes.total&&!agg.doadores.total){ el.innerHTML='<div class="no-data" style="grid-column:1/-1"><span><svg class="ic"><use href="#ic-inbox"/></svg></span>Sem dados para este período.</div>'; return; }
   el.innerHTML=`
     <div class="stat-summary-card"><div class="stat-summary-label">Dias c/ Dados</div><div class="stat-summary-value">${count}</div></div>
@@ -1803,6 +1807,45 @@ function renderStatSummary(period,agg,count){
     <div class="stat-summary-card"><div class="stat-summary-label">VIH</div><div class="stat-summary-value">${agg.serologia.vih}</div></div>
     <div class="stat-summary-card"><div class="stat-summary-label">HBs</div><div class="stat-summary-value">${agg.serologia.hbs}</div></div>
     <div class="stat-summary-card"><div class="stat-summary-label">VDRL</div><div class="stat-summary-value">${agg.serologia.vdrl}</div></div>`;
+}
+
+// "Ler em voz" inteligente do resumo do período — narra a partir dos DADOS
+// (o mesmo agg usado no ecrã): dias com dados → transfusões (total + tipos)
+// → doadores (total + tipos) → serologia positiva. Não lê os valores
+// derivados em cc (colhido/consumido/perdido) nem percentagens.
+function zeloNarrarStatSummary(period){
+  if (typeof window.zeloFalar !== 'function') return;
+  const dados=_lastStatAgg[period];
+  if (!dados) { window.zeloFalar('Ainda não há dados carregados para ler aqui.'); return; }
+  const agg=dados.agg, count=dados.count;
+  if (!count && !agg.transfusoes.total && !agg.doadores.total) { window.zeloFalar('Sem dados para este período.'); return; }
+  const partes=[];
+  partes.push('Neste período, há dados em '+count+(count===1?' dia':' dias')+'.');
+  const t=agg.transfusoes;
+  if (t.total) {
+    const tipos=[];
+    if (t.plaquetas) tipos.push('plaquetas '+t.plaquetas);
+    if (t.plasmas) tipos.push('plasmas '+t.plasmas);
+    if (t.globulos) tipos.push('glóbulos '+t.globulos);
+    if (t.crio) tipos.push('crio '+t.crio);
+    partes.push('Total de transfusões: '+t.total+(tipos.length?' — '+tipos.join(', '):'')+'.');
+  }
+  const d=agg.doadores;
+  if (d.total) {
+    const tiposD=[];
+    if (d.voluntarios) tiposD.push('voluntários '+d.voluntarios);
+    if (d.familiares) tiposD.push('familiares '+d.familiares);
+    if (d.habituais) tiposD.push('habituais '+d.habituais);
+    partes.push('Total de doadores: '+d.total+(tiposD.length?' — '+tiposD.join(', '):'')+'.');
+  }
+  const s=agg.serologia;
+  const posit=[];
+  if (s.vih) posit.push('VIH '+s.vih);
+  if (s.hbs) posit.push('HBs '+s.hbs);
+  if (s.vdrl) posit.push('VDRL '+s.vdrl);
+  if (s.hcv) posit.push('HCV '+s.hcv);
+  partes.push(posit.length ? ('Serologia positiva: '+posit.join(', ')+'.') : 'Sem casos positivos de serologia registados.');
+  window.zeloFalar(partes.join(' '));
 }
 
 // ═══ RENDER STAT TABLE ═══
@@ -2308,7 +2351,7 @@ function buildMapaSections(){
       +'<button class="btn-h btn-save" onclick="guardarMapa(\''+m.key+'\')" aria-label="Guardar"><svg class="ic"><use href="#ic-save"/></svg><span class="btn-label"> Guardar</span></button>'
       +'<button class="btn-h btn-out" onclick="eliminarMapa(\''+m.key+'\')" aria-label="Eliminar dados desta página"><svg class="ic"><use href="#ic-trash"/></svg><span class="btn-label"> Eliminar</span></button>'
       +'<button class="btn-h btn-out" onclick="exportMapaPDF(\''+m.key+'\')" aria-label="Exportar PDF desta página"><svg class="ic"><use href="#ic-file"/></svg><span class="btn-label"> PDF</span></button>'
-      +'<button class="btn-h btn-out" onclick="window.zeloLerElemento(\'#'+m.secId+' .kpi-grid\',\''+_mapaEsc(m.title)+' hoje\')" aria-label="Ler dados de hoje em voz">🔊<span class="btn-label"> Ler em voz</span></button>'
+      +'<button class="btn-h btn-out" onclick="zeloNarrarMapaHoje(\''+m.key+'\')" aria-label="Ler dados de hoje em voz">🔊<span class="btn-label"> Ler em voz</span></button>'
       +'</div></div>'
       +_mapaPlacarHtml(m)
       +_mapaDashHtml(m)
@@ -2339,6 +2382,26 @@ function calcMapa(key,fromLoad){
   if(!fromLoad){ _diaAlterado=true; autoSaveLazy(); }
 }
 function calcMapaAll(fromLoad){ MAPAS.forEach(m=>calcMapa(m.key,fromLoad)); }
+
+// ── "Ler em voz" inteligente do dia (por mapa) — narra a partir dos DADOS
+// (currentData), não do ecrã célula a célula: total geral → destaque por
+// categoria (cada bloco do mapa). Genérico sobre MAPAS, tal como o resto do
+// sistema de placar/gráfico/PDF — funciona para qualquer mapa sem alterações.
+function zeloNarrarMapaHoje(key){
+  if (typeof window.zeloFalar !== 'function') return;
+  const mapa=_mapaById(key); if(!mapa) return;
+  const store=currentData[key]||[];
+  const blockRows=mapa.blocks.map((blk,bi)=>{
+    const arr=store[bi]||[];
+    const tot=arr.reduce((a,v)=>a+(v||0),0);
+    return { nome: blk.title, n: tot };
+  }).filter(r=>r.n>0).sort((a,b)=>b.n-a.n);
+  const geral=blockRows.reduce((a,r)=>a+r.n,0);
+  if(!geral){ window.zeloFalar('Ainda não há dados preenchidos hoje em '+mapa.title+'.'); return; }
+  let texto='Hoje, em '+mapa.title+', o total geral é de '+geral+(geral===1?' registo':' registos')+'.';
+  if(blockRows.length) texto+=' Por categoria: '+blockRows.map(r=>r.nome+' com '+r.n).join(', ')+'.';
+  window.zeloFalar(texto);
+}
 
 // Gráfico dinâmico por página (Chart.js). Páginas com vários blocos mostram o
 // total por bloco; páginas de bloco único mostram o valor por linha.
