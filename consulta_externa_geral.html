@@ -3084,7 +3084,8 @@ CE.Registo = (function(){
 
   return {
     init: init, lockEspecialidade: lockEspecialidade, unlockEspecialidade: unlockEspecialidade,
-    abrirSessaoPorId: abrirSessaoPorId, guardarEspecialidadeDia: guardarEspecialidadeDia
+    abrirSessaoPorId: abrirSessaoPorId, guardarEspecialidadeDia: guardarEspecialidadeDia,
+    sincronizarTudo: _fbSincronizarTudo, documentoExportadoPorTxtAtual: _documentoExportadoPorTxtAtual
   };
 })();
 
@@ -3172,7 +3173,7 @@ CE.Dashboard = (function(){
     var diasSemana = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
     document.getElementById('dash-date').textContent = diasSemana[d.getDay()] + ', ' + d.toLocaleDateString('pt-PT');
 
-    await _fbSincronizarTudo();
+    await CE.Registo.sincronizarTudo();
     var hoje = todayISO();
     var sessoes = await CE.Store.getAllSessoes();
     var registos = await CE.Store.getAllRegistos();
@@ -3348,7 +3349,7 @@ CE.Historico = (function(){
     var de = document.getElementById('h-de').value;
     var ate = document.getElementById('h-ate').value;
 
-    await _fbSincronizarTudo();
+    await CE.Registo.sincronizarTudo();
     var sessoes = await CE.Store.getAllSessoes();
     sessoes = sessoes.filter(function(s){
       if (especialidade && s.especialidade !== especialidade) return false;
@@ -3701,7 +3702,7 @@ CE.Relatorio = (function(){
     var periodo = computePeriodo();
     var especialidadeFiltro = document.getElementById('r-especialidade').value;
 
-    await _fbSincronizarTudo();
+    await CE.Registo.sincronizarTudo();
     var todasSessoes = await CE.Store.getAllSessoes();
     var todosRegistos = await CE.Store.getAllRegistos();
 
@@ -4112,7 +4113,7 @@ CE.Relatorio = (function(){
       });
     }
 
-    rodape(_documentoExportadoPorTxtAtual());
+    rodape(CE.Registo.documentoExportadoPorTxtAtual());
     d.save('Relatorio_' + r.periodo.tipo + '_' + r.periodo.inicio + '_a_' + r.periodo.fim + (r.especialidadeFiltro ? '_' + r.especialidadeFiltro.replace(/\s+/g,'_') : '') + '.pdf');
     toast('✓ PDF gerado.');
   }
