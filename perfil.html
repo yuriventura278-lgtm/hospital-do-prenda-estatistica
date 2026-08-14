@@ -141,7 +141,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 
 <script type="module">
 import {
-  auth, db, ref, get, update, onValue, query, orderByChild, limitToLast,
+  auth, db, ref, get, set, onValue, query, orderByChild, limitToLast,
   fetchUserProfile, onAuthStateChanged, logAuditEvent, escapeHtml
 } from './zelo_auth.js';
 import {
@@ -241,9 +241,13 @@ document.getElementById('profileForm').addEventListener('submit', async function
   btn.disabled = true;
   btn.textContent = 'A guardar…';
   try{
-    const payload = { nome };
-    if(currentFotoDataUri) payload.foto = currentFotoDataUri;
-    await update(ref(db, 'users/' + currentUser.uid), payload);
+    // set() diretamente em cada campo (users/{uid}/nome, users/{uid}/foto)
+    // em vez de update() no nó do utilizador inteiro — as regras da Realtime
+    // Database só dão permissão de escrita ao próprio dono campo a campo, e
+    // um update() no nó pai é avaliado nesse nível primeiro, o que dava
+    // sempre PERMISSION_DENIED mesmo com as regras de "nome"/"foto" certas.
+    await set(ref(db, 'users/' + currentUser.uid + '/nome'), nome);
+    if(currentFotoDataUri) await set(ref(db, 'users/' + currentUser.uid + '/foto'), currentFotoDataUri);
     await logAuditEvent(currentUser.uid, currentUser.email, 'alterar_perfil', {});
     // A sessão (nome/foto no topo do index.html, saudação do Zelo pelo nome,
     // etc.) só era recarregada do Firebase no próximo login — sem isto, quem

@@ -248,7 +248,13 @@ async function logAuditEvent(uid, email, action, extra) {
 }
 
 async function touchLastAccess(uid) {
-  try { await update(ref(db, 'users/' + uid), { ultimoAcesso: Date.now() }); }
+  // set() diretamente no campo (users/{uid}/ultimoAcesso), não update() no
+  // nó do utilizador inteiro — ver nota igual em perfil.html: um update()
+  // no nó pai é avaliado ao nível desse nó primeiro pelas regras da
+  // Realtime Database, e não chega a considerar a regra mais específica de
+  // "ultimoAcesso", dando sempre PERMISSION_DENIED (aqui engolido pelo
+  // catch, por isso passava despercebido).
+  try { await set(ref(db, 'users/' + uid + '/ultimoAcesso'), Date.now()); }
   catch (e) { /* não bloqueante */ }
 }
 
