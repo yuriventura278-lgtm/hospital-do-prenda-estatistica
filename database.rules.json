@@ -15,11 +15,20 @@
 
         "role":     { ".validate": "newData.isString() && (newData.val() === 'admin' || newData.val() === 'direcao' || newData.val() === 'supervisor' || newData.val() === 'chefe_servico' || newData.val() === 'enfermeiro_chefe' || newData.val() === 'medico' || newData.val() === 'enfermeiro' || newData.val() === 'tdt' || newData.val() === 'secretario' || newData.val() === 'tecnico_farmacia' || newData.val() === 'psicologo' || newData.val() === 'funcionario')" },
         "ativo":    { ".validate": "newData.isBoolean()" },
-        "nome":     { ".validate": "newData.isString()" },
         "email":    { ".validate": "newData.isString()" },
         "cargo":    { ".validate": "newData.isString()" },
         "criadoEm": { ".validate": "newData.isNumber()" },
         "permissoes": { ".validate": true },
+
+        "nome": {
+          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+          ".validate": "newData.isString()"
+        },
+
+        "foto": {
+          ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() === 'admin')",
+          ".validate": "newData.isString() && newData.val().length < 500000"
+        },
 
         "ultimoAcesso": {
           ".write": "auth != null && auth.uid === $uid",
