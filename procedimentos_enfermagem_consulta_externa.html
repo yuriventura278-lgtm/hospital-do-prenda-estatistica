@@ -1656,6 +1656,7 @@ function persist(date) {
     zeloQueueUpdate('registos_enf/' + FB_SLUG + '/' + d, {savedAt: _fbSavedAt, snapshot: buildFirebaseSnapshot(data)});
     try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + d, _fbSavedAt); }catch(e){}
     _registarHistoricoAlteracao(d, data, _fbSavedAt);
+    _verificarPlausibilidadeNoite(d, data);
   }
   setSyncInfo('<svg class="svc-icon" aria-hidden="true"><use href="#i-check"/></svg> Guardado ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
   _mostrarHoraGuardado();
@@ -1719,6 +1720,44 @@ function _resumoAlteracaoProc(data){
   });
   return `Guardou registo do dia (${nPreenchidos} campo(s) preenchido(s))`;
 }
+// ── Zelo: verificação de plausibilidade do turno Noite ──
+// Se ainda é de manhã (antes das 12h, hora de Angola) e o dia gravado é o
+// PRÓPRIO dia de hoje, e há dados no turno Noite desse dia, isso é
+// cronologicamente estranho — a Noite de hoje ainda não devia ter
+// acontecido. A 1ª vez avisa; se a pessoa continuar a gravar Noite de hoje
+// nesta situação, escala o aviso e regista uma nota de integridade no
+// Firebase, para o Serviço de Estatística poder ver.
+function _verificarPlausibilidadeNoite(d, data){
+  if (typeof window.zeloDataHoraAngola !== 'function' || typeof window.zeloFalar !== 'function') return;
+  const agora = window.zeloDataHoraAngola();
+  if (d !== agora.data) return; // só interessa o próprio dia de hoje
+  if (agora.hora >= 12) return; // já não é de manhã — normal ter dados da Noite
+  const temNoite = Object.keys(data.specs).some(specId => {
+    const noite = data.specs[specId].noite || {};
+    return Object.keys(noite).some(k => noite[k] !== null && noite[k] !== 0);
+  });
+  if (!temNoite) return;
+  const nome = (sessionStorage.getItem('zeloNome') || '').split(' ')[0] || 'colega';
+  const chaveContagem = 'zeloAvisoNoiteContagem_' + FB_SLUG + '_' + d;
+  const contagem = (parseInt(localStorage.getItem(chaveContagem), 10) || 0) + 1;
+  localStorage.setItem(chaveContagem, String(contagem));
+  if (contagem === 1) {
+    window.zeloFalar(nome + ', reparei que estás a preencher o período da Noite de hoje, mas ainda é manhã — a Noite normalmente só é preenchida mais tarde. Estes dados podem ser questionáveis quanto à integridade, a menos que tenhas um bom motivo.');
+  } else {
+    window.zeloFalar('Continuas a preencher a Noite de hoje antes da hora. Vou ter de notificar o Serviço de Estatística sobre isto.');
+    if (typeof zeloQueueWrite === 'function') {
+      zeloQueueWrite('avisos_integridade_enf/' + FB_SLUG + '/' + d, {
+        tipo: 'preenchimento_noite_antes_da_hora',
+        especialidade: FB_SLUG,
+        data: d,
+        contagem: contagem,
+        detectadoEm: new Date().toISOString(),
+        utilizador: { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null }
+      }).catch(() => {});
+    }
+  }
+}
+
 async function _registarHistoricoAlteracao(date, data, savedAt){
   if (typeof zeloQueueWrite !== 'function' || !date) return;
   const agora = Date.now();

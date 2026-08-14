@@ -942,6 +942,12 @@
   // Zelo, em vez de cada página reimplementar a sua própria leitura de voz.
   window.zeloFalar = falar;
 
+  // Exposto para páginas verificarem a data/hora de Angola de forma segura
+  // (fuso fixo, sem depender do relógio/fuso local do aparelho) antes de
+  // decidir se algo é cronologicamente estranho — ex.: preencher o turno
+  // Noite de hoje quando ainda é de manhã.
+  window.zeloDataHoraAngola = dataHoraAngola;
+
   // ── Aviso de preenchimento em falta ──
   // Cada página com este aviso diz como encontrar os seus próprios dados no
   // Firebase (window.ZELO_MODULE/ZELO_ITEM, já definidos no topo de cada
