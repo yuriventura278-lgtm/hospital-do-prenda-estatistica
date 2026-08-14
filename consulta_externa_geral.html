@@ -648,7 +648,7 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
         <div class="kpi k-alta"><b id="dash-realizadas">0</b><span>Realizadas Hoje</span></div>
         <div class="kpi k-obito"><b id="dash-canceladas">0</b><span>Ausentes Hoje</span></div>
       </div>
-      <button type="button" class="btn btn-out block" style="margin-bottom:14px;" onclick="window.zeloLerElemento('#dash-kpis-wrap','Resumo de hoje')">🔊 Ler em voz</button>
+      <button type="button" class="btn btn-out block" style="margin-bottom:14px;" onclick="window.zeloNarrarResumoHoje()">🔊 Ler em voz</button>
 
       <div class="sec open">
         <div class="sec-h"><span class="n">1</span><div class="htxt"><b>Especialidades Atendidas Hoje</b></div></div>
@@ -738,7 +738,7 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
               <div class="nd"><label>Consultas Realizadas</label><input type="number" id="resumo-realizadas" value="0" disabled></div>
               <div class="nd"><label>Pacientes Ausentes</label><input type="number" id="resumo-canceladas" value="0" disabled></div>
             </div>
-            <button type="button" class="btn btn-out block" style="margin-top:8px;" onclick="window.zeloLerElemento('#resumo-totais-gerais','Totais gerais do dia')">🔊 Ler em voz</button>
+            <button type="button" class="btn btn-out block" style="margin-top:8px;" onclick="window.zeloNarrarTotaisGeraisDia()">🔊 Ler em voz</button>
           </div></div></div>
         </div>
         <div class="sec open">
@@ -851,7 +851,7 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
           <div class="actions">
             <button class="btn btn-navy" id="btn-gerar-relatorio"><svg class="svc-icon"><use href="#i-chart"/></svg>Gerar Relatório</button>
             <button class="btn btn-navy" id="btn-pdf-relatorio"><svg class="svc-icon"><use href="#i-pdf"/></svg>Exportar PDF</button>
-            <button type="button" class="btn btn-out" onclick="window.zeloLerElemento('#relatorio-output','Relatório')">🔊 Ler em voz</button>
+            <button type="button" class="btn btn-out" onclick="window.zeloNarrarRelatorio()">🔊 Ler em voz</button>
           </div>
           <button class="btn btn-navy block" id="btn-pdf-mes-completo" style="margin-top:10px;">
             <svg class="svc-icon"><use href="#i-download"/></svg>Exportar Relatório Mensal Completo (Todas as Especialidades)
@@ -1631,6 +1631,7 @@ CE.Registo = (function(){
   var cachePatologias = [];
   var especialidadeGridAtual = null;
   var paginaAtual = 0; // índice da página visível: 0..N-1 = médicos, N = resumo
+  var _dadosResumoDia = null; // último total calculado por atualizarResumo(), para a leitura em voz
 
   function fillSelects(){
     var sel = document.getElementById('f-especialidade');
@@ -2199,6 +2200,7 @@ CE.Registo = (function(){
     var equipaHtml = '';
     var procTotais = {}, matTotais = {};
     var famTotal = {}, fafTotal = {}, provTotal = {}, diagTotal = {};
+    var porMedico = [];
 
     mids.forEach(function(mid){
       var pagina = document.querySelector('.pagina-medico[data-mid="' + mid + '"]');
@@ -2209,6 +2211,7 @@ CE.Registo = (function(){
       var re = Number(pagina.querySelector('.m-realizadas').value || 0);
       var ca = Number(pagina.querySelector('.m-canceladas').value || 0);
       totAg += ag; totRe += re; totCa += ca;
+      porMedico.push({ nome: nome, realizadas: re });
       var enf = coletarEnfermeiras(mid);
       equipaHtml += '<div class="resumo-equipa-item"><span><b>' + nome + '</b>' + (sala ? ' — Sala ' + sala : '') + '<br>' +
         '<span style="color:var(--mut);">' + (enf.length ? enf.join(', ') : 'sem equipa de apoio') + '</span></span>' +
@@ -2236,6 +2239,7 @@ CE.Registo = (function(){
     document.getElementById('resumo-realizadas').value = totRe;
     document.getElementById('resumo-canceladas').value = totCa;
     document.getElementById('resumo-equipa').innerHTML = equipaHtml || '<p class="empty">Sem médicos registados.</p>';
+    _dadosResumoDia = { agendados: totAg, realizadas: totRe, canceladas: totCa, porMedico: porMedico };
 
     var procKeys = Object.keys(procTotais);
     document.getElementById('resumo-procedimentos').innerHTML = procKeys.length
@@ -2997,6 +3001,26 @@ CE.Registo = (function(){
     _fbEscutarDia(document.getElementById('f-data').value);
   }
 
+  // "Ler em voz" inteligente dos totais do dia — narra a partir dos DADOS:
+  // total agendadas/realizadas/ausentes → destaque por médico (realizadas).
+  window.zeloNarrarTotaisGeraisDia = function(){
+    if (typeof window.zeloFalar !== 'function' || !_dadosResumoDia) return;
+    var d = _dadosResumoDia;
+    if (!d.agendados && !d.realizadas && !d.canceladas) {
+      window.zeloFalar('Ainda não há dados preenchidos neste registo.');
+      return;
+    }
+    var partes = [];
+    partes.push('Totais gerais do dia: ' + d.agendados + (d.agendados===1?' consulta agendada':' consultas agendadas') +
+      ', ' + d.realizadas + (d.realizadas===1?' realizada':' realizadas') +
+      ' e ' + d.canceladas + (d.canceladas===1?' paciente ausente':' pacientes ausentes') + '.');
+    var medRows = (d.porMedico||[]).filter(function(r){ return r.realizadas>0; }).sort(function(a,b){ return b.realizadas-a.realizadas; });
+    if (medRows.length) {
+      partes.push('Por médico: ' + medRows.map(function(r){ return r.nome + ' com ' + r.realizadas; }).join(', ') + '.');
+    }
+    window.zeloFalar(partes.join(' '));
+  };
+
   return {
     init: init, lockEspecialidade: lockEspecialidade, unlockEspecialidade: unlockEspecialidade,
     abrirSessaoPorId: abrirSessaoPorId, guardarEspecialidadeDia: guardarEspecialidadeDia
@@ -3009,6 +3033,10 @@ CE.Registo = (function(){
    DASHBOARD DIÁRIO
    ====================================================================== */
 CE.Dashboard = (function(){
+
+  // Guarda o último "hoje" calculado por refresh(), para a leitura em voz
+  // inteligente (zeloNarrarResumoHoje) narrar a partir dos DADOS.
+  var _dadosHoje = null;
 
   function greeting(){
     var h = new Date().getHours();
@@ -3102,6 +3130,8 @@ CE.Dashboard = (function(){
       porEsp[s.especialidade].realizadas += (s.realizadas||0);
       porEsp[s.especialidade].canceladas += (s.canceladas||0);
     });
+    _dadosHoje = { agendados: agendados, realizadas: realizadas, canceladas: canceladas, porEsp: porEsp };
+
     var espContainer = document.getElementById('dash-especialidades');
     var keys = Object.keys(porEsp);
     if (!keys.length){
@@ -3212,6 +3242,29 @@ CE.Dashboard = (function(){
   function init(){
     refresh();
   }
+
+  // "Ler em voz" inteligente do resumo de hoje — narra a partir dos DADOS:
+  // total agendadas/realizadas/ausentes → destaque por especialidade.
+  window.zeloNarrarResumoHoje = function(){
+    if (typeof window.zeloFalar !== 'function' || !_dadosHoje) return;
+    var d = _dadosHoje;
+    if (!d.agendados && !d.realizadas && !d.canceladas) {
+      window.zeloFalar('Ainda não há registos hoje.');
+      return;
+    }
+    var partes = [];
+    partes.push('Hoje há ' + d.agendados + (d.agendados===1?' consulta agendada':' consultas agendadas') +
+      ', ' + d.realizadas + (d.realizadas===1?' já realizada':' já realizadas') +
+      ' e ' + d.canceladas + (d.canceladas===1?' paciente ausente':' pacientes ausentes') + '.');
+    var espRows = Object.keys(d.porEsp).map(function(k){
+      var v = d.porEsp[k];
+      return { nome: k, n: v.realizadas };
+    }).filter(function(r){ return r.n>0; }).sort(function(a,b){ return b.n-a.n; });
+    if (espRows.length) {
+      partes.push('Por especialidade, consultas realizadas: ' + espRows.map(function(r){ return r.nome + ' com ' + r.n; }).join(', ') + '.');
+    }
+    window.zeloFalar(partes.join(' '));
+  };
 
   return { init: init, refresh: refresh };
 })();
@@ -4016,6 +4069,40 @@ CE.Relatorio = (function(){
     document.getElementById('btn-pdf-relatorio').addEventListener('click', exportarPDF);
     document.getElementById('btn-pdf-mes-completo').addEventListener('click', exportarRelatorioMensalCompleto);
   }
+
+  // "Ler em voz" inteligente do relatório — narra a partir dos DADOS (o
+  // mesmo `report` usado no ecrã e no PDF): total → especialidades em
+  // destaque (só quando não já filtrado a uma só) → principais patologias.
+  // Nunca lê percentagens (ex.: % de cumprimento).
+  window.zeloNarrarRelatorio = function(){
+    if (typeof window.zeloFalar !== 'function' || !lastReportData) {
+      if (typeof window.zeloFalar === 'function') window.zeloFalar('Ainda não há relatório gerado para ler — carregue um período primeiro.');
+      return;
+    }
+    var r = lastReportData;
+    if (!r.totalAgendados && !r.totalRealizadas && !r.totalCanceladas) {
+      window.zeloFalar('Não há dados neste período.');
+      return;
+    }
+    var partes = [];
+    partes.push('No período ' + r.periodo.label + (r.especialidadeFiltro ? ', em ' + r.especialidadeFiltro : '') +
+      ', foram ' + r.totalAgendados + (r.totalAgendados===1?' consulta agendada':' consultas agendadas') +
+      ', ' + r.totalRealizadas + (r.totalRealizadas===1?' realizada':' realizadas') +
+      ' e ' + r.totalCanceladas + (r.totalCanceladas===1?' paciente ausente':' pacientes ausentes') + '.');
+
+    if (!r.especialidadeFiltro) {
+      var espRows = (r.produtividade||[]).filter(function(x){ return x.realizadas>0; }).sort(function(a,b){ return b.realizadas-a.realizadas; });
+      if (espRows.length) {
+        partes.push('Por especialidade, consultas realizadas: ' + espRows.map(function(x){ return x.especialidade + ' com ' + x.realizadas; }).join(', ') + '.');
+      }
+    }
+
+    var topPat = (r.patologiasGeral||[]).slice(0,5);
+    if (topPat.length) {
+      partes.push('Principais patologias: ' + topPat.map(function(p){ return p[0] + ' com ' + p[1]; }).join(', ') + '.');
+    }
+    window.zeloFalar(partes.join(' '));
+  };
 
   return { init: init };
 })();
