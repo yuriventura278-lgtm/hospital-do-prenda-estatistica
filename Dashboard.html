@@ -266,6 +266,27 @@ function doughnutChartConfig(labels, data){
     options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ font:{ size:10 }, boxWidth:11, padding:10 } } } }
   };
 }
+function pieChartConfig(labels, data){
+  return {
+    type: 'pie',
+    data: { labels: labels, datasets: [{ data: data, backgroundColor: PALETA, borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ font:{ size:10 }, boxWidth:11, padding:10 } } } }
+  };
+}
+// Evolução diária dentro do período seleccionado — só faz sentido quando há
+// mais do que 1 dia (esconde-se sozinho na leitura Diária).
+function lineChartConfig(labels, data, opts){
+  opts = opts || {};
+  return {
+    type: 'line',
+    data: { labels: labels, datasets: [{ data: data, borderColor: opts.color || '#1A56DB', backgroundColor: (opts.color||'#1A56DB')+'22', fill: true, tension: .3, pointRadius: labels.length > 40 ? 0 : 3 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { display:false } }, y: { beginAtZero: true, ticks: { font: { size: 10 } }, grid: { color:'#F1F5F9' } } }
+    }
+  };
+}
 function kpisHTML(items){
   // items: [{val, lbl}]
   return items.map(function(i){ return '<div class="svc-kpi"><div class="k-val">'+i.val+'</div><div class="k-lbl">'+i.lbl+'</div></div>'; }).join('');
@@ -327,34 +348,43 @@ const PROC_SLUGS = {
   medicina_homem:'Medicina Homem', medicina_mulher:'Medicina Mulher', nefrologia:'Nefrologia',
   neurocirurgia:'Neurocirurgia', ortopedia:'Ortopedia', uci_cuidados_intermedios:'UCI / Cuidados Intermédios',
 };
+function _totalProcNoSub(sub){
+  let n = 0;
+  if (!sub) return n;
+  Object.values(sub).forEach(function(especialidade){
+    Object.keys(especialidade).forEach(function(catId){
+      const cat = especialidade[catId];
+      if (!cat || !Array.isArray(cat.d)) return;
+      n += cat.d.reduce(function(a,v){return a+(v||0);},0);
+      n += (cat.n||[]).reduce(function(a,v){return a+(v||0);},0);
+    });
+  });
+  return n;
+}
 async function carregarProcedimentos(periodo){
   const slugs = Object.keys(PROC_SLUGS);
   const historicos = await Promise.all(slugs.map(function(slug){ return lerHistoricoCompleto('registos_enf/'+slug); }));
   let total = 0;
+  const porDia = {}; periodo.dates.forEach(function(d){ porDia[d] = 0; });
   const porServico = slugs.map(function(slug, i){
     let n = 0;
     const hist = historicos[i] || {};
     periodo.dates.forEach(function(d){
       const snap = hist[d] && hist[d].snapshot;
-      const sub = snap && (snap.sub || (snap.raw && null));
-      if (!sub) return;
-      Object.values(sub).forEach(function(especialidade){
-        Object.keys(especialidade).forEach(function(catId){
-          const cat = especialidade[catId];
-          if (!cat || !Array.isArray(cat.d)) return;
-          n += cat.d.reduce(function(a,v){return a+(v||0);},0);
-          n += (cat.n||[]).reduce(function(a,v){return a+(v||0);},0);
-        });
-      });
+      const sub = snap && snap.sub;
+      const dia = _totalProcNoSub(sub);
+      n += dia; porDia[d] += dia;
     });
     total += n;
     return { nome: PROC_SLUGS[slug], v: n };
   });
   const rows = ordenarDesc(porServico);
   if (total === 0){ renderSecaoVazia('proc'); _secaoDados.proc=null; return; }
+  const charts = [ { title:'Por Serviço', canvasId:'chart-proc', config: barChartConfig(rows.map(r=>r.nome), rows.map(r=>r.v), {horizontal:true, color:'#D97706'}) } ];
+  if (periodo.dates.length > 1) charts.push({ title:'Evolução Diária', canvasId:'chart-proc-evol', config: lineChartConfig(periodo.dates.map(d=>d.slice(8,10)+'/'+d.slice(5,7)), periodo.dates.map(d=>porDia[d]), {color:'#D97706'}) });
   renderSecao('proc',
     [ {val: total, lbl:'Total de Procedimentos'}, {val: rows.length, lbl:'Serviços com Registo'} ],
-    [ { title:'Por Serviço', canvasId:'chart-proc', config: barChartConfig(rows.map(r=>r.nome), rows.map(r=>r.v), {horizontal:true, color:'#D97706'}) } ]
+    charts
   );
   _secaoDados.proc = { total, rows, periodoFalado: periodo.periodoFalado };
 }
@@ -395,7 +425,7 @@ async function carregarBloco(periodo){
   const especRows = ordenarDesc(BLOCO_SPECIALTIES.map(function(s){ return { nome:s, v:(especT[s].urg||0)+(especT[s].elet||0) }; }));
   const anestRows = ordenarDesc(Object.keys(anestT).map(function(k){ return {nome:k, v:anestT[k]}; }));
   const charts = [ { title:'Por Especialidade (Urgente + Eletiva)', canvasId:'chart-bloco-esp', config: barChartConfig(especRows.map(r=>r.nome), especRows.map(r=>r.v), {horizontal:true, color:'#DC2626'}) } ];
-  if (anestRows.length) charts.push({ title:'Técnicas Anestésicas', canvasId:'chart-bloco-anest', config: doughnutChartConfig(anestRows.map(r=>r.nome), anestRows.map(r=>r.v)) });
+  if (anestRows.length) charts.push({ title:'Técnicas Anestésicas', canvasId:'chart-bloco-anest', config: pieChartConfig(anestRows.map(r=>r.nome), anestRows.map(r=>r.v)) });
   renderSecao('bloco',
     [ {val:total, lbl:'Total Cirurgias'}, {val:totUrg, lbl:'Urgentes'}, {val:totElet, lbl:'Eletivas'} ],
     charts
@@ -468,7 +498,7 @@ async function carregarImagiologia(periodo){
   const modRows = ordenarDesc(Object.keys(modalidades).map(function(k){ return {nome:modLabels[k], v:modalidades[k]}; }));
   const origemRows = ordenarDesc([{nome:'Banco de Urgência', v:bu}, {nome:'Autorizados', v:aut}, {nome:'Internamento', v:int_}]);
   renderSecao('imag', [ {val:total, lbl:'Total de Exames'} ], [
-    { title:'Por Modalidade', canvasId:'chart-imag-mod', config: doughnutChartConfig(modRows.map(r=>r.nome), modRows.map(r=>r.v)) },
+    { title:'Por Modalidade', canvasId:'chart-imag-mod', config: pieChartConfig(modRows.map(r=>r.nome), modRows.map(r=>r.v)) },
     { title:'Por Origem', canvasId:'chart-imag-orig', config: barChartConfig(origemRows.map(r=>r.nome), origemRows.map(r=>r.v), {color:'#0EA5E9'}) },
   ]);
   _secaoDados.imag = { total, modRows, origemRows, periodoFalado: periodo.periodoFalado };
@@ -499,9 +529,11 @@ async function carregarLaboratorio(periodo){
   });
   if (total === 0){ renderSecaoVazia('lab'); _secaoDados.lab=null; return; }
   const topExames = ordenarDesc(Object.keys(porExame).map(function(k){ return {nome:k, v:porExame[k]}; })).slice(0,8);
+  const charts = [ { title:'Principais Exames', canvasId:'chart-lab', config: barChartConfig(topExames.map(r=>r.nome), topExames.map(r=>r.v), {horizontal:true, color:'#7C3AED'}) } ];
+  if (totalPositivos > 0) charts.push({ title:'Resultados Positivos vs. Sem Alteração', canvasId:'chart-lab-pos', config: pieChartConfig(['Positivos','Sem alteração'], [totalPositivos, Math.max(total-totalPositivos,0)]) });
   renderSecao('lab',
     [ {val:total, lbl:'Total de Exames'}, {val:totalPositivos, lbl:'Resultados Positivos'} ],
-    [ { title:'Principais Exames', canvasId:'chart-lab', config: barChartConfig(topExames.map(r=>r.nome), topExames.map(r=>r.v), {horizontal:true, color:'#7C3AED'}) } ]
+    charts
   );
   _secaoDados.lab = { total, totalPositivos, topExames, periodoFalado: periodo.periodoFalado };
 }
@@ -538,7 +570,7 @@ async function carregarHemoterapia(periodo){
   const seroRows = ordenarDesc(Object.keys(sero).map(function(k){ return {nome:seroLabels[k], v:sero[k]}; }));
   const charts = [ { title:'Transfusões por Tipo', canvasId:'chart-hemo-transf', config: barChartConfig(transfRows.map(r=>r.nome), transfRows.map(r=>r.v), {color:'#DB2777'}) } ];
   if (doadRows.length) charts.push({ title:'Doadores por Tipo', canvasId:'chart-hemo-doad', config: barChartConfig(doadRows.map(r=>r.nome), doadRows.map(r=>r.v), {color:'#BE185D'}) });
-  if (seroRows.length) charts.push({ title:'Serologia Positiva', canvasId:'chart-hemo-sero', config: doughnutChartConfig(seroRows.map(r=>r.nome), seroRows.map(r=>r.v)) });
+  if (seroRows.length) charts.push({ title:'Serologia Positiva', canvasId:'chart-hemo-sero', config: pieChartConfig(seroRows.map(r=>r.nome), seroRows.map(r=>r.v)) });
   renderSecao('hemo', [ {val:totalTransf, lbl:'Total Transfusões'}, {val:totalDoad, lbl:'Total Doadores'}, {val:totalSero, lbl:'Serologias Positivas'} ], charts);
   _secaoDados.hemo = { totalTransf, totalDoad, transfRows, doadRows, seroRows, periodoFalado: periodo.periodoFalado };
 }
@@ -570,9 +602,13 @@ async function carregarFarmacia(){
   const baixo = produtos.filter(function(p){ return (p.stock||0) > 0 && (p.stock||0) <= (p.stockMin||0); });
   const criticos = produtos.filter(function(p){ return (p.stock||0) <= (p.stockMin||0); })
     .sort(function(a,b){ return (a.stock||0)-(b.stock||0); }).slice(0,8);
+  const normal = produtos.length - esgotados.length - baixo.length;
+  const charts = [];
+  if (criticos.length) charts.push({ title:'Produtos com Stock Mais Crítico', canvasId:'chart-farm', config: barChartConfig(criticos.map(p=>p.descricao||p.codigo||'—'), criticos.map(p=>p.stock||0), {horizontal:true, color:'#DC2626'}) });
+  charts.push({ title:'Estado Geral do Stock', canvasId:'chart-farm-estado', config: pieChartConfig(['Normal','Stock Baixo','Esgotado'], [normal, baixo.length, esgotados.length]) });
   renderSecao('farm',
     [ {val:produtos.length, lbl:'Produtos no Stock'}, {val:esgotados.length, lbl:'Esgotados'}, {val:baixo.length, lbl:'Stock Baixo'} ],
-    criticos.length ? [ { title:'Produtos com Stock Mais Crítico', canvasId:'chart-farm', config: barChartConfig(criticos.map(p=>p.descricao||p.codigo||'—'), criticos.map(p=>p.stock||0), {horizontal:true, color:'#DC2626'}) } ] : []
+    charts
   );
   _secaoDados.farm = { totalProdutos: produtos.length, esgotados: esgotados.length, baixo: baixo.length };
 }
