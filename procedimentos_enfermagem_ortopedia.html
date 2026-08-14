@@ -1199,6 +1199,12 @@ function fmtDate(d) {
   const [y,m,dd] = d.split('-');
   return `${dd}/${m}/${y}`;
 }
+// Data por extenso ("14 de agosto de 2026"), só para a leitura em voz — o
+// título mostrado no ecrã continua a usar fmtDate (DD/MM/AAAA).
+function _fmtDataFalada(d) {
+  const [y,m,dd] = d.split('-');
+  return parseInt(dd,10) + ' de ' + MESES_PT[parseInt(m,10)-1].toLowerCase() + ' de ' + y;
+}
 function datesInRange(s, e) {
   const dates = [], cur = new Date(s + 'T00:00:00'), end = new Date(e + 'T00:00:00');
   while(cur <= end) { dates.push(cur.toISOString().split('T')[0]); cur.setDate(cur.getDate()+1); }
@@ -2743,7 +2749,7 @@ function zeloNarrarRelatorioProcedimentos(containerId){
   const d = _procReportData[containerId];
   if (!d) { window.zeloFalar('Ainda não há dados para ler neste período.'); return; }
   const partes = [];
-  partes.push('Em ' + d.title + ', foram registados um total de ' + d.grand + (d.grand===1?' procedimento':' procedimentos') +
+  partes.push('Na ' + (d.periodoFalado || d.title) + ', foram registados um total de ' + d.grand + (d.grand===1?' procedimento':' procedimentos') +
     ': ' + d.grandD + ' no turno Dia e ' + d.grandN + ' no turno Noite.');
   const procRows = [];
   CATEGORIES.forEach(c => c.procs.forEach(proc => {
@@ -2828,7 +2834,7 @@ function aggregate(dates, filterSpecId) {
            specData, filteredSpecs };
 }
 
-function renderReport(containerId, dates, title, colorClass, filterSpec) {
+function renderReport(containerId, dates, title, colorClass, filterSpec, periodoFalado) {
   const { grandD, grandN, grand, catD, catN, procD, procN,
           amb, ambD, ambN, int, intD, intN, urg, urgD, urgN,
           specData, filteredSpecs } = aggregate(dates, filterSpec);
@@ -2837,7 +2843,7 @@ function renderReport(containerId, dates, title, colorClass, filterSpec) {
     _procReportData[containerId] = null;
     return;
   }
-  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, procD, procN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title };
+  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, procD, procN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title, periodoFalado: periodoFalado || title };
   let html = `<div class="sum-grid">
     <div class="sum-card c3"><span class="sum-label">∑ Total Geral</span><span class="sum-val">${grand}</span><div class="sum-sub">Dia: ${grandD} · Noite: ${grandN}</div></div>
   </div>`;
@@ -2909,7 +2915,7 @@ function loadDiario() {
   const d = document.getElementById('rpt-day-date').value;
   const spec = document.getElementById('rpt-day-spec').value;
   if(!d) { showToast('⚠️ Seleccione uma data'); return; }
-  renderReport('rpt-day-content', [d], fmtDate(d), 'blue', spec);
+  renderReport('rpt-day-content', [d], fmtDate(d), 'blue', spec, 'leitura diária de ' + _fmtDataFalada(d));
 }
 
 function loadSemanal() {
@@ -2926,7 +2932,7 @@ function loadMensal() {
   if(!m) { showToast('⚠️ Seleccione o mês'); return; }
   const [y,mo] = m.split('-');
   const last = new Date(+y, +mo, 0).getDate();
-  renderReport('men-content', datesInRange(`${m}-01`,`${m}-${String(last).padStart(2,'0')}`), m, 'purple', spec);
+  renderReport('men-content', datesInRange(`${m}-01`,`${m}-${String(last).padStart(2,'0')}`), m, 'purple', spec, 'leitura mensal de ' + MESES_PT[+mo-1].toLowerCase() + ' de ' + y);
 }
 
 const MONTH_ABBR_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -2955,7 +2961,7 @@ function renderTrimestralReport(containerId, year, q, filterSpec) {
     _procReportData[containerId] = null;
     return;
   }
-  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, procD, procN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title: `T${q} ${year}` };
+  _procReportData[containerId] = { grand, grandD, grandN, catD, catN, procD, procN, amb, ambD, ambN, urg, urgD, urgN, int, intD, intN, specData, filteredSpecs, title: `T${q} ${year}`, periodoFalado: 'leitura trimestral do ' + q + 'º trimestre de ' + year };
 
   let html = `<div class="sum-grid">
     <div class="sum-card c3"><span class="sum-label">∑ Total Geral</span><span class="sum-val">${grand}</span><div class="sum-sub">Dia: ${grandD} · Noite: ${grandN}</div></div>
@@ -3039,13 +3045,13 @@ function loadSemestral() {
   const spec = document.getElementById('seme-spec').value;
   const s = h===1 ? `${y}-01-01` : `${y}-07-01`;
   const e = h===1 ? `${y}-06-30` : `${y}-12-31`;
-  renderReport('seme-content', datesInRange(s,e), `S${h}/${y}`, 'orange', spec);
+  renderReport('seme-content', datesInRange(s,e), `S${h}/${y}`, 'orange', spec, 'leitura semestral do ' + h + 'º semestre de ' + y);
 }
 
 function loadAnual() {
   const y = document.getElementById('anu-year').value;
   const spec = document.getElementById('anu-spec').value;
-  renderReport('anu-content', datesInRange(`${y}-01-01`,`${y}-12-31`), `Ano ${y}`, 'red', spec);
+  renderReport('anu-content', datesInRange(`${y}-01-01`,`${y}-12-31`), `Ano ${y}`, 'red', spec, 'leitura anual de ' + y);
 }
 
 function loadComparacao() {
