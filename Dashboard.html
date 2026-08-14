@@ -18,12 +18,19 @@
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, get, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    // Os nós por serviço (registos_enf/*, registos_sistemas_locais/*) são
+    // chaveados por data ISO (AAAA-MM-DD), que ordena correctamente como
+    // texto — dá para pedir só o intervalo do período em vista em vez de
+    // trazer sempre TODO o histórico do serviço. Num hospital com meses/anos
+    // de registos diários isso fazia o Dashboard ler vários MB de cada vez
+    // que abria, mesmo para ver só "hoje" ou o mês corrente.
+    window.__fbGetRange = (path, minDate, maxDate)=>get(query(ref(db,path), orderByKey(), startAt(minDate), endAt(maxDate))).then(snap=>snap.exists()?snap.val():null);
     window.__fbReady = true;
   }catch(e){
     console.warn('Firebase indisponível.', e);
@@ -261,19 +268,26 @@ function esperarFirebase(){
     setTimeout(function(){ if(!resolvido){ resolvido=true; resolve(!!window.__fbReady); } }, 6000);
   });
 }
-// Lê TODO o histórico de um caminho Firebase de uma vez (uma só leitura,
-// filtrada depois localmente pelas datas do período) — muito mais rápido e
-// económico do que ler dia a dia, especialmente em períodos longos
-// (trimestre/semestre/ano).
+// Lê o histórico de um caminho Firebase de uma só vez para todo o período
+// em vista (uma só leitura, filtrada depois localmente dia a dia) — em vez
+// de ler dia a dia. As chaves são datas ISO (AAAA-MM-DD), que ordenam
+// correctamente como texto, por isso window.__fbGetRange pode pedir só o
+// intervalo [minDate, maxDate] ao Firebase (orderByKey+startAt+endAt) em
+// vez de trazer sempre TODO o histórico do serviço — um hospital com
+// meses/anos de registos diários faria isso demorar muito e transferir
+// vários MB desnecessários só para mostrar, por exemplo, o mês corrente.
 const _fbCacheRaiz = {};
-async function lerHistoricoCompleto(path){
-  if (_fbCacheRaiz[path]) return _fbCacheRaiz[path];
+async function lerHistoricoCompleto(path, minDate, maxDate){
+  const chave = path + '|' + (minDate||'') + '|' + (maxDate||'');
+  if (_fbCacheRaiz[chave]) return _fbCacheRaiz[chave];
   const pronto = await esperarFirebase();
   if (!pronto || !window.__fbGet) return {};
   try{
-    const tudo = await window.__fbGet(path);
-    _fbCacheRaiz[path] = tudo || {};
-    return _fbCacheRaiz[path];
+    const tudo = (minDate && maxDate && window.__fbGetRange)
+      ? await window.__fbGetRange(path, minDate, maxDate)
+      : await window.__fbGet(path);
+    _fbCacheRaiz[chave] = tudo || {};
+    return _fbCacheRaiz[chave];
   }catch(e){ console.warn('ZELO Dashboard: falha ao ler', path, e); return {}; }
 }
 
@@ -444,7 +458,7 @@ function _totalProcNoSub(sub){
 }
 async function carregarProcedimentos(periodo){
   const slugs = Object.keys(PROC_SLUGS);
-  const historicos = await Promise.all(slugs.map(function(slug){ return lerHistoricoCompleto('registos_enf/'+slug); }));
+  const historicos = await Promise.all(slugs.map(function(slug){ return lerHistoricoCompleto('registos_enf/'+slug, periodo.dates[0], periodo.dates[periodo.dates.length-1]); }));
   let total = 0, ultimaAtualizacao = null;
   const porDia = {}; periodo.dates.forEach(function(d){ porDia[d] = 0; });
   const porServico = slugs.map(function(slug, i){
@@ -484,7 +498,7 @@ function narrarProcedimentos(){
 const BLOCO_SPECIALTIES = ['Cirurgia Geral','Ortopedia','Maxilo Facial','Urologia','Proctologia','Neurocirurgia','Otorrinolaringologia','Anestesiologia','Angeologia','Oftalmologia','Medicina Interna','Nefrologia'];
 const BLOCO_ANEST_TAGS = {GOT:'Gerais Endotraqueal', GEV:'Gerais Endovenosa', DISS:'Dissociativa', BAL:'Balanceada', COMB:'Combinadas', 'REG.':'Raquidianas', EPI:'Epidurales', BN:'Bloqueio Nervoso', LOC:'Locais'};
 async function carregarBloco(periodo){
-  const hist = await lerHistoricoCompleto('registos_sistemas_locais/bloco_operatorio');
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/bloco_operatorio', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   let totUrg=0, totElet=0;
   const especT = {}; BLOCO_SPECIALTIES.forEach(s=>especT[s]={urg:0,elet:0});
@@ -528,7 +542,7 @@ function narrarBloco(){
 /* ── 3. Consulta Externa ──
    registos_sistemas_locais/consulta_externa/{data}.snapshot = { sessoes:[{especialidade, totalDoentes, diagnosticos:{}, ...}] } */
 async function carregarConsultaExterna(periodo){
-  const hist = await lerHistoricoCompleto('registos_sistemas_locais/consulta_externa');
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/consulta_externa', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   let total = 0;
   const porEspec = {}, diagnosticos = {};
@@ -563,7 +577,7 @@ function narrarConsultaExterna(){
 /* ── 4. Imagiologia ──
    registos_sistemas_locais/imagiologia/{data}.snapshot = { tac:{exame:{bu,aut,int}}, eco:{...}, rx:{...} } */
 async function carregarImagiologia(periodo){
-  const hist = await lerHistoricoCompleto('registos_sistemas_locais/imagiologia');
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/imagiologia', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   const modalidades = { tac:0, eco:0, rx:0 };
   let bu=0, aut=0, int_=0;
@@ -600,7 +614,7 @@ function narrarImagiologia(){
 /* ── 5. Laboratório ──
    registos_sistemas_locais/laboratorio/{data}.snapshot = { exames:{nome:{bu,int}}, positivos:{nome:{bu,int}} } */
 async function carregarLaboratorio(periodo){
-  const hist = await lerHistoricoCompleto('registos_sistemas_locais/laboratorio');
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/laboratorio', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   let total = 0, totalPositivos = 0;
   const porExame = {};
@@ -635,7 +649,7 @@ function narrarLaboratorio(){
 /* ── 6. Hemoterapia ──
    registos_sistemas_locais/hemoterapia/{data}.snapshot = { transfusoes:{plaquetas,plasmas,globulos,crio}, doadores:{voluntarios,familiares,habituais}, serologia:{vih,hbs,vdrl,hcv,outros} } */
 async function carregarHemoterapia(periodo){
-  const hist = await lerHistoricoCompleto('registos_sistemas_locais/hemoterapia');
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/hemoterapia', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   const transf = {plaquetas:0, plasmas:0, globulos:0, crio:0};
   const doad = {voluntarios:0, familiares:0, habituais:0};
