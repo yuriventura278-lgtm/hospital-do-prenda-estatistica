@@ -51,6 +51,17 @@
       }
     },
 
+    "avisos_integridade_enf": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+
+      "$servico": {
+        "$data": {
+          ".write": "auth != null",
+          ".validate": "newData.hasChildren(['tipo', 'especialidade', 'data', 'detectadoEm'])"
+        }
+      }
+    },
+
     "audit_log": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
 

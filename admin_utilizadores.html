@@ -140,6 +140,10 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
         Auditoria
       </button>
+      <button class="tab-btn" data-tab="avisos-integridade" type="button">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Avisos de Integridade <span class="tab-count" id="tabCountAvisos"></span>
+      </button>
     </div>
 
     <div class="tab-pane active" id="tabpane-utilizadores">
@@ -224,6 +228,21 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
         <p class="sub">Últimos 100 eventos: logins falhados, bloqueios, criações e alterações de utilizadores.</p>
         <div class="timeline" id="auditBody"></div>
         <div class="empty-state" id="auditEmptyState" style="display:none;">Ainda não há eventos registados.</div>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tabpane-avisos-integridade">
+      <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h2>Avisos de Integridade</h2>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-sm" id="exportAvisosPdfBtn">📄 PDF</button>
+            <button class="btn-sm" id="exportAvisosExcelBtn">📊 Excel</button>
+          </div>
+        </div>
+        <p class="sub">Situações que o Zelo assinalou como cronologicamente estranhas — ex.: preencher o turno Noite de hoje ainda de manhã, repetidamente, depois de já avisado.</p>
+        <div class="timeline" id="avisosIntegridadeBody"></div>
+        <div class="empty-state" id="avisosIntegridadeEmptyState" style="display:none;">Ainda não há avisos registados.</div>
       </div>
     </div>
   </main>
@@ -704,6 +723,97 @@ function renderAudit(auditObj){
   }).join('');
 }
 
+// ── Avisos de Integridade (avisos_integridade_enf) ──
+// Escritos por procedimentos_enfermagem_*.html quando o Zelo deteta o turno
+// Noite de hoje a ser preenchido ainda de manhã e a pessoa continua a
+// fazê-lo depois de já avisada (ver _verificarPlausibilidadeNoite).
+let currentAvisosIntegridadeCache = [];
+const avisosIntegridadeBody = document.getElementById('avisosIntegridadeBody');
+const avisosIntegridadeEmptyState = document.getElementById('avisosIntegridadeEmptyState');
+const AVISO_TIPO_LABELS = {
+  preenchimento_noite_antes_da_hora: 'Turno Noite preenchido antes da hora'
+};
+const AVISO_ESPECIALIDADE_LABELS = {
+  banco_urgencia: 'Banco de Urgência',
+  bloco_operatorio: 'Bloco Operatório',
+  cirurgia: 'Cirurgia Geral',
+  consulta_externa: 'Consulta Externa',
+  geral: 'Geral',
+  hospital_dia: 'Hospital de Dia',
+  maxilo_facial: 'Maxilo Facial',
+  medicina_homem: 'Medicina Homem',
+  medicina_mulher: 'Medicina Mulher',
+  nefrologia: 'Nefrologia',
+  neurocirurgia: 'Neurocirurgia',
+  ortopedia: 'Ortopedia',
+  uci_intermedio: 'UCI / Cuidados Intermédios'
+};
+function especialidadeLabel(slug){
+  return AVISO_ESPECIALIDADE_LABELS[slug] || slug || '—';
+}
+// avisosObj tem a forma { especialidade: { 'YYYY-MM-DD': evento } } — achata
+// para uma lista simples antes de ordenar/mostrar.
+function renderAvisosIntegridade(avisosObj){
+  const entries = [];
+  Object.keys(avisosObj || {}).forEach(function(esp){
+    Object.keys(avisosObj[esp] || {}).forEach(function(data){
+      entries.push(Object.assign({}, avisosObj[esp][data], { _especialidade: esp, _data: data }));
+    });
+  });
+  entries.sort(function(a,b){ return (b.detectadoEm||'').localeCompare(a.detectadoEm||''); });
+  currentAvisosIntegridadeCache = entries;
+  const tabCount = document.getElementById('tabCountAvisos');
+  if(tabCount) tabCount.textContent = entries.length ? String(entries.length) : '';
+  if(!entries.length){ avisosIntegridadeBody.innerHTML=''; avisosIntegridadeEmptyState.style.display='block'; return; }
+  avisosIntegridadeEmptyState.style.display = 'none';
+  avisosIntegridadeBody.innerHTML = entries.map(function(ev){
+    const label = AVISO_TIPO_LABELS[ev.tipo] || ev.tipo || '—';
+    const detalhes = [];
+    detalhes.push(especialidadeLabel(ev.especialidade || ev._especialidade));
+    detalhes.push('Dia: ' + (ev.data || ev._data || '—'));
+    if(ev.contagem) detalhes.push('Nº de vezes: ' + ev.contagem);
+    if(ev.utilizador && ev.utilizador.nome) detalhes.push(escapeHtml(ev.utilizador.nome));
+    if(ev.utilizador && ev.utilizador.email) detalhes.push(escapeHtml(ev.utilizador.email));
+    return `
+      <div class="timeline-item">
+        <div class="timeline-ic" style="background:var(--am);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <div class="timeline-time">${fmtDate(ev.detectadoEm)}</div>
+        <div class="timeline-label">${escapeHtml(label)}</div>
+        <div class="timeline-detail">${detalhes.join(' · ') || '—'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('exportAvisosExcelBtn').addEventListener('click', function(){
+  ensureExcelLib(function(){
+    const rows = [['Detetado em','Especialidade','Dia','Nº de vezes','Utilizador','Email']];
+    currentAvisosIntegridadeCache.forEach(function(ev){
+      rows.push([fmtDate(ev.detectadoEm), especialidadeLabel(ev.especialidade||ev._especialidade), ev.data||ev._data||'', ev.contagem||'', (ev.utilizador&&ev.utilizador.nome)||'', (ev.utilizador&&ev.utilizador.email)||'']);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Avisos de Integridade');
+    XLSX.writeFile(wb, 'zelo_avisos_integridade_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  });
+});
+
+document.getElementById('exportAvisosPdfBtn').addEventListener('click', function(){
+  ensurePdfLibs(function(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text('ZELO — Avisos de Integridade', 14, 16);
+    doc.setFontSize(9);
+    doc.text('Gerado em ' + new Date().toLocaleString('pt-PT'), 14, 22);
+    const rows = currentAvisosIntegridadeCache.map(function(ev){
+      return [fmtDate(ev.detectadoEm), especialidadeLabel(ev.especialidade||ev._especialidade), ev.data||ev._data||'', ev.contagem||'', (ev.utilizador&&ev.utilizador.nome)||''];
+    });
+    doc.autoTable({ startY: 28, head: [['Detetado em','Especialidade','Dia','Nº de vezes','Utilizador']], body: rows, styles:{fontSize:8} });
+    doc.save('zelo_avisos_integridade_' + new Date().toISOString().slice(0,10) + '.pdf');
+  });
+});
+
 function avatarHtml(u){
   if(u.foto){
     return '<div style="width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;"><img src="' + u.foto + '" style="width:100%;height:100%;object-fit:cover;" alt=""/></div>';
@@ -937,6 +1047,9 @@ onAuthStateChanged(auth, async function(user){
   });
   onValue(query(ref(db, 'audit_log'), orderByChild('ts'), limitToLast(100)), function(snap){
     renderAudit(snap.val());
+  });
+  onValue(ref(db, 'avisos_integridade_enf'), function(snap){
+    renderAvisosIntegridade(snap.val());
   });
 });
 </script>
