@@ -1070,6 +1070,13 @@
     });
     return _juntarComE(frases);
   }
+  function _diasNoMes(anoStr, mesStr){
+    return new Date(Number(anoStr), Number(mesStr), 0).getDate();
+  }
+  // Fecho fixo de sexta-feira — substitui o pick aleatório de
+  // LEMBRETES_FECHO_PREENCHIMENTO nesse dia específico: sem variedade aqui
+  // de propósito, é um pedido concreto e igual todas as semanas.
+  var LEMBRETE_SEXTA_FEIRA = ' Hoje é sexta-feira: tenha como meta do dia lançar ou entregar as folhas de procedimentos do serviço na Estatística — todos os pendentes desta semana, por favor.';
   function tentarAvisarPreenchimento(){
     var cfg = configAvisoPreenchimento();
     if (!cfg) return;
@@ -1108,8 +1115,21 @@
         if (sessionStorage.getItem(chaveFaltaSessao)) return;
         sessionStorage.setItem(chaveFaltaSessao, '1');
         var diasPorExtenso = _formatarDiasEmFalta(diasFalta);
-        var aberturaAviso = ABERTURAS_AVISO_FALTA[Math.floor(Math.random() * ABERTURAS_AVISO_FALTA.length)].replace('NOME', nome);
-        texto = aberturaAviso + ' Em ' + cfg.servicoLabel + ', este mês, ainda sem registo: ' + diasPorExtenso + '.';
+        // Do dia 20 ao fim do mês, com dias por preencher, o aviso muda de
+        // tom — deixa de ser a variante casual e passa a insistir na
+        // urgência de fecho de mês, sempre com a mesma frase (a seriedade
+        // não pede variedade).
+        if (diaHoje >= 20) {
+          var diasRestantesMes = _diasNoMes(partes[0], partes[1]) - diaHoje;
+          var fraseRestantes = diasRestantesMes === 0
+            ? 'Hoje é o último dia do mês'
+            : ('Faltam ' + diasRestantesMes + (diasRestantesMes === 1 ? ' dia' : ' dias') + ' para o mês terminar');
+          texto = 'Olá, ' + nome + '. ' + fraseRestantes + ' e ainda tens dias em falta em ' + cfg.servicoLabel + ': ' +
+            diasPorExtenso + '. Precisamos levar este trabalho a sério — estes dados não são só números, eles representam o hospital.';
+        } else {
+          var aberturaAviso = ABERTURAS_AVISO_FALTA[Math.floor(Math.random() * ABERTURAS_AVISO_FALTA.length)].replace('NOME', nome);
+          texto = aberturaAviso + ' Em ' + cfg.servicoLabel + ', este mês, ainda sem registo: ' + diasPorExtenso + '.';
+        }
       } else {
         if (localStorage.getItem(chaveOkHoje) === agora.data) return;
         localStorage.setItem(chaveOkHoje, agora.data);
@@ -1117,7 +1137,9 @@
           .replace('NOME', nome).replace('ITENS', cfg.itemPlural);
         texto = aberturaParabens + ' Em ' + cfg.servicoLabel + ', está tudo preenchido até ontem.';
       }
-      texto += LEMBRETES_FECHO_PREENCHIMENTO[Math.floor(Math.random() * LEMBRETES_FECHO_PREENCHIMENTO.length)];
+      texto += (agora.diaSemana === 'Fri')
+        ? LEMBRETE_SEXTA_FEIRA
+        : LEMBRETES_FECHO_PREENCHIMENTO[Math.floor(Math.random() * LEMBRETES_FECHO_PREENCHIMENTO.length)];
       falar(texto);
     }).catch(function () {}); // sem ligação agora — fica em silêncio, sem incomodar com erros a cada entrada na página
   }
