@@ -245,6 +245,15 @@ document.getElementById('profileForm').addEventListener('submit', async function
     if(currentFotoDataUri) payload.foto = currentFotoDataUri;
     await update(ref(db, 'users/' + currentUser.uid), payload);
     await logAuditEvent(currentUser.uid, currentUser.email, 'alterar_perfil', {});
+    // A sessão (nome/foto no topo do index.html, saudação do Zelo pelo nome,
+    // etc.) só era recarregada do Firebase no próximo login — sem isto, quem
+    // acabou de mudar a foto ou o nome via aqui e voltasse ao Início via a
+    // sessão actual, continuava a ver os dados antigos até sair e entrar de
+    // novo.
+    try {
+      sessionStorage.setItem('zeloNome', nome);
+      if (currentFotoDataUri) sessionStorage.setItem('zeloFoto', currentFotoDataUri);
+    } catch (e) {}
     showMsg(profileMsg, 'Perfil atualizado com sucesso.', 'ok');
   }catch(err){
     showMsg(profileMsg, 'Não foi possível guardar: ' + err.message, 'err');
