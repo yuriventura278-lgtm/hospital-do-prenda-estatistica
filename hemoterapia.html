@@ -1097,6 +1097,24 @@ let currentData = {
 const STORAGE_PREFIX = "hemo2_"; // mantido para compatibilidade com dados antigos já migrados
 
 function todayKey(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); }
+
+var HEMO_ULTIMO_DIA_KEY = 'hemo_ultimoDiaVisto';
+// Data com que o registo diário abre ao entrar na página: por padrão, o dia
+// anterior a hoje — mas se, dentro da MESMA sessão (sessionStorage, limpo no
+// logout), a pessoa já tiver trocado de dia, reabre nesse dia em vez de
+// voltar ao padrão (ex.: depois de só actualizar a página com F5).
+function hemoDataPadraoAbertura(){
+  try{
+    const salvo = sessionStorage.getItem(HEMO_ULTIMO_DIA_KEY);
+    if (salvo) return salvo;
+  }catch(e){}
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function hemoGuardarUltimoDiaVisto(data){
+  try{ sessionStorage.setItem(HEMO_ULTIMO_DIA_KEY, data); }catch(e){}
+}
 function fmtDate(d){ if(!d) return "—"; const [y,m,day]=d.split("-"); return day+"/"+m+"/"+y; }
 function datesInRange(s,e){ const dates=[],cur=new Date(s+'T00:00:00'),end=new Date(e+'T00:00:00'); while(cur<=end){ dates.push(cur.toISOString().slice(0,10)); cur.setDate(cur.getDate()+1); } return dates; }
 function getWeekStart(d){ const dt=new Date(d+'T00:00:00'),day=dt.getDay(),diff=day===0?-6:1-day; dt.setDate(dt.getDate()+diff); return dt.toISOString().slice(0,10); }
@@ -1165,9 +1183,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(elq('seme-h')) elq('seme-h').value=sm<=6?1:2;
   if(elq('anu-year')) elq('anu-year').value=sy;
   if(elq('backup-mes')) elq('backup-mes').value=`${sy}-${String(sm).padStart(2,'0')}`;
+  // Registo diário: por padrão o dia anterior a hoje (preso à sessão) — ver
+  // hemoDataPadraoAbertura(); os campos de relatório acima continuam a usar
+  // o dia de hoje verdadeiro (today) como base.
+  const dataRegistoAbertura=hemoDataPadraoAbertura();
   runSplash(()=>{
-    if(elq('data-registo')) elq('data-registo').value=today;
-    loadDay(today);
+    if(elq('data-registo')) elq('data-registo').value=dataRegistoAbertura;
+    loadDay(dataRegistoAbertura);
   });
 });
 
@@ -1291,6 +1313,7 @@ async function onDateChange(newDate){
   // reatribuir a autoria ao utilizador actual sem ele ter alterado nada.
   if (_diaAlterado) { await persistData(currentData.date||todayKey()); }
   _diaAlterado = false;
+  hemoGuardarUltimoDiaVisto(newDate);
   await loadDay(newDate);
 }
 

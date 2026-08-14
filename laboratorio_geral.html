@@ -1467,6 +1467,21 @@ function allExames() {
 function todayKey() {
   return new Date().toISOString().slice(0,10);
 }
+
+var LAB_ULTIMO_DIA_KEY = 'lab_ultimoDiaVisto';
+// Data com que o registo diário abre ao entrar na página: por padrão, o dia
+// anterior a hoje — mas se, dentro da MESMA sessão (sessionStorage, limpo no
+// logout), a pessoa já tiver trocado de dia, reabre nesse dia em vez de
+// voltar ao padrão (ex.: depois de só actualizar a página com F5).
+function labDataPadraoAbertura(){
+  try{
+    var salvo = sessionStorage.getItem(LAB_ULTIMO_DIA_KEY);
+    if (salvo) return salvo;
+  }catch(e){}
+  var d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function fmtDate(d) {
   if(!d) return '—';
   const [y,m,day] = d.split('-');
@@ -1534,7 +1549,7 @@ function saveExtras() {
 }
 
 // ─── CURRENT DATA ───
-let currentDate = todayKey();
+let currentDate = labDataPadraoAbertura();
 let numTechs    = 3;
 let cd          = newData(currentDate);
 
@@ -2048,6 +2063,7 @@ function addExam() {
 function loadDay(date) {
   collectFromDOM();
   currentDate = date;
+  try{ sessionStorage.setItem(LAB_ULTIMO_DIA_KEY, date); }catch(e){}
   const raw = LS.getItem(sk(date));
   if(raw){
     try{ cd = {...newData(date),...JSON.parse(raw)}; }

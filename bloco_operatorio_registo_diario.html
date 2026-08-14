@@ -2156,12 +2156,25 @@ let savedDayOb = 0; // tracks how much of today's obtidos already went into glob
 
 // ── Date init ──
 const dateInput = document.getElementById('regDate');
-const today = new Date();
-const yy = today.getFullYear();
-const mm = String(today.getMonth()+1).padStart(2,'0');
-const dd = String(today.getDate()).padStart(2,'0');
-dateInput.value = `${yy}-${mm}-${dd}`;
-document.getElementById('current-date-display').textContent = `${dd}/${mm}/${yy}`;
+const BOP_ULTIMO_DIA_KEY = 'bop_ultimoDiaVisto';
+// Data com que o registo diário abre ao entrar na página: por padrão, o dia
+// anterior a hoje — mas se, dentro da MESMA sessão (sessionStorage, limpo no
+// logout), a pessoa já tiver trocado de dia, reabre nesse dia em vez de
+// voltar ao padrão (ex.: depois de só actualizar a página com F5).
+function bopDataPadraoAbertura(){
+  try{
+    const salvo = sessionStorage.getItem(BOP_ULTIMO_DIA_KEY);
+    if (salvo) return salvo;
+  }catch(e){}
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+dateInput.value = bopDataPadraoAbertura();
+{
+  const [yy,mm,dd] = dateInput.value.split('-');
+  document.getElementById('current-date-display').textContent = `${dd}/${mm}/${yy}`;
+}
 // ★ Rastreia qual data está realmente carregada no DOM.
 //   Toda a lógica de guardar usa esta variável em vez de dateInput.value.
 let currentLoadedDate = dateInput.value;
@@ -2176,6 +2189,7 @@ dateInput.addEventListener('change', () => {
   if (_hasPendingSave) persist(currentLoadedDate); // guardar dia anterior com a sua própria chave
   _hasPendingSave = false;              // já gravámos (ou não havia nada pendente) para esta data
   currentLoadedDate = dateInput.value;  // avançar o ponteiro para o novo dia
+  try{ sessionStorage.setItem(BOP_ULTIMO_DIA_KEY, currentLoadedDate); }catch(e){}
   const [y,m,d] = dateInput.value.split('-');
   document.getElementById('current-date-display').textContent = `${d}/${m}/${y}`;
   globalOb = 0; savedDayOb = 0;

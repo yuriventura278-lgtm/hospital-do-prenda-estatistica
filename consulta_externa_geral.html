@@ -1252,6 +1252,24 @@ function toast(msg){
 function pad2(n){ return String(n).padStart(2,'0'); }
 function todayISO(){ var d = new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
 
+var CE_ULTIMO_DIA_KEY = 'ce_ultimoDiaVisto';
+// Data com que o formulário de registo abre ao entrar na página: por padrão,
+// o dia anterior a hoje — mas se, dentro da MESMA sessão (sessionStorage, que
+// é limpo no logout), a pessoa já tiver trocado de dia, reabre nesse dia em
+// vez de voltar ao padrão (ex.: depois de só actualizar a página com F5).
+function ceDataPadraoAbertura(){
+  try{
+    var salvo = sessionStorage.getItem(CE_ULTIMO_DIA_KEY);
+    if (salvo) return salvo;
+  }catch(e){}
+  var d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+}
+function ceGuardarUltimoDiaVisto(data){
+  try{ sessionStorage.setItem(CE_ULTIMO_DIA_KEY, data); }catch(e){}
+}
+
 /* ======================================================================
    STORAGE ADAPTER — IndexedDB com fallback em localStorage
    Os dados nunca se perdem: escrita imediata + rascunho automático do formulário.
@@ -1638,7 +1656,7 @@ CE.Registo = (function(){
     CE.ESPECIALIDADES.forEach(function(e){
       var o = document.createElement('option'); o.value = e; o.textContent = e; sel.appendChild(o);
     });
-    document.getElementById('f-data').value = todayISO();
+    document.getElementById('f-data').value = ceDataPadraoAbertura();
   }
 
   /* ---------- especialidade: bloqueada quando vem do menu ---------- */
@@ -2897,6 +2915,7 @@ CE.Registo = (function(){
       carregandoSessaoExistente = true;
       limparFormulario(especialidade);
       document.getElementById('f-data').value = todayISO();
+      ceGuardarUltimoDiaVisto(todayISO());
       _fbEscutarDia(todayISO());
       carregandoSessaoExistente = false;
       verificarSessaoExistente();
@@ -3015,6 +3034,7 @@ CE.Registo = (function(){
       scheduleDraftSave();
     });
     document.getElementById('f-data').addEventListener('change', function(){
+      ceGuardarUltimoDiaVisto(document.getElementById('f-data').value);
       verificarSessaoExistente();
       _fbEscutarDia(document.getElementById('f-data').value);
     });
