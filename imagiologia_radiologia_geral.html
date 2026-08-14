@@ -784,7 +784,7 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
       <p>TAC · Ecografia · Raio X — por B. Urgência, Autorizados e Internamentos</p>
     </div>
     <button class="btn btn-primary" onclick="saveAllData()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
-    <button class="btn btn-outline" onclick="window.zeloLerElemento('#kpi-grid-registo','Resumo do dia')">🔊 Ler em voz</button>
+    <button class="btn btn-outline" onclick="zeloNarrarResumoDiario()">🔊 Ler em voz</button>
   </div>
 
   <!-- KPIs -->
@@ -911,7 +911,7 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
     <div class="btn-group">
       <button class="btn btn-refresh" onclick="loadStats()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Atualizar</button>
       <button class="btn btn-amber" onclick="exportStatsPDF()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</button>
-      <button class="btn btn-outline" onclick="window.zeloLerElemento('#stats-content','Estatísticas')">🔊 Ler em voz</button>
+      <button class="btn btn-outline" onclick="zeloNarrarEstatisticas()">🔊 Ler em voz</button>
     </div>
   </div>
 
@@ -1680,6 +1680,45 @@ function updateKPIs(){
   }
 }
 
+// "Ler em voz" inteligente do resumo diário — narra a partir dos DADOS
+// (currentData, o mesmo cálculo do updateKPIs), não do ecrã célula a
+// célula: total → por modalidade (TAC/ECO/Raio X) → por origem
+// (B.Urgência/Autorizados/Internamento). Nunca lê a Média/Dia (derivada).
+function zeloNarrarResumoDiario(){
+  if (typeof window.zeloFalar !== 'function') return;
+  let tacT=0,ecoT=0,rxT=0,grandBu=0,grandAut=0,grandInt=0;
+  [...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS].forEach(k=>{
+    const d=currentData.tac[k]||{};
+    tacT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
+    grandBu+=Number(d.bu||0); grandAut+=Number(d.aut||0); grandInt+=Number(d.int||0);
+  });
+  [...ECO_EXAMES,...ECO_CONTADORES].forEach(k=>{
+    const d=currentData.eco[k]||{};
+    ecoT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
+    grandBu+=Number(d.bu||0); grandAut+=Number(d.aut||0); grandInt+=Number(d.int||0);
+  });
+  [...RX_CONTADORES,...RX_PLACAS].forEach(k=>{
+    const d=currentData.rx[k]||{};
+    rxT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
+    grandBu+=Number(d.bu||0); grandAut+=Number(d.aut||0); grandInt+=Number(d.int||0);
+  });
+  const grand=tacT+ecoT+rxT;
+  if (!grand) { window.zeloFalar('Ainda não há exames registados hoje.'); return; }
+  const partes=[];
+  partes.push('No dia de hoje, o serviço de imagiologia realizou um total de ' + grand + (grand===1?' exame':' exames') + '.');
+  const tipos=[];
+  if (tacT) tipos.push('TAC com ' + tacT);
+  if (ecoT) tipos.push('Ecografia com ' + ecoT);
+  if (rxT) tipos.push('Raio X com ' + rxT);
+  if (tipos.length) partes.push('Por modalidade: ' + tipos.join(', ') + '.');
+  const origens=[];
+  if (grandBu) origens.push('banco de urgência ' + grandBu);
+  if (grandAut) origens.push('autorizados ' + grandAut);
+  if (grandInt) origens.push('internamento ' + grandInt);
+  if (origens.length) partes.push('Por origem: ' + origens.join(', ') + '.');
+  window.zeloFalar(partes.join(' '));
+}
+
 function _calcTotal(data){
   let t=0;
   const calc=(sec,keys)=>{ keys.forEach(k=>{ const d=sec?.[k]||{}; t+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0); }); };
@@ -2185,6 +2224,9 @@ function clearHistory(){
 // ════════════════════════════════════════════════════════════════════
 let _statsCache=null;
 let _currentPeriod='diario';
+// Guarda o último período estatístico renderizado, para o botão "Ler em
+// voz" narrar de forma inteligente a partir dos DADOS.
+let _lastStatsNarracao=null;
 
 function selectPeriod(p,btn){
   _currentPeriod=p;
@@ -2473,6 +2515,39 @@ function renderStats(allData,period){
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M17 21h2a2 2 0 0 1 2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg> Raio X — Contadores','rx',RX_CONTADORES,'rx')
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Raio X — Placas por Tamanho','rx',RX_PLACAS,'rx')
     + footer;
+
+  _lastStatsNarracao = {
+    grand, tacT, ecoT, rxT,
+    grandBu: agg._grandBu, grandAut: agg._grandAut, grandInt: agg._grandInt,
+    topExames: allRows.slice(0,8),
+    periodo: _periodLabel(period), startD, endD, diasComDados: filteredDates.length
+  };
+}
+
+// "Ler em voz" inteligente das estatísticas — narra a partir dos DADOS (o
+// mesmo agregado usado no ecrã): total → por modalidade (TAC/ECO/Raio X) →
+// por origem (B.Urgência/Autorizados/Internamento) → principais exames.
+// Nunca lê percentagens nem a Média/Dia (valor derivado).
+function zeloNarrarEstatisticas(){
+  if (typeof window.zeloFalar !== 'function') return;
+  const d=_lastStatsNarracao;
+  if (!d || !d.grand) { window.zeloFalar('Ainda não há dados para ler neste período.'); return; }
+  const partes=[];
+  partes.push('Em ' + d.periodo + ', o serviço de imagiologia realizou um total de ' + d.grand + (d.grand===1?' exame':' exames') + '.');
+  const tipos=[];
+  if (d.tacT) tipos.push('TAC com ' + d.tacT);
+  if (d.ecoT) tipos.push('Ecografia com ' + d.ecoT);
+  if (d.rxT) tipos.push('Raio X com ' + d.rxT);
+  if (tipos.length) partes.push('Por modalidade: ' + tipos.join(', ') + '.');
+  const origens=[];
+  if (d.grandBu) origens.push('banco de urgência ' + d.grandBu);
+  if (d.grandAut) origens.push('autorizados ' + d.grandAut);
+  if (d.grandInt) origens.push('internamento ' + d.grandInt);
+  if (origens.length) partes.push('Por origem: ' + origens.join(', ') + '.');
+  if (d.topExames.length) {
+    partes.push('Principais exames: ' + d.topExames.map(r => r.label + ' com ' + r.t).join(', ') + '.');
+  }
+  window.zeloFalar(partes.join(' '));
 }
 
 function _groupByLabel(period,dates,allData){
