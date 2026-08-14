@@ -1130,7 +1130,7 @@
           // como um aviso, e mesmo assim lembra que os dados não são só
           // números, são decisões.
           var aberturaQuase = ABERTURAS_QUASE_EM_DIA[Math.floor(Math.random() * ABERTURAS_QUASE_EM_DIA.length)].replace('NOME', nome);
-          texto = aberturaQuase + ' Em ' + cfg.servicoLabel + ', falta só o registo de ontem — encare estes dados não como apenas números, mas como decisões.';
+          texto = aberturaQuase + ' Em ' + cfg.servicoLabel + ', falta só o registo de ontem — aproveite para preencher esse dia hoje. Encare estes dados não como apenas números, mas como decisões.';
         } else {
           var diasPorExtenso = _formatarDiasEmFalta(diasFalta);
           // Do dia 20 ao fim do mês, com dias por preencher, o aviso muda de
