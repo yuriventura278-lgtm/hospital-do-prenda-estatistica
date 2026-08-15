@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"></noscript>
 <link rel="stylesheet" href="zelo_tokens.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="chart.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script type="module">
@@ -292,11 +292,19 @@ async function lerHistoricoCompleto(path, minDate, maxDate){
 }
 
 const _charts = {};
+// Nunca deixa uma falha ao desenhar UM gráfico (biblioteca não carregada,
+// canvas inválido, etc.) interromper o resto do Dashboard — sem isto, uma
+// excepção aqui propagava-se para fora do Promise.all em carregarTudo() e
+// travava a página inteira a meio de "A carregar…", incluindo os KPIs e
+// secções que nada tinham a ver com o gráfico que falhou.
 function desenharGrafico(canvasId, config){
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  if (_charts[canvasId]) { _charts[canvasId].destroy(); }
-  _charts[canvasId] = new Chart(canvas.getContext('2d'), config);
+  try{
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    if (typeof Chart === 'undefined'){ console.warn('ZELO Dashboard: Chart.js não está disponível — gráfico', canvasId, 'não desenhado.'); return; }
+    if (_charts[canvasId]) { _charts[canvasId].destroy(); }
+    _charts[canvasId] = new Chart(canvas.getContext('2d'), config);
+  }catch(e){ console.warn('ZELO Dashboard: falha ao desenhar gráfico', canvasId, e); }
 }
 const PALETA = ['#3E5C87','#3F7A56','#B5502D','#6B4E9E','#3E7EA6','#A6467A','#8A9A4B','#9B3B3B','#C99A3B','#5D7FAD','#4F7A6B','#7A5C3E'];
 // Cores dos eixos/legendas adaptam-se ao tema activo (claro/escuro), lidas
@@ -735,6 +743,15 @@ window.narrarSecao = function(id){
 
 /* ── Carregar tudo para o período seleccionado ── */
 let _ultimoPeriodo = null;
+// Cada secção é isolada das restantes: se uma delas falhar por um motivo
+// imprevisto (um registo mal formado, etc.), as outras continuam a
+// carregar e o resumo do período é sempre actualizado no fim — antes,
+// uma única excepção nesta lista rejeitava o Promise.all inteiro e
+// deixava o botão preso em "A carregar…" para sempre, com o Dashboard
+// vazio, mesmo que a maioria dos dados tivesse sido lida com sucesso.
+function _protegido(promessa, nome){
+  return promessa.catch(function(e){ console.warn('ZELO Dashboard: falha na secção', nome, e); });
+}
 async function carregarTudo(){
   const periodo = calcularPeriodo();
   if (!periodo || !periodo.dates.length){ return; }
@@ -742,13 +759,13 @@ async function carregarTudo(){
   const btn = document.getElementById('btnCarregar');
   btn.disabled = true; btn.textContent = 'A carregar…';
   await Promise.all([
-    carregarProcedimentos(periodo),
-    carregarBloco(periodo),
-    carregarConsultaExterna(periodo),
-    carregarImagiologia(periodo),
-    carregarLaboratorio(periodo),
-    carregarHemoterapia(periodo),
-    carregarFarmacia(),
+    _protegido(carregarProcedimentos(periodo), 'Procedimentos'),
+    _protegido(carregarBloco(periodo), 'Bloco Operatório'),
+    _protegido(carregarConsultaExterna(periodo), 'Consulta Externa'),
+    _protegido(carregarImagiologia(periodo), 'Imagiologia'),
+    _protegido(carregarLaboratorio(periodo), 'Laboratório'),
+    _protegido(carregarHemoterapia(periodo), 'Hemoterapia'),
+    _protegido(carregarFarmacia(), 'Farmácia'),
   ]);
   document.getElementById('periodResumoLabel').textContent = 'A mostrar: ' + periodo.label;
   btn.disabled = false; btn.textContent = 'Carregar';
