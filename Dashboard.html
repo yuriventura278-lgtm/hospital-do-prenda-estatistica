@@ -87,6 +87,17 @@ main{padding:20px 22px 64px;max-width:1400px;margin:0 auto;}
 .btn-pdf:hover{background:var(--accent-soft);}
 .period-label{font-size:.68rem;color:var(--tx3);font-weight:500;width:100%;}
 
+/* ── Resumo geral — leitura rápida do período, antes de entrar em cada serviço ── */
+.resumo-geral{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:16px 20px;margin-bottom:20px;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);}
+.rg-titulo{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3);margin-bottom:12px;}
+.rg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;}
+.rg-item{border-top:2px solid var(--rg-cor,var(--accent));padding-top:8px;}
+.rg-val{font-size:1.5rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--tx);line-height:1.15;}
+.rg-lbl{font-size:.62rem;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-top:3px;}
+.rg-val.rg-alerta{color:#B5502D;}
+.rg-loading{color:var(--tx3);font-size:.78rem;}
+
 /* ── Secções por serviço ── */
 .svc-section{background:var(--sf);border:1px solid var(--br);border-left:3px solid var(--svc-cor,var(--accent));
   border-radius:14px;padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(15,23,42,.04);}
@@ -135,6 +146,11 @@ main{padding:20px 22px 64px;max-width:1400px;margin:0 auto;}
     <button class="btn-carregar" id="btnCarregar">Carregar</button>
     <button class="btn-carregar btn-pdf" id="btnExportarPDF">Exportar PDF</button>
     <div class="period-label" id="periodResumoLabel"></div>
+  </div>
+
+  <div class="resumo-geral">
+    <div class="rg-titulo">Resumo do Período</div>
+    <div class="rg-grid" id="resumoGeral"><div class="rg-loading">A carregar…</div></div>
   </div>
 
   <div id="secoes"></div>
@@ -763,10 +779,34 @@ function _protegido(promessa, nome, id){
     if (id) renderSecaoVazia(id, 'Não foi possível carregar os dados desta secção. Tente novamente.');
   });
 }
+// Uma linha só com o número mais importante de cada serviço — dá uma
+// leitura instantânea do período em vista, sem ter de percorrer as 7
+// secções abaixo. Usa exactamente os mesmos dados que cada secção já
+// calculou (_secaoDados), só reaproveita o essencial.
+const RESUMO_CONFIG = [
+  { id:'proc', cor:'#B5502D', lbl:'Procedimentos', valFn: function(d){ return d ? d.total : null; } },
+  { id:'bloco', cor:'#9B3B3B', lbl:'Cirurgias', valFn: function(d){ return d ? d.total : null; } },
+  { id:'ce', cor:'#3F7A56', lbl:'Consultas', valFn: function(d){ return d ? d.total : null; } },
+  { id:'imag', cor:'#3E7EA6', lbl:'Exames Imagiologia', valFn: function(d){ return d ? d.total : null; } },
+  { id:'lab', cor:'#6B4E9E', lbl:'Exames Laboratório', valFn: function(d){ return d ? d.total : null; } },
+  { id:'hemo', cor:'#A6467A', lbl:'Transfusões', valFn: function(d){ return d ? d.totalTransf : null; } },
+  { id:'farm', cor:'#6B7A3F', lbl:'Alertas de Stock', valFn: function(d){ return d ? (d.esgotados + d.baixo) : null; }, alerta: true },
+];
+function atualizarResumoGeral(){
+  const html = RESUMO_CONFIG.map(function(item){
+    const val = item.valFn(_secaoDados[item.id]);
+    const emAlerta = item.alerta && val > 0;
+    return '<div class="rg-item" style="--rg-cor:'+item.cor+';">'+
+      '<div class="rg-val'+(emAlerta?' rg-alerta':'')+'">'+(val===null||val===undefined?'—':val)+'</div>'+
+      '<div class="rg-lbl">'+item.lbl+'</div></div>';
+  }).join('');
+  document.getElementById('resumoGeral').innerHTML = html;
+}
 async function carregarTudo(){
   const periodo = calcularPeriodo();
   if (!periodo || !periodo.dates.length){ return; }
   document.getElementById('periodResumoLabel').textContent = 'A carregar ' + periodo.label + '…';
+  document.getElementById('resumoGeral').innerHTML = '<div class="rg-loading">A carregar…</div>';
   const btn = document.getElementById('btnCarregar');
   btn.disabled = true; btn.textContent = 'A carregar…';
   await Promise.all([
@@ -781,6 +821,7 @@ async function carregarTudo(){
   document.getElementById('periodResumoLabel').textContent = 'A mostrar: ' + periodo.label;
   btn.disabled = false; btn.textContent = 'Carregar';
   _ultimoPeriodo = periodo;
+  atualizarResumoGeral();
 }
 document.getElementById('btnCarregar').addEventListener('click', carregarTudo);
 esperarFirebase().then(function(){ carregarTudo(); });
