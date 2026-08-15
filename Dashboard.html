@@ -455,6 +455,10 @@ function _totalProcNoSub(sub){
   let n = 0;
   if (!sub) return n;
   Object.values(sub).forEach(function(especialidade){
+    // Um histórico com meses de uso pode ter entradas mal formadas (ex.:
+    // uma especialidade editada/removida que ficou a null em vez de
+    // apagada) — ignora-as em vez de rebentar e perder a secção inteira.
+    if (!especialidade || typeof especialidade !== 'object') return;
     Object.keys(especialidade).forEach(function(catId){
       const cat = especialidade[catId];
       if (!cat || !Array.isArray(cat.d)) return;
@@ -749,8 +753,15 @@ let _ultimoPeriodo = null;
 // uma única excepção nesta lista rejeitava o Promise.all inteiro e
 // deixava o botão preso em "A carregar…" para sempre, com o Dashboard
 // vazio, mesmo que a maioria dos dados tivesse sido lida com sucesso.
-function _protegido(promessa, nome){
-  return promessa.catch(function(e){ console.warn('ZELO Dashboard: falha na secção', nome, e); });
+function _protegido(promessa, nome, id){
+  return promessa.catch(function(e){
+    console.warn('ZELO Dashboard: falha na secção', nome, e);
+    // Sem isto, uma secção cuja leitura falhasse a meio ficava presa no
+    // "A carregar…" inicial para sempre (nem gráfico nem mensagem de
+    // "sem dados") — o resto da página recuperava normalmente, mas essa
+    // secção específica parecia simplesmente ter desaparecido.
+    if (id) renderSecaoVazia(id, 'Não foi possível carregar os dados desta secção. Tente novamente.');
+  });
 }
 async function carregarTudo(){
   const periodo = calcularPeriodo();
@@ -759,13 +770,13 @@ async function carregarTudo(){
   const btn = document.getElementById('btnCarregar');
   btn.disabled = true; btn.textContent = 'A carregar…';
   await Promise.all([
-    _protegido(carregarProcedimentos(periodo), 'Procedimentos'),
-    _protegido(carregarBloco(periodo), 'Bloco Operatório'),
-    _protegido(carregarConsultaExterna(periodo), 'Consulta Externa'),
-    _protegido(carregarImagiologia(periodo), 'Imagiologia'),
-    _protegido(carregarLaboratorio(periodo), 'Laboratório'),
-    _protegido(carregarHemoterapia(periodo), 'Hemoterapia'),
-    _protegido(carregarFarmacia(), 'Farmácia'),
+    _protegido(carregarProcedimentos(periodo), 'Procedimentos', 'proc'),
+    _protegido(carregarBloco(periodo), 'Bloco Operatório', 'bloco'),
+    _protegido(carregarConsultaExterna(periodo), 'Consulta Externa', 'ce'),
+    _protegido(carregarImagiologia(periodo), 'Imagiologia', 'imag'),
+    _protegido(carregarLaboratorio(periodo), 'Laboratório', 'lab'),
+    _protegido(carregarHemoterapia(periodo), 'Hemoterapia', 'hemo'),
+    _protegido(carregarFarmacia(), 'Farmácia', 'farm'),
   ]);
   document.getElementById('periodResumoLabel').textContent = 'A mostrar: ' + periodo.label;
   btn.disabled = false; btn.textContent = 'Carregar';
