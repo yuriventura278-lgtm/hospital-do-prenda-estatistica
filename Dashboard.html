@@ -461,11 +461,19 @@ function renderSecaoVazia(id, msg){
    registos_enf/{slug}/{data}.snapshot.sub = { [especialidadeId]: { [categoriaId]: {d:[...],n:[...]}, notesDia, notesNoite } }
    Cada uma das 12 páginas individuais grava no seu próprio slug — soma-se
    tudo o que aparece em "d" e "n" para obter o total de procedimentos. */
+// As chaves têm de ser exactamente o FB_SLUG usado por cada página
+// individual de procedimentos_enfermagem_*.html (é onde cada uma grava os
+// seus dados) — duas delas não seguem o padrão "nome do ficheiro":
+// procedimentos_enfermagem_cirurgia_geral.html usa FB_SLUG='cirurgia' e
+// procedimentos_enfermagem_uci_cuidados_intermedios.html usa
+// FB_SLUG='uci_intermedio'. Uma chave errada aqui não dá erro nenhum —
+// lê-se um caminho vazio em silêncio — só faz esse serviço nunca aparecer
+// no total nem no gráfico.
 const PROC_SLUGS = {
-  banco_urgencia:'Banco de Urgência', bloco_operatorio:'Bloco Operatório', cirurgia_geral:'Cirurgia Geral',
+  banco_urgencia:'Banco de Urgência', bloco_operatorio:'Bloco Operatório', cirurgia:'Cirurgia Geral',
   consulta_externa:'Consulta Externa', hospital_dia:'Hospital de Dia', maxilo_facial:'Maxilo Facial',
   medicina_homem:'Medicina Homem', medicina_mulher:'Medicina Mulher', nefrologia:'Nefrologia',
-  neurocirurgia:'Neurocirurgia', ortopedia:'Ortopedia', uci_cuidados_intermedios:'UCI / Cuidados Intermédios',
+  neurocirurgia:'Neurocirurgia', ortopedia:'Ortopedia', uci_intermedio:'UCI / Cuidados Intermédios',
 };
 function _totalProcNoSub(sub){
   let n = 0;
