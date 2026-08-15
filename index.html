@@ -196,6 +196,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .zelo-topbar{background:var(--nv);color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;box-shadow:0 2px 14px rgba(0,0,0,.2);flex-wrap:wrap;position:fixed;top:0;left:0;right:0;z-index:1600;}
 .zelo-topbar .tb-left{display:flex;align-items:center;gap:14px;min-width:0;}
 .zelo-menu-toggle{display:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:7px 9px;cursor:pointer;flex-shrink:0;transition:background .15s,border-color .15s;}
+#zeloSidebarBackdrop{display:none;}
 .zelo-menu-toggle:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);}
 .tb-logo{width:28px;height:28px;flex-shrink:0;border-radius:7px;box-shadow:0 0 0 1px rgba(255,255,255,.14);}
 .tb-title{font-weight:800;font-size:.9rem;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:14px;border-left:1px solid rgba(255,255,255,.14);color:#E7ECFA;}
@@ -238,19 +239,21 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 
 .zelo-body{flex:1;min-height:0;padding-top:var(--zelo-topbar-h);}
 .zelo-sidebar{position:fixed;top:var(--zelo-topbar-h);left:0;bottom:0;width:var(--zelo-sidebar-w);z-index:1500;background:#fff;border-right:1px solid var(--br);padding:22px 14px;overflow-y:auto;}
-.sb-section-label{font-size:.64rem;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.09em;padding:0 12px;margin-bottom:8px;}
-.sb-nav{display:flex;flex-direction:column;gap:18px;}
+.sb-section-label{font-size:.64rem;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.09em;padding:14px 12px 8px;margin:4px 0 0;border-top:1px solid var(--br);}
+.sb-nav{display:flex;flex-direction:column;gap:10px;}
 .sb-group{display:flex;flex-direction:column;gap:3px;}
-.sb-link{display:flex;align-items:center;gap:12px;padding:11px 12px;min-height:44px;border-radius:11px;color:var(--tx2);text-decoration:none;font-size:.84rem;font-weight:600;cursor:pointer;background:none;border:none;border-left:3px solid transparent;text-align:left;width:100%;font-family:var(--font-body);transition:background .14s,color .14s,border-color .14s;position:relative;}
-.sb-link .sb-ic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--sf);color:var(--tx3);transition:background .14s,color .14s;}
+.sb-link{display:flex;align-items:center;gap:12px;padding:10px 12px;min-height:44px;border-radius:11px;color:var(--tx2);text-decoration:none;font-size:.84rem;font-weight:600;cursor:pointer;background:none;border:none;text-align:left;width:100%;font-family:var(--font-body);transition:background .16s,color .14s,box-shadow .16s,transform .1s;position:relative;}
+.sb-link .sb-ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--sf);color:var(--tx3);border:1px solid var(--br);transition:background .16s,color .14s,border-color .16s,transform .16s;}
 .sb-link .sb-badge{margin-left:auto;min-width:20px;height:18px;border-radius:9px;background:#E2E8F0;color:#64748B;font-size:.62rem;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;padding:0 6px;}
 .sb-link .sb-badge.alert{background:var(--rd);color:#fff;}
 .sb-link svg{flex-shrink:0;transition:transform .14s;}
 .sb-link:hover{background:var(--sf);color:var(--bl);}
 .sb-link:hover svg{transform:translateX(1px);}
-.sb-link:hover .sb-ic{background:var(--blxt);color:var(--bl);}
-.sb-link.active{background:var(--blxt);color:var(--bl);border-left-color:var(--bl);font-weight:700;}
-.sb-link.active .sb-ic{background:var(--bl);color:#fff;}
+.sb-link:hover .sb-ic{background:var(--blxt);color:var(--bl);border-color:var(--blxt);}
+.sb-link:active{transform:scale(.98);}
+.sb-link.active{background:linear-gradient(135deg,var(--bl),var(--bl2));color:#fff;font-weight:700;box-shadow:0 6px 16px -6px rgba(62,92,135,.55);}
+.sb-link.active .sb-ic{background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.25);transform:scale(1.04);}
+.sb-link.active .sb-badge{background:rgba(255,255,255,.22);color:#fff;}
 .sb-link:focus-visible{outline:2.5px solid var(--cy);outline-offset:-2px;}
 
 /* Árvore de atalhos "Serviços" — categorias e serviços, expansível sem sair da página */
@@ -339,6 +342,8 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   .tb-search{display:none;}
   .zelo-sidebar{transform:translateX(-100%);transition:transform .2s ease;box-shadow:0 0 40px rgba(0,0,0,.25);}
   .zelo-sidebar.open{transform:translateX(0);}
+  #zeloSidebarBackdrop{display:block;position:fixed;inset:var(--zelo-topbar-h) 0 0 0;background:rgba(15,23,42,.4);z-index:1490;opacity:0;pointer-events:none;transition:opacity .2s ease;}
+  #zeloSidebarBackdrop.open{opacity:1;pointer-events:auto;}
   .zelo-main{margin-left:0;}
   .zelo-footer{margin-left:0;}
   .tb-title{display:none;}
@@ -1480,6 +1485,7 @@ document.addEventListener('DOMContentLoaded', function(){
   </header>
 
   <div class="zelo-body">
+    <div id="zeloSidebarBackdrop"></div>
     <aside class="zelo-sidebar" id="zeloSidebar">
       <nav class="sb-nav" id="zeloSidebarNav">
         <div class="sb-group">
@@ -1834,18 +1840,29 @@ function zeloAlternarArvoreSistemasLocais(){
 }
 document.getElementById('sbSistemasLabel').addEventListener('click', zeloAlternarArvoreSistemasLocais);
 document.getElementById('sbSistemasToggle').addEventListener('click', zeloAlternarArvoreSistemasLocais);
+// O fundo escurecido (backdrop) segue sempre o estado do menu — dá a
+// perceber, em ecrãs pequenos, que o resto da página fica inactivo
+// enquanto o menu está aberto, e serve também de área para fechar (tocar
+// fora do menu, na zona escurecida).
+function zeloSidebarDefinirAberto(aberto){
+  document.getElementById('zeloSidebar').classList.toggle('open', aberto);
+  document.getElementById('zeloSidebarBackdrop').classList.toggle('open', aberto);
+}
 document.getElementById('zeloMenuToggle').addEventListener('click', function(){
-  document.getElementById('zeloSidebar').classList.toggle('open');
+  zeloSidebarDefinirAberto(!document.getElementById('zeloSidebar').classList.contains('open'));
+});
+document.getElementById('zeloSidebarBackdrop').addEventListener('click', function(){
+  zeloSidebarDefinirAberto(false);
 });
 document.getElementById('sbAssistenteZelo').addEventListener('click', function(){
-  document.getElementById('zeloSidebar').classList.remove('open');
+  zeloSidebarDefinirAberto(false);
   if(typeof window.zeloAbrirAssistente === 'function') window.zeloAbrirAssistente();
 });
 document.addEventListener('click', function(e){
   var sidebar = document.getElementById('zeloSidebar');
   var toggle = document.getElementById('zeloMenuToggle');
   if(sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)){
-    sidebar.classList.remove('open');
+    zeloSidebarDefinirAberto(false);
   }
   var menu = document.getElementById('zeloUserMenu');
   var chipBtn = document.getElementById('zeloUserChipBtn');
