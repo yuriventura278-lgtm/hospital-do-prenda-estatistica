@@ -1,28 +1,29 @@
 // ZELO — breadcrumb + atalho anterior/seguinte entre serviços do mesmo grupo.
 (function(){
+  // Itens comentados: ocultos a pedido (sistema antigo do "banco"), descomentar para restaurar.
   const GRUPOS = [
     { label: 'Especialidades Cirúrgicas', itens: [
-      { nome: 'Cirurgia Geral', file: 'Cirurgia_Geral.html' },
-      { nome: 'Ortopedia', file: 'Ortopedia.html' },
-      { nome: 'Neurocirurgia', file: 'Neurocirurgia.html' },
-      { nome: 'Maxilo Facial', file: 'Cirurgia_Maxilo_Facial.html' },
+      // { nome: 'Cirurgia Geral', file: 'Cirurgia_Geral.html' },
+      // { nome: 'Ortopedia', file: 'Ortopedia.html' },
+      // { nome: 'Neurocirurgia', file: 'Neurocirurgia.html' },
+      // { nome: 'Maxilo Facial', file: 'Cirurgia_Maxilo_Facial.html' },
       { nome: 'Oftalmologia', file: 'Oftalmologia.html' },
       { nome: 'Otorrinolaringologia', file: 'Otorrinolaringologia.html' },
-      { nome: 'Bloco Operatório', file: 'Bloco_Operatorio.html' },
+      // { nome: 'Bloco Operatório', file: 'Bloco_Operatorio.html' },
     ]},
     { label: 'Internamento & Cuidados', itens: [
-      { nome: 'Medicina Interna', file: 'banco_medicina_interna_v2-2-1-2-1.html' },
-      { nome: 'Nefrologia', file: 'Banco_Nefrologia_v2-1.html' },
-      { nome: 'UCI / Cuidados Intermédios', file: 'banco_uci_v1-3-1-1.html' },
+      // { nome: 'Medicina Interna', file: 'banco_medicina_interna_v2-2-1-2-1.html' },
+      // { nome: 'Nefrologia', file: 'Banco_Nefrologia_v2-1.html' },
+      // { nome: 'UCI / Cuidados Intermédios', file: 'banco_uci_v1-3-1-1.html' },
       { nome: 'Fisioterapia', file: 'banco_fisioterapia_v1-1-1.html' },
     ]},
     { label: 'Diagnóstico & Laboratório', itens: [
-      { nome: 'Laboratório Clínico', file: 'Laboratório_Clínico.html' },
-      { nome: 'Imagiologia', file: 'Imagiologia.html' },
+      // { nome: 'Laboratório Clínico', file: 'Laboratório_Clínico.html' },
+      // { nome: 'Imagiologia', file: 'Imagiologia.html' },
     ]},
     { label: 'Urgência & Ambulatório', itens: [
-      { nome: 'Consulta Externa', file: 'Consulta_Externa-2.html' },
-      { nome: 'Psicologia Clínica', file: 'psicologia_clinica_hp-1-3-1.html' },
+      // { nome: 'Consulta Externa', file: 'Consulta_Externa-2.html' },
+      // { nome: 'Psicologia Clínica', file: 'psicologia_clinica_hp-1-3-1.html' },
     ]},
   ];
 
