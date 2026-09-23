@@ -404,15 +404,27 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <div id="zeloAuthGate" style="position:fixed;inset:0;z-index:999999;display:flex;">
 <style>
   #zeloAuthGate *{box-sizing:border-box;}
-  /* Painel esquerdo: a fotografia, isolada no seu próprio painel (nunca
-     por baixo do formulário) — assim, seja qual for o tamanho do ecrã, o
-     recorte da foto só corta dentro deste painel, nunca fica escondida
-     atrás do cartão de login. A foto em si não é alterada. */
-  #zeloAuthGate .zag-brand{flex:1 1 46%;position:relative;background-image:url('icons/login_bg.jpg');background-size:cover;background-position:center;min-width:280px;}
-  #zeloAuthGate .zag-brand::before{content:'';position:absolute;inset:0;background:linear-gradient(155deg, rgba(9,17,31,.14) 0%, rgba(9,17,31,.02) 45%, rgba(9,17,31,.22) 100%);pointer-events:none;}
-  #zeloAuthGate .zag-brand-top,#zeloAuthGate .zag-brand-main,#zeloAuthGate .zag-eyebrow,#zeloAuthGate .zag-desc{display:none;}
-  /* Painel direito: formulário, com o logótipo ZELO aqui (a pedido). */
-  #zeloAuthGate .zag-form-panel{flex:1 1 54%;padding:52px 56px;display:flex;flex-direction:column;justify-content:center;background:#fff;min-width:300px;overflow-y:auto;}
+  /* Fundo: fotografia a cobrir o ecrã inteiro. Importante: a largura é
+     travada a 100% ("background-size:100% auto", NUNCA "cover") — com
+     "cover" a escala depende de largura E altura da janela, e ao mudar a
+     altura a foto desliza horizontalmente por baixo do cartão, chegando a
+     esconder um rosto atrás dele nalgumas combinações de tamanho. Com a
+     largura travada, a posição horizontal de cada pessoa na foto é sempre
+     a mesma fracção da largura do ecrã — o cartão fica sempre na mesma
+     zona (sem rostos), seja qual for a altura da janela. A foto em si não
+     é alterada, só a forma como escala.
+  */
+  #zeloAuthGate{
+    background-color:#16222F;
+    background-image:url('icons/login_bg.jpg');
+    background-size:100% auto;background-position:center;background-repeat:no-repeat;
+    align-items:center;
+  }
+  #zeloAuthGate .zag-brand{display:none;}
+  /* Cartão do formulário: flutua sobre a fotografia, à esquerda, numa
+     zona sem rostos — com leve desfoque por trás para garantir
+     legibilidade sobre a foto. O logótipo ZELO fica aqui dentro (a pedido). */
+  #zeloAuthGate .zag-form-panel{position:relative;flex:none;width:100%;max-width:380px;margin-left:min(8vw,100px);padding:40px 38px;border-radius:20px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);border:1px solid rgba(255,255,255,.6);box-shadow:0 30px 70px -24px rgba(9,17,31,.55);min-width:300px;max-height:calc(100vh - 56px);overflow-y:auto;}
   #zeloAuthGate .zag-form-inner{max-width:360px;width:100%;margin:0 auto;}
   #zeloAuthGate .zag-brand-row{display:flex;align-items:center;gap:11px;margin-bottom:30px;max-width:360px;width:100%;margin-left:auto;margin-right:auto;}
   #zeloAuthGate .zag-brand-row img{width:44px;height:44px;border-radius:12px;object-fit:contain;box-shadow:0 6px 16px -6px rgba(22,34,47,.35);flex-shrink:0;}
@@ -487,13 +499,12 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   #zeloAuthGate .zag-mobile-brand img{width:26px;height:26px;border-radius:8px;background:#fff;padding:2px;}
   #zeloAuthGate .zag-mobile-brand span{font-size:.82rem;font-weight:700;color:#E7ECF7;}
   @media(max-width:760px){
-    /* Ecrã estreito: os dois painéis lado a lado não cabem bem — volta à
-       barra azul-marinho compacta com o logótipo, como já acontecia antes,
-       com o formulário a ocupar a largura toda por baixo. */
-    #zeloAuthGate{flex-direction:column;overflow-y:auto;}
-    #zeloAuthGate .zag-brand{display:none;}
+    /* Ecrã estreito: sem a fotografia de fundo (não cabe bem numa faixa
+       estreita) — volta à barra azul-marinho compacta com o logótipo, como
+       já acontecia antes, com o formulário a ocupar a largura toda. */
+    #zeloAuthGate{flex-direction:column;overflow-y:auto;align-items:stretch;background-image:none;background-color:#F5F6F8;}
     #zeloAuthGate .zag-mobile-brand{display:flex;}
-    #zeloAuthGate .zag-form-panel{padding:32px 24px;}
+    #zeloAuthGate .zag-form-panel{position:static;flex:none;width:100%;max-width:none;margin-left:0;padding:32px 24px;border-radius:0;background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;box-shadow:none;max-height:none;}
     #zeloAuthGate .zag-brand-row{display:none;} /* já aparece na barra compacta acima */
   }
 </style>
