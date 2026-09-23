@@ -1984,38 +1984,34 @@ async function _fbEscutarDia(date){
     const savedAt = remoto && remoto.savedAt;
     if (!savedAt || !remoto.snapshot){ primeira = false; return; }
     if (savedAt === _fbUltimoEnvioSavedAt[date]){ primeira = false; return; }
-    if (primeira){
-      primeira = false;
-      let localSavedAt = null;
-      try{ localSavedAt = localStorage.getItem(_FB_IMG_SAVEDAT_PREFIX + date); }catch(e){}
-      if (localSavedAt && localSavedAt >= savedAt) return;
-      if (date !== (currentData && currentData.date)) return;
-      // Ao abrir qualquer dia (hoje ou um dia passado), mescla logo os dados
-      // vindos doutro dispositivo com os que já estavam gravados localmente
-      // — campo a campo, nunca o dia inteiro (ver _mesclarDadosImagiologia).
-      // Só gravações SEGUINTES enquanto o dia continua aberto (mais abaixo)
-      // é que mostram o aviso, para nunca substituir silenciosamente algo
-      // que o utilizador possa estar a escrever nesse momento.
-      try{
-        let localRaw = null;
-        try{ const rawStr = localStorage.getItem(sk(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
-        const mesclado = _mesclarDadosImagiologia(localRaw, remoto.snapshot);
-        localStorage.setItem(sk(date), JSON.stringify(mesclado));
-        try{ localStorage.setItem(_FB_IMG_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
-        if (date === (currentData && currentData.date)){ _aplicarDadosImagiologiaNoEcra(mesclado); }
-        // Se a mesclagem recuperou campos que o Firebase não tinha (o outro
-        // dispositivo guardou com menos exames preenchidos), reenvia a
-        // versão mesclada para que essa recuperação fique disponível a todos.
-        if (localRaw && typeof zeloQueueWrite === 'function' && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot)) {
-          const curaSavedAt = new Date().toISOString();
-          _fbUltimoEnvioSavedAt[date] = curaSavedAt;
-          zeloQueueWrite('registos_sistemas_locais/imagiologia/' + date, {savedAt: curaSavedAt, snapshot: mesclado});
-          try{ localStorage.setItem(_FB_IMG_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
-        }
-      }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes da Imagiologia.', e); }
-      return;
-    }
-    _fbMostrarAvisoNovosDados(remoto, date);
+    primeira = false;
+    let localSavedAt = null;
+    try{ localSavedAt = localStorage.getItem(_FB_IMG_SAVEDAT_PREFIX + date); }catch(e){}
+    if (localSavedAt && localSavedAt >= savedAt) return;
+    if (date !== (currentData && currentData.date)) return;
+    // Mescla sempre os dados vindos doutro dispositivo com os que já
+    // estavam gravados localmente — campo a campo, nunca o dia inteiro
+    // (ver _mesclarDadosImagiologia) — e aplica-os de imediato, sem aviso,
+    // seja esta a primeira leitura do dia ou uma gravação seguinte enquanto
+    // o dia continua aberto (a pedido: sincronização automática entre
+    // utilizadores em simultâneo, sem notificações a interromper).
+    try{
+      let localRaw = null;
+      try{ const rawStr = localStorage.getItem(sk(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+      const mesclado = _mesclarDadosImagiologia(localRaw, remoto.snapshot);
+      localStorage.setItem(sk(date), JSON.stringify(mesclado));
+      try{ localStorage.setItem(_FB_IMG_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+      if (date === (currentData && currentData.date)){ _aplicarDadosImagiologiaNoEcra(mesclado); }
+      // Se a mesclagem recuperou campos que o Firebase não tinha (o outro
+      // dispositivo guardou com menos exames preenchidos), reenvia a
+      // versão mesclada para que essa recuperação fique disponível a todos.
+      if (localRaw && typeof zeloQueueWrite === 'function' && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot)) {
+        const curaSavedAt = new Date().toISOString();
+        _fbUltimoEnvioSavedAt[date] = curaSavedAt;
+        zeloQueueWrite('registos_sistemas_locais/imagiologia/' + date, {savedAt: curaSavedAt, snapshot: mesclado});
+        try{ localStorage.setItem(_FB_IMG_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
+      }
+    }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes da Imagiologia.', e); }
   });
 }
 
