@@ -169,7 +169,7 @@
       lista.push({ label: p.label, file: p.file, acessivel: temAcessoModulo(role, permissoes, p.modulo, p.item), chave: 'procedimentos' });
     });
     (svc.movimento || []).forEach(function (m) {
-      lista.push({ label: m.label, file: 'movimento_mensal.html?servico=' + m.slug, acessivel: temAcessoModulo(role, permissoes, m.modulo), chave: 'movimento' });
+      lista.push({ label: m.label, file: m.file, acessivel: temAcessoModulo(role, permissoes, m.modulo, m.item), chave: 'movimento' });
     });
     if (svc.temEstatisticas && svc.estatisticasFile) {
       var rel0 = (svc.relatorios || [])[0];

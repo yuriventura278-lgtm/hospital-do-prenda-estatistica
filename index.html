@@ -1645,7 +1645,7 @@ function zeloServicoTemAcessoVisivel(svc, role, permissoes){
   if(typeof hasAccess !== 'function') return true;
   function algum(lista){ return (lista||[]).some(function(a){ return hasAccess(role, permissoes, a.modulo, a.item); }); }
   if(algum(svc.relatorios) || algum(svc.procedimentos)) return true;
-  return (svc.movimento||[]).some(function(m){ return hasAccess(role, permissoes, m.modulo); });
+  return (svc.movimento||[]).some(function(m){ return hasAccess(role, permissoes, m.modulo, m.item); });
 }
 function zeloConstruirArvoreServicos(){
   var tree = document.getElementById('sbServicosTree');
@@ -1669,7 +1669,7 @@ function zeloConstruirArvoreServicos(){
       acoes.push({ label: p.label, href: p.file, modulo: p.modulo, item: p.item });
     });
     (svc.movimento||[]).forEach(function(m){
-      acoes.push({ label: m.label, href: 'movimento_mensal.html?servico=' + m.slug, modulo: m.modulo, item: null });
+      acoes.push({ label: m.label, href: m.file, modulo: m.modulo, item: m.item });
     });
     return acoes;
   }
@@ -1895,7 +1895,7 @@ function zeloConstruirIndicePesquisa(){
   (window.SERVICOS_MENU || []).forEach(function(svc){
     (svc.relatorios||[]).forEach(function(r){ itens.push({ label: r.label, parent: svc.nome, href: r.file, modulo: r.modulo, item: r.item }); });
     (svc.procedimentos||[]).forEach(function(p){ itens.push({ label: p.label, parent: svc.nome, href: p.file, modulo: p.modulo, item: p.item }); });
-    (svc.movimento||[]).forEach(function(m){ itens.push({ label: 'Movimento Hospitalar', parent: svc.nome, href: 'movimento_mensal.html?servico=' + m.slug, modulo: m.modulo, item: null }); });
+    (svc.movimento||[]).forEach(function(m){ itens.push({ label: m.label, parent: svc.nome, href: m.file, modulo: m.modulo, item: m.item }); });
   });
   (window.SISTEMAS_LOCAIS_MENU || []).forEach(function(s){
     itens.push({ label: s.nome, parent: 'Sistemas Locais', href: s.file, modulo: s.modulo, item: s.item });

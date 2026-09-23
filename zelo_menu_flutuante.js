@@ -133,14 +133,14 @@
       var visiveisCat = itens.filter(function(svc){
         function algum(lista){ return (lista||[]).some(function(a){ return temAcesso(a.modulo, a.item); }); }
         if(algum(svc.relatorios) || algum(svc.procedimentos)) return true;
-        return (svc.movimento||[]).some(function(m){ return temAcesso(m.modulo); });
+        return (svc.movimento||[]).some(function(m){ return temAcesso(m.modulo, m.item); });
       });
       if(!visiveisCat.length) return;
       function acoesDoServico(svc){
         var acoes = [];
         (svc.relatorios||[]).forEach(function(r){ if(temAcesso(r.modulo, r.item)) acoes.push({ label: r.label, href: r.file }); });
         (svc.procedimentos||[]).forEach(function(p){ if(temAcesso(p.modulo, p.item)) acoes.push({ label: p.label, href: p.file }); });
-        (svc.movimento||[]).forEach(function(m){ if(temAcesso(m.modulo)) acoes.push({ label: m.label, href: 'movimento_mensal.html?servico=' + m.slug }); });
+        (svc.movimento||[]).forEach(function(m){ if(temAcesso(m.modulo, m.item)) acoes.push({ label: m.label, href: m.file }); });
         return acoes;
       }
       // Quando a categoria só tem um serviço, mostrar as suas ligações

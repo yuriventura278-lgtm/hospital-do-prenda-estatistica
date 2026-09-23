@@ -676,7 +676,7 @@ function buildActions(svc){
     if(podeVerAcao(p.modulo, p.item)) acts.push({tipo:'procedimentos', label:p.label, file:p.file});
   });
   (svc.movimento||[]).forEach(m=>{
-    if(podeVerAcao(m.modulo)) acts.push({tipo:'movimento', label:m.label, file:'movimento_mensal.html?servico='+m.slug});
+    if(podeVerAcao(m.modulo, m.item)) acts.push({tipo:'movimento', label:m.label, file:m.file});
   });
   if(svc.temEstatisticas && svc.estatisticasFile){
     const rel = (svc.relatorios||[]).find(r => r.file === svc.estatisticasFile);
