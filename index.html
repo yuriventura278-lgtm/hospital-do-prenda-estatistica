@@ -309,6 +309,18 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .zelo-panel h2{font-size:.86rem;font-weight:800;color:var(--tx);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .zelo-panel h2::before{content:'';width:4px;height:14px;border-radius:3px;background:var(--bl);display:inline-block;}
 .zelo-dash-iframe{width:100%;height:calc(100vh - 88px);min-height:520px;border:none;display:block;}
+.zelo-quick-access{margin:0 0 20px;width:100%;padding:0;background:transparent;}
+.zqa-head{margin-bottom:14px;}
+.zqa-head h2{font-family:var(--font-display);font-size:1.3rem;font-weight:600;color:var(--tx);margin:0 0 4px;}
+.zqa-head p{font-size:.84rem;color:var(--tx3);margin:0;}
+.zqa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;}
+.zqa-card{background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:16px 18px;transition:box-shadow .15s;}
+.zqa-card:hover{box-shadow:var(--s1);}
+.zqa-card-title{font-size:.84rem;font-weight:800;color:var(--tx);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.zqa-card-title::before{content:'';width:4px;height:14px;border-radius:3px;background:var(--bl);display:inline-block;flex-shrink:0;}
+.zqa-links{display:flex;flex-direction:column;gap:2px;}
+.zqa-links a{display:block;padding:7px 8px;border-radius:8px;font-size:.8rem;color:var(--tx2);text-decoration:none;}
+.zqa-links a:hover{background:var(--sf);color:var(--bl);}
 .zelo-row-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
 .zelo-empty{color:var(--tx3);font-size:.82rem;padding:16px 0;text-align:center;}
 .registo-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--br);font-size:.82rem;}
@@ -641,6 +653,7 @@ import {
   touchLastAccess, escapeHtml, hasModuleAccess
 } from './zelo_auth.js';
 window.__zeloHasModuleAccess = hasModuleAccess;
+window.__zeloEscapeHtml = escapeHtml;
 
 (function(){
   var gate=document.getElementById('zeloAuthGate');
@@ -958,14 +971,23 @@ window.__zeloHasModuleAccess = hasModuleAccess;
     // sessão (zelo_pagegate.js) não recebia confirmação da página-mãe a tempo (porque
     // ainda não tínhamos entrado) e ao fim de 4s forçava um reload de toda a página —
     // exatamente o "reiniciar sozinho" que interrompia a escrita das credenciais.
-    var zeloDashIfr = document.getElementById('zeloDashIframe');
-    if(zeloDashIfr && !zeloDashIfr.src) zeloDashIfr.src = 'Dashboard.html';
-    if(typeof ajustarAlturaDashboard === 'function'){
-      ajustarAlturaDashboard();
-      setTimeout(ajustarAlturaDashboard, 300);
-      window.addEventListener('load', ajustarAlturaDashboard);
+    // A maioria do pessoal clínico não tem acesso a "Estatística" (ver
+    // ROLE_DEFAULT_PERMISSOES) — para esses papéis, o Dashboard.html do
+    // iframe mostraria de imediato um ecrã de "Sem permissão de acesso" a
+    // ocupar o centro da página. Em vez disso, mostra-se ali um acesso
+    // rápido aos serviços que o papel PODE usar (zeloMostrarAcessoRapido).
+    if(hasModuleAccess(perfil.role || 'funcionario', perfil.permissoes || {}, 'estatistica', 'dashboard')){
+      var zeloDashIfr = document.getElementById('zeloDashIframe');
+      if(zeloDashIfr && !zeloDashIfr.src) zeloDashIfr.src = 'Dashboard.html';
+      if(typeof ajustarAlturaDashboard === 'function'){
+        ajustarAlturaDashboard();
+        setTimeout(ajustarAlturaDashboard, 300);
+        window.addEventListener('load', ajustarAlturaDashboard);
+      }
+      if(typeof window.zeloEnviarAuthParaIframe === 'function') window.zeloEnviarAuthParaIframe();
+    } else {
+      zeloMostrarAcessoRapido(perfil.role || 'funcionario', perfil.permissoes || {});
     }
-    if(typeof window.zeloEnviarAuthParaIframe === 'function') window.zeloEnviarAuthParaIframe();
     if(typeof window.zeloApplyRole === 'function') window.zeloApplyRole(perfil.role || 'funcionario');
     if(typeof window.zeloApplyPermissoes === 'function') window.zeloApplyPermissoes(perfil.role || 'funcionario', perfil.permissoes || {});
     if(typeof window.zeloDashboardInit === 'function') window.zeloDashboardInit(perfil.role || 'funcionario');
@@ -1602,6 +1624,18 @@ document.addEventListener('DOMContentLoaded', function(){
       <div class="zelo-panel-dash">
         <iframe class="zelo-dash-iframe" title="Dashboard detalhado" id="zeloDashIframe" loading="lazy" allow="clipboard-write"></iframe>
       </div>
+      <!-- Para papéis sem acesso a Estatística (a maioria do pessoal clínico):
+           em vez do iframe acima (que mostraria "Sem permissão de acesso" a
+           ocupar o centro do ecrã logo ao entrar), mostra-se aqui um acesso
+           rápido aos serviços/páginas a que o papel TEM acesso — ver
+           zeloMostrarAcessoRapido() mais abaixo. -->
+      <div class="zelo-panel-dash zelo-quick-access" id="zeloQuickAccess" style="display:none;">
+        <div class="zqa-head">
+          <h2>Acesso Rápido</h2>
+          <p>Os serviços e páginas a que tens acesso.</p>
+        </div>
+        <div class="zqa-grid" id="zeloQuickAccessGrid"></div>
+      </div>
 
       <div class="zelo-main-inner">
         <div class="zelo-row-2">
@@ -1795,6 +1829,67 @@ function zeloConstruirArvoreServicos(){
   }
   ligarAlternador('[data-cat-toggle]', 'data-cat-list', 'catToggle');
   ligarAlternador('[data-svc-toggle]', 'data-svc-actions', 'svcToggle');
+}
+
+// Substitui o iframe do Dashboard (que mostraria "Sem permissão de acesso" a
+// ocupar todo o centro do ecrã) por um acesso rápido aos serviços/páginas que
+// o papel efetivamente pode usar — para papéis sem "estatistica" (enfermeiro,
+// médico, secretário, técnico de farmácia, psicólogo, direção, supervisor:
+// ver ROLE_DEFAULT_PERMISSOES em zelo_auth.js), que é a maioria do pessoal
+// clínico, entrar no sistema já não mostra um ecrã de acesso negado como
+// primeira coisa. Usa os mesmos dados (SERVICOS_MENU/CATEGORIAS_SERVICOS)
+// da árvore do menu lateral, por isso mostra sempre exactamente o que esse
+// papel tem disponível, nunca mais nem menos.
+function zeloMostrarAcessoRapido(role, permissoes){
+  var dashPanel = document.querySelector('.zelo-panel-dash:not(.zelo-quick-access)');
+  var qaPanel = document.getElementById('zeloQuickAccess');
+  var qaGrid = document.getElementById('zeloQuickAccessGrid');
+  if(!qaPanel || !qaGrid) return;
+  if(dashPanel) dashPanel.style.display = 'none';
+  qaPanel.style.display = '';
+  // Este script (clássico) corre fora do <script type="module"> onde
+  // escapeHtml/hasModuleAccess são importados — usam-se aqui as versões
+  // expostas em window (ver window.__zeloHasModuleAccess/__zeloEscapeHtml,
+  // mesmo padrão já usado por zeloAcaoVisivel acima).
+  var escapeHtml = window.__zeloEscapeHtml || function(s){ return String(s == null ? '' : s); };
+  var hasModuleAccess = window.__zeloHasModuleAccess || function(){ return true; };
+
+  var menu = window.SERVICOS_MENU || [];
+  var cats = window.CATEGORIAS_SERVICOS || [];
+  var porCategoria = {};
+  menu.forEach(function(svc){
+    var catId = cats.some(function(c){ return c.id === svc.categoria; }) ? svc.categoria : 'outros';
+    (porCategoria[catId] = porCategoria[catId] || []).push(svc);
+  });
+  function acoesDoServico(svc){
+    var acoes = [];
+    (svc.relatorios||[]).forEach(function(r){ if(zeloAcaoVisivel(r, role, permissoes)) acoes.push(r); });
+    (svc.procedimentos||[]).forEach(function(p){ if(zeloAcaoVisivel(p, role, permissoes)) acoes.push(p); });
+    (svc.movimento||[]).forEach(function(m){ if(zeloAcaoVisivel(m, role, permissoes)) acoes.push(m); });
+    return acoes;
+  }
+  var cardsHtml = '';
+  cats.forEach(function(cat){
+    var itens = porCategoria[cat.id];
+    if(!itens || !itens.length) return;
+    var linksHtml = '';
+    itens.forEach(function(svc){
+      acoesDoServico(svc).forEach(function(a){
+        linksHtml += '<a href="' + a.href + '">' + escapeHtml(svc.nome) + ' — ' + escapeHtml(a.label) + '</a>';
+      });
+    });
+    if(!linksHtml) return; // nenhuma acção deste serviço visível para este papel
+    cardsHtml += '<div class="zqa-card"><div class="zqa-card-title">' + escapeHtml(cat.label) + '</div>' +
+      '<div class="zqa-links">' + linksHtml + '</div></div>';
+  });
+  // Estatística/Informações do ZELO não fazem parte de SERVICOS_MENU (são
+  // atalhos próprios do menu lateral) — incluídos aqui também, quando
+  // acessíveis, para nenhum papel ficar com um acesso rápido vazio.
+  var extras = '';
+  if(hasModuleAccess(role, permissoes, 'estatistica')) extras += '<a href="Estatistica.html">Estatística</a>';
+  if(hasModuleAccess(role, permissoes, 'informacoes_zelo')) extras += '<a href="informacoes_zelo.html">Informações do ZELO</a>';
+  if(extras) cardsHtml += '<div class="zqa-card"><div class="zqa-card-title">Mais</div><div class="zqa-links">' + extras + '</div></div>';
+  qaGrid.innerHTML = cardsHtml || '<div class="zelo-empty">Ainda não tens nenhum serviço atribuído. Contacta um administrador do ZELO.</div>';
 }
 function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){
   var tree = document.getElementById('sbServicosTree');
