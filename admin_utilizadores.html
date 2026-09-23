@@ -270,7 +270,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <script type="module">
 import {
   auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
-  fetchUserProfile, onAuthStateChanged, signOut, logAuditEvent, escapeHtml, ROLE_DEFAULT_PERMISSOES
+  fetchUserProfile, onAuthStateChanged, signOut, sendPasswordResetEmail, logAuditEvent, escapeHtml, ROLE_DEFAULT_PERMISSOES
 } from './zelo_auth.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signOut as secondarySignOut, deleteUser } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
@@ -680,6 +680,8 @@ const AUDIT_LABELS = {
   alterar_permissoes: 'Permissões alteradas',
   alterar_cargo: 'Cargo alterado',
   alterar_servico: 'Serviço alterado',
+  alterar_nome: 'Nome alterado',
+  repor_password: 'Email de reposição de password enviado',
 };
 
 const AUDIT_ICONS = {
@@ -694,6 +696,8 @@ const AUDIT_ICONS = {
   alterar_permissoes:       { color:'var(--pu)', svg:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>' },
   alterar_cargo:            { color:'var(--bl)', svg:'<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>' },
   alterar_servico:          { color:'var(--bl)', svg:'<path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/>' },
+  alterar_nome:             { color:'var(--bl)', svg:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
+  repor_password:           { color:'var(--am)', svg:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>' },
 };
 const AUDIT_ICON_DEFAULT = { color:'var(--tx3)', svg:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>' };
 
@@ -829,7 +833,7 @@ function renderUsersTable(entries){
   usersBody.innerHTML = entries.map(([uid, u]) => `
     <tr class="${u.ativo === false ? 'inativo' : ''}">
       <td>${avatarHtml(u)}</td>
-      <td>${escapeHtml(u.nome) || '—'}</td>
+      <td><input class="nome-input" data-uid="${uid}" value="${escapeHtml(u.nome) || ''}" placeholder="—" style="width:100%;min-width:120px;padding:5px 7px;border:1.5px solid var(--br);border-radius:7px;font-family:'Inter',sans-serif;font-size:.78rem;color:inherit;background:transparent;"/></td>
       <td>${escapeHtml(u.email) || '—'}</td>
       <td><select class="cargo-select" data-uid="${uid}" style="padding:5px 7px;border:1.5px solid var(--br);border-radius:7px;font-family:'Inter',sans-serif;font-size:.78rem;">${cargoOptionsHtml(u.cargo)}</select></td>
       <td><select class="servico-select" data-uid="${uid}" style="padding:5px 7px;border:1.5px solid var(--br);border-radius:7px;font-family:'Inter',sans-serif;font-size:.78rem;">${servicoOptionsHtml(u.servico)}</select></td>
@@ -840,6 +844,7 @@ function renderUsersTable(entries){
       <td>
         <div class="row-actions">
           <button class="btn-sm" data-action="permissoes" data-uid="${uid}">Permissões</button>
+          <button class="btn-sm" data-action="reset-password" data-uid="${uid}" data-email="${escapeHtml(u.email)}">Repor password</button>
           <button class="btn-sm" data-action="toggle-ativo" data-uid="${uid}">${u.ativo === false ? 'Reativar' : 'Desativar'}</button>
           <button class="btn-sm danger" data-action="eliminar" data-uid="${uid}" data-email="${escapeHtml(u.email)}">Eliminar</button>
         </div>
@@ -884,6 +889,28 @@ function countActiveAdmins(excludeUid){
 }
 
 usersBody.addEventListener('change', async function(e){
+  const nomeInput = e.target.closest('input.nome-input');
+  if(nomeInput){
+    const uid = nomeInput.dataset.uid;
+    const novoNome = nomeInput.value.trim();
+    if(!novoNome){
+      alert('O nome não pode ficar vazio.');
+      const snap = await get(ref(db, 'users/' + uid + '/nome'));
+      nomeInput.value = snap.exists() ? snap.val() : '';
+      return;
+    }
+    try{
+      // set() directo no campo "nome" — ver nota igual mais abaixo (alterar
+      // papel/cargo/serviço): as regras da Realtime Database só dão
+      // permissão de escrita campo a campo, não ao nó do utilizador inteiro.
+      await set(ref(db, 'users/' + uid + '/nome'), novoNome);
+      await logAuditEvent(currentUid, currentEmail, 'alterar_nome', { alvoUid: uid, novoNome });
+    }catch(err){
+      console.error('ZELO: falha ao alterar nome', err);
+      alert('Não foi possível guardar o nome (' + (err && err.message || 'erro desconhecido') + ').');
+    }
+    return;
+  }
   const cargoSel = e.target.closest('select.cargo-select');
   if(cargoSel){
     const uid = cargoSel.dataset.uid;
@@ -944,6 +971,29 @@ usersBody.addEventListener('click', async function(e){
 
   if(action === 'permissoes'){
     openPermModal(uid, u.permissoes, u.nome || u.email, u.role);
+    return;
+  }
+  if(action === 'reset-password'){
+    // O SDK do Firebase (do lado do cliente) só deixa mudar a password da
+    // PRÓPRIA conta autenticada — sem um servidor (Cloud Functions com o
+    // Admin SDK, que este projeto não tem), não há forma de o administrador
+    // escrever aqui uma password nova para outra pessoa. A alternativa
+    // segura e já suportada pelo Firebase é esta: enviar um email de
+    // reposição para o próprio utilizador escolher a password nova.
+    const email = btn.dataset.email || u.email;
+    if(!email){ alert('Esta conta não tem um email associado.'); return; }
+    if(!confirm('Enviar um email de reposição de password para ' + email + '?')) return;
+    btn.disabled = true;
+    try{
+      await sendPasswordResetEmail(auth, email);
+      await logAuditEvent(currentUid, currentEmail, 'repor_password', { alvoUid: uid, alvoEmail: email });
+      alert('Email de reposição de password enviado para ' + email + '.');
+    }catch(err){
+      console.error('ZELO: falha ao enviar email de reposição de password', err);
+      alert('Não foi possível enviar o email de reposição (' + (err && err.message || 'erro desconhecido') + ').');
+    }finally{
+      btn.disabled = false;
+    }
     return;
   }
   if(action === 'toggle-ativo'){
