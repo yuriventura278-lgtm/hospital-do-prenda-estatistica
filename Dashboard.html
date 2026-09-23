@@ -2,8 +2,10 @@
 <html lang="pt-AO" data-theme="light">
 <head>
 <script>document.documentElement.style.visibility='hidden';</script>
-<script>window.ZELO_MODULE='estatistica';</script>
-<script>window.ZELO_ITEM='dashboard';</script>
+<!-- Sem ZELO_MODULE/ZELO_ITEM (a pedido): o Dashboard deixou de ser
+     bloqueado no todo por permissão — agora está sempre acessível, e cada
+     uma das 7 secções abaixo (ver SECOES/carregarTudo) só aparece por si,
+     a quem tiver permissão para o serviço correspondente. -->
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
 <meta charset="UTF-8"/>
@@ -20,6 +22,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import { getDatabase, ref, get, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
+  import { hasModuleAccess } from './zelo_auth.js';
+  window.__zeloHasModuleAccess = hasModuleAccess;
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
@@ -391,24 +395,79 @@ const _secaoDados = {};
 function somaObj(o){ if(!o) return 0; return Object.values(o).reduce(function(a,v){ return a + (typeof v==='number'?v:0); }, 0); }
 function ordenarDesc(rows){ return rows.filter(function(r){ return r.v>0; }).sort(function(a,b){ return b.v-a.v; }); }
 
-const SECOES = [
-  { id:'proc',  eyebrow:'Enfermagem',       cor:'#B5502D', titulo:'Procedimentos de Enfermagem — por Serviço' },
-  { id:'bloco', eyebrow:'Cirurgia',         cor:'#9B3B3B', titulo:'Bloco Operatório' },
-  { id:'ce',    eyebrow:'Ambulatório',      cor:'#3F7A56', titulo:'Consulta Externa' },
-  { id:'imag',  eyebrow:'Diagnóstico',      cor:'#3E7EA6', titulo:'Imagiologia' },
-  { id:'lab',   eyebrow:'Análises Clínicas',cor:'#6B4E9E', titulo:'Laboratório' },
-  { id:'hemo',  eyebrow:'Hemoterapia',      cor:'#A6467A', titulo:'Hemoterapia' },
-  { id:'farm',  eyebrow:'Farmácia',         cor:'#6B7A3F', titulo:'Farmácia' },
+// Cada secção corresponde a um serviço/página com a sua própria permissão —
+// ver zelo_auth.js (ROLE_DEFAULT_PERMISSOES/hasModuleAccess). "modulo"/"item"
+// são exactamente os que cada página correspondente declara em
+// ZELO_MODULE/ZELO_ITEM (zelo_pagegate.js), para o Dashboard mostrar sempre
+// exactamente o que essa página também mostraria. As de "Sistemas Locais"
+// (bloco/ce/imag/lab/hemo/farm) só aparecem quando o administrador as
+// atribuiu explicitamente a este utilizador — não têm omissão por papel.
+const SECOES_TODAS = [
+  { id:'proc',  eyebrow:'Enfermagem',       cor:'#B5502D', titulo:'Procedimentos de Enfermagem — por Serviço', modulo:'procedimentos_enfermagem' },
+  { id:'bloco', eyebrow:'Cirurgia',         cor:'#9B3B3B', titulo:'Bloco Operatório', modulo:'sistemas_independentes', item:'bloco_operatorio_registo_diario' },
+  { id:'ce',    eyebrow:'Ambulatório',      cor:'#3F7A56', titulo:'Consulta Externa', modulo:'sistemas_independentes', item:'consulta_externa_geral' },
+  { id:'imag',  eyebrow:'Diagnóstico',      cor:'#3E7EA6', titulo:'Imagiologia', modulo:'sistemas_independentes', item:'imagiologia_radiologia_geral' },
+  { id:'lab',   eyebrow:'Análises Clínicas',cor:'#6B4E9E', titulo:'Laboratório', modulo:'sistemas_independentes', item:'laboratorio_geral' },
+  { id:'hemo',  eyebrow:'Hemoterapia',      cor:'#A6467A', titulo:'Hemoterapia', modulo:'sistemas_independentes', item:'hemoterapia' },
+  { id:'farm',  eyebrow:'Farmácia',         cor:'#6B7A3F', titulo:'Farmácia', modulo:'sistemas_independentes', item:'farmacia_central' },
 ];
-document.getElementById('secoes').innerHTML = SECOES.map(function(s){
-  return '<div class="svc-section" id="sec-'+s.id+'" style="--svc-cor:'+s.cor+';">'+
-    '<div class="svc-hdr"><div><div class="svc-eyebrow">'+s.eyebrow+'</div>'+
-    '<div class="svc-title">'+s.titulo+'</div>'+
-    '<div class="svc-atualizado" id="upd-'+s.id+'"></div></div>'+
-    '<button class="svc-voz-btn" onclick="narrarSecao(\''+s.id+'\')">Ler em voz</button></div>'+
-    '<div id="corpo-'+s.id+'"><div class="svc-loading">A carregar…</div></div>'+
-    '</div>';
-}).join('');
+function _secaoPermitida(s){
+  // Rede de segurança: esperarPermissoes() já devia garantir que esta função
+  // está pronta a tempo, mas se o limite de 8s (última reserva, nunca deixa
+  // o Dashboard preso para sempre) for atingido antes disso, mostrar nada
+  // (em vez de rebentar a chamar undefined(...)) é o lado seguro — melhor
+  // recarregar do que mostrar/esconder secções às cegas.
+  if (typeof window.__zeloHasModuleAccess !== 'function') return false;
+  var role = sessionStorage.getItem('zeloRole') || 'funcionario';
+  var permissoes = {};
+  try{ permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'); }catch(e){}
+  return window.__zeloHasModuleAccess(role, permissoes, s.modulo, s.item);
+}
+// window.__zeloHasModuleAccess só fica disponível depois de o <script
+// type="module"> no topo da página correr (import, por isso adiado para
+// depois de toda a página estar analisada) — e sessionStorage.zeloRole só
+// depois de zelo_pagegate.js confirmar a sessão (mais lento ainda, dentro de
+// um iframe: espera pela página-mãe por postMessage). Nunca calcular SECOES
+// antes disso — mostraria/esconderia secções com base num papel errado
+// ("funcionario", a omissão) só porque ainda não tínhamos a resposta certa.
+let SECOES = [];
+function esperarPermissoes(){
+  return new Promise(function(resolve){
+    var resolvido = false;
+    function pronto(){
+      return typeof window.__zeloHasModuleAccess === 'function' && sessionStorage.getItem('zeloRole');
+    }
+    function ok(){ if(resolvido) return; resolvido=true; resolve(true); }
+    // O evento só garante que zelo_pagegate.js confirmou o papel/sessão —
+    // NÃO garante que o <script type="module"> desta própria página (que
+    // define window.__zeloHasModuleAccess) já correu, sobretudo num iframe
+    // "lazy" onde o tempo de rede/análise dos dois pode não coincidir. Por
+    // isso o evento só desencadeia uma NOVA verificação de pronto(), nunca
+    // resolve por si só — só a sondagem (abaixo) ou o pronto() imediato é
+    // que confirmam as duas condições em conjunto.
+    function verificar(){ if (pronto()) ok(); }
+    if (pronto()){ ok(); return; }
+    window.addEventListener('zelo-identity-ready', verificar);
+    window.addEventListener('zelo-gate-ready', verificar);
+    // Sondagem de reserva (a cada 150ms) — cobre tanto o caso de nenhum dos
+    // dois eventos chegar a disparar, como o caso (mais comum num iframe
+    // lazy) de o evento disparar antes do módulo local estar pronto.
+    var iv = setInterval(function(){ if (pronto()) { clearInterval(iv); ok(); } }, 150);
+    setTimeout(function(){ clearInterval(iv); ok(); }, 8000);
+  });
+}
+function renderizarSecoes(){
+  SECOES = SECOES_TODAS.filter(_secaoPermitida);
+  document.getElementById('secoes').innerHTML = SECOES.length ? SECOES.map(function(s){
+    return '<div class="svc-section" id="sec-'+s.id+'" style="--svc-cor:'+s.cor+';">'+
+      '<div class="svc-hdr"><div><div class="svc-eyebrow">'+s.eyebrow+'</div>'+
+      '<div class="svc-title">'+s.titulo+'</div>'+
+      '<div class="svc-atualizado" id="upd-'+s.id+'"></div></div>'+
+      '<button class="svc-voz-btn" onclick="narrarSecao(\''+s.id+'\')">Ler em voz</button></div>'+
+      '<div id="corpo-'+s.id+'"><div class="svc-loading">A carregar…</div></div>'+
+      '</div>';
+  }).join('') : '<div class="svc-section" style="text-align:center;color:var(--tx3);padding:32px;">Ainda não tens nenhum serviço atribuído para ver aqui. Contacta um administrador do ZELO.</div>';
+}
 
 // Última gravação (savedAt) encontrada nos registos usados por cada secção —
 // mostrada no cabeçalho para o utilizador saber se está a ver dados frescos.
@@ -801,7 +860,9 @@ const RESUMO_CONFIG = [
   { id:'farm', cor:'#6B7A3F', lbl:'Alertas de Stock', valFn: function(d){ return d ? (d.esgotados + d.baixo) : null; }, alerta: true },
 ];
 function atualizarResumoGeral(){
-  const html = RESUMO_CONFIG.map(function(item){
+  // Só o resumo das secções permitidas (mesmo filtro que já decidiu SECOES).
+  const idsPermitidos = SECOES.map(function(s){ return s.id; });
+  const html = RESUMO_CONFIG.filter(function(item){ return idsPermitidos.indexOf(item.id) !== -1; }).map(function(item){
     const val = item.valFn(_secaoDados[item.id]);
     const emAlerta = item.alerta && val > 0;
     return '<div class="rg-item" style="--rg-cor:'+item.cor+';">'+
@@ -810,29 +871,42 @@ function atualizarResumoGeral(){
   }).join('');
   document.getElementById('resumoGeral').innerHTML = html;
 }
+// Um carregador por secção — só é chamado (e só lê dados) para as secções
+// que sobreviveram ao filtro de permissão em SECOES; as outras nem chegam
+// a pedir nada ao Firebase, e os seus containers "corpo-*"/"upd-*" nem
+// existem no DOM (foram filtradas antes de SECOES.map ter corrido acima).
+const _CARREGADORES = {
+  proc:  function(periodo){ return _protegido(carregarProcedimentos(periodo), 'Procedimentos', 'proc'); },
+  bloco: function(periodo){ return _protegido(carregarBloco(periodo), 'Bloco Operatório', 'bloco'); },
+  ce:    function(periodo){ return _protegido(carregarConsultaExterna(periodo), 'Consulta Externa', 'ce'); },
+  imag:  function(periodo){ return _protegido(carregarImagiologia(periodo), 'Imagiologia', 'imag'); },
+  lab:   function(periodo){ return _protegido(carregarLaboratorio(periodo), 'Laboratório', 'lab'); },
+  hemo:  function(periodo){ return _protegido(carregarHemoterapia(periodo), 'Hemoterapia', 'hemo'); },
+  farm:  function(){ return _protegido(carregarFarmacia(), 'Farmácia', 'farm'); },
+};
 async function carregarTudo(){
   const periodo = calcularPeriodo();
   if (!periodo || !periodo.dates.length){ return; }
+  if (!SECOES.length){
+    document.getElementById('periodResumoLabel').textContent = '';
+    document.getElementById('resumoGeral').innerHTML = '';
+    return;
+  }
   document.getElementById('periodResumoLabel').textContent = 'A carregar ' + periodo.label + '…';
   document.getElementById('resumoGeral').innerHTML = '<div class="rg-loading">A carregar…</div>';
   const btn = document.getElementById('btnCarregar');
   btn.disabled = true; btn.textContent = 'A carregar…';
-  await Promise.all([
-    _protegido(carregarProcedimentos(periodo), 'Procedimentos', 'proc'),
-    _protegido(carregarBloco(periodo), 'Bloco Operatório', 'bloco'),
-    _protegido(carregarConsultaExterna(periodo), 'Consulta Externa', 'ce'),
-    _protegido(carregarImagiologia(periodo), 'Imagiologia', 'imag'),
-    _protegido(carregarLaboratorio(periodo), 'Laboratório', 'lab'),
-    _protegido(carregarHemoterapia(periodo), 'Hemoterapia', 'hemo'),
-    _protegido(carregarFarmacia(), 'Farmácia', 'farm'),
-  ]);
+  await Promise.all(SECOES.map(function(s){ return _CARREGADORES[s.id](periodo); }));
   document.getElementById('periodResumoLabel').textContent = 'A mostrar: ' + periodo.label;
   btn.disabled = false; btn.textContent = 'Carregar';
   _ultimoPeriodo = periodo;
   atualizarResumoGeral();
 }
 document.getElementById('btnCarregar').addEventListener('click', carregarTudo);
-esperarFirebase().then(function(){ carregarTudo(); });
+Promise.all([esperarPermissoes(), esperarFirebase()]).then(function(){
+  renderizarSecoes();
+  carregarTudo();
+});
 
 /* ── Exportar PDF — resumo do período actualmente carregado, com os KPIs
    e os próprios gráficos (capturados como imagem dos canvas já desenhados)

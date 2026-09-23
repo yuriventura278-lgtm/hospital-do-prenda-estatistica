@@ -374,6 +374,10 @@
 
   function montarChipUtilizador(){
     if (document.getElementById('zub-chip')) return; // nunca duplicar
+    // Dentro de um iframe (hoje só o Dashboard, embutido em index.html) a
+    // página-mãe já tem o seu próprio avatar+Sair sempre visível no
+    // cabeçalho — mostrar aqui também duplicava-o, um por cima do outro.
+    if (window.self !== window.top) return;
 
     var chip = document.createElement('div');
     chip.id = 'zub-chip';
