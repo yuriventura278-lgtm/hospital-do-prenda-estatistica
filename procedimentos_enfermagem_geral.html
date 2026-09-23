@@ -2053,38 +2053,34 @@ async function _fbEscutarDia(date){
     const savedAt = remoto && remoto.savedAt;
     if (!savedAt || !remoto.snapshot || !remoto.snapshot.raw){ primeira = false; return; }
     if (savedAt === _fbUltimoEnvioSavedAt[date]){ primeira = false; return; }
-    if (primeira){
-      primeira = false;
-      let localSavedAt = null;
-      try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
-      if (localSavedAt && localSavedAt >= savedAt) return;
-      if (date !== currentLoadedDate) return;
-      // Ao abrir qualquer dia (hoje ou um dia passado), mescla logo os dados
-      // vindos doutro dispositivo com os que já estavam gravados localmente
-      // — campo a campo, nunca o dia inteiro (ver _mesclarDadosDia). Só
-      // gravações SEGUINTES enquanto o dia continua aberto (mais abaixo) é que
-      // mostram o aviso, para nunca substituir silenciosamente algo que o
-      // utilizador possa estar a escrever nesse momento.
-      try{
-        let localRaw = null;
-        try{ const rawStr = _storageGet(storageKey(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
-        const mesclado = _mesclarDadosDia(localRaw, remoto.snapshot.raw);
-        _storageSet(storageKey(date), JSON.stringify(mesclado));
-        try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
-        if (date === currentLoadedDate){ _popularProcedimentos(mesclado); }
-        // Se a mesclagem recuperou campos que o Firebase não tinha (o outro
-        // dispositivo guardou com menos dados preenchidos), reenvia a versão
-        // mesclada para que essa recuperação fique disponível para todos.
-        if (localRaw && window.zeloQueueWrite && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot.raw)) {
-          const curaSavedAt = new Date().toISOString();
-          _fbUltimoEnvioSavedAt[date] = curaSavedAt;
-          zeloQueueUpdate('registos_enf/' + FB_SLUG + '/' + date, {savedAt: curaSavedAt, snapshot: {raw: mesclado}});
-          try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
-        }
-      }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes dos Procedimentos.', e); }
-      return;
-    }
-    _fbMostrarAvisoNovosDados(remoto, date);
+    primeira = false;
+    let localSavedAt = null;
+    try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
+    if (localSavedAt && localSavedAt >= savedAt) return;
+    if (date !== currentLoadedDate) return;
+    // Mescla sempre os dados vindos doutro dispositivo com os que já
+    // estavam gravados localmente — campo a campo, nunca o dia inteiro
+    // (ver _mesclarDadosDia) — e aplica-os de imediato, sem aviso, seja
+    // esta a primeira leitura do dia ou uma gravação seguinte enquanto o
+    // dia continua aberto (a pedido: sincronização automática entre
+    // utilizadores em simultâneo, sem notificações a interromper).
+    try{
+      let localRaw = null;
+      try{ const rawStr = _storageGet(storageKey(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+      const mesclado = _mesclarDadosDia(localRaw, remoto.snapshot.raw);
+      _storageSet(storageKey(date), JSON.stringify(mesclado));
+      try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+      if (date === currentLoadedDate){ _popularProcedimentos(mesclado); }
+      // Se a mesclagem recuperou campos que o Firebase não tinha (o outro
+      // dispositivo guardou com menos dados preenchidos), reenvia a versão
+      // mesclada para que essa recuperação fique disponível para todos.
+      if (localRaw && window.zeloQueueWrite && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot.raw)) {
+        const curaSavedAt = new Date().toISOString();
+        _fbUltimoEnvioSavedAt[date] = curaSavedAt;
+        zeloQueueUpdate('registos_enf/' + FB_SLUG + '/' + date, {savedAt: curaSavedAt, snapshot: {raw: mesclado}});
+        try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
+      }
+    }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes dos Procedimentos.', e); }
   });
 }
 
@@ -2139,19 +2135,13 @@ async function _fbEscutarServicosIndividuais(date){
       const savedAt = remoto && remoto.savedAt;
       if (!savedAt || !remoto.snapshot || !remoto.snapshot.raw){ primeira = false; return; }
       if (savedAt === _fbUltimoEnvioSlug[slug + '|' + date]){ primeira = false; return; } // a nossa própria escrita
-      if (primeira){
-        primeira = false;
-        if (date !== currentLoadedDate) return;
-        _aplicarDadosServicoIndividual(slug, remoto, date);
-        return;
-      }
-      // Atualização em tempo real, depois da leitura inicial: se nenhuma das
-      // especialidades deste serviço está a ser editada agora nesta sessão,
-      // aplica logo (é seguro — não há nada local em risco de ser pisado);
-      // caso contrário, mostra o aviso em vez de substituir em silêncio.
-      const emEdicao = GERAL_SYNC_MAP[slug].some(id => _specialtiesEditadasNestaSessao.has(id));
-      if (!emEdicao){ _aplicarDadosServicoIndividual(slug, remoto, date); return; }
-      _fbMostrarAvisoNovosDados(remoto, date);
+      primeira = false;
+      if (date !== currentLoadedDate) return;
+      // Aplica sempre de imediato, sem aviso — seja a primeira leitura do
+      // dia ou uma gravação seguinte (mesmo que a especialidade esteja a
+      // ser editada agora nesta sessão: a pedido, sincronização totalmente
+      // automática entre utilizadores em simultâneo).
+      _aplicarDadosServicoIndividual(slug, remoto, date);
     });
     _fbCancelarEscutasServicos.push(cancelar);
   });
