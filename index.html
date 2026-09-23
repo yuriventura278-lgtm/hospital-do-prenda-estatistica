@@ -420,7 +420,13 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
     background-size:cover;background-position:right center;background-repeat:no-repeat;
     align-items:center;justify-content:flex-end;
   }
-  #zeloAuthGate .zag-brand{display:none;}
+  /* Nome bem realçado, no canto superior direito, sobre a fotografia. */
+  #zeloAuthGate .zag-brand{position:absolute;top:34px;right:min(8vw,100px);z-index:3;text-align:right;max-width:min(46vw,420px);pointer-events:none;}
+  #zeloAuthGate .zag-top-word{font-family:var(--font-display);font-weight:700;font-size:clamp(1.5rem,3vw,2.3rem);line-height:1.05;letter-spacing:-.01em;color:#fff;text-shadow:0 3px 16px rgba(0,0,0,.5);}
+  #zeloAuthGate .zag-top-sub{margin-top:8px;font-family:var(--font-mono);font-weight:700;font-size:.86rem;line-height:1.4;letter-spacing:.02em;color:#EAF1FF;text-shadow:0 2px 12px rgba(0,0,0,.45);}
+  /* Logótipo bem realçado, no canto inferior esquerdo, sobre a fotografia. */
+  #zeloAuthGate .zag-logo-corner{position:absolute;bottom:32px;left:32px;z-index:3;}
+  #zeloAuthGate .zag-logo-corner img{width:84px;height:84px;border-radius:20px;background:#fff;padding:10px;object-fit:contain;box-shadow:0 16px 36px -10px rgba(0,0,0,.55);}
   /* Cartão do formulário: flutua sobre a fotografia, à direita (a
      pedido), numa zona sem rostos — com leve desfoque por trás para
      garantir legibilidade sobre a foto. O logótipo ZELO fica aqui
@@ -499,18 +505,30 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   #zeloAuthGate .zag-mobile-brand{display:none;align-items:center;gap:9px;justify-content:center;padding:16px 20px;background:#16222F;}
   #zeloAuthGate .zag-mobile-brand img{width:26px;height:26px;border-radius:8px;background:#fff;padding:2px;}
   #zeloAuthGate .zag-mobile-brand span{font-size:.82rem;font-weight:700;color:#E7ECF7;}
+  /* Janela baixa (pouca altura): o nome no canto superior direito ficaria
+     em cima do cartão, que continua centrado verticalmente — esconde-se
+     aqui (o nome pequeno já dentro do cartão chega). */
+  @media(max-height:700px){
+    #zeloAuthGate .zag-brand{display:none;}
+  }
   @media(max-width:760px){
     /* Ecrã estreito: sem a fotografia de fundo (não cabe bem numa faixa
        estreita) — volta à barra azul-marinho compacta com o logótipo, como
        já acontecia antes, com o formulário a ocupar a largura toda. */
     #zeloAuthGate{flex-direction:column;justify-content:flex-start;overflow-y:auto;align-items:stretch;background-image:none;background-color:#F5F6F8;}
     #zeloAuthGate .zag-mobile-brand{display:flex;}
+    #zeloAuthGate .zag-brand{display:none;} /* já aparece na barra compacta acima */
+    #zeloAuthGate .zag-logo-corner{display:none;}
     #zeloAuthGate .zag-form-panel{position:static;flex:none;width:100%;max-width:none;margin-left:0;margin-right:0;padding:32px 24px;border-radius:0;background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;box-shadow:none;max-height:none;}
     #zeloAuthGate .zag-brand-row{display:none;} /* já aparece na barra compacta acima */
   }
 </style>
   <div class="zag-mobile-brand"><img src="icons/logo.png" alt="ZELO"><span>ZELO · Hospital do Prenda</span></div>
-  <div class="zag-brand"></div>
+  <div class="zag-brand">
+    <div class="zag-top-word">ZELO</div>
+    <div class="zag-top-sub">Sistema Estatístico e Gestão de Ocorrências</div>
+  </div>
+  <div class="zag-logo-corner"><img src="icons/logo.png" alt="ZELO"></div>
   <div class="zag-form-panel">
     <div class="zag-brand-row">
       <img src="icons/logo.png" alt="ZELO">
