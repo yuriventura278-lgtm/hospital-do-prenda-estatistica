@@ -1224,6 +1224,27 @@ const RX_PLACAS = [
   'Placas 30X40','Placas 35X35','Placas 35X43','Placas Outras'
 ];
 
+// "Pacientes Examinados" conta PESSOAS, não exames — um só paciente pode
+// fazer vários exames no mesmo dia. Nunca deve entrar nos totais/subtotais/
+// médias/relatórios ao lado de "Exames Realizados" e dos exames específicos
+// (TAC_EXAMES/ECO_EXAMES) — somar os dois dava um número sem significado
+// (pacientes + exames misturados). Continua visível e editável na sua
+// própria linha; só fica de fora de qualquer SOMA. Usar estas variantes
+// _TOTAL (em vez de TAC_CONTADORES/ECO_CONTADORES/RX_CONTADORES) em todo o
+// código que calcula um total/subtotal/média — nunca nos loops que só
+// desenham linhas individuais (esses continuam a usar a lista original).
+const PACIENTES_EXAMINADOS_LABEL = 'Pacientes Examinados';
+const TAC_CONTADORES_TOTAL = TAC_CONTADORES.filter(k => k !== PACIENTES_EXAMINADOS_LABEL);
+const ECO_CONTADORES_TOTAL = ECO_CONTADORES.filter(k => k !== PACIENTES_EXAMINADOS_LABEL);
+const RX_CONTADORES_TOTAL = RX_CONTADORES.filter(k => k !== PACIENTES_EXAMINADOS_LABEL);
+// Para somar uma lista de linhas [label,bu,aut,int,total] já construída
+// (usado nos relatórios/PDF), ignorando a linha de Pacientes Examinados.
+function _somarLinhasSemPacientes(rows){
+  let bu=0,aut=0,int2=0;
+  rows.forEach(r=>{ if (r[0] === PACIENTES_EXAMINADOS_LABEL) return; bu+=Number(r[1]||0); aut+=Number(r[2]||0); int2+=Number(r[3]||0); });
+  return { bu, aut, int2, t: bu+aut+int2 };
+}
+
 // ════════════════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════════════════
@@ -1485,13 +1506,13 @@ function renderTACTable(){
   rows+=buildSubtotalRow('tac',TAC_EXAMES,'subtac','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal TAC');
   rows+=`<tr class="section-hdr cnt"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Contadores — TAC / Placas / Qualidade</td></tr>`;
   TAC_CONTADORES.forEach(e=>{ rows+=mkRow('tac',e,e); });
-  rows+=buildSubtotalRow('tac',TAC_CONTADORES,'subtac_cnt','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Contadores');
+  rows+=buildSubtotalRow('tac',TAC_CONTADORES_TOTAL,'subtac_cnt','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Contadores');
   rows+=`<tr class="section-hdr cnt"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Placas Segundo Tamanho</td></tr>`;
   TAC_PLACAS.forEach(e=>{ rows+=mkRow('tac',e,e); });
   rows+=buildSubtotalRow('tac',TAC_PLACAS,'subtac_pl','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Placas');
   document.getElementById('tbody-tac').innerHTML=rows;
-  appendTotalRow('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS],'tbody-tac','TOTAL TAC');
-  updateGrandDisplay('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS],'tac-grand-display');
+  appendTotalRow('tac',[...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS],'tbody-tac','TOTAL TAC');
+  updateGrandDisplay('tac',[...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS],'tac-grand-display');
 }
 
 function renderECOTable(){
@@ -1501,23 +1522,23 @@ function renderECOTable(){
   rows+=buildSubtotalRow('eco',ECO_EXAMES,'subeco','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Ecografia');
   rows+=`<tr class="section-hdr eco"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Contadores — Ecografia</td></tr>`;
   ECO_CONTADORES.forEach(e=>{ rows+=mkRow('eco',e,e); });
-  rows+=buildSubtotalRow('eco',ECO_CONTADORES,'subeco_cnt','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Contadores');
+  rows+=buildSubtotalRow('eco',ECO_CONTADORES_TOTAL,'subeco_cnt','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Contadores');
   document.getElementById('tbody-eco').innerHTML=rows;
-  appendTotalRow('eco',[...ECO_EXAMES,...ECO_CONTADORES],'tbody-eco','TOTAL ECOGRAFIA');
-  updateGrandDisplay('eco',[...ECO_EXAMES,...ECO_CONTADORES],'eco-grand-display');
+  appendTotalRow('eco',[...ECO_EXAMES,...ECO_CONTADORES_TOTAL],'tbody-eco','TOTAL ECOGRAFIA');
+  updateGrandDisplay('eco',[...ECO_EXAMES,...ECO_CONTADORES_TOTAL],'eco-grand-display');
 }
 
 function renderRXTable(){
   let rows='';
   rows+=`<tr class="section-hdr rx"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg> Contadores — Raio X</td></tr>`;
   RX_CONTADORES.forEach(e=>{ rows+=mkRow('rx',e,e); });
-  rows+=buildSubtotalRow('rx',RX_CONTADORES,'subrx_cnt','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Contadores');
+  rows+=buildSubtotalRow('rx',RX_CONTADORES_TOTAL,'subrx_cnt','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Contadores');
   rows+=`<tr class="section-hdr rx"><td colspan="5"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Placas Segundo Tamanho</td></tr>`;
   RX_PLACAS.forEach(e=>{ rows+=mkRow('rx',e,e); });
   rows+=buildSubtotalRow('rx',RX_PLACAS,'subrx_pl','<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg> Subtotal Placas');
   document.getElementById('tbody-rx').innerHTML=rows;
-  appendTotalRow('rx',[...RX_CONTADORES,...RX_PLACAS],'tbody-rx','TOTAL RAIO X');
-  updateGrandDisplay('rx',[...RX_CONTADORES,...RX_PLACAS],'rx-grand-display');
+  appendTotalRow('rx',[...RX_CONTADORES_TOTAL,...RX_PLACAS],'tbody-rx','TOTAL RAIO X');
+  updateGrandDisplay('rx',[...RX_CONTADORES_TOTAL,...RX_PLACAS],'rx-grand-display');
 }
 
 function appendTotalRow(section,keys,tbodyId,label){
@@ -1589,21 +1610,21 @@ function setItem(section,key,col,val,opts){
   updateKPIs();
   if(section==='tac'){
     updateSubtotalRow('tac',TAC_EXAMES,'subtac');
-    updateSubtotalRow('tac',TAC_CONTADORES,'subtac_cnt');
-    updateSectionTotals('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS],'tbody-tac');
-    updateGrandDisplay('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS],'tac-grand-display');
+    updateSubtotalRow('tac',TAC_CONTADORES_TOTAL,'subtac_cnt');
+    updateSectionTotals('tac',[...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS],'tbody-tac');
+    updateGrandDisplay('tac',[...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS],'tac-grand-display');
   }
   if(section==='eco'){
     updateSubtotalRow('eco',ECO_EXAMES,'subeco');
-    updateSubtotalRow('eco',ECO_CONTADORES,'subeco_cnt');
-    updateSectionTotals('eco',[...ECO_EXAMES,...ECO_CONTADORES],'tbody-eco');
-    updateGrandDisplay('eco',[...ECO_EXAMES,...ECO_CONTADORES],'eco-grand-display');
+    updateSubtotalRow('eco',ECO_CONTADORES_TOTAL,'subeco_cnt');
+    updateSectionTotals('eco',[...ECO_EXAMES,...ECO_CONTADORES_TOTAL],'tbody-eco');
+    updateGrandDisplay('eco',[...ECO_EXAMES,...ECO_CONTADORES_TOTAL],'eco-grand-display');
   }
   if(section==='rx'){
-    updateSubtotalRow('rx',RX_CONTADORES,'subrx_cnt');
+    updateSubtotalRow('rx',RX_CONTADORES_TOTAL,'subrx_cnt');
     updateSubtotalRow('rx',RX_PLACAS,'subrx_pl');
-    updateSectionTotals('rx',[...RX_CONTADORES,...RX_PLACAS],'tbody-rx');
-    updateGrandDisplay('rx',[...RX_CONTADORES,...RX_PLACAS],'rx-grand-display');
+    updateSectionTotals('rx',[...RX_CONTADORES_TOTAL,...RX_PLACAS],'tbody-rx');
+    updateGrandDisplay('rx',[...RX_CONTADORES_TOTAL,...RX_PLACAS],'rx-grand-display');
   }
 }
 
@@ -1627,19 +1648,19 @@ function updateSectionTotals(section,keys,tbodyId){
 function updateKPIs(){
   let tacT=0,ecoT=0,rxT=0,grandBu=0,grandAut=0,grandInt=0;
   let tacBu=0,tacAut=0,tacInt=0,ecoBu=0,ecoAut=0,ecoInt=0,rxBu=0,rxAut=0,rxInt=0;
-  [...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS].forEach(k=>{
+  [...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS].forEach(k=>{
     const d=currentData.tac[k]||{};
     tacT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
     tacBu+=Number(d.bu||0); tacAut+=Number(d.aut||0); tacInt+=Number(d.int||0);
     grandBu+=Number(d.bu||0); grandAut+=Number(d.aut||0); grandInt+=Number(d.int||0);
   });
-  [...ECO_EXAMES,...ECO_CONTADORES].forEach(k=>{
+  [...ECO_EXAMES,...ECO_CONTADORES_TOTAL].forEach(k=>{
     const d=currentData.eco[k]||{};
     ecoT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
     ecoBu+=Number(d.bu||0); ecoAut+=Number(d.aut||0); ecoInt+=Number(d.int||0);
     grandBu+=Number(d.bu||0); grandAut+=Number(d.aut||0); grandInt+=Number(d.int||0);
   });
-  [...RX_CONTADORES,...RX_PLACAS].forEach(k=>{
+  [...RX_CONTADORES_TOTAL,...RX_PLACAS].forEach(k=>{
     const d=currentData.rx[k]||{};
     rxT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
     rxBu+=Number(d.bu||0); rxAut+=Number(d.aut||0); rxInt+=Number(d.int||0);
@@ -1687,17 +1708,17 @@ function updateKPIs(){
 function zeloNarrarResumoDiario(){
   if (typeof window.zeloFalar !== 'function') return;
   let tacT=0,ecoT=0,rxT=0,grandBu=0,grandAut=0,grandInt=0;
-  [...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS].forEach(k=>{
+  [...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS].forEach(k=>{
     const d=currentData.tac[k]||{};
     tacT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
     grandBu+=Number(d.bu||0); grandAut+=Number(d.aut||0); grandInt+=Number(d.int||0);
   });
-  [...ECO_EXAMES,...ECO_CONTADORES].forEach(k=>{
+  [...ECO_EXAMES,...ECO_CONTADORES_TOTAL].forEach(k=>{
     const d=currentData.eco[k]||{};
     ecoT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
     grandBu+=Number(d.bu||0); grandAut+=Number(d.aut||0); grandInt+=Number(d.int||0);
   });
-  [...RX_CONTADORES,...RX_PLACAS].forEach(k=>{
+  [...RX_CONTADORES_TOTAL,...RX_PLACAS].forEach(k=>{
     const d=currentData.rx[k]||{};
     rxT+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0);
     grandBu+=Number(d.bu||0); grandAut+=Number(d.aut||0); grandInt+=Number(d.int||0);
@@ -1722,9 +1743,9 @@ function zeloNarrarResumoDiario(){
 function _calcTotal(data){
   let t=0;
   const calc=(sec,keys)=>{ keys.forEach(k=>{ const d=sec?.[k]||{}; t+=Number(d.bu||0)+Number(d.aut||0)+Number(d.int||0); }); };
-  calc(data.tac,[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
-  calc(data.eco,[...ECO_EXAMES,...ECO_CONTADORES]);
-  calc(data.rx,[...RX_CONTADORES,...RX_PLACAS]);
+  calc(data.tac,[...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS]);
+  calc(data.eco,[...ECO_EXAMES,...ECO_CONTADORES_TOTAL]);
+  calc(data.rx,[...RX_CONTADORES_TOTAL,...RX_PLACAS]);
   return t;
 }
 
@@ -2157,6 +2178,7 @@ function loadDay(date){
   _diaAlterado=false;
   _undoStack=[];
   _fbEscutarDia(date);
+  try{ sessionStorage.setItem('imag_ultimoDiaVisto', date); }catch(e){}
 }
 
 // Grava o dia que se está a deixar (se houve alterações reais por gravar) antes
@@ -2321,9 +2343,9 @@ function _aggregate(dates,allData){
   const sumSec=(sec,keys)=>keys.forEach(k=>{
     agg._grandBu+=agg[sec][k].bu; agg._grandAut+=agg[sec][k].aut; agg._grandInt+=agg[sec][k].int;
   });
-  sumSec('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
-  sumSec('eco',[...ECO_EXAMES,...ECO_CONTADORES]);
-  sumSec('rx',[...RX_CONTADORES,...RX_PLACAS]);
+  sumSec('tac',[...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS]);
+  sumSec('eco',[...ECO_EXAMES,...ECO_CONTADORES_TOTAL]);
+  sumSec('rx',[...RX_CONTADORES_TOTAL,...RX_PLACAS]);
   return agg;
 }
 
@@ -2346,9 +2368,9 @@ function renderStats(allData,period){
   const pct=(v)=>grand>0?(v/grand*100).toFixed(1):'0.0';
 
   let tacT=0,ecoT=0,rxT=0;
-  [...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS].forEach(k=>{ const d=agg.tac[k]||{}; tacT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
-  [...ECO_EXAMES,...ECO_CONTADORES].forEach(k=>{ const d=agg.eco[k]||{}; ecoT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
-  [...RX_CONTADORES,...RX_PLACAS].forEach(k=>{ const d=agg.rx[k]||{}; rxT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
+  [...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS].forEach(k=>{ const d=agg.tac[k]||{}; tacT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
+  [...ECO_EXAMES,...ECO_CONTADORES_TOTAL].forEach(k=>{ const d=agg.eco[k]||{}; ecoT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
+  [...RX_CONTADORES_TOTAL,...RX_PLACAS].forEach(k=>{ const d=agg.rx[k]||{}; rxT+=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0)); });
 
   const startD=fmtDate(dates[0]),endD=fmtDate(dates[dates.length-1]);
 
@@ -2393,12 +2415,16 @@ function renderStats(allData,period){
       </div>
     </div></div>`:'' ;
 
-  const mkStatTable=(title,sec,keys,hdrClass)=>{
+  const mkStatTable=(title,sec,keys,hdrClass,excluirDoTotal)=>{
+    excluirDoTotal = excluirDoTotal || [];
     let bu=0,aut=0,int2=0;
     const bodyRows=keys.map(k=>{
       const d=agg[sec][k]||{bu:0,aut:0,int:0};
       const t=+(d.bu||0)+(+(d.aut||0))+(+(d.int||0));
-      bu+=+(d.bu||0); aut+=+(d.aut||0); int2+=+(d.int||0);
+      // "Pacientes Examinados" (e qualquer outra chave em excluirDoTotal)
+      // continua a aparecer como linha própria, mas não entra no TOTAL
+      // desta tabela — é uma contagem de pessoas, não de exames.
+      if (excluirDoTotal.indexOf(k) === -1) { bu+=+(d.bu||0); aut+=+(d.aut||0); int2+=+(d.int||0); }
       return t>0?`<tr><td style="padding-left:18px;">${k}</td>
         <td style="color:var(--urgent);font-family:var(--font-mono);">${d.bu||0}</td>
         <td style="color:var(--transfer);font-family:var(--font-mono);">${d.aut||0}</td>
@@ -2508,11 +2534,11 @@ function renderStats(allData,period){
 
   container.innerHTML = periodBadge + summaryCards + timeChart + annualChart + barChart
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M4 15V9a8 8 0 0 1 16 0v6"/><path d="M4 15h5v-6H4z"/><path d="M15 15h5v-6h-5z"/></svg> TAC — Exames Realizados','tac',TAC_EXAMES,'tac')
-    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> TAC — Contadores','tac',TAC_CONTADORES,'')
+    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> TAC — Contadores','tac',TAC_CONTADORES,'',[PACIENTES_EXAMINADOS_LABEL])
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> TAC — Placas por Tamanho','tac',TAC_PLACAS,'')
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Ecografia — Detalhe por Exame','eco',ECO_EXAMES,'eco')
-    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Ecografia — Contadores','eco',ECO_CONTADORES,'')
-    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M17 21h2a2 2 0 0 1 2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg> Raio X — Contadores','rx',RX_CONTADORES,'rx')
+    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Ecografia — Contadores','eco',ECO_CONTADORES,'',[PACIENTES_EXAMINADOS_LABEL])
+    + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M17 21h2a2 2 0 0 1 2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg> Raio X — Contadores','rx',RX_CONTADORES,'rx',[PACIENTES_EXAMINADOS_LABEL])
     + mkStatTable('<svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg> Raio X — Placas por Tamanho','rx',RX_PLACAS,'rx')
     + footer;
 
@@ -2612,9 +2638,9 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   // ── Tabela Resumo: Raios X / Ecografias / TAC (só no mensal) ──────
   if(showResume){
   const _secSum=(sec,keys)=>{let bu=0,aut=0,int2=0; keys.forEach(k=>{const d=agg[sec][k]||{}; bu+=+(d.bu||0); aut+=+(d.aut||0); int2+=+(d.int||0);}); return{bu,aut,int2,t:bu+aut+int2};};
-  const rxS  = _secSum('rx',[...RX_CONTADORES,...RX_PLACAS]);
-  const ecoS = _secSum('eco',[...ECO_EXAMES,...ECO_CONTADORES]);
-  const tacS = _secSum('tac',[...TAC_EXAMES,...TAC_CONTADORES,...TAC_PLACAS]);
+  const rxS  = _secSum('rx',[...RX_CONTADORES_TOTAL,...RX_PLACAS]);
+  const ecoS = _secSum('eco',[...ECO_EXAMES,...ECO_CONTADORES_TOTAL]);
+  const tacS = _secSum('tac',[...TAC_EXAMES,...TAC_CONTADORES_TOTAL,...TAC_PLACAS]);
   const totBu=rxS.bu+ecoS.bu+tacS.bu, totAut=rxS.aut+ecoS.aut+tacS.aut, totInt=rxS.int2+ecoS.int2+tacS.int2;
   doc.autoTable({
     startY: _pdfProximoStartY(doc),
@@ -2672,7 +2698,9 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
 
   const rxRows=[...RX_CONTADORES,...RX_PLACAS].map(k=>{const d=agg.rx[k]||{};const bu=+(d.bu||0),aut=+(d.aut||0),int2=+(d.int||0),t=bu+aut+int2;return[k,bu,aut,int2,t];});
   if(rxRows.length){
-    let sb=0,sa=0,si=0;rxRows.forEach(r=>{sb+=r[1];sa+=r[2];si+=r[3];});
+    // "Pacientes Examinados" fica de fora da soma (é PESSOAS, não exames)
+    // embora continue a aparecer como linha na tabela do PDF, tal como no ecrã.
+    const {bu:sb,aut:sa,int2:si} = _somarLinhasSemPacientes(rxRows);
     let pb=0,pa=0,pi=0;RX_PLACAS.forEach(k=>{const d=agg.rx[k]||{};pb+=+(d.bu||0);pa+=+(d.aut||0);pi+=+(d.int||0);});
     // "Subtotal Placas" — nunca "Exames Realizados", que já é o campo
     // manual de RX_CONTADORES logo acima nesta mesma tabela: os dois têm
@@ -2695,7 +2723,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
 
   const cntRows=[...TAC_CONTADORES,...TAC_PLACAS].map(k=>{const d=agg.tac[k]||{};const bu=+(d.bu||0),aut=+(d.aut||0),int2=+(d.int||0),t=bu+aut+int2;return[k,bu,aut,int2,t];});
   if(cntRows.length){
-    let sb=0,sa=0,si=0;cntRows.forEach(r=>{sb+=r[1];sa+=r[2];si+=r[3];});
+    const {bu:sb,aut:sa,int2:si} = _somarLinhasSemPacientes(cntRows);
     cntRows.push(['TOTAL CONTADORES',sb,sa,si,sb+sa+si]);
     doc.autoTable({startY:_pdfProximoStartY(doc),head:[['TAC — Contadores/Placas','B. Urgência','Autorizados','Internamentos','Total']],body:cntRows,
       styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[30,41,59],textColor:255,fontStyle:'bold'},
@@ -2706,7 +2734,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
 
   const ecoCntRows=ECO_CONTADORES.map(k=>{const d=agg.eco[k]||{};const bu=+(d.bu||0),aut=+(d.aut||0),int2=+(d.int||0),t=bu+aut+int2;return[k,bu,aut,int2,t];});
   if(ecoCntRows.length){
-    let sb=0,sa=0,si=0;ecoCntRows.forEach(r=>{sb+=r[1];sa+=r[2];si+=r[3];});
+    const {bu:sb,aut:sa,int2:si} = _somarLinhasSemPacientes(ecoCntRows);
     ecoCntRows.push(['TOTAL CONTADORES',sb,sa,si,sb+sa+si]);
     doc.autoTable({startY:_pdfProximoStartY(doc),head:[['Ecografia — Contadores','B. Urgência','Autorizados','Internamentos','Total']],body:ecoCntRows,
       styles:{fontSize:8.5,cellPadding:3},headStyles:{fillColor:[8,145,178],textColor:255,fontStyle:'bold'},
@@ -3042,9 +3070,27 @@ function importBackup(input){
   const wkStart=new Date(now); wkStart.setDate(now.getDate()+diff);
   const wkS=wkStart.toISOString().slice(0,10);
 
-  document.getElementById('data-registo').value=todayStr;
+  // Por defeito, abre no dia ANTERIOR a hoje (o turno anterior) — igual aos
+  // Procedimentos de Enfermagem: ao entrar de manhã, o dia de hoje ainda
+  // não terminou, por isso normalmente há é dados de ontem por completar.
+  // "Último dia visto" fica na sessão (não no dispositivo): numa entrada
+  // nova no sistema volta sempre a ser ontem, mas dentro da MESMA entrada,
+  // se a pessoa trocar de dia e só atualizar a página (F5), continua nesse
+  // dia em vez de saltar para o padrão outra vez.
+  let dataInicial = todayStr;
+  let usarPadrao = true;
+  try{
+    const salvo = sessionStorage.getItem('imag_ultimoDiaVisto');
+    if (salvo) { dataInicial = salvo; usarPadrao = false; }
+  }catch(e){}
+  if (usarPadrao) {
+    const ontem = new Date(now); ontem.setDate(now.getDate()-1);
+    dataInicial = `${ontem.getFullYear()}-${String(ontem.getMonth()+1).padStart(2,'0')}-${String(ontem.getDate()).padStart(2,'0')}`;
+  }
+
+  document.getElementById('data-registo').value=dataInicial;
   document.getElementById('exp-date').value=todayStr;
-  document.getElementById('save-status-date').textContent=fmtDate(todayStr);
+  document.getElementById('save-status-date').textContent=fmtDate(dataInicial);
 
   const sd=document.getElementById('st-date');if(sd)sd.value=todayStr;
   const ss=document.getElementById('st-sem-s');if(ss)ss.value=`${yr}-${moS}-01`;
