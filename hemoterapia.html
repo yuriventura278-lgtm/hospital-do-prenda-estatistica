@@ -482,7 +482,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
         <div class="kpi red"><span class="kpi-icon"><svg class='ic'><use href='#ic-stethoscope'/></svg></span><div class="kpi-lbl">Glóbulos</div><div class="kpi-val" id="kpi-globulos">0</div></div>
         <div class="kpi amber"><span class="kpi-icon"><svg class='ic'><use href='#ic-heart'/></svg></span><div class="kpi-lbl">Sangue Colhido (cc)</div><div class="kpi-val" id="kpi-colhido">0</div><div class="kpi-sub">Doadores × 500</div></div>
         <div class="kpi cyan"><span class="kpi-icon"><svg class='ic'><use href='#ic-trend-down'/></svg></span><div class="kpi-lbl">Sangue Consumido (cc)</div><div class="kpi-val" id="kpi-consumido-cc">0</div><div class="kpi-sub">Glób.×500+Plas.×200+Plaq.×200+Crio×150</div></div>
-        <div class="kpi red"><span class="kpi-icon"><svg class='ic'><use href='#ic-alert'/></svg></span><div class="kpi-lbl">Sangue Perdido (cc)</div><div class="kpi-val" id="kpi-perdido-cc">0</div><div class="kpi-sub">Serol. × 500</div></div>
+        <div class="kpi red"><span class="kpi-icon"><svg class='ic'><use href='#ic-alert'/></svg></span><div class="kpi-lbl">Sangue Perdido (cc)</div><div class="kpi-val" id="kpi-perdido-cc">0</div><div class="kpi-sub">Soma da Serologia</div></div>
         <div class="kpi green"><span class="kpi-icon"><svg class='ic'><use href='#ic-users'/></svg></span><div class="kpi-lbl">Total Doadores</div><div class="kpi-val" id="kpi-doadores">0</div></div>
       </div>
 
@@ -648,7 +648,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
           <div class="cc-item">
             <div class="cc-lbl"><svg class='ic'><use href='#ic-alert'/></svg> Sangue Perdido por Mil (cc)</div>
             <div class="cc-val" id="cc-perdido">0</div>
-            <div class="cc-formula">(VIH + HBs + VDRL + HCV) × 500</div>
+            <div class="cc-formula">VIH + HBs + VDRL + HCV</div>
           </div>
         </div>
       </div>
@@ -1264,7 +1264,7 @@ function calcAll(fromLoad){
   // ── FÓRMULAS CC ──
   const ccColhido   = totalDoa * 500;                          // total doadores × 500
   const ccConsumido = (g*500) + (pl*200) + (p*200) + (c*150);  // Glóbulos×500 + Plasma×200 + Plaquetas×200 + Crio×150
-  const ccPerdido   = totalSerol * 500;                         // (VIH+HBs+VDRL+HCV) × 500
+  const ccPerdido   = totalSerol;                               // VIH+HBs+VDRL+HCV (soma, sem multiplicar)
 
   document.getElementById("cc-colhido").textContent  = ccColhido.toLocaleString("pt-PT");
   document.getElementById("cc-consumido").textContent = ccConsumido.toLocaleString("pt-PT");
@@ -1603,7 +1603,7 @@ function historyItemHTML(saved){
   const t=saved.transfusoes||{}; const tot=(t.plaquetas||0)+(t.plasmas||0)+(t.globulos||0)+(t.crio||0);
   const doa=saved.doadores||{}; const totD=(doa.voluntarios||0)+(doa.familiares||0)+(doa.habituais||0);
   const serol=saved.serologia||{}; const totS=(serol.vih||0)+(serol.hbs||0)+(serol.vdrl||0)+(serol.hcv||0);
-  const ccC=totD*500, ccCo=(t.globulos||0)*500+(t.plasmas||0)*200+(t.plaquetas||0)*200+(t.crio||0)*150, ccP=totS*500;
+  const ccC=totD*500, ccCo=(t.globulos||0)*500+(t.plasmas||0)*200+(t.plaquetas||0)*200+(t.crio||0)*150, ccP=totS;
   return `<div class="hist-item">
     <div><div class="hist-date">${fmtDate(d)}</div>
       <div class="hist-sub">Transfusões: ${tot} · Doadores: ${totD} · Turno: ${saved.turno||"—"} · Colhido: ${ccC.toLocaleString("pt-PT")}cc · Consumido: ${ccCo.toLocaleString("pt-PT")}cc · Perdido: ${ccP.toLocaleString("pt-PT")}cc</div></div>
@@ -1717,7 +1717,7 @@ function aggregateData(records){
   // Fórmulas CC acumuladas
   out.cc.colhido   = out.doadores.total * 500;
   out.cc.consumido = (out.transfusoes.globulos*500) + (out.transfusoes.plasmas*200) + (out.transfusoes.plaquetas*200) + (out.transfusoes.crio*150);
-  out.cc.perdido   = out.serologia.total * 500;
+  out.cc.perdido   = out.serologia.total;
   out.mapas = aggregateMapas(records);
   return out;
 }
@@ -1893,7 +1893,7 @@ function renderStatTable(period,agg){
     
     ["ic-bar-chart","Sangue Colhido (cc) = Doadores × 500",agg.cc.colhido.toLocaleString("pt-PT"),true],
     ["ic-bar-chart","Sangue Consumido (cc) = Glob.×500+Plasma×200+Plaq.×200+Crio×150",agg.cc.consumido.toLocaleString("pt-PT"),true],
-    ["ic-bar-chart","Sangue Perdido/Mil (cc) = Serologia × 500",agg.cc.perdido.toLocaleString("pt-PT"),true],
+    ["ic-bar-chart","Sangue Perdido/Mil (cc) = VIH+HBs+VDRL+HCV",agg.cc.perdido.toLocaleString("pt-PT"),true],
   ];
   tbl.innerHTML=`<thead><tr><th>Indicador</th><th>Total</th></tr></thead><tbody>${rows.map(([icon,l,v,total])=>`<tr ${total?"class='total-row'":""}><td><svg class='ic'><use href='#${icon}'/></svg> ${l}</td><td>${v}</td></tr>`).join("")}</tbody>`;
   renderStatMapas(period,agg.mapas);
@@ -2110,7 +2110,7 @@ function exportDayPDF(){
   const totalT=(t.plaquetas||0)+(t.plasmas||0)+(t.globulos||0)+(t.crio||0);
   const totalD=(doa.voluntarios||0)+(doa.familiares||0)+(doa.habituais||0);
   const totalS=(s.vih||0)+(s.hbs||0)+(s.vdrl||0)+(s.hcv||0);
-  const ccC=totalD*500, ccCo=(t.globulos||0)*500+(t.plasmas||0)*200+(t.plaquetas||0)*200+(t.crio||0)*150, ccP=totalS*500;
+  const ccC=totalD*500, ccCo=(t.globulos||0)*500+(t.plasmas||0)*200+(t.plaquetas||0)*200+(t.crio||0)*150, ccP=totalS;
   let cy=buildPDFHeader(doc,"Data: "+fmtDate(d.date)+"  |  Turno: "+(d.turno||"—"),"Saúde Pública",d.date);
   doc.autoTable({head:[["Secção","Indicador","Valor"]],body:[
     ["Transfusões","Plaquetas",t.plaquetas||0],
@@ -2129,7 +2129,7 @@ function exportDayPDF(){
     ["Serologia","HCV",s.hcv||0],
     ["Cálculos CC","Sangue Colhido (cc) = Doadores x 500",ccC.toLocaleString("pt-PT")],
     ["Cálculos CC","Sangue Consumido (cc) = Glob.x500+Plasma x200+Plaq.x200+Crio x150",ccCo.toLocaleString("pt-PT")],
-    ["Cálculos CC","Sangue Perdido/Mil (cc) = (VIH+HBs+VDRL+HCV) x 500",ccP.toLocaleString("pt-PT")],
+    ["Cálculos CC","Sangue Perdido/Mil (cc) = VIH+HBs+VDRL+HCV",ccP.toLocaleString("pt-PT")],
   ],startY:cy,styles:{fontSize:9},headStyles:{fillColor:[192,57,43]},alternateRowStyles:{fillColor:[255,249,249]},
     didParseCell(d){ if(d.row.index>=15) d.cell.styles.fontStyle='bold'; }
   });
@@ -2176,7 +2176,7 @@ async function exportStatPDF(period,dates){
     ["Serologia — HCV",agg.serologia.hcv],
     ["Sangue Colhido (cc) = Doadores x 500",agg.cc.colhido.toLocaleString("pt-PT")],
     ["Sangue Consumido (cc) = Glob.x500+Plasma x200+Plaq.x200+Crio x150",agg.cc.consumido.toLocaleString("pt-PT")],
-    ["Sangue Perdido/Mil (cc) = (VIH+HBs+VDRL+HCV) x 500",agg.cc.perdido.toLocaleString("pt-PT")],
+    ["Sangue Perdido/Mil (cc) = VIH+HBs+VDRL+HCV",agg.cc.perdido.toLocaleString("pt-PT")],
   ],startY:cy,styles:{fontSize:9},headStyles:{fillColor:[192,57,43]},alternateRowStyles:{fillColor:[255,249,249]},
     didParseCell(d){ if(d.row.index>=14) d.cell.styles.fontStyle='bold'; }
   });
