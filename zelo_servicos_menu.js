@@ -19,42 +19,42 @@
 // Imagiologia, por agora). Para os restantes, fica para uma fase seguinte.
 const SERVICOS_MENU = [
   { nome: 'Medicina Homem', categoria: 'internamento', icon: 'heartbeat', cor: '#7C3AED',
-    relatorios: [{ label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' }],
+    relatorios: [], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_homem.html', modulo: 'procedimentos_enfermagem', item: 'medicina_homem' }],
     movimento: [{ label: 'Movimento Hospitalar', slug: 'medicina_homem', modulo: 'movimento_mensal' }] },
   { nome: 'Medicina Mulher', categoria: 'internamento', icon: 'heartbeat', cor: '#7C3AED',
-    relatorios: [{ label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' }],
+    relatorios: [], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_mulher.html', modulo: 'procedimentos_enfermagem', item: 'medicina_mulher' }],
     movimento: [{ label: 'Movimento Hospitalar', slug: 'medicina_mulher', modulo: 'movimento_mensal' }] },
   { nome: 'Cirurgia Geral', categoria: 'internamento', icon: 'stretcher', cor: '#DC2626',
-    relatorios: [{ label: 'Relatório Diário', file: 'Cirurgia_Geral.html', modulo: 'servicos', item: 'cirurgia_geral' }],
+    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Cirurgia_Geral.html', modulo: 'servicos', item: 'cirurgia_geral' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_cirurgia_geral.html', modulo: 'procedimentos_enfermagem', item: 'cirurgia_geral' }],
     movimento: [{ label: 'Movimento Hospitalar', slug: 'cirurgia_geral', modulo: 'movimento_mensal' }] },
   { nome: 'Orto-Traumatologia', categoria: 'internamento', icon: 'bone', cor: '#DC2626',
-    relatorios: [{ label: 'Relatório Diário', file: 'Ortopedia.html', modulo: 'servicos', item: 'ortopedia' }],
+    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Ortopedia.html', modulo: 'servicos', item: 'ortopedia' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_ortopedia.html', modulo: 'procedimentos_enfermagem', item: 'ortopedia' }],
     movimento: [{ label: 'Movimento Hospitalar', slug: 'ortopedia', modulo: 'movimento_mensal' }] },
   { nome: 'Neurocirurgia', categoria: 'internamento', icon: 'brain', cor: '#DC2626',
-    relatorios: [{ label: 'Relatório Diário', file: 'Neurocirurgia.html', modulo: 'servicos', item: 'neurocirurgia' }],
+    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Neurocirurgia.html', modulo: 'servicos', item: 'neurocirurgia' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_neurocirurgia.html', modulo: 'procedimentos_enfermagem', item: 'neurocirurgia' }],
     movimento: [{ label: 'Movimento Hospitalar', slug: 'neurocirurgia', modulo: 'movimento_mensal' }] },
   { nome: 'Maxilo-Facial', categoria: 'internamento', icon: 'jaw', cor: '#DC2626',
-    relatorios: [{ label: 'Relatório Diário', file: 'Cirurgia_Maxilo_Facial.html', modulo: 'servicos', item: 'maxilo_facial' }],
+    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Cirurgia_Maxilo_Facial.html', modulo: 'servicos', item: 'maxilo_facial' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_maxilo_facial.html', modulo: 'procedimentos_enfermagem', item: 'maxilo_facial' }],
     movimento: [{ label: 'Movimento Hospitalar', slug: 'maxilo_facial', modulo: 'movimento_mensal' }] },
   { nome: 'Nefrologia', categoria: 'internamento', icon: 'droplet', cor: '#7C3AED',
-    relatorios: [{ label: 'Relatório Diário', file: 'Banco_Nefrologia_v2-1.html', modulo: 'servicos', item: 'nefrologia' }],
+    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Banco_Nefrologia_v2-1.html', modulo: 'servicos', item: 'nefrologia' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_nefrologia.html', modulo: 'procedimentos_enfermagem', item: 'nefrologia' }],
     movimento: [{ label: 'Movimento Hospitalar', slug: 'nefrologia', modulo: 'movimento_mensal' }] },
   { nome: 'UC Intermédio', categoria: 'internamento', icon: 'activity', cor: '#7C3AED',
-    relatorios: [{ label: 'Relatório Diário', file: 'banco_uci_v1-3-1-1.html', modulo: 'servicos', item: 'uci_cuidados_intermedios' }],
+    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'banco_uci_v1-3-1-1.html', modulo: 'servicos', item: 'uci_cuidados_intermedios' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_uci_cuidados_intermedios.html', modulo: 'procedimentos_enfermagem', item: 'uci_cuidados_intermedios' }],
     movimento: [{ label: 'Movimento Hospitalar', slug: 'uci_cuidados_intermedios', modulo: 'movimento_mensal' }] },
   { nome: 'Banco de Urgência', categoria: 'urgencia', icon: 'shield', cor: '#059669',
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_banco_urgencia.html', modulo: 'procedimentos_enfermagem', item: 'banco_urgencia' }] },
   { nome: 'Bloco Operatório', categoria: 'bloco_operatorio', icon: 'scissors', cor: '#B91C1C',
     relatorios: [
-      { label: 'Relatório Diário', file: 'Bloco_Operatorio.html', modulo: 'servicos', item: 'bloco_operatorio' },
+      // oculto a pedido: { label: 'Relatório Diário', file: 'Bloco_Operatorio.html', modulo: 'servicos', item: 'bloco_operatorio' } — sistema antigo do "banco", descomentar para restaurar
       { label: 'Registo Diário', file: 'bloco_operatorio_registo_diario.html', modulo: 'sistemas_independentes', item: 'bloco_operatorio_registo_diario' },
       { label: 'Processo Operatório', file: 'bloco_operatorio_ficha_operatoria.html', modulo: 'sistemas_independentes', item: 'bloco_operatorio_ficha_operatoria' },
     ],
@@ -66,7 +66,7 @@ const SERVICOS_MENU = [
     relatorios: [{ label: 'Relatório Diário', file: 'Otorrinolaringologia.html', modulo: 'servicos', item: 'otorrinolaringologia' }] },
   { nome: 'Consulta Externa', categoria: 'consultas', icon: 'door', cor: '#059669',
     relatorios: [
-      { label: 'Relatório Diário', file: 'Consulta_Externa-2.html', modulo: 'servicos', item: 'consulta_externa' },
+      // oculto a pedido: { label: 'Relatório Diário', file: 'Consulta_Externa-2.html', modulo: 'servicos', item: 'consulta_externa' } — sistema antigo do "banco", descomentar para restaurar
       { label: 'Consultas Externa', file: 'consulta_externa_geral.html', modulo: 'sistemas_independentes', item: 'consulta_externa_geral' },
     ],
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_consulta_externa.html', modulo: 'procedimentos_enfermagem', item: 'consulta_externa' }] },
@@ -74,13 +74,13 @@ const SERVICOS_MENU = [
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_hospital_dia.html', modulo: 'procedimentos_enfermagem', item: 'hospital_dia' }] },
   { nome: 'Imagiologia', categoria: 'diagnostico', icon: 'scan', cor: '#0EA5E9',
     relatorios: [
-      { label: 'Relatório Diário', file: 'Imagiologia.html', modulo: 'servicos', item: 'imagiologia' },
+      // oculto a pedido: { label: 'Relatório Diário', file: 'Imagiologia.html', modulo: 'servicos', item: 'imagiologia' } — sistema antigo do "banco", descomentar para restaurar
       { label: 'Exames Realizados', file: 'imagiologia_radiologia_geral.html', modulo: 'sistemas_independentes', item: 'imagiologia_radiologia_geral' },
     ],
     temEstatisticas: true, estatisticasFile: 'imagiologia_radiologia_geral.html' },
   { nome: 'Laboratório', categoria: 'diagnostico', icon: 'flask', cor: '#0EA5E9',
     relatorios: [
-      { label: 'Relatório Diário', file: 'Laboratório_Clínico.html', modulo: 'servicos', item: 'laboratorio_clinico' },
+      // oculto a pedido: { label: 'Relatório Diário', file: 'Laboratório_Clínico.html', modulo: 'servicos', item: 'laboratorio_clinico' } — sistema antigo do "banco", descomentar para restaurar
       { label: 'Exames Realizados', file: 'laboratorio_geral.html', modulo: 'sistemas_independentes', item: 'laboratorio_geral' },
     ] },
   { nome: 'Hemoterapia', categoria: 'diagnostico', icon: 'droplet', cor: '#BE123C',
@@ -91,7 +91,7 @@ const SERVICOS_MENU = [
     relatorios: [{ label: 'Relatório Diário', file: 'banco_fisioterapia_v1-1-1.html', modulo: 'servicos', item: 'fisioterapia' }] },
   { nome: 'Psicologia Clínica', categoria: 'consultas', icon: 'head', cor: '#059669',
     relatorios: [
-      { label: 'Relatório Diário', file: 'psicologia_clinica_hp-1-3-1.html', modulo: 'servicos', item: 'psicologia_clinica' },
+      // oculto a pedido: { label: 'Relatório Diário', file: 'psicologia_clinica_hp-1-3-1.html', modulo: 'servicos', item: 'psicologia_clinica' } — sistema antigo do "banco", descomentar para restaurar
       { label: 'Atendimento & Estatística', file: 'psicologia_atendimento.html', modulo: 'sistemas_independentes', item: 'psicologia_atendimento' },
     ] },
   { nome: 'Farmácia', categoria: 'farmacia', icon: 'bank', cor: '#0D9488',
