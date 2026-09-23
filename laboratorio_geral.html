@@ -1032,7 +1032,7 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
       <!-- Observações -->
       <div class="card">
         <div class="card-label">Observações do Dia</div>
-        <textarea class="notes-area" id="notas-dia" placeholder="Observações, intercorrências, situações especiais…" oninput="cd.notas=this.value"></textarea>
+        <textarea class="notes-area" id="notas-dia" placeholder="Observações, intercorrências, situações especiais…" oninput="cd.notas=this.value;autoSaveDebounced();"></textarea>
       </div>
       <div class="btn-group">
         <button class="btn-h btn-save" id="main-save-btn" style="font-size:.6rem;padding:8px 20px;" onclick="saveAll()"><span class="icon-svg" data-icon="save"></span> <span>Guardar Registo</span></button>
@@ -1641,7 +1641,7 @@ function renderTechs() {
   for(let i=0;i<numTechs;i++){
     const d = document.createElement('div');
     d.className = 'tech-item';
-    d.innerHTML = '<span class="tech-num">'+(i+1)+'</span><input class="tech-inp" id="tech-'+i+'" type="text" placeholder="Nome do técnico" value="'+esc(cd.techs[i]||'')+'" oninput="cd.techs['+i+']=this.value">';
+    d.innerHTML = '<span class="tech-num">'+(i+1)+'</span><input class="tech-inp" id="tech-'+i+'" type="text" placeholder="Nome do técnico" value="'+esc(cd.techs[i]||'')+'" oninput="cd.techs['+i+']=this.value;autoSaveDebounced();">';
     g.appendChild(d);
   }
 }
@@ -1978,6 +1978,7 @@ function updateExame(name, col, val) {
   const totEl = document.getElementById('ex-'+slug(name)+'-tot');
   if(totEl) totEl.textContent = (Number(cd.exames[name].bu)||0)+(Number(cd.exames[name].int)||0);
   recalcAllDebounced();
+  autoSaveDebounced();
 }
 
 function updatePositivo(name, col, val) {
@@ -1987,6 +1988,7 @@ function updatePositivo(name, col, val) {
   if(totEl) totEl.textContent = (Number(cd.positivos[name].bu)||0)+(Number(cd.positivos[name].int)||0);
   recalcPosGrand();
   updateKPIs();
+  autoSaveDebounced();
 }
 
 let _recalcTimer=null;
@@ -2111,6 +2113,15 @@ function addExam() {
 // ─── LOAD DAY ───
 function loadDay(date) {
   collectFromDOM();
+  // Grava o dia que estamos a deixar antes de trocar — sem isto, mudar de
+  // data menos de 800ms depois da última tecla (antes do auto-guardar
+  // disparar, ver autoSaveDebounced) perdia essa última alteração. Seguro
+  // chamar sempre, mesmo sem nada por gravar (fica só a repetir o que já
+  // lá estava).
+  if (currentDate && cd) {
+    clearTimeout(_autoSaveTimerLab);
+    try{ saveAll({ silencioso: true }); }catch(e){}
+  }
   currentDate = date;
   try{ sessionStorage.setItem(LAB_ULTIMO_DIA_KEY, date); }catch(e){}
   const raw = LS.getItem(sk(date));
@@ -2733,17 +2744,35 @@ async function _fbEscutarDia(date){
 }
 
 // ─── SAVE ───
-function saveAll() {
+// opts.silencioso=true (usado pelo auto-guardar, ver autoSaveDebounced) faz
+// tudo o que o botão "Guardar" faz — grava local e sincroniza com o
+// Firebase — só sem o toast, para não interromper repetidamente quem está
+// a escrever. O botão "Guardar" continua a chamar saveAll() sem opts,
+// mostrando o toast como sempre (útil como confirmação explícita, mesmo já
+// tudo a gravar-se sozinho).
+function saveAll(opts) {
+  const silencioso = opts && opts.silencioso;
   collectFromDOM();
   cd.date = currentDate;
   cd._ts = Date.now();
   cd.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   LS.setItem(sk(currentDate), JSON.stringify(cd));
   addSavedDay(currentDate);
-  if(window.zeloGuardarComFeedback) window.zeloGuardarComFeedback('#main-save-btn', 'Registo diário de '+fmtDate(currentDate)+' guardado com sucesso');
-  else showToast('success', 'Registo diário de '+fmtDate(currentDate)+' guardado com sucesso');
+  if(!silencioso){
+    if(window.zeloGuardarComFeedback) window.zeloGuardarComFeedback('#main-save-btn', 'Registo diário de '+fmtDate(currentDate)+' guardado com sucesso');
+    else showToast('success', 'Registo diário de '+fmtDate(currentDate)+' guardado com sucesso');
+  }
   _mostrarHoraGuardado(cd.criadoPor.nome, cd._ts);
   _fbSyncLaboratorio(currentDate, cd);
+}
+
+// Auto-guardar: grava sozinho ~800ms depois de a pessoa parar de escrever,
+// sem precisar de clicar em "Guardar" — chamado a partir de cada campo do
+// registo diário (ver updateExame/updatePositivo/notas/técnicos abaixo).
+let _autoSaveTimerLab = null;
+function autoSaveDebounced(){
+  clearTimeout(_autoSaveTimerLab);
+  _autoSaveTimerLab = setTimeout(function(){ saveAll({ silencioso: true }); }, 800);
 }
 
 // ─── EXPORT DAILY PDF ───
