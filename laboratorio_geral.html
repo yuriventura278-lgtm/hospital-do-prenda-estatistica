@@ -1546,6 +1546,55 @@ function saveExtras() {
   const examOrder = {};
   EXAM_SECTIONS.forEach(sec=>{ examOrder[sec.id] = [...sec.exames, ...(_extraExames[sec.id]||[])]; });
   LS.setItem(SK_EXAM_ORDER, JSON.stringify(examOrder));
+  _fbSyncLabExtras(examOrder);
+}
+
+// ── Sincronização da lista de exames/positivos entre dispositivos ──
+// Um exame adicionado por addExam()/addPositivo() só ficava guardado neste
+// aparelho (LS = IndexedDB local) — noutro dispositivo, mesmo que o VALOR
+// desse exame chegasse certo via Firebase dentro de cd.exames (isso já
+// sincronizava), não havia linha nenhuma para o mostrar, porque
+// renderExamBody()/renderPosBody() só desenham o que está em
+// EXAM_SECTIONS/POSITIVOS+_extra* deste dispositivo. Por fora, isto parecia
+// "os dados não partilham". Aqui sincroniza-se só a LISTA de nomes (não os
+// valores do dia, que continuam a ir por _fbSyncLaboratorio) — sempre a
+// somar o que falta de um lado para o outro, nunca a substituir.
+const FB_LAB_CONFIG_PATH = 'registos_sistemas_locais/laboratorio_config';
+function _fbSyncLabExtras(examOrder){
+  if (typeof zeloQueueWrite !== 'function') return;
+  zeloQueueWrite(FB_LAB_CONFIG_PATH, { examOrder: examOrder, posOrder: POSITIVOS, savedAt: new Date().toISOString() })
+    .catch(function(e){ console.warn('ZELO: falha ao sincronizar a lista de exames do Laboratório', e); });
+}
+// Uma vez, ao abrir a página: junta os exames/positivos já guardados
+// remotamente (de outros dispositivos) com os já guardados localmente.
+// Nunca substitui — só acrescenta o que falta de cada lado, para nenhum
+// dispositivo perder um exame personalizado que o outro ainda não tenha.
+async function _fbCarregarExtras(){
+  if (typeof window.__fbGet !== 'function') return;
+  let remoto;
+  try{ remoto = await window.__fbGet(FB_LAB_CONFIG_PATH); }catch(e){ return; }
+  if (!remoto) return;
+  let mudou = false;
+  EXAM_SECTIONS.forEach(function(sec){
+    const remotos = (remoto.examOrder && remoto.examOrder[sec.id]) || [];
+    remotos.forEach(function(nome){
+      if (!sec.exames.includes(nome) && !(_extraExames[sec.id]||[]).includes(nome)){
+        if (!_extraExames[sec.id]) _extraExames[sec.id]=[];
+        _extraExames[sec.id].push(nome);
+        mudou = true;
+      }
+    });
+  });
+  (remoto.posOrder||[]).forEach(function(nome){
+    if (!POSITIVOS.includes(nome)){ POSITIVOS.push(nome); mudou = true; }
+  });
+  if (mudou){
+    saveExtras(); // grava localmente a lista unida e reenvia-a ao Firebase
+    renderExamBody();
+    renderPosBody();
+    recalcAll();
+    recalcPosGrand();
+  }
 }
 
 // ─── CURRENT DATA ───
@@ -4192,6 +4241,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       }catch(e){ console.error('Erro ao ler localStorage:', e); }
       renderForm();
       _fbEscutarDia(currentDate);
+      _fbCarregarExtras();
       // Lembrete de cópia de segurança (>7 dias sem backup)
       setTimeout(function(){
         try{
