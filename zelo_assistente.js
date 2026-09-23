@@ -973,7 +973,8 @@
     'sistemas_independentes|bloco_operatorio_registo_diario': { fbPathBase: 'registos_sistemas_locais/bloco_operatorio', servicoLabel: 'Bloco Operatório — Registo Diário', itemPlural: 'registos' },
     'sistemas_independentes|bloco_operatorio_ficha_operatoria': { fbPathBase: 'registos_sistemas_locais/bloco_operatorio_ficha', servicoLabel: 'Bloco Operatório — Ficha Operatória', itemPlural: 'fichas' },
     'sistemas_independentes|consulta_externa_geral': { fbPathBase: 'registos_sistemas_locais/consulta_externa', servicoLabel: 'Consulta Externa', itemPlural: 'registos' },
-    'sistemas_independentes|laboratorio_geral': { fbPathBase: 'registos_sistemas_locais/laboratorio', servicoLabel: 'Laboratório', itemPlural: 'registos' }
+    'sistemas_independentes|laboratorio_geral': { fbPathBase: 'registos_sistemas_locais/laboratorio', servicoLabel: 'Laboratório', itemPlural: 'registos' },
+    'sistemas_independentes|imagiologia_radiologia_geral': { fbPathBase: 'registos_sistemas_locais/imagiologia', servicoLabel: 'Imagiologia', itemPlural: 'registos' }
   };
   function configAvisoPreenchimento(){
     if (window.ZELO_MODULE === 'procedimentos_enfermagem' && window.ZELO_ITEM) {
