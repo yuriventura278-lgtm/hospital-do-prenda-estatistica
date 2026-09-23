@@ -420,10 +420,26 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
     background-size:cover;background-position:right center;background-repeat:no-repeat;
     align-items:center;justify-content:flex-end;
   }
-  /* Nome bem realçado, no canto superior direito, sobre a fotografia. */
-  #zeloAuthGate .zag-brand{position:absolute;top:34px;right:min(8vw,100px);z-index:3;text-align:right;max-width:min(46vw,420px);pointer-events:none;}
-  #zeloAuthGate .zag-top-word{font-family:var(--font-display);font-weight:700;font-size:clamp(1.5rem,3vw,2.3rem);line-height:1.05;letter-spacing:-.01em;color:#fff;text-shadow:0 3px 16px rgba(0,0,0,.5);}
-  #zeloAuthGate .zag-top-sub{margin-top:8px;font-family:var(--font-mono);font-weight:700;font-size:.86rem;line-height:1.4;letter-spacing:.02em;color:#EAF1FF;text-shadow:0 2px 12px rgba(0,0,0,.45);}
+  /* Nome bem realçado, no lado esquerdo, centrado na vertical, numa
+     caixa com contorno luminoso (a pedido). */
+  #zeloAuthGate .zag-brand{position:absolute;top:50%;left:min(6vw,72px);transform:translateY(-50%);z-index:3;max-width:min(50vw,440px);pointer-events:none;
+    display:flex;align-items:center;gap:16px;padding:22px 26px;border-radius:18px;
+    background:linear-gradient(155deg,rgba(11,22,46,.94),rgba(15,31,64,.92));
+    border:1.5px solid rgba(159,216,255,.55);
+    box-shadow:0 0 0 1px rgba(159,216,255,.12) inset,0 0 46px rgba(64,170,255,.38),0 22px 50px -20px rgba(0,0,0,.6);
+  }
+  #zeloAuthGate .zag-brand-icon{width:56px;height:56px;border-radius:14px;object-fit:contain;flex-shrink:0;box-shadow:0 8px 20px -6px rgba(0,0,0,.45);}
+  #zeloAuthGate .zag-top-word{font-family:var(--font-display);font-weight:700;font-size:clamp(1.25rem,2.4vw,1.7rem);line-height:1.1;letter-spacing:-.01em;color:#fff;text-shadow:0 3px 16px rgba(0,0,0,.5);}
+  #zeloAuthGate .zag-top-sub{margin-top:7px;font-family:var(--font-mono);font-weight:700;font-size:.8rem;line-height:1.4;letter-spacing:.02em;color:#EAF1FF;text-shadow:0 2px 12px rgba(0,0,0,.45);}
+  /* Ecrã menos largo: a caixa e o cartão do login não cabem os dois com
+     a largura cheia — encolhe-se a caixa (menos padding, ícone e texto
+     mais pequenos) para nunca tocar no cartão. */
+  @media(max-width:1150px){
+    #zeloAuthGate .zag-brand{max-width:min(32vw,300px);padding:16px 18px;gap:12px;}
+    #zeloAuthGate .zag-brand-icon{width:42px;height:42px;border-radius:11px;}
+    #zeloAuthGate .zag-top-word{font-size:1.05rem;}
+    #zeloAuthGate .zag-top-sub{font-size:.68rem;margin-top:5px;}
+  }
   /* Logótipo bem realçado, no canto inferior esquerdo, sobre a fotografia. */
   #zeloAuthGate .zag-logo-corner{position:absolute;bottom:32px;left:32px;z-index:3;}
   #zeloAuthGate .zag-logo-corner img{width:84px;height:84px;border-radius:20px;background:#fff;padding:10px;object-fit:contain;box-shadow:0 16px 36px -10px rgba(0,0,0,.55);}
@@ -505,12 +521,6 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   #zeloAuthGate .zag-mobile-brand{display:none;align-items:center;gap:9px;justify-content:center;padding:16px 20px;background:#16222F;}
   #zeloAuthGate .zag-mobile-brand img{width:26px;height:26px;border-radius:8px;background:#fff;padding:2px;}
   #zeloAuthGate .zag-mobile-brand span{font-size:.82rem;font-weight:700;color:#E7ECF7;}
-  /* Janela baixa (pouca altura): o nome no canto superior direito ficaria
-     em cima do cartão, que continua centrado verticalmente — esconde-se
-     aqui (o nome pequeno já dentro do cartão chega). */
-  @media(max-height:700px){
-    #zeloAuthGate .zag-brand{display:none;}
-  }
   @media(max-width:760px){
     /* Ecrã estreito: sem a fotografia de fundo (não cabe bem numa faixa
        estreita) — volta à barra azul-marinho compacta com o logótipo, como
@@ -525,8 +535,11 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 </style>
   <div class="zag-mobile-brand"><img src="icons/logo.png" alt="ZELO"><span>ZELO · Hospital do Prenda</span></div>
   <div class="zag-brand">
-    <div class="zag-top-word">ZELO</div>
-    <div class="zag-top-sub">Sistema Estatístico e Gestão de Ocorrências</div>
+    <img class="zag-brand-icon" src="icons/logo.png" alt="">
+    <div>
+      <div class="zag-top-word">ZELO</div>
+      <div class="zag-top-sub">Sistema Estatístico e Gestão de Ocorrências</div>
+    </div>
   </div>
   <div class="zag-logo-corner"><img src="icons/logo.png" alt="ZELO"></div>
   <div class="zag-form-panel">
