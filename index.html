@@ -907,6 +907,13 @@ window.__zeloHasModuleAccess = hasModuleAccess;
 
   window.zeloLogout = function(){
     if(stopInactivityWatch){ stopInactivityWatch(); stopInactivityWatch=null; }
+    // Limpa a identidade da sessão anterior explicitamente — não basta
+    // confiar em cada login seguinte substituir cada chave (foi assim que
+    // surgiu o bug da foto do administrador a "herdar-se" para a conta
+    // seguinte usada no mesmo aparelho).
+    ['zeloRole','zeloNome','zeloEmail','zeloPermissoes','zeloFoto'].forEach(function(k){
+      try{ sessionStorage.removeItem(k); }catch(e){}
+    });
     signOut(auth).catch(function(){}).then(function(){ window.location.reload(); });
   };
 
@@ -929,7 +936,12 @@ window.__zeloHasModuleAccess = hasModuleAccess;
     sessionStorage.setItem('zeloNome', perfil.nome || user.email);
     sessionStorage.setItem('zeloEmail', user.email || '');
     sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
+    // Sem o "else remove", um utilizador sem foto própria herdava a foto
+    // que tivesse ficado na sessionStorage de quem usou este dispositivo
+    // antes (ex.: o administrador, ao testar a conta recém-criada) — a
+    // sessionStorage sobrevive a um reload, e zeloLogout() não a limpa.
     if(perfil.foto) sessionStorage.setItem('zeloFoto', perfil.foto);
+    else sessionStorage.removeItem('zeloFoto');
     // Esta página não recarrega ao entrar — a tentativa automática do Zelo já
     // correu antes de haver sessão, por isso repete-se agora que já existe.
     if(typeof window.zeloTentarSaudarEntrada === 'function') window.zeloTentarSaudarEntrada();

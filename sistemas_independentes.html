@@ -348,6 +348,9 @@ aplicarFiltroSistemas(sessionStorage.getItem('zeloRole'), JSON.parse(sessionStor
 
   window.zeloLogout = function(){
     if(stopInactivityWatch){ stopInactivityWatch(); stopInactivityWatch=null; }
+    ['zeloRole','zeloNome','zeloEmail','zeloPermissoes','zeloFoto'].forEach(function(k){
+      try{ sessionStorage.removeItem(k); }catch(e){}
+    });
     signOut(auth);
   };
 

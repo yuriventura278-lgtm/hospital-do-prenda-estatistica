@@ -83,7 +83,42 @@
       .zmf-action-link:hover{background:#EFF6FF;}
       .zmf-sis-link{display:block;padding:8px 10px 8px 30px;font-size:.78rem;color:#334155;text-decoration:none;border-radius:9px;}
       .zmf-sis-link:hover{background:#F4F7FF;color:#1A56DB;}
-      @media(max-width:480px){#zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}}
+
+      /* Avatar + Sair — sempre visíveis, sem precisar de abrir o menu (a
+         pedido: antes só estava disponível dentro do menu flutuante,
+         exigindo abrir o menu e só depois clicar em Sair). Empilhado por
+         cima do botão do menu, no MESMO canto inferior esquerdo (não no
+         canto superior direito) — várias destas páginas já têm o seu
+         próprio cabeçalho fixo a ocupar essa zona (logo, data, notificações,
+         etc.), e um elemento nosso ali por cima tapava parte desse
+         cabeçalho. O canto inferior esquerdo é a zona que o próprio botão
+         do menu (ver #zmf-btn acima) já usa há mais tempo sem esse problema. */
+      #zub-chip{position:fixed;left:16px;bottom:78px;z-index:2147483000;display:flex;align-items:center;gap:8px;
+        background:#fff;border:1px solid #E2E8F0;border-radius:100px;padding:5px 12px 5px 5px;cursor:pointer;
+        box-shadow:0 6px 18px rgba(13,27,62,.2);font-family:'Inter',Arial,sans-serif;max-width:calc(100vw - 32px);}
+      #zub-chip:hover{box-shadow:0 8px 22px rgba(13,27,62,.28);}
+      #zub-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;overflow:hidden;background:linear-gradient(135deg,#1A56DB,#22B8CF);
+        color:#fff;display:flex;align-items:center;justify-content:center;font-size:.66rem;font-weight:800;}
+      #zub-avatar img{width:100%;height:100%;object-fit:cover;}
+      #zub-nome{font-size:.76rem;font-weight:700;color:#0D1B3E;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      #zub-menu{position:fixed;left:16px;bottom:126px;z-index:2147483000;width:220px;background:#fff;border-radius:12px;
+        box-shadow:0 16px 40px rgba(13,27,62,.28);overflow:hidden;display:none;font-family:'Inter',Arial,sans-serif;}
+      #zub-menu.open{display:block;}
+      #zub-menu .zub-head{padding:12px 14px;border-bottom:1px solid #E2E8F0;}
+      #zub-menu .zub-head-nome{font-size:.82rem;font-weight:800;color:#0D1B3E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      #zub-menu .zub-head-email{font-size:.68rem;color:#94A3B8;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      #zub-menu a, #zub-menu button{display:flex;align-items:center;gap:9px;width:100%;padding:10px 14px;font-size:.8rem;font-weight:600;
+        color:#334155;text-decoration:none;background:none;border:none;font-family:inherit;text-align:left;cursor:pointer;}
+      #zub-menu a:hover, #zub-menu button:hover{background:#F4F7FF;color:#1A56DB;}
+      #zub-menu .zub-sair{color:#DC2626;border-top:1px solid #E2E8F0;}
+      #zub-menu .zub-sair:hover{background:#FEF2F2;color:#DC2626;}
+      @media(max-width:480px){
+        #zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}
+        #zub-chip{left:12px;bottom:70px;}
+        #zub-menu{left:12px;bottom:116px;}
+        #zub-nome{display:none;}
+        #zub-chip{padding:5px;}
+      }
     `;
     document.head.appendChild(style);
   }
@@ -327,9 +362,79 @@
     });
   }
 
+  var ICON_PERFIL = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+
+  // Avatar + "Sair" sempre visíveis (não escondidos dentro do menu) — lê
+  // nome/foto da sessionStorage, preenchida no login (index.html) ou em
+  // qualquer página protegida por zelo_pagegate.js. Não depende de nenhuma
+  // das duas ter corrido primeiro: se ainda não houver nada, mostra "?" e
+  // corrige sozinho assim que a sessão estiver pronta (evento zelo-gate-ready).
+  function iniciaisNome(nome){
+    return (nome || '?').trim().split(/\s+/).slice(0, 2).map(function(p){ return p[0]; }).join('').toUpperCase() || '?';
+  }
+
+  function montarChipUtilizador(){
+    if (document.getElementById('zub-chip')) return; // nunca duplicar
+
+    var chip = document.createElement('div');
+    chip.id = 'zub-chip';
+    chip.innerHTML = '<span id="zub-avatar">?</span><span id="zub-nome">Utilizador</span>';
+    document.body.appendChild(chip);
+
+    var temLogout = typeof window.zeloLogout === 'function';
+    var menu = document.createElement('div');
+    menu.id = 'zub-menu';
+    menu.innerHTML =
+      '<div class="zub-head"><div class="zub-head-nome" id="zub-menu-nome">Utilizador</div><div class="zub-head-email" id="zub-menu-email"></div></div>' +
+      '<a href="perfil.html">' + ICON_PERFIL + 'O meu perfil</a>' +
+      (temLogout ? '<button type="button" class="zub-sair" id="zub-sair">' + ICON_SAIR + 'Sair</button>' : '');
+    document.body.appendChild(menu);
+
+    function atualizar(){
+      var nome = sessionStorage.getItem('zeloNome') || 'Utilizador';
+      var email = sessionStorage.getItem('zeloEmail') || '';
+      var foto = sessionStorage.getItem('zeloFoto') || '';
+      var avatarEl = document.getElementById('zub-avatar');
+      if (foto) avatarEl.innerHTML = '<img src="' + foto + '" alt=""/>';
+      else avatarEl.textContent = iniciaisNome(nome);
+      var nomeEl = document.getElementById('zub-nome'); if (nomeEl) nomeEl.textContent = nome;
+      var menuNomeEl = document.getElementById('zub-menu-nome'); if (menuNomeEl) menuNomeEl.textContent = nome;
+      var menuEmailEl = document.getElementById('zub-menu-email'); if (menuEmailEl) menuEmailEl.textContent = email;
+    }
+    atualizar();
+    // zelo_pagegate.js dispara estes eventos assim que confirma a sessão — a
+    // leitura do perfil é assíncrona, por isso o primeiro atualizar() acima
+    // pode não ter tido ainda nome/foto disponíveis na sessionStorage.
+    // 'zelo-identity-ready' dispara sempre (inclui o ecrã de "sem permissão");
+    // 'zelo-gate-ready' só quando o acesso é concedido — ouvem-se os dois
+    // para cobrir também páginas mais antigas que só disparem um deles.
+    window.addEventListener('zelo-identity-ready', atualizar);
+    window.addEventListener('zelo-gate-ready', atualizar);
+    // Rede de segurança para as poucas páginas com o seu próprio ecrã de
+    // login completo (servicos.html, bancos_index.html, etc. — não passam
+    // por zelo_pagegate.js, por isso não disparam nenhum dos dois eventos
+    // acima) — sem isto, o chip podia ficar preso em "Utilizador"/"?" até
+    // um clique em qualquer sítio da página.
+    setTimeout(atualizar, 600);
+    setTimeout(atualizar, 1800);
+
+    function fecharMenu(){ menu.classList.remove('open'); }
+    chip.addEventListener('click', function(e){
+      e.stopPropagation();
+      menu.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e){
+      if (menu.classList.contains('open') && !menu.contains(e.target) && !chip.contains(e.target)) fecharMenu();
+    });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharMenu(); });
+    var sairBtn2 = document.getElementById('zub-sair');
+    if (sairBtn2) sairBtn2.addEventListener('click', function(){ window.zeloLogout(); });
+  }
+
   function iniciar(){
     injectarEstilos();
     montarPainel();
+    montarChipUtilizador();
   }
 
   if (document.readyState === 'loading'){

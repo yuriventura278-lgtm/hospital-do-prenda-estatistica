@@ -7,6 +7,27 @@ var embedded = window.self !== window.top;
 var resolvido = false;
 var stopInactivityWatch = null;
 
+// Disponibiliza "Sair" (usado pelo menu flutuante, zelo_menu_flutuante.js)
+// em QUALQUER página protegida por este ficheiro — antes, só as poucas
+// páginas com o seu próprio ecrã de login completo (index.html, servicos.html,
+// etc.) definiam window.zeloLogout, por isso a opção "Sair" do menu flutuante
+// ficava escondida (a condição `typeof window.zeloLogout === 'function'`
+// falhava) em todas as ~60 páginas de registo/procedimentos. Definida já aqui,
+// de forma síncrona e incondicional (não à espera de onAuthStateChanged, que é
+// assíncrono e podia só resolver depois do menu flutuante já ter decidido
+// escondê-la) para garantir que está pronta a tempo.
+window.zeloLogout = function () {
+  if (stopInactivityWatch) { stopInactivityWatch(); stopInactivityWatch = null; }
+  ['zeloRole', 'zeloNome', 'zeloEmail', 'zeloPermissoes', 'zeloFoto'].forEach(function (k) {
+    try { sessionStorage.removeItem(k); } catch (e) {}
+  });
+  signOut(auth).catch(function () {}).then(function () {
+    var alvo = embedded ? window.top : window;
+    try { alvo.location.replace('index.html'); }
+    catch (e) { window.location.replace('index.html'); }
+  });
+};
+
 // IDs dos banners fixos que este ficheiro pode mostrar no topo da página
 // (offline, modo só de leitura) — ambos position:fixed;top:0, com z-index
 // muito alto para ficarem sempre visíveis. Sem mais nada, isso tapava por
@@ -280,6 +301,20 @@ onAuthStateChanged(auth, async function (user) {
   sessionStorage.setItem('zeloNome', perfil.nome || user.email);
   sessionStorage.setItem('zeloEmail', user.email || '');
   sessionStorage.setItem('zeloPermissoes', JSON.stringify(perfil.permissoes || {}));
+  // Ver nota igual em index.html (completarLogin): sem o "else remove", um
+  // utilizador sem foto própria herdava a foto que tivesse ficado guardada
+  // neste aparelho da sessão anterior.
+  if (perfil.foto) sessionStorage.setItem('zeloFoto', perfil.foto);
+  else sessionStorage.removeItem('zeloFoto');
+  // Disparado sempre, mesmo quando o acesso ao módulo é bloqueado (ver
+  // showBlockedScreen) — ao contrário de 'zelo-gate-ready' (só quando o
+  // acesso é concedido), este é o sinal certo para quem só precisa de saber
+  // "a identidade da sessão já está disponível na sessionStorage" (ex.: o
+  // chip de avatar+Sair do menu flutuante, que deve aparecer com o nome/
+  // foto certos mesmo no ecrã de "sem permissão").
+  window.dispatchEvent(new CustomEvent('zelo-identity-ready', {
+    detail: { role: perfil.role || 'funcionario', nome: perfil.nome || user.email, email: user.email || '' }
+  }));
   aplicarAcesso(perfil.role || 'funcionario', perfil.permissoes || {}, user.uid, offline);
 });
 

@@ -94,7 +94,9 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
         <div class="avatar" id="avatarPreview">?</div>
         <div>
           <button type="button" class="btn-sm" id="uploadPhotoBtn">Carregar foto</button>
+          <button type="button" class="btn-sm" id="cameraPhotoBtn" style="margin-left:8px;">Tirar foto</button>
           <input type="file" id="photoInput" accept="image/*" style="display:none"/>
+          <input type="file" id="cameraInput" accept="image/*" capture="user" style="display:none"/>
           <div style="font-size:.68rem;color:var(--tx3);margin-top:6px;">JPG ou PNG, recomendado quadrado.</div>
         </div>
       </div>
@@ -194,10 +196,7 @@ function renderAvatar(nome, fotoDataUri){
   }
 }
 
-document.getElementById('uploadPhotoBtn').addEventListener('click', function(){
-  document.getElementById('photoInput').click();
-});
-document.getElementById('photoInput').addEventListener('change', function(e){
+function processarFotoSelecionada(e){
   const file = e.target.files[0];
   if(!file) return;
   const img = new Image();
@@ -217,7 +216,19 @@ document.getElementById('photoInput').addEventListener('change', function(e){
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
+  e.target.value = ''; // permite escolher/tirar a mesma foto outra vez sem o 'change' deixar de disparar
+}
+document.getElementById('uploadPhotoBtn').addEventListener('click', function(){
+  document.getElementById('photoInput').click();
 });
+document.getElementById('photoInput').addEventListener('change', processarFotoSelecionada);
+// "Tirar foto" — o atributo capture="user" abre diretamente a câmara (frontal)
+// em telemóveis/tablets; em computadores sem câmara reconhecida como tal, cai
+// para o mesmo seletor de ficheiros normal, por isso nunca fica sem alternativa.
+document.getElementById('cameraPhotoBtn').addEventListener('click', function(){
+  document.getElementById('cameraInput').click();
+});
+document.getElementById('cameraInput').addEventListener('change', processarFotoSelecionada);
 
 function renderActivity(activityObj){
   const entries = Object.values(activityObj || {});
