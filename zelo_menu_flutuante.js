@@ -86,14 +86,14 @@
 
       /* Avatar + Sair — sempre visíveis, sem precisar de abrir o menu (a
          pedido: antes só estava disponível dentro do menu flutuante,
-         exigindo abrir o menu e só depois clicar em Sair). Empilhado por
-         cima do botão do menu, no MESMO canto inferior esquerdo (não no
-         canto superior direito) — várias destas páginas já têm o seu
-         próprio cabeçalho fixo a ocupar essa zona (logo, data, notificações,
-         etc.), e um elemento nosso ali por cima tapava parte desse
-         cabeçalho. O canto inferior esquerdo é a zona que o próprio botão
-         do menu (ver #zmf-btn acima) já usa há mais tempo sem esse problema. */
-      #zub-chip{position:fixed;left:16px;bottom:78px;z-index:2147483000;display:flex;align-items:center;gap:8px;
+         exigindo abrir o menu e só depois clicar em Sair). Canto superior
+         direito, dentro/ao fundo do cabeçalho da própria página (a pedido —
+         antes estava no canto inferior esquerdo). A posição exata (o "top")
+         é calculada em JS, a partir da altura de um eventual cabeçalho fixo
+         já existente na página, para nunca ficar por cima dele — ver
+         posicionarChip(). Aqui só ficam left/right/z-index/aparência.
+      */
+      #zub-chip{position:fixed;top:10px;right:14px;z-index:2147483000;display:flex;align-items:center;gap:8px;
         background:#fff;border:1px solid #E2E8F0;border-radius:100px;padding:5px 12px 5px 5px;cursor:pointer;
         box-shadow:0 6px 18px rgba(13,27,62,.2);font-family:'Inter',Arial,sans-serif;max-width:calc(100vw - 32px);}
       #zub-chip:hover{box-shadow:0 8px 22px rgba(13,27,62,.28);}
@@ -101,7 +101,7 @@
         color:#fff;display:flex;align-items:center;justify-content:center;font-size:.66rem;font-weight:800;}
       #zub-avatar img{width:100%;height:100%;object-fit:cover;}
       #zub-nome{font-size:.76rem;font-weight:700;color:#0D1B3E;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-      #zub-menu{position:fixed;left:16px;bottom:126px;z-index:2147483000;width:220px;background:#fff;border-radius:12px;
+      #zub-menu{position:fixed;top:54px;right:14px;z-index:2147483000;width:220px;background:#fff;border-radius:12px;
         box-shadow:0 16px 40px rgba(13,27,62,.28);overflow:hidden;display:none;font-family:'Inter',Arial,sans-serif;}
       #zub-menu.open{display:block;}
       #zub-menu .zub-head{padding:12px 14px;border-bottom:1px solid #E2E8F0;}
@@ -114,10 +114,9 @@
       #zub-menu .zub-sair:hover{background:#FEF2F2;color:#DC2626;}
       @media(max-width:480px){
         #zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}
-        #zub-chip{left:12px;bottom:70px;}
-        #zub-menu{left:12px;bottom:116px;}
+        #zub-chip{right:10px;padding:5px;}
+        #zub-menu{right:10px;width:calc(100vw - 20px);max-width:280px;}
         #zub-nome{display:none;}
-        #zub-chip{padding:5px;}
       }
     `;
     document.head.appendChild(style);
@@ -389,6 +388,39 @@
       '<a href="perfil.html">' + ICON_PERFIL + 'O meu perfil</a>' +
       (temLogout ? '<button type="button" class="zub-sair" id="zub-sair">' + ICON_SAIR + 'Sair</button>' : '');
     document.body.appendChild(menu);
+
+    // Posiciona o chip abaixo de um eventual cabeçalho fixo que a própria
+    // página já tenha no topo (logo, data, notificações, etc.) — sem isto,
+    // o chip ficava sobreposto a esse cabeçalho em várias páginas mais
+    // "pesadas". Procura o maior elemento fixo colado ao topo (top<=2px,
+    // largura > metade do ecrã) que não seja um dos nossos próprios
+    // elementos, e usa a sua altura; se não encontrar nenhum, fica mesmo
+    // no canto (10px do topo), como pedido.
+    function posicionarChip(){
+      var alturaCabecalho = 0;
+      var candidatos = document.querySelectorAll('body *');
+      for (var i = 0; i < candidatos.length; i++){
+        var el = candidatos[i];
+        if (el === chip || el === menu || chip.contains(el) || menu.contains(el)) continue;
+        if (el.id === 'zmf-btn' || el.id === 'zmf-panel' || el.id === 'zmf-overlay') continue;
+        var estilo = window.getComputedStyle(el);
+        if (estilo.position !== 'fixed' || estilo.display === 'none') continue;
+        var rect = el.getBoundingClientRect();
+        if (rect.top > 2 || rect.width < window.innerWidth * 0.5 || rect.height < 20 || rect.height > 140) continue;
+        if (rect.height > alturaCabecalho) alturaCabecalho = rect.height;
+      }
+      // Fica logo abaixo do cabeçalho detectado (nunca por cima dele — esse
+      // cabeçalho costuma já ter os seus próprios elementos encostados à
+      // direita, como data/notificações); sem cabeçalho nenhum, fica mesmo
+      // a 10px do topo, no canto.
+      var topoChip = alturaCabecalho > 0 ? (alturaCabecalho + 8) : 10;
+      chip.style.top = topoChip + 'px';
+      menu.style.top = (topoChip + 44) + 'px';
+    }
+    posicionarChip();
+    setTimeout(posicionarChip, 500);
+    setTimeout(posicionarChip, 1500);
+    window.addEventListener('resize', posicionarChip);
 
     function atualizar(){
       var nome = sessionStorage.getItem('zeloNome') || 'Utilizador';
