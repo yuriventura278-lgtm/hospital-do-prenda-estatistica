@@ -506,7 +506,6 @@ const MODULES = [
     { slug: 'imagiologia_radiologia_geral', label: 'Imagiologia / Radiologia' },
     { slug: 'consulta_externa_geral', label: 'Consulta Externa' },
     { slug: 'controlo_faltas_gepedema', label: 'Controlo de Faltas (GEPEDEMA)' },
-    { slug: 'dias_cama_doente', label: 'Dias-Cama de Doente' },
     { slug: 'registo_hiv', label: 'Registo VIH' },
     { slug: 'hemoterapia', label: 'Hemoterapia' },
     { slug: 'farmacia_central', label: 'Farmácia Central' },
@@ -576,7 +575,7 @@ const MOD_INFO = {
 };
 // Páginas do Serviço de Estatística que só abrem para administradores
 // (window.ZELO_SO_ADMIN nessas páginas) — a caixa não teria efeito.
-const SO_ADMIN_PAGINAS = { 'Estatistica.html':1, 'procedimentos_enfermagem_geral.html':1, 'controlo_faltas_gepedema.html':1, 'dias_cama_doente.html':1, 'registo_hiv.html':1 };
+const SO_ADMIN_PAGINAS = { 'Estatistica.html':1, 'procedimentos_enfermagem_geral.html':1, 'controlo_faltas_gepedema.html':1, 'registo_hiv.html':1 };
 
 function construirArvorePermissoes(){
   const menu = window.SERVICOS_MENU || [];
@@ -606,7 +605,7 @@ function construirArvorePermissoes(){
       else no.itens.forEach(function(sv){ servicos.push({ nome: no.nome + ' › ' + sv.nome, paginas: acoes(sv) }); });
     });
     blocos.push({ grupo: 'Serviços', titulo: cat.label, icon: cat.icon, servicos: servicos,
-      nota: cat.id === 'servico_estatistica' ? 'Estatística, Procedimentos · Geral, Controlo de Faltas, Dias-Cama e Registo VIH só abrem para administradores.' : '' });
+      nota: cat.id === 'servico_estatistica' ? 'Estatística, Procedimentos · Geral, Controlo de Faltas e Registo VIH só abrem para administradores.' : '' });
   });
   // Páginas com permissão própria que já não estão no menu (sistemas antigos
   // ocultos) — continuam aqui para nenhuma permissão existente se perder.

@@ -185,7 +185,6 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Estatística', file: 'Estatistica.html', modulo: 'estatistica', item: null },
   { nome: 'Procedimentos de Enfermagem · Geral', file: 'procedimentos_enfermagem_geral.html', modulo: 'procedimentos_enfermagem', item: 'geral' },
   { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
-  { nome: 'Dias-Cama & Dias-Doente', file: 'dias_cama_doente.html', modulo: 'sistemas_independentes', item: 'dias_cama_doente' },
   { nome: 'Registo VIH · Geral', file: 'registo_hiv.html', modulo: 'sistemas_independentes', item: 'registo_hiv' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),
   // cada uma com a sua entrada, a seguir à Supervisão.

@@ -87,7 +87,6 @@
     'supervisao de maqueiros': 'Supervisão de Maqueiros', 'maqueiros': 'Supervisão de Maqueiros',
     'procedimentos de enfermagem geral': 'Procedimentos de Enfermagem · Geral',
     'controlo de faltas': 'Controlo de Faltas · GEPE/DEMA', 'gepe dema': 'Controlo de Faltas · GEPE/DEMA',
-    'dias cama': 'Dias-Cama & Dias-Doente', 'dias doente': 'Dias-Cama & Dias-Doente',
     'registo vih': 'Registo VIH · Geral', 'vih': 'Registo VIH · Geral', 'hiv': 'Registo VIH · Geral',
   };
   var APELIDOS_CHAVES = Object.keys(APELIDOS).sort(function (a, b) { return b.length - a.length; });
