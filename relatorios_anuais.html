@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-AO">
 <head>
+<script src="zelo_pdf.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='estatistica';</script>
 <script>window.ZELO_ITEM='relatorios_anuais';</script>
@@ -1064,67 +1065,37 @@ footer{text-align:center;padding:26px 20px 40px;color:#4d6089;font-family:var(--
     }catch(e){ _zeloLogoCache = null; }
     return _zeloLogoCache;
   }
-  async function renderEntryToPDF(doc, entry, year, y){
-    const marginX = 40;
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-
-    const _logo = _zeloLogoDataURL();
-    if(_logo){ try{ doc.addImage(_logo, 'PNG', pageW-marginX-26, y-20, 26, 26); }catch(e){} }
-    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(15,25,50);
-    const titleLines = doc.splitTextToSize(entry.legenda, pageW - marginX*2);
-    doc.text(titleLines, marginX, y);
-    y += titleLines.length*14 + 4;
-
-    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(110);
-    doc.text(`${entry.seccao}  ·  Hospital do Prenda  ·  Ano ${year}`, marginX, y);
-    y += 16;
+  // Uma tabela/gráfico do relatório, no modelo geral (zelo_pdf.js). Se
+  // "comTitulo", escreve a legenda como secção (no PDF do ano completo).
+  async function renderEntryToPDF(doc, entry, year, y, comTitulo){
+    const Z = window.ZeloPDF;
+    if(comTitulo) y = Z.secao(doc, y, entry.legenda);
+    y = Z.texto(doc, y + 1, '', `${entry.seccao} · Ano ${year}`);
 
     const kpis = computeDashboard(entry);
     if(kpis.length){
-      doc.setFontSize(8.5); doc.setTextColor(60);
-      const kpiLine = kpis.map(k=>`${k.label}: ${k.value}${k.sub?' ('+k.sub+')':''}`).join('    |    ');
-      const kpiLines = doc.splitTextToSize(kpiLine, pageW - marginX*2);
-      doc.text(kpiLines, marginX, y);
-      y += kpiLines.length*11 + 10;
+      for(let i=0;i<kpis.length;i+=4){
+        y = Z.indicadores(doc, y, kpis.slice(i,i+4).map(k=>[k.label + (k.sub?' ('+k.sub+')':''), k.value]));
+      }
+      y += 2;
     }
 
     const img = await renderChartOffscreen(entry);
     if(img){
-      const imgW = pageW - marginX*2;
-      const imgH = imgW * (480/900);
-      if(y + imgH > pageH - 60){ doc.addPage(); y = 40; }
-      doc.addImage(img, 'PNG', marginX, y, imgW, imgH);
-      y += imgH + 14;
+      const imgW = 182, imgH = imgW * (480/900);
+      y = Z.quebra(doc, y, imgH + 4);
+      doc.addImage(img, 'PNG', 14, y, imgW, imgH);
+      y += imgH + 5;
     }
 
     if(entry.tipo === 'tabela' && entry.cabecalho && entry.cabecalho.length){
-      doc.autoTable({
-        head: [entry.cabecalho],
-        body: entry.linhas,
-        startY: y,
-        margin: {left: marginX, right: marginX},
-        styles: {fontSize: 7, cellPadding: 3, textColor: [20,30,50]},
-        headStyles: {fillColor: [21,42,88], textColor: 255, fontSize: 7},
-        alternateRowStyles: {fillColor: [240,244,250]},
-        theme: 'grid',
-      });
-      y = doc.lastAutoTable.finalY + 14;
+      y = Z.autoTable(doc, Object.assign({ head: [entry.cabecalho], body: entry.linhas, startY: y },
+        Z.opcoesLarga(entry.cabecalho.length, 12))) + 2;
     }
 
-    if(entry.fonte){
-      if(y > pageH - 50){ doc.addPage(); y = 40; }
-      doc.setFontSize(8); doc.setTextColor(120);
-      doc.text(entry.fonte, marginX, y); y += 13;
-    }
+    if(entry.fonte) y = Z.texto(doc, y, 'Fonte', entry.fonte);
     if(entry.comentarios && entry.comentarios.length){
-      doc.setFontSize(9); doc.setTextColor(20,30,50);
-      for(const c of entry.comentarios){
-        const lines = doc.splitTextToSize(c, pageW - marginX*2);
-        if(y + lines.length*12 > pageH - 40){ doc.addPage(); y = 40; }
-        doc.text(lines, marginX, y);
-        y += lines.length*12 + 6;
-      }
+      for(const c of entry.comentarios) y = Z.texto(doc, y, '', c);
     }
     return y;
   }
@@ -1134,9 +1105,11 @@ footer{text-align:center;padding:26px 20px 40px;color:#4d6089;font-family:var(--
     if(!entry) return;
     showBusy('A gerar PDF da tabela…');
     try{
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({unit:'pt', format:'a4'});
-      await renderEntryToPDF(doc, entry, year, 44);
+      const Z = window.ZeloPDF;
+      const doc = Z.novo();
+      const y = Z.cabecalho(doc, 'Relatório Anual ' + year + ' — ' + entry.legenda, entry.seccao);
+      await renderEntryToPDF(doc, entry, year, y, false);
+      Z.rodape(doc);
       doc.save(`HP_${year}_${slug(entry.legenda)}.pdf`);
     } catch(err){
       alert('Não foi possível gerar o PDF: ' + err.message);
@@ -1149,24 +1122,21 @@ footer{text-align:center;padding:26px 20px 40px;color:#4d6089;font-family:var(--
     const d = DATA[year];
     showBusy(`A gerar PDF do relatório ${year}… (0/${d.entradas.length})`);
     try{
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({unit:'pt', format:'a4'});
-      const _pageW0 = doc.internal.pageSize.getWidth();
-      const _logo0 = _zeloLogoDataURL();
-      if(_logo0){ try{ doc.addImage(_logo0, 'PNG', _pageW0-40-46, 36, 46, 46); }catch(e){} }
-      doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(10,20,45);
-      doc.text('Hospital do Prenda', 40, 70);
-      doc.setFontSize(13); doc.setFont('helvetica','normal');
-      doc.text(`Relatório de Actividades — Secção de Estatística — Ano ${year}`, 40, 96);
-      doc.setFontSize(10); doc.setTextColor(110);
-      doc.text(`${d.entradas.length} tabelas/gráficos · ${d.indicadores.length} indicadores calculados`, 40, 116);
-      doc.text('Documento gerado a partir dos dados originais do relatório anual, sem valores alterados.', 40, 132);
+      const Z = window.ZeloPDF;
+      const doc = Z.novo();
+      let y = Z.cabecalho(doc, 'Relatório de Actividades — Ano ' + year,
+        `${d.entradas.length} tabelas/gráficos · ${d.indicadores.length} indicadores calculados`);
+      y = Z.texto(doc, y, '', 'Documento gerado a partir dos dados originais do relatório anual, sem valores alterados.');
+      y = Z.secao(doc, y, 'Índice');
+      y = Z.autoTable(doc, { startY: y, head: [['Nº', 'Tabela / gráfico', 'Secção']],
+        body: d.entradas.map((e,i)=>[i+1, e.legenda, e.seccao || '—']), columnStyles: {0:{halign:'center'}} });
 
       for(let i=0;i<d.entradas.length;i++){
         doc.addPage();
         showBusy(`A gerar PDF do relatório ${year}… (${i+1}/${d.entradas.length})`);
-        await renderEntryToPDF(doc, d.entradas[i], year, 44);
+        await renderEntryToPDF(doc, d.entradas[i], year, Z.TOPO_CONTINUACAO, true);
       }
+      Z.rodape(doc);
       doc.save(`HP_Relatorio_Anual_${year}.pdf`);
     } catch(err){
       alert('Não foi possível gerar o PDF do relatório: ' + err.message);

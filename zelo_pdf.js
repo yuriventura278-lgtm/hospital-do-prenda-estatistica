@@ -322,7 +322,13 @@
           }
           return soma;
         }
-        if (!denso && nCols && opts.horizontalPageBreak){
+        // Não cabe nem com a letra no mínimo → divide por colunas (em vez de
+        // partir palavras a meio).
+        if (!denso && nCols && !opts.horizontalPageBreak && opts.horizontalPageBreak !== false && somaMin(8, 6) > disponivel){
+          o.horizontalPageBreak = true;
+          if (o.horizontalPageBreakRepeat == null) o.horizontalPageBreakRepeat = 0;
+        }
+        if (!denso && nCols && o.horizontalPageBreak){
           // Tabela muito larga dividida por colunas em várias páginas: cada
           // coluna mantém a largura da sua palavra mais comprida.
           o.headStyles.fontSize = tam;
