@@ -77,7 +77,7 @@
   function quebra(d, y, alt){ var g = dims(d); if (y + (alt || 10) > g.FIM){ d.addPage(); return TOPO_CONTINUACAO; } return y; }
   function secao(d, y, txt){
     var g = dims(d);
-    y = quebra(d, y, 26); // o título nunca fica sozinho no fundo da página
+    y = quebra(d, y, 36); // o título nunca fica sozinho no fundo da página (fica com o início do conteúdo)
     d.setFillColor(NAVY3); d.roundedRect(g.M, y, g.CW, 9, 1.8, 1.8, 'F');
     d.setFillColor(CYAN); d.rect(g.M, y, 1.6, 9, 'F');
     d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(12);
@@ -200,6 +200,8 @@
   }
   function autoTable(d, opts){
     var o = opcoesAutoTable(d, opts);
+    // Cabeçalho da tabela nunca fica sozinho no fundo da página.
+    if (o.startY != null && o.startY + 22 > dims(d).FIM){ d.addPage(); o.startY = TOPO_CONTINUACAO; }
     if (typeof d.autoTable === 'function') d.autoTable(o);
     else if (window.jspdf && typeof window.jspdf.autoTable === 'function') window.jspdf.autoTable(d, o);
     return (d.lastAutoTable && d.lastAutoTable.finalY != null) ? d.lastAutoTable.finalY + 5 : (o.startY || 50);

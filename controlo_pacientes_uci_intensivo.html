@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_pdf.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZELO — Controlo de Pacientes — UCI</title>
@@ -3005,340 +3006,130 @@ function exportRelatorioPDF() {
   const taxaObitos = saidas.length ? (obitos / saidas.length * 100) : 0;
   const taxaTransf = saidas.length ? (transf / saidas.length * 100) : 0;
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const MARGIN = 24;
-  const HEADER_H = 95;
-  const FOOTER_H = 34;
-  const COR = [102, 126, 234];
-  const geradoEm = new Date().toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  // Modelo geral de PDF do ZELO (zelo_pdf.js) — horizontal, por as tabelas terem muitas colunas
+  const doc = ZeloPDF.novo({ orientation: 'landscape' });
+  const M = 14, CW = doc.internal.pageSize.getWidth() - 28;
+  const semDados = (yy, msg) => ZeloPDF.texto(doc, yy, '', msg);
 
-  // Cabeçalho — apenas desenhado na primeira página
-  function drawHeader() {
-    doc.setFillColor(COR[0], COR[1], COR[2]);
-    doc.rect(0, 0, pageW, HEADER_H, 'F');
-    doc.setFillColor(76, 96, 200);
-    doc.rect(0, HEADER_H - 5, pageW, 5, 'F');
+  let y = ZeloPDF.cabecalho(doc, 'Controlo de Pacientes — UCI', `Relatório ${tipoLabel} · Período: ${display}`);
 
-    const logoSize = 50, logoX = MARGIN, logoY = (HEADER_H - 5 - logoSize) / 2;
-    try {
-      doc.addImage(LOGO_HOSPITAL_BASE64, 'JPEG', logoX, logoY, logoSize, logoSize);
-    } catch (e) { console.warn('Não foi possível inserir o logótipo no PDF:', e); }
+  y = ZeloPDF.secao(doc, y, '1. Resumo do Período');
+  y = ZeloPDF.indicadores(doc, y, [
+    ['Entradas', entradas.length],
+    ['Saídas', saidas.length],
+    ['Altas', altas],
+    ['Óbitos (<48h: ' + obitos48 + ' · >48h: ' + obitosMais48 + ')', obitos],
+    ['Transferências', transf],
+    ['Permanência Média', saidas.length ? permanenciaMedia.toFixed(1) + ' dias' : '—']
+  ]);
 
-    const textX = logoX + logoSize + 16;
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.text('Hospital do Prenda', textX, logoY + 22);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11.5);
-    doc.text('ZELO — Sistema Estatístico e Gestão de Ocorrências · UCI', textX, logoY + 38);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13.5);
-    doc.text(`Relatório ${tipoLabel} de Controlo de Pacientes — ${display}`, textX, logoY + 56);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(225, 229, 252);
-    doc.text(`Gerado em ${geradoEm}`, pageW - MARGIN, 18, { align: 'right' });
-  }
-
-  // Rodapé — desenhado em todas as páginas
-  function drawFooter() {
-    doc.setDrawColor(222, 224, 235);
-    doc.setLineWidth(0.6);
-    doc.line(MARGIN, pageH - FOOTER_H, pageW - MARGIN, pageH - FOOTER_H);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(140, 140, 140);
-    doc.text('Hospital do Prenda — Serviço de Admissão e Arquivo Médico Estatístico · Sistema ZELO · Documento gerado automaticamente', MARGIN, pageH - 16);
-  }
-
-  const tableCommonOptions = {
-    margin: { left: MARGIN, right: MARGIN, top: 16, bottom: FOOTER_H + 10 },
-    styles: { fontSize: 8, cellPadding: 4, overflow: 'linebreak', valign: 'middle' },
-    headStyles: { fillColor: COR, textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
-    alternateRowStyles: { fillColor: [245, 247, 253] },
-    didDrawPage: drawFooter
-  };
-
-  // ---------- PÁGINA 1: cabeçalho + resumo estatístico + gráfico de distribuição ----------
-  drawHeader();
-  drawFooter();
-  let currentY = HEADER_H + 26;
-
-  const stats = [
-    { label: 'Entradas', value: entradas.length },
-    { label: 'Saídas', value: saidas.length },
-    { label: 'Altas', value: altas },
-    { label: 'Óbitos', value: obitos, sub: `<48h: ${obitos48}  |  ≥48h: ${obitosMais48}` },
-    { label: 'Transferências', value: transf },
-    { label: 'Permanência Média', value: saidas.length ? permanenciaMedia.toFixed(1) + ' d' : '—' }
-  ];
-  const statGap = 8;
-  const statW = (pageW - 2 * MARGIN - statGap * (stats.length - 1)) / stats.length;
-  stats.forEach((s, i) => {
-    const x = MARGIN + i * (statW + statGap);
-    doc.setDrawColor(226, 228, 240);
-    doc.setLineWidth(0.7);
-    doc.setFillColor(248, 249, 253);
-    doc.roundedRect(x, currentY, statW, 46, 4, 4, 'FD');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(110, 110, 120);
-    doc.text(s.label, x + 9, currentY + 16);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(19);
-    doc.setTextColor(COR[0], COR[1], COR[2]);
-    doc.text(String(s.value), x + 9, currentY + 36);
-    if (s.sub) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(140, 140, 150);
-      doc.text(s.sub, x + 9, currentY + 43);
-    }
-  });
-  currentY += 46 + 22;
-
-  // Distribuição das saídas: barra proporcional + legenda com percentagens (nada fica escondido em texto pequeno)
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11.5);
-  doc.setTextColor(50, 55, 70);
-  doc.text('Distribuição das Saídas no Período', MARGIN, currentY);
-  currentY += 12;
-
-  const barW = pageW - 2 * MARGIN;
-  const barH = 20;
+  y = ZeloPDF.secao(doc, y, '2. Distribuição das Saídas no Período');
   if (saidas.length > 0) {
     const segCores = { altas: [76, 175, 80], obitos: [244, 67, 54], transf: [255, 152, 0] };
-    const segs = [
-      { n: altas, cor: segCores.altas },
-      { n: obitos, cor: segCores.obitos },
-      { n: transf, cor: segCores.transf }
-    ];
-    let bx = MARGIN;
+    const segs = [ { n: altas, cor: segCores.altas }, { n: obitos, cor: segCores.obitos }, { n: transf, cor: segCores.transf } ];
+    let bx = M;
     segs.forEach(seg => {
-      const w = (seg.n / saidas.length) * barW;
-      if (w > 0) {
-        doc.setFillColor(seg.cor[0], seg.cor[1], seg.cor[2]);
-        doc.rect(bx, currentY, w, barH, 'F');
-      }
+      const w = (seg.n / saidas.length) * CW;
+      if (w > 0) { doc.setFillColor(seg.cor[0], seg.cor[1], seg.cor[2]); doc.rect(bx, y, w, 8, 'F'); }
       bx += w;
     });
-    doc.setDrawColor(226, 228, 240);
-    doc.rect(MARGIN, currentY, barW, barH, 'S');
-    currentY += barH + 14;
-
+    doc.setDrawColor(203, 213, 225); doc.rect(M, y, CW, 8, 'S');
+    y += 14;
     const legenda = [
       { cor: segCores.altas, label: `Altas — ${altas} (${taxaAltas.toFixed(1)}%)` },
-      { cor: segCores.obitos, label: `Óbitos — ${obitos} (${taxaObitos.toFixed(1)}%)  ·  <48h: ${obitos48}  ·  >48h: ${obitosMais48}` },
+      { cor: segCores.obitos, label: `Óbitos — ${obitos} (${taxaObitos.toFixed(1)}%) · <48h: ${obitos48} · >48h: ${obitosMais48}` },
       { cor: segCores.transf, label: `Transferências — ${transf} (${taxaTransf.toFixed(1)}%)` }
     ];
-    let lx = MARGIN;
+    let lx = M;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor(15, 23, 42);
     legenda.forEach(item => {
       doc.setFillColor(item.cor[0], item.cor[1], item.cor[2]);
-      doc.roundedRect(lx, currentY - 8, 9, 9, 2, 2, 'F');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(70, 70, 80);
-      doc.text(item.label, lx + 14, currentY);
-      lx += doc.getTextWidth(item.label) + 46;
+      doc.roundedRect(lx, y - 3.6, 4, 4, 0.8, 0.8, 'F');
+      doc.text(item.label, lx + 6, y);
+      lx += doc.getTextWidth(item.label) + 16;
     });
-    currentY += 26;
+    y += 9;
   } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(140, 140, 140);
-    doc.text('Sem saídas registadas neste período.', MARGIN, currentY + 4);
-    currentY += 26;
+    y = semDados(y, 'Sem saídas registadas neste período.');
   }
 
-  // ---------- TABELA: Entradas ----------
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11.5);
-  doc.setTextColor(50, 55, 70);
-  doc.text(`Entradas no Período (${entradas.length})`, MARGIN, currentY);
-  currentY += 10;
-
+  y = ZeloPDF.secao(doc, y, `3. Entradas no Período (${entradas.length})`);
   if (entradas.length > 0) {
-    const bodyEntrada = entradas.map(p => [p.n, p.nome, p.nup, p.idade, formatDate(p.dataEntrada), p.diagnostico, p.proveniencia || '—']);
-    doc.autoTable(Object.assign({}, tableCommonOptions, {
+    y = ZeloPDF.autoTable(doc, {
       head: [['N', 'Nome', 'NUP', 'Idade', 'Data Entrada', 'Diagnóstico', 'Proveniência']],
-      body: bodyEntrada,
-      startY: currentY
-    }));
-    currentY = doc.lastAutoTable.finalY + 24;
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(140, 140, 140);
-    doc.text('Sem entradas registadas neste período.', MARGIN, currentY + 12);
-    currentY += 30;
-  }
+      body: entradas.map(p => [p.n, p.nome, p.nup, p.idade, formatDate(p.dataEntrada), p.diagnostico, p.proveniencia || '—']),
+      startY: y
+    });
+  } else y = semDados(y, 'Sem entradas registadas neste período.');
 
-  // ---------- TABELA: Saídas ----------
-  if (currentY > pageH - FOOTER_H - 80) { doc.addPage(); drawFooter(); currentY = 26; }
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11.5);
-  doc.setTextColor(50, 55, 70);
-  doc.text(`Saídas no Período (${saidas.length})`, MARGIN, currentY);
-  currentY += 10;
-
+  y = ZeloPDF.secao(doc, y, `4. Saídas no Período (${saidas.length})`);
   if (saidas.length > 0) {
-    const bodySaida = saidas.map(p => [p.n, p.nome, p.nup, p.idade, formatDate(p.dataSaida), p.tipoSaida, p.subtipo || '—', daysBetween(p.dataEntrada, p.dataSaida) + ' d']);
-    doc.autoTable(Object.assign({}, tableCommonOptions, {
+    y = ZeloPDF.autoTable(doc, {
       head: [['N', 'Nome', 'NUP', 'Idade', 'Data Saída', 'Tipo', 'Detalhes / Classificação', 'Dias Internado']],
-      body: bodySaida,
-      startY: currentY,
+      body: saidas.map(p => [p.n, p.nome, p.nup, p.idade, formatDate(p.dataSaida), p.tipoSaida, p.subtipo || '—', daysBetween(p.dataEntrada, p.dataSaida) + ' d']),
+      startY: y,
       didParseCell: function (d) {
-        if (d.section === 'body' && d.column.dataKey === 5) {
+        if (d.section === 'body' && d.column.index === 5) {
           const v = d.cell.raw;
           if (v === 'Alta Vivo') d.cell.styles.textColor = [46, 125, 50];
           else if (v === 'Óbito') d.cell.styles.textColor = [198, 40, 40];
           else if (v === 'Transferência') d.cell.styles.textColor = [230, 81, 0];
         }
       }
-    }));
-    currentY = doc.lastAutoTable.finalY + 24;
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(140, 140, 140);
-    doc.text('Sem saídas registadas neste período.', MARGIN, currentY + 12);
-    currentY += 30;
-  }
+    });
+  } else y = semDados(y, 'Sem saídas registadas neste período.');
 
-  // ---------- TABELA: Internados no fim do período ----------
-  if (currentY > pageH - FOOTER_H - 80) { doc.addPage(); drawFooter(); currentY = 26; }
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11.5);
-  doc.setTextColor(50, 55, 70);
-  doc.text(`Pacientes que ficam no internamento (${internados.length})`, MARGIN, currentY);
-  currentY += 10;
-
+  y = ZeloPDF.secao(doc, y, `5. Pacientes que ficam no internamento (${internados.length})`);
   if (internados.length > 0) {
-    const bodyInternados = internados.map(p => [p.n, p.nome, p.nup, p.idade, formatDate(p.dataEntrada), p.diagnostico, p.proveniencia || '—', diasInternado(p) + ' d']);
-    doc.autoTable(Object.assign({}, tableCommonOptions, {
+    y = ZeloPDF.autoTable(doc, {
       head: [['N', 'Nome', 'NUP', 'Idade', 'Data Entrada', 'Diagnóstico', 'Proveniência', 'Dias Internado']],
-      body: bodyInternados,
-      startY: currentY
-    }));
-    currentY = doc.lastAutoTable.finalY + 10;
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(140, 140, 140);
-    doc.text('Nenhum paciente internado no fim deste período.', MARGIN, currentY + 12);
-  }
+      body: internados.map(p => [p.n, p.nome, p.nup, p.idade, formatDate(p.dataEntrada), p.diagnostico, p.proveniencia || '—', diasInternado(p) + ' d']),
+      startY: y
+    });
+  } else y = semDados(y, 'Nenhum paciente internado no fim deste período.');
 
-  // ---------- ANÁLISE: Diagnósticos e Frequência ----------
-  if (currentY > pageH - FOOTER_H - 80) { doc.addPage(); drawFooter(); currentY = 26; }
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11.5);
-  doc.setTextColor(50, 55, 70);
-  doc.text('Análise de Diagnósticos — Frequência', MARGIN, currentY);
-  currentY += 10;
-
-  // Agrupar e contar diagnósticos
+  // Diagnósticos (entradas + saídas do período, sem repetir o mesmo doente)
   const todosPacientes = entradas.length > 0 || saidas.length > 0 ? [...entradas, ...saidas.filter(s => !entradas.some(e => e.n === s.n))] : [];
   const diagnosticoCount = {};
-  todosPacientes.forEach(p => {
-    const diag = p.diagnostico || '—';
-    diagnosticoCount[diag] = (diagnosticoCount[diag] || 0) + 1;
-  });
-  
-  const diagnosticosSorted = Object.entries(diagnosticoCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20); // Top 20 diagnósticos
-
+  todosPacientes.forEach(p => { const diag = p.diagnostico || '—'; diagnosticoCount[diag] = (diagnosticoCount[diag] || 0) + 1; });
+  const diagnosticosSorted = Object.entries(diagnosticoCount).sort((a, b) => b[1] - a[1]).slice(0, 20);
+  y = ZeloPDF.secao(doc, y, '6. Análise de Diagnósticos — Frequência');
   if (diagnosticosSorted.length > 0) {
-    const bodyDiagnosticos = diagnosticosSorted.map(([diag, count]) => [diag, count.toString(), ((count / todosPacientes.length * 100).toFixed(1)) + '%']);
-    doc.autoTable(Object.assign({}, tableCommonOptions, {
+    y = ZeloPDF.autoTable(doc, {
       head: [['Diagnóstico', 'Frequência', 'Percentagem']],
-      body: bodyDiagnosticos,
-      startY: currentY,
+      body: diagnosticosSorted.map(([diag, count]) => [diag, count.toString(), ((count / todosPacientes.length * 100).toFixed(1)) + '%']),
+      startY: y,
       columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' } }
-    }));
-    currentY = doc.lastAutoTable.finalY + 24;
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(140, 140, 140);
-    doc.text('Sem dados de diagnósticos neste período.', MARGIN, currentY + 12);
-    currentY += 30;
-  }
+    });
+  } else y = semDados(y, 'Sem dados de diagnósticos neste período.');
 
-  // ---------- ANÁLISE: Óbitos por Faixa Etária ----------
-  if (currentY > pageH - FOOTER_H - 80) { doc.addPage(); drawFooter(); currentY = 26; }
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11.5);
-  doc.setTextColor(50, 55, 70);
-  doc.text('Análise de Óbitos — Por Faixa Etária', MARGIN, currentY);
-  currentY += 10;
-
-  // Óbitos agrupados por faixa etária
+  // Óbitos por faixa etária
   const obitosPorFaixa = {
-    '0-4 anos': { count: 0, obito48h: 0, obitoMais48h: 0 },
-    '5-9 anos': { count: 0, obito48h: 0, obitoMais48h: 0 },
-    '10-14 anos': { count: 0, obito48h: 0, obitoMais48h: 0 },
-    '15-24 anos': { count: 0, obito48h: 0, obitoMais48h: 0 },
-    '25-45 anos': { count: 0, obito48h: 0, obitoMais48h: 0 },
-    '46-64 anos': { count: 0, obito48h: 0, obitoMais48h: 0 },
+    '0-4 anos': { count: 0, obito48h: 0, obitoMais48h: 0 }, '5-9 anos': { count: 0, obito48h: 0, obitoMais48h: 0 },
+    '10-14 anos': { count: 0, obito48h: 0, obitoMais48h: 0 }, '15-24 anos': { count: 0, obito48h: 0, obitoMais48h: 0 },
+    '25-45 anos': { count: 0, obito48h: 0, obitoMais48h: 0 }, '46-64 anos': { count: 0, obito48h: 0, obitoMais48h: 0 },
     '65 e mais': { count: 0, obito48h: 0, obitoMais48h: 0 }
   };
-
   saidas.filter(p => p.tipoSaida === 'Óbito').forEach(p => {
     let faixa;
-    if (p.idade <= 4) faixa = '0-4 anos';
-    else if (p.idade <= 9) faixa = '5-9 anos';
-    else if (p.idade <= 14) faixa = '10-14 anos';
-    else if (p.idade <= 24) faixa = '15-24 anos';
-    else if (p.idade <= 45) faixa = '25-45 anos';
-    else if (p.idade <= 64) faixa = '46-64 anos';
-    else faixa = '65 e mais';
-    
+    if (p.idade <= 4) faixa = '0-4 anos'; else if (p.idade <= 9) faixa = '5-9 anos'; else if (p.idade <= 14) faixa = '10-14 anos';
+    else if (p.idade <= 24) faixa = '15-24 anos'; else if (p.idade <= 45) faixa = '25-45 anos'; else if (p.idade <= 64) faixa = '46-64 anos'; else faixa = '65 e mais';
     obitosPorFaixa[faixa].count++;
     if (p.subtipo === 'Óbito <48h') obitosPorFaixa[faixa].obito48h++;
     else if (p.subtipo === 'Óbito >48h') obitosPorFaixa[faixa].obitoMais48h++;
   });
-
-  const bodyObitosFaixa = Object.entries(obitosPorFaixa)
-    .filter(([_, data]) => data.count > 0)
-    .map(([faixa, data]) => [
-      faixa,
-      data.count.toString(),
-      data.obito48h.toString(),
-      data.obitoMais48h.toString(),
-      ((data.count / obitos * 100).toFixed(1)) + '%'
-    ]);
-
+  const bodyObitosFaixa = Object.entries(obitosPorFaixa).filter(([_, v]) => v.count > 0)
+    .map(([faixa, v]) => [faixa, v.count.toString(), v.obito48h.toString(), v.obitoMais48h.toString(), ((v.count / obitos * 100).toFixed(1)) + '%']);
+  y = ZeloPDF.secao(doc, y, '7. Análise de Óbitos — Por Faixa Etária');
   if (bodyObitosFaixa.length > 0) {
-    doc.autoTable(Object.assign({}, tableCommonOptions, {
+    y = ZeloPDF.autoTable(doc, {
       head: [['Faixa Etária', 'Total de Óbitos', 'Óbitos <48h', 'Óbitos >48h', '% do Total']],
-      body: bodyObitosFaixa,
-      startY: currentY,
+      body: bodyObitosFaixa, startY: y,
       columnStyles: { 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'center' } }
-    }));
-    currentY = doc.lastAutoTable.finalY + 24;
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(140, 140, 140);
-    doc.text('Sem óbitos registados neste período.', MARGIN, currentY + 12);
-    currentY += 30;
-  }
+    });
+  } else y = semDados(y, 'Sem óbitos registados neste período.');
 
-  // ---------- Numeração final de páginas (só é conhecida no fim) ----------
-  const totalPaginas = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= totalPaginas; i++) {
-    doc.setPage(i);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(225, 229, 252);
-    doc.text(`Página ${i} de ${totalPaginas}`, pageW - MARGIN, 32, { align: 'right' });
-  }
+  ZeloPDF.rodape(doc);
 
   const nomeArquivo = `Relatorio_${tipoLabel}_${display}`.replace(/[^\wÀ-ÿ]+/g, '_');
   doc.save(`${nomeArquivo}.pdf`);
