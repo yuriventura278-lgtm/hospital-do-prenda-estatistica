@@ -149,36 +149,29 @@
         flex-shrink:0;cursor:pointer;background:rgba(255,255,255,.1);border:1px solid rgba(148,163,184,.45);
         border-radius:100px;padding:5px 12px;font-family:'Inter',Arial,sans-serif;font-size:.74rem;font-weight:600;color:inherit;}
       #zub-sair-btn.zub-cabecalho:hover{background:rgba(220,38,38,.1);border-color:#DC2626;color:#DC2626;}
-      /* "Última alteração: <nome> às <hora>" — a informação toda numa etiqueta
-         amarela bem visível (legível em cabeçalhos claros e escuros); o nome
-         vai numa etiqueta branca dentro dela e a hora a negrito. As páginas
-         mostram/escondem o elemento com style.display — só o formato muda. */
+      /* "Última alteração: <nome> às <hora>" — uma etiqueta amarela compacta,
+         numa só linha (não empurra nem tapa os botões do cabeçalho); o nome e
+         a hora a negrito. As páginas mostram/escondem o elemento com
+         style.display — só o formato muda. */
       #last-saved-status:not([style*="display: none"]):not([style*="display:none"]){display:inline-flex !important;}
       /* Páginas que o mostram como bloco centrado (ex.: Consulta Externa): etiqueta ao centro. */
       #last-saved-status[style*="display: block"]:not([style*="display: none"]):not([style*="display:none"]),#last-saved-status[style*="display:block"]:not([style*="display: none"]):not([style*="display:none"]){display:flex !important;width:fit-content;margin-left:auto !important;margin-right:auto !important;}
-      #last-saved-status{align-items:center;gap:6px;margin:0 6px;padding:4px 5px 4px 10px !important;
-        background:#FEF3C7 !important;border:1.5px solid #F59E0B !important;border-radius:100px !important;
-        color:#7C2D12 !important;font-family:'Inter',Arial,sans-serif !important;font-size:12.5px !important;
-        font-weight:700 !important;letter-spacing:.1px;line-height:1.3;white-space:nowrap;
-        box-shadow:0 2px 8px rgba(245,158,11,.35);opacity:1 !important;}
-      #last-saved-status::before{content:'';width:14px;height:14px;flex-shrink:0;background:#B45309;
+      #last-saved-status{align-items:center;gap:5px;margin:0 6px;padding:2px 10px 2px 8px !important;
+        background:#FEF3C7 !important;border:1px solid #F59E0B !important;border-radius:100px !important;
+        color:#7C2D12 !important;font-family:'Inter',Arial,sans-serif !important;font-size:11px !important;
+        font-weight:600 !important;letter-spacing:0;line-height:1.5;white-space:nowrap !important;flex-wrap:nowrap !important;
+        max-width:100%;box-sizing:border-box;opacity:1 !important;}
+      #last-saved-status::before{content:'';width:11px;height:11px;flex-shrink:0;background:#B45309;
         -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E") center/contain no-repeat;}
       #last-saved-status > svg,#last-saved-status .svc-icon{display:none !important;}
-      #last-saved-name{display:inline-flex;align-items:center;gap:4px;margin:0 2px;padding:2px 9px 2px 7px;
-        border-radius:100px;background:#fff;border:1px solid #F59E0B;color:#7C2D12;
-        font-family:'Inter',Arial,sans-serif;font-size:13px;font-weight:800;letter-spacing:.1px;line-height:1.35;
-        white-space:nowrap;vertical-align:middle;}
-      #last-saved-name::before{content:'';width:12px;height:12px;flex-shrink:0;background:currentColor;
-        -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;}
-      #last-saved-time{font-weight:800;font-size:13.5px;color:#7C2D12;font-family:'IBM Plex Mono',ui-monospace,monospace;
-        background:#fff;border:1px solid #F59E0B;border-radius:100px;padding:1px 8px;}
+      #last-saved-status .lsc-label{font-size:inherit !important;letter-spacing:0 !important;text-transform:none !important;font-weight:600 !important;font-family:inherit !important;}
+      #last-saved-name{font-weight:800;color:#7C2D12;white-space:nowrap;}
+      #last-saved-time{font-weight:800;color:#7C2D12;font-variant-numeric:tabular-nums;white-space:nowrap;}
       html[data-zelo-theme="dark"] #last-saved-status{background:#3B2A06 !important;border-color:#F59E0B !important;color:#FDE68A !important;}
-      html[data-zelo-theme="dark"] #last-saved-name,html[data-zelo-theme="dark"] #last-saved-time{background:#1F1503;color:#FDE68A;}
+      html[data-zelo-theme="dark"] #last-saved-name,html[data-zelo-theme="dark"] #last-saved-time{color:#FDE68A;}
       /* Telemóvel: etiqueta "Última alteração" numa faixa própria, logo abaixo do cabeçalho. */
-      #zelo-ult-slot{display:flex;justify-content:center;padding:10px 12px 2px;box-sizing:border-box;width:100%;position:relative;z-index:5;}
-      #zelo-ult-slot #last-saved-status{margin:0 !important;max-width:100%;flex-wrap:wrap;justify-content:center;white-space:normal;row-gap:4px;}
-      #zelo-ult-slot #last-saved-status{font-size:11.5px !important;gap:4px;}
-      #zelo-ult-slot #last-saved-name{font-size:12px;} #zelo-ult-slot #last-saved-time{font-size:12.5px;}
+      #zelo-ult-slot{display:flex;justify-content:center;padding:8px 10px 4px;box-sizing:border-box;width:100%;position:relative;z-index:5;}
+      #zelo-ult-slot #last-saved-status{margin:0 !important;}
       @media(max-width:480px){
         #zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}
         #zub-sair-btn.zub-flutuante{right:10px;padding:9px;}
@@ -699,6 +692,12 @@
     slot.style.display = '';
     slot.appendChild(el);
     ultLargura(slot);
+    // Nunca fica por baixo de um cabeçalho fixo (seria tapada por ele).
+    if (pos === 'fixed'){
+      var topoAbs = slot.getBoundingClientRect().top + window.scrollY;
+      var fundoCab = h.getBoundingClientRect().bottom;
+      if (topoAbs < fundoCab + 2) slot.style.marginTop = Math.ceil(fundoCab - topoAbs + 4) + 'px';
+    }
   }
   // A faixa ocupa só a parte visível do ecrã (há páginas mais largas do que
   // o ecrã), para a etiqueta ficar centrada à vista.
