@@ -68,7 +68,6 @@
   .mov-btn-sel:hover{border-color:#3E5C87;color:#3E5C87;}
   .mov-btn-sel.danger:hover{border-color:#c0392b;color:#c0392b;}
   .mov-btn-sel[disabled]{opacity:.45;cursor:default;pointer-events:none;}
-  .mov-sel-hint{margin-left:auto;font-size:11.5px;color:#64748B;}
   .mov-row-chk,.mov-sel-all-chk{width:18px;height:18px;accent-color:#3E5C87;cursor:pointer;vertical-align:-3px;}
   .mov-row-chk{display:none;margin:0 10px 0 0;}
   .table-section.mov-sel-mode .mov-row-chk{display:inline-block;}
@@ -76,7 +75,11 @@
   .table-section.mov-sel-mode tr:has(.mov-row-chk:checked) .cell-input{border-color:#B9C6D9;}
 
   /* Barra de deslocamento horizontal (os dias do mês) */
-  .table-section .table-wrapper{scrollbar-width:auto;scrollbar-color:#9FB2CC #EEF2F6;}
+  /* Firefox usa as propriedades padrão; o Chrome/Edge usa ::-webkit-scrollbar
+     (se tiver as duas, o Chrome ignora o estilo personalizado). */
+  @supports not selector(::-webkit-scrollbar){
+    .table-section .table-wrapper,.mov-scroll-top-track{scrollbar-width:auto;scrollbar-color:#9FB2CC #EEF2F6;}
+  }
   .table-section .table-wrapper::-webkit-scrollbar,.mov-scroll-top-track::-webkit-scrollbar{height:14px;}
   .table-section .table-wrapper::-webkit-scrollbar-track,.mov-scroll-top-track::-webkit-scrollbar-track{background:#EEF2F6;border-radius:100px;}
   .table-section .table-wrapper::-webkit-scrollbar-thumb,.mov-scroll-top-track::-webkit-scrollbar-thumb{background:#9FB2CC;border-radius:100px;border:3px solid #EEF2F6;}
@@ -85,7 +88,7 @@
   .table-section .table-wrapper::-webkit-scrollbar-button,.mov-scroll-top-track::-webkit-scrollbar-button{display:none;width:0;height:0;}
   .mov-scroll-top{display:flex;align-items:center;gap:8px;margin:0 14px 8px;}
   .mov-scroll-top[hidden]{display:none;}
-  .mov-scroll-top-track{flex:1;overflow-x:auto;overflow-y:hidden;height:16px;scrollbar-width:auto;scrollbar-color:#9FB2CC #EEF2F6;}
+  .mov-scroll-top-track{flex:1;overflow-x:auto;overflow-y:hidden;height:16px;}
   .mov-scroll-top-inner{height:1px;}
   .mov-scroll-btn{flex-shrink:0;width:30px;height:30px;border-radius:50%;border:1px solid #E2E8F0;background:#fff;color:#3E5C87;
     display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,border-color .12s;}
@@ -481,8 +484,7 @@
       '<button type="button" class="mov-btn-sel mov-sel-only" data-mov="preenchidos">Selecionar preenchidos</button>' +
       '<button type="button" class="mov-btn-sel mov-sel-only" data-mov="copiar" id="mov-sel-copiar" disabled>Copiar</button>' +
       '<button type="button" class="mov-btn-sel mov-sel-only" data-mov="colar" id="mov-sel-colar" disabled>Colar</button>' +
-      '<button type="button" class="mov-btn-sel danger mov-sel-only" data-mov="eliminar" id="mov-sel-eliminar" disabled>Eliminar</button>' +
-      '<span class="mov-sel-hint">Setas para navegar · Shift+setas ou arrastar para selecionar · Ctrl+C / Ctrl+V · Delete · Ctrl+Z</span>';
+      '<button type="button" class="mov-btn-sel danger mov-sel-only" data-mov="eliminar" id="mov-sel-eliminar" disabled>Eliminar</button>';
     var header = s.querySelector('.table-header');
     if (header && header.nextSibling) s.insertBefore(bar, header.nextSibling); else s.insertBefore(bar, s.firstChild);
     bar.addEventListener('click', function(e){
