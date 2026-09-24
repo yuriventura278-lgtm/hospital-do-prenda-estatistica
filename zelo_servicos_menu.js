@@ -19,48 +19,38 @@
 // Imagiologia, por agora). Para os restantes, fica para uma fase seguinte.
 const SERVICOS_MENU = [
   { nome: 'Medicina Homem', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
-    relatorios: [], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_homem.html', modulo: 'procedimentos_enfermagem', item: 'medicina_homem' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'medicina_homem_movimento.html', modulo: 'movimento_mensal', item: 'medicina_homem' }] },
   { nome: 'Medicina Mulher', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
-    relatorios: [], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_mulher.html', modulo: 'procedimentos_enfermagem', item: 'medicina_mulher' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'medicina_mulher_movimento.html', modulo: 'movimento_mensal', item: 'medicina_mulher' }] },
-  // Controlo de Pacientes (internados, entradas, saídas, relatórios) — uma
-  // página por serviço de internamento.
-  { nome: 'Controlo de Pacientes', categoria: 'internamento', icon: 'users', cor: '#7C3AED',
-    relatorios: [
-      { label: 'Medicina Interna', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' },
-      { label: 'Cirurgia Geral', file: 'controlo_pacientes_cirurgia_geral.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_cirurgia_geral' },
-      { label: 'Orto-Traumatologia', file: 'controlo_pacientes_ortopedia.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_ortopedia' },
-      { label: 'Neurocirurgia', file: 'controlo_pacientes_neurocirurgia.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_neurocirurgia' },
-      { label: 'Maxilo-Facial', file: 'controlo_pacientes_maxilo_facial.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_maxilo_facial' },
-      { label: 'Nefrologia', file: 'controlo_pacientes_nefrologia.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_nefrologia' },
-      { label: 'UCI', file: 'controlo_pacientes_uci_intensivo.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_uci_intensivo' },
-      { label: 'Cuidados Intermédios', file: 'controlo_pacientes_uci_intermedio.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_uci_intermedio' },
-    ] },
   { nome: 'Cirurgia Geral', categoria: 'internamento', icon: 'stretcher', cor: '#DC2626',
-    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Cirurgia_Geral.html', modulo: 'servicos', item: 'cirurgia_geral' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_cirurgia_geral.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_cirurgia_geral' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Cirurgia_Geral.html', modulo: 'servicos', item: 'cirurgia_geral' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_cirurgia_geral.html', modulo: 'procedimentos_enfermagem', item: 'cirurgia_geral' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'cirurgia_geral_movimento.html', modulo: 'movimento_mensal', item: 'cirurgia_geral' }] },
   { nome: 'Orto-Traumatologia', categoria: 'internamento', icon: 'bone', cor: '#DC2626',
-    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Ortopedia.html', modulo: 'servicos', item: 'ortopedia' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_ortopedia.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_ortopedia' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Ortopedia.html', modulo: 'servicos', item: 'ortopedia' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_ortopedia.html', modulo: 'procedimentos_enfermagem', item: 'ortopedia' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'ortopedia_movimento.html', modulo: 'movimento_mensal', item: 'ortopedia' }] },
   { nome: 'Neurocirurgia', categoria: 'internamento', icon: 'brain', cor: '#DC2626',
-    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Neurocirurgia.html', modulo: 'servicos', item: 'neurocirurgia' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_neurocirurgia.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_neurocirurgia' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Neurocirurgia.html', modulo: 'servicos', item: 'neurocirurgia' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_neurocirurgia.html', modulo: 'procedimentos_enfermagem', item: 'neurocirurgia' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'neurocirurgia_movimento.html', modulo: 'movimento_mensal', item: 'neurocirurgia' }] },
   { nome: 'Maxilo-Facial', categoria: 'internamento', icon: 'jaw', cor: '#DC2626',
-    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Cirurgia_Maxilo_Facial.html', modulo: 'servicos', item: 'maxilo_facial' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_maxilo_facial.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_maxilo_facial' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Cirurgia_Maxilo_Facial.html', modulo: 'servicos', item: 'maxilo_facial' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_maxilo_facial.html', modulo: 'procedimentos_enfermagem', item: 'maxilo_facial' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'maxilo_facial_movimento.html', modulo: 'movimento_mensal', item: 'maxilo_facial' }] },
   { nome: 'Nefrologia', categoria: 'internamento', icon: 'droplet', cor: '#7C3AED',
-    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'Banco_Nefrologia_v2-1.html', modulo: 'servicos', item: 'nefrologia' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_nefrologia.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_nefrologia' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Banco_Nefrologia_v2-1.html', modulo: 'servicos', item: 'nefrologia' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_nefrologia.html', modulo: 'procedimentos_enfermagem', item: 'nefrologia' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'nefrologia_movimento.html', modulo: 'movimento_mensal', item: 'nefrologia' }] },
   { nome: 'UC Intermédio', categoria: 'internamento', icon: 'activity', cor: '#7C3AED',
-    relatorios: [], // oculto a pedido: { label: 'Relatório Diário', file: 'banco_uci_v1-3-1-1.html', modulo: 'servicos', item: 'uci_cuidados_intermedios' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [
+      { label: 'Controlo de Pacientes — UCI', file: 'controlo_pacientes_uci_intensivo.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_uci_intensivo' },
+      { label: 'Controlo de Pacientes — Cuidados Intermédios', file: 'controlo_pacientes_uci_intermedio.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_uci_intermedio' },
+    ], // oculto a pedido: { label: 'Relatório Diário', file: 'banco_uci_v1-3-1-1.html', modulo: 'servicos', item: 'uci_cuidados_intermedios' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_uci_cuidados_intermedios.html', modulo: 'procedimentos_enfermagem', item: 'uci_cuidados_intermedios' }],
     // Movimento Hospitalar tem dois botões aqui (a pedido): UCI (cuidados
     // intensivos) e Cuidados Intermédios são unidades distintas, cada uma
