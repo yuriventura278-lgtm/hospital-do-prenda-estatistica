@@ -284,6 +284,12 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .btn-out{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
 .btn-out:hover{border-color:var(--cyan-d);color:var(--cyan-d);background:#F5FAFF}
 .btn-err{background:#FEF2F2;color:var(--err);border:1.5px solid #FECACA}
+.btn[disabled]{opacity:.55;cursor:default}
+.apagar-dia-box{margin-top:16px;padding:12px 14px;border:1px dashed #FECACA;border-radius:10px;background:#FFFBFB}
+.apagar-dia-titulo{display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;color:var(--err)}
+.apagar-dia-desc{margin:4px 0 10px;font-size:12px;color:#5b6b78}
+.apagar-dia-row{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.apagar-dia-row > div{flex:1;min-width:160px}
 .btn-err:hover{background:#FEE2E2;border-color:#FCA5A5}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
 .actions .btn{flex:1;min-width:130px}
@@ -789,6 +795,14 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
             <div><label>Até</label><input type="date" id="h-ate"></div>
           </div>
           <button class="btn btn-navy small" id="btn-filtrar-historico">Filtrar</button>
+          <div class="apagar-dia-box">
+            <div class="apagar-dia-titulo"><svg class="svc-icon"><use href="#i-trash"/></svg>Apagar um dia inteiro</div>
+            <p class="apagar-dia-desc">Elimina todas as sessões desse dia (todas as especialidades), neste e nos outros dispositivos.</p>
+            <div class="apagar-dia-row">
+              <div><label for="h-apagar-dia">Dia</label><input type="date" id="h-apagar-dia"></div>
+              <button class="btn btn-err small" id="btn-apagar-dia" type="button">Apagar este dia</button>
+            </div>
+          </div>
         </div></div></div>
       </div>
       <div class="sec open">
@@ -890,7 +904,8 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
       <div class="sec open">
         <div class="sec-h"><span class="n"><svg class="svc-icon" style="width:14px;height:14px"><use href="#i-warning"/></svg></span><div class="htxt"><b>Zona de Risco</b></div></div>
         <div class="sec-b-wrap"><div class="sec-b-inner"><div class="sec-b">
-          <button class="btn btn-err small" id="btn-limpar-tudo"><svg class="svc-icon"><use href="#i-trash"/></svg>Apagar Todos os Dados</button>
+          <p class="field-hint" style="margin-bottom:10px;">Limpa apenas a cópia local deste dispositivo. Os registos sincronizados na nuvem mantêm-se e voltam a aparecer. Para eliminar definitivamente, use “Apagar” ou “Apagar um dia inteiro” no Histórico.</p>
+          <button class="btn btn-err small" id="btn-limpar-tudo"><svg class="svc-icon"><use href="#i-trash"/></svg>Limpar dados deste dispositivo</button>
         </div></div></div>
       </div>
     </div>
@@ -2722,9 +2737,26 @@ CE.Registo = (function(){
   async function _fbSyncConsultaExterna(data){
     if (typeof zeloQueueWrite !== 'function') return;
     try{
-      var sessoes = (await CE.Store.getAllSessoes()).filter(function(s){ return s.data === data; });
-      var savedAt = new Date().toISOString();
+      // Junta primeiro os tombstones que já estão no Firebase para este dia
+      // (com limite de 4s, para nunca atrasar uma gravação offline) — sem
+      // isto, um dispositivo com os dados do navegador limpos sobrescrevia-os
+      // com uma lista vazia e uma eliminação feita noutro lado perdia-se.
+      if (window.__fbGet){
+        try{
+          var atual = await Promise.race([
+            window.__fbGet('registos_sistemas_locais/consulta_externa/' + data),
+            new Promise(function(r){ setTimeout(function(){ r(null); }, 4000); })
+          ]);
+          if (atual && atual.snapshot && atual.snapshot.tombstones) _mesclarTombstonesCE(data, atual.snapshot.tombstones);
+        }catch(e){}
+      }
       var tombstonesDoDia = _lerTombstonesCE()[data] || {};
+      var sessoes = (await CE.Store.getAllSessoes()).filter(function(s){
+        if (s.data !== data) return false;
+        var t = tombstonesDoDia[s.especialidade];
+        return !(t !== undefined && t >= (s.createdAt||0));
+      });
+      var savedAt = new Date().toISOString();
       await zeloQueueWrite('registos_sistemas_locais/consulta_externa/' + data, {
         savedAt: savedAt,
         snapshot: { sessoes: sessoes, tombstones: tombstonesDoDia }
@@ -2815,8 +2847,11 @@ CE.Registo = (function(){
     var primeira = true;
     _fbCancelarEscuta = window.__fbListen('registos_sistemas_locais/consulta_externa/' + data, function(remoto){
       var savedAt = remoto && remoto.savedAt;
-      var sessoesRemotas = remoto && remoto.snapshot && remoto.snapshot.sessoes;
-      if (!savedAt || !sessoesRemotas){ primeira = false; return; }
+      // O Firebase não guarda listas vazias: quando a última sessão de um dia
+      // é eliminada, o snapshot chega sem "sessoes" (só com tombstones) — e
+      // tem de ser aplicado na mesma, senão a eliminação nunca chegava aqui.
+      var sessoesRemotas = (remoto && remoto.snapshot && remoto.snapshot.sessoes) || [];
+      if (!savedAt || !remoto.snapshot){ primeira = false; return; }
       if (savedAt === _fbBaselineSavedAt[data]){ primeira = false; return; }
       primeira = false;
       if (data !== (document.getElementById('f-data') && document.getElementById('f-data').value)) return;
@@ -2854,8 +2889,11 @@ CE.Registo = (function(){
         var locais = await CE.Store.getAllSessoes();
         for (var data in tudo){
           var remoto = tudo[data];
-          var sessoesRemotas = remoto && remoto.snapshot && remoto.snapshot.sessoes;
-          if (!sessoesRemotas || !sessoesRemotas.length) continue;
+          var sessoesRemotas = (remoto && remoto.snapshot && remoto.snapshot.sessoes) || [];
+          var tombstonesRemotos = remoto && remoto.snapshot && remoto.snapshot.tombstones;
+          // Um dia só com tombstones (todas as sessões eliminadas) também tem
+          // de ser aplicado — é o que remove esse dia do Histórico aqui.
+          if (!sessoesRemotas.length && !tombstonesRemotos) continue;
           if (remoto.savedAt === _fbBaselineSavedAt[data]) continue; // já é a nossa própria versão
           // Só aplica se for de facto mais recente do que o que já está
           // gravado localmente para este dia — evita apagar uma gravação
@@ -2865,7 +2903,7 @@ CE.Registo = (function(){
             .reduce(function(m, s){ return Math.max(m, s.createdAt||0); }, 0);
           var remotoMs = Date.parse(remoto.savedAt);
           if (isNaN(remotoMs) || remotoMs <= maisRecenteLocal) continue;
-          await _fbAplicarSessoesRemotas(data, sessoesRemotas, remoto.snapshot && remoto.snapshot.tombstones);
+          await _fbAplicarSessoesRemotas(data, sessoesRemotas, tombstonesRemotos);
           _fbBaselineSavedAt[data] = remoto.savedAt;
           locais = await CE.Store.getAllSessoes(); // refresca para a data seguinte comparar bem
         }
@@ -3120,10 +3158,47 @@ CE.Registo = (function(){
     window.zeloFalar(partes.join(' '));
   };
 
+  /* ---------- Eliminar sessões (uma, ou um dia inteiro) ----------
+     Único caminho para eliminar — usado pelo Histórico. Regista o tombstone
+     de cada especialidade+dia ANTES de apagar localmente, e só termina
+     depois de o Firebase ter sido actualizado para cada dia afectado, para
+     a eliminação chegar aos outros dispositivos e não "voltar" na próxima
+     sincronização. Se a sessão apagada estiver aberta no formulário de
+     registo, o formulário é limpo (sem isto, gravá-lo recriava-a). */
+  async function eliminarSessoes(lista){
+    var agora = Date.now();
+    var dias = {};
+    var especialidadeAberta = document.getElementById('f-especialidade').value;
+    var dataAberta = document.getElementById('f-data').value;
+    var abertaFoiApagada = false;
+    for (var i = 0; i < lista.length; i++){
+      var s = lista[i];
+      _registarTombstoneCE(s.data, s.especialidade, agora);
+      await CE.Store.deleteSessao(s.id);
+      dias[s.data] = true;
+      if (s.id === sessaoAtualId || (s.especialidade === especialidadeAberta && s.data === dataAberta)) abertaFoiApagada = true;
+    }
+    if (abertaFoiApagada){
+      sessaoAtualId = null;
+      clearDraft();
+      limparCamposMedicosEDoentes();
+      mostrarGate();
+      _esconderHoraGuardado();
+    }
+    var falhas = 0;
+    for (var d in dias){
+      try{ await _fbSyncConsultaExterna(d); }catch(e){ falhas++; console.warn('ZELO: falha ao propagar eliminação da Consulta Externa.', e); }
+    }
+    carregarCachePatologias();
+    if (CE.atualizarIndicadoresEspecialidades) CE.atualizarIndicadoresEspecialidades();
+    return { eliminadas: lista.length, falhasSync: falhas };
+  }
+
   return {
     init: init, lockEspecialidade: lockEspecialidade, unlockEspecialidade: unlockEspecialidade,
     abrirSessaoPorId: abrirSessaoPorId, guardarEspecialidadeDia: guardarEspecialidadeDia,
-    sincronizarTudo: _fbSincronizarTudo, documentoExportadoPorTxtAtual: _documentoExportadoPorTxtAtual
+    sincronizarTudo: _fbSincronizarTudo, documentoExportadoPorTxtAtual: _documentoExportadoPorTxtAtual,
+    eliminarSessoes: eliminarSessoes
   };
 })();
 
@@ -3508,10 +3583,19 @@ CE.Historico = (function(){
         var nMedicos = s && s.medicos ? s.medicos.length : 0;
         var resumo = s ? (s.especialidade + ' — ' + s.data + ' (' + nMedicos + ' médico(s), ' + nDoentes + ' doente(s))') : 'este registo';
         if (!confirm('Apagar ' + resumo + '? Esta ação elimina tudo (médicos, enfermeiras, doentes, procedimentos e material) e não pode ser desfeita.')) return;
-        if (s) _registarTombstoneCE(s.data, s.especialidade, Date.now());
-        await CE.Store.deleteSessao(sessaoId);
-        if (s) _fbSyncConsultaExterna(s.data).catch(function(e){ console.warn('ZELO: falha ao propagar eliminação da Consulta Externa.', e); });
-        toast('Registo apagado.');
+        btn.disabled = true;
+        try{
+          if (s){
+            var r = await CE.Registo.eliminarSessoes([s]);
+            toast(r.falhasSync ? 'Registo apagado neste dispositivo. Sem ligação: será propagado ao sincronizar.' : 'Registo apagado.');
+          } else {
+            await CE.Store.deleteSessao(sessaoId);
+            toast('Registo apagado.');
+          }
+        }catch(e){
+          console.error('ZELO: erro ao apagar registo da Consulta Externa.', e);
+          toast('Não foi possível apagar o registo.');
+        }
         refresh();
       });
     });
@@ -3606,6 +3690,33 @@ CE.Historico = (function(){
   function init(){
     fillEspecialidadeSelect();
     document.getElementById('btn-filtrar-historico').addEventListener('click', refresh);
+    document.getElementById('btn-apagar-dia').addEventListener('click', apagarDia);
+  }
+
+  async function apagarDia(){
+    var btn = document.getElementById('btn-apagar-dia');
+    var dia = document.getElementById('h-apagar-dia').value;
+    if (!dia){ toast('Escolha o dia a apagar.'); return; }
+    btn.disabled = true;
+    try{
+      await CE.Registo.sincronizarTudo();
+      var lista = (await CE.Store.getAllSessoes()).filter(function(s){ return s.data === dia; });
+      if (!lista.length){ toast('Não há registos em ' + dia + '.'); return; }
+      var esps = lista.map(function(s){ return s.especialidade; }).sort().join(', ');
+      if (!confirm('Apagar TODOS os registos de ' + dia + '?\n\n' + lista.length + ' especialidade(s): ' + esps +
+        '\n\nOs dados são eliminados neste e nos outros dispositivos e não podem ser recuperados.')) return;
+      var r = await CE.Registo.eliminarSessoes(lista);
+      toast(r.falhasSync
+        ? 'Dia ' + dia + ' apagado neste dispositivo. Sem ligação: será propagado ao sincronizar.'
+        : 'Dia ' + dia + ' apagado (' + r.eliminadas + ' registo(s)).');
+      document.getElementById('h-apagar-dia').value = '';
+    }catch(e){
+      console.error('ZELO: erro ao apagar o dia na Consulta Externa.', e);
+      toast('Não foi possível apagar o dia.');
+    }finally{
+      btn.disabled = false;
+    }
+    refresh();
   }
 
   return { init: init, refresh: refresh };
@@ -4297,7 +4408,7 @@ CE.Backup = (function(){
         if (s.totalDoentes != null) return a + s.totalDoentes;
         return a + registos.filter(function(r){ return r.sessaoId === s.id; }).length;
       }, 0);
-      if (!confirm('Esta ação apaga TODOS os dados guardados neste dispositivo: ' + sessoes.length + ' sessão(ões) e ' + totalDoentes + ' doente(s) registado(s). Não pode ser desfeita. Continuar?')) return;
+      if (!confirm('Esta ação apaga TODOS os dados guardados neste dispositivo: ' + sessoes.length + ' sessão(ões) e ' + totalDoentes + ' doente(s) registado(s).\n\nOs registos já sincronizados na nuvem NÃO são apagados e voltam a ser descarregados; o que ainda não foi sincronizado perde-se. Continuar?')) return;
       await CE.Store.clearAll();
       toast('Todos os dados foram apagados.');
       refreshStatus();
