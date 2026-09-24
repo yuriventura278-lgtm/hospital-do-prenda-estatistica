@@ -18,11 +18,11 @@
 // Estatísticas construída (confirmado por grep — só Bloco Operatório e
 // Imagiologia, por agora). Para os restantes, fica para uma fase seguinte.
 const SERVICOS_MENU = [
-  { nome: 'Medicina Homem', categoria: 'internamento', icon: 'heartbeat', cor: '#7C3AED',
+  { nome: 'Medicina Homem', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
     relatorios: [], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_homem.html', modulo: 'procedimentos_enfermagem', item: 'medicina_homem' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'medicina_homem_movimento.html', modulo: 'movimento_mensal', item: 'medicina_homem' }] },
-  { nome: 'Medicina Mulher', categoria: 'internamento', icon: 'heartbeat', cor: '#7C3AED',
+  { nome: 'Medicina Mulher', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
     relatorios: [], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_mulher.html', modulo: 'procedimentos_enfermagem', item: 'medicina_mulher' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'medicina_mulher_movimento.html', modulo: 'movimento_mensal', item: 'medicina_mulher' }] },
@@ -148,6 +148,23 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Secretaria Geral', file: 'secretaria_geral.html', modulo: 'sistemas_independentes', item: 'secretaria_geral', destaque: true },
 ];
 
+// Agrupa os serviços de uma categoria para os menus em árvore: serviços com
+// o mesmo "grupo" (ex.: Medicina Homem + Medicina Mulher → "Medicina Interna")
+// ficam num nó próprio, no lugar do primeiro deles, pela ordem da lista.
+// Devolve [{ tipo:'svc', svc }, { tipo:'grupo', nome, itens:[svc, ...] }, ...].
+function zeloAgruparServicos(itens){
+  var nos = [], grupos = {};
+  (itens || []).forEach(function(svc){
+    if (!svc.grupo){ nos.push({ tipo: 'svc', svc: svc }); return; }
+    if (!grupos[svc.grupo]){
+      grupos[svc.grupo] = { tipo: 'grupo', nome: svc.grupo, itens: [] };
+      nos.push(grupos[svc.grupo]);
+    }
+    grupos[svc.grupo].itens.push(svc);
+  });
+  return nos;
+}
+
 // Slug estável a partir do nome do serviço — usado como id do cartão em
 // servicos.html e como âncora (#svc-...) pelos atalhos do menu lateral em
 // index.html. Tem de ser a MESMA função nos dois ficheiros, daqui partilhada.
@@ -161,5 +178,6 @@ if (typeof window !== 'undefined') {
   window.SERVICOS_MENU = SERVICOS_MENU;
   window.CATEGORIAS_SERVICOS = CATEGORIAS_SERVICOS;
   window.zeloSlugifyServico = zeloSlugifyServico;
+  window.zeloAgruparServicos = zeloAgruparServicos;
   window.SISTEMAS_LOCAIS_MENU = SISTEMAS_LOCAIS_MENU;
 }

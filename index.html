@@ -297,6 +297,11 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   color:var(--bl);text-decoration:none;border-radius:8px;}
 .sb-action-link::before{content:'';width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0;}
 .sb-action-link:hover{background:var(--blxt);}
+/* Grupo dentro de uma categoria (ex.: Internamento › Medicina Interna › Medicina Homem) */
+.sb-grp-link{font-weight:700;color:var(--tx2);}
+.sb-action-list.sb-grp-list.open{max-height:900px;}
+.sb-svc-nested .sb-svc-link{padding-left:62px;}
+.sb-svc-nested .sb-action-link{padding-left:80px;}
 .sb-sis-link{display:block;padding:8px 6px 8px 30px;font-size:.76rem;color:var(--tx2);text-decoration:none;border-radius:9px;}
 .sb-sis-link:hover{background:var(--sf);color:var(--bl);}
 
@@ -1761,23 +1766,38 @@ function zeloConstruirArvoreServicos(){
       // é controlada pelo toggle da categoria (o único nível que existe aqui).
       svcHtml = acoesHtmlDe(acoesDoServico(itens[0]));
     } else {
-      svcHtml = itens.map(function(svc){
+      var CHEV_SVC = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+      var svcItemHtml = function(svc, aninhado){
         var slug = slugify(svc.nome);
         var acoes = acoesDoServico(svc);
         var acoesHtml = acoesHtmlDe(acoes);
         var temAcoes = acoes.length > 0;
-        return '<div class="sb-svc" data-svc-nome="' + svc.nome.replace(/"/g,'&quot;') + '">' +
+        return '<div class="sb-svc' + (aninhado ? ' sb-svc-nested' : '') + '" data-svc-nome="' + svc.nome.replace(/"/g,'&quot;') + '">' +
           '<div class="sb-svc-row">' +
             '<button type="button" class="sb-svc-link" data-svc-toggle="' + slug + '">' + svc.nome + '</button>' +
-            (temAcoes ? '<button type="button" class="sb-svc-toggle" data-svc-toggle="' + slug + '" aria-expanded="false" title="Acesso rápido"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' : '') +
+            (temAcoes ? '<button type="button" class="sb-svc-toggle" data-svc-toggle="' + slug + '" aria-expanded="false" title="Acesso rápido">' + CHEV_SVC + '</button>' : '') +
           '</div>' +
           (temAcoes ? '<div class="sb-action-list" data-svc-actions="' + slug + '">' + acoesHtml + '</div>' : '') +
+        '</div>';
+      };
+      // Serviços com "grupo" (ex.: Medicina Interna → Medicina Homem e
+      // Medicina Mulher) ficam num nível intermédio, que abre como os outros.
+      var agrupar = window.zeloAgruparServicos || function(l){ return l.map(function(sv){ return { tipo:'svc', svc:sv }; }); };
+      svcHtml = agrupar(itens).map(function(no){
+        if(no.tipo === 'svc') return svcItemHtml(no.svc, false);
+        var gslug = 'grp-' + slugify(no.nome);
+        return '<div class="sb-grp" data-grp-nome="' + no.nome.replace(/"/g,'&quot;') + '">' +
+          '<div class="sb-svc-row">' +
+            '<button type="button" class="sb-svc-link sb-grp-link" data-svc-toggle="' + gslug + '">' + no.nome + '</button>' +
+            '<button type="button" class="sb-svc-toggle" data-svc-toggle="' + gslug + '" aria-expanded="false" title="Mostrar serviços">' + CHEV_SVC + '</button>' +
+          '</div>' +
+          '<div class="sb-action-list sb-grp-list" data-svc-actions="' + gslug + '">' + no.itens.map(function(sv){ return svcItemHtml(sv, true); }).join('') + '</div>' +
         '</div>';
       }).join('');
     }
     html += '<div class="sb-cat" data-cat-id="' + cat.id + '"' + (itens.length === 1 ? ' data-cat-flat="1"' : '') + '>' +
       '<div class="sb-cat-row">' +
-        '<button type="button" class="sb-cat-link" data-cat-toggle="' + cat.id + '"><svg class="sb-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="sb-cat-count">' + itens.length + '</span></button>' +
+        '<button type="button" class="sb-cat-link" data-cat-toggle="' + cat.id + '"><svg class="sb-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="sb-cat-count">' + (window.zeloAgruparServicos ? window.zeloAgruparServicos(itens).length : itens.length) + '</span></button>' +
         '<button type="button" class="sb-cat-toggle" data-cat-toggle="' + cat.id + '" aria-expanded="false" title="Mostrar serviços"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' +
       '</div>' +
       '<div class="sb-svc-list" data-cat-list="' + cat.id + '">' + svcHtml + '</div>' +
@@ -1838,6 +1858,11 @@ function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){
       var visivel = !svc || zeloServicoTemAcessoVisivel(svc, role, permissoes);
       svcEl.style.display = visivel ? '' : 'none';
       if(visivel) algumVisivel = true;
+    });
+    // Um grupo (ex.: Medicina Interna) só aparece se tiver algum serviço visível.
+    catEl.querySelectorAll('.sb-grp').forEach(function(grpEl){
+      var algum = Array.prototype.some.call(grpEl.querySelectorAll('.sb-svc'), function(e){ return e.style.display !== 'none'; });
+      grpEl.style.display = algum ? '' : 'none';
     });
     catEl.style.display = algumVisivel ? '' : 'none';
   });

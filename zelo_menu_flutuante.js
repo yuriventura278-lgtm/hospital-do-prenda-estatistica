@@ -81,6 +81,10 @@
         color:#1A56DB;text-decoration:none;border-radius:8px;}
       .zmf-action-link::before{content:'';width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0;}
       .zmf-action-link:hover{background:#EFF6FF;}
+      .zmf-grp-link{font-weight:700;color:#334155;}
+      .zmf-action-list.zmf-grp-list.open{max-height:900px;}
+      .zmf-svc-nested .zmf-svc-link{padding-left:62px;}
+      .zmf-svc-nested .zmf-action-link{padding-left:80px;}
       .zmf-sis-link{display:block;padding:8px 10px 8px 30px;font-size:.78rem;color:#334155;text-decoration:none;border-radius:9px;}
       .zmf-sis-link:hover{background:#F4F7FF;color:#1A56DB;}
 
@@ -183,25 +187,39 @@
           return '<a class="zmf-action-link" href="' + a.href + '">' + a.label + '</a>';
         }).join('');
       } else {
-        svcHtml = visiveisCat.map(function(svc){
+        var svcItemHtml = function(svc, aninhado){
           var s = slug(svc.nome);
           var acoes = acoesDoServico(svc);
           var acoesHtml = acoes.map(function(a){
             return '<a class="zmf-action-link" href="' + a.href + '">' + a.label + '</a>';
           }).join('');
           var temAcoes = acoes.length > 0;
-          return '<div class="zmf-svc" data-zmf-nome="' + svc.nome.toLowerCase() + '">' +
+          return '<div class="zmf-svc' + (aninhado ? ' zmf-svc-nested' : '') + '" data-zmf-nome="' + svc.nome.toLowerCase() + '">' +
             '<div class="zmf-svc-row">' +
               '<button type="button" class="zmf-svc-link" data-zmf-svc-toggle="' + s + '">' + svc.nome + '</button>' +
               (temAcoes ? '<button type="button" class="zmf-svc-toggle" data-zmf-svc-toggle="' + s + '" aria-expanded="false">' + ICON_CHEV + '</button>' : '') +
             '</div>' +
             (temAcoes ? '<div class="zmf-action-list" data-zmf-svc-actions="' + s + '">' + acoesHtml + '</div>' : '') +
           '</div>';
+        };
+        // Serviços com "grupo" (ex.: Medicina Interna → Medicina Homem e
+        // Medicina Mulher) ficam num nível intermédio dentro da categoria.
+        var agrupar = window.zeloAgruparServicos || function(l){ return l.map(function(sv){ return { tipo:'svc', svc:sv }; }); };
+        svcHtml = agrupar(visiveisCat).map(function(no){
+          if(no.tipo === 'svc') return svcItemHtml(no.svc, false);
+          var g = 'grp-' + slug(no.nome);
+          return '<div class="zmf-svc zmf-grp">' +
+            '<div class="zmf-svc-row">' +
+              '<button type="button" class="zmf-svc-link zmf-grp-link" data-zmf-svc-toggle="' + g + '">' + no.nome + '</button>' +
+              '<button type="button" class="zmf-svc-toggle" data-zmf-svc-toggle="' + g + '" aria-expanded="false">' + ICON_CHEV + '</button>' +
+            '</div>' +
+            '<div class="zmf-action-list zmf-grp-list" data-zmf-svc-actions="' + g + '">' + no.itens.map(function(sv){ return svcItemHtml(sv, true); }).join('') + '</div>' +
+          '</div>';
         }).join('');
       }
       html += '<div class="zmf-cat" data-zmf-cat="' + cat.id + '">' +
         '<div class="zmf-cat-row">' +
-          '<button type="button" class="zmf-cat-link" data-zmf-cat-toggle="' + cat.id + '"><svg class="zmf-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="zmf-cat-count">' + visiveisCat.length + '</span></button>' +
+          '<button type="button" class="zmf-cat-link" data-zmf-cat-toggle="' + cat.id + '"><svg class="zmf-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="zmf-cat-count">' + (window.zeloAgruparServicos ? window.zeloAgruparServicos(visiveisCat).length : visiveisCat.length) + '</span></button>' +
           '<button type="button" class="zmf-toggle" data-zmf-cat-toggle="' + cat.id + '" aria-expanded="false">' + ICON_CHEV + '</button>' +
         '</div>' +
         '<div class="zmf-subtree" data-zmf-cat-list="' + cat.id + '">' + svcHtml + '</div>' +
