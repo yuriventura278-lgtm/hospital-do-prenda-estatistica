@@ -76,6 +76,9 @@ const SERVICOS_MENU = [
     relatorios: [{ label: 'Relatório Diário', file: 'Oftalmologia.html', modulo: 'servicos', item: 'oftalmologia' }] },
   { nome: 'Otorrinolaringologia', categoria: 'otorrinolaringologia', icon: 'ear', cor: '#DC2626',
     relatorios: [{ label: 'Relatório Diário', file: 'Otorrinolaringologia.html', modulo: 'servicos', item: 'otorrinolaringologia' }] },
+  // Em construção (como a Supervisão): a página mostra "Em construção".
+  { nome: 'Estomatologia', categoria: 'estomatologia', icon: 'tooth', cor: '#0891B2', wip: true,
+    relatorios: [{ label: 'Relatório Diário', file: 'Estomatologia.html', modulo: 'servicos', item: 'estomatologia' }] },
   { nome: 'Consulta Externa', categoria: 'consulta_externa', icon: 'door', cor: '#059669',
     relatorios: [
       // oculto a pedido: { label: 'Relatório Diário', file: 'Consulta_Externa-2.html', modulo: 'servicos', item: 'consulta_externa' } — sistema antigo do "banco", descomentar para restaurar
@@ -140,6 +143,8 @@ const CATEGORIAS_SERVICOS = [
     icon: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>' },
   { id: 'otorrinolaringologia', label: 'Otorrinolaringologia',
     icon: '<path d="M6 8.5a6.5 6.5 0 1 1 13 0c0 6-6 6-6 10a3.5 3.5 0 1 1-7 0"/><path d="M15 8.5a2.5 2.5 0 0 0-5 0v1a2 2 0 1 0 0 4"/>' },
+  { id: 'estomatologia', label: 'Estomatologia',
+    icon: '<path d="M7 3c-2.2 0-3.5 1.9-3.5 4.5 0 3 1 6 2 9.5.4 1.4 1 2 1.7 2s1-1.3 1.3-3c.3-1.6.7-2.5 1.5-2.5s1.2.9 1.5 2.5c.3 1.7.6 3 1.3 3s1.3-.6 1.7-2c1-3.5 2-6.5 2-9.5C17.5 4.9 16.2 3 14 3c-1.4 0-2.2.8-3.5.8S8.4 3 7 3z"/>' },
   { id: 'hospital_dia', label: 'Hospital de Dia',
     icon: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>' },
   { id: 'fisioterapia', label: 'Fisioterapia',
@@ -162,6 +167,9 @@ const CATEGORIAS_SERVICOS = [
     icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>' },
   { id: 'reprografia', label: 'Reprografia',
     icon: '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>' },
+  // Último dentro de Serviços (só administradores — ver SISTEMAS_LOCAIS_MENU).
+  { id: 'servico_estatistica', label: 'Serviço de Estatística',
+    icon: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>' },
   { id: 'outros', label: 'Outros',
     icon: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>' },
 ];
@@ -182,6 +190,14 @@ const SISTEMAS_LOCAIS_MENU = [
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),
   // cada uma com a sua entrada, a seguir à Supervisão.
 ];
+
+// O Serviço de Estatística aparece dentro de Serviços, em último lugar, com
+// estas páginas como links directos. soAdmin: quem não é administrador vê o
+// link mas, ao clicar, recebe a mensagem de sem permissão.
+SERVICOS_MENU.push({ nome: ZELO_SERVICO_ESTATISTICA, categoria: 'servico_estatistica', icon: 'chart', cor: '#1E3A8A',
+  relatorios: SISTEMAS_LOCAIS_MENU.map(function(s){
+    return { label: s.nome, file: s.file, modulo: s.modulo, item: s.item, soAdmin: true };
+  }) });
 
 // Agrupa os serviços de uma categoria para os menus em árvore: serviços com
 // o mesmo "grupo" (ex.: Medicina Homem + Medicina Mulher → "Medicina Interna")

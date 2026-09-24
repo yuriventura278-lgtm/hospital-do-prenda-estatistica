@@ -232,11 +232,11 @@
       function acoesDoServico(svc){
         var acoes = [];
         (svc.relatorios||[]).concat(svc.procedimentos||[], svc.movimento||[]).forEach(function(a){
-          acoes.push({ label: a.label, href: a.file, modulo: a.modulo, item: a.item });
+          acoes.push({ label: a.label, href: a.file, modulo: a.modulo, item: a.item, soAdmin: a.soAdmin });
         });
         return acoes;
       }
-      function attrsAcesso(a){ return (a.modulo ? ' data-modulo="' + a.modulo + '"' : '') + (a.item ? ' data-item="' + a.item + '"' : ''); }
+      function attrsAcesso(a){ return (a.modulo ? ' data-modulo="' + a.modulo + '"' : '') + (a.item ? ' data-item="' + a.item + '"' : '') + (a.soAdmin ? ' data-so-admin="1"' : ''); }
       // Quando a categoria só tem um serviço, mostrar as suas ligações
       // directamente sob a categoria -- caso contrário fica um nível extra
       // ("Bloco Operatório" > "Bloco Operatório" > Relatório Diário) que
@@ -361,14 +361,7 @@
           </div>
           <div class="zmf-subtree" id="zmf-servicos-tree">${construirArvoreServicos()}</div>
         </div>
-        ${temSistemasLocais ? `
-        <div class="zmf-group">
-          <div class="zmf-parent-row">
-            <button type="button" class="zmf-link" id="zmf-sistemas-label" style="flex:1;"><span class="zmf-ic">${ICON_STATS}</span>Serviço de Estatística</button>
-            <button type="button" class="zmf-toggle" id="zmf-sistemas-toggle" aria-expanded="false">${ICON_CHEV}</button>
-          </div>
-          <div class="zmf-subtree" id="zmf-sistemas-tree">${sistemasLocaisHtml}</div>
-        </div>` : ''}
+        <!-- O Serviço de Estatística está dentro de Serviços, em último lugar. -->
         ${destaquesHtml}
         <div class="zmf-section-label">Sistema</div>
         <div class="zmf-group">
@@ -421,9 +414,7 @@
     panel.querySelector('#zmf-servicos-tree').classList.add('open');
     var tgSvc = panel.querySelector('#zmf-servicos-toggle');
     tgSvc.classList.add('open'); tgSvc.setAttribute('aria-expanded', 'true');
-    if (temSistemasLocais) {
-      alternarSubtree('zmf-sistemas-label', 'zmf-sistemas-toggle', 'zmf-sistemas-tree');
-    }
+
 
     ligarAlternador(panel, '[data-zmf-cat-toggle]', 'data-zmf-cat-toggle', 'data-zmf-cat-list');
     ligarAlternador(panel, '[data-zmf-svc-toggle]', 'data-zmf-svc-toggle', 'data-zmf-svc-actions');

@@ -457,6 +457,7 @@ const MODULES = [
     { slug: 'maxilo_facial', label: 'Cirurgia Maxilo-Facial' },
     { slug: 'oftalmologia', label: 'Oftalmologia' },
     { slug: 'otorrinolaringologia', label: 'Otorrinolaringologia' },
+    { slug: 'estomatologia', label: 'Estomatologia' },
     { slug: 'bloco_operatorio', label: 'Bloco Operatório' },
     { slug: 'medicina_interna', label: 'Medicina Interna' },
     { slug: 'nefrologia', label: 'Nefrologia' },
@@ -582,8 +583,19 @@ function construirArvorePermissoes(){
   const cats = window.CATEGORIAS_SERVICOS || [];
   const agrupar = window.zeloAgruparServicos || function(l){ return l.map(function(s){ return { tipo:'svc', svc:s }; }); };
   const usados = {};
-  const pag = function(a){ if(a.modulo && a.item) usados[a.modulo + '|' + a.item] = true; return { label: a.label, file: a.file, modulo: a.modulo, item: a.item || null }; };
-  const acoes = function(svc){ return (svc.relatorios||[]).concat(svc.procedimentos||[], svc.movimento||[]).map(pag); };
+  const pag = function(a){ if(a.modulo && a.item) usados[a.modulo + '|' + a.item] = true; return { label: a.label, file: a.file, modulo: a.modulo, item: a.item || null, soAdmin: !!SO_ADMIN_PAGINAS[a.file] }; };
+  const acoes = function(svc){
+    const lista = [];
+    (svc.relatorios||[]).concat(svc.procedimentos||[], svc.movimento||[]).forEach(function(a){
+      lista.push(pag(a));
+      // Base de Dados e Relatórios Anuais abrem-se a partir da Estatística.
+      if(a.file === 'Estatistica.html'){
+        lista.push(pag({ label: 'Estatística › Base de Dados', file: 'base_dados.html', modulo: 'estatistica', item: 'base_dados' }));
+        lista.push(pag({ label: 'Estatística › Relatórios Anuais', file: 'relatorios_anuais.html', modulo: 'estatistica', item: 'relatorios_anuais' }));
+      }
+    });
+    return lista;
+  };
   const blocos = [];
   cats.forEach(function(cat){
     const itens = menu.filter(function(s){ return (cats.some(function(c){ return c.id === s.categoria; }) ? s.categoria : 'outros') === cat.id; });
@@ -593,21 +605,9 @@ function construirArvorePermissoes(){
       if(no.tipo === 'svc') servicos.push({ nome: no.svc.nome, paginas: acoes(no.svc) });
       else no.itens.forEach(function(sv){ servicos.push({ nome: no.nome + ' › ' + sv.nome, paginas: acoes(sv) }); });
     });
-    blocos.push({ grupo: 'Serviços', titulo: cat.label, icon: cat.icon, servicos: servicos });
+    blocos.push({ grupo: 'Serviços', titulo: cat.label, icon: cat.icon, servicos: servicos,
+      nota: cat.id === 'servico_estatistica' ? 'Estatística, Procedimentos · Geral, Controlo de Faltas, Dias-Cama e Registo VIH só abrem para administradores.' : '' });
   });
-  // Serviço de Estatística
-  const estat = [];
-  (window.SISTEMAS_LOCAIS_MENU || []).forEach(function(s){
-    const p = pag({ label: s.nome, file: s.file, modulo: s.modulo, item: s.item });
-    p.soAdmin = !!SO_ADMIN_PAGINAS[s.file];
-    estat.push(p);
-    if(s.file === 'Estatistica.html'){
-      estat.push(pag({ label: 'Estatística › Base de Dados', file: 'base_dados.html', modulo: 'estatistica', item: 'base_dados' }));
-      estat.push(pag({ label: 'Estatística › Relatórios Anuais', file: 'relatorios_anuais.html', modulo: 'estatistica', item: 'relatorios_anuais' }));
-    }
-  });
-  blocos.push({ grupo: 'Serviço de Estatística', titulo: 'Serviço de Estatística', icon: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>', servicos: [{ nome: '', paginas: estat }],
-    nota: 'Estatística, Procedimentos · Geral, Controlo de Faltas, Dias-Cama e Registo VIH só abrem para administradores.' });
   // Páginas com permissão própria que já não estão no menu (sistemas antigos
   // ocultos) — continuam aqui para nenhuma permissão existente se perder.
   const fora = [];
