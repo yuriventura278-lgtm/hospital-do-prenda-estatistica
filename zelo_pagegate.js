@@ -113,6 +113,11 @@ function aplicarModoLeitura(){
 
 function aplicarAcesso(role, permissoes, uid, offline){
   resolvido = true;
+  // Páginas do Serviço de Estatística: só administradores.
+  if (window.ZELO_SO_ADMIN && role !== 'admin') {
+    showBlockedScreen(role, permissoes, true);
+    return;
+  }
   if (moduleKey && !hasModuleAccess(role, permissoes || {}, moduleKey, itemKey)) {
     showBlockedScreen(role, permissoes);
     return;
@@ -240,7 +245,7 @@ function showSlowConnectionScreen(){
   document.getElementById('zelo-gate-retry').addEventListener('click', function(){ window.location.reload(); });
 }
 
-function showBlockedScreen(role, permissoes){
+function showBlockedScreen(role, permissoes, soAdmin){
   document.documentElement.style.visibility = 'visible';
   // Diagnóstico temporário (visível só neste ecrã de bloqueio, não afeta o
   // resto da app): mostra exatamente o que foi lido do perfil, para se
@@ -254,8 +259,8 @@ function showBlockedScreen(role, permissoes){
       '<div style="width:56px;height:56px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">' +
         '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
       '</div>' +
-      '<div style="font-size:1.05rem;font-weight:700;color:#0D1B3E;margin-bottom:8px;">Sem permissão de acesso</div>' +
-      '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:22px;">Não tem permissão para entrar neste serviço ou página. Contacte os administradores do ZELO.</div>' +
+      '<div style="font-size:1.05rem;font-weight:700;color:#0D1B3E;margin-bottom:8px;">' + (soAdmin ? 'Acesso só para administradores' : 'Sem permissão de acesso') + '</div>' +
+      '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:22px;">' + (soAdmin ? 'Esta página faz parte do Serviço de Estatística e está disponível apenas para administradores do ZELO.' : 'Não tem permissão para entrar neste serviço ou página. Contacte os administradores do ZELO.') + '</div>' +
       '<div style="font-size:.68rem;color:#94A3B8;line-height:1.5;margin-bottom:18px;padding:8px 10px;background:#F8FAFC;border-radius:8px;">Papel detetado: <strong>' + (role || '—') + '</strong> · Módulo: <strong>' + (moduleKey || '—') + '</strong>' + (itemKey ? (' · Item: <strong>' + itemKey + '</strong>') : '') + '</div>' +
       '<a href="index.html" style="display:inline-block;padding:11px 22px;border-radius:10px;background:#0D1B3E;color:#fff;text-decoration:none;font-weight:600;font-size:.86rem;">Voltar ao Início</a>' +
     '</div>';

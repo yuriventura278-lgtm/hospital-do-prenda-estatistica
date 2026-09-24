@@ -88,6 +88,47 @@
       .zmf-svc-nested .zmf-action-link{padding-left:80px;}
       .zmf-sis-link{display:block;padding:8px 10px 8px 30px;font-size:.78rem;color:#334155;text-decoration:none;border-radius:9px;}
       .zmf-sis-link:hover{background:#F4F7FF;color:#1A56DB;}
+      .zmf-sis-link{display:flex;align-items:center;gap:8px;}
+      .zmf-sis-cadeado{display:none;margin-left:auto;flex-shrink:0;color:#B45309;}
+      .zmf-sis-bloqueado .zmf-sis-cadeado{display:block;}
+      .zmf-sis-bloqueado .zmf-sis-link{color:#64748B;}
+
+      /* Menu v2: letras um pouco maiores, realce claro ao passar e ao clicar,
+         ramo aberto destacado, árvore animada com linhas-guia, barra de
+         rolagem fina. */
+      .zmf-nav{overscroll-behavior:contain;}
+      .zmf-nav::-webkit-scrollbar{width:10px;}
+      .zmf-nav::-webkit-scrollbar-track{background:transparent;margin:6px 0;}
+      .zmf-nav::-webkit-scrollbar-thumb{background-color:rgba(100,116,139,.22);border-radius:10px;border:3px solid transparent;background-clip:padding-box;}
+      .zmf-nav:hover::-webkit-scrollbar-thumb{background-color:rgba(100,116,139,.45);}
+      .zmf-nav::-webkit-scrollbar-thumb:hover{background-color:#1A56DB;}
+      @supports not selector(::-webkit-scrollbar){ .zmf-nav{scrollbar-width:thin;scrollbar-color:rgba(100,116,139,.45) transparent;} }
+      .zmf-link{font-size:.86rem;transition:background .15s,color .15s,box-shadow .15s,transform .12s;}
+      .zmf-section-label{font-size:.66rem;}
+      .zmf-cat-link{font-size:.82rem;transition:background .15s,color .15s,box-shadow .15s,transform .12s;}
+      .zmf-svc-link{font-size:.8rem;font-weight:600;color:#475569;transition:background .15s,color .15s,box-shadow .15s,transform .12s;}
+      .zmf-action-link{font-size:.78rem;padding-top:7px;padding-bottom:7px;transition:background .15s,color .15s,transform .12s;}
+      .zmf-sis-link{font-size:.82rem;font-weight:600;transition:background .15s,color .15s,box-shadow .15s,transform .12s;}
+      .zmf-link:hover,.zmf-cat-link:hover,.zmf-svc-link:hover,.zmf-sis-link:hover{background:rgba(26,86,219,.1);color:#1A56DB;box-shadow:inset 3px 0 0 #1A56DB;}
+      .zmf-action-link:hover{background:rgba(26,86,219,.1);transform:translateX(3px);}
+      .zmf-link:active,.zmf-cat-link:active,.zmf-svc-link:active,.zmf-sis-link:active,.zmf-action-link:active{background:#1A56DB;color:#fff;transform:scale(.985);}
+      .zmf-link:active .zmf-ic{background:rgba(255,255,255,.2);color:#fff;}
+      .zmf-toggle,.zmf-svc-toggle{transition:background .15s,color .15s;}
+      .zmf-toggle.open,.zmf-svc-toggle.open{background:#1A56DB;color:#fff;}
+      .zmf-toggle svg,.zmf-svc-toggle svg{transition:transform .25s cubic-bezier(.4,0,.2,1);}
+      .zmf-parent-row:has(> .zmf-toggle.open) > .zmf-link{background:rgba(26,86,219,.1);color:#1A56DB;}
+      .zmf-parent-row:has(> .zmf-toggle.open) .zmf-ic{background:#1A56DB;color:#fff;}
+      .zmf-cat-row:has(> .zmf-toggle.open) .zmf-cat-link{background:rgba(26,86,219,.1);color:#1A56DB;}
+      .zmf-svc-row:has(> .zmf-svc-toggle.open) .zmf-svc-link{color:#1A56DB;font-weight:700;}
+      .zmf-subtree,.zmf-action-list{opacity:0;transform:translateY(-4px);
+        transition:max-height .34s cubic-bezier(.4,0,.2,1),opacity .24s ease,transform .24s ease;}
+      .zmf-subtree.open,.zmf-action-list.open{opacity:1;transform:none;}
+      .zmf-action-list{position:relative;}
+      .zmf-action-list::before{content:'';position:absolute;top:4px;bottom:6px;left:54px;width:2px;border-radius:2px;background:#E2E8F0;}
+      .zmf-svc-nested .zmf-action-list::before{left:70px;}
+      .zmf-subtree[data-zmf-cat-list]{position:relative;}
+      .zmf-subtree[data-zmf-cat-list]::before{content:'';position:absolute;top:4px;bottom:6px;left:36px;width:2px;border-radius:2px;background:#E2E8F0;}
+      @media (prefers-reduced-motion:reduce){ .zmf-subtree,.zmf-action-list,.zmf-link,.zmf-cat-link,.zmf-svc-link,.zmf-action-link{transition:none;} }
 
       /* Botão "Terminar sessão" — sempre visível, sem precisar de abrir o
          menu. Canto superior direito, no cabeçalho da própria página. A
@@ -156,6 +197,7 @@
   var ICON_SAIR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
   var ICON_ZELO_ASSIST = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>';
 
+  var ICON_CADEADO = '<svg class="zmf-sis-cadeado" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
   function temAcesso(modulo, item){
     // window.hasModuleAccess só existe nas 4 páginas-índice que a expõem
     // explicitamente (bancos_index.html, procedimentos_enfermagem_index.html,
@@ -254,12 +296,16 @@
     return html;
   }
 
+  // "Serviço de Estatística" (antes "Sistemas Locais"): aparece a todos, mas
+  // só os administradores entram — os restantes vêem um cadeado e, ao
+  // clicar, a mensagem "Acesso só para administradores".
   function construirSistemasLocais(){
-    var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return !s.destaque && temAcesso(s.modulo, s.item); });
+    var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return !s.destaque; });
     return itens.map(function(s){
-      return '<a class="zmf-sis-link" href="' + s.file + '">' + s.nome + '</a>';
+      return '<a class="zmf-sis-link" href="' + s.file + '"><span>' + s.nome + '</span>' + ICON_CADEADO + '</a>';
     }).join('');
   }
+  function ehAdmin(){ return (sessionStorage.getItem('zeloRole') || 'funcionario') === 'admin'; }
 
   // Itens de SISTEMAS_LOCAIS_MENU marcados "destaque" saem da árvore
   // colapsável e aparecem como atalho próprio no topo do menu.
@@ -325,16 +371,12 @@
         ${temSistemasLocais ? `
         <div class="zmf-group">
           <div class="zmf-parent-row">
-            <button type="button" class="zmf-link" id="zmf-sistemas-label" style="flex:1;"><span class="zmf-ic">${ICON_SIS}</span>Sistemas Locais</button>
+            <button type="button" class="zmf-link" id="zmf-sistemas-label" style="flex:1;"><span class="zmf-ic">${ICON_STATS}</span>Serviço de Estatística</button>
             <button type="button" class="zmf-toggle" id="zmf-sistemas-toggle" aria-expanded="false">${ICON_CHEV}</button>
           </div>
-          <div class="zmf-subtree" id="zmf-sistemas-tree">${sistemasLocaisHtml}</div>
+          <div class="zmf-subtree${ehAdmin() ? '' : ' zmf-sis-bloqueado'}" id="zmf-sistemas-tree">${sistemasLocaisHtml}</div>
         </div>` : ''}
         ${destaquesHtml}
-        <div class="zmf-section-label">Análise</div>
-        <div class="zmf-group">
-          <a class="zmf-link" href="Estatistica.html"><span class="zmf-ic">${ICON_STATS}</span>Estatística</a>
-        </div>
         <div class="zmf-section-label">Sistema</div>
         <div class="zmf-group">
           <a class="zmf-link" href="perfil.html"><span class="zmf-ic">${ICON_PERFIL}</span>O meu perfil</a>
@@ -382,7 +424,16 @@
       toggle.addEventListener('click', alternar);
     }
     alternarSubtree('zmf-servicos-label', 'zmf-servicos-toggle', 'zmf-servicos-tree');
-    if (temSistemasLocais) alternarSubtree('zmf-sistemas-label', 'zmf-sistemas-toggle', 'zmf-sistemas-tree');
+    if (temSistemasLocais) {
+      alternarSubtree('zmf-sistemas-label', 'zmf-sistemas-toggle', 'zmf-sistemas-tree');
+      var arvSis = panel.querySelector('#zmf-sistemas-tree');
+      arvSis.addEventListener('click', function(e){
+        if (!e.target.closest('.zmf-sis-link') || ehAdmin()) return;
+        e.preventDefault();
+        if (typeof window.zeloAvisoSoAdmin === 'function') window.zeloAvisoSoAdmin();
+      });
+      window.addEventListener('zelo-identity-ready', function(){ arvSis.classList.toggle('zmf-sis-bloqueado', !ehAdmin()); });
+    }
 
     ligarAlternador(panel, '[data-zmf-cat-toggle]', 'data-zmf-cat-toggle', 'data-zmf-cat-list');
     ligarAlternador(panel, '[data-zmf-svc-toggle]', 'data-zmf-svc-toggle', 'data-zmf-svc-actions');

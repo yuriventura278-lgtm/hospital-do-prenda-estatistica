@@ -605,7 +605,7 @@
         pendente = { file: acao.file, label: nome + ' — ' + acao.label };
         return { texto: prefixoAviso + nome + ' está em Serviços → ' + cat + '. Quer que eu abra agora (' + acao.label + ')?' + avisoComposto };
       }
-      var localizacao = alvo.sistema.destaque ? 'no menu, no atalho próprio' : 'em Sistemas Locais';
+      var localizacao = alvo.sistema.destaque ? 'no menu, no atalho próprio' : 'no Serviço de Estatística (só administradores)';
       if (!acao) return { texto: nome + ' está ' + localizacao + ', mas não tem permissão para o abrir.' + avisoComposto };
       pendente = { file: acao.file, label: nome };
       return { texto: nome + ' está ' + localizacao + '. Quer que eu abra agora?' + avisoComposto };

@@ -21,11 +21,11 @@ const SERVICOS_MENU = [
   // Medicina Homem e Medicina Mulher partilham UMA só página de Controlo de
   // Pacientes (a da Medicina Interna): os dois links abrem o mesmo registo.
   { nome: 'Medicina Homem', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
-    relatorios: [{ label: 'Controlo de Pacientes — Medicina Interna', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_homem.html', modulo: 'procedimentos_enfermagem', item: 'medicina_homem' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'medicina_homem_movimento.html', modulo: 'movimento_mensal', item: 'medicina_homem' }] },
   { nome: 'Medicina Mulher', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
-    relatorios: [{ label: 'Controlo de Pacientes — Medicina Interna', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
+    relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_mulher.html', modulo: 'procedimentos_enfermagem', item: 'medicina_mulher' }],
     movimento: [{ label: 'Movimento Hospitalar', file: 'medicina_mulher_movimento.html', modulo: 'movimento_mensal', item: 'medicina_mulher' }] },
   { nome: 'Cirurgia Geral', categoria: 'internamento', icon: 'stretcher', cor: '#DC2626',
@@ -166,9 +166,15 @@ const CATEGORIAS_SERVICOS = [
     icon: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>' },
 ];
 
-// Lista partilhada dos sistemas locais (sistemas_independentes.html) — cada
-// um é um só acesso directo, sem sub-acções como os serviços clínicos acima.
+// "Serviço de Estatística" (antes "Sistemas Locais") — cada item é um só
+// acesso directo, sem sub-acções como os serviços clínicos acima. A secção
+// aparece no menu a TODOS os utilizadores, mas só os administradores entram:
+// para os restantes, clicar mostra "Acesso só para administradores"
+// (zeloAvisoSoAdmin), e as próprias páginas também o verificam
+// (window.ZELO_SO_ADMIN, em zelo_pagegate.js).
+const ZELO_SERVICO_ESTATISTICA = 'Serviço de Estatística';
 const SISTEMAS_LOCAIS_MENU = [
+  { nome: 'Estatística', file: 'Estatistica.html', modulo: 'estatistica', item: null },
   { nome: 'Procedimentos de Enfermagem · Geral', file: 'procedimentos_enfermagem_geral.html', modulo: 'procedimentos_enfermagem', item: 'geral' },
   { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
   { nome: 'Dias-Cama & Dias-Doente', file: 'dias_cama_doente.html', modulo: 'sistemas_independentes', item: 'dias_cama_doente' },
@@ -203,7 +209,38 @@ function zeloSlugifyServico(nome){
     .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+// Mensagem mostrada a quem não é administrador ao tentar abrir um item do
+// Serviço de Estatística.
+function zeloAvisoSoAdmin(){
+  if (typeof document === 'undefined') return;
+  var antigo = document.getElementById('zelo-aviso-admin');
+  if (antigo) antigo.remove();
+  var fundo = document.createElement('div');
+  fundo.id = 'zelo-aviso-admin';
+  fundo.setAttribute('role', 'alertdialog');
+  fundo.setAttribute('aria-modal', 'true');
+  fundo.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(8,14,32,.5);display:flex;align-items:center;justify-content:center;padding:20px;font-family:Inter,Arial,sans-serif;';
+  fundo.innerHTML =
+    '<div style="max-width:380px;width:100%;background:#fff;border-radius:16px;padding:28px 24px 22px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);">' +
+      '<div style="width:54px;height:54px;border-radius:50%;background:#FEF3C7;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">' +
+        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+      '</div>' +
+      '<div style="font-size:1.05rem;font-weight:800;color:#0D1B3E;margin-bottom:6px;">Acesso só para administradores</div>' +
+      '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:18px;">O ' + ZELO_SERVICO_ESTATISTICA + ' está disponível apenas para administradores do ZELO.</div>' +
+      '<button type="button" style="padding:10px 26px;border-radius:10px;background:#0D1B3E;color:#fff;border:none;font-weight:700;font-size:.88rem;cursor:pointer;">Entendi</button>' +
+    '</div>';
+  function fechar(){ fundo.remove(); document.removeEventListener('keydown', tecla); }
+  function tecla(e){ if (e.key === 'Escape') fechar(); }
+  fundo.addEventListener('click', function(e){ if (e.target === fundo) fechar(); });
+  fundo.querySelector('button').addEventListener('click', fechar);
+  document.addEventListener('keydown', tecla);
+  document.body.appendChild(fundo);
+  fundo.querySelector('button').focus();
+}
+
 if (typeof window !== 'undefined') {
+  window.ZELO_SERVICO_ESTATISTICA = ZELO_SERVICO_ESTATISTICA;
+  window.zeloAvisoSoAdmin = zeloAvisoSoAdmin;
   window.SERVICOS_MENU = SERVICOS_MENU;
   window.CATEGORIAS_SERVICOS = CATEGORIAS_SERVICOS;
   window.zeloSlugifyServico = zeloSlugifyServico;

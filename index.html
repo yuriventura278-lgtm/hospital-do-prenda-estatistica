@@ -305,6 +305,56 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-svc-nested .sb-action-link{padding-left:80px;}
 .sb-sis-link{display:block;padding:8px 6px 8px 30px;font-size:.76rem;color:var(--tx2);text-decoration:none;border-radius:9px;}
 .sb-sis-link:hover{background:var(--sf);color:var(--bl);}
+.sb-sis-link{display:flex !important;align-items:center;gap:8px;}
+.sb-sis-cadeado{display:none;margin-left:auto;flex-shrink:0;color:#B45309;}
+.sb-sis-bloqueado .sb-sis-cadeado{display:block;}
+.sb-sis-bloqueado .sb-sis-link{color:var(--tx3);}
+
+/* ── Menu lateral v2: letras um pouco maiores, realce claro ao passar e ao
+   clicar, ramo aberto destacado, árvore que abre com animação suave e
+   linhas-guia, e barra de rolagem fina e discreta. ── */
+.zelo-sidebar{overscroll-behavior:contain;scroll-behavior:smooth;}
+.zelo-sidebar::-webkit-scrollbar{width:10px;}
+.zelo-sidebar::-webkit-scrollbar-track{background:transparent;margin:8px 0;}
+.zelo-sidebar::-webkit-scrollbar-thumb{background-color:rgba(100,116,139,.22);border-radius:10px;border:3px solid transparent;background-clip:padding-box;}
+.zelo-sidebar:hover::-webkit-scrollbar-thumb{background-color:rgba(100,116,139,.45);}
+.zelo-sidebar::-webkit-scrollbar-thumb:hover{background-color:var(--bl);}
+@supports not selector(::-webkit-scrollbar){ .zelo-sidebar{scrollbar-width:thin;scrollbar-color:rgba(100,116,139,.45) transparent;} }
+
+.sb-link{font-size:.9rem;transition:background .16s,color .16s,box-shadow .16s,transform .12s;}
+.sb-section-label{font-size:.68rem;}
+.sb-link:hover:not(.active){background:var(--blxt);color:var(--bl);box-shadow:inset 3px 0 0 var(--bl);}
+.sb-link:active:not(.active){background:var(--bl);color:#fff;}
+.sb-link:active:not(.active) .sb-ic{background:rgba(255,255,255,.2);color:#fff;border-color:transparent;}
+.sb-parent:has(> .sb-toggle.open){background:var(--blxt);color:var(--bl);}
+.sb-parent:has(> .sb-toggle.open) .sb-ic{background:var(--bl);color:#fff;border-color:var(--bl);}
+
+.sb-cat-link{font-size:.82rem;transition:background .15s,color .15s,box-shadow .15s,transform .12s;}
+.sb-svc-link{font-size:.8rem;font-weight:600;color:var(--tx2);transition:background .15s,color .15s,box-shadow .15s,transform .12s;}
+.sb-action-link{font-size:.78rem;padding-top:7px;padding-bottom:7px;transition:background .15s,color .15s,transform .12s;}
+.sb-sis-link{font-size:.82rem;font-weight:600;transition:background .15s,color .15s,box-shadow .15s,transform .12s;}
+.sb-cat-link:hover,.sb-svc-link:hover,.sb-sis-link:hover{background:var(--blxt);color:var(--bl);box-shadow:inset 3px 0 0 var(--bl);}
+.sb-action-link:hover{background:var(--blxt);transform:translateX(3px);}
+.sb-cat-link:active,.sb-svc-link:active,.sb-sis-link:active,.sb-action-link:active{background:var(--bl);color:#fff;transform:scale(.985);}
+.sb-toggle,.sb-cat-toggle,.sb-svc-toggle{transition:background .15s,color .15s;}
+.sb-toggle.open,.sb-cat-toggle.open,.sb-svc-toggle.open{background:var(--bl);color:#fff;}
+.sb-toggle svg,.sb-cat-toggle svg,.sb-svc-toggle svg{transition:transform .25s cubic-bezier(.4,0,.2,1);}
+/* ramo aberto fica destacado */
+.sb-cat-row:has(> .sb-cat-toggle.open) .sb-cat-link{background:var(--blxt);color:var(--bl);}
+.sb-svc-row:has(> .sb-svc-toggle.open) .sb-svc-link{color:var(--bl);font-weight:700;}
+/* abrir/fechar com animação: desliza e aparece */
+.sb-subtree,.sb-svc-list,.sb-action-list{opacity:0;transform:translateY(-4px);
+  transition:max-height .34s cubic-bezier(.4,0,.2,1),opacity .24s ease,transform .24s ease;}
+.sb-subtree.open,.sb-svc-list.open,.sb-action-list.open{opacity:1;transform:none;}
+/* linhas-guia da árvore */
+.sb-svc-list,.sb-action-list{position:relative;}
+.sb-svc-list::before,.sb-action-list::before{content:'';position:absolute;top:4px;bottom:6px;width:2px;border-radius:2px;background:var(--br);}
+.sb-svc-list::before{left:36px;}
+.sb-action-list::before{left:54px;}
+.sb-svc-nested .sb-action-list::before{left:70px;}
+@media (prefers-reduced-motion:reduce){
+  .sb-subtree,.sb-svc-list,.sb-action-list,.sb-link,.sb-cat-link,.sb-svc-link,.sb-action-link{transition:none;}
+}
 
 .zelo-main{min-width:0;padding:24px 26px 40px;max-width:none;margin:0 0 0 var(--zelo-sidebar-w);}
 .zelo-main-inner{max-width:none;}
@@ -1587,20 +1637,13 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
         <div id="sbDestaques"></div>
         <div class="sb-group">
-          <div class="sb-section-label">Análise</div>
-          <a href="Estatistica.html" class="sb-link" data-module="estatistica">
-            <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-            <span>Estatística</span>
-          </a>
-        </div>
-        <div class="sb-group">
           <div class="sb-section-label">Sistema</div>
-          <div class="sb-link sb-parent" data-module="sistemas_independentes">
+          <div class="sb-link sb-parent">
             <button type="button" class="sb-parent-link" id="sbSistemasLabel">
-              <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
-              <span>Sistemas Locais</span>
+              <span class="sb-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
+              <span>Serviço de Estatística</span>
             </button>
-            <button type="button" class="sb-toggle" id="sbSistemasToggle" aria-expanded="false" title="Mostrar sistemas">
+            <button type="button" class="sb-toggle" id="sbSistemasToggle" aria-expanded="false" title="Mostrar o Serviço de Estatística">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
@@ -1883,7 +1926,7 @@ function zeloAlternarArvoreServicos(){
 document.getElementById('sbServicosLabel').addEventListener('click', zeloAlternarArvoreServicos);
 document.getElementById('sbServicosToggle').addEventListener('click', zeloAlternarArvoreServicos);
 
-// ── Árvore de atalhos "Sistemas Locais": mesmo princípio dos Serviços --
+// ── Árvore "Serviço de Estatística" (antes "Sistemas Locais"): mesmo princípio dos Serviços --
 // o nome e a seta só mostram/escondem a lista aqui mesmo, nunca navegam
 // para sistemas_independentes.html; cada sistema é já o destino final,
 // sem sub-acções (Relatório/Procedimentos/Movimento) como os Serviços.
@@ -1894,8 +1937,18 @@ function zeloConstruirArvoreSistemasLocais(){
   var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return !s.destaque; });
   tree.innerHTML = itens.map(function(s){
     return '<a class="sb-sis-link" href="' + s.file + '" data-modulo="' + s.modulo + '"' +
-      (s.item ? ' data-item="' + s.item + '"' : '') + '>' + s.nome + '</a>';
+      (s.item ? ' data-item="' + s.item + '"' : '') + '><span>' + s.nome + '</span>' +
+      '<svg class="sb-sis-cadeado" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-label="Só administradores"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></a>';
   }).join('');
+  // Aparece a todos, mas só os administradores entram.
+  tree.addEventListener('click', function(e){
+    var link = e.target.closest('.sb-sis-link');
+    if(!link) return;
+    if((sessionStorage.getItem('zeloRole') || 'funcionario') !== 'admin'){
+      e.preventDefault();
+      if(typeof window.zeloAvisoSoAdmin === 'function') window.zeloAvisoSoAdmin();
+    }
+  });
 }
 zeloConstruirArvoreSistemasLocais();
 // Itens de SISTEMAS_LOCAIS_MENU marcados "destaque" saem da árvore
@@ -1917,10 +1970,9 @@ zeloConstruirDestaques();
 function zeloAtualizarVisibilidadeSistemasLocais(role, permissoes){
   var tree = document.getElementById('sbSistemasTree');
   if(!tree) return;
-  tree.querySelectorAll('.sb-sis-link').forEach(function(link){
-    var visivel = zeloAcaoVisivel({ modulo: link.dataset.modulo, item: link.dataset.item }, role, permissoes);
-    link.style.display = visivel ? '' : 'none';
-  });
+  // Serviço de Estatística: visível para todos; quem não é administrador vê
+  // um cadeado e, ao clicar, a mensagem "Acesso só para administradores".
+  tree.classList.toggle('sb-sis-bloqueado', role !== 'admin');
 }
 zeloAtualizarVisibilidadeSistemasLocais(sessionStorage.getItem('zeloRole') || 'funcionario', JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'));
 function zeloAlternarArvoreSistemasLocais(){
@@ -1982,7 +2034,6 @@ var zeloSearchIndex = null;
 function zeloConstruirIndicePesquisa(){
   var itens = [
     { label: 'Página Inicial', parent: '', href: 'index.html', modulo: null, item: null },
-    { label: 'Estatística', parent: '', href: 'Estatistica.html', modulo: 'estatistica', item: null },
     { label: 'Informações do ZELO', parent: '', href: 'informacoes_zelo.html', modulo: 'informacoes_zelo', item: null }
   ];
   (window.SERVICOS_MENU || []).forEach(function(svc){
@@ -1991,11 +2042,12 @@ function zeloConstruirIndicePesquisa(){
     (svc.movimento||[]).forEach(function(m){ itens.push({ label: m.label, parent: svc.nome, href: m.file, modulo: m.modulo, item: m.item }); });
   });
   (window.SISTEMAS_LOCAIS_MENU || []).forEach(function(s){
-    itens.push({ label: s.nome, parent: 'Sistemas Locais', href: s.file, modulo: s.modulo, item: s.item });
+    itens.push({ label: s.nome, parent: 'Serviço de Estatística', href: s.file, modulo: s.modulo, item: s.item, soAdmin: true });
   });
   return itens;
 }
 function zeloItemPesquisaVisivel(it){
+  if(it.soAdmin) return (sessionStorage.getItem('zeloRole') || 'funcionario') === 'admin';
   if(!it.modulo) return true;
   if(typeof window.__zeloHasModuleAccess !== 'function') return true;
   var role = sessionStorage.getItem('zeloRole') || 'funcionario';
