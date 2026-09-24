@@ -1,8 +1,8 @@
 // ── ZELO — Modelo geral de documento PDF ──
 // Um único tipo de PDF para todo o sistema (a pedido), com base no modelo da
 // Consulta Externa e o cabeçalho melhorado:
-//   • cabeçalho em degradé azul com o logótipo, "HOSPITAL DO PRENDA", o
-//     título, "Serviço de Admissão e Arquivo Médico Estatístico" e o período;
+//   • cabeçalho compacto em degradé azul com o logótipo, o título e
+//     "Hospital do Prenda · período" (o serviço fica no rodapé);
 //   • secções numeradas, caixas de indicadores, tabelas com cabeçalho
 //     repetido em cada página e linhas "TOTAL" em destaque;
 //   • rodapé com o serviço, data, quem exportou e "Pág. X/Y";
@@ -33,46 +33,52 @@
     catch(e){ return ''; }
   }
 
+  // Cabeçalho (opção B): faixa azul compacta com o logótipo, o título e, por
+  // baixo, "Hospital do Prenda · <período/detalhe>". O serviço, a data e
+  // quem exportou ficam no rodapé. A faixa cresce se o detalhe precisar de
+  // mais linhas — nada é cortado.
   function cabecalho(d, titulo, sub){
     var g = dims(d), W = g.W, M = g.M, passos = 36;
-    for (var i = 0; i < passos; i++){
-      var t = i / (passos - 1);
-      d.setFillColor(Math.round(0x11 + (0x3E - 0x11) * t), Math.round(0x1C + (0x5C - 0x1C) * t), Math.round(0x2B + (0x87 - 0x2B) * t));
-      d.rect(W * i / passos, 0, W / passos + 0.4, 40, 'F');
-    }
-    d.setFillColor(CYAN); d.rect(0, 40, W, 1.4, 'F');
-    try{ d.addImage(LOGO, 'JPEG', M, 8, 24, 24); }catch(e){}
-    var x = M + 30;
-    d.setTextColor('#BFF3FF'); d.setFont('helvetica', 'bold'); d.setFontSize(12);
-    d.text('HOSPITAL DO PRENDA', x, 12.5);
-    d.setTextColor('#FFFFFF');
-    var tituloTxt = limpar(titulo), tamTitulo = 18;
+    var x = M + 24, dirW = 16, larg = W - M - x - dirW;
+    // Título: letra 16 (desce até 12); partes finais " · " passam para baixo.
+    d.setFont('helvetica', 'bold');
+    var tituloTxt = limpar(titulo), tamTitulo = 16;
     d.setFontSize(tamTitulo);
-    while (tamTitulo > 13 && d.getTextWidth(tituloTxt) > W - M - x){ tamTitulo -= 0.5; d.setFontSize(tamTitulo); }
-    // Título ainda comprido: as partes finais (separadas por " · ") passam
-    // para a linha de baixo, em vez de o título ocupar duas linhas.
+    while (tamTitulo > 12 && d.getTextWidth(tituloTxt) > larg){ tamTitulo -= 0.5; d.setFontSize(tamTitulo); }
     var resto = [];
-    while (d.getTextWidth(tituloTxt) > W - M - x && tituloTxt.lastIndexOf(' · ') > 0){
+    while (d.getTextWidth(tituloTxt) > larg && tituloTxt.lastIndexOf(' · ') > 0){
       var p = tituloTxt.lastIndexOf(' · ');
       resto.unshift(tituloTxt.slice(p + 3)); tituloTxt = tituloTxt.slice(0, p);
     }
-    if (resto.length) sub = resto.join(' · ') + (sub ? ' · ' + limpar(sub) : '');
-    while (tamTitulo > 10 && d.getTextWidth(tituloTxt) > W - M - x){ tamTitulo -= 0.5; d.setFontSize(tamTitulo); }
-    d.text(tituloTxt, x, 20.5);
-    d.setFont('helvetica', 'normal'); d.setFontSize(12); d.setTextColor('#FFFFFF');
-    d.text(SERVICO, x, 27.5);
-    if (sub){
-      d.setTextColor('#E2E8F0');
-      var subTxt = limpar(sub), tamSub = 12;
-      while (tamSub > 9 && d.getTextWidth(subTxt) > W - M - x){ tamSub -= 0.5; d.setFontSize(tamSub); }
-      var subLinhas = d.splitTextToSize(subTxt, W - M - x);
-      if (subLinhas.length > 1){ d.setFontSize(9); subLinhas = d.splitTextToSize(subTxt, W - M - x).slice(0, 2); d.text(subLinhas, x, 32.8); }
-      else d.text(subLinhas, x, 34);
+    while (tamTitulo > 10 && d.getTextWidth(tituloTxt) > larg){ tamTitulo -= 0.5; d.setFontSize(tamTitulo); }
+    var linhasTit = d.splitTextToSize(tituloTxt, larg);
+    // Linha de baixo: Hospital do Prenda · detalhe (todas as linhas precisas).
+    var detalhe = resto.concat(sub ? [limpar(sub)] : []).join(' · ');
+    var subTxt = 'Hospital do Prenda' + (detalhe ? ' · ' + detalhe : '');
+    d.setFont('helvetica', 'normal'); d.setFontSize(10);
+    var linhasSub = d.splitTextToSize(subTxt, larg);
+    var altTit = linhasTit.length * tamTitulo * 0.42, altSub = linhasSub.length * 4.3;
+    var H = Math.max(24, 6.5 + altTit + 1.5 + altSub + 5);
+    for (var i = 0; i < passos; i++){
+      var t = i / (passos - 1);
+      d.setFillColor(Math.round(0x11 + (0x3E - 0x11) * t), Math.round(0x1C + (0x5C - 0x1C) * t), Math.round(0x2B + (0x87 - 0x2B) * t));
+      d.rect(W * i / passos, 0, W / passos + 0.4, H, 'F');
     }
-    d.setFontSize(10); d.setTextColor('#BFF3FF');
-    d.text('Emitido em ' + new Date().toLocaleDateString('pt-PT'), W - M, 12.5, { align: 'right' });
-    d.setTextColor(PRETO); d.setFont('helvetica', 'normal');
-    return 50;
+    d.setFillColor(CYAN); d.rect(0, H, W, 1.2, 'F');
+    // Logótipo num quadrado branco, centrado na faixa.
+    var ly = (H - 17) / 2;
+    d.setFillColor('#FFFFFF'); d.roundedRect(M, ly, 17, 17, 2.5, 2.5, 'F');
+    try{ d.addImage(LOGO, 'JPEG', M + 1.2, ly + 1.2, 14.6, 14.6); }catch(e){}
+    var y = (H - (altTit + 1.5 + altSub)) / 2 + tamTitulo * 0.33;
+    d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(tamTitulo);
+    linhasTit.forEach(function(l){ d.text(l, x, y); y += tamTitulo * 0.42; });
+    y += 1.5 - tamTitulo * 0.42 + 4.3;
+    d.setTextColor('#BFF3FF'); d.setFont('helvetica', 'normal'); d.setFontSize(10);
+    linhasSub.forEach(function(l){ d.text(l, x, y); y += 4.3; });
+    d.setFont('helvetica', 'bold'); d.setFontSize(8.5); d.setTextColor('#BFF3FF');
+    d.text('ZELO', W - M, H / 2 + 1.2, { align: 'right', charSpace: 1.2 });
+    d.setTextColor(PRETO); d.setFont('helvetica', 'normal'); d.setCharSpace && d.setCharSpace(0);
+    return H + 1.2 + 8;
   }
   function rodape(d, autorTxt){
     if (autorTxt === undefined) autorTxt = autorAtual();
