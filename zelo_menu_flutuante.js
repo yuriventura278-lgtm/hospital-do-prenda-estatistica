@@ -91,15 +91,26 @@
          por cima dele — ver posicionarBotaoSair(). Aqui só ficam
          left/right/z-index/aparência.
       */
-      #zub-sair-btn{position:fixed;top:10px;right:14px;z-index:2147483000;display:flex;align-items:center;gap:7px;
+      /* Só usado quando a página não tem cabeçalho nenhum onde o botão caiba. */
+      #zub-sair-btn.zub-flutuante{position:fixed;top:10px;right:14px;z-index:2147483000;display:flex;align-items:center;gap:7px;
         background:#fff;border:1px solid #E2E8F0;border-radius:100px;padding:9px 16px 9px 14px;cursor:pointer;
         box-shadow:0 6px 18px rgba(13,27,62,.2);font-family:'Inter',Arial,sans-serif;font-size:.78rem;font-weight:700;
         color:#DC2626;transition:background .15s,box-shadow .15s;}
-      #zub-sair-btn:hover{background:#FEF2F2;box-shadow:0 8px 22px rgba(13,27,62,.28);}
+      #zub-sair-btn.zub-flutuante:hover{background:#FEF2F2;box-shadow:0 8px 22px rgba(13,27,62,.28);}
+      /* Ao lado do botão "Início": herda a classe/estilo desse botão. */
+      #zub-sair-btn.zub-inline{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;
+        text-decoration:none;flex-shrink:0;}
+      #zub-sair-btn.zub-inline svg{flex-shrink:0;}
+      /* No fim de um cabeçalho sem botão "Início". */
+      #zub-sair-btn.zub-cabecalho{display:inline-flex;align-items:center;gap:6px;margin-left:auto;white-space:nowrap;
+        flex-shrink:0;cursor:pointer;background:rgba(255,255,255,.1);border:1px solid rgba(148,163,184,.45);
+        border-radius:100px;padding:5px 12px;font-family:'Inter',Arial,sans-serif;font-size:.74rem;font-weight:600;color:inherit;}
+      #zub-sair-btn.zub-cabecalho:hover{background:rgba(220,38,38,.1);border-color:#DC2626;color:#DC2626;}
       @media(max-width:480px){
         #zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}
-        #zub-sair-btn{right:10px;padding:9px;}
+        #zub-sair-btn.zub-flutuante{right:10px;padding:9px;}
         #zub-sair-btn span{display:none;}
+        #zub-sair-btn.zub-inline,#zub-sair-btn.zub-cabecalho{padding:6px 8px !important;margin-left:4px !important;min-width:0;}
       }
     `;
     document.head.appendChild(style);
@@ -347,50 +358,167 @@
 
   var ICON_PERFIL = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 
-  // Botão "Terminar sessão" sempre visível (não escondido dentro do menu),
-  // canto superior direito, no cabeçalho da própria página — a pedido, sem
-  // avatar/foto (só o botão de terminar sessão).
+  // Botão "Terminar sessão" no cabeçalho de cada página, logo a seguir ao
+  // botão "Início" (a pedido: nada flutuante no canto superior direito).
+  // Ordem de preferência:
+  //   1. a página já tem o seu próprio botão de sair no topo → não duplica;
+  //   2. há um "Início"/"Voltar à central"/ícone de casa no topo → entra a
+  //      seguir a ele, com a mesma classe (fica com o mesmo aspeto);
+  //   3. há um cabeçalho mas sem "Início" → entra no fim desse cabeçalho;
+  //   4. nenhum cabeçalho → último recurso, fixo no canto.
+  // Muitas páginas montam o cabeçalho por JS depois do carregamento, por
+  // isso tenta-se de novo durante uns segundos até ficar ao lado do Início.
+  var ZONA_TOPO = 170; // px a partir do topo do documento
+
+  function ehNosso(el){ return !!(el.closest && el.closest('#zmf-panel,#zmf-overlay,#zmf-btn,#zub-sair-btn')); }
+
+  function visivelNoTopo(el){
+    if (!el || ehNosso(el)) return false;
+    var r = el.getBoundingClientRect();
+    if (r.width < 4 || r.height < 16) return false;
+    var st = window.getComputedStyle(el);
+    if (st.visibility === 'hidden' || st.display === 'none' || Number(st.opacity) === 0) return false;
+    if (r.left < -1 || r.right > window.innerWidth + 1) return false; // fora do ecrã (ex.: gaveta fechada)
+    return (r.top + (window.scrollY || 0)) < ZONA_TOPO;
+  }
+
+  function paginaJaTemSair(){
+    var els = document.querySelectorAll('[onclick]');
+    for (var i = 0; i < els.length; i++){
+      if (/zeloLogout|doLogout/.test(els[i].getAttribute('onclick') || '') && visivelNoTopo(els[i])) return true;
+    }
+    return false;
+  }
+
+  function encontrarBotaoInicio(){
+    var melhor = null, melhorNota = 0, melhorTopo = Infinity;
+    var els = document.querySelectorAll('a,button');
+    for (var i = 0; i < els.length; i++){
+      var el = els[i];
+      if (!visivelNoTopo(el)) continue;
+      var txt = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+      var alvo = (el.getAttribute('href') || '') + ' ' + (el.getAttribute('onclick') || '');
+      var nota = 0;
+      if (/^[^A-Za-zÀ-ÿ]*in[íi]cio$/i.test(txt)) nota = 3;
+      else if (/voltar (à|a) central/i.test(txt)) nota = 2;
+      else if (/(^|\/|\s)index\.html/i.test(alvo) && txt.length < 30) nota = 1;
+      if (!nota) continue;
+      var topo = el.getBoundingClientRect().top;
+      if (nota > melhorNota || (nota === melhorNota && topo < melhorTopo)){ melhor = el; melhorNota = nota; melhorTopo = topo; }
+    }
+    return melhor;
+  }
+
+  function ehLinhaFlex(el){
+    var st = window.getComputedStyle(el);
+    return st.display.indexOf('flex') !== -1 && st.flexDirection.indexOf('column') === -1 && el.children.length >= 2;
+  }
+
+  // Devolve a linha (flex, horizontal) do cabeçalho onde o botão deve entrar.
+  function encontrarCabecalho(){
+    var els = document.querySelectorAll('header, body *');
+    for (var i = 0; i < els.length; i++){
+      var el = els[i];
+      if (ehNosso(el)) continue;
+      var st = window.getComputedStyle(el);
+      var fixo = st.position === 'fixed' || st.position === 'sticky';
+      if (!fixo && el.tagName !== 'HEADER') continue;
+      if (st.display === 'none') continue;
+      var r = el.getBoundingClientRect();
+      if (r.top > 2 || r.width < window.innerWidth * 0.5 || r.height < 30 || r.height > 240) continue;
+      if (ehLinhaFlex(el)) return el;
+      // Cabeçalho em blocos (ex.: marca + ano + separadores): usa a primeira
+      // linha horizontal lá dentro que ocupe a largura do cabeçalho.
+      var filhos = el.querySelectorAll('*');
+      for (var j = 0; j < filhos.length; j++){
+        var f = filhos[j];
+        if (ehNosso(f) || !ehLinhaFlex(f)) continue;
+        var rf = f.getBoundingClientRect();
+        if (rf.width >= r.width * 0.5 && rf.top - r.top < 100) return f;
+      }
+    }
+    return null;
+  }
+
+  // Quando o "Início" é estilizado pelo id (ex.: #backBtn nas páginas de
+  // Movimento), a classe não chega — copia-se o aspeto calculado.
+  function copiarAspeto(de, para){
+    var cs = window.getComputedStyle(de);
+    ['backgroundColor','backgroundImage','color','borderTopWidth','borderTopStyle','borderTopColor',
+     'borderRightWidth','borderRightStyle','borderRightColor','borderBottomWidth','borderBottomStyle','borderBottomColor',
+     'borderLeftWidth','borderLeftStyle','borderLeftColor','fontFamily','fontSize','fontWeight','letterSpacing',
+     'textTransform','boxShadow','height'].forEach(function(p){ para.style[p] = cs[p]; });
+    var altura = parseFloat(cs.height) || 0;
+    var raio = parseFloat(cs.borderTopLeftRadius) || 0;
+    para.style.borderRadius = (altura && raio >= altura / 2 - 1) ? '999px' : cs.borderTopLeftRadius;
+    para.style.textDecoration = 'none';
+    para.style.boxSizing = 'border-box';
+    para.style.width = 'auto';
+    para.style.padding = '0 12px';
+    if (!parseFloat(cs.fontSize) || parseFloat(cs.fontSize) < 12) para.style.fontSize = '13px';
+  }
+
   function montarBotaoSair(){
-    if (document.getElementById('zub-sair-btn')) return; // nunca duplicar
     if (typeof window.zeloLogout !== 'function') return; // nada a mostrar sem logout definido
 
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'zub-sair-btn';
-    btn.title = 'Terminar sessão';
-    btn.setAttribute('aria-label', 'Terminar sessão');
-    btn.innerHTML = ICON_SAIR + '<span>Terminar sessão</span>';
-    document.body.appendChild(btn);
+    var tentativas = 0;
+    function colocar(){
+      tentativas++;
+      var atual = document.getElementById('zub-sair-btn');
+      if (atual && atual.classList.contains('zub-inline')) return true; // já está ao lado do Início
 
-    // Posiciona o botão abaixo de um eventual cabeçalho fixo que a própria
-    // página já tenha no topo (logo, data, notificações, etc.) — sem isto,
-    // ficava sobreposto a esse cabeçalho em várias páginas mais "pesadas".
-    // Procura o maior elemento fixo colado ao topo (top<=2px, largura >
-    // metade do ecrã) que não seja um dos nossos próprios elementos, e usa
-    // a sua altura; se não encontrar nenhum, fica mesmo no canto (10px do
-    // topo).
-    function posicionarBotaoSair(){
-      var alturaCabecalho = 0;
-      var candidatos = document.querySelectorAll('body *');
-      for (var i = 0; i < candidatos.length; i++){
-        var el = candidatos[i];
-        if (el === btn || btn.contains(el)) continue;
-        if (el.id === 'zmf-btn' || el.id === 'zmf-panel' || el.id === 'zmf-overlay') continue;
-        var estilo = window.getComputedStyle(el);
-        if (estilo.position !== 'fixed' || estilo.display === 'none') continue;
-        var rect = el.getBoundingClientRect();
-        if (rect.top > 2 || rect.width < window.innerWidth * 0.5 || rect.height < 20 || rect.height > 140) continue;
-        if (rect.height > alturaCabecalho) alturaCabecalho = rect.height;
+      if (paginaJaTemSair()){
+        if (atual) atual.remove();
+        return true;
       }
-      var topo = alturaCabecalho > 0 ? (alturaCabecalho + 8) : 10;
-      btn.style.top = topo + 'px';
-    }
-    posicionarBotaoSair();
-    setTimeout(posicionarBotaoSair, 500);
-    setTimeout(posicionarBotaoSair, 1500);
-    window.addEventListener('resize', posicionarBotaoSair);
 
-    btn.addEventListener('click', function(){ window.zeloLogout(); });
+      var inicio = encontrarBotaoInicio();
+      var cabecalho = inicio ? null : encontrarCabecalho();
+      var ultima = tentativas >= 6;
+      if (!inicio && !cabecalho && !ultima && !atual) return false; // espera que o cabeçalho apareça
+
+      if (inicio || cabecalho || !atual){
+        if (atual) atual.remove();
+        // Mesmo tipo de elemento do "Início" (a/button) para apanhar as
+        // mesmas regras CSS da página (ex.: ".topbar a", "a.back").
+        var el = document.createElement(inicio && inicio.tagName === 'A' ? 'a' : 'button');
+        el.id = 'zub-sair-btn';
+        el.title = 'Terminar sessão';
+        el.setAttribute('aria-label', 'Terminar sessão');
+        el.setAttribute('role', 'button');
+        if (el.tagName === 'A') el.setAttribute('href', '#'); else el.type = 'button';
+        el.innerHTML = ICON_SAIR + '<span>Terminar sessão</span>';
+        el.addEventListener('click', function(e){ e.preventDefault(); window.zeloLogout(); });
+
+        if (inicio){
+          el.className = (inicio.className ? inicio.className + ' ' : '') + 'zub-inline';
+          var estiloInline = inicio.getAttribute('style');
+          if (estiloInline) el.setAttribute('style', estiloInline);
+          // "Início" só com ícone (quadrado de largura fixa) → deixa crescer para o texto.
+          if (!(inicio.innerText || '').trim()){ el.style.width = 'auto'; el.style.paddingLeft = '10px'; el.style.paddingRight = '10px'; }
+          el.style.marginLeft = '6px';
+          inicio.insertAdjacentElement('afterend', el);
+          if (!inicio.className && inicio.id) copiarAspeto(inicio, el);
+        } else if (cabecalho){
+          el.className = 'zub-cabecalho';
+          var ultimo = cabecalho.lastElementChild;
+          if (window.getComputedStyle(cabecalho).justifyContent === 'space-between' && ultimo){
+            // Mantém o último elemento encostado à direita, junto do botão
+            // (as margens automáticas têm prioridade sobre o space-between).
+            if (!ultimo.style.marginLeft) ultimo.style.marginLeft = 'auto';
+            el.style.marginLeft = '8px';
+          }
+          cabecalho.appendChild(el);
+        } else {
+          el.className = 'zub-flutuante';
+          document.body.appendChild(el);
+        }
+      }
+      return !!inicio;
+    }
+
+    if (colocar()) return;
+    var t = setInterval(function(){ if (colocar() || tentativas >= 8) clearInterval(t); }, 500);
   }
 
   function iniciar(){
