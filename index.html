@@ -212,9 +212,14 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   background:linear-gradient(180deg,#FFFFFF 0%,#FFFFFF 55%,#CFF6FF 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 10px rgba(34,211,238,.45)) drop-shadow(0 2px 4px rgba(0,0,0,.35));}
 .tb-marca-sep{display:none;}
-.tb-marca-sub{font-size:.8rem;font-weight:600;letter-spacing:.06em;line-height:1.1;color:#fff;opacity:.95;text-shadow:0 1px 6px rgba(0,0,0,.4);}
+.tb-marca-sub{font-size:.8rem;font-weight:600;letter-spacing:.03em;line-height:1.1;color:#fff;opacity:.95;text-shadow:0 1px 6px rgba(0,0,0,.4);}
 .tb-marca.compacta .tb-marca-sub{display:none;}
 .tb-marca.compacta .tb-marca-nome{font-size:1.35rem;}
+/* Pesquisa mais curta nos portáteis, para o nome do sistema caber ao centro
+   (os resultados aparecem numa lista própria, mais larga). */
+.tb-search input{transition:width .2s ease;}
+@media(max-width:1600px){ .zelo-topbar .tb-search input,.zelo-topbar .tb-search input:focus{width:118px;} }
+@media(max-width:1400px){ .zelo-topbar .tb-search input,.zelo-topbar .tb-search input:focus{width:100px;} }
 .tb-search{position:relative;flex-shrink:0;}
 .tb-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8CA0C6;pointer-events:none;transition:color .15s;}
 .tb-search input{width:170px;padding:8px 12px 8px 34px;min-height:40px;border-radius:100px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#fff;font-family:var(--font-body);font-size:.76rem;transition:width .18s ease,background .15s,border-color .15s;}
@@ -1960,7 +1965,7 @@ function zeloPosicionarMarca(){
   var L = visiveis('.tb-left'), R = visiveis('.tb-right');
   var fimEsq = L.length ? Math.max.apply(null, L.map(function(r){ return r.right; })) : 0;
   var iniDir = R.length ? Math.min.apply(null, R.map(function(r){ return r.left; })) : window.innerWidth;
-  var margem = 16;
+  var margem = 12;
   // Barra partida em duas linhas (ecrãs estreitos): não há lugar ao centro.
   var barraAlta = barra.getBoundingClientRect().height > 72;
   function cabe(centro, larg){ return centro - larg/2 >= fimEsq + margem && centro + larg/2 <= iniDir - margem; }
