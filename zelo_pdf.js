@@ -322,7 +322,37 @@
           }
           return soma;
         }
-        if (!denso && nCols){
+        if (!denso && nCols && opts.horizontalPageBreak){
+          // Tabela muito larga dividida por colunas em várias páginas: cada
+          // coluna mantém a largura da sua palavra mais comprida.
+          o.headStyles.fontSize = tam;
+          for (var hj = 0; hj < nCols; hj++){
+            if (cst[hj] && typeof cst[hj].cellWidth === 'number') continue;
+            var mh = larguraMin(hj, tam, tam);
+            if (mh > 0){ cst[hj] = juntar(cst[hj], {}); cst[hj].cellWidth = Math.max(mh, hj === 0 ? 34 : 22); }
+          }
+          // O AutoTable decide quantas colunas cabem por página pela largura do
+          // texto sem quebras — por isso os títulos vão já partidos em linhas.
+          d.setFont('helvetica', 'bold'); d.setFontSize(tam);
+          o.head = linhasCab.map(function(l){
+            if (!Array.isArray(l)) return l;
+            return l.map(function(c, ci){
+              var w = cst[ci] && cst[ci].cellWidth; if (!w || (c && c.colSpan > 1)) return c;
+              // quebra só entre palavras (nunca a meio de uma palavra)
+              var ls = [], cur = '';
+              limpar(txtCel(c)).split(/\s+/).forEach(function(pw){
+                if (!pw) return;
+                var tent = cur ? cur + ' ' + pw : pw;
+                if (!cur || d.getTextWidth(tent) <= w - padH) cur = tent; else { ls.push(cur); cur = pw; }
+              });
+              if (cur) ls.push(cur);
+              var t = ls.join('\n');
+              if (c && typeof c === 'object'){ var n2 = juntar(c, {}); n2.content = t; return n2; }
+              return t;
+            });
+          });
+          o.columnStyles = cst;
+        } else if (!denso && nCols){
           var t2 = tam;
           while (t2 > 8 && somaMin(t2) > disponivel) t2 -= 0.5;
           // só os títulos das colunas podem descer mais (até 6)
@@ -446,8 +476,35 @@
     return f;
   }
 
+  // Converte uma <table> da página em {head, body} para o AutoTable, com o
+  // texto completo de cada célula (colspan/rowspan mantidos).
+  function deHTML(tabelaEl){
+    var head = [], body = [];
+    if (!tabelaEl) return { head: head, body: body };
+    Array.prototype.forEach.call(tabelaEl.querySelectorAll('tr'), function(tr){
+      if (tr.offsetParent === null && tr.style && tr.style.display === 'none') return;
+      var cels = Array.prototype.map.call(tr.querySelectorAll('th,td'), function(td){
+        var t = (td.getAttribute('title') || (td.innerText != null ? td.innerText : td.textContent)).replace(/\s+/g, ' ').trim();
+        var c = { content: t };
+        if (td.colSpan > 1) c.colSpan = td.colSpan;
+        if (td.rowSpan > 1) c.rowSpan = td.rowSpan;
+        return c;
+      });
+      if (!cels.length) return;
+      var ehCab = tr.parentNode && tr.parentNode.tagName === 'THEAD' ||
+        (!body.length && Array.prototype.every.call(tr.querySelectorAll('th,td'), function(td){ return td.tagName === 'TH'; }));
+      (ehCab ? head : body).push(cels);
+    });
+    return { head: head, body: body };
+  }
+
+  // Tabela com muitas colunas: em vez de apertar (e partir palavras), divide
+  // as colunas por páginas seguidas, repetindo a 1.ª coluna em cada uma.
+  function opcoesLarga(nCols, limite){
+    return nCols > (limite || 10) ? { horizontalPageBreak: true, horizontalPageBreakRepeat: 0 } : {};
+  }
   window.ZeloPDF = {
-    fluxo: fluxo,
+    fluxo: fluxo, deHTML: deHTML, opcoesLarga: opcoesLarga,
     SERVICO: SERVICO, LOGO: LOGO, cores: { NAVY: NAVY, NAVY3: NAVY3, CYAN: CYAN, CINZA: CINZA, LINHA: LINHA, PRETO: PRETO, FUNDO: FUNDO },
     novo: novo, criar: criar, cabecalho: cabecalho, cabecalhoCompacto: cabecalhoCompacto, rodape: rodape, quebra: quebra, secao: secao,
     barra: barra, padronizar: padronizar, rodapeCompacto: rodapeCompacto,

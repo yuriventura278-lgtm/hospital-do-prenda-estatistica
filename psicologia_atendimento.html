@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
+<script src="zelo_pdf.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='sistemas_independentes';</script>
 <script>window.ZELO_ITEM='psicologia_atendimento';</script>
@@ -34,6 +35,7 @@
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500;600&display=swap"></noscript>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
@@ -888,65 +890,53 @@ function dlPNG(canvasId,name){
 }
 function dlPDF(canvasId,title){
   const c=$(canvasId);if(!c)return;
-  const{jsPDF}=window.jspdf;const pdf=new jsPDF('l','mm','a4');
-  const pw=pdf.internal.pageSize.getWidth();
-  pdf.setFillColor(13,27,62);pdf.rect(0,0,pw,20,'F');
-  const _logo1=_zeloLogoDataURL();if(_logo1){try{pdf.addImage(_logo1,'PNG',pw-17,3,14,14);}catch(e){}}
-  pdf.setTextColor(255);pdf.setFontSize(13);pdf.text(title,10,10);
-  pdf.setFontSize(8);pdf.text('Hospital do Prenda · Psicologia · '+$('d-range').textContent,10,16);
-  const img=c.toDataURL('image/png',1);const iw=pw-20;const ih=iw*(c.height/c.width);
-  pdf.addImage(img,'PNG',10,28,iw,Math.min(ih,pdf.internal.pageSize.getHeight()-40));
+  const Z=window.ZeloPDF;const pdf=Z.novo({orientation:'landscape'});
+  let y=Z.cabecalho(pdf,'Psicologia — '+title,$('d-range').textContent);
+  const g=pdf.internal.pageSize;const iw=g.getWidth()-28;let ih=iw*(c.height/c.width);
+  const max=g.getHeight()-21-y;let w=iw;if(ih>max){w=iw*max/ih;ih=max;}
+  pdf.addImage(c.toDataURL('image/png',1),'PNG',14+(iw-w)/2,y,w,ih);
+  Z.rodape(pdf);
   pdf.save('psicologia_'+title.replace(/\s+/g,'_')+'_'+todayISO()+'.pdf');
   toast('PDF gerado');
 }
 function dlTablePDF(divId,title){
   const div=$(divId);if(!div)return;
-  const{jsPDF}=window.jspdf;const pdf=new jsPDF('l','mm','a4');
-  const pw=pdf.internal.pageSize.getWidth();
-  pdf.setFillColor(13,27,62);pdf.rect(0,0,pw,20,'F');
-  const _logo2=_zeloLogoDataURL();if(_logo2){try{pdf.addImage(_logo2,'PNG',pw-17,3,14,14);}catch(e){}}
-  pdf.setTextColor(255);pdf.setFontSize(13);pdf.text(title,10,10);
-  pdf.setFontSize(8);pdf.text('Hospital do Prenda · Psicologia · '+$('r-range').textContent,10,16);
+  const Z=window.ZeloPDF;const pdf=Z.novo({orientation:'landscape'});
+  let y=Z.cabecalho(pdf,'Psicologia — '+title,$('r-range').textContent);
   const table=div.querySelector('table');
-  if(!table){pdf.setTextColor(0);pdf.text('Sem dados.',10,30);pdf.save(title+'.pdf');return;}
-  let y=28;pdf.setTextColor(0);pdf.setFontSize(7);
-  const rows=[...table.querySelectorAll('tr')];
-  rows.forEach((tr,ri)=>{
-    const cells=[...tr.querySelectorAll('th,td')].map(td=>td.textContent.trim());
-    const colW=(pw-16)/cells.length;
-    if(ri===0){pdf.setFillColor(26,86,219);pdf.rect(8,y-4,pw-16,6,'F');pdf.setTextColor(255);}
-    else{pdf.setTextColor(20);if(ri%2===0){pdf.setFillColor(244,247,255);pdf.rect(8,y-4,pw-16,6,'F');}}
-    cells.forEach((c,ci)=>{pdf.text(String(c).slice(0,Math.floor(colW/1.6)),9+ci*colW,y);});
-    y+=6;if(y>pdf.internal.pageSize.getHeight()-10){pdf.addPage();y=15;}
-  });
+  if(!table){Z.texto(pdf,y,'','Sem dados no período seleccionado.');}
+  else{const t=Z.deHTML(table);const n=(t.head[0]||t.body[0]||[]).length;Z.autoTable(pdf,Object.assign({startY:y,head:t.head,body:t.body},Z.opcoesLarga(n,14)));}
+  Z.rodape(pdf);
   pdf.save('psicologia_'+title.replace(/\s+/g,'_')+'_'+todayISO()+'.pdf');
   toast('PDF gerado');
 }
 function exportRelatorioPDF(){
   const{list,r}=currentFiltered();
-  const{jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');
-  const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
-  pdf.setFillColor(13,27,62);pdf.rect(0,0,pw,26,'F');
-  const _logo3=_zeloLogoDataURL();if(_logo3){try{pdf.addImage(_logo3,'PNG',pw-20,4,17,17);}catch(e){}}
-  pdf.setTextColor(255);pdf.setFontSize(15);pdf.text('Relatório de Psicologia',12,13);
-  pdf.setFontSize(9);pdf.text('Hospital do Prenda · '+r.label,12,20);
-  pdf.setFontSize(8);pdf.text('Gerado em '+fmtBR(todayISO()),pw-12,20,{align:'right'});
-  let y=36;pdf.setTextColor(20);
-  // KPIs
+  const Z=window.ZeloPDF;const pdf=Z.novo();
+  let y=Z.cabecalho(pdf,'Psicologia — Relatório de Atendimentos',r.label+' · '+list.length+' atendimentos');
   const nM=list.filter(a=>a.sexo==='M').length,nF=list.filter(a=>a.sexo==='F').length;
   const m15=list.filter(a=>a.idade<15).length;
-  pdf.setFontSize(11);pdf.setTextColor(26,86,219);pdf.text('Resumo',12,y);y+=7;
-  pdf.setTextColor(20);pdf.setFontSize(9);
-  const kpis=[['Total de atendimentos',list.length],['Masculino',nM],['Feminino',nF],['Menor de 15',m15],['15 e mais',list.length-m15],['Diagnósticos distintos',new Set(list.map(a=>a.diag)).size]];
-  kpis.forEach(k=>{pdf.text('• '+k[0]+': '+k[1],14,y);y+=6;});
-  y+=4;
-  // gráficos principais
+  y=Z.secao(pdf,y,'1. Resumo');
+  y=Z.indicadores(pdf,y,[['Total de atendimentos',list.length],['Masculino',nM],['Feminino',nF]]);
+  y=Z.indicadores(pdf,y,[['Menor de 15',m15],['15 e mais',list.length-m15],['Diagnósticos distintos',new Set(list.map(a=>a.diag)).size]]);
+  y+=2;
+  let n=1;
   const graphs=[['c-tend','Tendência'],['c-faixa','Por faixa etária'],['c-dg','Diagnóstico por género'],['c-pd','Proveniência por diagnóstico']];
   graphs.forEach(g=>{const c=$(g[0]);if(!c)return;
-    if(y>ph-70){pdf.addPage();y=15;}
-    pdf.setFontSize(10);pdf.setTextColor(26,86,219);pdf.text(g[1],12,y);y+=4;
-    const iw=pw-24,ih=iw*(c.height/c.width);pdf.addImage(c.toDataURL('image/png',1),'PNG',12,y,iw,ih);y+=ih+8;
+    const iw=182;let ih=iw*(c.height/c.width);if(ih>110)ih=110;
+    y=Z.quebra(pdf,y,ih+16);
+    y=Z.secao(pdf,y,(++n)+'. '+g[1]);
+    const w=ih*(c.width/c.height)>iw?iw:ih*(c.width/c.height);
+    pdf.addImage(c.toDataURL('image/png',1),'PNG',14+(iw-w)/2,y,w,ih);y+=ih+6;
   });
+  // tabelas do separador "Relatórios", com todos os dados
+  document.querySelectorAll('[id^="t-"]').forEach(div=>{
+    const table=div.querySelector('table');if(!table)return;
+    const card=div.closest('.chart-card');const tt=card&&card.querySelector('h3');
+    y=Z.secao(pdf,y,(++n)+'. '+(tt?tt.textContent.trim():'Tabela'));
+    const t=Z.deHTML(table);const nc=(t.head[0]||t.body[0]||[]).length;y=Z.autoTable(pdf,Object.assign({startY:y,head:t.head,body:t.body},Z.opcoesLarga(nc,14)))+2;
+  });
+  Z.rodape(pdf);
   pdf.save('Relatorio_Psicologia_'+r.label.replace(/\s+/g,'_')+'.pdf');
   toast('Relatório PDF gerado');
 }
