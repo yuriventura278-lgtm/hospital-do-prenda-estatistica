@@ -226,6 +226,28 @@ window.addEventListener('online', function(){
 function showSlowConnectionScreen(){
   document.documentElement.style.visibility = 'visible';
   if (document.getElementById('zelo-gate-slow')) return;
+  if (window.ZeloEspera && window.ZeloEspera.mensagem){
+    var marca = document.createElement('span'); marca.id = 'zelo-gate-slow'; marca.hidden = true; document.body.appendChild(marca);
+    var m = window.ZeloEspera.mensagem({
+      icone: 'aviso',
+      titulo: navigator.onLine ? 'Não foi possível confirmar a sessão' : 'Sem internet',
+      texto: navigator.onLine ? 'A ligação à internet está lenta ou instável — a sua conta e os seus dados de acesso continuam intactos.' : 'Estás offline neste momento, quando tiver internet, irá restaurar a sincronização automaticamente.',
+      detalhe: 'Nova tentativa automática em 15 s',
+      fechavel: false,
+      botoes: [
+        { texto: 'Tentar novamente', principal: true, manter: true, acao: function(){ window.location.reload(); } },
+        { texto: 'Voltar ao Início', href: 'index.html' }
+      ]
+    });
+    var seg2 = 15;
+    setInterval(function(){
+      if (!navigator.onLine){ seg2 = 15; m.detalhe('À espera da internet — a página continua sozinha quando a ligação voltar.'); return; }
+      seg2--; m.detalhe('Nova tentativa automática em ' + Math.max(0, seg2) + ' s');
+      if (seg2 <= 0) window.location.reload();
+    }, 1000);
+    window.addEventListener('online', function(){ setTimeout(function(){ window.location.reload(); }, 800); });
+    return;
+  }
   var overlay = document.createElement('div');
   overlay.id = 'zelo-gate-slow';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#0D1B3E;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif;';
@@ -259,6 +281,17 @@ function showSlowConnectionScreen(){
 
 function showBlockedScreen(role, permissoes, soAdmin){
   document.documentElement.style.visibility = 'visible';
+  if (window.ZeloEspera && window.ZeloEspera.mensagem){
+    console.warn('[ZELO] Acesso bloqueado — módulo:', moduleKey, '· item:', itemKey, '· papel:', role, '· permissões:', permissoes);
+    window.ZeloEspera.mensagem({
+      icone: soAdmin ? 'admin' : 'info',
+      titulo: soAdmin ? 'Acesso só para administradores' : 'Sem permissão de acesso',
+      texto: (soAdmin ? 'Esta página faz parte do Serviço de Estatística, que é só para administradores.' : 'Não tem permissão para aceder a esta página.') + ' Contacte um dos administradores do ZELO.',
+      fechavel: false,
+      botoes: [{ texto: 'Voltar ao Início', principal: true, href: 'index.html' }]
+    });
+    return;
+  }
   // Diagnóstico temporário (visível só neste ecrã de bloqueio, não afeta o
   // resto da app): mostra exatamente o que foi lido do perfil, para se
   // conseguir confirmar rapidamente se o problema é o papel gravado na

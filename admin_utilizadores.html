@@ -1306,6 +1306,7 @@ onAuthStateChanged(auth, async function(user){
   if(!user){
     blockedMsg.textContent = 'Inicia sessão no ZELO como Administrador para aceder.';
     blockedState.style.display = 'block';
+    if (window.ZeloEspera && window.ZeloEspera.mensagem) window.ZeloEspera.mensagem({ icone: 'admin', titulo: 'Acesso só para administradores', texto: 'Esta página é apenas para Administradores. Inicia sessão no ZELO como Administrador para aceder.', fechavel: false, botoes: [{ texto: 'Voltar ao Início', principal: true, href: 'index.html' }] });
     appContent.style.display = 'none';
     return;
   }
@@ -1313,6 +1314,7 @@ onAuthStateChanged(auth, async function(user){
   if(!perfil || perfil.ativo === false || perfil.role !== 'admin'){
     blockedMsg.textContent = 'A tua conta não tem permissão de Administrador.';
     blockedState.style.display = 'block';
+    if (window.ZeloEspera && window.ZeloEspera.mensagem) window.ZeloEspera.mensagem({ icone: 'admin', titulo: 'Acesso só para administradores', texto: 'Esta página é apenas para Administradores. A tua conta não tem permissão de Administrador.', fechavel: false, botoes: [{ texto: 'Voltar ao Início', principal: true, href: 'index.html' }] });
     appContent.style.display = 'none';
     return;
   }

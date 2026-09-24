@@ -406,6 +406,12 @@ window.hasModuleAccess = hasModuleAccess;
     // para confirmar rapidamente se o problema é o papel gravado na conta
     // ou as permissões do módulo, sem precisar de abrir a consola.
     console.warn('[ZELO] Acesso bloqueado — módulo: servicos · papel:', role, '· permissões:', permissoes);
+    if (window.ZeloEspera && window.ZeloEspera.mensagem) {
+      window.ZeloEspera.mensagem({ icone: 'info', titulo: 'Sem permissão de acesso',
+        texto: 'Não tem permissão para entrar nesta página. Contacte os administradores do ZELO.', fechavel: false,
+        botoes: [{ texto: 'Voltar ao Início', principal: true, href: 'index.html' }] });
+      return;
+    }
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#0D1B3E;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Arial,sans-serif;';
     overlay.innerHTML =

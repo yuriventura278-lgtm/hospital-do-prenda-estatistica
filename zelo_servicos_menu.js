@@ -248,6 +248,17 @@ function zeloAvisoSemPermissao(texto){
   if (typeof document === 'undefined') return;
   var antigo = document.getElementById('zelo-aviso-admin');
   if (antigo) antigo.remove();
+  // Mesmo design dos ecrãs de espera (zelo_espera.js), quando disponível.
+  if (window.ZeloEspera && window.ZeloEspera.mensagem) {
+    var soAdmin = /administradores/i.test(texto || '');
+    window.ZeloEspera.mensagem({
+      icone: soAdmin ? 'admin' : 'info',
+      titulo: soAdmin ? 'Acesso só para administradores' : 'Sem permissão de acesso',
+      texto: (texto || 'Não tem permissão para aceder a esta página.') + ' Contacte um dos administradores do ZELO.',
+      botoes: [{ texto: 'Entendi', principal: true }]
+    });
+    return;
+  }
   var fundo = document.createElement('div');
   fundo.id = 'zelo-aviso-admin';
   fundo.setAttribute('role', 'alertdialog');

@@ -38,7 +38,7 @@
     '.ze-caixa{color:#fff;padding:10px;width:min(86vw,340px);text-align:center;}',
     '.ze-logo{width:46px;height:46px;border-radius:12px;display:block;margin:0 auto 14px;object-fit:contain;box-shadow:0 6px 18px rgba(0,0,0,.35);}',
     '.ze-anel{position:relative;width:160px;height:160px;margin:0 auto;}',
-    '.ze-anel svg{width:100%;height:100%;transform:rotate(-90deg);display:block;}',
+    '.ze-anel > svg{width:100%;height:100%;transform:rotate(-90deg);display:block;}',
     '.ze-anel .ze-pista{fill:none;stroke-width:11;}',
     '.ze-escura .ze-pista{stroke:rgba(255,255,255,.14);}',
     '.ze-anel .ze-arco{fill:none;stroke-width:11;stroke-linecap:round;}',
@@ -448,6 +448,55 @@
     if (cx && /(^|-)2g$/.test(cx.effectiveType || '')) setTimeout(avisarLenta, 1500);
   } catch (e) {}
 
+  // ── Mensagens em ecrã inteiro (sem permissão, só administradores…) ────
+  // Mesmo design dos ecrãs de espera: fundo azul-escuro com a fotografia,
+  // logótipo do ZELO, círculo com o ícone, título, texto e botões.
+  var ICONES = {
+    info: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    aviso: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    admin: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>'
+  };
+  var CORES_MSG = { info: 'normal', aviso: 'lenta', admin: 'proc' };
+  function mensagem(opcoes) {
+    opcoes = opcoes || {};
+    var tipo = opcoes.icone || 'info';
+    var camada = el('div', 'ze-camada ze-escura');
+    camada.setAttribute('role', 'alertdialog'); camada.setAttribute('aria-modal', 'true');
+    camada.style.pointerEvents = 'auto';
+    var caixa = el('div', 'ze-caixa');
+    caixa.appendChild(logoZelo());
+    var anel = criarAnel('');
+    anel.cor(CORES_MSG[tipo] || 'normal'); anel.valor(100);
+    anel.el.querySelector('.ze-brilho').style.display = 'none';
+    var num = anel.el.querySelector('.ze-num');
+    num.innerHTML = '<span style="color:' + (tipo === 'aviso' ? '#FCD34D' : '#7DD3FC') + ';display:flex">' + (ICONES[tipo] || ICONES.info) + '</span>';
+    var msg = el('div', 'ze-msg'); msg.textContent = opcoes.titulo || 'Aviso';
+    var det = el('div', 'ze-det'); det.style.fontSize = '.9rem'; det.style.lineHeight = '1.5'; det.style.opacity = '.9';
+    det.innerHTML = opcoes.html || '';
+    if (!opcoes.html) det.textContent = opcoes.texto || '';
+    var extra = el('div', 'ze-det'); extra.style.marginTop = '8px';
+    if (opcoes.detalhe) extra.textContent = opcoes.detalhe;
+    caixa.appendChild(anel.el); caixa.appendChild(msg); caixa.appendChild(det); caixa.appendChild(extra);
+    var bt = el('div', 'ze-botoes');
+    (opcoes.botoes || [{ texto: 'Entendi', principal: true }]).forEach(function (b) {
+      var e;
+      if (b.href) { e = el('a', 'ze-btn ' + (b.principal ? 'pri' : 'sec')); e.href = b.href; e.style.textDecoration = b.principal ? 'none' : 'underline'; e.style.display = 'block'; }
+      else { e = el('button', 'ze-btn ' + (b.principal ? 'pri' : 'sec')); e.type = 'button'; }
+      e.textContent = b.texto;
+      e.addEventListener('click', function (ev) { if (b.acao) b.acao(ev); if (!b.href && !b.manter) fechar(); });
+      bt.appendChild(e);
+    });
+    caixa.appendChild(bt);
+    camada.appendChild(caixa);
+    function fechar() { document.removeEventListener('keydown', tecla, true); semEcra(); sair(camada); }
+    function tecla(e) { if (opcoes.fechavel !== false && e.key === 'Escape') { e.preventDefault(); fechar(); } }
+    document.addEventListener('keydown', tecla, true);
+    raiz().appendChild(camada);
+    document.documentElement.classList.add('ze-ecra');
+    var foco = bt.querySelector('button,a'); if (foco) try { foco.focus(); } catch (e) {}
+    return { fechar: fechar, detalhe: function (t) { extra.textContent = t || ''; }, camada: camada };
+  }
+
   // ── Entrada no sistema (index.html) ───────────────────────────────────
   // Fases reais: sessão 25% → permissões 50% → ambiente 75% → página 100%.
   var FASES = [
@@ -470,6 +519,7 @@
   if (window.ZELO_ESPERA_MODO === 'entrada' && !noIframe) abrirEntrada('A carregar…');
 
   window.ZeloEspera = {
+    mensagem: mensagem,
     faseEntrada: faseEntrada,
     concluirEntrada: function (cb) { if (entrada && entrada.aberto()) entrada.concluir(cb); else if (cb) cb(); },
     fecharEntrada: function () { if (entrada && entrada.aberto()) entrada.fechar(); },
