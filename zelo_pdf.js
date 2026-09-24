@@ -49,10 +49,17 @@
     var tituloTxt = limpar(titulo), tamTitulo = 18;
     d.setFontSize(tamTitulo);
     while (tamTitulo > 13 && d.getTextWidth(tituloTxt) > W - M - x){ tamTitulo -= 0.5; d.setFontSize(tamTitulo); }
-    d.text(d.splitTextToSize(tituloTxt, W - M - x)[0] || '', x, 20.5);
+    d.text(tituloTxt, x, 20.5, { maxWidth: W - M - x });
     d.setFont('helvetica', 'normal'); d.setFontSize(12); d.setTextColor('#FFFFFF');
     d.text(SERVICO, x, 27.5);
-    if (sub){ d.setTextColor('#E2E8F0'); d.text(d.splitTextToSize(limpar(sub), W - M - x)[0] || '', x, 34); }
+    if (sub){
+      d.setTextColor('#E2E8F0');
+      var subTxt = limpar(sub), tamSub = 12;
+      while (tamSub > 9 && d.getTextWidth(subTxt) > W - M - x){ tamSub -= 0.5; d.setFontSize(tamSub); }
+      var subLinhas = d.splitTextToSize(subTxt, W - M - x);
+      if (subLinhas.length > 1){ d.setFontSize(9); subLinhas = d.splitTextToSize(subTxt, W - M - x).slice(0, 2); d.text(subLinhas, x, 32.8); }
+      else d.text(subLinhas, x, 34);
+    }
     d.setFontSize(10); d.setTextColor('#BFF3FF');
     d.text('Emitido em ' + new Date().toLocaleDateString('pt-PT'), W - M, 12.5, { align: 'right' });
     d.setTextColor(PRETO); d.setFont('helvetica', 'normal');
@@ -74,6 +81,20 @@
       d.text('Pág. ' + i + '/' + n, W - M, H - 9.5, { align: 'right' });
     }
   }
+  // Rodapé baixo para folhas de posição fixa (acompanha o cabeçalho compacto).
+  function rodapeCompacto(d, autorTxt){
+    if (autorTxt === undefined) autorTxt = autorAtual();
+    var n = d.getNumberOfPages();
+    for (var i = 1; i <= n; i++){
+      d.setPage(i);
+      var g = dims(d), W = g.W, H = g.H, M = g.M;
+      d.setFillColor(NAVY3); d.rect(0, H - 7, W, 0.5, 'F');
+      d.setFont('helvetica', 'normal'); d.setFontSize(7); d.setTextColor(CINZA);
+      d.text(SERVICO + ' · Hospital do Prenda · Gerado em ' + new Date().toLocaleString('pt-PT') + (autorTxt ? ' · ' + limpar(autorTxt) : ''), M, H - 3);
+      d.setFont('helvetica', 'bold'); d.setTextColor(NAVY3);
+      d.text('Pág. ' + i + '/' + n, W - M, H - 3, { align: 'right' });
+    }
+  }
   function quebra(d, y, alt){ var g = dims(d); if (y + (alt || 10) > g.FIM){ d.addPage(); return TOPO_CONTINUACAO; } return y; }
   function secao(d, y, txt){
     var g = dims(d);
@@ -88,7 +109,7 @@
   function indicadores(d, y, pares){
     var g = dims(d), col = g.CW / pares.length;
     d.setFontSize(9); d.setFont('helvetica', 'bold');
-    var rot = pares.map(function(p){ return d.splitTextToSize(limpar(p[0]).toUpperCase(), col - 6).slice(0, 2); });
+    var rot = pares.map(function(p){ return d.splitTextToSize(limpar(p[0]).toUpperCase(), col - 6); });
     var linhasRot = Math.max.apply(null, rot.map(function(r){ return r.length; }));
     var alt = 15 + (linhasRot - 1) * 3.8;
     y = quebra(d, y, alt + 3);
@@ -105,10 +126,13 @@
   }
   function cabTabela(d, y, cols, larg){
     var g = dims(d), x = g.M;
-    d.setFillColor(NAVY); d.roundedRect(g.M, y, g.CW, 8.5, 1.4, 1.4, 'F');
-    d.setTextColor('#FFFFFF'); d.setFontSize(11); d.setFont('helvetica', 'bold');
-    cols.forEach(function(c, i){ d.text(d.splitTextToSize(limpar(c), larg[i] - 3)[0] || '', x + 2.2, y + 5.8); x += larg[i]; });
-    return y + 8.5;
+    d.setFontSize(11.5); d.setFont('helvetica', 'bold');
+    var partes = cols.map(function(c, i){ return d.splitTextToSize(limpar(c), larg[i] - 3.4); });
+    var h = Math.max.apply(null, partes.map(function(p){ return p.length; })) * 4.6 + 4;
+    d.setFillColor(NAVY); d.roundedRect(g.M, y, g.CW, h, 1.4, 1.4, 'F');
+    d.setTextColor('#FFFFFF');
+    partes.forEach(function(p, i){ d.text(p, x + 2.2, y + 5.8); x += larg[i]; });
+    return y + h;
   }
   // Ajusta as larguras (soma = largura útil) para nenhuma palavra ser cortada.
   function larguras(d, cols, larg, linhas, tam){
@@ -117,6 +141,9 @@
     d.setFontSize(tam);
     var precisa = larg.map(function(w, i){
       var maior = 0;
+      d.setFont('helvetica', 'bold'); d.setFontSize(Math.min(tam, 11.5));
+      limpar(cols[i]).split(/\s+/).forEach(function(p){ maior = Math.max(maior, d.getTextWidth(p)); });
+      d.setFont('helvetica', 'normal'); d.setFontSize(tam);
       linhas.forEach(function(ln){ limpar(ln[i]).split(/\s+/).forEach(function(p){ maior = Math.max(maior, d.getTextWidth(p)); }); });
       return maior + 4.6;
     });
@@ -131,7 +158,7 @@
   }
   function tabela(d, y, cols, larg, linhas){
     if (!linhas || !linhas.length) return y;
-    var tam = 12;
+    var tam = 11.5;
     function cabeTudo(t){
       d.setFontSize(t);
       var l = larguras(d, cols, larg, linhas, t);
@@ -175,8 +202,8 @@
     var base = {
       theme: 'grid',
       margin: { left: g.M, right: g.M, top: TOPO_CONTINUACAO, bottom: 21 },
-      styles: { font: 'helvetica', fontSize: 11, cellPadding: 2, textColor: PRETO, lineColor: LINHA, lineWidth: 0.2, overflow: 'linebreak', valign: 'middle' },
-      headStyles: { fillColor: NAVY, textColor: '#FFFFFF', fontStyle: 'bold', fontSize: 11, halign: 'left' },
+      styles: { font: 'helvetica', fontSize: 11.5, cellPadding: 2, textColor: PRETO, lineColor: LINHA, lineWidth: 0.2, overflow: 'linebreak', valign: 'middle' },
+      headStyles: { fillColor: NAVY, textColor: '#FFFFFF', fontStyle: 'bold', fontSize: 11.5, halign: 'left' },
       footStyles: { fillColor: TOTAL_BG, textColor: PRETO, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: FUNDO },
       didParseCell: function(data){
@@ -199,12 +226,106 @@
     return out;
   }
   function autoTable(d, opts){
+    padronizar(d);
     var o = opcoesAutoTable(d, opts);
     // Cabeçalho da tabela nunca fica sozinho no fundo da página.
     if (o.startY != null && o.startY + 22 > dims(d).FIM){ d.addPage(); o.startY = TOPO_CONTINUACAO; }
     if (typeof d.autoTable === 'function') d.autoTable(o);
     else if (window.jspdf && typeof window.jspdf.autoTable === 'function') window.jspdf.autoTable(d, o);
     return (d.lastAutoTable && d.lastAutoTable.finalY != null) ? d.lastAutoTable.finalY + 5 : (o.startY || 50);
+  }
+  // Cabeçalho baixo (15 mm) para folhas de posição fixa (ex.: tabelas de
+  // supervisão numa só página horizontal) — mesmo aspeto, menos altura.
+  function cabecalhoCompacto(d, titulo, sub){
+    var g = dims(d), W = g.W, M = g.M, passos = 36;
+    for (var i = 0; i < passos; i++){
+      var t = i / (passos - 1);
+      d.setFillColor(Math.round(0x11 + (0x3E - 0x11) * t), Math.round(0x1C + (0x5C - 0x1C) * t), Math.round(0x2B + (0x87 - 0x2B) * t));
+      d.rect(W * i / passos, 0, W / passos + 0.4, 15, 'F');
+    }
+    d.setFillColor(CYAN); d.rect(0, 15, W, 0.8, 'F');
+    try{ d.addImage(LOGO, 'JPEG', M, 2, 11, 11); }catch(e){}
+    d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(11);
+    d.text('HOSPITAL DO PRENDA · ' + limpar(titulo), M + 14, 7);
+    d.setFont('helvetica', 'normal'); d.setFontSize(8.5); d.setTextColor('#BFF3FF');
+    d.text(SERVICO + (sub ? ' · ' + limpar(sub) : ''), M + 14, 12);
+    d.setTextColor(PRETO);
+    return 19;
+  }
+  // Faixa de título de secção do modelo (substitui barras coloridas antigas).
+  function barra(d, x, y, w, h){
+    d.setFillColor(NAVY3); d.roundedRect(x, y, w, h, 1.6, 1.6, 'F');
+    d.setFillColor(CYAN); d.rect(x, y, 1.4, h, 'F');
+    d.setFillColor(NAVY3);
+  }
+  // Aplica o estilo do modelo a TODAS as tabelas (jsPDF-AutoTable) deste
+  // documento, mantendo as larguras/alinhamentos/cores de significado de
+  // cada página; as linhas "TOTAL…" ficam sempre em destaque.
+  function padronizar(d){
+    if (!d || d.__zeloPadronizado) return d;
+    d.__zeloPadronizado = true;
+    var original = d.autoTable;
+    if (typeof original !== 'function') return d;
+    d.autoTable = function(opts){
+      opts = opts || {};
+      var o = {}; Object.keys(opts).forEach(function(k){ o[k] = opts[k]; });
+      function juntar(a, b){ var m = {}; Object.keys(a || {}).forEach(function(k){ m[k] = a[k]; }); Object.keys(b || {}).forEach(function(k){ m[k] = b[k]; }); return m; }
+      var tamPedido = (opts.styles && opts.styles.fontSize) || 10;
+      // Tabelas normais sobem para 10–12; folhas muito densas (letra < 7,
+      // pensadas para caber numa página) só sobem meio ponto.
+      var denso = tamPedido < 7;
+      var tam = denso ? tamPedido + 0.5 : Math.max(tamPedido, 11.5);
+      o.styles = juntar(opts.styles, { font: 'helvetica', fontSize: tam, textColor: PRETO, lineColor: LINHA, lineWidth: 0.2 });
+      if (!opts.styles || opts.styles.cellPadding == null) o.styles.cellPadding = 2;
+      o.headStyles = juntar(opts.headStyles, { fillColor: NAVY, textColor: '#FFFFFF', fontStyle: 'bold', fontSize: tam });
+      o.alternateRowStyles = juntar(opts.alternateRowStyles, { fillColor: FUNDO });
+      var mg = opts.margin || {};
+      o.margin = juntar({ top: TOPO_CONTINUACAO, bottom: 21 }, typeof mg === 'number' ? { left: mg, right: mg } : mg);
+      if (!denso && o.margin.bottom < 21) o.margin.bottom = 21;
+      if (denso && o.margin.bottom < 9) o.margin.bottom = 9;
+      // Nenhuma coluna fica mais estreita do que a sua palavra mais comprida
+      // (título ou dados) — assim nunca se parte uma palavra a meio.
+      try{
+        var linhasCab = (opts.head || []), linhasCorpo = (opts.body || []);
+        var nCols = 0;
+        linhasCab.concat(linhasCorpo).forEach(function(l){ if (Array.isArray(l)) nCols = Math.max(nCols, l.length); });
+        var cst = {}; Object.keys(opts.columnStyles || {}).forEach(function(k){ cst[k] = juntar(opts.columnStyles[k], {}); });
+        function txtCel(c){ return String(c && typeof c === 'object' && c.content != null ? c.content : (c == null ? '' : c)); }
+        for (var ci = 0; ci < nCols; ci++){
+          if (cst[ci] && typeof cst[ci].cellWidth === 'number') continue;
+          var maior = 0;
+          d.setFont('helvetica', 'bold'); d.setFontSize(tam);
+          linhasCab.forEach(function(l){ if (Array.isArray(l) && l[ci] != null) limpar(txtCel(l[ci])).split(/\s+/).forEach(function(pw){ maior = Math.max(maior, d.getTextWidth(pw)); }); });
+          d.setFont('helvetica', 'normal');
+          linhasCorpo.forEach(function(l){ if (Array.isArray(l) && l[ci] != null) limpar(txtCel(l[ci])).split(/\s+/).forEach(function(pw){ maior = Math.max(maior, d.getTextWidth(pw)); }); });
+          if (maior > 0){ cst[ci] = juntar(cst[ci], {}); cst[ci].minCellWidth = Math.max(cst[ci].minCellWidth || 0, maior + 4.6); }
+        }
+        o.columnStyles = cst;
+      }catch(e){}
+      var dpc = opts.didParseCell;
+      o.didParseCell = function(data){
+        if (typeof dpc === 'function') dpc.call(this, data);
+        if (typeof data.cell.text === 'object' && data.cell.text.map) data.cell.text = data.cell.text.map(limpar);
+        var cs = opts.columnStyles && (opts.columnStyles[data.column.index] || opts.columnStyles[data.column.dataKey]);
+        var largura = cs && typeof cs.cellWidth === 'number' ? cs.cellWidth : null;
+        if (largura){
+          var pad = 4.4, fs = data.cell.styles.fontSize || tam;
+          d.setFont('helvetica', data.cell.styles.fontStyle === 'bold' || data.section === 'head' ? 'bold' : 'normal');
+          var palavras = [].concat(data.cell.text || []).join(' ').split(/\s+/);
+          d.setFontSize(fs);
+          while (fs > 7 && palavras.some(function(pw){ return d.getTextWidth(pw) > largura - pad; })){ fs -= 0.5; d.setFontSize(fs); }
+          data.cell.styles.fontSize = fs;
+        }
+        var raw = data.row && data.row.raw, c0 = raw && (Array.isArray(raw) ? raw[0] : raw[Object.keys(raw)[0]]);
+        if (c0 && typeof c0 === 'object' && c0.content != null) c0 = c0.content;
+        if (data.section === 'body' && /^\s*TOTAL/i.test(String(c0 == null ? '' : c0))){
+          data.cell.styles.fillColor = TOTAL_BG; data.cell.styles.fontStyle = 'bold'; data.cell.styles.textColor = PRETO;
+        }
+      };
+      if (o.startY != null && o.startY + 22 > dims(d).FIM){ d.addPage(); o.startY = TOPO_CONTINUACAO; }
+      return original.call(d, o);
+    };
+    return d;
   }
   function novo(opts){
     var J = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
@@ -229,7 +350,8 @@
 
   window.ZeloPDF = {
     SERVICO: SERVICO, LOGO: LOGO, cores: { NAVY: NAVY, NAVY3: NAVY3, CYAN: CYAN, CINZA: CINZA, LINHA: LINHA, PRETO: PRETO, FUNDO: FUNDO },
-    novo: novo, criar: criar, cabecalho: cabecalho, rodape: rodape, quebra: quebra, secao: secao,
+    novo: novo, criar: criar, cabecalho: cabecalho, cabecalhoCompacto: cabecalhoCompacto, rodape: rodape, quebra: quebra, secao: secao,
+    barra: barra, padronizar: padronizar, rodapeCompacto: rodapeCompacto,
     indicadores: indicadores, tabela: tabela, texto: texto, autoTable: autoTable, opcoesAutoTable: opcoesAutoTable,
     limpar: limpar, TOPO_CONTINUACAO: TOPO_CONTINUACAO
   };
