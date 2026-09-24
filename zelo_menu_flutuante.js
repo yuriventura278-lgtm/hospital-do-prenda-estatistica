@@ -84,39 +84,22 @@
       .zmf-sis-link{display:block;padding:8px 10px 8px 30px;font-size:.78rem;color:#334155;text-decoration:none;border-radius:9px;}
       .zmf-sis-link:hover{background:#F4F7FF;color:#1A56DB;}
 
-      /* Avatar + Sair — sempre visíveis, sem precisar de abrir o menu (a
-         pedido: antes só estava disponível dentro do menu flutuante,
-         exigindo abrir o menu e só depois clicar em Sair). Canto superior
-         direito, dentro/ao fundo do cabeçalho da própria página (a pedido —
-         antes estava no canto inferior esquerdo). A posição exata (o "top")
-         é calculada em JS, a partir da altura de um eventual cabeçalho fixo
-         já existente na página, para nunca ficar por cima dele — ver
-         posicionarChip(). Aqui só ficam left/right/z-index/aparência.
+      /* Botão "Terminar sessão" — sempre visível, sem precisar de abrir o
+         menu. Canto superior direito, no cabeçalho da própria página. A
+         posição exata (o "top") é calculada em JS, a partir da altura de um
+         eventual cabeçalho fixo já existente na página, para nunca ficar
+         por cima dele — ver posicionarBotaoSair(). Aqui só ficam
+         left/right/z-index/aparência.
       */
-      #zub-chip{position:fixed;top:10px;right:14px;z-index:2147483000;display:flex;align-items:center;gap:8px;
-        background:#fff;border:1px solid #E2E8F0;border-radius:100px;padding:5px 12px 5px 5px;cursor:pointer;
-        box-shadow:0 6px 18px rgba(13,27,62,.2);font-family:'Inter',Arial,sans-serif;max-width:calc(100vw - 32px);}
-      #zub-chip:hover{box-shadow:0 8px 22px rgba(13,27,62,.28);}
-      #zub-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;overflow:hidden;background:linear-gradient(135deg,#1A56DB,#22B8CF);
-        color:#fff;display:flex;align-items:center;justify-content:center;font-size:.66rem;font-weight:800;}
-      #zub-avatar img{width:100%;height:100%;object-fit:cover;}
-      #zub-nome{font-size:.76rem;font-weight:700;color:#0D1B3E;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-      #zub-menu{position:fixed;top:54px;right:14px;z-index:2147483000;width:220px;background:#fff;border-radius:12px;
-        box-shadow:0 16px 40px rgba(13,27,62,.28);overflow:hidden;display:none;font-family:'Inter',Arial,sans-serif;}
-      #zub-menu.open{display:block;}
-      #zub-menu .zub-head{padding:12px 14px;border-bottom:1px solid #E2E8F0;}
-      #zub-menu .zub-head-nome{font-size:.82rem;font-weight:800;color:#0D1B3E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-      #zub-menu .zub-head-email{font-size:.68rem;color:#94A3B8;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-      #zub-menu a, #zub-menu button{display:flex;align-items:center;gap:9px;width:100%;padding:10px 14px;font-size:.8rem;font-weight:600;
-        color:#334155;text-decoration:none;background:none;border:none;font-family:inherit;text-align:left;cursor:pointer;}
-      #zub-menu a:hover, #zub-menu button:hover{background:#F4F7FF;color:#1A56DB;}
-      #zub-menu .zub-sair{color:#DC2626;border-top:1px solid #E2E8F0;}
-      #zub-menu .zub-sair:hover{background:#FEF2F2;color:#DC2626;}
+      #zub-sair-btn{position:fixed;top:10px;right:14px;z-index:2147483000;display:flex;align-items:center;gap:7px;
+        background:#fff;border:1px solid #E2E8F0;border-radius:100px;padding:9px 16px 9px 14px;cursor:pointer;
+        box-shadow:0 6px 18px rgba(13,27,62,.2);font-family:'Inter',Arial,sans-serif;font-size:.78rem;font-weight:700;
+        color:#DC2626;transition:background .15s,box-shadow .15s;}
+      #zub-sair-btn:hover{background:#FEF2F2;box-shadow:0 8px 22px rgba(13,27,62,.28);}
       @media(max-width:480px){
         #zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}
-        #zub-chip{right:10px;padding:5px;}
-        #zub-menu{right:10px;width:calc(100vw - 20px);max-width:280px;}
-        #zub-nome{display:none;}
+        #zub-sair-btn{right:10px;padding:9px;}
+        #zub-sair-btn span{display:none;}
       }
     `;
     document.head.appendChild(style);
@@ -272,7 +255,7 @@
       </div>
       <nav class="zmf-nav">
         <div class="zmf-group">
-          <a class="zmf-link" href="index.html"><span class="zmf-ic">${ICON_DASH}</span>Dashboard</a>
+          <a class="zmf-link" href="index.html"><span class="zmf-ic">${ICON_DASH}</span>Página Inicial</a>
         </div>
         <div class="zmf-group">
           <button type="button" class="zmf-link" id="zmf-assistente-zelo"><span class="zmf-ic">${ICON_ZELO_ASSIST}</span>Assistente Zelo</button>
@@ -299,6 +282,7 @@
         </div>
         <div class="zmf-section-label">Sistema</div>
         <div class="zmf-group">
+          <a class="zmf-link" href="perfil.html"><span class="zmf-ic">${ICON_PERFIL}</span>O meu perfil</a>
           <a class="zmf-link" href="informacoes_zelo.html"><span class="zmf-ic">${ICON_INFO}</span>Informações do ZELO</a>
           ${temLogout ? '<button type="button" class="zmf-link" id="zmf-sair"><span class="zmf-ic">' + ICON_SAIR + '</span>Sair</button>' : ''}
         </div>
@@ -363,49 +347,34 @@
 
   var ICON_PERFIL = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 
-  // Avatar + "Sair" sempre visíveis (não escondidos dentro do menu) — lê
-  // nome/foto da sessionStorage, preenchida no login (index.html) ou em
-  // qualquer página protegida por zelo_pagegate.js. Não depende de nenhuma
-  // das duas ter corrido primeiro: se ainda não houver nada, mostra "?" e
-  // corrige sozinho assim que a sessão estiver pronta (evento zelo-gate-ready).
-  function iniciaisNome(nome){
-    return (nome || '?').trim().split(/\s+/).slice(0, 2).map(function(p){ return p[0]; }).join('').toUpperCase() || '?';
-  }
+  // Botão "Terminar sessão" sempre visível (não escondido dentro do menu),
+  // canto superior direito, no cabeçalho da própria página — a pedido, sem
+  // avatar/foto (só o botão de terminar sessão).
+  function montarBotaoSair(){
+    if (document.getElementById('zub-sair-btn')) return; // nunca duplicar
+    if (typeof window.zeloLogout !== 'function') return; // nada a mostrar sem logout definido
 
-  function montarChipUtilizador(){
-    if (document.getElementById('zub-chip')) return; // nunca duplicar
-    // Dentro de um iframe (hoje só o Dashboard, embutido em index.html) a
-    // página-mãe já tem o seu próprio avatar+Sair sempre visível no
-    // cabeçalho — mostrar aqui também duplicava-o, um por cima do outro.
-    if (window.self !== window.top) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'zub-sair-btn';
+    btn.title = 'Terminar sessão';
+    btn.setAttribute('aria-label', 'Terminar sessão');
+    btn.innerHTML = ICON_SAIR + '<span>Terminar sessão</span>';
+    document.body.appendChild(btn);
 
-    var chip = document.createElement('div');
-    chip.id = 'zub-chip';
-    chip.innerHTML = '<span id="zub-avatar">?</span><span id="zub-nome">Utilizador</span>';
-    document.body.appendChild(chip);
-
-    var temLogout = typeof window.zeloLogout === 'function';
-    var menu = document.createElement('div');
-    menu.id = 'zub-menu';
-    menu.innerHTML =
-      '<div class="zub-head"><div class="zub-head-nome" id="zub-menu-nome">Utilizador</div><div class="zub-head-email" id="zub-menu-email"></div></div>' +
-      '<a href="perfil.html">' + ICON_PERFIL + 'O meu perfil</a>' +
-      (temLogout ? '<button type="button" class="zub-sair" id="zub-sair">' + ICON_SAIR + 'Sair</button>' : '');
-    document.body.appendChild(menu);
-
-    // Posiciona o chip abaixo de um eventual cabeçalho fixo que a própria
+    // Posiciona o botão abaixo de um eventual cabeçalho fixo que a própria
     // página já tenha no topo (logo, data, notificações, etc.) — sem isto,
-    // o chip ficava sobreposto a esse cabeçalho em várias páginas mais
-    // "pesadas". Procura o maior elemento fixo colado ao topo (top<=2px,
-    // largura > metade do ecrã) que não seja um dos nossos próprios
-    // elementos, e usa a sua altura; se não encontrar nenhum, fica mesmo
-    // no canto (10px do topo), como pedido.
-    function posicionarChip(){
+    // ficava sobreposto a esse cabeçalho em várias páginas mais "pesadas".
+    // Procura o maior elemento fixo colado ao topo (top<=2px, largura >
+    // metade do ecrã) que não seja um dos nossos próprios elementos, e usa
+    // a sua altura; se não encontrar nenhum, fica mesmo no canto (10px do
+    // topo).
+    function posicionarBotaoSair(){
       var alturaCabecalho = 0;
       var candidatos = document.querySelectorAll('body *');
       for (var i = 0; i < candidatos.length; i++){
         var el = candidatos[i];
-        if (el === chip || el === menu || chip.contains(el) || menu.contains(el)) continue;
+        if (el === btn || btn.contains(el)) continue;
         if (el.id === 'zmf-btn' || el.id === 'zmf-panel' || el.id === 'zmf-overlay') continue;
         var estilo = window.getComputedStyle(el);
         if (estilo.position !== 'fixed' || estilo.display === 'none') continue;
@@ -413,64 +382,27 @@
         if (rect.top > 2 || rect.width < window.innerWidth * 0.5 || rect.height < 20 || rect.height > 140) continue;
         if (rect.height > alturaCabecalho) alturaCabecalho = rect.height;
       }
-      // Fica logo abaixo do cabeçalho detectado (nunca por cima dele — esse
-      // cabeçalho costuma já ter os seus próprios elementos encostados à
-      // direita, como data/notificações); sem cabeçalho nenhum, fica mesmo
-      // a 10px do topo, no canto.
-      var topoChip = alturaCabecalho > 0 ? (alturaCabecalho + 8) : 10;
-      chip.style.top = topoChip + 'px';
-      menu.style.top = (topoChip + 44) + 'px';
+      var topo = alturaCabecalho > 0 ? (alturaCabecalho + 8) : 10;
+      btn.style.top = topo + 'px';
     }
-    posicionarChip();
-    setTimeout(posicionarChip, 500);
-    setTimeout(posicionarChip, 1500);
-    window.addEventListener('resize', posicionarChip);
+    posicionarBotaoSair();
+    setTimeout(posicionarBotaoSair, 500);
+    setTimeout(posicionarBotaoSair, 1500);
+    window.addEventListener('resize', posicionarBotaoSair);
 
-    function atualizar(){
-      var nome = sessionStorage.getItem('zeloNome') || 'Utilizador';
-      var email = sessionStorage.getItem('zeloEmail') || '';
-      var foto = sessionStorage.getItem('zeloFoto') || '';
-      var avatarEl = document.getElementById('zub-avatar');
-      if (foto) avatarEl.innerHTML = '<img src="' + foto + '" alt=""/>';
-      else avatarEl.textContent = iniciaisNome(nome);
-      var nomeEl = document.getElementById('zub-nome'); if (nomeEl) nomeEl.textContent = nome;
-      var menuNomeEl = document.getElementById('zub-menu-nome'); if (menuNomeEl) menuNomeEl.textContent = nome;
-      var menuEmailEl = document.getElementById('zub-menu-email'); if (menuEmailEl) menuEmailEl.textContent = email;
-    }
-    atualizar();
-    // zelo_pagegate.js dispara estes eventos assim que confirma a sessão — a
-    // leitura do perfil é assíncrona, por isso o primeiro atualizar() acima
-    // pode não ter tido ainda nome/foto disponíveis na sessionStorage.
-    // 'zelo-identity-ready' dispara sempre (inclui o ecrã de "sem permissão");
-    // 'zelo-gate-ready' só quando o acesso é concedido — ouvem-se os dois
-    // para cobrir também páginas mais antigas que só disparem um deles.
-    window.addEventListener('zelo-identity-ready', atualizar);
-    window.addEventListener('zelo-gate-ready', atualizar);
-    // Rede de segurança para as poucas páginas com o seu próprio ecrã de
-    // login completo (servicos.html, bancos_index.html, etc. — não passam
-    // por zelo_pagegate.js, por isso não disparam nenhum dos dois eventos
-    // acima) — sem isto, o chip podia ficar preso em "Utilizador"/"?" até
-    // um clique em qualquer sítio da página.
-    setTimeout(atualizar, 600);
-    setTimeout(atualizar, 1800);
-
-    function fecharMenu(){ menu.classList.remove('open'); }
-    chip.addEventListener('click', function(e){
-      e.stopPropagation();
-      menu.classList.toggle('open');
-    });
-    document.addEventListener('click', function(e){
-      if (menu.classList.contains('open') && !menu.contains(e.target) && !chip.contains(e.target)) fecharMenu();
-    });
-    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharMenu(); });
-    var sairBtn2 = document.getElementById('zub-sair');
-    if (sairBtn2) sairBtn2.addEventListener('click', function(){ window.zeloLogout(); });
+    btn.addEventListener('click', function(){ window.zeloLogout(); });
   }
 
   function iniciar(){
+    // Dentro de um iframe (hoje só o Dashboard, embutido na página inicial)
+    // a página-mãe já tem a sua própria navegação completa (menu lateral +
+    // topbar com sessão) — o botão/painel flutuante aqui só duplicava acesso
+    // já visível, sem necessidade (a pedido: a página inicial não precisa
+    // do menu flutuante).
+    if (window.self !== window.top) return;
     injectarEstilos();
     montarPainel();
-    montarChipUtilizador();
+    montarBotaoSair();
   }
 
   if (document.readyState === 'loading'){
