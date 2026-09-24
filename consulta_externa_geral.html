@@ -796,11 +796,12 @@ details.rep-block summary{cursor:pointer;font-weight:700;color:var(--navy3);padd
           </div>
           <button class="btn btn-navy small" id="btn-filtrar-historico">Filtrar</button>
           <div class="apagar-dia-box">
-            <div class="apagar-dia-titulo"><svg class="svc-icon"><use href="#i-trash"/></svg>Apagar um dia inteiro</div>
-            <p class="apagar-dia-desc">Elimina todas as sessões desse dia (todas as especialidades), neste e nos outros dispositivos.</p>
+            <div class="apagar-dia-titulo"><svg class="svc-icon"><use href="#i-trash"/></svg>Apagar registos de um dia</div>
+            <p class="apagar-dia-desc">Elimina o dia inteiro (todas as especialidades) ou só uma especialidade desse dia, neste e nos outros dispositivos.</p>
             <div class="apagar-dia-row">
               <div><label for="h-apagar-dia">Dia</label><input type="date" id="h-apagar-dia"></div>
-              <button class="btn btn-err small" id="btn-apagar-dia" type="button">Apagar este dia</button>
+              <div><label for="h-apagar-esp">Especialidade</label><select id="h-apagar-esp"><option value="">Todas (dia inteiro)</option></select></div>
+              <button class="btn btn-err small" id="btn-apagar-dia" type="button">Apagar dia inteiro</button>
             </div>
           </div>
         </div></div></div>
@@ -3463,6 +3464,7 @@ CE.Historico = (function(){
     var ate = document.getElementById('h-ate').value;
 
     await CE.Registo.sincronizarTudo();
+    await preencherEspecialidadesDoDia();
     var sessoes = await CE.Store.getAllSessoes();
     sessoes = sessoes.filter(function(s){
       if (especialidade && s.especialidade !== especialidade) return false;
@@ -3691,25 +3693,66 @@ CE.Historico = (function(){
     fillEspecialidadeSelect();
     document.getElementById('btn-filtrar-historico').addEventListener('click', refresh);
     document.getElementById('btn-apagar-dia').addEventListener('click', apagarDia);
+    document.getElementById('h-apagar-dia').addEventListener('change', preencherEspecialidadesDoDia);
+    document.getElementById('h-apagar-esp').addEventListener('change', atualizarRotuloApagar);
+  }
+
+  function atualizarRotuloApagar(){
+    var esp = document.getElementById('h-apagar-esp').value;
+    document.getElementById('btn-apagar-dia').textContent = esp ? 'Apagar ' + esp : 'Apagar dia inteiro';
+  }
+
+  /* Só lista as especialidades com registos no dia escolhido. */
+  async function preencherEspecialidadesDoDia(){
+    var sel = document.getElementById('h-apagar-esp');
+    var dia = document.getElementById('h-apagar-dia').value;
+    var anterior = sel.value;
+    sel.innerHTML = '<option value="">Todas (dia inteiro)</option>';
+    if (dia){
+      var esps = (await CE.Store.getAllSessoes())
+        .filter(function(s){ return s.data === dia; })
+        .map(function(s){ return s.especialidade; })
+        .sort();
+      esps.forEach(function(e){
+        var o = document.createElement('option'); o.value = e; o.textContent = e; sel.appendChild(o);
+      });
+      if (esps.indexOf(anterior) !== -1) sel.value = anterior;
+    }
+    atualizarRotuloApagar();
   }
 
   async function apagarDia(){
     var btn = document.getElementById('btn-apagar-dia');
     var dia = document.getElementById('h-apagar-dia').value;
+    var esp = document.getElementById('h-apagar-esp').value;
     if (!dia){ toast('Escolha o dia a apagar.'); return; }
     btn.disabled = true;
     try{
       await CE.Registo.sincronizarTudo();
-      var lista = (await CE.Store.getAllSessoes()).filter(function(s){ return s.data === dia; });
-      if (!lista.length){ toast('Não há registos em ' + dia + '.'); return; }
-      var esps = lista.map(function(s){ return s.especialidade; }).sort().join(', ');
-      if (!confirm('Apagar TODOS os registos de ' + dia + '?\n\n' + lista.length + ' especialidade(s): ' + esps +
-        '\n\nOs dados são eliminados neste e nos outros dispositivos e não podem ser recuperados.')) return;
+      var lista = (await CE.Store.getAllSessoes()).filter(function(s){
+        return s.data === dia && (!esp || s.especialidade === esp);
+      });
+      if (!lista.length){
+        toast(esp ? 'Não há registos de ' + esp + ' em ' + dia + '.' : 'Não há registos em ' + dia + '.');
+        return;
+      }
+      var pergunta;
+      if (esp){
+        var s0 = lista[0];
+        pergunta = 'Apagar o registo de ' + esp + ' em ' + dia + ' (' + ((s0.medicos||[]).length) + ' médico(s), ' +
+          (s0.totalDoentes != null ? s0.totalDoentes : 0) + ' doente(s))?\n\nAs outras especialidades desse dia não são afetadas.';
+      } else {
+        pergunta = 'Apagar TODOS os registos de ' + dia + '?\n\n' + lista.length + ' especialidade(s): ' +
+          lista.map(function(s){ return s.especialidade; }).sort().join(', ');
+      }
+      if (!confirm(pergunta + '\n\nOs dados são eliminados neste e nos outros dispositivos e não podem ser recuperados.')) return;
       var r = await CE.Registo.eliminarSessoes(lista);
+      var alvo = esp ? esp + ' (' + dia + ')' : 'Dia ' + dia;
       toast(r.falhasSync
-        ? 'Dia ' + dia + ' apagado neste dispositivo. Sem ligação: será propagado ao sincronizar.'
-        : 'Dia ' + dia + ' apagado (' + r.eliminadas + ' registo(s)).');
+        ? alvo + ' apagado neste dispositivo. Sem ligação: será propagado ao sincronizar.'
+        : alvo + ' apagado (' + r.eliminadas + ' registo(s)).');
       document.getElementById('h-apagar-dia').value = '';
+      await preencherEspecialidadesDoDia();
     }catch(e){
       console.error('ZELO: erro ao apagar o dia na Consulta Externa.', e);
       toast('Não foi possível apagar o dia.');
