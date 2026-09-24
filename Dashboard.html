@@ -798,7 +798,7 @@ function renderSecao(id, kpis, charts, ultimaAtualizacao){
   // charts: [{title, canvasId, config}]
   var html = '<div class="svc-kpis">' + kpisHTML(kpis) + '</div>';
   if (charts.length){
-    html += '<div class="svc-toggle-row"><button type="button" class="svc-toggle-btn" id="toggle-'+id+'" aria-expanded="false" onclick="alternarGraficosSecao(\''+id+'\')">Ver gráficos '+ICON_CHEVRON_DOWN+'</button></div>';
+    // Gráficos sempre visíveis (a pedido) — já não é preciso "Ver gráficos".
     // Nasce visível (SEM o atributo hidden) para que o Chart.js meça o
     // canvas correctamente ao desenhar — só depois de desenhado é que fica
     // escondido (ver abaixo). Criar já escondido dava gráficos em branco.
@@ -808,10 +808,6 @@ function renderSecao(id, kpis, charts, ultimaAtualizacao){
   }
   document.getElementById('corpo-'+id).innerHTML = html;
   charts.forEach(function(c){ _ceDesenhar(c.canvasId); });
-  if (charts.length){
-    var chartsWrap = document.getElementById('charts-'+id);
-    if (chartsWrap) chartsWrap.hidden = true;
-  }
   _kpisPDF[id] = kpis;
   var updEl = document.getElementById('upd-'+id);
   if (updEl) updEl.textContent = _formatarAtualizacao(ultimaAtualizacao);
