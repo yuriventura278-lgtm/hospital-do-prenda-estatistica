@@ -9,6 +9,7 @@
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
 <script src="zelo_auto_backup.js"></script>
+<script src="zelo_merge.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
@@ -2732,6 +2733,7 @@ function addSurgery(formPrefix) {
   const destPrefix = carac === 'Urgente' ? 'urg' : 'elet';
 
   surgeries[destPrefix].push({
+    id: _gerarIdRegisto(), _ts: Date.now(),
     esp: esp || '—', idade: idade || '—', sexo: sexo || '—',
     diag: diag || '—', carac, anest: anestArr, hora: hora || '—',
     deceased, transfer,
@@ -2861,8 +2863,10 @@ function updateSurgery(editPrefix, idx) {
 
   const newCarac = carac;
   const destPrefix = newCarac === 'Urgente' ? 'urg' : 'elet';
+  const existente = surgeries[editPrefix] && surgeries[editPrefix][idx];
 
   const updated = {
+    id: (existente && existente.id) || _gerarIdRegisto(), _ts: Date.now(),
     esp: esp || '—', idade: idade || '—', sexo: sexo || '—',
     diag: diag || '—', carac: newCarac, anest: anestArr, hora: hora || '—',
     deceased, transfer, _origem: formPrefix
@@ -3015,7 +3019,7 @@ function addSuspensa() {
   const esp = document.getElementById('sus-esp')?.value;
   const mot = document.getElementById('sus-motivo')?.value.trim();
   if (!esp && !mot) return;
-  suspList.push({ esp: esp||'—', mot: mot||'—' });
+  suspList.push({ id: _gerarIdRegisto(), _ts: Date.now(), esp: esp||'—', mot: mot||'—' });
   renderSuspensas();
   { const _e = document.getElementById('sus-esp'); if(_e) _e.value = ''; }
   { const _e = document.getElementById('sus-motivo'); if(_e) _e.value = ''; }
@@ -3044,7 +3048,7 @@ function addObtido() {
   const desc = document.getElementById('ob-desc')?.value.trim();
   const qty = parseInt(document.getElementById('ob-qty')?.value) || 0;
   if (!desc) return;
-  obtList.push({ desc, qty });
+  obtList.push({ id: _gerarIdRegisto(), _ts: Date.now(), desc, qty });
   renderObtidos();
   { const _e = document.getElementById('ob-desc'); if(_e) _e.value = ''; }
   { const _e = document.getElementById('ob-qty'); if(_e) _e.value = ''; }
@@ -3214,6 +3218,13 @@ function storageKey(date) {
   return `bloco_${date || currentLoadedDate}`;
 }
 
+// Id estável por registo (cirurgia/suspensa/obtida) — usado pela mesclagem
+// campo-a-campo (ZeloMerge.mesclarListaPorId) para reconhecer o mesmo
+// registo entre dispositivos, mesmo depois de editado.
+function _gerarIdRegisto(){
+  return Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
 // ── Auto-save (debounced) ──
 let autoSaveTimer = null;
 let _hasPendingSave = false;
@@ -3262,6 +3273,9 @@ function persist(date) {
     data.urgAnest[specKey(t)]  = document.getElementById(`urg-anest-${specKey(t)}`).value;
     data.eletAnest[specKey(t)] = document.getElementById(`elet-anest-${specKey(t)}`).value;
   });
+  let _prevData = null;
+  try{ const _raw = safeGet(storageKey(targetDate)); _prevData = _raw ? JSON.parse(_raw) : null; }catch(e){}
+  data.camposTs = _construirCamposTsBloco(_prevData && _prevData.camposTs, _prevData, data, Date.now());
   data._ts = Date.now();
   data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   const ok = safeSet(storageKey(targetDate), JSON.stringify(data));
@@ -3586,42 +3600,85 @@ async function atualizarDiaDoFirebase(){
 }
 
 // ── Sincronização em tempo real ───────────────────────────────────────────
-// No momento seguro (primeira escuta ao abrir um dia, antes de qualquer
-// edição local nesta sessão), aplica automaticamente dados mais recentes
-// vindos doutro dispositivo. Para qualquer alteração SEGUINTE enquanto o
-// mesmo dia continua aberto, apenas mostra um aviso — nunca substitui
-// silenciosamente o que o utilizador possa estar a editar.
+// Mesclagem campo-a-campo entre a versão local e a versão vinda doutro
+// dispositivo (Firebase), usando zelo_merge.js — mesmo padrão já em
+// produção na Imagiologia/Laboratório/Hemoterapia. Antes, ao chegar uma
+// versão "mais recente" doutro dispositivo, o dia inteiro era substituído
+// em bloco, ou ficava pendurado num aviso "Atualizar página" — agora
+// mescla-se campo a campo (contagens por especialidade/anestesia) e
+// registo a registo (cirurgias/suspensas/obtidas, por id — ver
+// _gerarIdRegisto), e aplica-se sempre de imediato.
 function _escHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function _fbMostrarAvisoNovosDados(remoto, date){
-  if (document.getElementById('fb-novos-dados-banner')) return;
-  const banner = document.createElement('div');
-  banner.id = 'fb-novos-dados-banner';
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#1A56DB;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
-  const autorNome = remoto?.snapshot?.criadoPor?.nome;
-  const quando = remoto?.savedAt ? new Date(remoto.savedAt) : null;
-  const horaFmt = quando ? `${String(quando.getHours()).padStart(2,'0')}:${String(quando.getMinutes()).padStart(2,'0')}` : null;
-  const msg = autorNome
-    ? `🔄 Dados mais recentes guardados por <strong>${_escHtml(autorNome)}</strong>${horaFmt ? ' às ' + horaFmt : ''}.`
-    : '🔄 Outro utilizador guardou dados mais recentes para este dia.';
-  banner.innerHTML = '<span>' + msg + '</span>' +
-    '<button type="button" data-act="atualizar" style="background:#fff;color:#1A56DB;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>' +
-    '<button type="button" data-act="dispensar" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.8rem;">Agora não</button>';
-  // O botao "Atualizar" aplica explicitamente os dados pendentes ANTES de recarregar -- sem isto,
-  // recarregar nao mudava nada localmente e o aviso reaparecia sempre, preso num ciclo.
-  // O botao "Agora nao" so fecha o aviso, mantendo os dados locais tal como estao.
-  banner.querySelector('[data-act="atualizar"]').onclick = () => {
-    if (remoto && date){
-      try{
-        safeSet(storageKey(date), JSON.stringify(remoto.snapshot));
-        localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, remoto.savedAt);
-      }catch(e){}
-    }
-    window.location.reload();
+// Regista antigos (antes desta funcionalidade existir) não têm `id` — o
+// ZeloMerge.mesclarListaPorId ignora-os. Para nunca perder um registo
+// antigo, mescla por id só os que já o têm, e faz união simples (sem
+// deduplicar por conteúdo) dos que ainda não têm.
+function _mesclarListaComFallback(localArr, remotoArr){
+  const l = localArr||[], r = remotoArr||[];
+  const lComId = l.filter(x => x && x.id !== undefined);
+  const rComId = r.filter(x => x && x.id !== undefined);
+  const lSemId = l.filter(x => !(x && x.id !== undefined));
+  const rSemId = r.filter(x => !(x && x.id !== undefined));
+  const mesclado = ZeloMerge.mesclarListaPorId(lComId, rComId);
+  const semIdUnificado = lSemId.concat(rSemId.filter(x => !lSemId.some(y => JSON.stringify(y) === JSON.stringify(x))));
+  return mesclado.lista.concat(semIdUnificado);
+}
+function _mesclarDadosBloco(local, remoto){
+  if(!local) return remoto;
+  if(!remoto) return local;
+  const remotoMaisRecente = (remoto._ts||0) >= (local._ts||0);
+  const localTs = local.camposTs || {};
+  const remotoTs = remoto.camposTs || {};
+  const camposTsMesclados = Object.assign({}, localTs);
+
+  const urgSpecs = ZeloMerge.mesclarChaveValor(local.urgSpecs, remoto.urgSpecs, localTs, remotoTs, 'urgSpecs', remotoMaisRecente);
+  const eletSpecs = ZeloMerge.mesclarChaveValor(local.eletSpecs, remoto.eletSpecs, localTs, remotoTs, 'eletSpecs', remotoMaisRecente);
+  const urgAnest = ZeloMerge.mesclarChaveValor(local.urgAnest, remoto.urgAnest, localTs, remotoTs, 'urgAnest', remotoMaisRecente);
+  const eletAnest = ZeloMerge.mesclarChaveValor(local.eletAnest, remoto.eletAnest, localTs, remotoTs, 'eletAnest', remotoMaisRecente);
+  Object.assign(camposTsMesclados, urgSpecs.camposTs, eletSpecs.camposTs, urgAnest.camposTs, eletAnest.camposTs);
+
+  const globalObR = ZeloMerge.resolverCampo(local.globalOb, remoto.globalOb, localTs['globalOb'], remotoTs['globalOb'], remotoMaisRecente);
+  if(globalObR.ts !== undefined) camposTsMesclados['globalOb'] = globalObR.ts;
+  const savedDayObR = ZeloMerge.resolverCampo(local.savedDayOb, remoto.savedDayOb, localTs['savedDayOb'], remotoTs['savedDayOb'], remotoMaisRecente);
+  if(savedDayObR.ts !== undefined) camposTsMesclados['savedDayOb'] = savedDayObR.ts;
+
+  return {
+    date: local.date || remoto.date,
+    urgSpecs: urgSpecs.valor, eletSpecs: eletSpecs.valor,
+    urgAnest: urgAnest.valor, eletAnest: eletAnest.valor,
+    surgeries: {
+      urg: _mesclarListaComFallback(local.surgeries && local.surgeries.urg, remoto.surgeries && remoto.surgeries.urg),
+      elet: _mesclarListaComFallback(local.surgeries && local.surgeries.elet, remoto.surgeries && remoto.surgeries.elet),
+    },
+    suspList: _mesclarListaComFallback(local.suspList, remoto.suspList),
+    obtList: _mesclarListaComFallback(local.obtList, remoto.obtList),
+    globalOb: globalObR.valor || 0,
+    savedDayOb: savedDayObR.valor || 0,
+    camposTs: camposTsMesclados,
+    criadoPor: remotoMaisRecente ? remoto.criadoPor : local.criadoPor,
+    _ts: Math.max(local._ts||0, remoto._ts||0),
   };
-  banner.querySelector('[data-act="dispensar"]').onclick = () => { banner.remove(); };
-  document.body.insertBefore(banner, document.body.firstChild);
+}
+// Constrói o mapa de carimbos de hora por campo (camposTs) — só as
+// contagens por especialidade/anestesia que realmente mudaram entre a
+// gravação anterior e a nova ficam com carimbo actualizado (as listas de
+// registos usam o próprio `_ts` de cada registo, não precisam de entrada
+// aqui — ver _gerarIdRegisto/mesclarListaPorId).
+function _construirCamposTsBloco(prevCamposTs, prevData, novoData, ts){
+  const out = Object.assign({}, prevCamposTs||{});
+  ['urgSpecs','eletSpecs','urgAnest','eletAnest'].forEach(function(campo){
+    const novo = novoData[campo]||{};
+    const antigo = (prevData && prevData[campo])||{};
+    const chaves = new Set([...Object.keys(novo), ...Object.keys(antigo)]);
+    chaves.forEach(function(k){
+      if(novo[k] !== antigo[k]) out[campo+'|'+k] = ts;
+    });
+  });
+  if(novoData.globalOb !== (prevData ? prevData.globalOb : undefined)) out['globalOb'] = ts;
+  if(novoData.savedDayOb !== (prevData ? prevData.savedDayOb : undefined)) out['savedDayOb'] = ts;
+  return out;
 }
 let _fbCancelarEscuta = null;
 async function _fbEscutarDia(date){
@@ -3637,27 +3694,32 @@ async function _fbEscutarDia(date){
     const savedAt = remoto && remoto.savedAt;
     if (!savedAt || !remoto.snapshot){ primeira = false; return; }
     if (savedAt === _fbUltimoEnvioSavedAt[date]){ primeira = false; return; }
-    if (primeira){
-      primeira = false;
-      let localSavedAt = null;
-      try{ localSavedAt = localStorage.getItem(_FB_BO_SAVEDAT_PREFIX + date); }catch(e){}
-      if (localSavedAt && localSavedAt >= savedAt) return;
-      if (date !== currentLoadedDate) return;
-      // Ao abrir qualquer dia (hoje ou um dia passado), aplica logo os dados
-      // mais recentes vindos doutro dispositivo — o carimbo savedAt já garante
-      // acima que só substitui se for realmente mais recente do que o que já
-      // temos, por isso não há risco de apagar uma gravação mais nova. Só
-      // gravações SEGUINTES enquanto o dia continua aberto (mais abaixo) é que
-      // mostram o aviso, para nunca substituir silenciosamente algo que o
-      // utilizador possa estar a escrever nesse momento.
-      try{
-        safeSet(storageKey(date), JSON.stringify(remoto.snapshot));
-        try{ localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
-        if (date === currentLoadedDate){ _popularFormularioDoDia(remoto.snapshot); }
-      }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes do Bloco Operatório.', e); }
-      return;
-    }
-    _fbMostrarAvisoNovosDados(remoto, date);
+    primeira = false;
+    let localSavedAt = null;
+    try{ localSavedAt = localStorage.getItem(_FB_BO_SAVEDAT_PREFIX + date); }catch(e){}
+    if (localSavedAt && localSavedAt >= savedAt) return;
+    if (date !== currentLoadedDate) return;
+    // Mescla sempre os dados vindos doutro dispositivo com os que já
+    // estavam gravados localmente — nunca o dia inteiro — e aplica-os de
+    // imediato, sem aviso (a pedido: sincronização automática entre
+    // utilizadores em simultâneo, sem notificações a interromper).
+    try{
+      let localRaw = null;
+      try{ const rawStr = safeGet(storageKey(date)); localRaw = rawStr ? JSON.parse(rawStr) : null; }catch(e){}
+      const mesclado = _mesclarDadosBloco(localRaw, remoto.snapshot);
+      safeSet(storageKey(date), JSON.stringify(mesclado));
+      try{ localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+      if (date === currentLoadedDate){ _popularFormularioDoDia(mesclado); }
+      // Se a mesclagem recuperou registos que o Firebase não tinha (o outro
+      // dispositivo guardou com menos dados), reenvia a versão mesclada para
+      // que essa recuperação fique disponível a todos.
+      if (localRaw && typeof zeloQueueWrite === 'function' && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot)) {
+        const curaSavedAt = new Date().toISOString();
+        _fbUltimoEnvioSavedAt[date] = curaSavedAt;
+        zeloQueueWrite('registos_sistemas_locais/bloco_operatorio/' + date, {savedAt: curaSavedAt, snapshot: mesclado});
+        try{ localStorage.setItem(_FB_BO_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
+      }
+    }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes do Bloco Operatório.', e); }
   });
 }
 

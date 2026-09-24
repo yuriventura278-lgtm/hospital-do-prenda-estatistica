@@ -30,6 +30,7 @@
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_auto_backup.js"></script>
+<script src="zelo_merge.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hemoterapia — HP</title>
@@ -1331,6 +1332,10 @@ function collectData(){
 async function persistData(date){
   collectData();
   const targetDate = date||currentData.date||todayKey();
+  let prevData = null;
+  try{ prevData = await DB.get(targetDate); }catch(e){}
+  currentData.camposTs = _construirCamposTsHemoterapia(prevData && prevData.camposTs, prevData, currentData, Date.now());
+  currentData._ts = Date.now();
   const payload=JSON.parse(JSON.stringify({...currentData,date:targetDate}));
   try{
     await DB.put(payload);
@@ -1506,28 +1511,91 @@ function _fbEsperarPronto(timeoutMs){
   });
 }
 let _fbCancelarEscuta = null;
-function _fbMostrarAvisoNovosDados(remoto, date){
-  if (document.getElementById('fb-novos-dados-banner')) return;
-  const banner = document.createElement('div');
-  banner.id = 'fb-novos-dados-banner';
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#3E5C87;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
-  banner.innerHTML = '<span>🔄 Outro utilizador guardou dados mais recentes para este dia.</span>' +
-    '<button type="button" data-act="atualizar" style="background:#fff;color:#3E5C87;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>' +
-    '<button type="button" data-act="dispensar" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.8rem;">Agora não</button>';
-  // O botao "Atualizar" aplica explicitamente os dados pendentes ANTES de recarregar -- sem isto,
-  // recarregar nao mudava nada localmente e o aviso reaparecia sempre, preso num ciclo.
-  // O botao "Agora nao" so fecha o aviso, mantendo os dados locais tal como estao.
-  banner.querySelector('[data-act="atualizar"]').onclick = async () => {
-    if (remoto && date){
-      try{
-        await DB.put(JSON.parse(JSON.stringify(Object.assign({}, remoto.snapshot, { date: date }))));
-        localStorage.setItem(_FB_SAVEDAT_PREFIX + date, remoto.savedAt);
-      }catch(e){}
-    }
-    window.location.reload();
-  };
-  banner.querySelector('[data-act="dispensar"]').onclick = () => { banner.remove(); };
-  document.body.insertBefore(banner, document.body.firstChild);
+
+// ── Mesclagem campo-a-campo entre a versão local e a versão vinda doutro
+// dispositivo (Firebase), usando zelo_merge.js — mesmo padrão já em
+// produção na Imagiologia/Laboratório/Procedimentos de Enfermagem. Antes,
+// ao chegar uma versão "mais recente" doutro dispositivo, o dia inteiro
+// era substituído em bloco, ou ficava pendurado num aviso "Atualizar
+// página" — agora mescla-se campo a campo (mapas bloco a bloco, linha a
+// linha), usando o carimbo de hora de cada campo para desempatar, e
+// aplica-se sempre de imediato.
+function _mesclarMapaHemoterapia(mapa, localStore, remotoStore, localTs, remotoTs, remotoMaisRecente){
+  const merged = [];
+  const tsOut = {};
+  mapa.blocks.forEach(function(blk, bi){
+    const localArr = (localStore && localStore[bi]) || [];
+    const remotoArr = (remotoStore && remotoStore[bi]) || [];
+    const arr = [];
+    blk.rows.forEach(function(row, ri){
+      const chaveTs = mapa.key+'|'+bi+'|'+ri;
+      const r = ZeloMerge.resolverCampo(localArr[ri], remotoArr[ri], localTs[chaveTs], remotoTs[chaveTs], remotoMaisRecente);
+      arr[ri] = r.valor==null ? 0 : r.valor;
+      if(r.ts !== undefined) tsOut[chaveTs] = r.ts;
+    });
+    merged[bi] = arr;
+  });
+  return { valor: merged, camposTs: tsOut };
+}
+function _mesclarDadosHemoterapia(local, remoto){
+  if(!local) return remoto;
+  if(!remoto) return local;
+  const remotoMaisRecente = (remoto._ts||0) >= (local._ts||0);
+  const localTs = local.camposTs || {};
+  const remotoTs = remoto.camposTs || {};
+  const camposTsMesclados = Object.assign({}, localTs);
+  const resultado = { date: local.date || remoto.date };
+
+  MAPAS.forEach(function(mapa){
+    const r = _mesclarMapaHemoterapia(mapa, local[mapa.key], remoto[mapa.key], localTs, remotoTs, remotoMaisRecente);
+    resultado[mapa.key] = r.valor;
+    Object.assign(camposTsMesclados, r.camposTs);
+  });
+
+  ['transfusoes','provas','doadores','serologia'].forEach(function(campo){
+    const r = ZeloMerge.mesclarChaveValor(local[campo], remoto[campo], localTs, remotoTs, campo, remotoMaisRecente);
+    resultado[campo] = r.valor;
+    Object.assign(camposTsMesclados, r.camposTs);
+  });
+
+  const turnoR = ZeloMerge.resolverCampo(local.turno, remoto.turno, localTs['turno'], remotoTs['turno'], remotoMaisRecente);
+  if(turnoR.ts !== undefined) camposTsMesclados['turno'] = turnoR.ts;
+  resultado.turno = turnoR.valor || 'manha';
+
+  resultado.camposTs = camposTsMesclados;
+  resultado._ts = Math.max(local._ts||0, remoto._ts||0);
+  return resultado;
+}
+// Constrói o mapa de carimbos de hora por campo (camposTs) — só os campos
+// que realmente mudaram entre a gravação anterior e a nova ficam com
+// carimbo actualizado, para a mesclagem saber depois qual dos dois lados
+// editou cada campo mais recentemente.
+function _construirCamposTsHemoterapia(prevCamposTs, prevData, novoData, ts){
+  const out = Object.assign({}, prevCamposTs||{});
+  MAPAS.forEach(function(mapa){
+    const novo = novoData[mapa.key]||[];
+    const antigo = (prevData && prevData[mapa.key])||[];
+    mapa.blocks.forEach(function(blk, bi){
+      const novoArr = novo[bi]||[];
+      const antigoArr = antigo[bi]||[];
+      blk.rows.forEach(function(row, ri){
+        const novoV = novoArr[ri]!=null ? novoArr[ri] : 0;
+        const antigoV = antigoArr[ri]!=null ? antigoArr[ri] : 0;
+        if(novoV !== antigoV) out[mapa.key+'|'+bi+'|'+ri] = ts;
+      });
+    });
+  });
+  ['transfusoes','provas','doadores','serologia'].forEach(function(campo){
+    const novo = novoData[campo]||{};
+    const antigo = (prevData && prevData[campo])||{};
+    const chaves = new Set([...Object.keys(novo), ...Object.keys(antigo)]);
+    chaves.forEach(function(k){
+      if(novo[k] !== antigo[k]) out[campo+'|'+k] = ts;
+    });
+  });
+  const antigoTurno = prevData ? prevData.turno : undefined;
+  if(novoData.turno !== antigoTurno) out['turno'] = ts;
+  return out;
 }
 // Chamado sempre que o dia aberto muda — cancela a escuta do dia anterior
 // (se existir) e liga-se ao caminho do novo dia.
@@ -1545,31 +1613,37 @@ async function _fbEscutarDia(date){
     if (!savedAt || !remoto.snapshot){ primeira = false; return; }
     if (remoto.criadoPor) _mostrarHoraGuardado(remoto.criadoPor.nome, savedAt);
     if (savedAt === _fbUltimoEnvioSavedAt[date]){ primeira = false; return; } // eco do nosso próprio envio
-    if (primeira){
-      primeira = false;
-      let localSavedAt = null;
-      try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
-      if (localSavedAt && localSavedAt >= savedAt) return; // já temos esta versão (ou mais recente)
-      if (date !== currentData.date) return; // o utilizador já mudou de dia entretanto
-      // Ao abrir qualquer dia (hoje ou um dia passado), aplica logo os dados
-      // mais recentes vindos doutro dispositivo — o carimbo savedAt já
-      // garante acima que só substitui se for realmente mais recente do que
-      // o que já temos, por isso não há risco de apagar uma gravação mais
-      // nova. Só gravações SEGUINTES enquanto o dia continua aberto (mais
-      // abaixo) é que mostram o aviso.
-      try{
-        await DB.put(JSON.parse(JSON.stringify(Object.assign({}, remoto.snapshot, { date: date }))));
-        try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
-        if (date === currentData.date){
-          Object.assign(currentData, remoto.snapshot);
-          populateFields();
-          calcAll(true);
-        }
-      }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes da Hemoterapia.', e); }
-      return;
-    }
-    // Alterações seguintes, com o dia já aberto: só avisar (ver nota acima).
-    _fbMostrarAvisoNovosDados(remoto, date);
+    primeira = false;
+    let localSavedAt = null;
+    try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
+    if (localSavedAt && localSavedAt >= savedAt) return; // já temos esta versão (ou mais recente)
+    if (date !== currentData.date) return; // o utilizador já mudou de dia entretanto
+    // Mescla sempre os dados vindos doutro dispositivo com os que já
+    // estavam gravados localmente — nunca o dia inteiro — e aplica-os de
+    // imediato, sem aviso (a pedido: sincronização automática entre
+    // utilizadores em simultâneo, sem notificações a interromper).
+    try{
+      let localRaw = null;
+      try{ localRaw = await DB.get(date); }catch(e){}
+      const mesclado = _mesclarDadosHemoterapia(localRaw, remoto.snapshot);
+      await DB.put(JSON.parse(JSON.stringify(Object.assign({}, mesclado, { date: date }))));
+      try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
+      if (date === currentData.date){
+        Object.assign(currentData, mesclado);
+        populateFields();
+        calcAll(true);
+      }
+      // Se a mesclagem recuperou campos que o Firebase não tinha (o outro
+      // dispositivo guardou com menos campos preenchidos), reenvia a
+      // versão mesclada para que essa recuperação fique disponível a todos.
+      if (localRaw && typeof zeloQueueUpdate === 'function' && JSON.stringify(mesclado) !== JSON.stringify(remoto.snapshot)) {
+        const curaSavedAt = new Date().toISOString();
+        _fbUltimoEnvioSavedAt[date] = curaSavedAt;
+        const criadoPor = {nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null};
+        zeloQueueUpdate('registos_sistemas_locais/hemoterapia/' + date, {savedAt: curaSavedAt, snapshot: mesclado, criadoPor: criadoPor});
+        try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, curaSavedAt); }catch(e){}
+      }
+    }catch(e){ console.warn('ZELO: falha ao aplicar dados mais recentes da Hemoterapia.', e); }
   });
 }
 
