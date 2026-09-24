@@ -328,6 +328,16 @@ function trendHTML(t){
   const abs = Math.abs(t.delta) < 1 && t.delta !== 0 ? '<1' : Math.round(Math.abs(t.delta));
   return '<span class="kpi-trend '+(t.subiu?'up':'down')+'">'+(t.subiu?ICON_TREND_UP:ICON_TREND_DOWN)+abs+'%</span>';
 }
+// Arranca já a leitura do período anterior (para a tendência ▲/▼) em
+// paralelo com a leitura do período actual — cada carregarX() chama isto
+// no início e só usa o resultado (await) mais tarde, depois de calcular o
+// total actual, para as duas leituras Firebase independentes não ficarem
+// em série (o que duplicava o tempo de carregamento de cada secção).
+function _iniciarTotalAnterior(periodo, totalFn){
+  const periodoAnterior = calcularPeriodoAnterior(periodo);
+  if (!periodoAnterior) return Promise.resolve(null);
+  return totalFn(periodoAnterior.dates).catch(function(e){ console.warn('ZELO Dashboard: falha ao calcular tendência', e); return null; });
+}
 
 /* ════════════════════════════════════════════════════════════
    INFRA-ESTRUTURA PARTILHADA — leitura Firebase em bloco + gráficos
@@ -655,6 +665,7 @@ async function _totalProcParaPeriodo(dates){
   return total;
 }
 async function carregarProcedimentos(periodo){
+  const promAnterior = _iniciarTotalAnterior(periodo, _totalProcParaPeriodo);
   const slugs = Object.keys(PROC_SLUGS);
   const historicos = await Promise.all(slugs.map(function(slug){ return lerHistoricoCompleto('registos_enf/'+slug, periodo.dates[0], periodo.dates[periodo.dates.length-1]); }));
   let total = 0, ultimaAtualizacao = null;
@@ -674,11 +685,8 @@ async function carregarProcedimentos(periodo){
   });
   const rows = ordenarDesc(porServico);
   if (total === 0){ renderSecaoVazia('proc'); _secaoDados.proc=null; return; }
-  let tendencia = null;
-  try{
-    const periodoAnterior = calcularPeriodoAnterior(periodo);
-    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalProcParaPeriodo(periodoAnterior.dates));
-  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência de Procedimentos', e); }
+  const totalAnterior = await promAnterior;
+  const tendencia = totalAnterior != null ? calcularTendencia(total, totalAnterior) : null;
   const charts = [ { title:'Por Serviço', canvasId:'chart-proc', config: barChartConfig(rows.map(r=>r.nome), rows.map(r=>r.v), {horizontal:true, color:'#B5502D'}) } ];
   if (periodo.dates.length > 1) charts.push({ title:'Evolução Diária', canvasId:'chart-proc-evol', config: lineChartConfig(periodo.dates.map(d=>d.slice(8,10)+'/'+d.slice(5,7)), periodo.dates.map(d=>porDia[d]), {color:'#B5502D'}) });
   renderSecao('proc',
@@ -712,6 +720,7 @@ async function _totalBlocoParaPeriodo(dates){
   return total;
 }
 async function carregarBloco(periodo){
+  const promAnterior = _iniciarTotalAnterior(periodo, _totalBlocoParaPeriodo);
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/bloco_operatorio', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   let totUrg=0, totElet=0;
@@ -733,11 +742,8 @@ async function carregarBloco(periodo){
   });
   const total = totUrg + totElet;
   if (total === 0){ renderSecaoVazia('bloco'); _secaoDados.bloco=null; return; }
-  let tendencia = null;
-  try{
-    const periodoAnterior = calcularPeriodoAnterior(periodo);
-    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalBlocoParaPeriodo(periodoAnterior.dates));
-  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência do Bloco Operatório', e); }
+  const totalAnteriorBloco = await promAnterior;
+  const tendencia = totalAnteriorBloco != null ? calcularTendencia(total, totalAnteriorBloco) : null;
   const especRows = ordenarDesc(BLOCO_SPECIALTIES.map(function(s){ return { nome:s, v:(especT[s].urg||0)+(especT[s].elet||0) }; }));
   const anestRows = ordenarDesc(Object.keys(anestT).map(function(k){ return {nome:k, v:anestT[k]}; }));
   const charts = [ { title:'Por Especialidade (Urgente + Eletiva)', canvasId:'chart-bloco-esp', config: barChartConfig(especRows.map(r=>r.nome), especRows.map(r=>r.v), {horizontal:true, color:'#9B3B3B'}) } ];
@@ -772,6 +778,7 @@ async function _totalCEParaPeriodo(dates){
   return total;
 }
 async function carregarConsultaExterna(periodo){
+  const promAnterior = _iniciarTotalAnterior(periodo, _totalCEParaPeriodo);
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/consulta_externa', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   let total = 0;
@@ -788,11 +795,8 @@ async function carregarConsultaExterna(periodo){
     });
   });
   if (total === 0){ renderSecaoVazia('ce'); _secaoDados.ce=null; return; }
-  let tendencia = null;
-  try{
-    const periodoAnterior = calcularPeriodoAnterior(periodo);
-    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalCEParaPeriodo(periodoAnterior.dates));
-  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência da Consulta Externa', e); }
+  const totalAnteriorCE = await promAnterior;
+  const tendencia = totalAnteriorCE != null ? calcularTendencia(total, totalAnteriorCE) : null;
   const especRows = ordenarDesc(Object.keys(porEspec).map(function(k){ return {nome:k, v:porEspec[k]}; }));
   const diagRows = ordenarDesc(Object.keys(diagnosticos).map(function(k){ return {nome:k, v:diagnosticos[k]}; })).slice(0,8);
   const charts = [ { title:'Por Especialidade', canvasId:'chart-ce-esp', config: barChartConfig(especRows.map(r=>r.nome), especRows.map(r=>r.v), {horizontal:true, color:'#3F7A56'}) } ];
@@ -825,6 +829,7 @@ async function _totalImagParaPeriodo(dates){
   return total;
 }
 async function carregarImagiologia(periodo){
+  const promAnterior = _iniciarTotalAnterior(periodo, _totalImagParaPeriodo);
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/imagiologia', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   const modalidades = { tac:0, eco:0, rx:0 };
@@ -841,11 +846,8 @@ async function carregarImagiologia(periodo){
   });
   const total = modalidades.tac + modalidades.eco + modalidades.rx;
   if (total === 0){ renderSecaoVazia('imag'); _secaoDados.imag=null; return; }
-  let tendencia = null;
-  try{
-    const periodoAnterior = calcularPeriodoAnterior(periodo);
-    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalImagParaPeriodo(periodoAnterior.dates));
-  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência da Imagiologia', e); }
+  const totalAnteriorImag = await promAnterior;
+  const tendencia = totalAnteriorImag != null ? calcularTendencia(total, totalAnteriorImag) : null;
   const modLabels = {tac:'TAC', eco:'Ecografia', rx:'Raio X'};
   const modRows = ordenarDesc(Object.keys(modalidades).map(function(k){ return {nome:modLabels[k], v:modalidades[k]}; }));
   const origemRows = ordenarDesc([{nome:'Banco de Urgência', v:bu}, {nome:'Autorizados', v:aut}, {nome:'Internamento', v:int_}]);
@@ -878,6 +880,7 @@ async function _totalLabParaPeriodo(dates){
   return total;
 }
 async function carregarLaboratorio(periodo){
+  const promAnterior = _iniciarTotalAnterior(periodo, _totalLabParaPeriodo);
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/laboratorio', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   let total = 0, totalPositivos = 0;
@@ -892,11 +895,8 @@ async function carregarLaboratorio(periodo){
     Object.values(snap.positivos||{}).forEach(function(v){ totalPositivos += (v.bu||0)+(v.int||0); });
   });
   if (total === 0){ renderSecaoVazia('lab'); _secaoDados.lab=null; return; }
-  let tendencia = null;
-  try{
-    const periodoAnterior = calcularPeriodoAnterior(periodo);
-    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalLabParaPeriodo(periodoAnterior.dates));
-  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência do Laboratório', e); }
+  const totalAnteriorLab = await promAnterior;
+  const tendencia = totalAnteriorLab != null ? calcularTendencia(total, totalAnteriorLab) : null;
   const topExames = ordenarDesc(Object.keys(porExame).map(function(k){ return {nome:k, v:porExame[k]}; })).slice(0,8);
   const charts = [ { title:'Principais Exames', canvasId:'chart-lab', config: barChartConfig(topExames.map(r=>r.nome), topExames.map(r=>r.v), {horizontal:true, color:'#6B4E9E'}) } ];
   if (totalPositivos > 0) charts.push({ title:'Resultados Positivos vs. Sem Alteração', canvasId:'chart-lab-pos', config: pieChartConfig(['Positivos','Sem alteração'], [totalPositivos, Math.max(total-totalPositivos,0)]) });
@@ -928,6 +928,7 @@ async function _totalTransfParaPeriodo(dates){
   return total;
 }
 async function carregarHemoterapia(periodo){
+  const promAnterior = _iniciarTotalAnterior(periodo, _totalTransfParaPeriodo);
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/hemoterapia', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
   const transf = {plaquetas:0, plasmas:0, globulos:0, crio:0};
@@ -942,11 +943,8 @@ async function carregarHemoterapia(periodo){
   });
   const totalTransf = somaObj(transf), totalDoad = somaObj(doad), totalSero = somaObj(sero);
   if (totalTransf === 0 && totalDoad === 0){ renderSecaoVazia('hemo'); _secaoDados.hemo=null; return; }
-  let tendencia = null;
-  try{
-    const periodoAnterior = calcularPeriodoAnterior(periodo);
-    if (periodoAnterior) tendencia = calcularTendencia(totalTransf, await _totalTransfParaPeriodo(periodoAnterior.dates));
-  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência da Hemoterapia', e); }
+  const totalAnteriorHemo = await promAnterior;
+  const tendencia = totalAnteriorHemo != null ? calcularTendencia(totalTransf, totalAnteriorHemo) : null;
   const transfLabels = {plaquetas:'Plaquetas', plasmas:'Plasmas', globulos:'Glóbulos', crio:'Crioprecipitado'};
   const doadLabels = {voluntarios:'Voluntários', familiares:'Familiares', habituais:'Habituais'};
   const seroLabels = {vih:'VIH', hbs:'Hepatite B', vdrl:'VDRL (Sífilis)', hcv:'Hepatite C', outros:'Outros'};

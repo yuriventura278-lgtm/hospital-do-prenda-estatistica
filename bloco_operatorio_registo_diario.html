@@ -2154,6 +2154,12 @@ const suspList = [];
 const obtList = [];
 let globalOb = 0;
 let savedDayOb = 0; // tracks how much of today's obtidos already went into globalOb
+// Registos eliminados (id -> hora da eliminação), para a mesclagem
+// campo-a-campo (ver _mesclarDadosBloco) nunca ressuscitar um registo
+// apagado localmente quando chega uma versão mais antiga doutro
+// dispositivo — sem isto, remover uma cirurgia/suspensa/obtida não tinha
+// qualquer efeito na mesclagem, e podia reaparecer sozinha.
+let _tombstonesLocais = {};
 
 // ── Date init ──
 const dateInput = document.getElementById('regDate');
@@ -2771,6 +2777,8 @@ function addSurgery(formPrefix) {
 }
 
 function removeSurgery(prefix, idx) {
+  const removida = surgeries[prefix][idx];
+  if (removida && removida.id) _tombstonesLocais[removida.id] = Date.now();
   surgeries[prefix].splice(idx, 1);
   recalcSpecsAndGender(prefix);
   recalcAnest(prefix);
@@ -3027,6 +3035,8 @@ function addSuspensa() {
 }
 
 function removeSuspensa(i) {
+  const removida = suspList[i];
+  if (removida && removida.id) _tombstonesLocais[removida.id] = Date.now();
   suspList.splice(i, 1);
   renderSuspensas();
   autoSave();
@@ -3056,6 +3066,8 @@ function addObtido() {
 }
 
 function removeObtido(i) {
+  const removido = obtList[i];
+  if (removido && removido.id) _tombstonesLocais[removido.id] = Date.now();
   obtList.splice(i, 1);
   renderObtidos();
   autoSave();
@@ -3276,6 +3288,10 @@ function persist(date) {
   let _prevData = null;
   try{ const _raw = safeGet(storageKey(targetDate)); _prevData = _raw ? JSON.parse(_raw) : null; }catch(e){}
   data.camposTs = _construirCamposTsBloco(_prevData && _prevData.camposTs, _prevData, data, Date.now());
+  // Junta os tombstones já guardados (doutras gravações, possivelmente
+  // doutro dispositivo, já mescladas) com os desta sessão — nunca se perde
+  // o registo de uma eliminação anterior só por se ter gravado de novo.
+  data.tombstones = Object.assign({}, _prevData && _prevData.tombstones, _tombstonesLocais);
   data._ts = Date.now();
   data.criadoPor = { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null };
   const ok = safeSet(storageKey(targetDate), JSON.stringify(data));
@@ -3291,6 +3307,7 @@ function clearDayState() {
   suspList.length = 0;
   obtList.length = 0;
   savedDayOb = 0;
+  _tombstonesLocais = {};
   // Reset specialty inputs
   SPECIALTIES.forEach(sp => {
     const e1 = document.getElementById(`urg-spec-${specKey(sp)}`);
@@ -3342,6 +3359,7 @@ function _popularFormularioDoDia(data) {
   if (data.criadoPor?.nome && data._ts) {
     _mostrarHoraGuardado(data.criadoPor.nome, data._ts);
   }
+  _tombstonesLocais = Object.assign({}, data.tombstones || {});
   const histBtn = document.getElementById('ver-historico-btn');
   if (histBtn) histBtn.style.display = 'inline-block';
   SPECIALTIES.forEach(sp => {
@@ -3614,16 +3632,18 @@ function _escHtml(s){
 // Regista antigos (antes desta funcionalidade existir) não têm `id` — o
 // ZeloMerge.mesclarListaPorId ignora-os. Para nunca perder um registo
 // antigo, mescla por id só os que já o têm, e faz união simples (sem
-// deduplicar por conteúdo) dos que ainda não têm.
-function _mesclarListaComFallback(localArr, remotoArr){
+// deduplicar por conteúdo) dos que ainda não têm. tombstonesLocal/Remoto
+// (ver _tombstonesLocais) é o que impede um registo eliminado de
+// reaparecer só porque o outro lado ainda tem uma cópia desatualizada.
+function _mesclarListaComFallback(localArr, remotoArr, tombstonesLocal, tombstonesRemoto){
   const l = localArr||[], r = remotoArr||[];
   const lComId = l.filter(x => x && x.id !== undefined);
   const rComId = r.filter(x => x && x.id !== undefined);
   const lSemId = l.filter(x => !(x && x.id !== undefined));
   const rSemId = r.filter(x => !(x && x.id !== undefined));
-  const mesclado = ZeloMerge.mesclarListaPorId(lComId, rComId);
+  const mesclado = ZeloMerge.mesclarListaPorId(lComId, rComId, tombstonesLocal, tombstonesRemoto);
   const semIdUnificado = lSemId.concat(rSemId.filter(x => !lSemId.some(y => JSON.stringify(y) === JSON.stringify(x))));
-  return mesclado.lista.concat(semIdUnificado);
+  return { lista: mesclado.lista.concat(semIdUnificado), tombstones: mesclado.tombstones };
 }
 function _mesclarDadosBloco(local, remoto){
   if(!local) return remoto;
@@ -3644,19 +3664,24 @@ function _mesclarDadosBloco(local, remoto){
   const savedDayObR = ZeloMerge.resolverCampo(local.savedDayOb, remoto.savedDayOb, localTs['savedDayOb'], remotoTs['savedDayOb'], remotoMaisRecente);
   if(savedDayObR.ts !== undefined) camposTsMesclados['savedDayOb'] = savedDayObR.ts;
 
+  const tombstonesLocal = local.tombstones || {};
+  const tombstonesRemoto = remoto.tombstones || {};
+  const surgUrg = _mesclarListaComFallback(local.surgeries && local.surgeries.urg, remoto.surgeries && remoto.surgeries.urg, tombstonesLocal, tombstonesRemoto);
+  const surgElet = _mesclarListaComFallback(local.surgeries && local.surgeries.elet, remoto.surgeries && remoto.surgeries.elet, tombstonesLocal, tombstonesRemoto);
+  const susp = _mesclarListaComFallback(local.suspList, remoto.suspList, tombstonesLocal, tombstonesRemoto);
+  const obt = _mesclarListaComFallback(local.obtList, remoto.obtList, tombstonesLocal, tombstonesRemoto);
+
   return {
     date: local.date || remoto.date,
     urgSpecs: urgSpecs.valor, eletSpecs: eletSpecs.valor,
     urgAnest: urgAnest.valor, eletAnest: eletAnest.valor,
-    surgeries: {
-      urg: _mesclarListaComFallback(local.surgeries && local.surgeries.urg, remoto.surgeries && remoto.surgeries.urg),
-      elet: _mesclarListaComFallback(local.surgeries && local.surgeries.elet, remoto.surgeries && remoto.surgeries.elet),
-    },
-    suspList: _mesclarListaComFallback(local.suspList, remoto.suspList),
-    obtList: _mesclarListaComFallback(local.obtList, remoto.obtList),
+    surgeries: { urg: surgUrg.lista, elet: surgElet.lista },
+    suspList: susp.lista,
+    obtList: obt.lista,
     globalOb: globalObR.valor || 0,
     savedDayOb: savedDayObR.valor || 0,
     camposTs: camposTsMesclados,
+    tombstones: Object.assign({}, surgUrg.tombstones, surgElet.tombstones, susp.tombstones, obt.tombstones),
     criadoPor: remotoMaisRecente ? remoto.criadoPor : local.criadoPor,
     _ts: Math.max(local._ts||0, remoto._ts||0),
   };

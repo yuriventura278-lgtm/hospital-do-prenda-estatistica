@@ -2680,6 +2680,40 @@ CE.Registo = (function(){
     });
   }
 
+  /* ---------- Tombstones (eliminações) por especialidade+dia ----------
+     A sessão em si não tem um id estável entre dispositivos (é a chave
+     auto-incremento local do IndexedDB de cada um) — por isso o registo de
+     "isto foi eliminado" usa a mesma chave natural especialidade+data já
+     usada para tudo o resto (ver verificarSessaoExistente). Sem isto,
+     apagar uma sessão não tinha qualquer efeito na mesclagem, e podia
+     reaparecer sozinha se outro dispositivo com uma cópia desatualizada
+     gravasse depois qualquer coisa nesse dia. */
+  var CE_TOMBSTONE_KEY = 'ce_tombstones_v1'; // { [data]: { [especialidade]: tsEliminacao } }
+  function _lerTombstonesCE(){
+    try{ return JSON.parse(localStorage.getItem(CE_TOMBSTONE_KEY) || '{}'); }catch(e){ return {}; }
+  }
+  function _gravarTombstonesCE(mapa){
+    try{ localStorage.setItem(CE_TOMBSTONE_KEY, JSON.stringify(mapa)); }catch(e){}
+  }
+  function _registarTombstoneCE(data, especialidade, ts){
+    var mapa = _lerTombstonesCE();
+    if (!mapa[data]) mapa[data] = {};
+    mapa[data][especialidade] = ts;
+    _gravarTombstonesCE(mapa);
+  }
+  // Junta tombstones vindos doutro dispositivo com os já conhecidos aqui —
+  // fica sempre o carimbo mais recente por especialidade+dia.
+  function _mesclarTombstonesCE(data, tombstonesRemotos){
+    if (!tombstonesRemotos) return;
+    var mapa = _lerTombstonesCE();
+    if (!mapa[data]) mapa[data] = {};
+    Object.keys(tombstonesRemotos).forEach(function(esp){
+      var ts = tombstonesRemotos[esp];
+      if (mapa[data][esp] === undefined || ts > mapa[data][esp]) mapa[data][esp] = ts;
+    });
+    _gravarTombstonesCE(mapa);
+  }
+
   /* ---------- Sincronização com o Firebase (escrita + escuta em tempo real) ----------
      Depois de gravar localmente, reenvia todas as sessões desse dia para o Firebase —
      mantém o dia inteiro coerente lá, mesmo quando há várias especialidades/sessões
@@ -2690,9 +2724,10 @@ CE.Registo = (function(){
     try{
       var sessoes = (await CE.Store.getAllSessoes()).filter(function(s){ return s.data === data; });
       var savedAt = new Date().toISOString();
+      var tombstonesDoDia = _lerTombstonesCE()[data] || {};
       await zeloQueueWrite('registos_sistemas_locais/consulta_externa/' + data, {
         savedAt: savedAt,
-        snapshot: { sessoes: sessoes }
+        snapshot: { sessoes: sessoes, tombstones: tombstonesDoDia }
       });
       _fbBaselineSavedAt[data] = savedAt; // é a nossa própria gravação — não avisar sobre ela
     }catch(e){ console.warn('ZELO: falha ao sincronizar Consulta Externa com o Firebase', e); }
@@ -2703,16 +2738,32 @@ CE.Registo = (function(){
      ver verificarSessaoExistente), por isso aplicar dados remotos é: para cada sessão
      recebida, encontrar a sessão local da mesma especialidade+dia e substituí-la
      (updateSessao mantendo o id local) — nunca criar uma cópia nova (o bulkImport
-     genérico, feito para restaurar backups completos, criaria duplicados aqui). */
-  async function _fbAplicarSessoesRemotas(data, sessoesRemotas){
-    if (!sessoesRemotas || !sessoesRemotas.length) return;
+     genérico, feito para restaurar backups completos, criaria duplicados aqui).
+     Uma especialidade com tombstone mais recente do que a versão remota nunca é
+     aplicada (foi eliminada depois); se já existir localmente, é eliminada também
+     aqui — assim a eliminação chega a este dispositivo mesmo que só tenha recebido
+     uma gravação não relacionada do mesmo dia, nunca a eliminação em si. */
+  async function _fbAplicarSessoesRemotas(data, sessoesRemotas, tombstonesRemotos){
+    _mesclarTombstonesCE(data, tombstonesRemotos);
+    var tombstonesDoDia = _lerTombstonesCE()[data] || {};
     var locais = await CE.Store.getAllSessoes();
-    for (var i = 0; i < sessoesRemotas.length; i++){
-      var remota = Object.assign({}, sessoesRemotas[i]);
-      delete remota.id;
-      var local = locais.find(function(s){ return s.especialidade === remota.especialidade && s.data === data; });
-      if (local){ remota.id = local.id; await CE.Store.updateSessao(remota); }
-      else { await CE.Store.addSessao(remota); }
+    if (sessoesRemotas && sessoesRemotas.length){
+      for (var i = 0; i < sessoesRemotas.length; i++){
+        var remota = Object.assign({}, sessoesRemotas[i]);
+        delete remota.id;
+        var tombTs = tombstonesDoDia[remota.especialidade];
+        if (tombTs !== undefined && tombTs >= (remota.createdAt||0)) continue;
+        var local = locais.find(function(s){ return s.especialidade === remota.especialidade && s.data === data; });
+        if (local){ remota.id = local.id; await CE.Store.updateSessao(remota); }
+        else { await CE.Store.addSessao(remota); }
+      }
+    }
+    locais = await CE.Store.getAllSessoes();
+    for (var j = 0; j < locais.length; j++){
+      var sLocal = locais[j];
+      if (sLocal.data !== data) continue;
+      var tTs = tombstonesDoDia[sLocal.especialidade];
+      if (tTs !== undefined && tTs >= (sLocal.createdAt||0)) await CE.Store.deleteSessao(sLocal.id);
     }
     carregarCachePatologias();
     if (CE.atualizarIndicadoresEspecialidades) CE.atualizarIndicadoresEspecialidades();
@@ -2779,7 +2830,7 @@ CE.Registo = (function(){
       // simultâneo, sem notificações a interromper), tanto na primeira
       // leitura do dia como em qualquer gravação seguinte enquanto o dia
       // continua aberto.
-      _fbAplicarSessoesRemotas(data, sessoesRemotas).catch(function(e){ console.warn('ZELO: falha ao aplicar dados remotos da Consulta Externa.', e); });
+      _fbAplicarSessoesRemotas(data, sessoesRemotas, remoto.snapshot && remoto.snapshot.tombstones).catch(function(e){ console.warn('ZELO: falha ao aplicar dados remotos da Consulta Externa.', e); });
     });
   }
 
@@ -2814,7 +2865,7 @@ CE.Registo = (function(){
             .reduce(function(m, s){ return Math.max(m, s.createdAt||0); }, 0);
           var remotoMs = Date.parse(remoto.savedAt);
           if (isNaN(remotoMs) || remotoMs <= maisRecenteLocal) continue;
-          await _fbAplicarSessoesRemotas(data, sessoesRemotas);
+          await _fbAplicarSessoesRemotas(data, sessoesRemotas, remoto.snapshot && remoto.snapshot.tombstones);
           _fbBaselineSavedAt[data] = remoto.savedAt;
           locais = await CE.Store.getAllSessoes(); // refresca para a data seguinte comparar bem
         }
@@ -3457,7 +3508,9 @@ CE.Historico = (function(){
         var nMedicos = s && s.medicos ? s.medicos.length : 0;
         var resumo = s ? (s.especialidade + ' — ' + s.data + ' (' + nMedicos + ' médico(s), ' + nDoentes + ' doente(s))') : 'este registo';
         if (!confirm('Apagar ' + resumo + '? Esta ação elimina tudo (médicos, enfermeiras, doentes, procedimentos e material) e não pode ser desfeita.')) return;
+        if (s) _registarTombstoneCE(s.data, s.especialidade, Date.now());
         await CE.Store.deleteSessao(sessaoId);
+        if (s) _fbSyncConsultaExterna(s.data).catch(function(e){ console.warn('ZELO: falha ao propagar eliminação da Consulta Externa.', e); });
         toast('Registo apagado.');
         refresh();
       });
