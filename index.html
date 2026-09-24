@@ -305,10 +305,6 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-svc-nested .sb-action-link{padding-left:80px;}
 .sb-sis-link{display:block;padding:8px 6px 8px 30px;font-size:.76rem;color:var(--tx2);text-decoration:none;border-radius:9px;}
 .sb-sis-link:hover{background:var(--sf);color:var(--bl);}
-.sb-sis-link{display:flex !important;align-items:center;gap:8px;}
-.sb-sis-cadeado{display:none;margin-left:auto;flex-shrink:0;color:#B45309;}
-.sb-sis-bloqueado .sb-sis-cadeado{display:block;}
-.sb-sis-bloqueado .sb-sis-link{color:var(--tx3);}
 
 /* ── Menu lateral v2: letras um pouco maiores, realce claro ao passar e ao
    clicar, ramo aberto destacado, árvore que abre com animação suave e
@@ -1734,11 +1730,7 @@ window.zeloApplyRole = function(role){
   if(qa) qa.style.display = (role === 'admin') ? 'flex' : 'none';
 };
 window.zeloApplyPermissoes = function(role, permissoes){
-  document.querySelectorAll('.sb-link[data-module]').forEach(function(link){
-    var mod = link.dataset.module;
-    var permitido = window.__zeloHasModuleAccess(role, permissoes, mod, link.dataset.item || null);
-    link.style.display = permitido ? '' : 'none';
-  });
+  // Os itens do menu ficam sempre visíveis; a permissão é verificada no clique.
   zeloAtualizarVisibilidadeArvoreServicos(role, permissoes);
   zeloAtualizarVisibilidadeSistemasLocais(role, permissoes);
 };
@@ -1868,47 +1860,9 @@ function zeloConstruirArvoreServicos(){
   ligarAlternador('[data-svc-toggle]', 'data-svc-actions', 'svcToggle');
 }
 
-function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){
-  var tree = document.getElementById('sbServicosTree');
-  if(!tree) return;
-  var menu = window.SERVICOS_MENU || [];
-  var porNome = {};
-  menu.forEach(function(svc){ porNome[svc.nome] = svc; });
-  tree.querySelectorAll('.sb-svc').forEach(function(svcEl){
-    var algumaAcaoVisivel = false;
-    svcEl.querySelectorAll('.sb-action-link').forEach(function(link){
-      var visivel = zeloAcaoVisivel({ modulo: link.dataset.modulo, item: link.dataset.item }, role, permissoes);
-      link.style.display = visivel ? '' : 'none';
-      if(visivel) algumaAcaoVisivel = true;
-    });
-    var toggle = svcEl.querySelector('.sb-svc-toggle');
-    if(toggle) toggle.style.display = algumaAcaoVisivel ? '' : 'none';
-  });
-  tree.querySelectorAll('.sb-cat[data-cat-flat="1"]').forEach(function(catEl){
-    var algumaAcaoVisivel = false;
-    catEl.querySelectorAll('.sb-action-link').forEach(function(link){
-      var visivel = zeloAcaoVisivel({ modulo: link.dataset.modulo, item: link.dataset.item }, role, permissoes);
-      link.style.display = visivel ? '' : 'none';
-      if(visivel) algumaAcaoVisivel = true;
-    });
-    catEl.style.display = algumaAcaoVisivel ? '' : 'none';
-  });
-  tree.querySelectorAll('.sb-cat:not([data-cat-flat="1"])').forEach(function(catEl){
-    var algumVisivel = false;
-    catEl.querySelectorAll('.sb-svc').forEach(function(svcEl){
-      var svc = porNome[svcEl.dataset.svcNome];
-      var visivel = !svc || zeloServicoTemAcessoVisivel(svc, role, permissoes);
-      svcEl.style.display = visivel ? '' : 'none';
-      if(visivel) algumVisivel = true;
-    });
-    // Um grupo (ex.: Medicina Interna) só aparece se tiver algum serviço visível.
-    catEl.querySelectorAll('.sb-grp').forEach(function(grpEl){
-      var algum = Array.prototype.some.call(grpEl.querySelectorAll('.sb-svc'), function(e){ return e.style.display !== 'none'; });
-      grpEl.style.display = algum ? '' : 'none';
-    });
-    catEl.style.display = algumVisivel ? '' : 'none';
-  });
-}
+// Tudo aparece a todos (para se saber que existe); quem não tem permissão
+// recebe uma mensagem ao clicar — ver zeloTentarAbrirLink em zelo_servicos_menu.js.
+function zeloAtualizarVisibilidadeArvoreServicos(role, permissoes){}
 zeloConstruirArvoreServicos();
 zeloAtualizarVisibilidadeArvoreServicos(sessionStorage.getItem('zeloRole') || 'funcionario', JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'));
 function zeloAlternarArvoreServicos(){
@@ -1943,18 +1897,9 @@ function zeloConstruirArvoreSistemasLocais(){
   var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return !s.destaque; });
   tree.innerHTML = itens.map(function(s){
     return '<a class="sb-sis-link" href="' + s.file + '" data-modulo="' + s.modulo + '"' +
-      (s.item ? ' data-item="' + s.item + '"' : '') + '><span>' + s.nome + '</span>' +
-      '<svg class="sb-sis-cadeado" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-label="Só administradores"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></a>';
+      (s.item ? ' data-item="' + s.item + '"' : '') + ' data-so-admin="1">' + s.nome + '</a>';
   }).join('');
-  // Aparece a todos, mas só os administradores entram.
-  tree.addEventListener('click', function(e){
-    var link = e.target.closest('.sb-sis-link');
-    if(!link) return;
-    if((sessionStorage.getItem('zeloRole') || 'funcionario') !== 'admin'){
-      e.preventDefault();
-      if(typeof window.zeloAvisoSoAdmin === 'function') window.zeloAvisoSoAdmin();
-    }
-  });
+  // Aparece a todos, mas só os administradores entram (mensagem no clique).
 }
 zeloConstruirArvoreSistemasLocais();
 // Itens de SISTEMAS_LOCAIS_MENU marcados "destaque" saem da árvore
@@ -1976,9 +1921,8 @@ zeloConstruirDestaques();
 function zeloAtualizarVisibilidadeSistemasLocais(role, permissoes){
   var tree = document.getElementById('sbSistemasTree');
   if(!tree) return;
-  // Serviço de Estatística: visível para todos; quem não é administrador vê
-  // um cadeado e, ao clicar, a mensagem "Acesso só para administradores".
-  tree.classList.toggle('sb-sis-bloqueado', role !== 'admin');
+  // Serviço de Estatística: visível para todos; quem não é administrador
+  // recebe uma mensagem ao clicar.
 }
 zeloAtualizarVisibilidadeSistemasLocais(sessionStorage.getItem('zeloRole') || 'funcionario', JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'));
 function zeloAlternarArvoreSistemasLocais(){
@@ -2053,7 +1997,7 @@ function zeloConstruirIndicePesquisa(){
   return itens;
 }
 function zeloItemPesquisaVisivel(it){
-  if(it.soAdmin) return (sessionStorage.getItem('zeloRole') || 'funcionario') === 'admin';
+  return true; // tudo aparece; a permissão é verificada ao abrir
   if(!it.modulo) return true;
   if(typeof window.__zeloHasModuleAccess !== 'function') return true;
   var role = sessionStorage.getItem('zeloRole') || 'funcionario';
@@ -2085,7 +2029,9 @@ function zeloRenderResultadosPesquisa(q){
     return;
   }
   painel.innerHTML = resultados.map(function(it, i){
-    return '<a class="tsr-item" href="' + it.href + '" role="option" data-idx="' + i + '">' +
+    return '<a class="tsr-item" href="' + it.href + '" role="option" data-idx="' + i + '"' +
+      (it.modulo ? ' data-modulo="' + it.modulo + '"' : '') + (it.item ? ' data-item="' + it.item + '"' : '') +
+      (it.soAdmin ? ' data-so-admin="1"' : '') + '>' +
       '<span class="tsr-label">' + zeloDestacarTexto(it.label, qLower) + '</span>' +
       (it.parent ? '<span class="tsr-parent">' + zeloSearchEscapeHtml(it.parent) + '</span>' : '') +
       '</a>';
@@ -2110,7 +2056,7 @@ zeloSearchInput.addEventListener('keydown', function(e){
     zeloSearchActiveIndex = Math.max(zeloSearchActiveIndex - 1, 0);
   } else if(e.key === 'Enter'){
     var alvo = zeloSearchActiveIndex >= 0 ? opcoes[zeloSearchActiveIndex] : opcoes[0];
-    if(alvo){ window.location.href = alvo.getAttribute('href'); }
+    if(alvo && (typeof window.zeloTentarAbrirLink !== 'function' || window.zeloTentarAbrirLink(alvo))){ window.location.href = alvo.getAttribute('href'); }
     return;
   } else if(e.key === 'Escape'){
     zeloFecharResultadosPesquisa();

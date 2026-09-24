@@ -169,8 +169,8 @@ const CATEGORIAS_SERVICOS = [
 // "Serviço de Estatística" (antes "Sistemas Locais") — cada item é um só
 // acesso directo, sem sub-acções como os serviços clínicos acima. A secção
 // aparece no menu a TODOS os utilizadores, mas só os administradores entram:
-// para os restantes, clicar mostra "Acesso só para administradores"
-// (zeloAvisoSoAdmin), e as próprias páginas também o verificam
+// para os restantes, clicar mostra uma mensagem (zeloAvisoSoAdmin), e as
+// próprias páginas também o verificam
 // (window.ZELO_SO_ADMIN, em zelo_pagegate.js).
 const ZELO_SERVICO_ESTATISTICA = 'Serviço de Estatística';
 const SISTEMAS_LOCAIS_MENU = [
@@ -209,9 +209,10 @@ function zeloSlugifyServico(nome){
     .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-// Mensagem mostrada a quem não é administrador ao tentar abrir um item do
-// Serviço de Estatística.
-function zeloAvisoSoAdmin(){
+// ── Menus: tudo aparece a todos; a permissão só é verificada no clique ──
+// Quem não tem acesso a uma página continua a vê-la no menu (para saber que
+// existe), mas ao clicar recebe uma mensagem em vez de abrir a página.
+function zeloAvisoSemPermissao(texto){
   if (typeof document === 'undefined') return;
   var antigo = document.getElementById('zelo-aviso-admin');
   if (antigo) antigo.remove();
@@ -222,25 +223,59 @@ function zeloAvisoSoAdmin(){
   fundo.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(8,14,32,.5);display:flex;align-items:center;justify-content:center;padding:20px;font-family:Inter,Arial,sans-serif;';
   fundo.innerHTML =
     '<div style="max-width:380px;width:100%;background:#fff;border-radius:16px;padding:28px 24px 22px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);">' +
-      '<div style="width:54px;height:54px;border-radius:50%;background:#FEF3C7;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">' +
-        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+      '<div style="width:54px;height:54px;border-radius:50%;background:#EFF6FF;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">' +
+        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1A56DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
       '</div>' +
-      '<div style="font-size:1.05rem;font-weight:800;color:#0D1B3E;margin-bottom:6px;">Acesso só para administradores</div>' +
-      '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:18px;">O ' + ZELO_SERVICO_ESTATISTICA + ' está disponível apenas para administradores do ZELO.</div>' +
+      '<div style="font-size:1.05rem;font-weight:800;color:#0D1B3E;margin-bottom:6px;">Sem permissão de acesso</div>' +
+      '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:18px;">' +
+        (texto || 'Não tem permissão para aceder a esta página.') + '<br>Contacte um dos administradores do ZELO.</div>' +
       '<button type="button" style="padding:10px 26px;border-radius:10px;background:#0D1B3E;color:#fff;border:none;font-weight:700;font-size:.88rem;cursor:pointer;">Entendi</button>' +
     '</div>';
-  function fechar(){ fundo.remove(); document.removeEventListener('keydown', tecla); }
-  function tecla(e){ if (e.key === 'Escape') fechar(); }
+  function fechar(){ fundo.remove(); document.removeEventListener('keydown', tecla, true); }
+  function tecla(e){ if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); fechar(); } }
   fundo.addEventListener('click', function(e){ if (e.target === fundo) fechar(); });
   fundo.querySelector('button').addEventListener('click', fechar);
-  document.addEventListener('keydown', tecla);
+  document.addEventListener('keydown', tecla, true);
   document.body.appendChild(fundo);
   fundo.querySelector('button').focus();
+}
+function zeloAvisoSoAdmin(){
+  zeloAvisoSemPermissao('O ' + ZELO_SERVICO_ESTATISTICA + ' é só para administradores.');
+}
+// Pode abrir? (papel/permissões da sessão actual, lidos no momento do clique)
+function zeloPodeAbrirLink(a){
+  var role = 'funcionario', permissoes = {};
+  try {
+    role = sessionStorage.getItem('zeloRole') || 'funcionario';
+    permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}') || {};
+  } catch (e) {}
+  if (a.dataset.soAdmin) return role === 'admin';
+  var modulo = a.dataset.modulo || a.dataset.module;
+  if (!modulo) return true;
+  var fn = window.__zeloHasModuleAccess || window.hasModuleAccess || (window.ZeloAuth && window.ZeloAuth.hasModuleAccess);
+  if (typeof fn !== 'function') return true; // a própria página volta a verificar
+  return fn(role, permissoes, modulo, a.dataset.item || null);
+}
+function zeloTentarAbrirLink(a){
+  if (zeloPodeAbrirLink(a)) return true;
+  if (a.dataset.soAdmin) zeloAvisoSoAdmin(); else zeloAvisoSemPermissao();
+  return false;
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', function(e){
+    var a = e.target && e.target.closest && e.target.closest('a[data-modulo],a[data-module],a[data-so-admin]');
+    if (!a || !a.closest('#zeloSidebarNav,#zmf-panel,#zeloSearchResults')) return;
+    if (zeloTentarAbrirLink(a)) return;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
 }
 
 if (typeof window !== 'undefined') {
   window.ZELO_SERVICO_ESTATISTICA = ZELO_SERVICO_ESTATISTICA;
   window.zeloAvisoSoAdmin = zeloAvisoSoAdmin;
+  window.zeloAvisoSemPermissao = zeloAvisoSemPermissao;
+  window.zeloTentarAbrirLink = zeloTentarAbrirLink;
   window.SERVICOS_MENU = SERVICOS_MENU;
   window.CATEGORIAS_SERVICOS = CATEGORIAS_SERVICOS;
   window.zeloSlugifyServico = zeloSlugifyServico;

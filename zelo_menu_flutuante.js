@@ -88,10 +88,6 @@
       .zmf-svc-nested .zmf-action-link{padding-left:80px;}
       .zmf-sis-link{display:block;padding:8px 10px 8px 30px;font-size:.78rem;color:#334155;text-decoration:none;border-radius:9px;}
       .zmf-sis-link:hover{background:#F4F7FF;color:#1A56DB;}
-      .zmf-sis-link{display:flex;align-items:center;gap:8px;}
-      .zmf-sis-cadeado{display:none;margin-left:auto;flex-shrink:0;color:#B45309;}
-      .zmf-sis-bloqueado .zmf-sis-cadeado{display:block;}
-      .zmf-sis-bloqueado .zmf-sis-link{color:#64748B;}
 
       /* Menu v2: letras um pouco maiores, realce claro ao passar e ao clicar,
          ramo aberto destacado, árvore animada com linhas-guia, barra de
@@ -195,7 +191,6 @@
   var ICON_SAIR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
   var ICON_ZELO_ASSIST = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg>';
 
-  var ICON_CADEADO = '<svg class="zmf-sis-cadeado" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
   function temAcesso(modulo, item){
     // window.hasModuleAccess só existe nas 4 páginas-índice que a expõem
     // explicitamente (bancos_index.html, procedimentos_enfermagem_index.html,
@@ -228,19 +223,17 @@
     cats.forEach(function(cat){
       var itens = porCategoria[cat.id];
       if(!itens || !itens.length) return;
-      var visiveisCat = itens.filter(function(svc){
-        function algum(lista){ return (lista||[]).some(function(a){ return temAcesso(a.modulo, a.item); }); }
-        if(algum(svc.relatorios) || algum(svc.procedimentos)) return true;
-        return (svc.movimento||[]).some(function(m){ return temAcesso(m.modulo, m.item); });
-      });
-      if(!visiveisCat.length) return;
+      // Tudo aparece a todos (para se saber que existe); quem não tem
+      // permissão recebe uma mensagem ao clicar (zeloTentarAbrirLink).
+      var visiveisCat = itens;
       function acoesDoServico(svc){
         var acoes = [];
-        (svc.relatorios||[]).forEach(function(r){ if(temAcesso(r.modulo, r.item)) acoes.push({ label: r.label, href: r.file }); });
-        (svc.procedimentos||[]).forEach(function(p){ if(temAcesso(p.modulo, p.item)) acoes.push({ label: p.label, href: p.file }); });
-        (svc.movimento||[]).forEach(function(m){ if(temAcesso(m.modulo, m.item)) acoes.push({ label: m.label, href: m.file }); });
+        (svc.relatorios||[]).concat(svc.procedimentos||[], svc.movimento||[]).forEach(function(a){
+          acoes.push({ label: a.label, href: a.file, modulo: a.modulo, item: a.item });
+        });
         return acoes;
       }
+      function attrsAcesso(a){ return (a.modulo ? ' data-modulo="' + a.modulo + '"' : '') + (a.item ? ' data-item="' + a.item + '"' : ''); }
       // Quando a categoria só tem um serviço, mostrar as suas ligações
       // directamente sob a categoria -- caso contrário fica um nível extra
       // ("Bloco Operatório" > "Bloco Operatório" > Relatório Diário) que
@@ -250,14 +243,14 @@
         // Sem wrapper colapsável próprio -- a visibilidade já é controlada
         // pelo toggle da categoria (o único nível que existe aqui).
         svcHtml = acoesDoServico(visiveisCat[0]).map(function(a){
-          return '<a class="zmf-action-link" href="' + a.href + '">' + a.label + '</a>';
+          return '<a class="zmf-action-link" href="' + a.href + '"' + attrsAcesso(a) + '>' + a.label + '</a>';
         }).join('');
       } else {
         var svcItemHtml = function(svc, aninhado){
           var s = slug(svc.nome);
           var acoes = acoesDoServico(svc);
           var acoesHtml = acoes.map(function(a){
-            return '<a class="zmf-action-link" href="' + a.href + '">' + a.label + '</a>';
+            return '<a class="zmf-action-link" href="' + a.href + '"' + attrsAcesso(a) + '>' + a.label + '</a>';
           }).join('');
           var temAcoes = acoes.length > 0;
           return '<div class="zmf-svc' + (aninhado ? ' zmf-svc-nested' : '') + '" data-zmf-nome="' + svc.nome.toLowerCase() + '">' +
@@ -295,15 +288,14 @@
   }
 
   // "Serviço de Estatística" (antes "Sistemas Locais"): aparece a todos, mas
-  // só os administradores entram — os restantes vêem um cadeado e, ao
-  // clicar, a mensagem "Acesso só para administradores".
+  // só os administradores entram — os restantes recebem uma mensagem ao clicar.
   function construirSistemasLocais(){
     var itens = (window.SISTEMAS_LOCAIS_MENU || []).filter(function(s){ return !s.destaque; });
     return itens.map(function(s){
-      return '<a class="zmf-sis-link" href="' + s.file + '"><span>' + s.nome + '</span>' + ICON_CADEADO + '</a>';
+      return '<a class="zmf-sis-link" href="' + s.file + '" data-so-admin="1">' + s.nome + '</a>';
     }).join('');
   }
-  function ehAdmin(){ return (sessionStorage.getItem('zeloRole') || 'funcionario') === 'admin'; }
+
 
   // Itens de SISTEMAS_LOCAIS_MENU marcados "destaque" saem da árvore
   // colapsável e aparecem como atalho próprio no topo do menu.
@@ -372,7 +364,7 @@
             <button type="button" class="zmf-link" id="zmf-sistemas-label" style="flex:1;"><span class="zmf-ic">${ICON_STATS}</span>Serviço de Estatística</button>
             <button type="button" class="zmf-toggle" id="zmf-sistemas-toggle" aria-expanded="false">${ICON_CHEV}</button>
           </div>
-          <div class="zmf-subtree${ehAdmin() ? '' : ' zmf-sis-bloqueado'}" id="zmf-sistemas-tree">${sistemasLocaisHtml}</div>
+          <div class="zmf-subtree" id="zmf-sistemas-tree">${sistemasLocaisHtml}</div>
         </div>` : ''}
         ${destaquesHtml}
         <div class="zmf-section-label">Sistema</div>
@@ -428,13 +420,6 @@
     tgSvc.classList.add('open'); tgSvc.setAttribute('aria-expanded', 'true');
     if (temSistemasLocais) {
       alternarSubtree('zmf-sistemas-label', 'zmf-sistemas-toggle', 'zmf-sistemas-tree');
-      var arvSis = panel.querySelector('#zmf-sistemas-tree');
-      arvSis.addEventListener('click', function(e){
-        if (!e.target.closest('.zmf-sis-link') || ehAdmin()) return;
-        e.preventDefault();
-        if (typeof window.zeloAvisoSoAdmin === 'function') window.zeloAvisoSoAdmin();
-      });
-      window.addEventListener('zelo-identity-ready', function(){ arvSis.classList.toggle('zmf-sis-bloqueado', !ehAdmin()); });
     }
 
     ligarAlternador(panel, '[data-zmf-cat-toggle]', 'data-zmf-cat-toggle', 'data-zmf-cat-list');
