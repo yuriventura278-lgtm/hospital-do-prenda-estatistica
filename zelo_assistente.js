@@ -79,7 +79,7 @@
     'hemoterapia': 'Hemoterapia', 'banco de sangue': 'Hemoterapia', 'transfusoes': 'Hemoterapia', 'transfusao': 'Hemoterapia',
     'fisioterapia': 'Fisioterapia', 'fisio': 'Fisioterapia',
     'psicologia': 'Psicologia Clínica', 'psicologia clinica': 'Psicologia Clínica',
-    'farmacia': 'Farmácia',
+    'farmacia': 'Farmácia Central', 'farmacia central': 'Farmácia Central',
     'medicina homem': 'Medicina Homem', 'medicina mulher': 'Medicina Mulher',
     'medicina interna': ['Medicina Homem', 'Medicina Mulher'], 'medicina': ['Medicina Homem', 'Medicina Mulher'],
     'supervisao do hospital': 'Supervisão do Hospital',

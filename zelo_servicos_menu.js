@@ -118,7 +118,7 @@ const SERVICOS_MENU = [
       // oculto a pedido: { label: 'Relatório Diário', file: 'psicologia_clinica_hp-1-3-1.html', modulo: 'servicos', item: 'psicologia_clinica' } — sistema antigo do "banco", descomentar para restaurar
       { label: 'Atendimento & Estatística', file: 'psicologia_atendimento.html', modulo: 'sistemas_independentes', item: 'psicologia_atendimento' },
     ] },
-  { nome: 'Farmácia', categoria: 'farmacia', icon: 'bank', cor: '#0D9488',
+  { nome: 'Farmácia Central', categoria: 'farmacia', icon: 'bank', cor: '#0D9488',
     relatorios: [{ label: 'Movimentação de Medicamentos', file: 'farmacia_central.html', modulo: 'sistemas_independentes', item: 'farmacia_central' }] },
   { nome: 'Supervisão do Hospital', categoria: 'supervisao', icon: 'shield', cor: '#334155', wip: true,
     relatorios: [{ label: 'Relatório Diário', file: 'Supervisao_Hospital.html', modulo: 'servicos', item: 'supervisao_hospital' }] },
@@ -172,7 +172,7 @@ const CATEGORIAS_SERVICOS = [
     icon: '<path d="M6 18h8M3 22h18M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/>' },
   { id: 'bloco_operatorio', label: 'Bloco Operatório',
     icon: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/>' },
-  { id: 'farmacia', label: 'Farmácia',
+  { id: 'farmacia', label: 'Farmácia Central',
     icon: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>' },
   { id: 'lavandaria_esterilizacao', label: 'Lavandaria e Esterilização',
     icon: '<rect x="3" y="2" width="18" height="20" rx="2"/><circle cx="12" cy="13" r="5"/><path d="M7 6h.01M11 6h2"/>' },
