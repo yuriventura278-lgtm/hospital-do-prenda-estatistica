@@ -69,6 +69,13 @@ body{margin:0;background:var(--bg);color:var(--tx);font-family:'Source Sans 3',A
 .topbar .tb-id{display:flex;flex-direction:column;line-height:1.25;}
 .topbar .tb-title{font-family:'Fraunces',serif;font-weight:600;font-size:1rem;letter-spacing:.01em;}
 .topbar .tb-sub{font-size:.62rem;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.09em;font-weight:600;}
+/* "Hospital do Prenda · Resumo por serviço" em destaque (sem logótipo nem
+   "Página Inicial", que já estão na barra do topo do ZELO). */
+.topbar .tb-destaque{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-left:14px;border-left:3px solid #22D3EE;}
+.topbar .tb-hosp{font-size:1.12rem;font-weight:800;color:#fff;letter-spacing:.01em;text-shadow:0 1px 8px rgba(0,0,0,.3);}
+.topbar .tb-ponto{width:6px;height:6px;border-radius:50%;background:#22D3EE;box-shadow:0 0 8px rgba(34,211,238,.8);flex-shrink:0;}
+.topbar .tb-resumo{font-size:.8rem;font-weight:700;color:#BFF3FF;text-transform:uppercase;letter-spacing:.12em;}
+@media(max-width:640px){ .topbar .tb-hosp{font-size:.98rem;} .topbar .tb-resumo{font-size:.68rem;} .topbar .tb-destaque{gap:8px;} }
 .topbar .tb-live{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;
   font-size:.68rem;color:rgba(255,255,255,.7);white-space:nowrap;}
 .tb-live .dot{width:6px;height:6px;border-radius:50%;background:#4ADE80;flex-shrink:0;animation:tbPulse 2.4s ease-in-out infinite;}
@@ -161,10 +168,8 @@ main{padding:20px 22px 64px;max-width:none;}
     <polyline points="0,46 40,50 80,38 120,42 160,26 200,32 240,16 280,22 320,10 360,15 400,6" fill="none" stroke="#7FD4FF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     <path d="M240,16 l0,0 M320,10 l0,0" stroke="#22D3EE" stroke-width="5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
   </svg>
-  <img src="icons/logo.png" alt="ZELO">
   <div class="tb-id">
-    <span class="tb-title">Página Inicial</span>
-    <span class="tb-sub">Hospital do Prenda · resumo por serviço</span>
+    <span class="tb-destaque"><span class="tb-hosp">Hospital do Prenda</span><span class="tb-ponto" aria-hidden="true"></span><span class="tb-resumo">Resumo por serviço</span></span>
   </div>
   <div class="tb-live" id="tbLive"><span class="dot"></span><span id="tbLiveTxt">—</span></div>
 </div>
