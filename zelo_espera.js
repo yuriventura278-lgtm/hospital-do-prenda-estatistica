@@ -454,9 +454,10 @@
   var ICONES = {
     info: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
     aviso: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    obra: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
     admin: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>'
   };
-  var CORES_MSG = { info: 'normal', aviso: 'lenta', admin: 'proc' };
+  var CORES_MSG = { info: 'normal', aviso: 'lenta', admin: 'proc', obra: 'lenta' };
   function mensagem(opcoes) {
     opcoes = opcoes || {};
     var tipo = opcoes.icone || 'info';
@@ -469,14 +470,19 @@
     anel.cor(CORES_MSG[tipo] || 'normal'); anel.valor(100);
     anel.el.querySelector('.ze-brilho').style.display = 'none';
     var num = anel.el.querySelector('.ze-num');
-    num.innerHTML = '<span style="color:' + (tipo === 'aviso' ? '#FCD34D' : '#7DD3FC') + ';display:flex">' + (ICONES[tipo] || ICONES.info) + '</span>';
+    num.innerHTML = '<span style="color:' + (tipo === 'aviso' || tipo === 'obra' ? '#FCD34D' : '#7DD3FC') + ';display:flex">' + (ICONES[tipo] || ICONES.info) + '</span>';
     var msg = el('div', 'ze-msg'); msg.textContent = opcoes.titulo || 'Aviso';
+    msg.style.fontSize = '1.25rem';
+    var etiqueta = null;
+    if (opcoes.etiqueta) { etiqueta = el('div', 'ze-tag lenta'); etiqueta.textContent = opcoes.etiqueta; etiqueta.style.margin = '14px 0 0'; }
     var det = el('div', 'ze-det'); det.style.fontSize = '.9rem'; det.style.lineHeight = '1.5'; det.style.opacity = '.9';
     det.innerHTML = opcoes.html || '';
     if (!opcoes.html) det.textContent = opcoes.texto || '';
     var extra = el('div', 'ze-det'); extra.style.marginTop = '8px';
     if (opcoes.detalhe) extra.textContent = opcoes.detalhe;
-    caixa.appendChild(anel.el); caixa.appendChild(msg); caixa.appendChild(det); caixa.appendChild(extra);
+    caixa.appendChild(anel.el);
+    if (etiqueta) caixa.appendChild(etiqueta);
+    caixa.appendChild(msg); caixa.appendChild(det); caixa.appendChild(extra);
     var bt = el('div', 'ze-botoes');
     (opcoes.botoes || [{ texto: 'Entendi', principal: true }]).forEach(function (b) {
       var e;
