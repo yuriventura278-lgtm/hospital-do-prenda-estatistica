@@ -350,6 +350,7 @@ tbody tr:hover{background:#EEF4FF;}
   </div>
 </footer>
 
+<script src="zelo_pdf.js"></script>
 <script type="module">
 import {
   auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
@@ -844,14 +845,12 @@ document.getElementById('exportUsersExcelBtn').addEventListener('click', functio
 
 document.getElementById('exportUsersPdfBtn').addEventListener('click', function(){
   ensurePdfLibs(function(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({orientation:'landscape'});
-    doc.setFontSize(14);
-    doc.text('ZELO — Lista de Utilizadores', 14, 16);
-    doc.setFontSize(9);
-    doc.text('Gerado em ' + new Date().toLocaleString('pt-PT'), 14, 22);
+    const Z = window.ZeloPDF;
+    const doc = Z.novo({orientation:'landscape'});
+    const __y = Z.cabecalho(doc, 'Administração — Lista de Utilizadores', 'ZELO · Sistema Estatístico e Gestão de Ocorrências');
     const rows = Object.values(currentUsersCache).map(linhaExportUser);
-    doc.autoTable({ startY: 28, head: [EXPORT_USER_COLS], body: rows, styles:{fontSize:7} });
+    Z.autoTable(doc, { startY: __y, head: [EXPORT_USER_COLS], body: rows });
+    Z.rodape(doc);
     doc.save('zelo_utilizadores_' + new Date().toISOString().slice(0,10) + '.pdf');
   });
 });
@@ -871,16 +870,14 @@ document.getElementById('exportAuditExcelBtn').addEventListener('click', functio
 
 document.getElementById('exportAuditPdfBtn').addEventListener('click', function(){
   ensurePdfLibs(function(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text('ZELO — Registo de Auditoria', 14, 16);
-    doc.setFontSize(9);
-    doc.text('Gerado em ' + new Date().toLocaleString('pt-PT'), 14, 22);
+    const Z = window.ZeloPDF;
+    const doc = Z.novo();
+    const __y = Z.cabecalho(doc, 'Administração — Registo de Auditoria', 'ZELO · Sistema Estatístico e Gestão de Ocorrências');
     const rows = currentAuditCache.map(function(ev){
       return [new Date(ev.ts).toLocaleString('pt-PT'), AUDIT_LABELS[ev.action]||ev.action||'', ev.email||'', ev.alvoEmail||''];
     });
-    doc.autoTable({ startY: 28, head: [['Data/Hora','Ação','Email','Alvo']], body: rows, styles:{fontSize:8} });
+    Z.autoTable(doc, { startY: __y, head: [['Data/Hora','Ação','Email','Alvo']], body: rows });
+    Z.rodape(doc);
     doc.save('zelo_auditoria_' + new Date().toISOString().slice(0,10) + '.pdf');
   });
 });
@@ -1036,16 +1033,14 @@ document.getElementById('exportAvisosExcelBtn').addEventListener('click', functi
 
 document.getElementById('exportAvisosPdfBtn').addEventListener('click', function(){
   ensurePdfLibs(function(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text('ZELO — Avisos de Integridade', 14, 16);
-    doc.setFontSize(9);
-    doc.text('Gerado em ' + new Date().toLocaleString('pt-PT'), 14, 22);
+    const Z = window.ZeloPDF;
+    const doc = Z.novo();
+    const __y = Z.cabecalho(doc, 'Administração — Avisos de Integridade', 'ZELO · Sistema Estatístico e Gestão de Ocorrências');
     const rows = currentAvisosIntegridadeCache.map(function(ev){
       return [fmtDate(ev.detectadoEm), especialidadeLabel(ev.especialidade||ev._especialidade), ev.data||ev._data||'', ev.contagem||'', (ev.utilizador&&ev.utilizador.nome)||''];
     });
-    doc.autoTable({ startY: 28, head: [['Detetado em','Especialidade','Dia','Nº de vezes','Utilizador']], body: rows, styles:{fontSize:8} });
+    Z.autoTable(doc, { startY: __y, head: [['Detetado em','Especialidade','Dia','Nº de vezes','Utilizador']], body: rows });
+    Z.rodape(doc);
     doc.save('zelo_avisos_integridade_' + new Date().toISOString().slice(0,10) + '.pdf');
   });
 });
