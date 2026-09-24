@@ -305,6 +305,12 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-svc-nested .sb-action-link{padding-left:80px;}
 .sb-sis-link{display:block;padding:8px 6px 8px 30px;font-size:.76rem;color:var(--tx2);text-decoration:none;border-radius:9px;}
 .sb-sis-link:hover{background:var(--sf);color:var(--bl);}
+#sbServicosToggle{display:none;}
+#sbServicosLabel{cursor:default;}
+.sb-parent:has(#sbServicosLabel):hover{background:none;box-shadow:none;color:inherit;}
+.sb-parent:has(#sbServicosLabel):hover .sb-ic{background:var(--sf);color:var(--tx3);border-color:var(--br);}
+.sb-parent:has(#sbServicosLabel):active{background:none;color:inherit;transform:none;}
+.sb-parent:has(#sbServicosLabel):active .sb-ic{background:var(--sf);color:var(--tx3);border-color:var(--br);}
 
 /* ── Menu lateral v2: letras um pouco maiores, realce claro ao passar e ao
    clicar, ramo aberto destacado, árvore que abre com animação suave e
@@ -1875,10 +1881,8 @@ function zeloAlternarArvoreServicos(){
 }
 // "Serviços" não navega para servicos.html -- clicar no nome ou na seta
 // faz a mesma coisa: mostrar/esconder as categorias aqui mesmo.
-document.getElementById('sbServicosLabel').addEventListener('click', zeloAlternarArvoreServicos);
-document.getElementById('sbServicosToggle').addEventListener('click', zeloAlternarArvoreServicos);
-// Ao entrar, "Serviços" já vem aberto com todos os serviços à vista — só se
-// clica em cada serviço para o expandir (pode-se fechar na seta, se quiser).
+// "Serviços" está sempre aberto com todos os serviços à vista — sem seta
+// nem clique para fechar; só se clica em cada serviço para o expandir.
 (function(){
   var tree = document.getElementById('sbServicosTree');
   tree.style.transition = 'none';

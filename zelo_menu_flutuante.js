@@ -88,6 +88,9 @@
       .zmf-svc-nested .zmf-action-link{padding-left:80px;}
       .zmf-sis-link{display:block;padding:8px 10px 8px 30px;font-size:.78rem;color:#334155;text-decoration:none;border-radius:9px;}
       .zmf-sis-link:hover{background:#F4F7FF;color:#1A56DB;}
+      #zmf-servicos-toggle{display:none;}
+      #zmf-servicos-label,#zmf-servicos-label:hover,#zmf-servicos-label:active{cursor:default;background:none;box-shadow:none;color:#334155;transform:none;}
+      #zmf-servicos-label:hover .zmf-ic,#zmf-servicos-label:active .zmf-ic{background:#F4F7FF;color:#64748B;}
 
       /* Menu v2: letras um pouco maiores, realce claro ao passar e ao clicar,
          ramo aberto destacado, árvore animada com linhas-guia, barra de
@@ -413,8 +416,8 @@
       label.addEventListener('click', alternar);
       toggle.addEventListener('click', alternar);
     }
-    alternarSubtree('zmf-servicos-label', 'zmf-servicos-toggle', 'zmf-servicos-tree');
-    // "Serviços" já vem aberto: todos os serviços à vista, só se clica em cada um para expandir.
+    // "Serviços" está sempre aberto (sem seta): todos os serviços à vista,
+    // só se clica em cada um para expandir.
     panel.querySelector('#zmf-servicos-tree').classList.add('open');
     var tgSvc = panel.querySelector('#zmf-servicos-toggle');
     tgSvc.classList.add('open'); tgSvc.setAttribute('aria-expanded', 'true');
