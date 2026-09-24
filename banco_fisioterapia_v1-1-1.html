@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
+<script src="zelo_pdf.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='servicos';</script>
 <script>window.ZELO_ITEM='fisioterapia';</script>
@@ -32,6 +33,7 @@
   }
 </script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{
   --nv:#0D1B3E;--bl:#1A56DB;--bl2:#2563EB;--blt:#DBEAFE;--blxt:#EFF6FF;
@@ -1158,123 +1160,58 @@ function pdfFileName(){
 }
 function gerarPDF(silencioso){
  try{
-  const{jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const PW=210,PH=297,M=15,CW=PW-2*M;
-  let y=M;
-
-  // Header
-  doc.setFillColor(13,27,62);doc.rect(0,0,PW,38,'F');
-  try{doc.addImage('data:image/jpeg;base64,'+LOGO_B64,'JPEG',M,4,18,18);}catch(e){}
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(13);doc.setFont('helvetica','bold');
-  doc.text('HOSPITAL DO PRENDA',M+22,13);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  doc.text('Serviço de Fisioterapia — Registo Diário de Atendimentos',M+22,20);
-  doc.setFontSize(8);doc.setTextColor(147,197,253);
-  doc.text('Serviço de Admissão e Arquivo Médico Estatístico',M+22,26);
-  doc.setTextColor(103,232,249);doc.setFontSize(9);doc.setFont('helvetica','bold');
-  doc.text(`Data: ${gv('data')||'—'}`,M+22,32);
-  doc.text(`Resp: ${gv('resp')||'—'}`,M+22+60,32);
-  y=46;
-
-  // Resumo Geral
-  doc.setTextColor(13,27,62);doc.setFontSize(10);doc.setFont('helvetica','bold');
-  doc.text('RESUMO GERAL',M,y);y+=6;
-  const totInt=parseInt(document.getElementById('int-tot').textContent)||0;
-  const totExt=parseInt(document.getElementById('ext-tot').textContent)||0;
-  const totGeral=totInt+totExt;
-  doc.setFont('helvetica','normal');doc.setFontSize(9);
-  doc.setFillColor(239,246,255);doc.roundedRect(M,y,CW,16,2,2,'F');
-  doc.setTextColor(30,64,175);doc.setFont('helvetica','bold');doc.setFontSize(12);
-  doc.text(`Total Geral: ${totGeral}`,M+4,y+10);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(100,116,139);
-  doc.text(`Internos: ${totInt}   Externos: ${totExt}`,M+CW-4,y+10,{align:'right'});
-  y+=22;
-
-  // Função auxiliar para tabela
-  function drawTableSection(title,rows){
-    if(rows.length===0)return;
-    if(y+20+rows.length*8>PH-20){doc.addPage();y=M;}
-    doc.setTextColor(13,27,62);doc.setFontSize(9);doc.setFont('helvetica','bold');
-    doc.text(title.toUpperCase(),M,y);y+=5;
-    doc.setFillColor(15,23,42);doc.rect(M,y,CW,6,'F');
-    doc.setTextColor(255,255,255);doc.setFontSize(8);
-    doc.text('Descrição',M+3,y+4);doc.text('Qtd',M+CW-3,y+4,{align:'right'});
-    y+=6;
-    rows.forEach((r,i)=>{
-      if(r.v===''||r.v===0||r.v==='0')return;
-      if(y+8>PH-20){doc.addPage();y=M;}
-      doc.setFillColor(i%2===0?248:255,i%2===0?250:255,i%2===0?255:255);
-      doc.rect(M,y,CW,6,'F');
-      doc.setTextColor(51,65,85);doc.setFont('helvetica','normal');doc.setFontSize(8);
-      doc.text(r.label,M+3,y+4);
-      doc.setFont('helvetica','bold');doc.setTextColor(30,64,175);
-      doc.text(String(r.v||0),M+CW-3,y+4,{align:'right'});
-      y+=6;
-    });
-    y+=4;
-  }
-
-  // Internos
-  const intRows=INT_TIPOS.map(t=>({label:t,v:parseInt(document.getElementById('int-'+sid(t))?.value)||0}));
-  intOutros.forEach(o=>intRows.push({label:o.el?.querySelector('input[type=text]')?.value||'Outro',v:parseInt(o.el?.querySelector('input[type=number]')?.value)||0}));
-  drawTableSection('Doentes Internos por Especialidade',intRows);
-
-  // Externos
-  const extRows=EXT_TIPOS.map(t=>({label:t,v:parseInt(document.getElementById('ext-'+sid(t))?.value)||0}));
-  extOutros.forEach(o=>extRows.push({label:o.el?.querySelector('input[type=text]')?.value||'Outro',v:parseInt(o.el?.querySelector('input[type=number]')?.value)||0}));
-  drawTableSection('Doentes Externos',extRows);
-
-  // Modalidades
-  const modRows=MOD_TIPOS.map(t=>({label:t,v:parseInt(document.getElementById('mod-'+sid(t))?.value)||0}));
-  modOutros.forEach(o=>modRows.push({label:o.el?.querySelector('input[type=text]')?.value||'Outro',v:parseInt(o.el?.querySelector('input[type=number]')?.value)||0}));
-  drawTableSection('Modalidades Terapêuticas (Sessões)',modRows);
-
-  // Equipa
-  const eqRows=[];
-  if(gn('eq-fis'))eqRows.push({label:'Fisioterapeutas',v:gn('eq-fis')});
-  equipaData.forEach(e=>eqRows.push({label:`${e.nome} (${e.func})`,v:'—'}));
-  if(eqRows.length)drawTableSection('Equipa de Fisioterapia',eqRows);
-
-  // Observações
-  if(gv('obs')){
-    if(y+20>PH-20){doc.addPage();y=M;}
-    doc.setTextColor(13,27,62);doc.setFontSize(9);doc.setFont('helvetica','bold');
-    doc.text('OBSERVAÇÕES',M,y);y+=5;
-    const obsLines=doc.splitTextToSize(gv('obs'),CW-6);
-    doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(51,65,85);
-    obsLines.forEach(l=>{if(y+6>PH-20){doc.addPage();y=M;}doc.text(l,M+3,y);y+=5;});
-    y+=4;
-  }
-
-  // Rodapé
-  const totalPages=doc.internal.pages.length-1;
+  const Z=window.ZeloPDF;
+  const doc=Z.novo();
   const _lsWrap = document.getElementById('last-saved-status');
   const _lsNome = document.getElementById('last-saved-name')?.textContent?.trim();
   const _lsHora = document.getElementById('last-saved-time')?.textContent?.trim();
   const registadoPorTxt = (_lsWrap && _lsWrap.style.display !== 'none' && _lsNome && _lsNome !== '—')
-    ? `Registado por: ${_lsNome} às ${_lsHora}`
-    : null;
-  let zeloLogoSrc=null;
-  try{
-    const zi=document.querySelector('.ld img');
-    if(zi && zi.naturalWidth){
-      const zc=document.createElement('canvas');
-      zc.width=zi.naturalWidth; zc.height=zi.naturalHeight;
-      zc.getContext('2d').drawImage(zi,0,0);
-      zeloLogoSrc=zc.toDataURL('image/png');
-    }
-  }catch(e){}
-  for(let p=1;p<=totalPages;p++){
-    doc.setPage(p);
-    doc.setFillColor(13,27,62);doc.rect(0,PH-12,PW,12,'F');
-    if(zeloLogoSrc){ try{ doc.addImage(zeloLogoSrc,'PNG',M,PH-10.5,7,7); }catch(e){} }
-    doc.setTextColor(147,197,253);doc.setFontSize(7);doc.setFont('helvetica','normal');
-    doc.text(`Hospital do Prenda · Serviço de Fisioterapia · ${gv('data')||'—'}`,M+9,PH-5);
-    doc.text(`Pág. ${p}/${totalPages}`,PW-M,PH-5,{align:'right'});
-    if (registadoPorTxt) { doc.setTextColor(147,197,253); doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.text(registadoPorTxt, PW/2, PH-5, { align: 'center' }); }
+    ? `Registado por: ${_lsNome} às ${_lsHora}` : '';
+  let y=Z.cabecalho(doc,'Fisioterapia — Registo Diário de Atendimentos',
+    'Data: '+(gv('data')||'—')+' · Responsável: '+(gv('resp')||'—')+(registadoPorTxt?' · '+registadoPorTxt:''));
+  let n=0;
+
+  // Resumo Geral
+  const totInt=parseInt(document.getElementById('int-tot').textContent)||0;
+  const totExt=parseInt(document.getElementById('ext-tot').textContent)||0;
+  y=Z.secao(doc,y,(++n)+'. Resumo Geral');
+  y=Z.indicadores(doc,y,[['Total geral',totInt+totExt],['Doentes internos',totInt],['Doentes externos',totExt]]);
+  y+=2;
+
+  function drawTableSection(title,rows,cabQtd){
+    rows=rows.filter(r=>!(r.v===''||r.v===0||r.v==='0'));
+    if(rows.length===0)return;
+    y=Z.secao(doc,y,(++n)+'. '+title);
+    const body=rows.map(r=>[r.label,String(r.v)]);
+    const soma=rows.reduce((s,r)=>s+(typeof r.v==='number'?r.v:0),0);
+    if(cabQtd!==false && rows.length>1 && rows.every(r=>typeof r.v==='number')) body.push(['TOTAL',String(soma)]);
+    y=Z.autoTable(doc,{startY:y,head:[['Descrição',cabQtd||'Qtd']],body,columnStyles:{1:{halign:'right'}}})+2;
   }
+
+  const intRows=INT_TIPOS.map(t=>({label:t,v:parseInt(document.getElementById('int-'+sid(t))?.value)||0}));
+  intOutros.forEach(o=>intRows.push({label:o.el?.querySelector('input[type=text]')?.value||'Outro',v:parseInt(o.el?.querySelector('input[type=number]')?.value)||0}));
+  drawTableSection('Doentes Internos por Especialidade',intRows);
+
+  const extRows=EXT_TIPOS.map(t=>({label:t,v:parseInt(document.getElementById('ext-'+sid(t))?.value)||0}));
+  extOutros.forEach(o=>extRows.push({label:o.el?.querySelector('input[type=text]')?.value||'Outro',v:parseInt(o.el?.querySelector('input[type=number]')?.value)||0}));
+  drawTableSection('Doentes Externos',extRows);
+
+  const modRows=MOD_TIPOS.map(t=>({label:t,v:parseInt(document.getElementById('mod-'+sid(t))?.value)||0}));
+  modOutros.forEach(o=>modRows.push({label:o.el?.querySelector('input[type=text]')?.value||'Outro',v:parseInt(o.el?.querySelector('input[type=number]')?.value)||0}));
+  drawTableSection('Modalidades Terapêuticas (Sessões)',modRows,'Sessões');
+
+  if(gn('eq-fis')||equipaData.length){
+    y=Z.secao(doc,y,(++n)+'. Equipa de Fisioterapia');
+    if(gn('eq-fis')) y=Z.texto(doc,y+2,'','Fisioterapeutas: '+gn('eq-fis'));
+    if(equipaData.length) y=Z.autoTable(doc,{startY:y,head:[['Nome','Função']],body:equipaData.map(e=>[e.nome||'—',e.func||'—'])})+2;
+  }
+
+  if(gv('obs')){
+    y=Z.secao(doc,y,(++n)+'. Observações');
+    y=Z.texto(doc,y+2,'',gv('obs'));
+  }
+
+  Z.rodape(doc);
 
   const fn=pdfFileName()+'.pdf';
   if(!silencioso){doc.save(fn);toast('📄 PDF gerado com sucesso!');_guardarPDFNaPastaBackup(doc,fn);}
