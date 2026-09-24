@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_pdf.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <meta charset="UTF-8">
@@ -1712,91 +1713,23 @@ function generateReportPDF() {
   const numerador = diasDoente > 0 ? diasDoente : doentesDia;
   const taxaOcupacao = denominador > 0 ? Math.min(100, Math.round((numerador / denominador) * 100)) : 0;
 
-  const doc = new jsPDF({ orientation: multiMonth ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
-  const pageWidth = doc.internal.pageSize.getWidth();
+  const doc = ZeloPDF.novo({ orientation: multiMonth ? 'landscape' : 'portrait' });
   const pageHeight = doc.internal.pageSize.getHeight();
+  const M = 14, CW = doc.internal.pageSize.getWidth() - 28;
 
-  // Cabeçalho
-  const headerH = 80;
-  doc.setFillColor(30, 58, 95);
-  doc.rect(0, 0, pageWidth, headerH, 'F');
+  // Modelo geral de PDF do ZELO (zelo_pdf.js)
+  let y = ZeloPDF.cabecalho(doc, 'Movimento Hospitalar — Ortopedia', `Relatório ${viewLabel} · Período: ${periodLabel} · ${dateRange}`);
 
-  // Logótipo do Hospital do Prenda
-  const logoSize = 52;
-  try {
-    doc.addImage(HOSPITAL_LOGO_B64, 'JPEG', pageWidth - 30 - logoSize, (headerH - logoSize) / 2, logoSize, logoSize);
-  } catch (e) { /* se o logótipo falhar a carregar, o relatório continua sem ele */ }
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.text('Hospital do Prenda — Ortopedia', 30, 28);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(13);
-  doc.text(`Relatório ${viewLabel} do Movimento Hospitalar`, 30, 46);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.text(`Período: ${periodLabel}`, 30, 63);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(210, 220, 235);
-  doc.text(`${dateRange}`, 30, 75);
-
-  // Título de secção: Resumo
-  let sectionY = 104;
-  doc.setTextColor(30, 58, 95);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text('Resumo do Período', 30, sectionY);
-
-  // Cartões-resumo
-  doc.setTextColor(30, 30, 30);
-  const cardsY = sectionY + 14;
-  // Em modo paisagem (vários meses) os cartões são mais largos, cabendo a
-  // etiqueta numa só linha — por isso podem ser mais baixos, poupando
-  // espaço vertical para o gráfico caber sempre na mesma página.
-  const cardH = multiMonth ? 42 : 54;
-  const cardGap = 10;
-  const cards = [
+  y = ZeloPDF.secao(doc, y, '1. Resumo do Período');
+  y = ZeloPDF.indicadores(doc, y, [
     ['Existência Anterior', existenciaInicial],
     ['Total Admitidos', admitidos],
     ['Total Saídos', saidos],
     ['Ficam Existindo', existindo],
     ['Taxa de Ocupação', taxaOcupacao + '%']
-  ];
-  const cardW = (pageWidth - 60 - cardGap * (cards.length - 1)) / cards.length;
-  // Etiquetas com quebra de linha automática (splitTextToSize) para nunca
-  // ultrapassarem a largura do cartão, mesmo com 5 cartões lado a lado
-  // num relatório em modo retrato (mais estreito).
-  cards.forEach((c, i) => {
-    const x = 30 + i * (cardW + cardGap);
-    doc.setDrawColor(200, 200, 200);
-    doc.setFillColor(245, 247, 250);
-    doc.rect(x, cardsY, cardW, cardH, 'FD');
+  ]);
 
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(90, 90, 90);
-    const labelLines = doc.splitTextToSize(String(c[0]), cardW - 20);
-    doc.text(labelLines, x + 10, cardsY + 16);
-
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 58, 95);
-    const valueY = cardsY + 16 + labelLines.length * 10 + 10;
-    const valueLines = doc.splitTextToSize(String(c[1]), cardW - 20);
-    doc.text(valueLines, x + 10, valueY);
-    doc.setFont('helvetica', 'normal');
-  });
-
-  // Título de secção: Movimento Mensal
-  let tableTitleY = cardsY + cardH + (multiMonth ? 20 : 24);
-  doc.setTextColor(30, 58, 95);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text('Movimento Mensal', 30, tableTitleY);
-
-  // Tabela: somatório do período (por mês, quando aplicável, + total)
+  y = ZeloPDF.secao(doc, y, '2. Movimento do Período');
   const head = ['Código do Serviço'];
   if (multiMonth) {
     months.forEach(m => {
@@ -1805,7 +1738,6 @@ function generateReportPDF() {
     });
   }
   head.push('Total do Período');
-
   const body = STRUCTURE.map(config => {
     const row = [labelPrefix(config) + config.label];
     if (multiMonth) {
@@ -1814,89 +1746,42 @@ function generateReportPDF() {
     row.push(String(getFieldPeriodValue(config, months)));
     return row;
   });
-
-  // Em modo paisagem (vários meses), tabela um pouco mais compacta
-  // (menos espaçamento interno) para garantir que sobra sempre espaço
-  // para o gráfico e a assinatura na mesma página.
-  doc.autoTable({
-    head: [head],
-    body: body,
-    startY: tableTitleY + 10,
-    margin: { left: 30, right: 30 },
-    styles: { fontSize: multiMonth ? 9 : 11, cellPadding: multiMonth ? 3 : 5 },
-    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: 'bold', fontSize: multiMonth ? 9 : 11 },
-    alternateRowStyles: { fillColor: [245, 247, 250] },
-    columnStyles: { 0: { cellWidth: multiMonth ? 130 : 220, fontStyle: 'normal' } },
+  y = ZeloPDF.autoTable(doc, {
+    head: [head], body: body, startY: y,
+    styles: { fontSize: multiMonth ? 9 : 11 },
+    headStyles: { fontSize: multiMonth ? 9 : 11 },
+    columnStyles: { 0: { cellWidth: multiMonth ? 55 : 85 } },
     didParseCell: (data) => {
       if (data.column.index === head.length - 1) data.cell.styles.fontStyle = 'bold';
     }
   });
 
-  const finalY = doc.lastAutoTable.finalY || (tableTitleY + 10);
-
-  // Tudo tem de caber numa única página: o cabeçalho (com a data/período),
-  // os cartões-resumo, a tabela de dados e o gráfico nunca são cortados
-  // nem passam para uma segunda página.
-  const bottomMargin = 20;
-  const gapBeforeSig = multiMonth ? 12 : 16;
-  const sigBlockH = multiMonth ? 46 : 52;
-  const chartTitleGap = multiMonth ? 16 : 20;
-  const minChartH = multiMonth ? 55 : 70;
-
+  // Gráfico do período (Admitidos vs Saídos)
   const barCanvas = document.getElementById('barChart');
-
-  // Gráfico único de barras (Admitidos vs Saídos), a seguir à tabela, na
-  // mesma página. A altura ajusta-se ao espaço que sobrar depois da
-  // tabela, mas nunca é omitido — fica sempre com uma altura mínima
-  // legível, mesmo que o espaço disponível seja reduzido.
-  const reserveAfterChart = gapBeforeSig + sigBlockH + bottomMargin;
-  const spaceForChart = pageHeight - finalY - chartTitleGap - reserveAfterChart;
-  const chartH = Math.max(minChartH, Math.min(multiMonth ? 130 : 190, spaceForChart));
-
-  let afterChartY = finalY;
   if (barChartInstance && barCanvas) {
-    const chartTitleY = finalY + chartTitleGap;
-    doc.setTextColor(30, 58, 95);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('Gráfico do Período — Admitidos vs Saídos', 30, chartTitleY);
-
-    const chartTop = chartTitleY + 10;
-    const chartW = pageWidth - 60;
-
-    // drawChartFitted preserva a proporção real do canvas (em vez de
-    // esticar para a caixa toda).
-    drawChartFitted(doc, barCanvas, 30, chartTop, chartW, chartH);
-    afterChartY = chartTop + chartH;
+    // título e gráfico ficam sempre juntos (sem título sozinho no fim da página)
+    if (pageHeight - 21 - y - 13 - 34 < 40) { doc.addPage(); y = ZeloPDF.TOPO_CONTINUACAO; }
+    y = ZeloPDF.secao(doc, y, '3. Gráfico do Período — Admitidos vs Saídos');
+    const chartH = Math.max(40, Math.min(multiMonth ? 60 : 80, pageHeight - 21 - y - 34));
+    drawChartFitted(doc, barCanvas, M, y, CW, chartH);
+    y += chartH + 6;
   }
 
-  // Área de assinatura — Chefe de Enfermagem do Serviço (sempre na mesma página)
-  const sigY = afterChartY + gapBeforeSig;
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.5);
-  doc.line(30, sigY, pageWidth - 30, sigY);
-
-  const sigColW = (pageWidth - 60) / 2;
-  const lineGap = multiMonth ? 26 : 32;
-  const lineY = sigY + lineGap;
-
-  // Linha de assinatura em branco (assinatura feita à mão, em papel),
-  // sem qualquer texto por baixo.
+  // Assinatura do Chefe de Enfermagem do Serviço (feita à mão, em papel) e data
+  y = ZeloPDF.quebra(doc, y, 30);
+  const sigColW = CW / 2;
+  doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
+  doc.line(M, y, M + CW, y);
+  const lineY = y + 16;
   doc.setDrawColor(60, 60, 60);
-  doc.line(30, lineY, 30 + sigColW - 30, lineY);
-  doc.line(30 + sigColW + 30, lineY, pageWidth - 30, lineY);
+  doc.line(M, lineY, M + sigColW - 10, lineY);
+  doc.line(M + sigColW + 10, lineY, M + CW, lineY);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(71, 85, 105);
+  doc.text('Chefe de Enfermagem do Serviço', M, lineY + 5.5);
+  doc.text('Data', M + sigColW + 10, lineY + 5.5);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(60, 60, 60);
-  doc.text('Data', 30 + sigColW + 30, lineY + 14);
+  ZeloPDF.rodape(doc);
 
-  doc.setFontSize(9);
-  doc.setTextColor(150, 150, 150);
-  doc.text(`Gerado em ${new Date().toLocaleString('pt-PT')}`, 30, sigY + sigBlockH - 5);
-
-
-  const serviceName = document.querySelector('.header h1')?.textContent || 'Hospital';
   doc.save(`${getPDFFileName()}.pdf`);
 }
 

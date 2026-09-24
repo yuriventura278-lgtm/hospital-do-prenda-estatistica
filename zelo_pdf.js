@@ -45,8 +45,11 @@
     var x = M + 30;
     d.setTextColor('#BFF3FF'); d.setFont('helvetica', 'bold'); d.setFontSize(12);
     d.text('HOSPITAL DO PRENDA', x, 12.5);
-    d.setTextColor('#FFFFFF'); d.setFontSize(18);
-    d.text(d.splitTextToSize(limpar(titulo), W - M - x - 36)[0] || '', x, 20.5);
+    d.setTextColor('#FFFFFF');
+    var tituloTxt = limpar(titulo), tamTitulo = 18;
+    d.setFontSize(tamTitulo);
+    while (tamTitulo > 13 && d.getTextWidth(tituloTxt) > W - M - x){ tamTitulo -= 0.5; d.setFontSize(tamTitulo); }
+    d.text(d.splitTextToSize(tituloTxt, W - M - x)[0] || '', x, 20.5);
     d.setFont('helvetica', 'normal'); d.setFontSize(12); d.setTextColor('#FFFFFF');
     d.text(SERVICO, x, 27.5);
     if (sub){ d.setTextColor('#E2E8F0'); d.text(d.splitTextToSize(limpar(sub), W - M - x)[0] || '', x, 34); }
@@ -84,17 +87,21 @@
   }
   function indicadores(d, y, pares){
     var g = dims(d), col = g.CW / pares.length;
-    y = quebra(d, y, 18);
+    d.setFontSize(9); d.setFont('helvetica', 'bold');
+    var rot = pares.map(function(p){ return d.splitTextToSize(limpar(p[0]).toUpperCase(), col - 6).slice(0, 2); });
+    var linhasRot = Math.max.apply(null, rot.map(function(r){ return r.length; }));
+    var alt = 15 + (linhasRot - 1) * 3.8;
+    y = quebra(d, y, alt + 3);
     pares.forEach(function(p, i){
       d.setFillColor(FUNDO); d.setDrawColor(LINHA);
-      d.roundedRect(g.M + col * i + (i ? 1 : 0), y, col - (i < pares.length - 1 ? 1 : 0), 15, 1.8, 1.8, 'FD');
+      d.roundedRect(g.M + col * i + (i ? 1 : 0), y, col - (i < pares.length - 1 ? 1 : 0), alt, 1.8, 1.8, 'FD');
       d.setTextColor(CINZA); d.setFontSize(9); d.setFont('helvetica', 'bold');
-      d.text(d.splitTextToSize(limpar(p[0]).toUpperCase(), col - 5)[0] || '', g.M + col * i + 3.5, y + 5.2);
+      d.text(rot[i], g.M + col * i + 3.5, y + 5.2);
       d.setTextColor(NAVY); d.setFontSize(14);
-      d.text(limpar(p[1]), g.M + col * i + 3.5, y + 12);
+      d.text(limpar(p[1]), g.M + col * i + 3.5, y + alt - 3);
     });
     d.setTextColor(PRETO); d.setFont('helvetica', 'normal');
-    return y + 18;
+    return y + alt + 3;
   }
   function cabTabela(d, y, cols, larg){
     var g = dims(d), x = g.M;
