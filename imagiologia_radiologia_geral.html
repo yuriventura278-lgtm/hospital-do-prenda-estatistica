@@ -699,6 +699,87 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
 .exam-table tr.er-row td:first-child { font-weight:700; color:var(--accent); }
 .cell-sel{ background:#bfdbfe !important; outline:1.5px solid #2563eb; outline-offset:-1.5px; }
 .cell-sel input{ background:transparent !important; }
+
+/* ══════════════════════════════════════════════════════════════════
+   REGISTO DIÁRIO — mesmo modelo visual do Laboratório (Exames Realizados)
+   Só estilo: IDs, tabelas e funções mantêm-se, dados não são tocados.
+   ══════════════════════════════════════════════════════════════════ */
+#sec-registo{--img-tint:rgba(62,92,135,.08);--img-ring:rgba(62,92,135,.28);--img-hdr-font:var(--font-body);}
+/* Cabeçalho da página */
+#sec-registo .img-pg-hdr{display:flex;align-items:center;gap:14px;margin-bottom:22px;padding-bottom:16px;border-bottom:2px solid var(--img-tint);}
+#sec-registo .img-pg-hdr-icon{width:38px;height:38px;border-radius:8px;background:var(--img-tint);border:1px solid var(--img-ring);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+#sec-registo .img-pg-badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;background:var(--img-tint);color:var(--accent);border:1px solid var(--img-ring);margin-bottom:4px;}
+#sec-registo .img-pg-hdr h2{font-family:var(--img-hdr-font);font-size:19px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1.2;}
+#sec-registo .img-pg-hdr p{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:3px;}
+/* Botões (estilo btn-h do Laboratório) */
+#sec-registo .img-reg-actions,#sec-registo .img-btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+#sec-registo .img-btn-group{margin:12px 0 0;}
+#sec-registo .img-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-family:var(--font-body);font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;cursor:pointer;transition:all .15s var(--ease);}
+#sec-registo .img-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--img-tint);}
+#sec-registo .img-btn-save{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(62,92,135,.3);}
+#sec-registo .img-btn-save:hover{background:var(--accent-d);border-color:var(--accent-d);color:#fff;}
+/* KPIs compactos e centrados */
+#sec-registo .kpi-grid{grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:10px;margin-bottom:20px;}
+#sec-registo .kpi{padding:14px;text-align:center;border-radius:10px;box-shadow:var(--shadow);}
+#sec-registo .kpi::before,#sec-registo .kpi-icon,#sec-registo .kpi-sub{display:none;}
+#sec-registo .kpi:hover{transform:translateY(-2px);}
+#sec-registo .kpi-label{font-size:9px;letter-spacing:1.2px;margin-bottom:6px;}
+#sec-registo .kpi-val{font-size:34px;}
+#sec-registo .kpi.amber .kpi-val{color:#b45309;}
+/* Cartões brancos com rótulo pequeno em maiúsculas */
+#sec-registo .img-card{padding:20px;margin-bottom:14px;border-radius:10px;box-shadow:var(--shadow);overflow:visible;}
+#sec-registo .img-card::before{display:none;}
+#sec-registo .img-card-label{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:14px;}
+#sec-registo .img-card-total{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.5px;color:var(--accent);background:var(--img-tint);border:1px solid var(--img-ring);padding:3px 10px;border-radius:5px;}
+#sec-registo .img-card-total b{font-weight:700;}
+/* Turno + técnicos */
+#sec-registo .img-turno-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+#sec-registo .img-turno-row label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);}
+#sec-registo .img-turno-row select{border:1px solid var(--border);border-radius:6px;padding:6px 10px;background:var(--surface);color:var(--text);font-family:var(--font-body);font-size:14px;outline:none;}
+#sec-registo .img-turno-row select:focus{border-color:var(--accent);box-shadow:var(--focus-ring);}
+#sec-registo .tech-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;}
+#sec-registo .tech-item{gap:6px;}
+#sec-registo .tech-num{width:20px;height:20px;font-size:10px;border-radius:50%;background:var(--img-tint);border:1px solid var(--img-ring);}
+#sec-registo .tech-input{padding:7px 9px;border-radius:4px;font-size:14.5px;}
+/* Tabela de exames — linhas como no Laboratório */
+#sec-registo .table-wrap{border-radius:0;}
+#sec-registo .img-exam-table{width:100%;min-width:560px;table-layout:fixed;border-collapse:collapse;}
+#sec-registo .img-exam-table th:nth-child(n+2){width:100px;}
+#sec-registo .img-exam-table th:last-child{width:64px;}
+#sec-registo .img-exam-table thead tr{background:transparent;border-bottom:2px solid var(--border2);}
+#sec-registo .img-exam-table thead th{padding:5px 2px;font-size:8.5px;font-weight:700;letter-spacing:1px;text-align:center;white-space:nowrap;background:var(--surface);}
+#sec-registo .img-exam-table thead th:first-child{text-align:left;padding-left:8px;color:var(--muted);}
+#sec-registo .img-exam-table .th-bu{color:var(--urgent)!important;}
+#sec-registo .img-exam-table .th-aut{color:#b45309!important;}
+#sec-registo .img-exam-table .th-int{color:var(--accent)!important;}
+#sec-registo .img-exam-table .th-tot{color:var(--muted)!important;}
+#sec-registo .img-exam-table tbody tr{border-bottom:1px solid var(--border);}
+#sec-registo .img-exam-table tbody tr:hover{background:var(--img-tint);}
+#sec-registo .img-exam-table tbody td{padding:3px 4px;font-size:16px;}
+#sec-registo .img-exam-table tbody td:first-child{padding:7px 10px;font-size:16px;font-weight:500;overflow-wrap:anywhere;}
+#sec-registo .img-exam-table td[id^="tot-"]{color:var(--text)!important;font-weight:600!important;}
+#sec-registo .img-exam-table .num-input{width:72px;min-height:36px;padding:5px 2px;font-size:16px;border-radius:6px;}
+/* Cabeçalhos de secção (faixa fina, como "HEMATOLOGIA" no Laboratório) */
+#sec-registo .img-exam-table .section-hdr,
+#sec-registo .img-exam-table .section-hdr.eco,
+#sec-registo .img-exam-table .section-hdr.rx{background:var(--bg)!important;border-top:1px solid var(--border);}
+#sec-registo .img-exam-table .section-hdr td{padding:5px 8px!important;font-size:8.5px!important;letter-spacing:1.5px;color:var(--accent)!important;}
+#sec-registo .img-exam-table .section-hdr.cnt td{color:var(--muted)!important;}
+/* Subtotais e total (faixas "TOTAL GERAL" do Laboratório) */
+#sec-registo .img-exam-table .subtotal-row{background:var(--img-tint)!important;}
+#sec-registo .img-exam-table .subtotal-row td{padding:5px 4px;font-size:10px!important;color:var(--accent)!important;}
+#sec-registo .img-exam-table .subtotal-row td:first-child{padding:5px 8px;font-size:10px;}
+#sec-registo .img-exam-table .total-row td{padding:8px 4px;font-size:11px;font-weight:800;letter-spacing:.5px;color:var(--accent)!important;background:var(--img-tint);border-top:2px solid var(--img-ring)!important;}
+#sec-registo .img-exam-table .total-row td:first-child{padding:8px 8px!important;font-size:11px;text-transform:uppercase;}
+#sec-registo .img-exam-table .auto-row td{font-size:14px;}
+#sec-registo .img-exam-table tr.er-row td:first-child{font-weight:700;color:var(--accent);}
+#sec-registo #tbody-combinado td{padding:9px 4px;}
+#sec-registo #tbody-combinado td:first-child{padding:9px 10px;}
+@media(max-width:700px){
+  #sec-registo .img-card{padding:14px;}
+  #sec-registo .img-pg-hdr h2{font-size:17px;}
+  #sec-registo .img-exam-table tbody td:first-child{font-size:14.5px;}
+}
 </style>
 </head>
 <body>
@@ -777,14 +858,18 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
 
 <!-- ══ REGISTO ══ -->
 <div class="section active" id="sec-registo">
-  <div class="page-hdr">
+  <div class="img-pg-hdr">
+    <div class="img-pg-hdr-icon"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M17 21h2a2 2 0 0 0 2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg></div>
     <div>
-      <span class="sec-badge badge-blue"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9.5"/></svg> Radiologia</span>
-      <h2>Registo Diário</h2>
-      <p>TAC · Ecografia · Raio X — por B. Urgência, Autorizados e Internamentos</p>
+      <span class="img-pg-badge">Diário</span>
+      <h2>Registo Diário de Exames</h2>
+      <p>B. Urgência + Autorizados + Internamentos &middot; TAC &middot; Ecografia &middot; Raio X</p>
     </div>
-    <button class="btn btn-primary" onclick="saveAllData()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
-    <button class="btn btn-outline" onclick="zeloNarrarResumoDiario()">🔊 Ler em voz</button>
+  </div>
+  <div class="img-reg-actions">
+    <button type="button" class="img-btn img-btn-save" onclick="saveAllData()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar Registo</button>
+    <button type="button" class="img-btn" onclick="exportPDFDia()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Guardar PDF</button>
+    <button type="button" class="img-btn" onclick="zeloNarrarResumoDiario()"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg> Ler em voz</button>
   </div>
 
   <!-- KPIs -->
@@ -799,36 +884,31 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
     <div class="kpi green"><span class="kpi-icon"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span><div class="kpi-label">Média/Dia</div><div class="kpi-val" id="kpi-avg">—</div><div class="kpi-sub">média histórica</div></div>
   </div>
 
-  <!-- Data + Turno + Técnicos -->
-  <div class="card" style="padding:0;overflow:hidden;margin-bottom:20px;">
-    <div class="card-hdr"><h3><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Data, Turno e Técnicos</h3></div>
-    <div class="date-bar">
-      <label>Turno</label>
+  <!-- Técnicos de Serviço + Turno -->
+  <div class="card img-card">
+    <div class="img-card-label"><span>Técnicos de Serviço</span></div>
+    <div class="img-turno-row">
+      <label for="turno-select">Turno</label>
       <select id="turno-select" class="pc-select" onchange="autoSave()">
         <option value="manha">Manhã</option>
         <option value="tarde">Tarde</option>
         <option value="noite">Noite</option>
         <option value="dia_completo">Dia Completo</option>
       </select>
-      <button class="btn btn-outline btn-sm" onclick="addTech()">+ Técnico</button>
-      <button class="btn btn-outline btn-sm" onclick="removeTech()">− Remover</button>
     </div>
-    <div class="tech-section">
-      <div class="tech-section-title"><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Técnicos de Serviço</div>
-      <div class="tech-grid" id="tech-grid"></div>
+    <div class="tech-grid" id="tech-grid"></div>
+    <div class="img-btn-group">
+      <button type="button" class="img-btn" onclick="addTech()">+ Técnico</button>
+      <button type="button" class="img-btn" onclick="removeTech()">− Remover</button>
     </div>
   </div>
 
-  <!-- TAC TABLE -->
-  <div class="card" style="padding:0;overflow:hidden;">
-    <div class="card-hdr tac">
-      <h3><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M4 15V9a8 8 0 0 1 16 0v6"/><path d="M4 15h5v-6H4z"/><path d="M15 15h5v-6h-5z"/></svg> TAC — Tomografia Axial Computorizada</h3>
-      <span style="font-family:var(--font-mono);font-size:.62rem;color:rgba(191,219,254,.85);">Total: <span id="tac-grand-display">0</span></span>
-    </div>
+  <div class="card img-card" id="card-exames-tac">
+    <div class="img-card-label"><span>Exames Realizados — TAC (Tomografia Axial Computorizada)</span><span class="img-card-total">Total <b id="tac-grand-display">0</b></span></div>
     <div class="table-wrap">
-      <table class="exam-table">
+      <table class="exam-table img-exam-table">
         <thead><tr>
-          <th style="text-align:left;padding-left:18px;min-width:220px;">Exame / Procedimento</th>
+          <th>Exame</th>
           <th class="th-bu">B. Urgência</th>
           <th class="th-aut">Autorizados</th>
           <th class="th-int">Internamentos</th>
@@ -839,16 +919,12 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
     </div>
   </div>
 
-  <!-- ECO TABLE -->
-  <div class="card" style="padding:0;overflow:hidden;">
-    <div class="card-hdr eco">
-      <h3><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg> Ecografia</h3>
-      <span style="font-family:var(--font-mono);font-size:.62rem;color:rgba(165,243,252,.85);">Total: <span id="eco-grand-display">0</span></span>
-    </div>
+  <div class="card img-card" id="card-exames-eco">
+    <div class="img-card-label"><span>Exames Realizados — Ecografia</span><span class="img-card-total">Total <b id="eco-grand-display">0</b></span></div>
     <div class="table-wrap">
-      <table class="exam-table">
+      <table class="exam-table img-exam-table">
         <thead><tr>
-          <th style="text-align:left;padding-left:18px;min-width:220px;">Exame / Procedimento</th>
+          <th>Exame</th>
           <th class="th-bu">B. Urgência</th>
           <th class="th-aut">Autorizados</th>
           <th class="th-int">Internamentos</th>
@@ -859,16 +935,12 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
     </div>
   </div>
 
-  <!-- RX TABLE -->
-  <div class="card" style="padding:0;overflow:hidden;">
-    <div class="card-hdr rx">
-      <h3><svg class="hp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex:none;"><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M17 21h2a2 2 0 0 1 2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg> Raio X — Radiologia Convencional</h3>
-      <span style="font-family:var(--font-mono);font-size:.62rem;color:rgba(221,214,254,.85);">Total: <span id="rx-grand-display">0</span></span>
-    </div>
+  <div class="card img-card" id="card-exames-rx">
+    <div class="img-card-label"><span>Exames Realizados — Raio X (Radiologia Convencional)</span><span class="img-card-total">Total <b id="rx-grand-display">0</b></span></div>
     <div class="table-wrap">
-      <table class="exam-table">
+      <table class="exam-table img-exam-table">
         <thead><tr>
-          <th style="text-align:left;padding-left:18px;min-width:220px;">Indicador / Tamanho</th>
+          <th>Indicador / Tamanho</th>
           <th class="th-bu">B. Urgência</th>
           <th class="th-aut">Autorizados</th>
           <th class="th-int">Internamentos</th>
@@ -879,16 +951,12 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
     </div>
   </div>
 
-  <!-- TOTAL GERAL COMBINADO (TAC + ECO + RX) -->
-  <div class="card" style="padding:0;overflow:hidden;">
-    <div class="card-hdr" style="background:linear-gradient(135deg,#2B415E,#3E5C87);">
-      <h3>∑ Total Geral Combinado — TAC + Ecografia + Raio X</h3>
-      <span style="font-family:var(--font-mono);font-size:.62rem;color:rgba(191,219,254,.95);">Soma automática das 3 modalidades</span>
-    </div>
+  <div class="card img-card" id="card-exames-total">
+    <div class="img-card-label"><span>Total Geral — TAC + Ecografia + Raio X</span><span class="img-card-total">Soma automática</span></div>
     <div class="table-wrap">
-      <table class="exam-table">
+      <table class="exam-table img-exam-table">
         <thead><tr>
-          <th style="text-align:left;padding-left:18px;min-width:220px;">Modalidade</th>
+          <th>Modalidade</th>
           <th class="th-bu">B. Urgência</th>
           <th class="th-aut">Autorizados</th>
           <th class="th-int">Internamentos</th>
@@ -898,6 +966,7 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
       </table>
     </div>
   </div>
+
 </div><!-- /sec-registo -->
 
 <!-- ══ ESTATÍSTICAS ══ -->
