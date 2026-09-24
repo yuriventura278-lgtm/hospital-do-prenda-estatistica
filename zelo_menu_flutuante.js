@@ -116,8 +116,6 @@
       .zmf-toggle,.zmf-svc-toggle{transition:background .15s,color .15s;}
       .zmf-toggle.open,.zmf-svc-toggle.open{background:#1A56DB;color:#fff;}
       .zmf-toggle svg,.zmf-svc-toggle svg{transition:transform .25s cubic-bezier(.4,0,.2,1);}
-      .zmf-parent-row:has(> .zmf-toggle.open) > .zmf-link{background:rgba(26,86,219,.1);color:#1A56DB;}
-      .zmf-parent-row:has(> .zmf-toggle.open) .zmf-ic{background:#1A56DB;color:#fff;}
       .zmf-cat-row:has(> .zmf-toggle.open) .zmf-cat-link{background:rgba(26,86,219,.1);color:#1A56DB;}
       .zmf-svc-row:has(> .zmf-svc-toggle.open) .zmf-svc-link{color:#1A56DB;font-weight:700;}
       .zmf-subtree,.zmf-action-list{opacity:0;transform:translateY(-4px);
@@ -424,6 +422,10 @@
       toggle.addEventListener('click', alternar);
     }
     alternarSubtree('zmf-servicos-label', 'zmf-servicos-toggle', 'zmf-servicos-tree');
+    // "Serviços" já vem aberto: todos os serviços à vista, só se clica em cada um para expandir.
+    panel.querySelector('#zmf-servicos-tree').classList.add('open');
+    var tgSvc = panel.querySelector('#zmf-servicos-toggle');
+    tgSvc.classList.add('open'); tgSvc.setAttribute('aria-expanded', 'true');
     if (temSistemasLocais) {
       alternarSubtree('zmf-sistemas-label', 'zmf-sistemas-toggle', 'zmf-sistemas-tree');
       var arvSis = panel.querySelector('#zmf-sistemas-tree');

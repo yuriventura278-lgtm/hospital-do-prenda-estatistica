@@ -326,8 +326,6 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-link:hover:not(.active){background:var(--blxt);color:var(--bl);box-shadow:inset 3px 0 0 var(--bl);}
 .sb-link:active:not(.active){background:var(--bl);color:#fff;}
 .sb-link:active:not(.active) .sb-ic{background:rgba(255,255,255,.2);color:#fff;border-color:transparent;}
-.sb-parent:has(> .sb-toggle.open){background:var(--blxt);color:var(--bl);}
-.sb-parent:has(> .sb-toggle.open) .sb-ic{background:var(--bl);color:#fff;border-color:var(--bl);}
 
 .sb-cat-link{font-size:.82rem;transition:background .15s,color .15s,box-shadow .15s,transform .12s;}
 .sb-svc-link{font-size:.8rem;font-weight:600;color:var(--tx2);transition:background .15s,color .15s,box-shadow .15s,transform .12s;}
@@ -1925,6 +1923,14 @@ function zeloAlternarArvoreServicos(){
 // faz a mesma coisa: mostrar/esconder as categorias aqui mesmo.
 document.getElementById('sbServicosLabel').addEventListener('click', zeloAlternarArvoreServicos);
 document.getElementById('sbServicosToggle').addEventListener('click', zeloAlternarArvoreServicos);
+// Ao entrar, "Serviços" já vem aberto com todos os serviços à vista — só se
+// clica em cada serviço para o expandir (pode-se fechar na seta, se quiser).
+(function(){
+  var tree = document.getElementById('sbServicosTree');
+  tree.style.transition = 'none';
+  zeloAlternarArvoreServicos();
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){ tree.style.transition = ''; }); });
+})();
 
 // ── Árvore "Serviço de Estatística" (antes "Sistemas Locais"): mesmo princípio dos Serviços --
 // o nome e a seta só mostram/escondem a lista aqui mesmo, nunca navegam
