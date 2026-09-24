@@ -21,15 +21,15 @@ body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-hei
 .topbar img{width:22px;height:22px;border-radius:6px;flex-shrink:0;}
 .topbar a.back{margin-left:auto;color:#fff;text-decoration:none;display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.1);
   border:1px solid rgba(255,255,255,.18);border-radius:100px;padding:5px 12px;white-space:nowrap;}
-.hero{background:linear-gradient(155deg,var(--nv) 0%,var(--nv2) 55%,var(--nv3) 100%);color:#fff;padding:22px 20px;}
-.hero-in{max-width:1100px;margin:0 auto;}
+.hero{background:linear-gradient(155deg,var(--nv) 0%,var(--nv2) 55%,var(--nv3) 100%);color:#fff;padding:26px clamp(16px,3vw,40px);}
+.hero-in{max-width:none;margin:0;}
 .hero h1{font-size:clamp(1.3rem,3.4vw,1.7rem);font-weight:800;letter-spacing:-.02em;}
 .hero p{margin-top:5px;color:#AEC0E0;font-size:.8rem;max-width:640px;}
-main{max-width:1100px;margin:0 auto;padding:24px 20px 60px;width:100%;box-sizing:border-box;flex:1;}
+main{max-width:none;margin:0;padding:24px clamp(16px,3vw,40px) 60px;width:100%;box-sizing:border-box;flex:1;}
 .panel{background:#fff;border:1px solid var(--br);border-radius:var(--r2);box-shadow:var(--s1);padding:20px;margin-bottom:20px;}
 .panel h2{font-size:.92rem;font-weight:800;margin-bottom:4px;}
 .panel .sub{font-size:.76rem;color:var(--tx3);margin-bottom:16px;}
-.grid-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;align-items:end;}
+.grid-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;align-items:end;}
 .field label{display:block;font-size:.7rem;font-weight:700;color:var(--tx2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;}
 .field input,.field select{width:100%;padding:10px 12px;border:1.5px solid var(--br);border-radius:var(--r);font-family:'Inter',sans-serif;
   font-size:.86rem;color:var(--tx);background:#fff;}
@@ -98,10 +98,81 @@ tr:hover .row-actions,tr:focus-within .row-actions{opacity:1;}
 .tab-pane.active{display:block;}
 @media(max-width:640px){.tabs-bar{flex-wrap:wrap;}.tab-btn{flex:1 1 45%;}}
 footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
-.foot-grid{max-width:1100px;margin:0 auto;padding:26px 20px 20px;display:flex;justify-content:space-between;
+.foot-grid{max-width:none;margin:0;padding:26px clamp(16px,3vw,40px) 20px;display:flex;justify-content:space-between;
   align-items:center;gap:20px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.09);}
 .foot-meta{font-family:'DM Mono',monospace;font-size:.66rem;color:#7288B0;text-align:right;line-height:1.6;}
 #blockedState{display:none;max-width:520px;margin:60px auto;text-align:center;padding:0 20px;}
+/* Visual geral um pouco mais cuidado, a ocupar a largura toda */
+.panel{padding:22px 24px;border-radius:18px;}
+.panel h2{font-size:1rem;}
+.tabs-bar{position:sticky;top:0;z-index:50;}
+th{position:sticky;top:0;background:#fff;z-index:1;}
+td{font-size:.84rem;}
+tbody tr:hover{background:#EEF4FF;}
+
+/* ── Janela de permissões (organizada como o menu) ── */
+#permModal{position:fixed;inset:0;background:rgba(13,27,62,.55);z-index:2147483200;align-items:stretch;justify-content:center;padding:2vh 2vw;}
+.perm-janela{background:#fff;border-radius:18px;width:100%;max-width:none;display:flex;flex-direction:column;box-shadow:var(--s2);overflow:hidden;}
+.perm-topo{display:flex;align-items:center;gap:12px;padding:18px 24px;background:linear-gradient(135deg,var(--nv),var(--nv3));color:#fff;}
+.perm-topo h3{font-size:1.1rem;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.perm-topo-sub{font-size:.78rem;color:#C7D2E8;margin-top:3px;}
+.perm-topo-sub b{color:#fff;}
+.perm-fechar{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.perm-fechar:hover{background:rgba(255,255,255,.2);}
+.perm-ferramentas{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 24px;border-bottom:1px solid var(--br);background:var(--sf);}
+.perm-ferramentas input{flex:1;min-width:220px;padding:10px 12px;border:1.5px solid var(--br);border-radius:var(--r);font-family:inherit;font-size:.86rem;background:#fff;}
+.perm-ferramentas input:focus{outline:none;border-color:var(--bl);box-shadow:0 0 0 3px rgba(26,86,219,.12);}
+.perm-ferramentas .btn-sm{padding:9px 14px;font-size:.76rem;}
+.perm-corpo{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:0;}
+.perm-areas{padding:20px 20px 30px 24px;border-right:1px solid var(--br);background:#FBFCFF;overflow:auto;}
+.perm-paginas{padding:20px 24px 30px;min-width:0;}
+.perm-sec-titulo{font-size:.74rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--nv);margin-bottom:4px;}
+.perm-sec-sub{font-size:.76rem;color:var(--tx3);line-height:1.5;margin-bottom:14px;}
+.perm-area{border:1px solid var(--br);border-left:4px solid var(--gr);border-radius:12px;padding:12px 13px;margin-bottom:10px;background:#fff;}
+.perm-area[data-nivel="leitura"]{border-left-color:var(--am);}
+.perm-area[data-nivel="nenhum"]{border-left-color:var(--rd);background:#FFF7F7;}
+.perm-area-nome{font-size:.86rem;font-weight:800;color:var(--tx);}
+.perm-default{font-size:.62rem;font-weight:600;color:var(--tx3);background:var(--sf);border:1px solid var(--br);border-radius:100px;padding:1px 7px;margin-left:4px;vertical-align:middle;}
+.perm-area-desc{font-size:.72rem;color:var(--tx3);margin:3px 0 9px;line-height:1.45;}
+.perm-seg{display:flex;width:100%;}
+.perm-seg label{flex:1;text-align:center;padding:7px 6px;font-size:.72rem;}
+.perm-seg input:checked + label.nv-nenhum{background:var(--rd);}
+.perm-seg input:checked + label.nv-leitura{background:var(--am);}
+.perm-seg input:checked + label.nv-editar{background:var(--gr);}
+.perm-grupo-titulo{grid-column:1/-1;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);margin:6px 0 -2px;padding-bottom:6px;border-bottom:1px solid var(--br);}
+.perm-blocos{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start;}
+.perm-bloco{border:1px solid var(--br);border-radius:14px;padding:12px 14px 10px;background:#fff;box-shadow:var(--s1);}
+.perm-bloco-head{display:flex;align-items:center;gap:8px;padding-bottom:8px;margin-bottom:6px;border-bottom:1px dashed var(--br);}
+.perm-bloco-ic{width:18px;height:18px;color:var(--bl);flex-shrink:0;}
+.perm-bloco-titulo{font-size:.9rem;font-weight:800;color:var(--nv);flex:1;min-width:0;}
+.perm-bloco-todos{display:flex;align-items:center;gap:5px;font-size:.7rem;font-weight:700;color:var(--tx3);cursor:pointer;text-transform:uppercase;letter-spacing:.03em;}
+.perm-bloco-todos input{accent-color:var(--bl);width:15px;height:15px;}
+.perm-bloco-nota{font-size:.7rem;color:var(--tx3);line-height:1.45;margin:2px 0 6px;}
+.perm-svc-nome{font-size:.74rem;font-weight:800;color:var(--tx2);margin:8px 0 2px;}
+.perm-svc-paginas{display:flex;flex-direction:column;gap:1px;}
+.perm-pag{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:.82rem;color:var(--tx);transition:background .12s;}
+.perm-pag:hover{background:#EEF4FF;}
+.perm-pag input{width:16px;height:16px;accent-color:var(--bl);flex-shrink:0;cursor:pointer;}
+.perm-pag-txt{flex:1;min-width:0;}
+.perm-badge{font-size:.6rem;font-weight:700;color:var(--tx3);background:var(--sf);border:1px solid var(--br);border-radius:100px;padding:1px 7px;white-space:nowrap;}
+.perm-badge.admin{color:#5B21B6;background:#EDE9FE;border-color:#DDD6FE;}
+.perm-pag-admin{cursor:default;color:var(--tx3);}
+.perm-bloqueada{opacity:.45;cursor:not-allowed;}
+.perm-bloqueada .perm-pag-txt{text-decoration:line-through;}
+.perm-admin-note{margin:24px;background:var(--sf);border:1px solid var(--br);border-radius:12px;padding:16px;font-size:.88rem;color:var(--tx2);line-height:1.5;grid-column:1/-1;}
+.perm-rodape{display:flex;gap:10px;justify-content:flex-end;padding:14px 24px;border-top:1px solid var(--br);background:#fff;}
+.perm-rodape .btn-sm{padding:10px 18px;font-size:.8rem;}
+@media(max-width:820px){
+  #permModal{padding:0;}
+  .perm-janela{border-radius:0;}
+  .perm-corpo{display:block;}
+  .perm-areas{border-right:none;border-bottom:1px solid var(--br);overflow:visible;padding:18px 16px;}
+  .perm-paginas{padding:18px 16px 24px;}
+  .perm-ferramentas{padding:10px 16px;}
+  .perm-ferramentas input{min-width:0;flex-basis:100%;}
+  .perm-topo,.perm-rodape{padding-left:16px;padding-right:16px;}
+  .perm-blocos{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
@@ -184,7 +255,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
     </div>
 
     <div class="tab-pane" id="tabpane-criar">
-      <div class="panel" style="max-width:640px;">
+      <div class="panel">
         <h2>Criar novo utilizador</h2>
         <p class="sub">Cria uma conta de acesso ao ZELO para um novo membro da equipa.</p>
         <div class="msg" id="createMsg"></div>
@@ -248,14 +319,26 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
   </main>
 </div>
 
-<div id="permModal" style="display:none;position:fixed;inset:0;background:rgba(13,27,62,.5);z-index:2000;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:#fff;border-radius:16px;padding:22px;max-width:460px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--s2);">
-    <h3 id="permModalTitle" style="font-size:1rem;font-weight:800;margin-bottom:4px;color:var(--tx);">Permissões</h3>
-    <p style="font-size:.78rem;color:var(--tx3);margin-bottom:16px;">Desmarca um módulo inteiro, ou deixa-o ativo e desmarca só os serviços/páginas específicos a que este utilizador não deve ter acesso. Para cada módulo ativo, escolhe também se pode Editar (guardar/alterar dados) ou só Ver (leitura).</p>
-    <div id="permModalList" style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px;overflow-y:auto;padding-right:4px;"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
+<div id="permModal" style="display:none;">
+  <div class="perm-janela" role="dialog" aria-modal="true" aria-labelledby="permModalTitle">
+    <div class="perm-topo">
+      <div style="min-width:0;flex:1;">
+        <h3 id="permModalTitle">Permissões</h3>
+        <div class="perm-topo-sub">Papel: <b id="permModalRole"></b> · <span id="permResumo"></span></div>
+      </div>
+      <button type="button" class="perm-fechar" id="permModalClose" title="Fechar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="perm-ferramentas" id="permModalTools">
+      <input type="search" id="permSearch" placeholder="Procurar página (ex.: Controlo de Pacientes, Laboratório)…"/>
+      <button type="button" class="btn-sm" id="permAllOn">Marcar todas</button>
+      <button type="button" class="btn-sm danger" id="permAllOff">Desmarcar todas</button>
+    </div>
+    <div class="perm-corpo" id="permModalBody"></div>
+    <div class="perm-rodape">
       <button class="btn-sm" id="permModalCancel">Cancelar</button>
-      <button class="btn-primary" id="permModalSave">Guardar</button>
+      <button class="btn-primary" id="permModalSave">Guardar permissões</button>
     </div>
   </div>
 </div>
@@ -473,106 +556,242 @@ function renderStats(usersObj){
   }).join('');
 }
 
+// ── Permissões organizadas como o MENU ──
+// Os dados guardados NÃO mudam (continuam por módulo → página, exactamente
+// como antes: permissoes[modulo] = false | true | 'leitura' |
+// { pagina:false, …, _nivel?:'leitura' }). Só a apresentação passa a seguir a
+// estrutura do menu (Serviços › categoria › serviço › página, Serviço de
+// Estatística, Informações do ZELO), para ser mais fácil e seguro decidir
+// página a página. Cada caixa de página corresponde a um par módulo+página;
+// quando a mesma página aparece em dois sítios do menu (ex.: Controlo de
+// Pacientes em Medicina Homem e Medicina Mulher) as duas caixas andam juntas.
+const MOD_INFO = {
+  servicos:                 { nome: 'Relatórios Diários', tag: 'Relatório diário', desc: 'Relatórios diários antigos dos serviços (Oftalmologia, Otorrinolaringologia, Fisioterapia, Supervisão…).' },
+  procedimentos_enfermagem: { nome: 'Procedimentos de Enfermagem', tag: 'Procedimentos', desc: 'Registo de procedimentos de enfermagem de cada serviço.' },
+  movimento_mensal:         { nome: 'Movimento Hospitalar', tag: 'Movimento', desc: 'Movimento mensal de internamento e do Banco de Urgência.' },
+  sistemas_independentes:   { nome: 'Registos dos Serviços', tag: 'Registo', desc: 'Controlo de Pacientes, Laboratório, Imagiologia, Bloco Operatório, Farmácia, Secretaria Geral, Reprografia…' },
+  estatistica:              { nome: 'Estatística', tag: 'Estatística', desc: 'Estatística, Base de Dados e Relatórios Anuais.' },
+  informacoes_zelo:         { nome: 'Informações do ZELO', tag: 'Informação', desc: 'Página de informações sobre o sistema.' },
+};
+// Páginas do Serviço de Estatística que só abrem para administradores
+// (window.ZELO_SO_ADMIN nessas páginas) — a caixa não teria efeito.
+const SO_ADMIN_PAGINAS = { 'Estatistica.html':1, 'procedimentos_enfermagem_geral.html':1, 'controlo_faltas_gepedema.html':1, 'dias_cama_doente.html':1, 'registo_hiv.html':1 };
+
+function construirArvorePermissoes(){
+  const menu = window.SERVICOS_MENU || [];
+  const cats = window.CATEGORIAS_SERVICOS || [];
+  const agrupar = window.zeloAgruparServicos || function(l){ return l.map(function(s){ return { tipo:'svc', svc:s }; }); };
+  const usados = {};
+  const pag = function(a){ if(a.modulo && a.item) usados[a.modulo + '|' + a.item] = true; return { label: a.label, file: a.file, modulo: a.modulo, item: a.item || null }; };
+  const acoes = function(svc){ return (svc.relatorios||[]).concat(svc.procedimentos||[], svc.movimento||[]).map(pag); };
+  const blocos = [];
+  cats.forEach(function(cat){
+    const itens = menu.filter(function(s){ return (cats.some(function(c){ return c.id === s.categoria; }) ? s.categoria : 'outros') === cat.id; });
+    if(!itens.length) return;
+    const servicos = [];
+    agrupar(itens).forEach(function(no){
+      if(no.tipo === 'svc') servicos.push({ nome: no.svc.nome, paginas: acoes(no.svc) });
+      else no.itens.forEach(function(sv){ servicos.push({ nome: no.nome + ' › ' + sv.nome, paginas: acoes(sv) }); });
+    });
+    blocos.push({ grupo: 'Serviços', titulo: cat.label, icon: cat.icon, servicos: servicos });
+  });
+  // Serviço de Estatística
+  const estat = [];
+  (window.SISTEMAS_LOCAIS_MENU || []).forEach(function(s){
+    const p = pag({ label: s.nome, file: s.file, modulo: s.modulo, item: s.item });
+    p.soAdmin = !!SO_ADMIN_PAGINAS[s.file];
+    estat.push(p);
+    if(s.file === 'Estatistica.html'){
+      estat.push(pag({ label: 'Estatística › Base de Dados', file: 'base_dados.html', modulo: 'estatistica', item: 'base_dados' }));
+      estat.push(pag({ label: 'Estatística › Relatórios Anuais', file: 'relatorios_anuais.html', modulo: 'estatistica', item: 'relatorios_anuais' }));
+    }
+  });
+  blocos.push({ grupo: 'Serviço de Estatística', titulo: 'Serviço de Estatística', icon: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>', servicos: [{ nome: '', paginas: estat }],
+    nota: 'Estatística, Procedimentos · Geral, Controlo de Faltas, Dias-Cama e Registo VIH só abrem para administradores.' });
+  // Páginas com permissão própria que já não estão no menu (sistemas antigos
+  // ocultos) — continuam aqui para nenhuma permissão existente se perder.
+  const fora = [];
+  MODULES.forEach(function(m){
+    (m.items||[]).forEach(function(it){
+      if(!usados[m.key + '|' + it.slug]) fora.push({ label: it.label, modulo: m.key, item: it.slug });
+    });
+  });
+  if(fora.length) blocos.push({ grupo: 'Outras', titulo: 'Páginas fora do menu', icon: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/>', servicos: [{ nome: '', paginas: fora }],
+    nota: 'Sistemas antigos que já não aparecem no menu, mas cuja permissão continua guardada.' });
+  return blocos;
+}
+
+function estadoModulo(permissoes, roleDefaults, key){
+  let modPerm = permissoes ? permissoes[key] : undefined;
+  const isDefault = modPerm === undefined;
+  if(isDefault) modPerm = roleDefaults[key];
+  let nivel = 'editar';
+  if(modPerm === false) nivel = 'nenhum';
+  else if(modPerm === 'leitura' || (modPerm && typeof modPerm === 'object' && modPerm._nivel === 'leitura')) nivel = 'leitura';
+  const negados = (modPerm && typeof modPerm === 'object') ? modPerm : {};
+  return { nivel: nivel, negados: negados, isDefault: isDefault };
+}
+
+let permEstado = null; // { [modulo]: { nivel, negados, isDefault } } — base para guardar
 function openPermModal(uid, permissoes, nome, role){
   permUid = uid;
   document.getElementById('permModalTitle').textContent = 'Permissões — ' + (nome || uid);
-  const list = document.getElementById('permModalList');
+  document.getElementById('permModalRole').textContent = roleLabel(role);
+  const corpo = document.getElementById('permModalBody');
   const saveBtn = document.getElementById('permModalSave');
+  const ferramentas = document.getElementById('permModalTools');
   if(role === 'admin'){
-    list.innerHTML = '<div style="background:var(--sf);border:1px solid var(--br);border-radius:9px;padding:12px;font-size:.82rem;color:var(--tx2);line-height:1.5;">' +
-      'Administradores têm sempre acesso total a todos os módulos — as permissões não se aplicam a este papel.' +
-    '</div>';
-    saveBtn.style.display = 'none';
+    corpo.innerHTML = '<div class="perm-admin-note">Administradores têm sempre acesso total a todas as páginas — as permissões não se aplicam a este papel.</div>';
+    saveBtn.style.display = 'none'; ferramentas.style.display = 'none';
     document.getElementById('permModal').style.display = 'flex';
     return;
   }
-  saveBtn.style.display = '';
+  saveBtn.style.display = ''; ferramentas.style.display = '';
   const roleDefaults = ROLE_DEFAULT_PERMISSOES[role] || ROLE_DEFAULT_PERMISSOES.funcionario || {};
-  list.innerHTML = MODULES.map(function(m){
-    let modPerm = permissoes ? permissoes[m.key] : undefined;
-    const isDefault = modPerm === undefined;
-    if(isDefault) modPerm = roleDefaults[m.key];
-    const modOn = modPerm !== false;
-    const nivelAtual = (modPerm === 'leitura' || (modPerm && typeof modPerm === 'object' && modPerm._nivel === 'leitura')) ? 'leitura' : 'editar';
-    const defaultTag = isDefault ? '<span class="perm-mod-default-tag">Padrão do papel — ainda não personalizado</span>' : '';
-    const nivelHtml = '<div class="perm-nivel seg-control" data-mod-nivel="' + m.key + '" style="margin-top:10px;display:' + (modOn ? 'inline-flex' : 'none') + ';">' +
-      '<input type="radio" name="nivel-' + m.key + '" id="nivel-editar-' + m.key + '" class="perm-nivel-radio" data-mod="' + m.key + '" value="editar" ' + (nivelAtual==='editar'?'checked':'') + '/>' +
-      '<label for="nivel-editar-' + m.key + '">Editar</label>' +
-      '<input type="radio" name="nivel-' + m.key + '" id="nivel-leitura-' + m.key + '" class="perm-nivel-radio" data-mod="' + m.key + '" value="leitura" ' + (nivelAtual==='leitura'?'checked':'') + '/>' +
-      '<label for="nivel-leitura-' + m.key + '">Só leitura</label>' +
-    '</div>';
-    let itemsHtml = '';
-    if(m.items){
-      const deniedSet = (modPerm && typeof modPerm === 'object') ? modPerm : {};
-      const allChecked = m.items.every(function(it){ return deniedSet[it.slug] !== false; });
-      itemsHtml = '<div class="perm-items" data-mod-items="' + m.key + '" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--br);display:' + (modOn ? 'flex' : 'none') + ';flex-direction:column;gap:5px;">' +
-        '<label style="display:flex;align-items:center;gap:8px;font-size:.76rem;color:var(--tx3);font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.03em;">' +
-          '<input type="checkbox" class="perm-all-check" data-mod="' + m.key + '" ' + (allChecked ? 'checked' : '') + ' style="width:auto;accent-color:var(--bl);"/> Todos' +
-        '</label>' +
-        m.items.map(function(it){
-          const checked = deniedSet[it.slug] !== false;
-          return '<label style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--tx2);cursor:pointer;">' +
-            '<input type="checkbox" class="perm-item-check" data-mod="' + m.key + '" data-item="' + it.slug + '" ' + (checked ? 'checked' : '') + ' style="width:auto;accent-color:var(--bl);"/>' + escapeHtml(it.label) +
-          '</label>';
-        }).join('') +
-      '</div>';
-    }
-    return '<div class="perm-mod-card">' +
-      '<div class="perm-mod-head">' +
-        '<div><div class="perm-mod-name">' + escapeHtml(m.label) + '</div>' + defaultTag + '</div>' +
-        '<label class="toggle"><input type="checkbox" class="perm-mod-check" data-mod="' + m.key + '" ' + (modOn ? 'checked' : '') + '/><span class="slider"></span></label>' +
-      '</div>' +
-      nivelHtml +
-      itemsHtml +
+  permEstado = {};
+  MODULES.forEach(function(m){ permEstado[m.key] = estadoModulo(permissoes, roleDefaults, m.key); });
+
+  // 1) Tipo de acesso por área (módulo)
+  const areasHtml = MODULES.map(function(m){
+    const info = MOD_INFO[m.key] || { nome: m.label, desc: '' };
+    const st = permEstado[m.key];
+    const op = function(v, txt){
+      return '<input type="radio" name="nivel-' + m.key + '" id="nivel-' + v + '-' + m.key + '" class="perm-nivel-radio" data-mod="' + m.key + '" value="' + v + '" ' + (st.nivel === v ? 'checked' : '') + '/>' +
+        '<label for="nivel-' + v + '-' + m.key + '" class="nv-' + v + '">' + txt + '</label>';
+    };
+    return '<div class="perm-area" data-area="' + m.key + '">' +
+      '<div class="perm-area-nome">' + escapeHtml(info.nome) + (st.isDefault ? ' <span class="perm-default">padrão do papel</span>' : '') + '</div>' +
+      '<div class="perm-area-desc">' + escapeHtml(info.desc) + '</div>' +
+      '<div class="seg-control perm-seg">' + op('nenhum', 'Sem acesso') + op('leitura', 'Só ver') + op('editar', 'Editar') + '</div>' +
     '</div>';
   }).join('');
+
+  // 2) Páginas, com a estrutura do menu
+  const blocos = construirArvorePermissoes();
+  const caixa = function(p){
+    const info = MOD_INFO[p.modulo] || { tag: p.modulo };
+    if(p.soAdmin){
+      return '<div class="perm-pag perm-pag-admin" data-busca="' + escapeHtml((p.label||'').toLowerCase()) + '"><span class="perm-pag-txt">' + escapeHtml(p.label) + '</span><span class="perm-badge admin">Só administradores</span></div>';
+    }
+    const st = permEstado[p.modulo] || { negados: {} };
+    const temItem = !!p.item;
+    const marcado = temItem ? st.negados[p.item] !== false : true;
+    return '<label class="perm-pag" data-busca="' + escapeHtml((p.label||'').toLowerCase()) + '">' +
+      '<input type="checkbox" class="perm-item-check" data-mod="' + p.modulo + '"' + (temItem ? ' data-item="' + p.item + '"' : ' data-sem-item="1"') + ' ' + (marcado ? 'checked' : '') + '/>' +
+      '<span class="perm-pag-txt">' + escapeHtml(p.label) + '</span>' +
+      '<span class="perm-badge" data-badge-mod="' + p.modulo + '">' + escapeHtml(info.tag) + '</span>' +
+    '</label>';
+  };
+  let grupoAtual = '';
+  const blocosHtml = blocos.map(function(b, bi){
+    const cab = (b.grupo !== grupoAtual) ? '<div class="perm-grupo-titulo">' + escapeHtml(b.grupo === 'Outras' ? 'Outras páginas' : b.grupo) + '</div>' : '';
+    grupoAtual = b.grupo;
+    const servicosHtml = b.servicos.map(function(s){
+      return (s.nome ? '<div class="perm-svc-nome">' + escapeHtml(s.nome) + '</div>' : '') +
+        '<div class="perm-svc-paginas">' + s.paginas.map(caixa).join('') + '</div>';
+    }).join('');
+    return cab + '<div class="perm-bloco" data-bloco="' + bi + '">' +
+      '<div class="perm-bloco-head">' +
+        '<svg class="perm-bloco-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (b.icon || '') + '</svg>' +
+        '<span class="perm-bloco-titulo">' + escapeHtml(b.titulo) + '</span>' +
+        '<label class="perm-bloco-todos"><input type="checkbox" class="perm-bloco-check" data-bloco="' + bi + '"/> Todas</label>' +
+      '</div>' +
+      (b.nota ? '<div class="perm-bloco-nota">' + escapeHtml(b.nota) + '</div>' : '') +
+      servicosHtml +
+    '</div>';
+  }).join('');
+
+  corpo.innerHTML =
+    '<aside class="perm-areas"><div class="perm-sec-titulo">1. Tipo de acesso por área</div>' +
+      '<p class="perm-sec-sub">«Sem acesso» bloqueia todas as páginas dessa área. «Só ver» deixa abrir sem guardar alterações.</p>' + areasHtml + '</aside>' +
+    '<section class="perm-paginas"><div class="perm-sec-titulo">2. Páginas do menu</div>' +
+      '<p class="perm-sec-sub">Desmarque as páginas a que este utilizador não deve ter acesso. Todas as páginas continuam visíveis no menu; sem permissão, a pessoa vê uma mensagem ao clicar.</p>' +
+      '<div class="perm-blocos">' + blocosHtml + '</div></section>';
+  document.getElementById('permSearch').value = '';
+  atualizarEstadoPermissoes();
   document.getElementById('permModal').style.display = 'flex';
 }
-document.getElementById('permModalList').addEventListener('change', function(e){
+
+// Reflecte o tipo de acesso de cada área nas caixas das páginas e actualiza
+// os "Todas" de cada bloco e o resumo.
+function atualizarEstadoPermissoes(){
+  const nivelDe = {};
+  document.querySelectorAll('.perm-nivel-radio:checked').forEach(function(r){ nivelDe[r.dataset.mod] = r.value; });
+  document.querySelectorAll('.perm-item-check').forEach(function(c){
+    const bloqueado = nivelDe[c.dataset.mod] === 'nenhum';
+    c.disabled = bloqueado;
+    c.closest('.perm-pag').classList.toggle('perm-bloqueada', bloqueado);
+  });
+  document.querySelectorAll('.perm-area').forEach(function(a){ a.dataset.nivel = nivelDe[a.dataset.area] || 'editar'; });
+  document.querySelectorAll('.perm-bloco').forEach(function(b){
+    const caixas = Array.from(b.querySelectorAll('.perm-item-check:not(:disabled)'));
+    const todos = b.querySelector('.perm-bloco-check');
+    if(!todos) return;
+    todos.disabled = !caixas.length;
+    todos.checked = caixas.length > 0 && caixas.every(function(c){ return c.checked; });
+    todos.indeterminate = !todos.checked && caixas.some(function(c){ return c.checked; });
+  });
+  let total = 0, permitidas = 0;
+  document.querySelectorAll('.perm-item-check').forEach(function(c){ total++; if(c.checked && !c.disabled) permitidas++; });
+  document.getElementById('permResumo').textContent = permitidas + ' de ' + total + ' páginas permitidas';
+}
+function sincronizarDuplicadas(c){
+  const sel = c.dataset.item ? '.perm-item-check[data-mod="' + c.dataset.mod + '"][data-item="' + c.dataset.item + '"]'
+                             : '.perm-item-check[data-mod="' + c.dataset.mod + '"][data-sem-item]';
+  document.querySelectorAll(sel).forEach(function(o){ o.checked = c.checked; });
+}
+document.getElementById('permModalBody').addEventListener('change', function(e){
   const t = e.target;
-  if(t.classList.contains('perm-mod-check')){
-    const itemsDiv = document.querySelector('.perm-items[data-mod-items="' + t.dataset.mod + '"]');
-    if(itemsDiv) itemsDiv.style.display = t.checked ? 'flex' : 'none';
-    const nivelDiv = document.querySelector('.perm-nivel[data-mod-nivel="' + t.dataset.mod + '"]');
-    if(nivelDiv) nivelDiv.style.display = t.checked ? 'flex' : 'none';
+  if(t.classList.contains('perm-item-check')) sincronizarDuplicadas(t);
+  if(t.classList.contains('perm-bloco-check')){
+    document.querySelectorAll('.perm-bloco[data-bloco="' + t.dataset.bloco + '"] .perm-item-check:not(:disabled)').forEach(function(c){
+      c.checked = t.checked; sincronizarDuplicadas(c);
+    });
   }
-  if(t.classList.contains('perm-all-check')){
-    const mod = t.dataset.mod;
-    document.querySelectorAll('.perm-item-check[data-mod="' + mod + '"]').forEach(function(c){ c.checked = t.checked; });
-  }
-  if(t.classList.contains('perm-item-check')){
-    const mod = t.dataset.mod;
-    const allBox = document.querySelector('.perm-all-check[data-mod="' + mod + '"]');
-    const items = document.querySelectorAll('.perm-item-check[data-mod="' + mod + '"]');
-    const allChecked = Array.from(items).every(function(c){ return c.checked; });
-    if(allBox) allBox.checked = allChecked;
-  }
+  atualizarEstadoPermissoes();
 });
-document.getElementById('permModalCancel').addEventListener('click', function(){
-  document.getElementById('permModal').style.display = 'none';
+document.getElementById('permSearch').addEventListener('input', function(){
+  const q = this.value.trim().toLowerCase();
+  document.querySelectorAll('#permModalBody .perm-pag').forEach(function(p){
+    p.style.display = (!q || (p.dataset.busca || '').indexOf(q) !== -1) ? '' : 'none';
+  });
+  document.querySelectorAll('#permModalBody .perm-bloco').forEach(function(b){
+    const visivel = Array.from(b.querySelectorAll('.perm-pag')).some(function(p){ return p.style.display !== 'none'; });
+    b.style.display = (!q || visivel || (b.querySelector('.perm-bloco-titulo').textContent.toLowerCase().indexOf(q) !== -1)) ? '' : 'none';
+  });
 });
+function marcarTodasPermissoes(valor){
+  document.querySelectorAll('#permModalBody .perm-item-check:not(:disabled)').forEach(function(c){ c.checked = valor; });
+  atualizarEstadoPermissoes();
+}
+document.getElementById('permAllOn').addEventListener('click', function(){ marcarTodasPermissoes(true); });
+document.getElementById('permAllOff').addEventListener('click', function(){ marcarTodasPermissoes(false); });
+function fecharPermModal(){ document.getElementById('permModal').style.display = 'none'; }
+document.getElementById('permModalCancel').addEventListener('click', fecharPermModal);
+document.getElementById('permModalClose').addEventListener('click', fecharPermModal);
 document.getElementById('permModalSave').addEventListener('click', async function(){
+  // Mesmo formato de sempre. Páginas sem caixa nesta janela mantêm o que já
+  // estava guardado (nada se perde por não aparecer aqui).
   const perms = {};
   MODULES.forEach(function(m){
-    const modCheck = document.querySelector('.perm-mod-check[data-mod="' + m.key + '"]');
-    if(!modCheck) return;
-    if(!modCheck.checked){ perms[m.key] = false; return; }
-    const nivelRadio = document.querySelector('.perm-nivel-radio[data-mod="' + m.key + '"]:checked');
-    const nivel = nivelRadio ? nivelRadio.value : 'editar';
+    const radio = document.querySelector('.perm-nivel-radio[data-mod="' + m.key + '"]:checked');
+    const nivel = radio ? radio.value : 'editar';
+    if(nivel === 'nenhum'){ perms[m.key] = false; return; }
     if(!m.items){ perms[m.key] = (nivel === 'leitura') ? 'leitura' : true; return; }
-    const itemChecks = document.querySelectorAll('.perm-item-check[data-mod="' + m.key + '"]');
+    const base = (permEstado && permEstado[m.key]) ? permEstado[m.key].negados : {};
     const denied = {};
-    let anyDenied = false;
-    itemChecks.forEach(function(c){
-      if(!c.checked){ denied[c.dataset.item] = false; anyDenied = true; }
+    Object.keys(base).forEach(function(k){ if(k !== '_nivel' && base[k] === false) denied[k] = false; });
+    document.querySelectorAll('.perm-item-check[data-mod="' + m.key + '"][data-item]').forEach(function(c){
+      if(c.checked) delete denied[c.dataset.item]; else denied[c.dataset.item] = false;
     });
+    const anyDenied = Object.keys(denied).length > 0;
     if(nivel === 'leitura'){ denied._nivel = 'leitura'; perms[m.key] = denied; }
     else { perms[m.key] = anyDenied ? denied : true; }
   });
   try{
     await update(ref(db, 'users/' + permUid), { permissoes: perms });
     await logAuditEvent(currentUid, currentEmail, 'alterar_permissoes', { alvoUid: permUid });
-    document.getElementById('permModal').style.display = 'none';
+    fecharPermModal();
   }catch(err){
     console.error('ZELO: falha ao guardar permissões', err);
     alert('Não foi possível guardar as permissões (' + (err && err.message || 'erro desconhecido') + ').');
