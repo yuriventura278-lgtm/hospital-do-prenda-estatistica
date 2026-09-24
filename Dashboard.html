@@ -158,6 +158,32 @@ main{padding:20px 22px 64px;max-width:none;}
 .svc-chart-box{min-width:0;}
 .svc-chart-box .cb-title{font-size:.7rem;font-weight:600;color:var(--tx2);margin-bottom:8px;}
 .svc-chart-canvas-wrap{position:relative;height:210px;}
+/* Gráficos no estilo do painel da Consulta Externa */
+.ce-box{background:var(--sf2);border:1px solid var(--br);border-radius:12px;padding:12px 14px 14px;}
+.ce-box .cb-title{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;color:var(--tx);margin-bottom:12px;}
+.ce-n{width:22px;height:22px;min-width:22px;border-radius:7px;background:var(--svc-cor,var(--accent));color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;}
+.ce-pdf{display:none;}
+.ce-vazio{font-size:.74rem;color:var(--tx3);margin:6px 0;}
+.ce-donut{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;}
+.ce-donut-wrap{position:relative;width:170px;height:170px;flex-shrink:0;}
+.ce-donut-wrap canvas{width:170px;height:170px;display:block;}
+.ce-donut-centro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+.ce-donut-centro b{font-size:1.5rem;font-family:'IBM Plex Mono',monospace;color:var(--tx);line-height:1;}
+.ce-donut-centro span{font-size:.62rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;font-weight:600;}
+.ce-legenda{display:flex;flex-direction:column;gap:8px;flex:1;min-width:150px;}
+.ce-legenda-item{display:flex;align-items:center;gap:9px;font-size:.76rem;color:var(--tx);}
+.ce-legenda-cor{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
+.ce-legenda-nome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ce-legenda-item b{margin-left:auto;font-family:'IBM Plex Mono',monospace;color:var(--tx);font-size:.74rem;}
+.ce-rank-linha{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.ce-rank-linha:last-child{margin-bottom:0;}
+.ce-rank-pos{width:22px;height:22px;min-width:22px;border-radius:50%;background:color-mix(in srgb,var(--svc-cor,var(--accent)) 14%,transparent);color:var(--svc-cor,var(--accent));display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;}
+.ce-rank-info{flex:1;min-width:0;}
+.ce-rank-nome{font-size:.76rem;font-weight:600;color:var(--tx);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ce-rank-barra{background:var(--br);border-radius:4px;height:8px;overflow:hidden;}
+.ce-rank-fill{background:var(--svc-cor,var(--accent));height:100%;border-radius:4px;transition:width .4s ease;}
+.ce-rank-num{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--tx);font-size:.8rem;min-width:24px;text-align:right;}
+.ce-barras{width:100%;display:block;height:170px;background:var(--sf);border:1px solid var(--br);border-radius:10px;}
 .svc-empty{color:var(--tx3);font-size:.76rem;padding:6px 0;}
 .svc-loading{color:var(--tx3);font-size:.78rem;padding:6px 0;}
 </style>
@@ -601,10 +627,171 @@ function alternarGraficosSecao(id){
     // Rede de segurança: a maioria dos casos já fica correcta sozinha
     // (Chart.js observa o redimensionamento do próprio canvas), mas forçar
     // o resize ao reabrir garante que nunca fica com o tamanho errado.
-    wrap.querySelectorAll('canvas').forEach(function(cv){ if (_charts[cv.id]) _charts[cv.id].resize(); });
+    wrap.querySelectorAll('canvas').forEach(function(cv){ if (_charts[cv.id]) _charts[cv.id].resize(); if (_ceGraficos[cv.id]) _ceDesenhar(cv.id); });
   }
 }
 window.alternarGraficosSecao = alternarGraficosSecao;
+
+/* ── Gráficos no estilo do painel da Consulta Externa (a pedido) ──
+   Os dados continuam a vir dos mesmos "config" de cada secção; muda só a
+   forma de desenhar:
+   • circular (doughnut/pie) → anel com o total ao centro + legenda com %;
+   • barras deitadas → lista numerada com barra de progresso;
+   • barras verticais / evolução diária → colunas arredondadas com o valor.
+   Cada gráfico tem também uma versão escondida (canvas.ce-pdf, 860×480)
+   que é a usada no PDF, para não sair deformada. */
+const CORES_CE = ['#4e79c7','#d64550','#2fa66a','#8a5fc9','#e0973a','#3aa0c9','#8a9a4b','#c0587e'];
+const _ceGraficos = {}; // canvasId → {tipo, labels, valores, cor}
+function _ceTipo(cfg){
+  if (cfg.type === 'doughnut' || cfg.type === 'pie') return 'donut';
+  if (cfg.type === 'bar' && cfg.options && cfg.options.indexAxis === 'y') return 'ranking';
+  return 'barras';
+}
+function _ceDados(cfg){
+  const ds = (cfg.data.datasets && cfg.data.datasets[0]) || {};
+  const cor = (cfg.type === 'line' && typeof ds.borderColor === 'string') ? ds.borderColor
+    : (typeof ds.backgroundColor === 'string' ? ds.backgroundColor : '#0fb5ad');
+  return { labels: (cfg.data.labels || []).map(String), valores: (ds.data || []).map(function(v){ return Number(v) || 0; }), cor: cor };
+}
+function _ceEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function _ceNum(n){ return (Math.round(n * 10) / 10).toLocaleString('pt-PT'); }
+// Donut: 5 maiores + "Outras"
+function _ceFatias(labels, valores){
+  const itens = labels.map(function(l, i){ return { label: l, valor: valores[i] || 0 }; }).filter(function(x){ return x.valor > 0; })
+    .sort(function(a, b){ return b.valor - a.valor; });
+  const top = itens.slice(0, 5), resto = itens.slice(5).reduce(function(a, x){ return a + x.valor; }, 0);
+  if (resto > 0) top.push({ label: 'Outras', valor: resto });
+  return top;
+}
+function _ceHTML(c){
+  const tipo = _ceTipo(c.config), d = _ceDados(c.config);
+  _ceGraficos[c.canvasId] = { tipo: tipo, labels: d.labels, valores: d.valores, cor: d.cor };
+  const pdf = '<canvas class="ce-pdf" id="' + c.canvasId + '-pdf" width="860" height="480" aria-hidden="true"></canvas>';
+  let corpo = '';
+  if (tipo === 'donut'){
+    const fatias = _ceFatias(d.labels, d.valores);
+    const total = d.valores.reduce(function(a, v){ return a + v; }, 0);
+    const soma = fatias.reduce(function(a, x){ return a + x.valor; }, 0) || 1;
+    corpo = '<div class="ce-donut">' +
+      '<div class="ce-donut-wrap"><canvas id="' + c.canvasId + '" width="360" height="360"></canvas>' +
+        '<div class="ce-donut-centro"><b>' + _ceNum(total) + '</b><span>total</span></div></div>' +
+      '<div class="ce-legenda">' + (fatias.length ? fatias.map(function(x, i){
+        return '<div class="ce-legenda-item"><span class="ce-legenda-cor" style="background:' + CORES_CE[i % CORES_CE.length] + '"></span>' +
+          '<span class="ce-legenda-nome">' + _ceEsc(x.label) + '</span><b>' + (x.valor / soma * 100).toFixed(1) + '%</b></div>';
+      }).join('') : '<p class="ce-vazio">Sem dados.</p>') + '</div></div>';
+  } else if (tipo === 'ranking'){
+    const linhas = d.labels.map(function(l, i){ return [l, d.valores[i] || 0]; }).filter(function(x){ return x[1] > 0; })
+      .sort(function(a, b){ return b[1] - a[1]; }).slice(0, 8);
+    const max = linhas.length ? linhas[0][1] : 1;
+    corpo = '<div class="ce-rank">' + (linhas.length ? linhas.map(function(x, i){
+      return '<div class="ce-rank-linha"><div class="ce-rank-pos">' + (i + 1) + '</div>' +
+        '<div class="ce-rank-info"><div class="ce-rank-nome">' + _ceEsc(x[0]) + '</div>' +
+        '<div class="ce-rank-barra"><div class="ce-rank-fill" style="width:' + Math.max(3, Math.round(x[1] / max * 100)) + '%"></div></div></div>' +
+        '<div class="ce-rank-num">' + _ceNum(x[1]) + '</div></div>';
+    }).join('') : '<p class="ce-vazio">Sem dados.</p>') + '</div>';
+  } else {
+    corpo = '<canvas class="ce-barras" id="' + c.canvasId + '"></canvas>';
+  }
+  return corpo + pdf;
+}
+function _ceCor(nome, fb){ return _corTema(nome, fb); }
+function _ceDesenharDonut(cv, g, tamanho, fundo){
+  const ctx = cv.getContext && cv.getContext('2d'); if (!ctx) return;
+  const fatias = _ceFatias(g.labels, g.valores);
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+  const cx = tamanho ? tamanho / 2 : w / 2, cy = h / 2, r = (tamanho || Math.min(w, h)) / 2 - 8;
+  const soma = fatias.reduce(function(a, x){ return a + x.valor; }, 0);
+  if (!soma){ ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = fundo ? '#E2E6EA' : _ceCor('--br', '#E2E6EA'); ctx.fill(); }
+  let ini = -Math.PI / 2;
+  fatias.forEach(function(x, i){
+    const ang = x.valor / soma * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, ini, ini + ang); ctx.closePath();
+    ctx.fillStyle = CORES_CE[i % CORES_CE.length]; ctx.fill(); ini += ang;
+  });
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2); ctx.fillStyle = fundo || _ceCor('--sf2', '#F4F6F8'); ctx.fill();
+  return { fatias: fatias, soma: soma, cx: cx, cy: cy };
+}
+function _ceDesenharBarras(cv, g, w, h, escala, papel){
+  const corTx = papel ? '#152238' : _ceCor('--tx', '#152238'), corTx3 = papel ? '#647184' : _ceCor('--tx3', '#647184');
+  const ctx = cv.getContext && cv.getContext('2d'); if (!ctx) return;
+  ctx.clearRect(0, 0, w, h);
+  const vals = g.valores, n = vals.length || 1, max = Math.max.apply(null, vals.concat([1]));
+  const gap = Math.max(2, Math.min(14, 120 / n)) * escala;
+  const barW = Math.max(1, (w - gap * (n + 1)) / n);
+  const mostrarValor = n <= 16, passoRotulo = Math.ceil(n / 12);
+  const cor = g.tipo === 'barras' && g.cor ? g.cor : '#0fb5ad';
+  vals.forEach(function(v, i){
+    const barH = (v / max) * (h - 34 * escala);
+    const x = gap + i * (barW + gap), y = h - 20 * escala - barH;
+    ctx.fillStyle = cor; ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, barW, Math.max(barH, 0.5), Math.min(6 * escala, barW / 2)); else ctx.rect(x, y, barW, barH);
+    ctx.fill();
+    ctx.textAlign = 'center';
+    if (mostrarValor && v > 0){ ctx.fillStyle = corTx; ctx.font = '600 ' + (10 * escala) + 'px sans-serif'; ctx.fillText(_ceNum(v), x + barW / 2, y - 4 * escala); }
+    if (i % passoRotulo === 0){
+      let rot = g.labels[i] || ''; if (rot.length > 12) rot = rot.slice(0, 11) + '…';
+      ctx.fillStyle = corTx3; ctx.font = (8.5 * escala) + 'px sans-serif';
+      ctx.fillText(rot, x + barW / 2, h - 6 * escala);
+    }
+  });
+}
+function _ceDesenhar(canvasId){
+  const g = _ceGraficos[canvasId]; if (!g) return;
+  try{
+    const cv = document.getElementById(canvasId);
+    if (cv && g.tipo === 'donut'){ _ceDesenharDonut(cv, g); }
+    if (cv && g.tipo === 'barras'){
+      const largura = cv.clientWidth || (cv.parentElement && cv.parentElement.clientWidth) || 0;
+      if (largura > 0){
+        const altura = 170;
+        cv.width = largura * 2; cv.height = altura * 2; cv.style.height = altura + 'px';
+        _ceDesenharBarras(cv, g, cv.width, cv.height, 2);
+      }
+    }
+    // Versão para o PDF (sempre 860×480, fundo branco, com legenda/nomes)
+    const pdf = document.getElementById(canvasId + '-pdf');
+    if (pdf){
+      const ctx = pdf.getContext('2d'); const W = pdf.width, H = pdf.height;
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+      if (g.tipo === 'donut'){
+        const info = _ceDesenharDonut(pdf, g, H, '#ffffff'); if (!info) return;
+        ctx.fillStyle = '#152238'; ctx.textAlign = 'center'; ctx.font = '700 44px sans-serif';
+        ctx.fillText(_ceNum(g.valores.reduce(function(a, v){ return a + v; }, 0)), info.cx, info.cy + 14);
+        ctx.textAlign = 'left'; ctx.font = '22px sans-serif';
+        info.fatias.forEach(function(x, i){
+          const y = 80 + i * 52;
+          ctx.fillStyle = CORES_CE[i % CORES_CE.length]; ctx.fillRect(H + 20, y - 16, 20, 20);
+          ctx.fillStyle = '#152238'; let nome = x.label; if (nome.length > 26) nome = nome.slice(0, 25) + '…';
+          ctx.fillText(nome + '  ' + (x.valor / (info.soma || 1) * 100).toFixed(1) + '%', H + 52, y);
+        });
+      } else if (g.tipo === 'ranking'){
+        const linhas = g.labels.map(function(l, i){ return [l, g.valores[i] || 0]; }).filter(function(x){ return x[1] > 0; })
+          .sort(function(a, b){ return b[1] - a[1]; }).slice(0, 8);
+        const max = linhas.length ? linhas[0][1] : 1;
+        linhas.forEach(function(x, i){
+          const y = 30 + i * 56;
+          ctx.fillStyle = '#152238'; ctx.font = '600 22px sans-serif'; ctx.textAlign = 'left';
+          let nome = (i + 1) + '. ' + x[0]; if (nome.length > 48) nome = nome.slice(0, 47) + '…';
+          ctx.fillText(nome, 10, y + 18);
+          ctx.textAlign = 'right'; ctx.fillText(_ceNum(x[1]), W - 10, y + 18);
+          ctx.fillStyle = '#eef2f6'; ctx.fillRect(10, y + 28, W - 20, 12);
+          ctx.fillStyle = g.cor || '#0fb5ad'; ctx.fillRect(10, y + 28, (W - 20) * x[1] / max, 12);
+        });
+      } else {
+        _ceDesenharBarras(pdf, g, W, H, 2, true);
+      }
+    }
+  }catch(e){ console.warn('ZELO Dashboard: falha ao desenhar gráfico', canvasId, e); }
+}
+let _ceRedesenharT = null;
+window.addEventListener('resize', function(){
+  clearTimeout(_ceRedesenharT);
+  _ceRedesenharT = setTimeout(function(){ Object.keys(_ceGraficos).forEach(_ceDesenhar); }, 150);
+});
+// Tema claro/escuro: as cores dos textos/fundos vêm do tema activo.
+new MutationObserver(function(){ Object.keys(_ceGraficos).forEach(_ceDesenhar); })
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['data-zelo-theme'] });
 
 const _kpisPDF = {};
 function renderSecao(id, kpis, charts, ultimaAtualizacao){
@@ -615,13 +802,12 @@ function renderSecao(id, kpis, charts, ultimaAtualizacao){
     // Nasce visível (SEM o atributo hidden) para que o Chart.js meça o
     // canvas correctamente ao desenhar — só depois de desenhado é que fica
     // escondido (ver abaixo). Criar já escondido dava gráficos em branco.
-    html += '<div class="svc-charts" id="charts-'+id+'">' + charts.map(function(c){
-      return '<div class="svc-chart-box"><div class="cb-title">'+c.title+'</div>'+
-        '<div class="svc-chart-canvas-wrap"><canvas id="'+c.canvasId+'"></canvas></div></div>';
+    html += '<div class="svc-charts" id="charts-'+id+'">' + charts.map(function(c, i){
+      return '<div class="svc-chart-box ce-box"><div class="cb-title"><span class="ce-n">'+(i+1)+'</span>'+c.title+'</div>'+ _ceHTML(c) + '</div>';
     }).join('') + '</div>';
   }
   document.getElementById('corpo-'+id).innerHTML = html;
-  charts.forEach(function(c){ desenharGrafico(c.canvasId, c.config); });
+  charts.forEach(function(c){ _ceDesenhar(c.canvasId); });
   if (charts.length){
     var chartsWrap = document.getElementById('charts-'+id);
     if (chartsWrap) chartsWrap.hidden = true;
@@ -1164,7 +1350,7 @@ async function exportarPDF(){
         body: kpis.map(function(k){ return [k.lbl, String(k.val)]; }),
       });
       y = doc.lastAutoTable.finalY + 3;
-      const canvases = document.querySelectorAll('#sec-'+s.id+' canvas');
+      const canvases = document.querySelectorAll('#sec-'+s.id+' canvas.ce-pdf');
       let x = marginX;
       const imgW = 86, imgH = 48;
       canvases.forEach(function(cv){
