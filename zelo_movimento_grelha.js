@@ -30,6 +30,9 @@
   .table-section .table-header svg{color:#3E5C87;}
   #dataTable th{background:#F8FAFC;color:#64748B;font-size:12px;font-weight:600;border-bottom:1px solid #E2E8F0;padding:9px 4px;}
   #dataTable td{padding:5px 3px;border-bottom:1px solid #EEF2F6;}
+  /* "Dias do mês" fica fixo à esquerda, como a coluna dos nomes */
+  #dataTable tr:first-child th:first-child{position:sticky;left:0;z-index:3;background:#F8FAFC;border-right:1px solid #E2E8F0;text-align:left;padding-left:14px;}
+  html[data-zelo-theme="dark"] #dataTable tr:first-child th:first-child{background:#0F172A;}
   #dataTable tr:hover td:not(.label-col){background:#FAFBFD;}
   #dataTable .label-col{background:#fff;font-size:14.5px;font-weight:500;color:#1E293B;border-right:1px solid #E2E8F0;
     min-width:230px;user-select:none;}
@@ -71,6 +74,27 @@
   .table-section.mov-sel-mode .mov-row-chk{display:inline-block;}
   .table-section.mov-sel-mode tr:has(.mov-row-chk:checked) .label-col{background:#E9EEF4;}
   .table-section.mov-sel-mode tr:has(.mov-row-chk:checked) .cell-input{border-color:#B9C6D9;}
+
+  /* Barra de deslocamento horizontal (os dias do mês) */
+  .table-section .table-wrapper{scrollbar-width:auto;scrollbar-color:#9FB2CC #EEF2F6;}
+  .table-section .table-wrapper::-webkit-scrollbar,.mov-scroll-top-track::-webkit-scrollbar{height:14px;}
+  .table-section .table-wrapper::-webkit-scrollbar-track,.mov-scroll-top-track::-webkit-scrollbar-track{background:#EEF2F6;border-radius:100px;}
+  .table-section .table-wrapper::-webkit-scrollbar-thumb,.mov-scroll-top-track::-webkit-scrollbar-thumb{background:#9FB2CC;border-radius:100px;border:3px solid #EEF2F6;}
+  .table-section .table-wrapper::-webkit-scrollbar-thumb:hover,.mov-scroll-top-track::-webkit-scrollbar-thumb:hover{background:#3E5C87;}
+  .table-section .table-wrapper::-webkit-scrollbar-thumb:active,.mov-scroll-top-track::-webkit-scrollbar-thumb:active{background:#2B415E;}
+  .table-section .table-wrapper::-webkit-scrollbar-button,.mov-scroll-top-track::-webkit-scrollbar-button{display:none;width:0;height:0;}
+  .mov-scroll-top{display:flex;align-items:center;gap:8px;margin:0 14px 8px;}
+  .mov-scroll-top[hidden]{display:none;}
+  .mov-scroll-top-track{flex:1;overflow-x:auto;overflow-y:hidden;height:16px;scrollbar-width:auto;scrollbar-color:#9FB2CC #EEF2F6;}
+  .mov-scroll-top-inner{height:1px;}
+  .mov-scroll-btn{flex-shrink:0;width:30px;height:30px;border-radius:50%;border:1px solid #E2E8F0;background:#fff;color:#3E5C87;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,border-color .12s;}
+  .mov-scroll-btn:hover:not([disabled]){background:#E9EEF4;border-color:#3E5C87;}
+  .mov-scroll-btn[disabled]{opacity:.35;cursor:default;}
+  .mov-scroll-dias{flex-shrink:0;min-width:92px;text-align:center;font-size:12px;font-weight:700;color:#3E5C87;
+    background:#E9EEF4;border:1px solid #B9C6D9;border-radius:100px;padding:4px 10px;font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  html[data-zelo-theme="dark"] .mov-scroll-btn{background:#0F172A;border-color:#334155;color:#BFD0E6;}
+  html[data-zelo-theme="dark"] .mov-scroll-dias{background:#16233A;border-color:#334155;color:#BFD0E6;}
 
   /* Aviso rápido (toast) */
   #mov-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:2147483100;
@@ -316,8 +340,19 @@
     }
     if (extender && ancora){ selecionar(ancora, { r: r, c: c }); alvo.focus(); }
     else { selecionar({ r: r, c: c }, { r: r, c: c }); alvo.focus(); alvo.select(); }
-    alvo.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    mostrarCaixa(alvo);
     return true;
+  }
+  // Garante que a caixa fica visível, também na horizontal — descontando a
+  // coluna fixa dos nomes (senão a caixa ficava escondida por baixo dela).
+  function mostrarCaixa(el){
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    var w = el.closest('.table-wrapper'); if (!w) return;
+    var lbl = w.querySelector('.label-col');
+    var fixa = lbl ? lbl.getBoundingClientRect().width : 0;
+    var rw = w.getBoundingClientRect(), rc = el.closest('td').getBoundingClientRect();
+    if (rc.left < rw.left + fixa) w.scrollLeft -= (rw.left + fixa - rc.left) + 4;
+    else if (rc.right > rw.right) w.scrollLeft += (rc.right - rw.right) + 4;
   }
   function vizinhoNaLinha(r, c, passo){
     var cells = g()[r].cells;
@@ -522,12 +557,82 @@
   }
   document.addEventListener('change', function(e){ if (e.target.classList && e.target.classList.contains('mov-row-chk')) atualizarContagem(); });
 
+  // ─────────────────────────── BARRA DE DESLOCAMENTO (topo) ───────────────────────────
+  // Uma segunda barra por cima da tabela, sincronizada com a de baixo, com
+  // botões ‹ › (uma semana de cada vez) e a indicação dos dias à vista —
+  // para não ter de descer até ao fim da tabela para ver os últimos dias.
+  var ICON_ESQ = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+  var ICON_DIR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+  function wrapper(){ var t = tabela(); return t ? t.closest('.table-wrapper') : null; }
+  function montarBarraTopo(){
+    var w = wrapper(); if (!w || document.getElementById('mov-scroll-top')) return;
+    var bar = document.createElement('div');
+    bar.className = 'mov-scroll-top'; bar.id = 'mov-scroll-top';
+    bar.innerHTML = '<button type="button" class="mov-scroll-btn" id="mov-scroll-esq" title="Dias anteriores" aria-label="Dias anteriores">' + ICON_ESQ + '</button>' +
+      '<div class="mov-scroll-top-track" id="mov-scroll-track"><div class="mov-scroll-top-inner" id="mov-scroll-inner"></div></div>' +
+      '<span class="mov-scroll-dias" id="mov-scroll-dias">—</span>' +
+      '<button type="button" class="mov-scroll-btn" id="mov-scroll-dir" title="Dias seguintes" aria-label="Dias seguintes">' + ICON_DIR + '</button>';
+    w.parentNode.insertBefore(bar, w);
+    var track = bar.querySelector('#mov-scroll-track');
+    // As duas barras têm larguras diferentes: converte-se a posição pela
+    // proporção. Só se mexe na outra quando a diferença é real (> 1px),
+    // o que evita que uma empurre a outra em ciclo.
+    track.addEventListener('scroll', function(){
+      var alvo = track.scrollLeft / razao();
+      if (Math.abs(w.scrollLeft - alvo) > 1) w.scrollLeft = alvo;
+    });
+    w.addEventListener('scroll', function(){
+      var alvo = w.scrollLeft * razao();
+      if (Math.abs(track.scrollLeft - alvo) > 1) track.scrollLeft = alvo;
+      atualizarDias();
+    });
+    function semana(){ var th = tabela().querySelectorAll('tr:first-child th')[1]; return th ? th.getBoundingClientRect().width * 7 : 300; }
+    bar.querySelector('#mov-scroll-esq').addEventListener('click', function(){ w.scrollBy({ left: -semana(), behavior: 'smooth' }); });
+    bar.querySelector('#mov-scroll-dir').addEventListener('click', function(){ w.scrollBy({ left: semana(), behavior: 'smooth' }); });
+    window.addEventListener('resize', atualizarBarraTopo);
+  }
+  function razao(){
+    var w = wrapper(), track = document.getElementById('mov-scroll-track');
+    if (!w || !track) return 1;
+    var a = w.scrollWidth - w.clientWidth, b = track.scrollWidth - track.clientWidth;
+    return a > 0 && b > 0 ? b / a : 1;
+  }
+  function atualizarBarraTopo(){
+    var w = wrapper(), bar = document.getElementById('mov-scroll-top'); if (!w || !bar) return;
+    var inner = document.getElementById('mov-scroll-inner'), track = document.getElementById('mov-scroll-track');
+    var excede = w.scrollWidth > w.clientWidth + 2;
+    bar.hidden = !excede;
+    if (!excede) return;
+    // A barra de cima tem os botões ao lado, por isso é mais estreita: a
+    // proporção mantém-se para o polegar ter o mesmo tamanho relativo.
+    inner.style.width = Math.round(w.scrollWidth * (track.clientWidth / w.clientWidth)) + 'px';
+    track.scrollLeft = w.scrollLeft * razao();
+    atualizarDias();
+  }
+  function atualizarDias(){
+    var w = wrapper(), el = document.getElementById('mov-scroll-dias'); if (!w || !el) return;
+    var ths = tabela().querySelectorAll('tr:first-child th');
+    var lbl = w.querySelector('.label-col');
+    var rw = w.getBoundingClientRect(), esq = rw.left + (lbl ? lbl.getBoundingClientRect().width : 0);
+    var primeiro = null, ultimo = null;
+    for (var i = 1; i < ths.length; i++){
+      var n = parseInt(ths[i].textContent, 10); if (isNaN(n)) continue;
+      var r = ths[i].getBoundingClientRect();
+      if (r.right > esq + 8 && r.left < rw.right - 8){ if (primeiro === null) primeiro = n; ultimo = n; }
+    }
+    el.textContent = primeiro === null ? '—' : ('Dias ' + primeiro + '–' + ultimo);
+    var e = document.getElementById('mov-scroll-esq'), d = document.getElementById('mov-scroll-dir');
+    if (e) e.disabled = w.scrollLeft <= 1;
+    if (d) d.disabled = w.scrollLeft >= w.scrollWidth - w.clientWidth - 1;
+  }
   // ─────────────────────────── LIGAÇÃO À PÁGINA ───────────────────────────
   // Sempre que a tabela é redesenhada (mudar de mês/vista, dados do
   // Firebase…), a grelha e a seleção são recalculadas.
   function depoisDeDesenhar(){
     grelha = null; ancora = foco = null;
     montarBarra();
+    montarBarraTopo();
+    setTimeout(atualizarBarraTopo, 0);
     var bar = document.getElementById('mov-sel-toolbar');
     if (bar) bar.style.display = mensal() ? '' : 'none';
     if (!mensal()) alternarModo(true); else atualizarContagem();
