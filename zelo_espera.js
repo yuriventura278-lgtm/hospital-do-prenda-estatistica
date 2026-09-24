@@ -29,19 +29,22 @@
     '.ze-camada.ze-sai{opacity:0;pointer-events:none;}',
     // enquanto o ecrã escuro está aberto, os botões flutuantes (menu, assistente) não aparecem por cima
     'html.ze-ecra #zmf-btn,html.ze-ecra #zas-btn,html.ze-ecra #zub-sair-btn{visibility:hidden !important;}',
-    '.ze-escura{background:radial-gradient(ellipse at 50% 38%,#274A7A 0%,#132338 55%,#0B1522 100%);color:#fff;}',
+    // Opção A: azul-escuro com a fotografia do ecrã de entrada ao fundo, suave (desfocada e escurecida)
+    '.ze-escura{background:#0B1522;color:#fff;isolation:isolate;overflow:hidden;}',
+    '.ze-escura::before{content:"";position:absolute;inset:-12px;z-index:-2;background:url(icons/login_bg.jpg) center/cover no-repeat;filter:blur(3px) saturate(.9);opacity:.55;}',
+    '.ze-escura::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% 45%,rgba(20,40,75,.72) 0%,rgba(10,21,40,.9) 60%,rgba(6,13,26,.96) 100%);}',
     '.ze-veu{background:rgba(15,23,42,.5);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);}',
     '.ze-centro{text-align:center;width:min(86vw,340px);}',
-    '.ze-caixa{background:#fff;color:#0F172A;border-radius:18px;padding:24px 20px 20px;width:min(86vw,310px);text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.3);}',
+    '.ze-caixa{color:#fff;padding:10px;width:min(86vw,340px);text-align:center;}',
     '.ze-logo{width:40px;height:40px;border-radius:10px;display:block;margin:0 auto 14px;background:#fff;object-fit:contain;padding:3px;}',
     '.ze-anel{position:relative;width:160px;height:160px;margin:0 auto;}',
     '.ze-anel svg{width:100%;height:100%;transform:rotate(-90deg);display:block;}',
     '.ze-anel .ze-pista{fill:none;stroke-width:11;}',
-    '.ze-escura .ze-pista{stroke:rgba(255,255,255,.12);} .ze-caixa .ze-pista{stroke:#E2E8F0;}',
+    '.ze-escura .ze-pista{stroke:rgba(255,255,255,.14);}',
     '.ze-anel .ze-arco{fill:none;stroke-width:11;stroke-linecap:round;}',
     '.ze-anel .ze-brilho{position:absolute;inset:0;border-radius:50%;animation:zeGira 2.2s linear infinite;}',
     '.ze-anel .ze-brilho::after{content:"";position:absolute;top:3px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#fff;box-shadow:0 0 10px 3px rgba(255,255,255,.8);}',
-    '.ze-caixa .ze-brilho{display:none;}',
+    '.ze-ok .ze-brilho{display:none;}',
     '.ze-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}',
     '.ze-num b{font-size:2.5rem;font-weight:800;letter-spacing:-1px;line-height:1;}',
     '.ze-num small{font-size:.6rem;letter-spacing:2px;opacity:.75;margin-top:5px;text-transform:uppercase;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}',
@@ -51,13 +54,13 @@
     '.ze-passos i{width:28px;height:4px;border-radius:3px;background:rgba(255,255,255,.18);transition:background .3s;}',
     '.ze-passos i.ok{background:#22D3EE;}',
     '.ze-tag{display:none;margin-top:12px;font-size:.74rem;font-weight:700;border-radius:20px;padding:4px 11px;}',
-    '.ze-tag.lenta{display:inline-block;color:#92400E;background:#FEF3C7;border:1px solid #F59E0B;}',
-    '.ze-tag.off{display:inline-block;color:#334155;background:#F1F5F9;border:1px solid #94A3B8;}',
+    '.ze-tag.lenta{display:inline-block;color:#FDE68A;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.6);}',
+    '.ze-tag.off{display:inline-block;color:#E2E8F0;background:rgba(148,163,184,.18);border:1px solid rgba(148,163,184,.6);}',
     '.ze-botoes{display:flex;flex-direction:column;gap:8px;margin-top:14px;}',
     '.ze-btn{border:0;cursor:pointer;font:inherit;font-weight:700;font-size:.85rem;border-radius:22px;padding:9px 16px;}',
-    '.ze-btn.pri{background:#1F2F45;color:#fff;} .ze-btn.sec{background:transparent;color:#475569;}',
-    '.ze-ok .ze-num b{color:#16A34A;font-size:3.2rem;} .ze-ok .ze-num small{color:#16A34A;opacity:1;}',
-    '.ze-ok .ze-msg{color:#166534;}',
+    '.ze-btn.pri{background:#fff;color:#0F172A;} .ze-btn.sec{background:transparent;color:rgba(255,255,255,.85);text-decoration:underline;}',
+    '.ze-ok .ze-num b{color:#4ADE80;font-size:3.2rem;} .ze-ok .ze-num small{color:#4ADE80;opacity:1;}',
+    '.ze-ok .ze-msg{color:#86EFAC;}',
     '@keyframes zeGira{to{transform:rotate(360deg);}}',
     // faixas pequenas no topo (ligação lenta / restabelecida / sem internet)
     '.ze-faixa{position:fixed;top:10px;left:50%;transform:translate(-50%,-140%);z-index:2147483001;display:flex;align-items:center;gap:10px;',
@@ -70,6 +73,7 @@
     '.ze-faixa.off{background:#F8FAFC;border:1px solid #94A3B8;color:#1E293B;} .ze-faixa.off .ze-fx-ic{background:#E2E8F0;}',
     '.ze-faixa.volta{background:#F0FDF4;border:1px solid #22C55E;color:#14532D;} .ze-faixa.volta .ze-fx-ic{background:#DCFCE7;}',
     '.ze-faixa .ze-btn{padding:6px 12px;font-size:.76rem;margin-left:auto;white-space:nowrap;}',
+    '.ze-faixa .ze-btn.pri{background:#1F2F45;color:#fff;}',
     '.ze-sinal{display:inline-flex;gap:2px;align-items:flex-end;height:15px;}',
     '.ze-sinal i{width:3px;background:#D97706;border-radius:1px;} .ze-sinal i:nth-child(1){height:5px} .ze-sinal i:nth-child(2){height:9px;opacity:.35} .ze-sinal i:nth-child(3){height:14px;opacity:.35}'
   ].join('\n');
@@ -218,7 +222,7 @@
   function processar(opcoes) {
     opcoes = opcoes || {};
     if (procAtual && procAtual.aberto()) { procAtual.titulo(opcoes.titulo); return procAtual; }
-    var camada = el('div', 'ze-camada ze-veu');
+    var camada = el('div', 'ze-camada ze-escura');
     camada.setAttribute('role', 'status'); camada.setAttribute('aria-live', 'polite');
     var caixa = el('div', 'ze-caixa');
     var anel = criarAnel(opcoes.rotulo || 'A PROCESSAR');
@@ -314,7 +318,7 @@
     if (caixaOff) return;
     if (Date.now() - ultimaCaixaOff < 5 * 60 * 1000) { faixaSemInternet(); return; }
     ultimaCaixaOff = Date.now();
-    var camada = el('div', 'ze-camada ze-veu');
+    var camada = el('div', 'ze-camada ze-escura');
     var caixa = el('div', 'ze-caixa');
     var anel = criarAnel('NOVA TENTATIVA');
     anel.cor('off');
