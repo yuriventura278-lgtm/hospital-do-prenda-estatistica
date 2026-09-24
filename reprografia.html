@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-AO">
 <head>
+<script src="zelo_pdf.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='sistemas_independentes';</script>
 <script>window.ZELO_ITEM='reprografia';</script>
@@ -1694,111 +1695,56 @@ function exportarPDF(){
   const dados = registosDoPeriodo();
   if(dados.length===0){ toast("Sem dados para exportar."); return; }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:"portrait", unit:"pt", format:"a4"});
+  const Z = window.ZeloPDF;
+  const doc = Z.novo();
   const rotulo = rotuloPeriodoAtual();
   const servicoFiltro = document.getElementById("f-filtro-servico").value || "Todos os serviços";
   const total = dados.reduce((s,r)=>s+r.quantidade,0);
   const nServicos = new Set(dados.map(r=>r.servico)).size;
   const porDocLista = agrupar(dados,"documento");
   const docTop = porDocLista.length ? porDocLista[0][0] : "—";
-  const agora = new Date();
-  const geradoEm = `${fmtData(toISO(agora))} às ${agora.toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"})}`;
-  const logoImg = document.querySelector(".mark-logo");
-  const logo = logoImg ? logoImg.src : null;
 
-  const margem = 40;
-  const largura = doc.internal.pageSize.getWidth();
-  const altura = doc.internal.pageSize.getHeight();
+  let y = Z.cabecalho(doc, "Reprografia — Estatística de Formulários Impressos",
+    `${periodoAtivo.charAt(0).toUpperCase()+periodoAtivo.slice(1)} · Período: ${rotulo} · Serviço: ${servicoFiltro}`);
 
-  // Cabeçalho + rodapé (sem número de página — esse é escrito no fim, numa só passagem)
-  function cabecalhoRodape(){
-    if(logo){ try{ doc.addImage(logo, "PNG", margem, 24, 28, 28); }catch(e){} }
-    doc.setFont("helvetica","bold"); doc.setFontSize(12.5); doc.setTextColor(14,42,77);
-    doc.text("Hospital do Prenda", margem+36, 38);
-    doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(91,112,145);
-    doc.text("Secção da Reprografia · Controlo de Formulários Impressos", margem+36, 49);
-    doc.setDrawColor(219,228,240); doc.setLineWidth(0.8);
-    doc.line(margem, 62, largura-margem, 62);
-
-    doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(150,163,184);
-    doc.text(`Gerado em ${geradoEm} · Reprografia HP v2.0`, margem, altura-24);
-  }
-
-  cabecalhoRodape();
-
-  doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(14,42,77);
-  doc.text("Estatística de Formulários Impressos", margem, 88);
-  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(91,112,145);
-  doc.text(`${periodoAtivo.charAt(0).toUpperCase()+periodoAtivo.slice(1)} · Período: ${rotulo} · Serviço: ${servicoFiltro}`, margem, 103);
-
-  // Cartões-resumo (KPIs)
-  const kpis = [
-    ["Total de folhas", String(total)],
-    ["Serviços atendidos", String(nServicos)],
-    ["Documento mais requisitado", docTop],
-  ];
-  const gap = 10;
-  const larguraKpi = (largura - 2*margem - 2*gap) / 3;
-  let xKpi = margem;
-  kpis.forEach(([lbl,val])=>{
-    doc.setDrawColor(219,228,240); doc.setFillColor(244,247,251);
-    doc.roundedRect(xKpi, 118, larguraKpi, 42, 4, 4, "FD");
-    doc.setFont("helvetica","bold"); doc.setFontSize(12.5); doc.setTextColor(14,42,77);
-    const valorCortado = doc.splitTextToSize(val, larguraKpi-16)[0];
-    doc.text(valorCortado, xKpi+10, 140);
-    doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(91,112,145);
-    doc.text(lbl, xKpi+10, 153);
-    xKpi += larguraKpi + gap;
-  });
-
-  let y = 180;
+  y = Z.secao(doc, y, "1. Resumo");
+  let n = 1;
+  y = Z.indicadores(doc, y, [["Total de folhas", total], ["Serviços atendidos", nServicos]]);
+  y = Z.texto(doc, y + 1, "Documento mais requisitado", docTop);
 
   // Gráficos (capturados diretamente dos canvas já desenhados na Estatística)
   const canvasServicos = document.getElementById("chart-stat-servicos");
   const canvasDocumentos = document.getElementById("chart-stat-documentos");
   if(canvasServicos && canvasDocumentos && canvasServicos.width>0){
     try{
-      const largGrafico = (largura - 2*margem - gap) / 2;
-      const altGrafico = 130;
-      doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(91,112,145);
-      doc.text("POR SERVIÇO", margem, y);
-      doc.text("POR DOCUMENTO", margem+largGrafico+gap, y);
-      doc.addImage(canvasServicos.toDataURL("image/png",1.0), "PNG", margem, y+6, largGrafico, altGrafico);
-      doc.addImage(canvasDocumentos.toDataURL("image/png",1.0), "PNG", margem+largGrafico+gap, y+6, largGrafico, altGrafico);
-      y += altGrafico + 24;
+      y = Z.quebra(doc, y, 90);
+      y = Z.secao(doc, y, (++n)+". Gráficos — por serviço e por documento");
+      const lg = (182 - 6) / 2, ag = 62;
+      doc.addImage(canvasServicos.toDataURL("image/png",1.0), "PNG", 14, y, lg, ag);
+      doc.addImage(canvasDocumentos.toDataURL("image/png",1.0), "PNG", 14+lg+6, y, lg, ag);
+      y += ag + 6;
     }catch(e){ console.warn("Não foi possível incluir os gráficos no PDF:", e); }
   }
 
-  const opcoesTabela = { margin:{left:margem,right:margem,top:74,bottom:44}, didDrawPage: cabecalhoRodape };
-
-  doc.autoTable({ startY:y, head:[["Serviço","Quantidade"]], body: agrupar(dados,"servico"),
-    theme:"grid", headStyles:{fillColor:[14,42,77]}, styles:{fontSize:9}, ...opcoesTabela });
-
-  doc.autoTable({ startY: doc.lastAutoTable.finalY+18, head:[["Documento","Quantidade"]], body: agrupar(dados,"documento"),
-    theme:"grid", headStyles:{fillColor:[31,95,168]}, styles:{fontSize:9}, ...opcoesTabela });
-
-  doc.autoTable({ startY: doc.lastAutoTable.finalY+18, head:[["Data","Serviço","Documento","Qtd"]],
+  const comTotal = (linhas) => [...linhas, ["TOTAL", linhas.reduce((s,l)=>s+(+l[1]||0),0)]];
+  y = Z.secao(doc, y, (++n)+". Por serviço");
+  y = Z.autoTable(doc, { startY:y, head:[["Serviço","Quantidade"]], body: comTotal(agrupar(dados,"servico")), columnStyles:{1:{halign:"right"}} }) + 2;
+  y = Z.secao(doc, y, (++n)+". Por documento");
+  y = Z.autoTable(doc, { startY:y, head:[["Documento","Quantidade"]], body: comTotal(agrupar(dados,"documento")), columnStyles:{1:{halign:"right"}} }) + 2;
+  y = Z.secao(doc, y, (++n)+". Registos do período ("+dados.length+")");
+  y = Z.autoTable(doc, { startY:y, head:[["Data","Serviço","Documento","Qtd"]],
     body: [...dados].sort((a,b)=>a.data.localeCompare(b.data)).map(r=>[fmtData(r.data), r.servico, r.documento, r.quantidade]),
-    theme:"striped", headStyles:{fillColor:[91,112,145]}, styles:{fontSize:8}, ...opcoesTabela });
+    columnStyles:{3:{halign:"right"}} });
 
   // Bloco de assinatura
-  let yAssinatura = doc.lastAutoTable.finalY + 56;
-  if(yAssinatura > altura - 90){ doc.addPage(); cabecalhoRodape(); yAssinatura = 110; }
-  doc.setDrawColor(150,163,184); doc.setLineWidth(0.6);
-  doc.line(margem, yAssinatura, margem+180, yAssinatura);
-  doc.line(largura-margem-180, yAssinatura, largura-margem, yAssinatura);
-  doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(91,112,145);
-  doc.text("Responsável pela Reprografia", margem, yAssinatura+13);
-  doc.text("Chefia · Estatística Médica (GEPE/DEMA)", largura-margem-180, yAssinatura+13);
+  y = Z.quebra(doc, y + 14, 20);
+  doc.setDrawColor(100,116,139); doc.setLineWidth(0.3);
+  doc.line(14, y, 84, y); doc.line(126, y, 196, y);
+  doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(71,85,105);
+  doc.text("Responsável pela Reprografia", 49, y+5, {align:"center"});
+  doc.text("Chefia · Serviço de Admissão e Arquivo Médico Estatístico", 161, y+5, {align:"center", maxWidth:74});
 
-  // Numeração de página — única passagem no final, evitando texto sobreposto
-  const totalPaginas = doc.internal.getNumberOfPages();
-  for(let i=1;i<=totalPaginas;i++){
-    doc.setPage(i);
-    doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(150,163,184);
-    doc.text(`Página ${i} de ${totalPaginas}`, largura-margem, altura-24, {align:"right"});
-  }
+  Z.rodape(doc);
 
   const nomePeriodo = rotulo.replace(/[^0-9A-Za-zÀ-ÿ]+/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"");
   doc.save(`reprografia_${periodoAtivo}_${nomePeriodo}.pdf`);
