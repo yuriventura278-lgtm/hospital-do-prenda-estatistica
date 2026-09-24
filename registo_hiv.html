@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
+<script src="zelo_pdf.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='sistemas_independentes';</script>
 <script>window.ZELO_SO_ADMIN=true; // Serviço de Estatística — só administradores</script>
@@ -804,44 +805,16 @@ function zeloRestoreFromFile(input){
 async function gerarPDF(){
   toast('A gerar PDF...');
   try{
-    const{jsPDF}=window.jspdf;
-    const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-    const PW=297,PH=210,ML=10,MR=10,MB=14;
-    const CW=PW-ML-MR;
-    let y=10;
+    const Z=window.ZeloPDF;
+    const pdf=Z.novo({orientation:'landscape'});
+    const _lsWrap = document.getElementById('last-saved-status');
+    const _lsNome = document.getElementById('last-saved-name')?.textContent?.trim();
+    const _lsHora = document.getElementById('last-saved-time')?.textContent?.trim();
+    const registadoPorTxt = (_lsWrap && _lsWrap.style.display !== 'none' && _lsNome && _lsNome !== '—')
+      ? `Registado por: ${_lsNome} às ${_lsHora}` : '';
+    let y=Z.cabecalho(pdf,'Laboratório e Hemoterapia — Estatística de Testagem para o VIH',
+      'Período: '+fmtPer()+' · Formação: '+(gv('formacao')||'Hospital do Prenda')+(registadoPorTxt?' · '+registadoPorTxt:''));
 
-    function h2r(h){const hx=(h||'#000').replace('#','').padEnd(6,'0');return[parseInt(hx.slice(0,2),16)||0,parseInt(hx.slice(2,4),16)||0,parseInt(hx.slice(4,6),16)||0];}
-    function F(c){const[r,g,b]=h2r(c);pdf.setFillColor(r,g,b);}
-    function T(c){const[r,g,b]=h2r(c);pdf.setTextColor(r,g,b);}
-
-    // Cabeçalho
-    const HDR=32;
-    F('#0D1B3E');pdf.rect(0,0,PW,HDR,'F');
-    F('#DC2626');pdf.rect(0,HDR,PW,1,'F');
-
-    // Logo
-    try{
-      const cv=document.createElement('canvas');cv.width=280;cv.height=280;
-      const cx=cv.getContext('2d');
-      cx.fillStyle='#0a3a66';cx.beginPath();cx.arc(140,140,140,0,Math.PI*2);cx.fill();
-      const im=new Image();
-      await new Promise(r=>{im.onload=r;im.onerror=r;im.src='data:image/jpeg;base64,'+LOGO_B64;});
-      cx.save();cx.beginPath();cx.arc(140,140,136,0,Math.PI*2);cx.clip();cx.drawImage(im,0,0,280,280);cx.restore();
-      cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=7;cx.beginPath();cx.arc(140,140,134,0,Math.PI*2);cx.stroke();
-      pdf.addImage(cv.toDataURL('image/png'),'PNG',ML,4,22,22);
-    }catch(e){}
-
-    const TX=ML+26;
-    T('#93C5FD');pdf.setFontSize(6);pdf.setFont('helvetica','normal');
-    pdf.text('HOSPITAL DO PRENDA · LUANDA · GEPE · LABORATORIO E HEMOTERAPIA',TX,9);
-    T('#FFFFFF');pdf.setFontSize(12);pdf.setFont('helvetica','bold');
-    pdf.text('ESTATISTICA DE TESTAGEM PARA O VIH',TX,17);
-    T('#FFFFFF');pdf.setFontSize(8);pdf.setFont('helvetica','normal');
-    pdf.text('Periodo: '+fmtPer()+'    |    Formacao: '+(gv('formacao')||'Hospital do Prenda'),TX,24);
-
-    y=HDR+8;
-
-    // Calcular dados
     let tf=0,tm=0,pf=0,pm=0,inf=0,inm=0;
     FAIXAS.forEach((_,i)=>{
       tf+=dados.testados[i+'_f']||0;tm+=dados.testados[i+'_m']||0;
@@ -849,85 +822,30 @@ async function gerarPDF(){
       inf+=dados.indeterminados[i+'_f']||0;inm+=dados.indeterminados[i+'_m']||0;
     });
 
-    // Bloco resumo topo
-    const BW=46,BH=18,BG=5;
-    const boxes=[
-      {l:'TESTADOS',v:tf+tm,sf:tf,sm:tm,c:'#0369A1',bg:'#EFF6FF'},
-      {l:'POSITIVOS',v:pf+pm,sf:pf,sm:pm,c:'#991B1B',bg:'#EFF6FF'},
-      {l:'INDETERMINADOS',v:inf+inm,sf:inf,sm:inm,c:'#5B21B6',bg:'#F5F3FF'},
-      {l:'TOTAL (Pos+Ind)',v:(pf+pm)+(inf+inm),sf:pf+inf,sm:pm+inm,c:'#065F46',bg:'#F0FDF4'},
-    ];
-    let bx=ML;
-    boxes.forEach(b=>{
-      F(b.bg);pdf.roundedRect(bx,y,BW,BH,2,2,'F');
-      T(b.c);pdf.setFontSize(14);pdf.setFont('helvetica','bold');
-      pdf.text(String(b.v),bx+BW/2,y+9,{align:'center'});
-      T(b.c);pdf.setFontSize(5.5);pdf.setFont('helvetica','bold');
-      pdf.text(b.l,bx+BW/2,y+BH-2,{align:'center'});
-      T('#64748B');pdf.setFontSize(5);pdf.setFont('helvetica','normal');
-      pdf.text('F:'+b.sf+' M:'+b.sm,bx+BW/2,y+13,{align:'center'});
-      bx+=BW+BG;
-    });
-    y+=BH+8;
+    y=Z.secao(pdf,y,'1. Resumo');
+    y=Z.indicadores(pdf,y,[
+      ['Testados (F: '+tf+' · M: '+tm+')',tf+tm],
+      ['Positivos (F: '+pf+' · M: '+pm+')',pf+pm],
+      ['Indeterminados (F: '+inf+' · M: '+inm+')',inf+inm],
+      ['Total Pos.+Ind. (F: '+(pf+inf)+' · M: '+(pm+inm)+')',(pf+pm)+(inf+inm)],
+    ]);
+    y+=2;
 
-    // Tabela principal — faixas etárias
-    const headCols=['Faixa Etaria'];
-    headCols.push('Testados F','Testados M','Test. Total');
-    headCols.push('Positivos F','Positivos M','Pos. Total');
-    headCols.push('Indeterm. F','Indeterm. M','Ind. Total');
-    headCols.push('TOTAL GERAL');
-
+    const headCols=['Faixa Etária','Testados F','Testados M','Test. Total','Positivos F','Positivos M','Pos. Total','Indeterm. F','Indeterm. M','Ind. Total','Total Geral (Pos.+Ind.)'];
     const bodyRows=FAIXAS.map((nome,i)=>{
       const tff=dados.testados[i+'_f']||0,tfm=dados.testados[i+'_m']||0;
       const pff=dados.positivos[i+'_f']||0,pfm=dados.positivos[i+'_m']||0;
       const iff=dados.indeterminados[i+'_f']||0,ifm=dados.indeterminados[i+'_m']||0;
-      return[nome,tff||'—',tfm||'—',tff+tfm||'—',pff||'—',pfm||'—',pff+pfm||'—',iff||'—',ifm||'—',iff+ifm||'—',(pff+pfm+iff+ifm)||'—'];
+      return[nome,tff,tfm,tff+tfm,pff,pfm,pff+pfm,iff,ifm,iff+ifm,pff+pfm+iff+ifm];
     });
+    bodyRows.push(['TOTAL GERAL',tf,tm,tf+tm,pf,pm,pf+pm,inf,inm,inf+inm,pf+pm+inf+inm]);
+    y=Z.secao(pdf,y,'2. Testagem por Faixa Etária e Sexo');
+    const cs={};for(let c=1;c<=10;c++)cs[c]={halign:'center'};
+    [3,6,9,10].forEach(c=>cs[c].fontStyle='bold');
+    y=Z.autoTable(pdf,{startY:y,head:[headCols],body:bodyRows,columnStyles:cs});
+    if(gv('fonte')) y=Z.texto(pdf,y+2,'Fonte',gv('fonte'));
 
-    // Totais
-    bodyRows.push(['TOTAL GERAL',tf||'—',tm||'—',tf+tm||'—',pf||'—',pm||'—',pf+pm||'—',inf||'—',inm||'—',inf+inm||'—',(pf+pm+inf+inm)||'—']);
-
-    const navy=[10,22,40];
-    pdf.autoTable({
-      startY:y,
-      head:[headCols],
-      body:bodyRows,
-      styles:{fontSize:7,halign:'center',cellPadding:2.5,textColor:[30,41,59]},
-      columnStyles:{
-        0:{halign:'left',fontStyle:'bold',cellWidth:28,fillColor:[248,250,252]},
-        3:{fontStyle:'bold',textColor:[3,105,161],fillColor:[239,246,255]},
-        6:{fontStyle:'bold',textColor:[153,27,27],fillColor:[255,245,245]},
-        9:{fontStyle:'bold',textColor:[91,33,182],fillColor:[245,243,255]},
-        10:{fontStyle:'bold',textColor:[6,95,70],fillColor:[240,253,244]},
-      },
-      headStyles:{fillColor:navy,textColor:[255,255,255],fontSize:6.5,fontStyle:'bold',halign:'center'},
-      didParseCell:(data)=>{
-        if(data.section==='body'&&data.row.index===FAIXAS.length){
-          data.cell.styles.fillColor=[30,41,59];
-          data.cell.styles.textColor=[255,255,255];
-          data.cell.styles.fontStyle='bold';
-        }
-      },
-      margin:{left:ML,right:MR},
-    });
-
-    // Fonte + rodapé
-    const nP=pdf.internal.getNumberOfPages();
-    const _lsWrap = document.getElementById('last-saved-status');
-    const _lsNome = document.getElementById('last-saved-name')?.textContent?.trim();
-    const _lsHora = document.getElementById('last-saved-time')?.textContent?.trim();
-    const registadoPorTxt = (_lsWrap && _lsWrap.style.display !== 'none' && _lsNome && _lsNome !== '—')
-      ? `Registado por: ${_lsNome} às ${_lsHora}`
-      : null;
-    for(let p=1;p<=nP;p++){
-      pdf.setPage(p);
-      F('#0D1B3E');pdf.rect(0,PH-10,PW,10,'F');
-      T('#93C5FD');pdf.setFontSize(6.5);pdf.setFont('helvetica','normal');
-      if(gv('fonte'))pdf.text('Fonte: '+gv('fonte'),ML,PH-4);
-      if (registadoPorTxt) pdf.text(registadoPorTxt, PW/2, PH-4, { align: 'center' });
-      T('#FFFFFF');pdf.setFont('helvetica','bold');
-      pdf.text('Pag. '+p+' / '+nP,PW-MR,PH-4,{align:'right'});
-    }
+    Z.rodape(pdf);
 
     pdf.save('VIH_Registo_'+pdfFileName()+'.pdf');
     toast('PDF gerado com sucesso!');
