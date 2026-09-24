@@ -129,7 +129,7 @@ function initFieldNav(){
   function isFormField(el){return el&&(isTextField(el)||el.tagName==='SELECT');}
   function getFields(){
     return [].slice.call(document.querySelectorAll('input,select,textarea')).filter(function(el){
-      return !el.disabled&&el.offsetParent!==null&&el.type!=='hidden'&&el.type!=='file';
+      return !el.disabled&&el.offsetParent!==null&&el.type!=='hidden'&&el.type!=='file'&&!el.classList.contains('img-row-chk');
     });
   }
   function focusField(el){
@@ -775,6 +775,20 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
 #sec-registo .img-exam-table tr.er-row td:first-child{font-weight:700;color:var(--accent);}
 #sec-registo #tbody-combinado td{padding:9px 4px;}
 #sec-registo #tbody-combinado td:first-child{padding:9px 10px;}
+/* Selecionar / Copiar / Colar / Eliminar por linha */
+#sec-registo .img-sel-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
+#sec-registo .img-sel-toolbar .img-btn{font-size:10px;padding:6px 10px;}
+#sec-registo .img-sel-toolbar .img-btn[disabled]{opacity:.4;cursor:not-allowed;}
+#sec-registo .img-sel-toolbar .img-btn[disabled]:hover{border-color:var(--border);color:var(--muted);background:var(--surface);}
+#sec-registo .img-btn-danger{color:var(--urgent);}
+#sec-registo .img-btn-danger:not([disabled]):hover{border-color:var(--urgent);color:var(--urgent);background:rgba(181,80,45,.08);}
+#sec-registo .img-sel-only{display:none;}
+#sec-registo .img-card.img-sel-mode .img-sel-only{display:inline-flex;}
+#sec-registo .img-sel-all{align-items:center;gap:6px;font-size:10.5px;font-weight:700;color:var(--muted);cursor:pointer;}
+#sec-registo .img-sel-all input,#sec-registo .img-row-chk{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
+#sec-registo .img-row-chk{display:none;margin:0 10px 0 0;vertical-align:-2px;}
+#sec-registo .img-card.img-sel-mode .img-row-chk{display:inline-block;}
+#sec-registo .img-card.img-sel-mode tbody tr:has(.img-row-chk:checked){background:var(--img-tint);}
 @media(max-width:700px){
   #sec-registo .img-card{padding:14px;}
   #sec-registo .img-pg-hdr h2{font-size:17px;}
@@ -905,6 +919,16 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
 
   <div class="card img-card" id="card-exames-tac">
     <div class="img-card-label"><span>Exames Realizados — TAC (Tomografia Axial Computorizada)</span><span class="img-card-total">Total <b id="tac-grand-display">0</b></span></div>
+    <div class="img-sel-toolbar" id="img-sel-toolbar-tac">
+      <button type="button" class="img-btn" data-img-sel="toggle" data-sec="tac" id="img-sel-toggle-tac">Selecionar</button>
+      <label class="img-sel-all img-sel-only"><input type="checkbox" class="img-sel-all-chk" data-sec="tac"> <span id="img-sel-count-tac">0 selecionados</span></label>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="todos" data-sec="tac">Selecionar tudo</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="preenchidos" data-sec="tac">Selecionar preenchidos</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="copiar" data-sec="tac" id="img-sel-copiar-tac" disabled>Copiar</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="colar" data-sec="tac" id="img-sel-colar-tac" disabled>Colar</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="pdf" data-sec="tac" id="img-sel-pdf-tac" disabled>Exportar PDF</button>
+      <button type="button" class="img-btn img-btn-danger img-sel-only" data-img-sel="eliminar" data-sec="tac" id="img-sel-eliminar-tac" disabled>Eliminar</button>
+    </div>
     <div class="table-wrap">
       <table class="exam-table img-exam-table">
         <thead><tr>
@@ -921,6 +945,16 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
 
   <div class="card img-card" id="card-exames-eco">
     <div class="img-card-label"><span>Exames Realizados — Ecografia</span><span class="img-card-total">Total <b id="eco-grand-display">0</b></span></div>
+    <div class="img-sel-toolbar" id="img-sel-toolbar-eco">
+      <button type="button" class="img-btn" data-img-sel="toggle" data-sec="eco" id="img-sel-toggle-eco">Selecionar</button>
+      <label class="img-sel-all img-sel-only"><input type="checkbox" class="img-sel-all-chk" data-sec="eco"> <span id="img-sel-count-eco">0 selecionados</span></label>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="todos" data-sec="eco">Selecionar tudo</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="preenchidos" data-sec="eco">Selecionar preenchidos</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="copiar" data-sec="eco" id="img-sel-copiar-eco" disabled>Copiar</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="colar" data-sec="eco" id="img-sel-colar-eco" disabled>Colar</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="pdf" data-sec="eco" id="img-sel-pdf-eco" disabled>Exportar PDF</button>
+      <button type="button" class="img-btn img-btn-danger img-sel-only" data-img-sel="eliminar" data-sec="eco" id="img-sel-eliminar-eco" disabled>Eliminar</button>
+    </div>
     <div class="table-wrap">
       <table class="exam-table img-exam-table">
         <thead><tr>
@@ -937,6 +971,16 @@ tr.kb-focus{outline:2px solid #3E5C87;outline-offset:-2px;background:rgba(62,92,
 
   <div class="card img-card" id="card-exames-rx">
     <div class="img-card-label"><span>Exames Realizados — Raio X (Radiologia Convencional)</span><span class="img-card-total">Total <b id="rx-grand-display">0</b></span></div>
+    <div class="img-sel-toolbar" id="img-sel-toolbar-rx">
+      <button type="button" class="img-btn" data-img-sel="toggle" data-sec="rx" id="img-sel-toggle-rx">Selecionar</button>
+      <label class="img-sel-all img-sel-only"><input type="checkbox" class="img-sel-all-chk" data-sec="rx"> <span id="img-sel-count-rx">0 selecionados</span></label>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="todos" data-sec="rx">Selecionar tudo</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="preenchidos" data-sec="rx">Selecionar preenchidos</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="copiar" data-sec="rx" id="img-sel-copiar-rx" disabled>Copiar</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="colar" data-sec="rx" id="img-sel-colar-rx" disabled>Colar</button>
+      <button type="button" class="img-btn img-sel-only" data-img-sel="pdf" data-sec="rx" id="img-sel-pdf-rx" disabled>Exportar PDF</button>
+      <button type="button" class="img-btn img-btn-danger img-sel-only" data-img-sel="eliminar" data-sec="rx" id="img-sel-eliminar-rx" disabled>Eliminar</button>
+    </div>
     <div class="table-wrap">
       <table class="exam-table img-exam-table">
         <thead><tr>
@@ -1379,7 +1423,7 @@ function mkRow(section,key,label){
   const sk2=safeKey(section+'_'+key);
   const isER=label==='Exames Realizados';
   return `<tr${isER?' class="er-row"':''}>
-    <td>${label}</td>
+    <td><input type="checkbox" class="img-row-chk" data-sec="${section}" data-key="${key}" aria-label="Selecionar ${label}">${label}</td>
     <td><input type="number" class="num-input" min="0" value="${d.bu||''}" placeholder="0" data-sec="${section}" data-key="${key}" data-col="bu" oninput="setItem('${section}','${key}','bu',this.value)"></td>
     <td><input type="number" class="num-input" min="0" value="${d.aut||''}" placeholder="0" data-sec="${section}" data-key="${key}" data-col="aut" oninput="setItem('${section}','${key}','aut',this.value)"></td>
     <td><input type="number" class="num-input" min="0" value="${d.int||''}" placeholder="0" data-sec="${section}" data-key="${key}" data-col="int" oninput="setItem('${section}','${key}','int',this.value)"></td>
@@ -1563,6 +1607,166 @@ document.addEventListener('keydown',e=>{
     autoSave();
     toast('Células eliminadas. Ctrl+Z para desfazer.','info');
   }
+});
+
+// ════════════════════════════════════════════════════════════════════
+// SELECIONAR / COPIAR / COLAR / EXPORTAR PDF / ELIMINAR POR LINHA
+// (mesmo modelo dos Procedimentos de Enfermagem e do Laboratório).
+// Colar e Eliminar passam por setItem() e ficam na pilha de Ctrl+Z.
+// ════════════════════════════════════════════════════════════════════
+const IMG_SEL_NOMES={tac:'TAC',eco:'Ecografia',rx:'Raio X'};
+const IMG_SEL_COLS=['bu','aut','int'];
+function _imgSelChecks(sec){ return Array.from(document.querySelectorAll('#tbody-'+sec+' .img-row-chk')); }
+function _imgSelInputs(chk){
+  const tr=chk.closest('tr'); const o={};
+  IMG_SEL_COLS.forEach(c=>{ o[c]=tr?tr.querySelector('.num-input[data-col="'+c+'"]'):null; });
+  return o;
+}
+function _imgSelData(){ return (document.getElementById('data-registo')||{}).value||currentData.date||todayKey(); }
+function _imgSelContagem(sec){
+  const checks=_imgSelChecks(sec);
+  const n=checks.filter(c=>c.checked).length;
+  const cnt=document.getElementById('img-sel-count-'+sec);
+  if(cnt) cnt.textContent=n+(n===1?' selecionado':' selecionados');
+  ['copiar','colar','pdf','eliminar'].forEach(a=>{ const b=document.getElementById('img-sel-'+a+'-'+sec); if(b) b.disabled=n===0; });
+  const all=document.querySelector('.img-sel-all-chk[data-sec="'+sec+'"]');
+  if(all){ all.checked=checks.length>0&&n===checks.length; all.indeterminate=n>0&&n<checks.length; }
+}
+function imgSelToggle(sec){
+  const card=document.getElementById('img-sel-toolbar-'+sec)?.closest('.img-card');
+  if(!card) return;
+  const ativo=card.classList.toggle('img-sel-mode');
+  const btn=document.getElementById('img-sel-toggle-'+sec);
+  if(btn) btn.textContent=ativo?'Cancelar seleção':'Selecionar';
+  if(!ativo) _imgSelChecks(sec).forEach(c=>{ c.checked=false; });
+  _imgSelContagem(sec);
+}
+function imgSelTodos(sec){
+  const checks=_imgSelChecks(sec);
+  checks.forEach(c=>{ c.checked=true; });
+  _imgSelContagem(sec);
+  toast(checks.length+(checks.length===1?' exame selecionado':' exames selecionados (preenchidos e não preenchidos)'),'info');
+}
+function imgSelPreenchidos(sec){
+  let n=0;
+  _imgSelChecks(sec).forEach(c=>{
+    const inp=_imgSelInputs(c);
+    const p=IMG_SEL_COLS.some(k=>inp[k]&&inp[k].value.trim()!==''&&Number(inp[k].value)!==0);
+    c.checked=p; if(p) n++;
+  });
+  _imgSelContagem(sec);
+  toast(n>0?(n+(n===1?' exame preenchido selecionado':' exames preenchidos selecionados')):'Nenhum exame preenchido para selecionar','info');
+}
+async function imgSelCopiar(sec){
+  const checks=_imgSelChecks(sec).filter(c=>c.checked);
+  if(!checks.length) return;
+  const itens=checks.map(c=>{ const inp=_imgSelInputs(c); return { key:c.dataset.key, bu:inp.bu?inp.bu.value:'', aut:inp.aut?inp.aut.value:'', int:inp.int?inp.int.value:'' }; });
+  const texto='Imagiologia — '+IMG_SEL_NOMES[sec]+' — '+fmtDate(_imgSelData())+'\n'+
+    itens.map(it=>'- '+it.key+': B. Urgência '+(it.bu||0)+', Autorizados '+(it.aut||0)+', Internamentos '+(it.int||0)).join('\n');
+  try{ await navigator.clipboard.writeText(texto); }catch(e){}
+  try{
+    sessionStorage.setItem('zeloImgClipboard_'+sec, JSON.stringify({ data:_imgSelData(), itens }));
+    toast('Copiados '+checks.length+(checks.length===1?' exame':' exames')+' — pronto para colar noutro dia','ok');
+  }catch(e){ toast('Não foi possível copiar — tente novamente','err'); }
+}
+function imgSelColar(sec){
+  const checks=_imgSelChecks(sec).filter(c=>c.checked);
+  if(!checks.length) return;
+  let clip=null;
+  try{ clip=JSON.parse(sessionStorage.getItem('zeloImgClipboard_'+sec)||'null'); }catch(e){ clip=null; }
+  if(!clip||!Array.isArray(clip.itens)||!clip.itens.length){ toast('Nada copiado ainda — use "Copiar" primeiro noutro dia','warn'); return; }
+  const porKey={}; clip.itens.forEach(it=>{ porKey[it.key]=it; });
+  const entradas=[]; let colados=0;
+  checks.forEach(c=>{
+    const it=porKey[c.dataset.key]; if(!it) return;
+    const inp=_imgSelInputs(c);
+    IMG_SEL_COLS.forEach(col=>{
+      if(!inp[col]) return;
+      const d=currentData[sec][c.dataset.key];
+      entradas.push({section:sec,key:c.dataset.key,col,antes:d?d[col]:0});
+      inp[col].value=it[col]||'';
+      setItem(sec,c.dataset.key,col,it[col]||'',{skipUndo:true,skipAutoSave:true});
+    });
+    colados++;
+  });
+  if(!colados){ toast('Nenhum dos exames selecionados corresponde ao que foi copiado','warn'); return; }
+  _undoPush({t:'bulk',entradas});
+  autoSave();
+  toast('Colados '+colados+(colados===1?' exame':' exames')+(clip.data?' — de '+fmtDate(clip.data):'')+'. Ctrl+Z para desfazer.','ok');
+}
+function imgSelEliminar(sec){
+  const checks=_imgSelChecks(sec).filter(c=>c.checked);
+  if(!checks.length) return;
+  if(!confirm('Eliminar os valores de '+checks.length+(checks.length===1?' exame selecionado':' exames selecionados')+' ('+IMG_SEL_NOMES[sec]+')? Pode desfazer com Ctrl+Z.')) return;
+  const entradas=[];
+  checks.forEach(c=>{
+    const inp=_imgSelInputs(c);
+    IMG_SEL_COLS.forEach(col=>{
+      if(!inp[col]) return;
+      const d=currentData[sec][c.dataset.key];
+      entradas.push({section:sec,key:c.dataset.key,col,antes:d?d[col]:0});
+      inp[col].value='';
+      setItem(sec,c.dataset.key,col,'',{skipUndo:true,skipAutoSave:true});
+    });
+    c.checked=false;
+  });
+  _undoPush({t:'bulk',entradas});
+  autoSave();
+  _imgSelContagem(sec);
+  toast('Eliminados '+checks.length+(checks.length===1?' exame':' exames')+'. Ctrl+Z para desfazer.','del');
+}
+function imgSelPDF(sec){
+  const checks=_imgSelChecks(sec).filter(c=>c.checked);
+  if(!checks.length) return;
+  if(!window.jspdf||!window.jspdf.jsPDF){ toast('O gerador de PDF não está pronto — tente novamente','err'); return; }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait'});
+  const data=_imgSelData();
+  const nome=IMG_SEL_NOMES[sec];
+  try{ doc.addImage(LOGO_B64,'JPEG',14,8,18,18); }catch(e){}
+  doc.setFont('helvetica','bold'); doc.setFontSize(13);
+  doc.text('HOSPITAL DO PRENDA — SERVIÇO DE RADIOLOGIA',36,16);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  doc.text('Exames selecionados — '+nome+'     Data: '+fmtDate(data)+'     Gerado: '+new Date().toLocaleString('pt-PT'),36,23);
+  const n=v=>Number(v)||0;
+  const rows=checks.map(c=>{ const inp=_imgSelInputs(c); const bu=n(inp.bu&&inp.bu.value), aut=n(inp.aut&&inp.aut.value), int2=n(inp.int&&inp.int.value); return [c.dataset.key,bu,aut,int2,bu+aut+int2]; });
+  const t=[1,2,3,4].map(i=>rows.reduce((a,r)=>a+r[i],0));
+  rows.push(['TOTAL SELECIONADO',...t]);
+  doc.autoTable({startY:32,
+    head:[['Exame','B. Urgência','Autorizados','Internamentos','Total']],
+    body:rows,
+    styles:{fontSize:9,cellPadding:3},
+    headStyles:{fillColor:[10,22,40],textColor:255,fontStyle:'bold',halign:'center'},
+    columnStyles:{0:{halign:'left'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',fontStyle:'bold'}},
+    alternateRowStyles:{fillColor:[240,245,255]},
+    didParseCell(d){ if(d.section==='body'&&d.row.index===rows.length-1){ d.cell.styles.fontStyle='bold'; d.cell.styles.fillColor=[210,225,245]; } }
+  });
+  doc.save('Imagiologia_'+nome.replace(/\s+/g,'_')+'_Selecionados_'+data+'.pdf');
+  toast('PDF de '+checks.length+(checks.length===1?' exame exportado':' exames exportados'),'pdf');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-img-sel]'); if(!b||b.disabled) return;
+  const sec=b.dataset.sec, a=b.dataset.imgSel;
+  if(a==='toggle') imgSelToggle(sec);
+  else if(a==='todos') imgSelTodos(sec);
+  else if(a==='preenchidos') imgSelPreenchidos(sec);
+  else if(a==='copiar') imgSelCopiar(sec);
+  else if(a==='colar') imgSelColar(sec);
+  else if(a==='pdf') imgSelPDF(sec);
+  else if(a==='eliminar') imgSelEliminar(sec);
+});
+document.addEventListener('change',e=>{
+  const chk=e.target.closest('.img-row-chk');
+  if(chk){ _imgSelContagem(chk.dataset.sec); return; }
+  const all=e.target.closest('.img-sel-all-chk');
+  if(all){ _imgSelChecks(all.dataset.sec).forEach(c=>{ c.checked=all.checked; }); _imgSelContagem(all.dataset.sec); }
+});
+// As tabelas são redesenhadas ao mudar de dia — a contagem acompanha.
+document.addEventListener('DOMContentLoaded',()=>{
+  ['tac','eco','rx'].forEach(sec=>{
+    const tb=document.getElementById('tbody-'+sec);
+    if(tb) new MutationObserver(()=>_imgSelContagem(sec)).observe(tb,{childList:true});
+  });
 });
 
 // ════════════════════════════════════════════════════════════════════

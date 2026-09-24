@@ -968,9 +968,11 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <div class="linesel-toolbar">
           <button type="button" class="btn-h btn-out" onclick="linesetToggle('exames')" id="btn-linesel-toggle-exames">Selecionar</button>
           <label class="linesel-all-lbl linesel-only" style="display:none;"><input type="checkbox" id="linesel-all-exames" onchange="linesetToggleAll('exames',this.checked)"/> <span id="linesel-count-exames">0 selecionados</span></label>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" onclick="linesetSelTodos('exames')">Selecionar tudo</button>
           <button type="button" class="btn-h btn-out linesel-only" style="display:none;" onclick="linesetSelPreenchidos('exames')">Selecionar preenchidos</button>
           <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-copiar-exames" disabled onclick="linesetCopiar('exames')">Copiar</button>
           <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-colar-exames" disabled onclick="linesetColar('exames')">Colar</button>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-pdf-exames" disabled onclick="linesetPDF('exames')">Exportar PDF</button>
           <button type="button" class="btn-h btn-out linesel-only" style="display:none;color:var(--danger);" id="btn-linesel-eliminar-exames" disabled onclick="linesetEliminar('exames')">Eliminar</button>
         </div>
         <div class="lab-thead">
@@ -1006,9 +1008,11 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
         <div class="linesel-toolbar">
           <button type="button" class="btn-h btn-out" onclick="linesetToggle('positivos')" id="btn-linesel-toggle-positivos">Selecionar</button>
           <label class="linesel-all-lbl linesel-only" style="display:none;"><input type="checkbox" id="linesel-all-positivos" onchange="linesetToggleAll('positivos',this.checked)"/> <span id="linesel-count-positivos">0 selecionados</span></label>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" onclick="linesetSelTodos('positivos')">Selecionar tudo</button>
           <button type="button" class="btn-h btn-out linesel-only" style="display:none;" onclick="linesetSelPreenchidos('positivos')">Selecionar preenchidos</button>
           <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-copiar-positivos" disabled onclick="linesetCopiar('positivos')">Copiar</button>
           <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-colar-positivos" disabled onclick="linesetColar('positivos')">Colar</button>
+          <button type="button" class="btn-h btn-out linesel-only" style="display:none;" id="btn-linesel-pdf-positivos" disabled onclick="linesetPDF('positivos')">Exportar PDF</button>
           <button type="button" class="btn-h btn-out linesel-only" style="display:none;color:var(--danger);" id="btn-linesel-eliminar-positivos" disabled onclick="linesetEliminar('positivos')">Eliminar</button>
         </div>
         <div class="pos-thead">
@@ -1877,7 +1881,7 @@ function _linesetContagem(group){
   const marcados = checks.filter(c=>c.checked).length;
   const cnt = document.getElementById('linesel-count-'+group);
   if(cnt) cnt.textContent = marcados + (marcados===1 ? ' selecionado' : ' selecionados');
-  ['copiar','colar','eliminar'].forEach(a=>{
+  ['copiar','colar','pdf','eliminar'].forEach(a=>{
     const b = document.getElementById('btn-linesel-'+a+'-'+group);
     if(b) b.disabled = marcados===0;
   });
@@ -1899,6 +1903,12 @@ function linesetToggleAll(group, checked){
   _linesetRows(group).forEach(c=>{ c.checked = checked; });
   _linesetContagem(group);
 }
+function linesetSelTodos(group){
+  const checks = _linesetRows(group);
+  checks.forEach(c=>{ c.checked = true; });
+  _linesetContagem(group);
+  showToast('info', checks.length+(checks.length===1?' exame selecionado':' exames selecionados (preenchidos e não preenchidos)'));
+}
 function linesetSelPreenchidos(group){
   const checks = _linesetRows(group);
   let marcados = 0;
@@ -1919,6 +1929,9 @@ function linesetCopiar(group){
     const { bu, int } = _linesetInputs(c, group);
     return { nome: c.dataset.name, bu: (bu ? bu.value : '') || '', int: (int ? int.value : '') || '' };
   });
+  const texto = 'Laboratório — '+(group==='positivos'?'Exames Positivos':'Exames Realizados')+' — '+fmtDate(currentDate)+'\n'+
+    itens.map(it=>'- '+it.nome+': B. Urgência '+(it.bu||0)+', Internamento '+(it.int||0)).join('\n');
+  try{ if(navigator.clipboard) navigator.clipboard.writeText(texto).catch(()=>{}); }catch(e){}
   try{
     sessionStorage.setItem('zeloLabClipboard_'+group, JSON.stringify({ data: currentDate, itens }));
     showToast('success', 'Copiados '+checks.length+(checks.length===1?' '+cfg.label:' '+cfg.label+'s')+' — pronto para colar noutro dia');
@@ -1952,6 +1965,35 @@ function linesetColar(group){
     return;
   }
   showToast('success', 'Colados '+colados+(colados===1?' '+cfg.label:' '+cfg.label+'s'));
+}
+function linesetPDF(group){
+  const checks = _linesetRows(group).filter(c=>c.checked);
+  if(!checks.length) return;
+  if(!window.jspdf?.jsPDF){ showToast('warning', 'O gerador de PDF não está pronto — reinicie a aplicação e tente novamente'); return; }
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const titulo = group==='positivos' ? 'EXAMES POSITIVOS SELECIONADOS' : 'EXAMES REALIZADOS SELECIONADOS';
+  let cy = pdfDrawHeader(doc, titulo, 'Data: '+fmtDate(currentDate)+'   ·   Emissão: '+pdfEmissao());
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(60);
+  doc.text(checks.length+' de '+_linesetRows(group).length+' exames selecionados', 14, cy);
+  doc.setTextColor(0);
+  const n = v => Number(v)||0;
+  const rows = checks.map(c=>{ const { bu, int } = _linesetInputs(c, group); const b=n(bu&&bu.value), i=n(int&&int.value); return [c.dataset.name, b, i, b+i]; });
+  const tB = rows.reduce((a,r)=>a+r[1],0), tI = rows.reduce((a,r)=>a+r[2],0);
+  rows.push(['TOTAL SELECIONADO', tB, tI, tB+tI]);
+  doc.autoTable({startY: cy+4,
+    head:[['Exame','B. Urgência','Internamento','Total']],
+    body: rows,
+    margin:{left:14,right:14},
+    styles:{fontSize:8.5,cellPadding:2.5},
+    headStyles:{fillColor:[62,92,135],textColor:255,fontStyle:'bold',halign:'center'},
+    columnStyles:{0:{halign:'left'},1:{halign:'center'},2:{halign:'center'},3:{halign:'center',fontStyle:'bold'}},
+    alternateRowStyles:{fillColor:[240,245,255]},
+    didParseCell(d){ if(d.section==='body' && d.row.index===rows.length-1){ d.cell.styles.fontStyle='bold'; d.cell.styles.fillColor=[210,225,245]; } }
+  });
+  pdfDrawFooter(doc);
+  doc.save('Laboratorio_'+(group==='positivos'?'Positivos':'Exames')+'_Selecionados_'+currentDate+'.pdf');
+  showToast('success', 'PDF de '+checks.length+(checks.length===1?' exame exportado':' exames exportados'));
 }
 function linesetEliminar(group){
   const cfg = LINESEL_GROUPS[group];
