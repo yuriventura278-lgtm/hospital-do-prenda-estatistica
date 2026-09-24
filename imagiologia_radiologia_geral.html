@@ -6,6 +6,7 @@
 <script>window.ZELO_ITEM='imagiologia_radiologia_geral';</script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_pdf.js"></script>
 <script src="zelo_merge.js"></script>
 <script src="zelo_auto_backup.js"></script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
@@ -1736,19 +1737,16 @@ function imgSelPDF(sec){
   if(!checks.length) return;
   if(!window.jspdf||!window.jspdf.jsPDF){ toast('O gerador de PDF não está pronto — tente novamente','err'); return; }
   const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait'});
+  const doc=ZeloPDF.padronizar(new jsPDF({orientation:'portrait'}));
   const data=_imgSelData();
   const nome=IMG_SEL_NOMES[sec];
-  try{ doc.addImage(LOGO_B64,'JPEG',14,8,18,18); }catch(e){}
-  doc.setFont('helvetica','bold'); doc.setFontSize(13);
-  doc.text('HOSPITAL DO PRENDA — SERVIÇO DE RADIOLOGIA',36,16);
-  doc.setFont('helvetica','normal'); doc.setFontSize(9);
-  doc.text('Exames selecionados — '+nome+'     Data: '+fmtDate(data)+'     Gerado: '+new Date().toLocaleString('pt-PT'),36,23);
+  // Modelo geral de PDF do ZELO (zelo_pdf.js)
+  const __zeloTopo = ZeloPDF.cabecalho(doc, 'Imagiologia — Exames Selecionados · '+nome, 'Serviço de Radiologia · Data: '+fmtDate(data));
   const n=v=>Number(v)||0;
   const rows=checks.map(c=>{ const inp=_imgSelInputs(c); const bu=n(inp.bu&&inp.bu.value), aut=n(inp.aut&&inp.aut.value), int2=n(inp.int&&inp.int.value); return [c.dataset.key,bu,aut,int2,bu+aut+int2]; });
   const t=[1,2,3,4].map(i=>rows.reduce((a,r)=>a+r[i],0));
   rows.push(['TOTAL SELECIONADO',...t]);
-  doc.autoTable({startY:32,
+  doc.autoTable({startY:__zeloTopo,
     head:[['Exame','B. Urgência','Autorizados','Internamentos','Total']],
     body:rows,
     styles:{fontSize:9,cellPadding:3},
@@ -1757,6 +1755,7 @@ function imgSelPDF(sec){
     alternateRowStyles:{fillColor:[240,245,255]},
     didParseCell(d){ if(d.section==='body'&&d.row.index===rows.length-1){ d.cell.styles.fontStyle='bold'; d.cell.styles.fillColor=[210,225,245]; } }
   });
+  ZeloPDF.rodape(doc);
   doc.save('Imagiologia_'+nome.replace(/\s+/g,'_')+'_Selecionados_'+data+'.pdf');
   toast('PDF de '+checks.length+(checks.length===1?' exame exportado':' exames exportados'),'pdf');
 }
@@ -2903,16 +2902,12 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
   const avg=filteredDates.length>0?(grand/filteredDates.length).toFixed(1):'0';
   const geradoEm=new Date().toLocaleString('pt-PT');
   const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait'});
+  const doc=ZeloPDF.padronizar(new jsPDF({orientation:'portrait'}));
 
-  // Logo
-  try{ doc.addImage(LOGO_B64,'JPEG',14,8,18,18); }catch(e){}
-  doc.setFont('helvetica','bold'); doc.setFontSize(13);
-  doc.text('HOSPITAL DO PRENDA — SERVIÇO DE RADIOLOGIA',36,16);
-  doc.setFont('helvetica','normal'); doc.setFontSize(9);
-  doc.text(`${titleLabel}     Dias: ${filteredDates.length}/${dates.length}     Total: ${grand}     Gerado: ${geradoEm}`,36,23);
+  // Modelo geral de PDF do ZELO (zelo_pdf.js)
+  const __zeloTopo = ZeloPDF.cabecalho(doc, 'Imagiologia — ' + titleLabel, `Serviço de Radiologia · Dias: ${filteredDates.length}/${dates.length} · Total: ${grand}`);
 
-  doc.autoTable({startY:32,
+  doc.autoTable({startY:__zeloTopo,
     head:[['Total Geral','B. Urgência','Autorizados','Internamentos','Média/Dia']],
     body:[[grand,agg._grandBu,agg._grandAut,agg._grandInt,avg]],
     styles:{fontSize:9,cellPadding:3,halign:'center'},
@@ -3040,13 +3035,7 @@ function _buildPeriodPDF(dates,titleLabel,allData,showResume){
     const _nome=sessionStorage.getItem('zeloNome');
     if(_nome) _autorTxt='Documento exportado por: '+_nome;
   }
-  const pages=doc.internal.getNumberOfPages();
-  for(let i=1;i<=pages;i++){
-    doc.setPage(i); doc.setFontSize(7); doc.setTextColor(150);
-    doc.text(`Hospital do Prenda · Radiologia · Pág. ${i}/${pages}`,14,doc.internal.pageSize.getHeight()-8);
-    if(_autorTxt) doc.text(_autorTxt, doc.internal.pageSize.getWidth()-14, doc.internal.pageSize.getHeight()-8, {align:'right'});
-    doc.setTextColor(0);
-  }
+  ZeloPDF.rodape(doc, _autorTxt || undefined); // modelo geral de PDF (zelo_pdf.js)
   const safe=titleLabel.replace(/[\s·]+/g,'_').replace(/[^a-zA-Z0-9À-ú_-]/g,'');
   abrirModalPreviewPDF(doc, `Radiologia_${safe}.pdf`);
 }
