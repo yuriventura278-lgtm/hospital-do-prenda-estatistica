@@ -3645,6 +3645,17 @@ function _mesclarListaComFallback(localArr, remotoArr, tombstonesLocal, tombston
   const semIdUnificado = lSemId.concat(rSemId.filter(x => !lSemId.some(y => JSON.stringify(y) === JSON.stringify(x))));
   return { lista: mesclado.lista.concat(semIdUnificado), tombstones: mesclado.tombstones };
 }
+// Mantém sempre todos os tombstones conhecidos (o mais recente por id), em
+// vez de só os que "ganharam" nesta mesclagem — senão, assim que dois
+// dispositivos concordassem que o registo já não existe, o tombstone
+// desaparecia, e um terceiro dispositivo desatualizado podia ressuscitá-lo.
+// Não impede reedições legítimas: um registo editado depois da eliminação
+// tem _ts mais recente e continua a vencer (ver mesclarListaPorId).
+function _unirTombstones(a, b){
+  const out = Object.assign({}, a || {});
+  Object.keys(b || {}).forEach(function(id){ if (out[id] === undefined || b[id] > out[id]) out[id] = b[id]; });
+  return out;
+}
 function _mesclarDadosBloco(local, remoto){
   if(!local) return remoto;
   if(!remoto) return local;
@@ -3681,7 +3692,7 @@ function _mesclarDadosBloco(local, remoto){
     globalOb: globalObR.valor || 0,
     savedDayOb: savedDayObR.valor || 0,
     camposTs: camposTsMesclados,
-    tombstones: Object.assign({}, surgUrg.tombstones, surgElet.tombstones, susp.tombstones, obt.tombstones),
+    tombstones: _unirTombstones(tombstonesLocal, tombstonesRemoto),
     criadoPor: remotoMaisRecente ? remoto.criadoPor : local.criadoPor,
     _ts: Math.max(local._ts||0, remoto._ts||0),
   };
