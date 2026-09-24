@@ -862,6 +862,7 @@ function updateCapacity(value) {
 // padrão moveriam só o cursor de texto — por isso tratamos aqui para saltar
 // de célula em célula como numa folha de cálculo.
 function handleTableKeydown(e) {
+  return; // substituído pela navegação completa de zelo_movimento_grelha.js
   const el = e.target;
   if (!el.classList || !el.classList.contains('cell-input')) return;
 
@@ -1267,6 +1268,14 @@ function renderMonthlyGrid(table, months) {
     const labelCell = document.createElement('td');
     labelCell.className = 'label-col';
     labelCell.textContent = config.label;
+    if (config.editable) {
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.className = 'mov-row-chk';
+      chk.dataset.row = config.id;
+      chk.setAttribute('aria-label', 'Selecionar ' + config.label);
+      labelCell.prepend(chk);
+    }
     row.appendChild(labelCell);
 
     let total = 0;
@@ -1279,19 +1288,15 @@ function renderMonthlyGrid(table, months) {
         input.inputMode = 'numeric';
         input.min = '0';
         input.className = 'cell-input';
+        input.dataset.id = config.id;
+        input.dataset.day = day;
         // Usar !== undefined (em vez de || '') para que 0 apareça como "0"
         // em vez de ficar em branco — 0 é um valor legítimo, não ausência de valor.
         const rawVal = data[month][config.id][day];
         input.value = (rawVal !== undefined && rawVal !== null) ? rawVal : '';
-        input.oninput = () => { input.value = input.value.replace(/[^0-9]/g, ''); };
         attachSmartSelect(input);
-        input.onchange = () => {
-          let val = input.value === '' ? null : parseInt(input.value) || 0;
-          data[month][config.id][day] = val !== null ? Math.max(0, val) : null;
-          persistData();
-          renderTable();
-          updateStats();
-        };
+        // Gravar, recalcular e desfazer: zelo_movimento_grelha.js (sem
+        // redesenhar a tabela a cada alteração, para não perder o foco).
         cell.appendChild(input);
         total += parseInt(data[month][config.id][day]) || 0;
 
@@ -1303,17 +1308,13 @@ function renderMonthlyGrid(table, months) {
         input.inputMode = 'numeric';
         input.min = '0';
         input.className = 'cell-input baseline-input';
+        input.dataset.id = '__baseline';
+        input.dataset.day = day;
         input.title = 'Valor de partida — não há mês anterior registado';
         const current = (data.__baselines && data.__baselines[month]) || 
                 (data.__baseline && data.__baseline.month === month ? data.__baseline.value : 0) || 0;
         // Idem: 0 é um valor de partida válido e deve aparecer como "0".
         input.value = (current !== undefined && current !== null) ? current : '';
-        input.oninput = () => { input.value = input.value.replace(/[^0-9]/g, ''); };
-        input.onchange = () => {
-          let val = input.value === '' ? 0 : parseInt(input.value) || 0;
-          
-          setBaseline(month, val);
-        };
         attachSmartSelect(input);
         cell.appendChild(input);
         total += current;
@@ -1323,6 +1324,8 @@ function renderMonthlyGrid(table, months) {
         total += val;
         const span = document.createElement('span');
         span.className = config.auto ? 'auto-value' : 'readonly';
+        span.dataset.calc = config.id;
+        span.dataset.day = day;
         span.textContent = val;
         cell.appendChild(span);
       }
@@ -1331,6 +1334,7 @@ function renderMonthlyGrid(table, months) {
 
     const totalCell = document.createElement('td');
     totalCell.style.fontWeight = '600';
+    totalCell.dataset.total = config.id;
     // Para campos de stock ('existencia'/'existindo'), o "Total" do mês não
     // é a soma dos dias (isso seria um "doentes-dia", não um total útil) —
     // usa-se o valor de início/fim do mês, como no resto da app.
@@ -1982,5 +1986,6 @@ document.addEventListener('wheel', function(e) {
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_assistente.js"></script>
+<script src="zelo_movimento_grelha.js"></script>
 </body>
 </html>
