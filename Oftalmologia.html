@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
+<script src="zelo_pdf.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='servicos';</script>
 <script>window.ZELO_ITEM='oftalmologia';</script>
@@ -16,6 +17,7 @@
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap"></noscript>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
@@ -2462,570 +2464,121 @@ async function gerarPDF(silencioso){
 
   toast('A gerar PDF...');
   try{
-    const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-    const PW=210, PH=297, ML=14, MR=14, MT=14, MB=20; // MB=20 para dar espaço ao rodapé
-    const CW=PW-ML-MR; // 182mm
-    let y=MT;
-
-    // ── Utilitários ──────────────────────────────────────────
-    function checkPage(needed=8){
-      if(y+needed>PH-MB){
-        pdf.addPage();
-        y=MT;
-        drawHeaderStrip();
-      }
-    }
-    function hexToRgb(h){
-      const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
-      return[r,g,b];
-    }
-    function setFill(hex){const[r,g,b]=hexToRgb(hex);pdf.setFillColor(r,g,b);}
-    function setDraw(hex){const[r,g,b]=hexToRgb(hex);pdf.setDrawColor(r,g,b);}
-    function setTxt(hex){const[r,g,b]=hexToRgb(hex);pdf.setTextColor(r,g,b);}
-
-    // ── Cabeçalho de página (strip azul topo) ────────────────
-    function drawHeaderStrip(){
-      // Faixa azul escuro no topo das páginas seguintes
-      setFill('#1B2A3D');pdf.rect(0,0,PW,11,'F');
-      setFill('#3E5C87');pdf.rect(0,10,PW,1,'F');
-      setTxt('#93C5FD');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
-      pdf.text('BANCO DE OFTALMOLOGIA · HOSPITAL DO PRENDA · DEMA',ML,7);
-      setTxt('#FFFFFF');pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);
-      pdf.text(pdfDateFmt(),PW-MR,7,{align:'right'});
-      y=15; // reset y para baixo do header strip
-    }
-
-    // ── Cabeçalho principal (1ª página) ──────────────────────
-    const HDR_H=42;
-    // Fundo único azul escuro
-    setFill('#1B2A3D');pdf.rect(0,0,PW,HDR_H,'F');
-    // Linha azul brilhante no fundo do cabeçalho
-    setFill('#3E5C87');pdf.rect(0,HDR_H-1,PW,1,'F');
-
-    // Logotipo — recortar em círculo via canvas e inserir no PDF
-    const LOGO_X=ML, LOGO_Y=5, LOGO_D=30; // posição e diâmetro em mm
-    const LOGO_R=LOGO_D/2;
-    // Criar canvas circular
-    const logoCanvas=document.createElement('canvas');
-    logoCanvas.width=300;logoCanvas.height=300;
-    const lctx=logoCanvas.getContext('2d');
-    // Fundo azul do hospital
-    lctx.fillStyle='#04598C';
-    lctx.beginPath();lctx.arc(150,150,150,0,Math.PI*2);lctx.fill();
-    // Desenhar imagem recortada em círculo
-    const logoImg=new Image();
-    await new Promise(res=>{
-      logoImg.onload=res;logoImg.onerror=res;
-      logoImg.src='data:image/jpeg;base64,'+LOGO_B64;
-    });
-    lctx.save();
-    lctx.beginPath();lctx.arc(150,150,148,0,Math.PI*2);lctx.clip();
-    lctx.drawImage(logoImg,0,0,300,300);
-    lctx.restore();
-    // Borda branca
-    lctx.strokeStyle='rgba(255,255,255,0.35)';lctx.lineWidth=8;
-    lctx.beginPath();lctx.arc(150,150,146,0,Math.PI*2);lctx.stroke();
-    // Adicionar ao PDF
-    try{
-      pdf.addImage(logoCanvas.toDataURL('image/png'),'PNG',
-        LOGO_X, LOGO_Y, LOGO_D, LOGO_D);
-    }catch(e){}
-
-    // Textos à direita do logotipo
-    const TX=ML+LOGO_D+6;
-    setTxt('#93C5FD');pdf.setFontSize(6.5);pdf.setFont('helvetica','normal');
-    pdf.text('RELATÓRIO DIÁRIO · TURNO 24H · DEMA — HOSPITAL DO PRENDA',TX,10);
-    setTxt('#FFFFFF');pdf.setFontSize(13);pdf.setFont('helvetica','bold');
-    pdf.text('MOVIMENTO DO BANCO DE OFTALMOLOGIA',TX,19);
-    setTxt('#60A5FA');pdf.setFontSize(9);pdf.setFont('helvetica','normal');
-    pdf.text(pdfDateFmt(),TX,27);
-
-    // Linha verde accent
-    setFill('#059669');pdf.rect(0,HDR_H-2,PW,2,'F');
-
-    // Pill de estado do banco (se preenchido)
-    if(selClass){
-      const pillW=32, pillX=PW-MR-pillW, pillY=10;
-      setFill('#3E5C87');pdf.roundedRect(pillX,pillY,pillW,20,3,3,'F');
-      setDraw('#60A5FA');pdf.setLineWidth(0.4);pdf.roundedRect(pillX,pillY,pillW,20,3,3,'S');
-      setTxt('#93C5FD');pdf.setFontSize(6);pdf.setFont('helvetica','bold');
-      pdf.text('ESTADO DO BANCO',pillX+pillW/2,pillY+6,{align:'center'});
-      setTxt('#FFFFFF');pdf.setFontSize(11);pdf.setFont('helvetica','bold');
-      pdf.text(selClass,pillX+pillW/2,pillY+15,{align:'center'});
-    }
-    y=HDR_H+5;
-
-    // ── Secção: título colorido ───────────────────────────────
-    function secTitle(txt,bg='#3E5C87',fg='#FFFFFF'){
-      checkPage(10);
-      setFill(bg);pdf.rect(ML,y,CW,7,'F');
-      setTxt(fg);pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
-      pdf.text(txt.toUpperCase(),ML+3,y+5);
-      y+=9;
-    }
-
-    // ── Linha de tabela chave→valor ───────────────────────────
-    function tableRow(label,value,labelW=0.55,even=true,valColor='#0F172A'){
-      checkPage(7);
-      const lW=CW*labelW;
-      if(even){setFill('#F8FAFF');}else{setFill('#FFFFFF');}
-      pdf.rect(ML,y,CW,6.5,'F');
-      setDraw('#E2E8F0');pdf.setLineWidth(0.1);
-      pdf.line(ML,y+6.5,ML+CW,y+6.5);
-      setTxt('#64748B');pdf.setFontSize(9.5);pdf.setFont('helvetica','normal');
-      pdf.text(String(label),ML+3,y+4.5);
-      const[r,g,b]=hexToRgb(valColor);pdf.setTextColor(r,g,b);
-      pdf.setFont('helvetica','bold');
-      pdf.text(String(value),ML+CW-2,y+4.5,{align:'right'});
-      y+=6.5;
-    }
-
-    // ── Linha de detalhe (paciente individual) ────────────────
-    function detailRow(cols,bg='#F8FAFF',fgCol='#0F172A'){
-      checkPage(7);
-      setFill(bg);pdf.rect(ML,y,CW,6.5,'F');
-      setDraw('#E2E8F0');pdf.setLineWidth(0.1);pdf.line(ML,y+6.5,ML+CW,y+6.5);
-      let x=ML+2;
-      cols.forEach(({txt,w,bold,color})=>{
-        const[r,g,b]=hexToRgb(color||fgCol);pdf.setTextColor(r,g,b);
-        pdf.setFont('helvetica',bold?'bold':'normal');pdf.setFontSize(9);
-        const maxW=(w||40)-2;
-        const lines=pdf.splitTextToSize(String(txt),maxW);
-        pdf.text(lines[0],x,y+4.5);
-        x+=w||40;
-      });
-      y+=6.5;
-    }
-
-    // ── Bloco de números (cards) ──────────────────────────────
-    function numCards(items){
-      checkPage(18);
-      const n=items.length,cw=(CW-(n-1)*3)/n;
-      items.forEach((it,i)=>{
-        const cx=ML+i*(cw+3);
-        setFill(it.bg||'#F2F5F9');pdf.roundedRect(cx,y,cw,16,2,2,'F');
-        setTxt(it.lc||'#1E40AF');pdf.setFontSize(6.5);pdf.setFont('helvetica','bold');
-        pdf.text(it.label,cx+cw/2,y+5.5,{align:'center'});
-        setTxt(it.vc||'#1B2A3D');pdf.setFontSize(16);pdf.setFont('helvetica','bold');
-        pdf.text(String(it.val),cx+cw/2,y+13.5,{align:'center'});
-      });
-      y+=19;
-    }
-
-    // ── Separador ─────────────────────────────────────────────
-    function sep(gap=4){y+=gap;}
-
-    // ── Nota de rodapé em cada página ─────────────────────────
-    const totalPages=()=>{};// será adicionado no fim
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 1: EQUIPA DE SERVIÇO
-    // ════════════════════════════════════════════════════════
-    secTitle('Equipa de Serviço','#3E5C87');
-    Object.entries(meds).forEach(([k,v],i)=>tableRow(k,v,0.55,i%2===0));
-    sep(5);
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 2: PACIENTES OBSERVADOS
-    // ════════════════════════════════════════════════════════
-    secTitle('Pacientes Observados','#3E5C87');
-    if(gv('pac-total')!==''&&gn('pac-total')>0){
-      numCards([
-        {label:'TOTAL',val:gn('pac-total'),bg:'#F2F5F9',lc:'#1E40AF',vc:'#1B2A3D'},
-        {label:'MASCULINO',val:gn('gen-m'),bg:'#F0FDF4',lc:'#166534',vc:'#166534'},
-        {label:'FEMININO',val:gn('gen-f'),bg:'#FDF2F8',lc:'#9D174D',vc:'#9D174D'},
-        {label:'< 15 ANOS',val:gn('idade-men'),bg:'#FFFBEB',lc:'#92400E',vc:'#92400E'},
-        {label:'≥ 15 ANOS',val:gn('idade-mai'),bg:'#F5F3FF',lc:'#5B21B6',vc:'#5B21B6'},
-      ]);
-      if(gn('prov-total'))tableRow('Vindos de outras unidades',gn('prov-total'),0.7,true,'#1B2A3D');
-    } else {
-      checkPage(8);
-      setFill('#F8FAFF');pdf.rect(ML,y,CW,7,'F');
-      setTxt('#64748B');pdf.setFontSize(9);pdf.setFont('helvetica','italic');
-      pdf.text('Sem pacientes observados neste turno.',ML+3,y+5);
-      y+=9;
-    }
-    sep(5);
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 3: DIAGNÓSTICOS
-    // ════════════════════════════════════════════════════════
-    if(diagData.length){
-      secTitle('Diagnósticos','#5B21B6');
-      diagData.forEach((d,i)=>{
-        checkPage(7);
-        const bg=i%2===0?'#FAFBFF':'#FFFFFF';
-        setFill(bg);pdf.rect(ML,y,CW,6.5,'F');
-        setDraw('#E2E8F0');pdf.setLineWidth(0.1);pdf.line(ML,y+6.5,ML+CW,y+6.5);
-        // Nº
-        setTxt('#5B21B6');pdf.setFont('helvetica','bold');pdf.setFontSize(9);
-        pdf.text(String(i+1)+'.',ML+2,y+4.5);
-        // CID badge
-        let cx=ML+10;
-        if(d.code){
-          setFill('#DCE4EE');pdf.roundedRect(cx,y+1,20,4.5,1,1,'F');
-          setTxt('#1E40AF');pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);
-          pdf.text(d.code,cx+10,y+4.5,{align:'center'});
-          cx+=23;
-        }
-        // Descrição
-        setTxt('#0F172A');pdf.setFont('helvetica','normal');pdf.setFontSize(9.5);
-        const maxW=d.qty>1?CW-(cx-ML)-20:CW-(cx-ML)-3;
-        const lines=pdf.splitTextToSize(d.desc,maxW);
-        pdf.text(lines[0],cx,y+4.5);
-        // Quantidade
-        if(d.qty>1){
-          setFill('#DCFCE7');pdf.roundedRect(ML+CW-16,y+1,14,4.5,2,2,'F');
-          setTxt('#166534');pdf.setFont('helvetica','bold');pdf.setFontSize(8);
-          pdf.text('×'+d.qty,ML+CW-9,y+4.5,{align:'center'});
-        }
-        y+=6.5;
-      });
-      sep(5);
-    }
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 4: RESULTADO DO BANCO
-    // ════════════════════════════════════════════════════════
-    secTitle('Resultado do Banco','#3E5C87');
-    const verfTot=verfData.filter(x=>x.saved).length;
-    const altasTot=getAltasTotal();
-    const obitTot=obitData.filter(x=>x.saved).length;
-    numCards([
-      {label:'VERIFICAÇÃO',val:verfTot,bg:'#FFFBEB',lc:'#92400E',vc:'#92400E'},
-      {label:'ALTAS',val:altasTot,bg:'#F0FDF4',lc:'#166534',vc:'#166534'},
-      {label:'ÓBITOS',val:obitTot,bg:obitTot>0?'#FFF5F5':'#F8FAFF',lc:obitTot>0?'#DC2626':'#64748B',vc:obitTot>0?'#DC2626':'#64748B'},
-    ]);
-    // Resumo géneros/idades dos óbitos
-    if(obitTot>0){
-      const oSv=obitData.filter(x=>x.saved);
-      const oMasc=oSv.filter(x=>x.genero==='M').length;
-      const oFem=oSv.filter(x=>x.genero==='F').length;
-      const oIds=oSv.map(x=>parseInt(x.idade)).filter(n=>!isNaN(n));
-      const oIdMen=oIds.filter(n=>n<15).length;
-      const oIdMai=oIds.filter(n=>n>=15).length;
-      const cards=[
-        {label:'MASCULINO',val:oMasc,bg:'#F2F5F9',lc:'#1E40AF',vc:'#1E40AF'},
-        {label:'FEMININO',val:oFem,bg:'#FDF2F8',lc:'#9D174D',vc:'#9D174D'},
-      ];
-      if(oIds.length)cards.push({label:'< 15 ANOS',val:oIdMen,bg:'#FFFBEB',lc:'#92400E',vc:'#92400E'});
-      if(oIds.length)cards.push({label:'≥ 15 ANOS',val:oIdMai,bg:'#F5F3FF',lc:'#5B21B6',vc:'#5B21B6'});
-      numCards(cards);
-    }
-    if(gv('altas-obs')){
-      checkPage(8);
-      setFill('#F0FDF4');pdf.rect(ML,y,CW,7,'F');
-      setTxt('#166534');pdf.setFontSize(8.5);pdf.setFont('helvetica','bold');
-      pdf.text('Obs. Altas: ',ML+3,y+5);
-      pdf.setFont('helvetica','normal');setTxt('#334155');
-      const obs=pdf.splitTextToSize(gv('altas-obs'),CW-30);
-      pdf.text(obs[0],ML+28,y+5);
-      y+=9;
-    }
-
-    // Verificação detalhe
-    if(verfTot>0){
-      checkPage(8);
-      setFill('#FEF3C7');pdf.rect(ML,y,CW,5.5,'F');
-      setTxt('#92400E');pdf.setFontSize(7);pdf.setFont('helvetica','bold');
-      pdf.text('VERIFICAÇÃO — DETALHE',ML+3,y+4);y+=5.5;
-      verfData.filter(x=>x.saved).forEach((v,i)=>{
-        const bg=i%2===0?'#FFFBEB':'#FEF9C3';
-        detailRow([
-          {txt:'V'+(i+1),w:10,bold:true,color:'#92400E'},
-          {txt:v.idade+'a · '+(v.genero==='M'?'Masc.':'Fem.'),w:90,color:'#64748B'},
-          {txt:(v.cidCode?v.cidCode+' — ':'')+v.cidDesc,w:CW-100},
-        ],bg);
-      });
-    }
-
-    // Óbitos detalhe
-    if(obitTot>0){
-      sep(3);checkPage(8);
-      setFill('#FEE2E2');pdf.rect(ML,y,CW,5.5,'F');
-      setTxt('#DC2626');pdf.setFontSize(7);pdf.setFont('helvetica','bold');
-      pdf.text('ÓBITOS — DETALHE',ML+3,y+4);y+=5.5;
-      obitData.filter(x=>x.saved).forEach((o,i)=>{
-        const bg=i%2===0?'#FFF5F5':'#FEE2E2';
-        detailRow([
-          {txt:'Ó'+(i+1),w:10,bold:true,color:'#DC2626'},
-          {txt:(o.idade?o.idade+'a · ':'')+(o.genero==='M'?'Masc.':'Fem.'),w:85,color:'#64748B'},
-          {txt:(o.cidCode?o.cidCode+' — ':'')+o.cidDesc,w:CW-115},
-          {txt:o.hora+'h',w:15,bold:true,color:'#DC2626'},
-        ],bg);
-      });
-    }
-    sep(5);
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 5: OPERADOS
-    // ════════════════════════════════════════════════════════
-    if(opSaved.length){
-      secTitle('Operados no Serviço','#D97706');
-      const urgN=opSaved.filter(x=>x.tipo==='urgencia').length;
-      const eleN=opSaved.filter(x=>x.tipo==='eletiva').length;
-      const mascN=opSaved.filter(x=>x.genero==='M').length;
-      const femN=opSaved.filter(x=>x.genero==='F').length;
-      numCards([
-        {label:'TOTAL',val:opSaved.length,bg:'#F2F5F9',lc:'#1E40AF',vc:'#1B2A3D'},
-        {label:'URGÊNCIA',val:urgN,bg:'#FFFBEB',lc:'#92400E',vc:'#92400E'},
-        {label:'ELETIVA',val:eleN,bg:'#F5F3FF',lc:'#5B21B6',vc:'#5B21B6'},
-        {label:'MASCULINO',val:mascN,bg:'#F2F5F9',lc:'#1E40AF',vc:'#1E40AF'},
-        {label:'FEMININO',val:femN,bg:'#FDF2F8',lc:'#9D174D',vc:'#9D174D'},
-      ]);
-      const cirMaiorN=parseInt(gv('cir-maior'))||0;
-      const cirMenorN=parseInt(gv('cir-menor'))||0;
-      if(cirMaiorN||cirMenorN){
-        checkPage(18);
-        numCards([
-          {label:'CIR. MAIOR',val:cirMaiorN,bg:'#F0FDF4',lc:'#166534',vc:'#166534'},
-          {label:'CIR. MENOR',val:cirMenorN,bg:'#FFF7ED',lc:'#C2410C',vc:'#C2410C'},
-        ]);
-      }
-      // Cabeçalho tabela
-      checkPage(7);
-      setFill('#FEF3C7');pdf.rect(ML,y,CW,5.5,'F');
-      setTxt('#92400E');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
-      pdf.text('#',ML+2,y+4);pdf.text('Doente',ML+12,y+4);pdf.text('Tipo',ML+72,y+4);pdf.text('Género',ML+CW-30,y+4);
-      y+=5.5;
-      opSaved.forEach((o,i)=>{
-        const bg=i%2===0?'#FAFBFF':'#FEF9C3';
-        const tipoTxt=o.tipo==='urgencia'?'Urgência':'Eletiva';
-        detailRow([
-          {txt:'#'+(i+1),w:10,bold:true,color:'#5B21B6'},
-          {txt:o.idade?o.idade+'a':'—',w:60,bold:true},
-          {txt:tipoTxt,w:CW-100,bold:true,color:o.tipo==='urgencia'?'#92400E':'#5B21B6'},
-          {txt:o.genero==='M'?'Masculino':'Feminino',w:30,color:'#0F172A'},
-        ],bg);
-        const extras=[];
-        extras.push(o.especialidade||'Oftalmologia');
-        if(o.cidCode||o.cidDesc)extras.push(((o.cidCode?o.cidCode+' ':'')+(o.cidDesc||'')).trim());
-        if(o.descricao)extras.push(o.descricao);
-        if(extras.length){
-          checkPage(6);setFill(bg);pdf.rect(ML,y,CW,5,'F');
-          setTxt('#64748B');pdf.setFontSize(7);pdf.setFont('helvetica','italic');
-          const dline=pdf.splitTextToSize(extras.join('  ·  '),CW-16);
-          pdf.text(dline[0],ML+12,y+3.5);
-          y+=5;
-        }
-      });
-      sep(5);
-    }
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 6: TRANSFERÊNCIAS
-    // ════════════════════════════════════════════════════════
-    const trRSv=transfR.filter(x=>x.saved);
-    const trESv=transfE.filter(x=>x.saved);
-    if(trRSv.length||trESv.length){
-      secTitle('Transferências','#D97706');
-      if(trRSv.length){
-        checkPage(7);
-        setFill('#DCE4EE');pdf.rect(ML,y,CW,5.5,'F');
-        setTxt('#1E40AF');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
-        pdf.text('RECEBIDAS ('+trRSv.length+')',ML+3,y+4);
-        pdf.text('Paciente',ML+30,y+4);pdf.text('Hospital',ML+90,y+4);pdf.text('Diagnóstico',ML+130,y+4);
-        y+=5.5;
-        trRSv.forEach((t,i)=>{
-          detailRow([
-            {txt:'R'+(i+1),w:28,bold:true,color:'#1E40AF'},
-            {txt:t.idade?t.idade+'a':'—',w:60},
-            {txt:t.hospital,w:40,color:'#64748B'},
-            {txt:(t.cidCode?t.cidCode+' ':'')+t.cidDesc,w:CW-128},
-          ],i%2===0?'#F2F5F9':'#DCE4EE');
-        });
-        sep(3);
-      }
-      if(trESv.length){
-        checkPage(7);
-        setFill('#DCFCE7');pdf.rect(ML,y,CW,5.5,'F');
-        setTxt('#166534');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
-        pdf.text('EFETUADAS ('+trESv.length+')',ML+3,y+4);
-        pdf.text('Paciente',ML+30,y+4);pdf.text('Hospital',ML+90,y+4);pdf.text('Diagnóstico',ML+130,y+4);
-        y+=5.5;
-        trESv.forEach((t,i)=>{
-          detailRow([
-            {txt:'E'+(i+1),w:28,bold:true,color:'#166534'},
-            {txt:t.idade?t.idade+'a':'—',w:60},
-            {txt:t.hospital,w:40,color:'#64748B'},
-            {txt:(t.cidCode?t.cidCode+' ':'')+t.cidDesc,w:CW-128},
-          ],i%2===0?'#F0FDF4':'#DCFCE7');
-        });
-      }
-      sep(5);
-    }
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 6b: TRANSFERÊNCIAS INTERNAS
-    const trintSaved=(typeof trintData!=='undefined'?trintData:[]).filter(x=>x.saved);
-    if(trintSaved.length){
-      secTitle('Transferências Internas','#475569');
-      checkPage(7);
-      setFill('#F1F5F9');pdf.rect(ML,y,CW,5.5,'F');
-      setTxt('#334155');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
-      pdf.text('#',ML+2,y+4);pdf.text('Doente',ML+12,y+4);
-      pdf.text('Serviço',ML+90,y+4);pdf.text('Diagnóstico',ML+130,y+4);
-      y+=5.5;
-      trintSaved.forEach((t,i)=>{
-        detailRow([
-          {txt:'TI'+(i+1),w:10,bold:true,color:'#475569'},
-          {txt:t.idade?t.idade+'a':'—',w:78,bold:true},
-          {txt:t.servico,w:40,color:'#64748B'},
-          {txt:(t.cidCode?t.cidCode+' ':'')+(t.cidDesc||t.diagManual||'—'),w:CW-128},
-        ],i%2===0?'#F8FAFC':'#F1F5F9');
-      });
-      sep(5);
-    }
-
-    // SECÇÃO 7: SINISTRALIDADE
-    // ════════════════════════════════════════════════════════
-    if(sinRows.length){
-      secTitle('Dados e Sinistralidade','#DC2626');
-      sinRows.forEach((s,i)=>tableRow(s.label,s.v,0.7,i%2===0,'#0F172A'));
-      if(gv('sin-obs')){
-        checkPage(8);setFill('#FFF5F5');pdf.rect(ML,y,CW,7,'F');
-        setTxt('#991B1B');pdf.setFontSize(8.5);pdf.setFont('helvetica','bold');pdf.text('Obs.: ',ML+3,y+5);
-        pdf.setFont('helvetica','normal');setTxt('#334155');
-        const obs=pdf.splitTextToSize(gv('sin-obs'),CW-20);
-        pdf.text(obs[0],ML+14,y+5);y+=9;
-      }
-      sep(5);
-    }
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 8: INTERNAMENTO
-    // ════════════════════════════════════════════════════════
-    const intSv=intData.filter(x=>x.saved);
-    if(intSv.length){
-      secTitle('Internamento de Oftalmologia','#3E5C87');
-      const intAltN=parseInt(gv('int-alt-manual'))||0;
-      numCards([
-        {label:'INTERNADOS',val:intSv.length,bg:'#F2F5F9',lc:'#1E40AF',vc:'#1B2A3D'},
-        {label:'ALTAS',val:intAltN,bg:'#F0FDF4',lc:'#166534',vc:'#166534'},
-        {label:'ÓBITOS',val:intSv.filter(x=>x.desfecho==='obito').length,bg:'#FFF5F5',lc:'#DC2626',vc:'#DC2626'},
-      ]);
-      checkPage(7);
-      setFill('#DCE4EE');pdf.rect(ML,y,CW,5.5,'F');
-      setTxt('#1E40AF');pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
-      pdf.text('#',ML+2,y+4);pdf.text('Doente',ML+12,y+4);pdf.text('Diagnóstico',ML+75,y+4);pdf.text('Desfecho',ML+CW-30,y+4);
-      y+=5.5;
-      const dMap={internado:'Internado',obito:'Óbito'};
-      const dCol={internado:'#1E40AF',obito:'#DC2626'};
-      intSv.forEach((p,i)=>{
-        const bg=i%2===0?'#F8FAFF':'#F2F5F9';
-        detailRow([
-          {txt:'#'+(i+1),w:10,bold:true,color:'#64748B'},
-          {txt:p.idade?p.idade+'a':'—',w:63,bold:true},
-          {txt:(p.cidCode?p.cidCode+' ':'')+p.cidDesc,w:CW-103},
-          {txt:dMap[p.desfecho]+(p.desfecho==='obito'&&p.horaObit?' '+p.horaObit+'h':''),w:30,bold:true,color:dCol[p.desfecho]},
-        ],bg);
-        if(p.descricao){
-          checkPage(6);setFill(bg);pdf.rect(ML,y,CW,5,'F');
-          setTxt('#64748B');pdf.setFontSize(7);pdf.setFont('helvetica','italic');
-          const dline=pdf.splitTextToSize(p.descricao,CW-16);
-          pdf.text(dline[0],ML+12,y+3.5);
-          y+=5;
-        }
-      });
-      sep(5);
-    }
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 9: ACTOS E PROCEDIMENTOS
-    // ════════════════════════════════════════════════════════
-    const procTab=getProcData();
-    if(procTab.length){
-      secTitle('Actos e Procedimentos','#059669');
-      procTab.forEach((p,i)=>tableRow(p.label,p.v,0.7,i%2===0,'#059669'));
-      sep(5);
-    }
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 10: OBSERVAÇÃO DO TURNO
-    // ════════════════════════════════════════════════════════
-    if(gv('obs-turno')){
-      secTitle('Observação do Turno','#3E5C87');
-      checkPage(12);
-      const obsLines=pdf.splitTextToSize(gv('obs-turno'),CW-6);
-      const bh=obsLines.length*5.5+6;
-      setFill('#F8FAFF');pdf.rect(ML,y,CW,bh,'F');
-      setTxt('#334155');pdf.setFontSize(9.5);pdf.setFont('helvetica','normal');
-      obsLines.forEach((ln,i)=>{pdf.text(ln,ML+3,y+5+i*5.5);});
-      y+=bh+5;
-    }
-
-    // ════════════════════════════════════════════════════════
-    // SECÇÃO 11: EQUIPA QUE ENTRA
-    // ════════════════════════════════════════════════════════
-    if(Object.values(meds2).some(v=>v!=='—')){
-      secTitle('Equipa que Entra','#059669');
-      Object.entries(meds2).forEach(([k,v],i)=>tableRow(k,v,0.55,i%2===0));
-      sep(5);
-    }
-
-
-    // ════════════════════════════════════════════════════════
-    // NOTA FINAL
-    // ════════════════════════════════════════════════════════
-    const nota='Estes dados referem-se ao movimento do Banco de Oftalmologia nas últimas 24 horas. O relatório deve ser entregue ao Departamento de Estatística Médica e Admissão (DEMA) do Hospital do Prenda no final de cada turno, até às 08h00 do dia seguinte. A pontualidade e exactidão destes dados são essenciais para os indicadores de saúde do hospital.';
-    // Calcular altura real do texto
-    pdf.setFontSize(10.5);pdf.setFont('helvetica','normal');
-    const notaLines=pdf.splitTextToSize(nota,CW-16);
-    const notaH=6+7+notaLines.length*5.8+6; // título + espaço + linhas + padding
-    checkPage(notaH+4);
-    // Fundo escuro
-    setFill('#1B2A3D');pdf.roundedRect(ML,y,CW,notaH,3,3,'F');
-    // Linha laranja de destaque no topo
-    setFill('#F59E0B');pdf.roundedRect(ML,y,CW,1.2,0,0,'F');
-    // Título
-    setTxt('#FCD34D');pdf.setFontSize(9);pdf.setFont('helvetica','bold');
-    pdf.text('⚠  NOTA IMPORTANTE — ENTREGA OBRIGATÓRIA',ML+8,y+8);
-    // Linha separadora
-    setDraw('#1E3A6E');pdf.setLineWidth(0.3);pdf.line(ML+8,y+11,ML+CW-8,y+11);
-    // Texto da nota
-    setTxt('#E0E7FF');pdf.setFontSize(10.5);pdf.setFont('helvetica','normal');
-    notaLines.forEach((ln,i)=>pdf.text(ln,ML+8,y+17+i*5.8));
-    y+=notaH+4;
-
-    // ════════════════════════════════════════════════════════
-    // RODAPÉ em cada página
-    // ════════════════════════════════════════════════════════
-    const nPages=pdf.internal.getNumberOfPages();
+    const Z=window.ZeloPDF;
+    const pdf=Z.novo();
     const _lsWrap = document.getElementById('last-saved-status');
     const _lsNome = document.getElementById('last-saved-name')?.textContent?.trim();
     const _lsHora = document.getElementById('last-saved-time')?.textContent?.trim();
     const registadoPorTxt = (_lsWrap && _lsWrap.style.display !== 'none' && _lsNome && _lsNome !== '—')
-      ? `Registado por: ${_lsNome} às ${_lsHora}`
-      : null;
-    let zeloLogoSrc=null;
-    try{
-      const zi=document.querySelector('.ld img');
-      if(zi && zi.naturalWidth){
-        const zc=document.createElement('canvas');
-        zc.width=zi.naturalWidth; zc.height=zi.naturalHeight;
-        zc.getContext('2d').drawImage(zi,0,0);
-        zeloLogoSrc=zc.toDataURL('image/png');
-      }
-    }catch(e){}
-    for(let p=1;p<=nPages;p++){
-      pdf.setPage(p);
-      // Fundo rodapé
-      setFill('#1B2A3D');pdf.rect(0,PH-12,PW,12,'F');
-      // Linha de separação
-      setFill('#3E5C87');pdf.rect(0,PH-12,PW,1,'F');
-      setTxt('#93C5FD');pdf.setFontSize(7.5);pdf.setFont('helvetica','normal');
-      // Linha verde no rodapé
-      setFill('#059669');pdf.rect(0,PH-13,PW,1,'F');
-      // Logotipo ZELO
-      if(zeloLogoSrc){ try{ pdf.addImage(zeloLogoSrc,'PNG',ML,PH-10.5,7,7); }catch(e){} }
-      const medicoPrincipal=Object.entries(meds).map(([k,v])=>v).find(v=>v&&v!=='—')||'DEMA';
-      pdf.text('Banco de Oftalmologia · Hospital do Prenda · DEMA',ML+9,PH-5);
-      pdf.text(new Date().toLocaleDateString('pt-PT')+' · Dr. '+medicoPrincipal,PW/2,PH-5,{align:'center'});
-      setTxt('#FFFFFF');pdf.setFont('helvetica','bold');pdf.setFontSize(8);
-      pdf.text('Pág. '+p+' / '+nPages,PW-MR,PH-5,{align:'right'});
-      if (registadoPorTxt) { setTxt('#93C5FD'); pdf.setFont('helvetica','normal'); pdf.setFontSize(6.5); pdf.text(registadoPorTxt, PW/2, PH-14, { align: 'center' }); }
+      ? `Registado por: ${_lsNome} às ${_lsHora}` : '';
+    let y=Z.cabecalho(pdf,'Movimento do Banco de Oftalmologia',
+      'Relatório diário · Turno 24h · '+pdfDateFmt()+(selClass?' · Estado do banco: '+selClass:'')+(registadoPorTxt?' · '+registadoPorTxt:''));
+    let nSec=0;
+    const sec=(t)=>{ y=Z.secao(pdf,y,(++nSec)+'. '+t); };
+    const kv=(pares)=>{ y=Z.indicadores(pdf,y,pares); };
+    const sub=(t)=>{ y=Z.quebra(pdf,y,22); pdf.setFont('helvetica','bold'); pdf.setFontSize(12); pdf.setTextColor(43,65,94); pdf.text(Z.limpar(t),14,y+1); pdf.setTextColor(15,23,42); pdf.setFont('helvetica','normal'); y+=4; };
+    const tab=(cab,linhas,cs)=>{ y=Z.autoTable(pdf,{startY:y,head:[cab],body:linhas,columnStyles:cs||{}})+1; };
+    const txt=(rot,v)=>{ y=Z.texto(pdf,y+1,rot,v); };
+    const pares=(lista)=>tab(['Descrição','Valor'],lista.map(([k,v])=>[k,String(v)]),{1:{halign:'right'}});
+    const cid=(c,d)=>((c?c+' — ':'')+(d||'')).trim()||'—';
+    const gen=(g)=>g==='M'?'Masculino':g==='F'?'Feminino':'—';
+
+    // 1. Equipa de serviço
+    sec('Equipa de Serviço');
+    pares(Object.entries(meds));
+
+    // 2. Pacientes observados
+    sec('Pacientes Observados');
+    if(gv('pac-total')!==''&&gn('pac-total')>0){
+      kv([['Total',gn('pac-total')],['Masculino',gn('gen-m')],['Feminino',gn('gen-f')],['< 15 anos',gn('idade-men')],['>= 15 anos',gn('idade-mai')]]);
+      if(gn('prov-total')) pares([['Vindos de outras unidades',gn('prov-total')]]);
+    } else txt('','Sem pacientes observados neste turno.');
+
+    // 3. Diagnósticos
+    if(diagData.length){
+      sec('Diagnósticos');
+      tab(['#','CID','Descrição','Qtd'],diagData.map((d,i)=>[i+1,d.code||'—',d.desc||'—',d.qty||1]),{0:{halign:'center'},3:{halign:'center'}});
     }
+
+    // 4. Resultado do banco
+    sec('Resultado do Banco');
+    const verfTot=verfData.filter(x=>x.saved).length;
+    const altasTot=getAltasTotal();
+    const obitTot=obitData.filter(x=>x.saved).length;
+    kv([['Verificação',verfTot],['Altas',altasTot],['Óbitos',obitTot]]);
+    if(obitTot>0){
+      const oSv=obitData.filter(x=>x.saved);
+      const oIds=oSv.map(x=>parseInt(x.idade)).filter(n=>!isNaN(n));
+      const c=[['Óbitos masculino',oSv.filter(x=>x.genero==='M').length],['Óbitos feminino',oSv.filter(x=>x.genero==='F').length]];
+      if(oIds.length){ c.push(['Óbitos < 15 anos',oIds.filter(n=>n<15).length]); c.push(['Óbitos >= 15 anos',oIds.filter(n=>n>=15).length]); }
+      kv(c);
+    }
+    if(gv('altas-obs')) txt('Observação das altas',gv('altas-obs'));
+    if(verfTot>0){
+      sub('Verificação — detalhe');
+      tab(['#','Idade','Género','Diagnóstico'],verfData.filter(x=>x.saved).map((v,i)=>['V'+(i+1),v.idade?v.idade+' anos':'—',gen(v.genero),cid(v.cidCode,v.cidDesc)]));
+    }
+    if(obitTot>0){
+      sub('Óbitos — detalhe');
+      tab(['#','Idade','Género','Diagnóstico','Hora'],obitData.filter(x=>x.saved).map((o,i)=>['Ó'+(i+1),o.idade?o.idade+' anos':'—',gen(o.genero),cid(o.cidCode,o.cidDesc),o.hora?o.hora+'h':'—']));
+    }
+
+    // 5. Operados
+    if(opSaved.length){
+      sec('Operados no Serviço');
+      kv([['Total',opSaved.length],['Urgência',opSaved.filter(x=>x.tipo==='urgencia').length],['Eletiva',opSaved.filter(x=>x.tipo==='eletiva').length],['Masculino',opSaved.filter(x=>x.genero==='M').length],['Feminino',opSaved.filter(x=>x.genero==='F').length]]);
+      const cirMaiorN=parseInt(gv('cir-maior'))||0, cirMenorN=parseInt(gv('cir-menor'))||0;
+      if(cirMaiorN||cirMenorN) kv([['Cirurgia maior',cirMaiorN],['Cirurgia menor',cirMenorN]]);
+      tab(['#','Idade','Tipo','Género','Especialidade','Diagnóstico','Descrição'],opSaved.map((o,i)=>['#'+(i+1),o.idade?o.idade+' anos':'—',o.tipo==='urgencia'?'Urgência':'Eletiva',gen(o.genero),o.especialidade||'Oftalmologia',cid(o.cidCode,o.cidDesc),o.descricao||'—']));
+    }
+
+    // 6. Transferências
+    const trRSv=transfR.filter(x=>x.saved);
+    const trESv=transfE.filter(x=>x.saved);
+    if(trRSv.length||trESv.length){
+      sec('Transferências');
+      if(trRSv.length){ sub('Recebidas ('+trRSv.length+')');
+        tab(['#','Idade','Hospital','Diagnóstico'],trRSv.map((t,i)=>['R'+(i+1),t.idade?t.idade+' anos':'—',t.hospital||'—',cid(t.cidCode,t.cidDesc)])); }
+      if(trESv.length){ sub('Efetuadas ('+trESv.length+')');
+        tab(['#','Idade','Hospital','Diagnóstico'],trESv.map((t,i)=>['E'+(i+1),t.idade?t.idade+' anos':'—',t.hospital||'—',cid(t.cidCode,t.cidDesc)])); }
+    }
+    const trintSaved=(typeof trintData!=='undefined'?trintData:[]).filter(x=>x.saved);
+    if(trintSaved.length){
+      sec('Transferências Internas');
+      tab(['#','Idade','Serviço','Diagnóstico'],trintSaved.map((t,i)=>['TI'+(i+1),t.idade?t.idade+' anos':'—',t.servico||'—',cid(t.cidCode,t.cidDesc||t.diagManual)]));
+    }
+
+    // 7. Sinistralidade
+    if(sinRows.length){
+      sec('Dados e Sinistralidade');
+      pares(sinRows.map(s=>[s.label,s.v]));
+      if(gv('sin-obs')) txt('Observação',gv('sin-obs'));
+    }
+
+    // 8. Internamento
+    const intSv=intData.filter(x=>x.saved);
+    if(intSv.length){
+      sec('Internamento de Oftalmologia');
+      kv([['Internados',intSv.length],['Altas',parseInt(gv('int-alt-manual'))||0],['Óbitos',intSv.filter(x=>x.desfecho==='obito').length]]);
+      const dMap={internado:'Internado',obito:'Óbito'};
+      tab(['#','Idade','Diagnóstico','Desfecho','Descrição'],intSv.map((p,i)=>['#'+(i+1),p.idade?p.idade+' anos':'—',cid(p.cidCode,p.cidDesc),(dMap[p.desfecho]||p.desfecho||'—')+(p.desfecho==='obito'&&p.horaObit?' '+p.horaObit+'h':''),p.descricao||'—']));
+    }
+
+    // 9. Actos e procedimentos
+    const procTab=getProcData();
+    if(procTab.length){ sec('Actos e Procedimentos'); pares(procTab.map(p=>[p.label,p.v])); }
+
+    // 10. Observação do turno
+    if(gv('obs-turno')){ sec('Observação do Turno'); txt('',gv('obs-turno')); }
+
+    // 11. Equipa que entra
+    if(Object.values(meds2).some(v=>v!=='—')){ sec('Equipa que Entra'); pares(Object.entries(meds2)); }
+
+    // Nota final
+    y=Z.quebra(pdf,y+2,30);
+    txt('Nota importante — entrega obrigatória','Estes dados referem-se ao movimento do Banco de Oftalmologia nas últimas 24 horas. O relatório deve ser entregue ao Serviço de Admissão e Arquivo Médico Estatístico do Hospital do Prenda no final de cada turno, até às 08h00 do dia seguinte. A pontualidade e exactidão destes dados são essenciais para os indicadores de saúde do hospital.');
+
+    Z.rodape(pdf);
 
     const nome=pdfFileName()+'.pdf';
     window._lastPDF=pdf;
