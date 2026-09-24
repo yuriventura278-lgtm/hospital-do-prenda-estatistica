@@ -7,6 +7,17 @@
 (function () {
   function iniciar(containerEl, textoEl, opcoes) {
     opcoes = opcoes || {};
+    // Ecrã inteiro com o círculo de 0 a 100% (zelo_espera.js), usado na
+    // entrada no sistema: as fases passam para o círculo.
+    if (opcoes.ecra && window.ZeloEspera && window.ZeloEspera.faseEntrada) {
+      if (containerEl) containerEl.style.visibility = 'hidden';
+      window.ZeloEspera.faseEntrada(opcoes.fase || opcoes.generico);
+      return {
+        fase: function (texto) { window.ZeloEspera.faseEntrada(texto); },
+        concluido: function () { window.ZeloEspera.concluirEntrada(); },
+        fechar: function () { window.ZeloEspera.fecharEntrada(); }
+      };
+    }
     var generico = opcoes.generico || 'A carregar…';
     var fase = opcoes.fase || generico;
     var resolvido = false;

@@ -208,7 +208,7 @@ function mostrarAvisoOffline(){
   if (document.getElementById('zelo-offline-banner')) return;
   var banner = document.createElement('div');
   banner.id = 'zelo-offline-banner';
-  banner.textContent = '📴 Sem ligação à internet — a usar as últimas permissões guardadas neste aparelho. Os dados continuam a ser guardados aqui e sincronizam automaticamente quando a ligação voltar.';
+  banner.textContent = '📴 Estás offline neste momento, quando tiver internet, irá restaurar a sincronização automaticamente.';
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999996;background:#334155;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.76rem;font-weight:600;padding:8px 12px;';
   document.body.insertBefore(banner, document.body.firstChild);
   _zeloEmpurrarCabecalhoDaPagina();
@@ -234,8 +234,9 @@ function showSlowConnectionScreen(){
       '<div style="width:56px;height:56px;border-radius:50%;background:#FFFBEB;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">' +
         '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.18 14.18A2 2 0 0 0 3.82 21h16.36a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>' +
       '</div>' +
-      '<div style="font-size:1.05rem;font-weight:700;color:#0D1B3E;margin-bottom:8px;">Não foi possível confirmar a sessão</div>' +
-      '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:22px;">A ligação à internet está lenta ou instável — a sua conta e os seus dados de acesso continuam intactos. Tente novamente.</div>' +
+      '<div style="font-size:1.05rem;font-weight:700;color:#0D1B3E;margin-bottom:8px;">' + (navigator.onLine ? 'Não foi possível confirmar a sessão' : 'Sem internet') + '</div>' +
+      '<div style="font-size:.88rem;color:#475569;line-height:1.5;margin-bottom:10px;">' + (navigator.onLine ? 'A ligação à internet está lenta ou instável — a sua conta e os seus dados de acesso continuam intactos.' : 'Estás offline neste momento, quando tiver internet, irá restaurar a sincronização automaticamente.') + '</div>' +
+      '<div id="zelo-gate-auto" style="font-size:.78rem;color:#64748B;margin-bottom:18px;">Nova tentativa automática em 15 s</div>' +
       '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
         '<button id="zelo-gate-retry" style="padding:11px 22px;border-radius:10px;background:#0D1B3E;color:#fff;border:none;font-weight:600;font-size:.86rem;cursor:pointer;">Tentar novamente</button>' +
         '<a href="index.html" style="display:inline-block;padding:11px 22px;border-radius:10px;background:#F1F5F9;color:#0D1B3E;text-decoration:none;font-weight:600;font-size:.86rem;">Voltar ao Início</a>' +
@@ -243,6 +244,17 @@ function showSlowConnectionScreen(){
     '</div>';
   document.body.appendChild(overlay);
   document.getElementById('zelo-gate-retry').addEventListener('click', function(){ window.location.reload(); });
+  // Tenta de novo sozinho: assim que a internet volta, ou a cada 15 s se
+  // houver rede — a pessoa não precisa de recarregar à mão.
+  var seg = 15;
+  var aviso = document.getElementById('zelo-gate-auto');
+  setInterval(function(){
+    if (!navigator.onLine){ seg = 15; if (aviso) aviso.textContent = 'À espera da internet — a página continua sozinha quando a ligação voltar.'; return; }
+    seg--;
+    if (aviso) aviso.textContent = 'Nova tentativa automática em ' + Math.max(0, seg) + ' s';
+    if (seg <= 0) window.location.reload();
+  }, 1000);
+  window.addEventListener('online', function(){ setTimeout(function(){ window.location.reload(); }, 800); });
 }
 
 function showBlockedScreen(role, permissoes, soAdmin){

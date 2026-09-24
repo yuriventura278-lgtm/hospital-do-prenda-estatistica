@@ -33,11 +33,38 @@
     catch(e){ return ''; }
   }
 
+  // Caixa "A gerar o PDF…" (zelo_espera.js) enquanto o documento é gerado —
+  // só quando foi pedido por um clique (as cópias automáticas não a mostram).
+  // Fecha com o visto verde ao gravar/partilhar; se nada acontecer durante
+  // 5 s (ex.: erro na página), fecha sozinha.
+  function acompanhar(d){
+    try{
+      if (!d || d.__zeAcomp || !window.ZeloEspera || !window.ZeloEspera.gestoRecente()) return;
+      d.__zeAcomp = true;
+      var ctrl = window.ZeloEspera.processar({ titulo: 'A gerar o PDF…', detalhe: 'A preparar o documento…', rotulo: 'A PROCESSAR' });
+      var ultimo = Date.now(), nSec = 0;
+      d.__zeMexeu = function(txt){
+        ultimo = Date.now();
+        if (txt){ nSec++; ctrl.progresso(Math.min(90, 12 + nSec * 12), 'Secção ' + nSec + ' · ' + limpar(txt).replace(/^\d+\.\s*/, '')); }
+      };
+      var save = d.save;
+      d.save = function(){ var r = save.apply(d, arguments); ctrl.concluir('PDF pronto', 'O ficheiro foi transferido.'); return r; };
+      var out = d.output;
+      d.output = function(tipo){ var r = out.apply(d, arguments); if (tipo && /blob|arraybuffer|datauri|dataurl/i.test(String(tipo))) ctrl.concluir('PDF pronto', ''); return r; };
+      var add = d.addPage;
+      d.addPage = function(){ ultimo = Date.now(); return add.apply(d, arguments); };
+      var iv = setInterval(function(){
+        if (!ctrl.aberto()){ clearInterval(iv); return; }
+        if (Date.now() - ultimo > 5000){ clearInterval(iv); ctrl.fechar(); }
+      }, 1000);
+    }catch(e){}
+  }
   // Cabeçalho (opção B): faixa azul compacta com o logótipo, o título e, por
   // baixo, "Hospital do Prenda · <período/detalhe>". O serviço, a data e
   // quem exportou ficam no rodapé. A faixa cresce se o detalhe precisar de
   // mais linhas — nada é cortado.
   function cabecalho(d, titulo, sub){
+    acompanhar(d);
     var g = dims(d), W = g.W, M = g.M, passos = 36;
     var x = M + 24, dirW = 16, larg = W - M - x - dirW;
     // Título: letra 16 (desce até 12); partes finais " · " passam para baixo.
@@ -112,6 +139,7 @@
   }
   function quebra(d, y, alt){ var g = dims(d); if (y + (alt || 10) > g.FIM){ d.addPage(); return TOPO_CONTINUACAO; } return y; }
   function secao(d, y, txt){
+    if (d.__zeMexeu) d.__zeMexeu(txt);
     var g = dims(d);
     y = quebra(d, y, 36); // o título nunca fica sozinho no fundo da página (fica com o início do conteúdo)
     d.setFillColor(NAVY3); d.roundedRect(g.M, y, g.CW, 9, 1.8, 1.8, 'F');
@@ -252,6 +280,7 @@
   // Cabeçalho baixo (15 mm) para folhas de posição fixa (ex.: tabelas de
   // supervisão numa só página horizontal) — mesmo aspeto, menos altura.
   function cabecalhoCompacto(d, titulo, sub){
+    acompanhar(d);
     var g = dims(d), W = g.W, M = g.M, passos = 36;
     for (var i = 0; i < passos; i++){
       var t = i / (passos - 1);
@@ -279,9 +308,11 @@
   function padronizar(d){
     if (!d || d.__zeloPadronizado) return d;
     d.__zeloPadronizado = true;
+    acompanhar(d);
     var original = d.autoTable;
     if (typeof original !== 'function') return d;
     d.autoTable = function(opts){
+      if (d.__zeMexeu) d.__zeMexeu();
       opts = opts || {};
       var o = {}; Object.keys(opts).forEach(function(k){ o[k] = opts[k]; });
       function juntar(a, b){ var m = {}; Object.keys(a || {}).forEach(function(k){ m[k] = a[k]; }); Object.keys(b || {}).forEach(function(k){ m[k] = b[k]; }); return m; }
@@ -416,7 +447,9 @@
   }
   function novo(opts){
     var J = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-    return new J(Object.assign({ unit: 'mm', format: 'a4' }, opts || {}));
+    var d = new J(Object.assign({ unit: 'mm', format: 'a4' }, opts || {}));
+    acompanhar(d);
+    return d;
   }
   // Forma "construtor", compatível com CE.criarPDF (Consulta Externa).
   function criar(opts){

@@ -21,6 +21,13 @@
 
   let aEnviar = false;
 
+  // Envio que demora mais de 3 s → aviso "Ligação lenta" (zelo_espera.js).
+  function avisarSeLento(t0) {
+    if (Date.now() - t0 > 3000) {
+      try { window.dispatchEvent(new Event('zelo-ligacao-lenta')); } catch (e) {}
+    }
+  }
+
   function novoId() {
     return Date.now() + '_' + Math.random().toString(36).slice(2, 9);
   }
@@ -35,8 +42,10 @@
     op = op === 'update' ? 'update' : 'set';
     var fbFn = op === 'update' ? window.__fbUpdate : window.__fbSet;
     if (window.__fbReady && fbFn) {
+      var t0 = Date.now();
       try {
         await fbFn(path, data);
+        avisarSeLento(t0);
         return { ok: true, queued: false };
       } catch (e) {
         console.warn('ZELO sync: falha ao enviar para o Firebase — colocado em fila para reenvio automático.', e);

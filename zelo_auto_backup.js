@@ -487,14 +487,18 @@
       const textoOriginal = btn.textContent;
       btn.textContent = 'A preparar…';
       btn.disabled = true;
+      // Caixa "A processar, aguarde" com o círculo (zelo_espera.js).
+      const espera = global.ZeloEspera ? global.ZeloEspera.processar({ titulo: 'A preparar a cópia de segurança…', detalhe: 'A reunir os registos do período.' }) : null;
       try {
         if (typeof global.ZBK_getBackupJSON !== 'function') {
+          if (espera) espera.fechar();
           alert('Esta página ainda não suporta exportação.');
           return;
         }
         const hojeISO = _ymd(new Date());
         const r = await global.ZBK_getBackupJSON(cadencia, hojeISO);
         if (!r || !r.conteudo || (Array.isArray(r.conteudo) ? r.conteudo.length === 0 : Object.keys(r.conteudo).length === 0)) {
+          if (espera) espera.fechar();
           alert('Ainda não há dados guardados neste período para exportar.');
           return;
         }
@@ -507,7 +511,9 @@
         a.click();
         a.remove();
         setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+        if (espera) espera.concluir('Cópia de segurança pronta', 'O ficheiro foi transferido.');
       } catch (e) {
+        if (espera) espera.fechar();
         console.warn('[ZeloAutoBackup] falha ao exportar', e);
         alert('Não foi possível exportar agora. Tente novamente.');
       } finally {

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-AO">
 <head>
+<script src="zelo_espera.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='estatistica';</script>
 <script>window.ZELO_ITEM='base_dados';</script>
@@ -319,7 +320,7 @@ const LAST_SYNC_KEY='zelo_basedados_lastsync';
 
 async function sincronizarTudo(){
   if(!window.__fbReady || !window.__fbGet){
-    toast('Sem ligação ao Firebase — não é possível sincronizar agora.');
+    toast(navigator.onLine ? 'Sem ligação ao Firebase — não é possível sincronizar agora.' : 'Estás offline neste momento, quando tiver internet, irá restaurar a sincronização automaticamente.');
     return;
   }
   const bar=document.getElementById('syncBar');

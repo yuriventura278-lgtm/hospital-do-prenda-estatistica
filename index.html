@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-AO" data-theme="light">
 <head>
+<script>window.ZELO_ESPERA_MODO='entrada';</script>
+<script src="zelo_espera.js"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
 <title>ZELO · Hospital do Prenda</title>
@@ -995,6 +997,8 @@ window.__zeloEscapeHtml = escapeHtml;
 
   function showAuthForm(){
     if(window.zeloRemoveSplash) window.zeloRemoveSplash();
+    // Vai mostrar o formulário de entrada: o círculo fecha sem "Pronto".
+    if(loadingCtrl && loadingCtrl.fechar) loadingCtrl.fechar();
     if(loadingCtrl) loadingCtrl.concluido();
     var loading = document.getElementById('zeloAuthLoading');
     if(loading) loading.style.display = 'none';
@@ -1017,8 +1021,9 @@ window.__zeloEscapeHtml = escapeHtml;
   // Aplica um login bem-sucedido — quer venha de uma sessão já existente ao abrir
   // a página, quer venha do submit do formulário — e arranca o sistema.
   async function completarLogin(user){
-    if(loadingCtrl) loadingCtrl.fase('A preparar o ambiente…');
+    if(loadingCtrl) loadingCtrl.fase('A carregar as permissões…');
     var perfil = await fetchUserProfile(user.uid);
+    if(loadingCtrl && perfil && perfil.ativo !== false) loadingCtrl.fase('A preparar o ambiente…');
     if(!perfil || perfil.ativo === false){
       showAuthForm();
       await logAuditEvent(user.uid, user.email, 'login_bloqueado_inativo');
@@ -1048,6 +1053,7 @@ window.__zeloEscapeHtml = escapeHtml;
     touchLastAccess(user.uid);
     failCount=0;
     captchaBox.classList.remove('show');
+    if(loadingCtrl) loadingCtrl.fase('A abrir a página inicial…');
     hideGate();
     window.zeloAuthInfo = { role: perfil.role || 'funcionario', permissoes: perfil.permissoes || {}, nome: perfil.nome || user.email, email: user.email || '' };
     // O iframe do Dashboard só começa a carregar agora, depois de autenticado. Antes
@@ -1093,7 +1099,7 @@ window.__zeloEscapeHtml = escapeHtml;
   var loadingCtrl = window.zeloLoadingFaseado ? window.zeloLoadingFaseado.iniciar(
     document.getElementById('zeloAuthLoading'),
     document.getElementById('zeloAuthLoadingTxt'),
-    { generico: 'A carregar…', fase: 'A verificar sessão…' }
+    { generico: 'A carregar…', fase: 'A verificar sessão…', ecra: true }
   ) : null;
   var verificacaoInicialFeita = false;
   var unsubscribeVerificacaoInicial = onAuthStateChanged(auth, function(user){
