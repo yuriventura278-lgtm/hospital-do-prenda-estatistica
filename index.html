@@ -275,6 +275,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 .sb-cat-link:hover{background:var(--sf);color:var(--bl);}
 .sb-cat-icon{width:14px;height:14px;flex-shrink:0;color:var(--bl);}
 .sb-cat-count{margin-left:auto;font-family:var(--font-mono);font-size:.6rem;color:var(--tx3);}
+.sb-cat-link > span:not(.sb-cat-count){min-width:0;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto;}
 .sb-cat-toggle{flex-shrink:0;width:22px;height:22px;margin-right:4px;border-radius:6px;background:none;border:none;color:var(--tx3);
   display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .sb-cat-toggle:hover{background:var(--sf);color:var(--bl);}
@@ -1797,7 +1798,7 @@ function zeloConstruirArvoreServicos(){
     }
     html += '<div class="sb-cat" data-cat-id="' + cat.id + '"' + (itens.length === 1 ? ' data-cat-flat="1"' : '') + '>' +
       '<div class="sb-cat-row">' +
-        '<button type="button" class="sb-cat-link" data-cat-toggle="' + cat.id + '"><svg class="sb-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="sb-cat-count">' + (window.zeloAgruparServicos ? window.zeloAgruparServicos(itens).length : itens.length) + '</span></button>' +
+        '<button type="button" class="sb-cat-link" data-cat-toggle="' + cat.id + '"><svg class="sb-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span>' + (function(n){ return n > 1 ? '<span class="sb-cat-count">' + n + '</span>' : ''; })(window.zeloAgruparServicos ? window.zeloAgruparServicos(itens).length : itens.length) + '</button>' +
         '<button type="button" class="sb-cat-toggle" data-cat-toggle="' + cat.id + '" aria-expanded="false" title="Mostrar serviços"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' +
       '</div>' +
       '<div class="sb-svc-list" data-cat-list="' + cat.id + '">' + svcHtml + '</div>' +

@@ -66,6 +66,7 @@
       .zmf-cat-link:hover{background:#F4F7FF;color:#1A56DB;}
       .zmf-cat-icon{width:14px;height:14px;flex-shrink:0;color:#1A56DB;}
       .zmf-cat-count{margin-left:auto;font-family:'DM Mono',monospace;font-size:.6rem;color:#94A3B8;}
+      .zmf-cat-link > span:not(.zmf-cat-count){min-width:0;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto;}
       .zmf-svc-row{display:flex;align-items:center;width:100%;}
       .zmf-svc-link{display:block;flex:1;min-width:0;padding:7px 8px 7px 48px;font-size:.74rem;color:#64748B;
         background:none;border:none;font-family:inherit;text-align:left;cursor:pointer;border-radius:8px;}
@@ -244,7 +245,7 @@
       }
       html += '<div class="zmf-cat" data-zmf-cat="' + cat.id + '">' +
         '<div class="zmf-cat-row">' +
-          '<button type="button" class="zmf-cat-link" data-zmf-cat-toggle="' + cat.id + '"><svg class="zmf-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span><span class="zmf-cat-count">' + (window.zeloAgruparServicos ? window.zeloAgruparServicos(visiveisCat).length : visiveisCat.length) + '</span></button>' +
+          '<button type="button" class="zmf-cat-link" data-zmf-cat-toggle="' + cat.id + '"><svg class="zmf-cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + cat.icon + '</svg><span>' + cat.label + '</span>' + (function(n){ return n > 1 ? '<span class="zmf-cat-count">' + n + '</span>' : ''; })(window.zeloAgruparServicos ? window.zeloAgruparServicos(visiveisCat).length : visiveisCat.length) + '</button>' +
           '<button type="button" class="zmf-toggle" data-zmf-cat-toggle="' + cat.id + '" aria-expanded="false">' + ICON_CHEV + '</button>' +
         '</div>' +
         '<div class="zmf-subtree" data-zmf-cat-list="' + cat.id + '">' + svcHtml + '</div>' +
