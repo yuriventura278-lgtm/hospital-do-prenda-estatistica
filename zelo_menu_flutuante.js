@@ -110,6 +110,17 @@
         flex-shrink:0;cursor:pointer;background:rgba(255,255,255,.1);border:1px solid rgba(148,163,184,.45);
         border-radius:100px;padding:5px 12px;font-family:'Inter',Arial,sans-serif;font-size:.74rem;font-weight:600;color:inherit;}
       #zub-sair-btn.zub-cabecalho:hover{background:rgba(220,38,38,.1);border-color:#DC2626;color:#DC2626;}
+      /* "Última alteração: <nome> às <hora>" — o nome de quem alterou fica
+         bem realçado (etiqueta amarela, legível em cabeçalhos claros e escuros). */
+      #last-saved-status{font-size:11.5px !important;align-items:center;}
+      #last-saved-name{display:inline-flex;align-items:center;gap:4px;margin:0 3px;padding:2px 9px 2px 7px;
+        border-radius:100px;background:#FEF3C7;border:1px solid #F59E0B;color:#7C2D12;
+        font-family:'Inter',Arial,sans-serif;font-size:12.5px;font-weight:800;letter-spacing:.1px;line-height:1.35;
+        white-space:nowrap;vertical-align:middle;box-shadow:0 1px 3px rgba(0,0,0,.12);}
+      #last-saved-name::before{content:'';width:12px;height:12px;flex-shrink:0;background:currentColor;
+        -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;
+                mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E") center/contain no-repeat;}
+      #last-saved-time{font-weight:700;}
       @media(max-width:480px){
         #zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}
         #zub-sair-btn.zub-flutuante{right:10px;padding:9px;}
