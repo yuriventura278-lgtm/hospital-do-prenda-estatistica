@@ -91,38 +91,61 @@ main{padding:20px 22px 64px;max-width:1400px;margin:0 auto;}
 .btn-pdf:hover{background:var(--accent-soft);}
 .period-label{font-size:.68rem;color:var(--tx3);font-weight:500;width:100%;}
 
-/* ── Resumo geral — leitura rápida do período, antes de entrar em cada serviço ── */
+/* ── Resumo geral — faixa de estado tipo "semáforo": um relance a todos os
+     serviços, antes de entrar em cada um. A cor passa a indicar estado
+     (verde = normal, amarelo = precisa de atenção, cinza = sem dados),
+     não mais uma cor decorativa por secção. ── */
 .resumo-geral{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:16px 20px;margin-bottom:20px;
   box-shadow:0 1px 2px rgba(15,23,42,.04);}
 .rg-titulo{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3);margin-bottom:12px;}
-.rg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:16px;}
-.rg-item{border-top:2px solid var(--rg-cor,var(--accent));padding-top:8px;}
-.rg-val{font-size:1.5rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--tx);line-height:1.15;}
-.rg-lbl{font-size:.62rem;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-top:3px;}
+.rg-grid{display:flex;flex-wrap:wrap;gap:10px;}
+.rg-item{flex:1 1 128px;border-radius:10px;padding:10px 14px;background:var(--sf2);border:1px solid var(--br);}
+.rg-item.rg-good{background:var(--rg-good-bg,#E8F8F1);border-color:transparent;}
+.rg-item.rg-warn{background:var(--rg-warn-bg,#FEF6E7);border-color:transparent;}
+:root[data-zelo-theme="dark"] .rg-item.rg-good{--rg-good-bg:#122A20;}
+:root[data-zelo-theme="dark"] .rg-item.rg-warn{--rg-warn-bg:#2B2210;}
+.rg-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:var(--tx3);}
+.rg-item.rg-good .rg-dot{background:#1BAF7A;}
+.rg-item.rg-warn .rg-dot{background:#EDA100;}
+.rg-val{font-size:1.28rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--tx);line-height:1.2;}
+.rg-lbl{font-size:.66rem;color:var(--tx2);font-weight:600;margin-top:2px;display:flex;align-items:center;}
 .rg-val.rg-alerta{color:#B5502D;}
 .rg-loading{color:var(--tx3);font-size:.78rem;}
 
-/* ── Secções por serviço ── */
+/* ── Secções por serviço — grelha de 2 colunas (1 em ecrãs estreitos),
+     cada cartão com KPIs sempre visíveis e gráficos só ao abrir
+     ("Ver gráficos"), para caber mais serviços de cada vez no ecrã. ── */
+#secoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;align-items:start;}
 .svc-section{background:var(--sf);border:1px solid var(--br);border-left:3px solid var(--svc-cor,var(--accent));
-  border-radius:14px;padding:20px 22px;margin-bottom:18px;box-shadow:0 1px 2px rgba(15,23,42,.04);}
-.svc-hdr{display:flex;align-items:flex-end;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  border-radius:14px;padding:18px 20px;box-shadow:0 1px 2px rgba(15,23,42,.04);}
+.svc-hdr{display:flex;align-items:flex-end;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
 .svc-eyebrow{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--svc-cor,var(--accent));margin-bottom:2px;}
-.svc-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.08rem;color:var(--tx);line-height:1.2;}
+.svc-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.04rem;color:var(--tx);line-height:1.2;}
 .svc-atualizado{font-size:.62rem;color:var(--tx3);margin-top:3px;min-height:1em;}
 .svc-voz-btn{margin-left:auto;background:transparent;border:1px solid var(--br);border-radius:100px;
-  padding:6px 14px;font-size:.68rem;font-weight:600;color:var(--tx2);cursor:pointer;font-family:inherit;transition:all .12s;}
+  padding:6px 14px;font-size:.68rem;font-weight:600;color:var(--tx2);cursor:pointer;font-family:inherit;transition:all .12s;white-space:nowrap;}
 .svc-voz-btn:hover{border-color:var(--accent);color:var(--accent);}
-.svc-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;margin-bottom:18px;}
+.svc-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;}
 .svc-kpi{background:var(--sf2);border:1px solid var(--br);border-top:2px solid var(--svc-cor,var(--accent));
   border-radius:8px;padding:11px 12px;text-align:center;}
-.svc-kpi .k-val{font-size:1.3rem;font-weight:700;color:var(--tx);font-family:'IBM Plex Mono',monospace;}
+.svc-kpi .k-val-row{display:flex;align-items:baseline;justify-content:center;gap:5px;}
+.svc-kpi .k-val{font-size:1.22rem;font-weight:700;color:var(--tx);font-family:'IBM Plex Mono',monospace;}
 .svc-kpi .k-lbl{font-size:.62rem;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
-.svc-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.kpi-trend{display:inline-flex;align-items:center;gap:2px;font-size:.68rem;font-weight:700;font-family:'Source Sans 3',Arial,sans-serif;}
+.kpi-trend.up{color:#1BAF7A;}
+.kpi-trend.down{color:#E34948;}
+.svc-toggle-row{margin-top:12px;}
+.svc-toggle-btn{background:none;border:none;color:var(--accent);font-size:.72rem;font-weight:700;
+  cursor:pointer;font-family:inherit;padding:4px 0;display:inline-flex;align-items:center;gap:5px;}
+.svc-toggle-btn svg{transition:transform .18s ease;}
+.svc-toggle-btn[aria-expanded="true"] svg{transform:rotate(180deg);}
+.svc-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:12px;}
+.svc-charts[hidden]{display:none;}
 .svc-chart-box{min-width:0;}
 .svc-chart-box .cb-title{font-size:.7rem;font-weight:600;color:var(--tx2);margin-bottom:8px;}
-.svc-chart-canvas-wrap{position:relative;height:220px;}
-.svc-empty{color:var(--tx3);font-size:.78rem;padding:20px 0;text-align:center;}
-.svc-loading{color:var(--tx3);font-size:.78rem;padding:20px 0;text-align:center;}
+.svc-chart-canvas-wrap{position:relative;height:210px;}
+.svc-empty{color:var(--tx3);font-size:.76rem;padding:6px 0;}
+.svc-loading{color:var(--tx3);font-size:.78rem;padding:6px 0;}
 </style>
 </head>
 <body>
@@ -276,6 +299,36 @@ function calcularPeriodo(){
   return null;
 }
 
+// Período anterior, para a comparação "▲/▼ vs. período anterior" em cada
+// secção — o mesmo número de dias, terminando no dia antes do período em
+// vista. Genérico para qualquer tipo de período (dia/semana/mês/…): não
+// tenta imitar "o mês passado" exactamente, só "os mesmos N dias antes
+// disto", que é uma base de comparação simples e sempre correcta.
+function calcularPeriodoAnterior(periodo){
+  if (!periodo || !periodo.dates || !periodo.dates.length) return null;
+  const n = periodo.dates.length;
+  const inicio = new Date(periodo.dates[0]+'T00:00:00');
+  const fimAnterior = new Date(inicio); fimAnterior.setDate(fimAnterior.getDate()-1);
+  const inicioAnterior = new Date(inicio); inicioAnterior.setDate(inicioAnterior.getDate()-n);
+  const fmt = d => d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+  return { dates: datesInRange(fmt(inicioAnterior), fmt(fimAnterior)) };
+}
+// Devolve {delta, subiu} em percentagem, ou null quando não há base de
+// comparação (sem dados no período anterior — 0 dividido por 0 não diz
+// nada útil, por isso omite-se o indicador em vez de mostrar "+∞%"/"NaN%").
+function calcularTendencia(atual, anterior){
+  if (atual == null || anterior == null || !anterior) return null;
+  const delta = ((atual - anterior) / anterior) * 100;
+  return { delta: delta, subiu: delta >= 0 };
+}
+const ICON_TREND_UP = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+const ICON_TREND_DOWN = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>';
+function trendHTML(t){
+  if (!t) return '';
+  const abs = Math.abs(t.delta) < 1 && t.delta !== 0 ? '<1' : Math.round(Math.abs(t.delta));
+  return '<span class="kpi-trend '+(t.subiu?'up':'down')+'">'+(t.subiu?ICON_TREND_UP:ICON_TREND_DOWN)+abs+'%</span>';
+}
+
 /* ════════════════════════════════════════════════════════════
    INFRA-ESTRUTURA PARTILHADA — leitura Firebase em bloco + gráficos
    ════════════════════════════════════════════════════════════ */
@@ -379,8 +432,11 @@ function lineChartConfig(labels, data, opts){
   };
 }
 function kpisHTML(items){
-  // items: [{val, lbl}]
-  return items.map(function(i){ return '<div class="svc-kpi"><div class="k-val">'+i.val+'</div><div class="k-lbl">'+i.lbl+'</div></div>'; }).join('');
+  // items: [{val, lbl, trend?}] — trend (opcional, normalmente só no 1º item,
+  // o "total" da secção) vem de calcularTendencia()+trendHTML().
+  return items.map(function(i){
+    return '<div class="svc-kpi"><div class="k-val-row"><div class="k-val">'+i.val+'</div>'+(i.trend?trendHTML(i.trend):'')+'</div><div class="k-lbl">'+i.lbl+'</div></div>';
+  }).join('');
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -466,7 +522,7 @@ function renderizarSecoes(){
       '<button class="svc-voz-btn" onclick="narrarSecao(\''+s.id+'\')">Ler em voz</button></div>'+
       '<div id="corpo-'+s.id+'"><div class="svc-loading">A carregar…</div></div>'+
       '</div>';
-  }).join('') : '<div class="svc-section" style="text-align:center;color:var(--tx3);padding:32px;">Ainda não tens nenhum serviço atribuído para ver aqui. Contacta um administrador do ZELO.</div>';
+  }).join('') : '<div class="svc-section" style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:32px;">Ainda não tens nenhum serviço atribuído para ver aqui. Contacta um administrador do ZELO.</div>';
 }
 
 // Última gravação (savedAt) encontrada nos registos usados por cada secção —
@@ -493,24 +549,58 @@ function _formatarAtualizacao(iso){
   return 'Atualizado em '+pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+' às '+pad2(d.getHours())+':'+pad2(d.getMinutes());
 }
 
+const ICON_CHEVRON_DOWN = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+// Os cartões abrem colapsados (só KPIs) — os gráficos ficam escondidos até
+// "Ver gráficos", para caberem mais serviços na grelha de 2 colunas sem
+// scroll interminável. Os canvas são sempre CRIADOS já visíveis (nunca
+// dentro de um container escondido) — o Chart.js mede mal um canvas que
+// nasce com display:none, o que dava gráficos em branco/cortados ao abrir;
+// esconder DEPOIS de desenhado (só o wrapper .svc-charts) não tem esse
+// problema, e o conteúdo do canvas continua disponível para o PDF mesmo
+// enquanto está escondido.
+function alternarGraficosSecao(id){
+  var wrap = document.getElementById('charts-'+id);
+  var btn = document.getElementById('toggle-'+id);
+  if (!wrap || !btn) return;
+  var vaiAbrir = wrap.hidden;
+  wrap.hidden = !vaiAbrir;
+  btn.setAttribute('aria-expanded', vaiAbrir ? 'true' : 'false');
+  btn.innerHTML = (vaiAbrir ? 'Ocultar gráficos ' : 'Ver gráficos ') + ICON_CHEVRON_DOWN;
+  if (vaiAbrir){
+    // Rede de segurança: a maioria dos casos já fica correcta sozinha
+    // (Chart.js observa o redimensionamento do próprio canvas), mas forçar
+    // o resize ao reabrir garante que nunca fica com o tamanho errado.
+    wrap.querySelectorAll('canvas').forEach(function(cv){ if (_charts[cv.id]) _charts[cv.id].resize(); });
+  }
+}
+window.alternarGraficosSecao = alternarGraficosSecao;
+
 const _kpisPDF = {};
 function renderSecao(id, kpis, charts, ultimaAtualizacao){
   // charts: [{title, canvasId, config}]
   var html = '<div class="svc-kpis">' + kpisHTML(kpis) + '</div>';
   if (charts.length){
-    html += '<div class="svc-charts">' + charts.map(function(c){
+    html += '<div class="svc-toggle-row"><button type="button" class="svc-toggle-btn" id="toggle-'+id+'" aria-expanded="false" onclick="alternarGraficosSecao(\''+id+'\')">Ver gráficos '+ICON_CHEVRON_DOWN+'</button></div>';
+    // Nasce visível (SEM o atributo hidden) para que o Chart.js meça o
+    // canvas correctamente ao desenhar — só depois de desenhado é que fica
+    // escondido (ver abaixo). Criar já escondido dava gráficos em branco.
+    html += '<div class="svc-charts" id="charts-'+id+'">' + charts.map(function(c){
       return '<div class="svc-chart-box"><div class="cb-title">'+c.title+'</div>'+
         '<div class="svc-chart-canvas-wrap"><canvas id="'+c.canvasId+'"></canvas></div></div>';
     }).join('') + '</div>';
   }
   document.getElementById('corpo-'+id).innerHTML = html;
   charts.forEach(function(c){ desenharGrafico(c.canvasId, c.config); });
+  if (charts.length){
+    var chartsWrap = document.getElementById('charts-'+id);
+    if (chartsWrap) chartsWrap.hidden = true;
+  }
   _kpisPDF[id] = kpis;
   var updEl = document.getElementById('upd-'+id);
   if (updEl) updEl.textContent = _formatarAtualizacao(ultimaAtualizacao);
 }
 function renderSecaoVazia(id, msg){
-  document.getElementById('corpo-'+id).innerHTML = '<div class="svc-empty">'+(msg||'Sem dados para este período.')+'</div>';
+  document.getElementById('corpo-'+id).innerHTML = '<div class="svc-empty">'+(msg||'Ainda não há registo para este período.')+'</div>';
   _kpisPDF[id] = null;
   var updEl = document.getElementById('upd-'+id);
   if (updEl) updEl.textContent = '';
@@ -551,6 +641,19 @@ function _totalProcNoSub(sub){
   });
   return n;
 }
+// Só o total (sem detalhe por serviço/gráficos) — usado também para a
+// comparação com o período anterior, que só precisa do número, não do
+// resto do trabalho de renderização.
+async function _totalProcParaPeriodo(dates){
+  if (!dates || !dates.length) return 0;
+  const slugs = Object.keys(PROC_SLUGS);
+  const historicos = await Promise.all(slugs.map(function(slug){ return lerHistoricoCompleto('registos_enf/'+slug, dates[0], dates[dates.length-1]); }));
+  let total = 0;
+  historicos.forEach(function(hist){
+    dates.forEach(function(d){ total += _totalProcNoSub(hist[d] && hist[d].snapshot && hist[d].snapshot.sub); });
+  });
+  return total;
+}
 async function carregarProcedimentos(periodo){
   const slugs = Object.keys(PROC_SLUGS);
   const historicos = await Promise.all(slugs.map(function(slug){ return lerHistoricoCompleto('registos_enf/'+slug, periodo.dates[0], periodo.dates[periodo.dates.length-1]); }));
@@ -571,10 +674,15 @@ async function carregarProcedimentos(periodo){
   });
   const rows = ordenarDesc(porServico);
   if (total === 0){ renderSecaoVazia('proc'); _secaoDados.proc=null; return; }
+  let tendencia = null;
+  try{
+    const periodoAnterior = calcularPeriodoAnterior(periodo);
+    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalProcParaPeriodo(periodoAnterior.dates));
+  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência de Procedimentos', e); }
   const charts = [ { title:'Por Serviço', canvasId:'chart-proc', config: barChartConfig(rows.map(r=>r.nome), rows.map(r=>r.v), {horizontal:true, color:'#B5502D'}) } ];
   if (periodo.dates.length > 1) charts.push({ title:'Evolução Diária', canvasId:'chart-proc-evol', config: lineChartConfig(periodo.dates.map(d=>d.slice(8,10)+'/'+d.slice(5,7)), periodo.dates.map(d=>porDia[d]), {color:'#B5502D'}) });
   renderSecao('proc',
-    [ {val: total, lbl:'Total de Procedimentos'}, {val: rows.length, lbl:'Serviços com Registo'} ],
+    [ {val: total, lbl:'Total de Procedimentos', trend: tendencia}, {val: rows.length, lbl:'Serviços com Registo'} ],
     charts, ultimaAtualizacao
   );
   _secaoDados.proc = { total, rows, periodoFalado: periodo.periodoFalado };
@@ -592,6 +700,17 @@ function narrarProcedimentos(){
    cada cirurgia: {esp, anest:[tags], sexo, deceased, transfer} */
 const BLOCO_SPECIALTIES = ['Cirurgia Geral','Ortopedia','Maxilo Facial','Urologia','Proctologia','Neurocirurgia','Otorrinolaringologia','Anestesiologia','Angeologia','Oftalmologia','Medicina Interna','Nefrologia'];
 const BLOCO_ANEST_TAGS = {GOT:'Gerais Endotraqueal', GEV:'Gerais Endovenosa', DISS:'Dissociativa', BAL:'Balanceada', COMB:'Combinadas', 'REG.':'Raquidianas', EPI:'Epidurales', BN:'Bloqueio Nervoso', LOC:'Locais'};
+async function _totalBlocoParaPeriodo(dates){
+  if (!dates || !dates.length) return 0;
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/bloco_operatorio', dates[0], dates[dates.length-1]);
+  let total = 0;
+  dates.forEach(function(d){
+    const snap = hist[d] && hist[d].snapshot;
+    if (!snap) return;
+    total += (snap.surgeries && snap.surgeries.urg || []).length + (snap.surgeries && snap.surgeries.elet || []).length;
+  });
+  return total;
+}
 async function carregarBloco(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/bloco_operatorio', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
@@ -614,12 +733,17 @@ async function carregarBloco(periodo){
   });
   const total = totUrg + totElet;
   if (total === 0){ renderSecaoVazia('bloco'); _secaoDados.bloco=null; return; }
+  let tendencia = null;
+  try{
+    const periodoAnterior = calcularPeriodoAnterior(periodo);
+    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalBlocoParaPeriodo(periodoAnterior.dates));
+  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência do Bloco Operatório', e); }
   const especRows = ordenarDesc(BLOCO_SPECIALTIES.map(function(s){ return { nome:s, v:(especT[s].urg||0)+(especT[s].elet||0) }; }));
   const anestRows = ordenarDesc(Object.keys(anestT).map(function(k){ return {nome:k, v:anestT[k]}; }));
   const charts = [ { title:'Por Especialidade (Urgente + Eletiva)', canvasId:'chart-bloco-esp', config: barChartConfig(especRows.map(r=>r.nome), especRows.map(r=>r.v), {horizontal:true, color:'#9B3B3B'}) } ];
   if (anestRows.length) charts.push({ title:'Técnicas Anestésicas', canvasId:'chart-bloco-anest', config: pieChartConfig(anestRows.map(r=>r.nome), anestRows.map(r=>r.v)) });
   renderSecao('bloco',
-    [ {val:total, lbl:'Total Cirurgias'}, {val:totUrg, lbl:'Urgentes'}, {val:totElet, lbl:'Eletivas'} ],
+    [ {val:total, lbl:'Total Cirurgias', trend: tendencia}, {val:totUrg, lbl:'Urgentes'}, {val:totElet, lbl:'Eletivas'} ],
     charts, ultimaAtualizacao
   );
   _secaoDados.bloco = { total, totUrg, totElet, especRows, anestRows, periodoFalado: periodo.periodoFalado };
@@ -636,6 +760,17 @@ function narrarBloco(){
 
 /* ── 3. Consulta Externa ──
    registos_sistemas_locais/consulta_externa/{data}.snapshot = { sessoes:[{especialidade, totalDoentes, diagnosticos:{}, ...}] } */
+async function _totalCEParaPeriodo(dates){
+  if (!dates || !dates.length) return 0;
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/consulta_externa', dates[0], dates[dates.length-1]);
+  let total = 0;
+  dates.forEach(function(d){
+    const sessoes = hist[d] && hist[d].snapshot && hist[d].snapshot.sessoes;
+    if (!sessoes) return;
+    sessoes.forEach(function(s){ total += s.totalDoentes||0; });
+  });
+  return total;
+}
 async function carregarConsultaExterna(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/consulta_externa', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
@@ -653,11 +788,16 @@ async function carregarConsultaExterna(periodo){
     });
   });
   if (total === 0){ renderSecaoVazia('ce'); _secaoDados.ce=null; return; }
+  let tendencia = null;
+  try{
+    const periodoAnterior = calcularPeriodoAnterior(periodo);
+    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalCEParaPeriodo(periodoAnterior.dates));
+  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência da Consulta Externa', e); }
   const especRows = ordenarDesc(Object.keys(porEspec).map(function(k){ return {nome:k, v:porEspec[k]}; }));
   const diagRows = ordenarDesc(Object.keys(diagnosticos).map(function(k){ return {nome:k, v:diagnosticos[k]}; })).slice(0,8);
   const charts = [ { title:'Por Especialidade', canvasId:'chart-ce-esp', config: barChartConfig(especRows.map(r=>r.nome), especRows.map(r=>r.v), {horizontal:true, color:'#3F7A56'}) } ];
   if (diagRows.length) charts.push({ title:'Principais Diagnósticos', canvasId:'chart-ce-diag', config: doughnutChartConfig(diagRows.map(r=>r.nome), diagRows.map(r=>r.v)) });
-  renderSecao('ce', [ {val:total, lbl:'Total de Doentes'}, {val:especRows.length, lbl:'Especialidades'} ], charts, ultimaAtualizacao);
+  renderSecao('ce', [ {val:total, lbl:'Total de Doentes', trend: tendencia}, {val:especRows.length, lbl:'Especialidades'} ], charts, ultimaAtualizacao);
   _secaoDados.ce = { total, especRows, diagRows, periodoFalado: periodo.periodoFalado };
 }
 function narrarConsultaExterna(){
@@ -671,6 +811,19 @@ function narrarConsultaExterna(){
 
 /* ── 4. Imagiologia ──
    registos_sistemas_locais/imagiologia/{data}.snapshot = { tac:{exame:{bu,aut,int}}, eco:{...}, rx:{...} } */
+async function _totalImagParaPeriodo(dates){
+  if (!dates || !dates.length) return 0;
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/imagiologia', dates[0], dates[dates.length-1]);
+  let total = 0;
+  dates.forEach(function(d){
+    const snap = hist[d] && hist[d].snapshot;
+    if (!snap) return;
+    ['tac','eco','rx'].forEach(function(mod){
+      Object.values(snap[mod]||{}).forEach(function(v){ total += (v.bu||0)+(v.aut||0)+(v.int||0); });
+    });
+  });
+  return total;
+}
 async function carregarImagiologia(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/imagiologia', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
@@ -688,10 +841,15 @@ async function carregarImagiologia(periodo){
   });
   const total = modalidades.tac + modalidades.eco + modalidades.rx;
   if (total === 0){ renderSecaoVazia('imag'); _secaoDados.imag=null; return; }
+  let tendencia = null;
+  try{
+    const periodoAnterior = calcularPeriodoAnterior(periodo);
+    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalImagParaPeriodo(periodoAnterior.dates));
+  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência da Imagiologia', e); }
   const modLabels = {tac:'TAC', eco:'Ecografia', rx:'Raio X'};
   const modRows = ordenarDesc(Object.keys(modalidades).map(function(k){ return {nome:modLabels[k], v:modalidades[k]}; }));
   const origemRows = ordenarDesc([{nome:'Banco de Urgência', v:bu}, {nome:'Autorizados', v:aut}, {nome:'Internamento', v:int_}]);
-  renderSecao('imag', [ {val:total, lbl:'Total de Exames'} ], [
+  renderSecao('imag', [ {val:total, lbl:'Total de Exames', trend: tendencia} ], [
     { title:'Por Modalidade', canvasId:'chart-imag-mod', config: pieChartConfig(modRows.map(r=>r.nome), modRows.map(r=>r.v)) },
     { title:'Por Origem', canvasId:'chart-imag-orig', config: barChartConfig(origemRows.map(r=>r.nome), origemRows.map(r=>r.v), {color:'#3E7EA6'}) },
   ], ultimaAtualizacao);
@@ -708,6 +866,17 @@ function narrarImagiologia(){
 
 /* ── 5. Laboratório ──
    registos_sistemas_locais/laboratorio/{data}.snapshot = { exames:{nome:{bu,int}}, positivos:{nome:{bu,int}} } */
+async function _totalLabParaPeriodo(dates){
+  if (!dates || !dates.length) return 0;
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/laboratorio', dates[0], dates[dates.length-1]);
+  let total = 0;
+  dates.forEach(function(d){
+    const snap = hist[d] && hist[d].snapshot;
+    if (!snap) return;
+    Object.values(snap.exames||{}).forEach(function(v){ total += (v.bu||0)+(v.int||0); });
+  });
+  return total;
+}
 async function carregarLaboratorio(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/laboratorio', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
@@ -723,11 +892,16 @@ async function carregarLaboratorio(periodo){
     Object.values(snap.positivos||{}).forEach(function(v){ totalPositivos += (v.bu||0)+(v.int||0); });
   });
   if (total === 0){ renderSecaoVazia('lab'); _secaoDados.lab=null; return; }
+  let tendencia = null;
+  try{
+    const periodoAnterior = calcularPeriodoAnterior(periodo);
+    if (periodoAnterior) tendencia = calcularTendencia(total, await _totalLabParaPeriodo(periodoAnterior.dates));
+  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência do Laboratório', e); }
   const topExames = ordenarDesc(Object.keys(porExame).map(function(k){ return {nome:k, v:porExame[k]}; })).slice(0,8);
   const charts = [ { title:'Principais Exames', canvasId:'chart-lab', config: barChartConfig(topExames.map(r=>r.nome), topExames.map(r=>r.v), {horizontal:true, color:'#6B4E9E'}) } ];
   if (totalPositivos > 0) charts.push({ title:'Resultados Positivos vs. Sem Alteração', canvasId:'chart-lab-pos', config: pieChartConfig(['Positivos','Sem alteração'], [totalPositivos, Math.max(total-totalPositivos,0)]) });
   renderSecao('lab',
-    [ {val:total, lbl:'Total de Exames'}, {val:totalPositivos, lbl:'Resultados Positivos'} ],
+    [ {val:total, lbl:'Total de Exames', trend: tendencia}, {val:totalPositivos, lbl:'Resultados Positivos'} ],
     charts, ultimaAtualizacao
   );
   _secaoDados.lab = { total, totalPositivos, topExames, periodoFalado: periodo.periodoFalado };
@@ -743,6 +917,16 @@ function narrarLaboratorio(){
 
 /* ── 6. Hemoterapia ──
    registos_sistemas_locais/hemoterapia/{data}.snapshot = { transfusoes:{plaquetas,plasmas,globulos,crio}, doadores:{voluntarios,familiares,habituais}, serologia:{vih,hbs,vdrl,hcv,outros} } */
+async function _totalTransfParaPeriodo(dates){
+  if (!dates || !dates.length) return 0;
+  const hist = await lerHistoricoCompleto('registos_sistemas_locais/hemoterapia', dates[0], dates[dates.length-1]);
+  let total = 0;
+  dates.forEach(function(d){
+    const t = hist[d] && hist[d].snapshot && hist[d].snapshot.transfusoes;
+    if (t) total += somaObj(t);
+  });
+  return total;
+}
 async function carregarHemoterapia(periodo){
   const hist = await lerHistoricoCompleto('registos_sistemas_locais/hemoterapia', periodo.dates[0], periodo.dates[periodo.dates.length-1]);
   const ultimaAtualizacao = _ultimaDoHist(hist, periodo.dates);
@@ -758,6 +942,11 @@ async function carregarHemoterapia(periodo){
   });
   const totalTransf = somaObj(transf), totalDoad = somaObj(doad), totalSero = somaObj(sero);
   if (totalTransf === 0 && totalDoad === 0){ renderSecaoVazia('hemo'); _secaoDados.hemo=null; return; }
+  let tendencia = null;
+  try{
+    const periodoAnterior = calcularPeriodoAnterior(periodo);
+    if (periodoAnterior) tendencia = calcularTendencia(totalTransf, await _totalTransfParaPeriodo(periodoAnterior.dates));
+  }catch(e){ console.warn('ZELO Dashboard: falha ao calcular tendência da Hemoterapia', e); }
   const transfLabels = {plaquetas:'Plaquetas', plasmas:'Plasmas', globulos:'Glóbulos', crio:'Crioprecipitado'};
   const doadLabels = {voluntarios:'Voluntários', familiares:'Familiares', habituais:'Habituais'};
   const seroLabels = {vih:'VIH', hbs:'Hepatite B', vdrl:'VDRL (Sífilis)', hcv:'Hepatite C', outros:'Outros'};
@@ -767,7 +956,7 @@ async function carregarHemoterapia(periodo){
   const charts = [ { title:'Transfusões por Tipo', canvasId:'chart-hemo-transf', config: barChartConfig(transfRows.map(r=>r.nome), transfRows.map(r=>r.v), {color:'#A6467A'}) } ];
   if (doadRows.length) charts.push({ title:'Doadores por Tipo', canvasId:'chart-hemo-doad', config: barChartConfig(doadRows.map(r=>r.nome), doadRows.map(r=>r.v), {color:'#7A3A5A'}) });
   if (seroRows.length) charts.push({ title:'Serologia Positiva', canvasId:'chart-hemo-sero', config: pieChartConfig(seroRows.map(r=>r.nome), seroRows.map(r=>r.v)) });
-  renderSecao('hemo', [ {val:totalTransf, lbl:'Total Transfusões'}, {val:totalDoad, lbl:'Total Doadores'}, {val:totalSero, lbl:'Serologias Positivas'} ], charts, ultimaAtualizacao);
+  renderSecao('hemo', [ {val:totalTransf, lbl:'Total Transfusões', trend: tendencia}, {val:totalDoad, lbl:'Total Doadores'}, {val:totalSero, lbl:'Serologias Positivas'} ], charts, ultimaAtualizacao);
   _secaoDados.hemo = { totalTransf, totalDoad, transfRows, doadRows, seroRows, periodoFalado: periodo.periodoFalado };
 }
 function narrarHemoterapia(){
@@ -851,23 +1040,29 @@ function _protegido(promessa, nome, id){
 // secções abaixo. Usa exactamente os mesmos dados que cada secção já
 // calculou (_secaoDados), só reaproveita o essencial.
 const RESUMO_CONFIG = [
-  { id:'proc', cor:'#B5502D', lbl:'Procedimentos', valFn: function(d){ return d ? d.total : null; } },
-  { id:'bloco', cor:'#9B3B3B', lbl:'Cirurgias', valFn: function(d){ return d ? d.total : null; } },
-  { id:'ce', cor:'#3F7A56', lbl:'Consultas', valFn: function(d){ return d ? d.total : null; } },
-  { id:'imag', cor:'#3E7EA6', lbl:'Exames Imagiologia', valFn: function(d){ return d ? d.total : null; } },
-  { id:'lab', cor:'#6B4E9E', lbl:'Exames Laboratório', valFn: function(d){ return d ? d.total : null; } },
-  { id:'hemo', cor:'#A6467A', lbl:'Transfusões', valFn: function(d){ return d ? d.totalTransf : null; } },
-  { id:'farm', cor:'#6B7A3F', lbl:'Alertas de Stock', valFn: function(d){ return d ? (d.esgotados + d.baixo) : null; }, alerta: true },
+  { id:'proc', lbl:'Procedimentos', valFn: function(d){ return d ? d.total : null; } },
+  { id:'bloco', lbl:'Cirurgias', valFn: function(d){ return d ? d.total : null; } },
+  { id:'ce', lbl:'Consultas', valFn: function(d){ return d ? d.total : null; } },
+  { id:'imag', lbl:'Exames Imagiologia', valFn: function(d){ return d ? d.total : null; } },
+  { id:'lab', lbl:'Exames Laboratório', valFn: function(d){ return d ? d.total : null; } },
+  { id:'hemo', lbl:'Transfusões', valFn: function(d){ return d ? d.totalTransf : null; } },
+  { id:'farm', lbl:'Alertas de Stock', valFn: function(d){ return d ? (d.esgotados + d.baixo) : null; }, alerta: true },
 ];
+// Faixa de estado tipo "semáforo": cada item mostra verde quando há dados e
+// nada em alerta, amarelo quando o valor é o próprio alerta (ex.: stock),
+// e cinzento neutro quando ainda não há dados para o período — a cor deixa
+// de ser decorativa por serviço e passa a significar estado.
 function atualizarResumoGeral(){
   // Só o resumo das secções permitidas (mesmo filtro que já decidiu SECOES).
   const idsPermitidos = SECOES.map(function(s){ return s.id; });
   const html = RESUMO_CONFIG.filter(function(item){ return idsPermitidos.indexOf(item.id) !== -1; }).map(function(item){
     const val = item.valFn(_secaoDados[item.id]);
+    const semDados = val===null || val===undefined;
     const emAlerta = item.alerta && val > 0;
-    return '<div class="rg-item" style="--rg-cor:'+item.cor+';">'+
-      '<div class="rg-val'+(emAlerta?' rg-alerta':'')+'">'+(val===null||val===undefined?'—':val)+'</div>'+
-      '<div class="rg-lbl">'+item.lbl+'</div></div>';
+    const estado = semDados ? '' : (emAlerta ? ' rg-warn' : ' rg-good');
+    return '<div class="rg-item'+estado+'">'+
+      '<div class="rg-val'+(emAlerta?' rg-alerta':'')+'">'+(semDados?'—':val)+'</div>'+
+      '<div class="rg-lbl"><span class="rg-dot"></span>'+item.lbl+'</div></div>';
   }).join('');
   document.getElementById('resumoGeral').innerHTML = html;
 }
