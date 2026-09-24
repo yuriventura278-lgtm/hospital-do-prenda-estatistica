@@ -284,23 +284,52 @@
       if (!denso && o.margin.bottom < 21) o.margin.bottom = 21;
       if (denso && o.margin.bottom < 9) o.margin.bottom = 9;
       // Nenhuma coluna fica mais estreita do que a sua palavra mais comprida
-      // (título ou dados) — assim nunca se parte uma palavra a meio.
+      // (título ou dados) — assim nunca se parte uma palavra a meio. Se as
+      // colunas não couberem na largura da página, a letra da tabela reduz
+      // (até 8); se mesmo assim não couberem, não se impõem mínimos, para a
+      // tabela nunca sair da página (nada fica escondido).
       try{
         var linhasCab = (opts.head || []), linhasCorpo = (opts.body || []);
         var nCols = 0;
         linhasCab.concat(linhasCorpo).forEach(function(l){ if (Array.isArray(l)) nCols = Math.max(nCols, l.length); });
         var cst = {}; Object.keys(opts.columnStyles || {}).forEach(function(k){ cst[k] = juntar(opts.columnStyles[k], {}); });
         function txtCel(c){ return String(c && typeof c === 'object' && c.content != null ? c.content : (c == null ? '' : c)); }
-        for (var ci = 0; ci < nCols; ci++){
-          if (cst[ci] && typeof cst[ci].cellWidth === 'number') continue;
+        var padH = (typeof o.styles.cellPadding === 'number' ? o.styles.cellPadding * 2 : 4) + 0.6;
+        var gDims = dims(d);
+        var disponivel = gDims.W - (o.margin.left != null ? o.margin.left : 14) - (o.margin.right != null ? o.margin.right : 14);
+        function larguraMin(ci, t, tc){
           var maior = 0;
-          d.setFont('helvetica', 'bold'); d.setFontSize(tam);
+          d.setFont('helvetica', 'bold'); d.setFontSize(tc || t);
           linhasCab.forEach(function(l){ if (Array.isArray(l) && l[ci] != null) limpar(txtCel(l[ci])).split(/\s+/).forEach(function(pw){ maior = Math.max(maior, d.getTextWidth(pw)); }); });
-          d.setFont('helvetica', 'normal');
+          d.setFont('helvetica', 'normal'); d.setFontSize(t);
           linhasCorpo.forEach(function(l){ if (Array.isArray(l) && l[ci] != null) limpar(txtCel(l[ci])).split(/\s+/).forEach(function(pw){ maior = Math.max(maior, d.getTextWidth(pw)); }); });
-          if (maior > 0){ cst[ci] = juntar(cst[ci], {}); cst[ci].minCellWidth = Math.max(cst[ci].minCellWidth || 0, maior + 4.6); }
+          return maior > 0 ? maior + padH : 0;
         }
-        o.columnStyles = cst;
+        function somaMin(t, tc){
+          var soma = 0;
+          for (var ci = 0; ci < nCols; ci++){
+            if (cst[ci] && typeof cst[ci].cellWidth === 'number') soma += cst[ci].cellWidth;
+            else soma += larguraMin(ci, t, tc);
+          }
+          return soma;
+        }
+        if (!denso && nCols){
+          var t2 = tam;
+          while (t2 > 8 && somaMin(t2) > disponivel) t2 -= 0.5;
+          // só os títulos das colunas podem descer mais (até 6)
+          var tc2 = t2;
+          while (tc2 > 6 && somaMin(t2, tc2) > disponivel) tc2 -= 0.5;
+          if (t2 !== tam){ tam = t2; o.styles.fontSize = tam; }
+          o.headStyles.fontSize = tc2;
+          if (somaMin(tam, tc2) <= disponivel){
+            for (var ci = 0; ci < nCols; ci++){
+              if (cst[ci] && typeof cst[ci].cellWidth === 'number') continue;
+              var mn = larguraMin(ci, tam, tc2);
+              if (mn > 0){ cst[ci] = juntar(cst[ci], {}); cst[ci].minCellWidth = Math.max(cst[ci].minCellWidth || 0, mn); }
+            }
+          }
+          o.columnStyles = cst;
+        }
       }catch(e){}
       var dpc = opts.didParseCell;
       o.didParseCell = function(data){
