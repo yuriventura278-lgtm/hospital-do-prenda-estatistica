@@ -49,7 +49,16 @@
     var tituloTxt = limpar(titulo), tamTitulo = 18;
     d.setFontSize(tamTitulo);
     while (tamTitulo > 13 && d.getTextWidth(tituloTxt) > W - M - x){ tamTitulo -= 0.5; d.setFontSize(tamTitulo); }
-    d.text(tituloTxt, x, 20.5, { maxWidth: W - M - x });
+    // Título ainda comprido: as partes finais (separadas por " · ") passam
+    // para a linha de baixo, em vez de o título ocupar duas linhas.
+    var resto = [];
+    while (d.getTextWidth(tituloTxt) > W - M - x && tituloTxt.lastIndexOf(' · ') > 0){
+      var p = tituloTxt.lastIndexOf(' · ');
+      resto.unshift(tituloTxt.slice(p + 3)); tituloTxt = tituloTxt.slice(0, p);
+    }
+    if (resto.length) sub = resto.join(' · ') + (sub ? ' · ' + limpar(sub) : '');
+    while (tamTitulo > 10 && d.getTextWidth(tituloTxt) > W - M - x){ tamTitulo -= 0.5; d.setFontSize(tamTitulo); }
+    d.text(tituloTxt, x, 20.5);
     d.setFont('helvetica', 'normal'); d.setFontSize(12); d.setTextColor('#FFFFFF');
     d.text(SERVICO, x, 27.5);
     if (sub){

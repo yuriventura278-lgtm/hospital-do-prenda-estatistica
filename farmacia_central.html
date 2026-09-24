@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js"></script>
+<script src="zelo_pdf.js"></script>
 <script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
@@ -1698,41 +1699,61 @@ function pdfFooter(doc){
 function pdfNome(titulo){
   return("ZELO_Farmacia_"+titulo).replace(/[^A-Za-z0-9]+/g,"_").replace(/^_+|_+$/g,"")+"_"+hoje()+".pdf";
 }
+// Modelo geral de PDF do ZELO (zelo_pdf.js) — cabeçalho, secções, tabelas e rodapé iguais em todo o sistema.
+function _zpFiltros(doc,y,chips){
+  if(!chips||!chips.length) return y;
+  return ZeloPDF.texto(doc,y,'Filtros',chips.map(pdfSan).join(' · '));
+}
+function _zpTabela(doc,y,head,rows,totais){
+  return ZeloPDF.autoTable(doc,{
+    startY:y,
+    head:[head.map(pdfSan)],
+    body:rows.map(function(r){return r.map(pdfSan);}),
+    foot:totais?[totais.map(pdfSan)]:undefined, showFoot:"lastPage"
+  });
+}
+function _zpAssinaturas(doc,y){
+  y=ZeloPDF.quebra(doc,y,30)+14;
+  var M=14, CW=doc.internal.pageSize.getWidth()-28, gap=CW/3;
+  doc.setDrawColor(70,70,70); doc.setLineWidth(0.3);
+  doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(71,85,105);
+  ["Elaborado por","Conferido por","Aprovado por"].forEach(function(c,i){
+    var x0=M+i*gap+4, x1=M+(i+1)*gap-4;
+    doc.line(x0,y,x1,y);
+    doc.text(c,(x0+x1)/2,y+5.5,{align:"center"});
+  });
+}
 function imprimir(titulo,head,rows,opts){
   opts=opts||{};
   if(!pdfPronto()){toast("Biblioteca de PDF indisponível.","bad");return;}
   try{
-    var doc=pdfNovoDoc();
-    var y=pdfHeader(doc,titulo,rows.length);
-    y=pdfChips(doc,y,opts.chips);
-    y=pdfTabela(doc,y,head,rows,opts.totais);
-    if(opts.sign)pdfSign(doc,y+16);
-    pdfFooter(doc);
+    var doc=ZeloPDF.novo();
+    var y=ZeloPDF.cabecalho(doc,"Farmácia Central — "+pdfSan(titulo),rows.length+" registos");
+    y=_zpFiltros(doc,y,opts.chips);
+    y=_zpTabela(doc,y,head,rows,opts.totais);
+    if(opts.sign)_zpAssinaturas(doc,y);
+    ZeloPDF.rodape(doc);
     doc.save(pdfNome(titulo));
     toast("PDF gerado — a transferir.","ok");
-  }catch(e){toast("Erro ao gerar o PDF.","bad");}
+  }catch(e){console.error(e);toast("Erro ao gerar o PDF.","bad");}
 }
 function imprimirSec(titulo,secoes,totalRegistos,opts){
   opts=opts||{};
   if(!pdfPronto()){toast("Biblioteca de PDF indisponível.","bad");return;}
   try{
-    var doc=pdfNovoDoc();
-    var y=pdfHeader(doc,titulo,totalRegistos);
-    y=pdfChips(doc,y,opts.chips);
-    secoes.forEach(function(s){
-      y=pdfSecTitulo(doc,y,s.titulo);
-      if(!s.rows.length){
-        doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(120,120,120);
-        doc.text("Sem registos nesta secção.",PDF_M,y+10);
-        y+=24;return;
-      }
-      y=pdfTabela(doc,y,s.head,s.rows,s.totais)+16;
+    var doc=ZeloPDF.novo();
+    var y=ZeloPDF.cabecalho(doc,"Farmácia Central — "+pdfSan(titulo),totalRegistos+" registos");
+    y=_zpFiltros(doc,y,opts.chips);
+    secoes.forEach(function(s,idx){
+      y=ZeloPDF.secao(doc,y,(idx+1)+". "+pdfSan(s.titulo));
+      if(!s.rows.length){ y=ZeloPDF.texto(doc,y,"","Sem registos nesta secção."); return; }
+      y=_zpTabela(doc,y,s.head,s.rows,s.totais);
     });
-    if(opts.sign)pdfSign(doc,y+8);
-    pdfFooter(doc);
+    if(opts.sign)_zpAssinaturas(doc,y);
+    ZeloPDF.rodape(doc);
     doc.save(pdfNome(titulo));
     toast("PDF gerado — a transferir.","ok");
-  }catch(e){toast("Erro ao gerar o PDF.","bad");}
+  }catch(e){console.error(e);toast("Erro ao gerar o PDF.","bad");}
 }
 
 /* ===== RENDER MANAGER ===== */
