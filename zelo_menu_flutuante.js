@@ -174,6 +174,11 @@
         background:#fff;border:1px solid #F59E0B;border-radius:100px;padding:1px 8px;}
       html[data-zelo-theme="dark"] #last-saved-status{background:#3B2A06 !important;border-color:#F59E0B !important;color:#FDE68A !important;}
       html[data-zelo-theme="dark"] #last-saved-name,html[data-zelo-theme="dark"] #last-saved-time{background:#1F1503;color:#FDE68A;}
+      /* Telemóvel: etiqueta "Última alteração" numa faixa própria, logo abaixo do cabeçalho. */
+      #zelo-ult-slot{display:flex;justify-content:center;padding:10px 12px 2px;box-sizing:border-box;width:100%;position:relative;z-index:5;}
+      #zelo-ult-slot #last-saved-status{margin:0 !important;max-width:100%;flex-wrap:wrap;justify-content:center;white-space:normal;row-gap:4px;}
+      #zelo-ult-slot #last-saved-status{font-size:11.5px !important;gap:4px;}
+      #zelo-ult-slot #last-saved-name{font-size:12px;} #zelo-ult-slot #last-saved-time{font-size:12.5px;}
       @media(max-width:480px){
         #zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}
         #zub-sair-btn.zub-flutuante{right:10px;padding:9px;}
@@ -611,8 +616,110 @@
     }
   }
 
+
+  // ── "Última alteração" sempre visível no telemóvel ──
+  // Em ecrãs estreitos a etiqueta ficava fora do ecrã (cabeçalhos com vários
+  // botões), escondida (partes do cabeçalho ocultas no telemóvel) ou tapada
+  // pelos botões flutuantes (barras fixas no fundo). Nesses casos passa para
+  // uma faixa própria logo abaixo do cabeçalho; volta ao sítio original em
+  // ecrãs largos. O elemento é o mesmo (mesmos ids), por isso a página
+  // continua a atualizá-lo como sempre.
+  var ULT_LARGURA = 760, ultOrigem = null;
+  function ultCabecalho(el){
+    var h = el.closest('header,.hdr,.header,.topbar,.top-bar,.app-header,.page-header');
+    if (h) return h;
+    var lista = document.querySelectorAll('header,.hdr,.header,.topbar,.top-bar,.app-header');
+    for (var i = 0; i < lista.length; i++){
+      var r = lista[i].getBoundingClientRect();
+      if (r.height > 0 && r.top < 90 && !lista[i].closest('#zmf-panel')) return lista[i];
+    }
+    return null;
+  }
+  function ultPrecisaMover(el){
+    if (!el.getClientRects().length) return true;               // escondido por um "pai"
+    var r = el.getBoundingClientRect();
+    if (r.right > window.innerWidth + 1 || r.left < -1) return true; // fora do ecrã
+    for (var a = el.parentElement; a && a !== document.body; a = a.parentElement){
+      if (getComputedStyle(a).position === 'fixed' && a.getBoundingClientRect().top > window.innerHeight / 2) return true; // barra fixa no fundo
+    }
+    return false;
+  }
+  function ultReposicionar(){
+    var el = document.getElementById('last-saved-status');
+    if (!el) return;
+    var slot = document.getElementById('zelo-ult-slot');
+    var estreito = window.innerWidth <= ULT_LARGURA;
+    if (el.style.display === 'none') { if (slot && slot.contains(el)) slot.style.display = 'none'; return; }
+    if (slot && slot.contains(el)){
+      // Ecrã largo e só tinha saído do sítio por causa do telemóvel: volta.
+      if (!estreito && ultOrigem && ultOrigem.motivo === 'movel'){
+        ultOrigem.pai.insertBefore(el, ultOrigem.seguinte && ultOrigem.seguinte.parentNode === ultOrigem.pai ? ultOrigem.seguinte : null);
+        slot.style.display = 'none';
+        return;
+      }
+      slot.style.display = ''; ultLargura(slot); return;
+    }
+    // Ecrã largo: só sai do sítio se a própria página o estiver a esconder.
+    var escondido = !el.getClientRects().length;
+    if (!estreito && !escondido) return;
+    if (!ultPrecisaMover(el)) return;
+    var h = ultCabecalho(el);
+    if (!h || !h.parentNode) return;
+    if (!slot){ slot = document.createElement('div'); slot.id = 'zelo-ult-slot'; }
+    // Cabeçalho fixo: a faixa vai para o início do conteúdo (logo abaixo dele).
+    var pos = getComputedStyle(h).position;
+    if (pos === 'fixed' || pos === 'sticky'){
+      // Primeiro bloco de conteúdo logo abaixo do cabeçalho: a faixa entra no
+      // início dele (dentro do espaço que já deixa para o cabeçalho).
+      var fundo = h.getBoundingClientRect().bottom, alvo = null;
+      var sy = window.scrollY; window.scrollTo(0, 0);
+      var px = window.innerWidth / 2, py = Math.min(window.innerHeight - 5, fundo + 30);
+      var pt = document.elementFromPoint(px, py);
+      while (pt && pt.parentElement && pt.parentElement !== document.body && !pt.parentElement.contains(h)) pt = pt.parentElement;
+      if (pt && pt !== h && !pt.contains(h) && !h.contains(pt) && pt !== document.body && pt !== document.documentElement) alvo = pt;
+      // Contentor em linhas (flex/grelha): desce até ao bloco onde está o conteúdo.
+      function emLinha(e){ var c = getComputedStyle(e); return c.display.indexOf('grid') >= 0 || (c.display.indexOf('flex') >= 0 && c.flexDirection.indexOf('column') < 0); }
+      for (var g = 0; alvo && emLinha(alvo) && g < 6; g++){
+        var prox = null;
+        for (var k = 0; k < alvo.children.length; k++){
+          var rc = alvo.children[k].getBoundingClientRect();
+          if (rc.left <= px && rc.right >= px && rc.bottom > fundo){ prox = alvo.children[k]; break; }
+        }
+        alvo = prox;
+      }
+      window.scrollTo(0, sy);
+      slot.style.marginTop = '';
+      if (alvo) alvo.insertBefore(slot, alvo.firstChild);
+      else h.parentNode.insertBefore(slot, h.nextSibling);
+    } else {
+      slot.style.marginTop = '';
+      h.parentNode.insertBefore(slot, h.nextSibling);
+    }
+    ultOrigem = { pai: el.parentNode, seguinte: el.nextSibling, motivo: escondido ? 'oculto' : 'movel' };
+    slot.style.display = '';
+    slot.appendChild(el);
+    ultLargura(slot);
+  }
+  // A faixa ocupa só a parte visível do ecrã (há páginas mais largas do que
+  // o ecrã), para a etiqueta ficar centrada à vista.
+  function ultLargura(slot){
+    slot.style.width = '';
+    var r = slot.getBoundingClientRect();
+    var visivel = window.innerWidth - Math.max(0, r.left + window.scrollX);
+    if (r.width > visivel + 1) slot.style.width = Math.max(220, visivel) + 'px';
+  }
+  function ultIniciar(){
+    var el = document.getElementById('last-saved-status');
+    if (!el) return;
+    ultReposicionar();
+    try{ new MutationObserver(ultReposicionar).observe(el, { attributes: true, attributeFilter: ['style'] }); }catch(e){}
+    window.addEventListener('resize', function(){ clearTimeout(ultIniciar._t); ultIniciar._t = setTimeout(ultReposicionar, 150); });
+    [800, 2500, 6000].forEach(function(ms){ setTimeout(ultReposicionar, ms); });
+  }
+
   function iniciar(){
     limparPrefixoUltimaAlteracao();
+    ultIniciar();
     // Dentro de um iframe (hoje só o Dashboard, embutido na página inicial)
     // a página-mãe já tem a sua própria navegação completa (menu lateral +
     // topbar com sessão) — o botão/painel flutuante aqui só duplicava acesso
