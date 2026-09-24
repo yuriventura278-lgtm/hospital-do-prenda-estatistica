@@ -391,7 +391,63 @@
     };
   }
 
+  // Escrita "em fluxo" para fichas/relatórios de texto (rótulo: valor), com
+  // o mesmo aspeto do modelo: secções numeradas, subtítulos, pares em letra
+  // 11,5, tabelas AutoTable e imagens — o y é gerido aqui.
+  function fluxo(d, y){
+    var g = dims(d), n = 0, st = { y: y };
+    function q(alt){ st.y = quebra(d, st.y, alt); }
+    var f = {
+      get y(){ return st.y; }, set y(v){ st.y = v; },
+      h1: function(t){ st.y = secao(d, st.y + 1, (++n) + '. ' + t); },
+      h2: function(t){
+        q(22); d.setFont('helvetica', 'bold'); d.setFontSize(12); d.setTextColor(NAVY3);
+        d.text(limpar(t), g.M, st.y + 1); d.setDrawColor(CYAN); d.setLineWidth(0.5);
+        d.line(g.M, st.y + 2.6, g.M + Math.min(g.CW, d.getTextWidth(limpar(t))), st.y + 2.6);
+        d.setTextColor(PRETO); d.setFont('helvetica', 'normal'); st.y += 8;
+      },
+      linha: function(t){
+        d.setFont('helvetica', 'normal'); d.setFontSize(11.5); d.setTextColor(PRETO);
+        d.splitTextToSize(limpar(t), g.CW).forEach(function(l){ q(6); d.text(l, g.M, st.y); st.y += 5.2; });
+        st.y += 0.8;
+      },
+      par: function(rot, val){
+        var r = limpar(rot) + ': ', v = limpar(val == null || val === '' ? '—' : val);
+        d.setFontSize(11.5); d.setFont('helvetica', 'bold');
+        var wr = d.getTextWidth(r) + 1.2;
+        if (wr > g.CW * 0.55){ // rótulo muito comprido: valor na linha de baixo
+          d.splitTextToSize(r, g.CW).forEach(function(l){ q(6); d.setFont('helvetica', 'bold'); d.setTextColor(NAVY3); d.text(l, g.M, st.y); st.y += 5.2; });
+          d.setTextColor(PRETO); f.linha(v); return;
+        }
+        d.setFont('helvetica', 'normal');
+        var ls = d.splitTextToSize(v, g.CW - wr);
+        q(6);
+        d.setFont('helvetica', 'bold'); d.setTextColor(NAVY3); d.text(r, g.M, st.y);
+        d.setFont('helvetica', 'normal'); d.setTextColor(PRETO);
+        ls.forEach(function(l, i){ if (i){ q(6); } d.text(l, g.M + wr, st.y); st.y += 5.2; });
+        st.y += 0.8;
+      },
+      tabela: function(titulo, cab, linhas, extra){
+        if (titulo) f.h2(titulo);
+        if (!linhas || !linhas.length){ f.linha('Sem registos.'); return; }
+        if (typeof d.autoTable !== 'function' && !(window.jspdf && typeof window.jspdf.autoTable === 'function')){
+          st.y = tabela(d, st.y, cab, cab.map(function(){ return 1; }), linhas); return;
+        }
+        var o = { startY: st.y, head: [cab], body: linhas };
+        if (extra) Object.keys(extra).forEach(function(k){ o[k] = extra[k]; });
+        st.y = autoTable(d, o) + 1;
+      },
+      imagem: function(img, tipo, w, h, x){
+        q(h + 4); try{ d.addImage(img, tipo || 'PNG', x == null ? g.M : x, st.y, w, h); }catch(e){}
+        st.y += h + 4;
+      },
+      espaco: function(v){ st.y += v || 3; }
+    };
+    return f;
+  }
+
   window.ZeloPDF = {
+    fluxo: fluxo,
     SERVICO: SERVICO, LOGO: LOGO, cores: { NAVY: NAVY, NAVY3: NAVY3, CYAN: CYAN, CINZA: CINZA, LINHA: LINHA, PRETO: PRETO, FUNDO: FUNDO },
     novo: novo, criar: criar, cabecalho: cabecalho, cabecalhoCompacto: cabecalhoCompacto, rodape: rodape, quebra: quebra, secao: secao,
     barra: barra, padronizar: padronizar, rodapeCompacto: rodapeCompacto,

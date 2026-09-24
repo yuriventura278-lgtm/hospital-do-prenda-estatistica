@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-AO" data-theme="light">
 <head>
+<script src="zelo_pdf.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='sistemas_independentes';</script>
 <script>window.ZELO_ITEM='bloco_operatorio_ficha_operatoria';</script>
@@ -45,6 +46,7 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"></noscript>
 <link rel="stylesheet" href="zelo_tokens.css">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ===== Tokens ZELO ─ consumidos de zelo_tokens.css =====
@@ -2099,25 +2101,15 @@ async function exportPDF(alvo){
   if(!alvo) syncFormToRecord();
   const R = alvo || currentRecord;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:"pt", format:"a4"});
-  const marginL = 40; let y = 40; const pageH = 800;
+  const Z = window.ZeloPDF;
+  const doc = Z.novo();
+  const F = Z.fluxo(doc, Z.cabecalho(doc, 'Bloco Operatório — Ficha Operatória', 'Ficha Operatória Unificada & Checklist de Cirurgia Segura · ' + (R.nome||'—') + ' · Processo ' + (R.processo||'—')));
   const simnao = {sim:"Sim", nao:"Não"}, nasn = {na:"N.A", s:"S", n:"N"}, facdif = {facil:"Fácil", dificil:"Difícil"};
-  function checkBreak(extra){ if(y> pageH - (extra||20)){ doc.addPage(); y=40; } }
-  function h1(txt){ checkBreak(30); doc.setFontSize(13); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94); doc.text(txt, marginL, y); y+=18; doc.setDrawColor(62,92,135); doc.setLineWidth(1.2); doc.line(marginL,y-12,555,y-12); doc.setTextColor(0,0,0); }
-  function h2(txt){ checkBreak(20); doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.setTextColor(31,47,69); doc.text(txt, marginL, y); y+=14; doc.setTextColor(0,0,0); }
-  function line(txt){ checkBreak(14); doc.setFontSize(9.5); doc.setFont(undefined,'normal'); const split=doc.splitTextToSize(txt,515); split.forEach(s=>{ checkBreak(12); doc.text(s, marginL, y); y+=12; }); }
-  function pair(label,val){ line(`${label}: ${val || "—"}`); }
+  const h1 = F.h1, h2 = F.h2, line = F.linha, pair = F.par;
   function tableSection(title, key, headers){
-    checkBreak(20); doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.setTextColor(31,47,69); doc.text(title, marginL, y); y+=14; doc.setTextColor(0,0,0);
     const rows = R[key]||[];
-    if(rows.length===0){ line("Sem registos."); return; }
-    rows.forEach(r=>{ line(headers.map(([col,lbl])=> `${lbl}: ${r[col]||"—"}`).join("  ·  ")); });
+    F.tabela(title, headers.map(h=>h[1]), rows.map(r=> headers.map(([col])=> r[col]||"—")));
   }
-  doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94);
-  doc.text("HOSPITAL DO PRENDA — Bloco Operatório", marginL, y); y+=18;
-  doc.setFontSize(11); doc.setTextColor(90,90,90); doc.setFont(undefined,'normal');
-  doc.text("Ficha Operatória Unificada & Checklist de Cirurgia Segura", marginL, y); y+=20;
-  doc.setTextColor(0,0,0);
   h1("Identificação e Paciente");
   pair("Nº de Processo / NUP", `${R.processo||"—"} / ${R.nup||"—"}`);
   pair("Data do Anúncio / Data da Operação", `${R.dataAnuncio||"—"} / ${R.dataOperacao||"—"}`);
@@ -2180,13 +2172,13 @@ async function exportPDF(alvo){
       svgParaPng(svgCorpo(R,'verso', {traco:'#666666',fundo:'#FFFFFF',marca:'#1F2F45'}), 260)
     ]);
     if(pngF && pngV){
-      checkBreak(180);
-      doc.setFontSize(8.5); doc.setTextColor(90,90,90);
-      doc.text("Frente", marginL+40, y); doc.text("Verso", marginL+190, y); y+=6;
-      doc.setTextColor(0,0,0);
-      doc.addImage(pngF,'PNG', marginL, y, 105, 166);
-      doc.addImage(pngV,'PNG', marginL+150, y, 105, 166);
-      y += 174;
+      F.y = Z.quebra(doc, F.y, 70);
+      doc.setFontSize(10); doc.setTextColor(71,85,105);
+      doc.text("Frente", 14+14, F.y); doc.text("Verso", 14+67, F.y); F.y += 2;
+      doc.setTextColor(15,23,42);
+      doc.addImage(pngF,'PNG', 14, F.y, 37, 58.5);
+      doc.addImage(pngV,'PNG', 14+53, F.y, 37, 58.5);
+      F.y += 63;
     }
   }
   tableSection("Material Especial","material",[["designacao","Designação"],["qtd","Qtd"],["autorizacao","Autorização"],["complemento","Complemento"],["materialAtendido","Material Atendido"]]);
@@ -2233,6 +2225,7 @@ async function exportPDF(alvo){
   pair("Nome do Médico (informe)", R.medicoInforme);
   h1("Achados Operatórios"); line(R.achadosOperatorios || "—");
   h1("Descrição da Operação"); line(R.descricaoOperacao || "—");
+  Z.rodape(doc);
   const fname = `BO_${(R.nome||"paciente").replace(/[^a-zA-Z0-9]+/g,"_")}_${(R.nup||R.processo||"")}.pdf`;
   doc.save(fname);
 }
@@ -2244,24 +2237,16 @@ async function exportReportPDF(){
   const filtered = filterByPeriod(all);
   const { from, to } = periodBounds();
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:"pt", format:"a4"});
-  const marginL = 40; let y = 40;
-  function checkBreak(extra){ if(y> 800-(extra||20)){ doc.addPage(); y=40; } }
-  function h1(txt){ checkBreak(30); doc.setFontSize(13); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94); doc.text(txt, marginL, y); y+=18; doc.setDrawColor(62,92,135); doc.setLineWidth(1.2); doc.line(marginL,y-12,555,y-12); doc.setTextColor(0,0,0); }
-  function line(txt){ checkBreak(14); doc.setFontSize(9.5); doc.setFont(undefined,'normal'); const split=doc.splitTextToSize(txt,515); split.forEach(s=>{ checkBreak(12); doc.text(s, marginL, y); y+=12; }); }
-  function pair(label,val){ line(`${label}: ${val || "—"}`); }
+  const Z = window.ZeloPDF;
+  const doc = Z.novo();
+  const periodLabel0 = {hoje:"Hoje", semana:"Esta Semana", mes:"Este Mês", ano:"Este Ano", tudo:"Todos os Registos", custom:"Personalizado"}[currentPeriod] || currentPeriod;
+  const F = Z.fluxo(doc, Z.cabecalho(doc, 'Bloco Operatório — Relatório Periódico', periodLabel0 + ' · ' + (from||"início") + ' a ' + (to||"hoje") + ' · ' + filtered.length + ' registos'));
+  const h1 = F.h1, line = F.linha, pair = F.par;
   function addChartImage(chartKey, title){
     const chart = charts[chartKey]; if(!chart) return;
-    checkBreak(200); doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.setTextColor(31,47,69);
-    doc.text(title, marginL, y); y+=12; doc.setTextColor(0,0,0);
-    const imgData = chart.toBase64Image();
-    doc.addImage(imgData, 'PNG', marginL, y, 515, 170); y += 184;
+    F.y = Z.quebra(doc, F.y, 80); F.h2(title);
+    F.imagem(chart.toBase64Image(), 'PNG', 182, 60);
   }
-  doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94);
-  doc.text("HOSPITAL DO PRENDA — Bloco Operatório", marginL, y); y+=18;
-  doc.setFontSize(11); doc.setTextColor(90,90,90); doc.setFont(undefined,'normal');
-  doc.text("Relatório Periódico — Painel do Sistema Unificado", marginL, y); y+=20;
-  doc.setTextColor(0,0,0);
   h1("Período do Relatório");
   const periodLabel = {hoje:"Hoje", semana:"Esta Semana", mes:"Este Mês", ano:"Este Ano", tudo:"Todos os Registos", custom:"Personalizado"}[currentPeriod] || currentPeriod;
   pair("Período", periodLabel);
@@ -2280,9 +2265,10 @@ async function exportReportPDF(){
   addChartImage('statusOp', 'Status dos Registos');
   h1("Lista de Registos no Período");
   if(filtered.length===0){ line("Nenhum registo no período seleccionado."); }
-  filtered.sort((a,b)=> (a.dataOperacao||"").localeCompare(b.dataOperacao||"")).forEach(r=>{
-    line(`• ${r.dataOperacao||"sem data"} — ${r.nome||"(sem nome)"} — ${r.operacao||"operação não indicada"} — Cirurgião: ${r.cirurgiao||"—"} — ${r.status==="finalizado"?"Finalizado":"Rascunho"}`);
-  });
+  else F.tabela('', ['Data', 'Paciente', 'Operação', 'Cirurgião', 'Estado'],
+    filtered.slice().sort((a,b)=> (a.dataOperacao||"").localeCompare(b.dataOperacao||"")).map(r=>[
+      r.dataOperacao||"sem data", r.nome||"(sem nome)", r.operacao||"operação não indicada", r.cirurgiao||"—", r.status==="finalizado"?"Finalizado":"Rascunho"]));
+  Z.rodape(doc);
   doc.save(`Relatorio_BO_${periodLabel.replace(/\s+/g,"_")}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 document.getElementById('exportReportPdfBtn').addEventListener('click', exportReportPDF);
@@ -2340,23 +2326,16 @@ window.ZBK_gerarPDF = async function(cadencia, periodoRefISO){
   if(!(window.jspdf && window.jspdf.jsPDF)) throw new Error('Biblioteca de PDF indisponível (sem ligação ao CDN).');
   const { de, ate, registos } = await _registosDoPeriodo(cadencia, periodoRefISO);
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:'pt', format:'a4'});
-  const marginL = 40; let y = 40;
-  function quebra(extra){ if(y > 800-(extra||20)){ doc.addPage(); y = 40; } }
-  function linha(txt){ quebra(14); doc.setFontSize(9.5); doc.setFont(undefined,'normal');
-    doc.splitTextToSize(txt, 515).forEach(s=>{ quebra(12); doc.text(s, marginL, y); y += 12; }); }
-  doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.setTextColor(43,65,94);
-  doc.text('HOSPITAL DO PRENDA — Bloco Operatório', marginL, y); y += 18;
-  doc.setFontSize(11); doc.setFont(undefined,'normal'); doc.setTextColor(90,90,90);
-  doc.text(`Ficha Operatória — backup ${cadencia} (${de} a ${ate})`, marginL, y); y += 22;
-  doc.setTextColor(0,0,0);
-  linha(`Total de registos no período: ${registos.length}`);
-  linha(`Gerado em: ${new Date().toLocaleString('pt-PT')}`); y += 6;
-  registos.sort((a,b)=> (a.dataOperacao||'').localeCompare(b.dataOperacao||'')).forEach(r=>{
-    linha(`• ${r.dataOperacao||'sem data'} — ${r.nome||'(sem nome)'} — ${r.operacao||r.procedimentoCirurgico||'operação não indicada'}`);
-    linha(`   Processo ${r.processo||'—'} · Cirurgião: ${r.cirurgiao||'—'} · Anestesista: ${r.anestesista||'—'} · ${r.status==='finalizado'?'Finalizado':'Rascunho'}`);
-  });
-  if(!registos.length) linha('Nenhum registo neste período.');
+  const Z = window.ZeloPDF;
+  const doc = Z.novo();
+  const F = Z.fluxo(doc, Z.cabecalho(doc, 'Bloco Operatório — Ficha Operatória (backup ' + cadencia + ')', de + ' a ' + ate + ' · ' + registos.length + ' registos'));
+  F.h1('Registos do período');
+  if(!registos.length) F.linha('Nenhum registo neste período.');
+  else F.tabela('', ['Data', 'Paciente', 'Operação', 'Processo', 'Cirurgião', 'Anestesista', 'Estado'],
+    registos.slice().sort((a,b)=> (a.dataOperacao||'').localeCompare(b.dataOperacao||'')).map(r=>[
+      r.dataOperacao||'sem data', r.nome||'(sem nome)', r.operacao||r.procedimentoCirurgico||'operação não indicada',
+      r.processo||'—', r.cirurgiao||'—', r.anestesista||'—', r.status==='finalizado'?'Finalizado':'Rascunho']));
+  Z.rodape(doc);
   return { nome: `bloco_operatorio_ficha_${cadencia}_${de}_a_${ate}.pdf`, blob: doc.output('blob') };
 };
 
