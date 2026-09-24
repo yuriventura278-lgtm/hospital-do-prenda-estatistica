@@ -60,7 +60,8 @@ const SERVICOS_MENU = [
       { label: 'Movimento — Cuidados Intermédios', file: 'uci_intermedio_movimento.html', modulo: 'movimento_mensal', item: 'uci_intermedio' },
     ] },
   { nome: 'Banco de Urgência', categoria: 'urgencia', icon: 'shield', cor: '#059669',
-    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_banco_urgencia.html', modulo: 'procedimentos_enfermagem', item: 'banco_urgencia' }] },
+    procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_banco_urgencia.html', modulo: 'procedimentos_enfermagem', item: 'banco_urgencia' }],
+    movimento: [{ label: 'Movimento do Banco de Urgência', file: 'banco_urgencia.html', modulo: 'movimento_mensal', item: 'banco_urgencia' }] },
   { nome: 'Bloco Operatório', categoria: 'bloco_operatorio', icon: 'scissors', cor: '#B91C1C',
     relatorios: [
       // oculto a pedido: { label: 'Relatório Diário', file: 'Bloco_Operatorio.html', modulo: 'servicos', item: 'bloco_operatorio' } — sistema antigo do "banco", descomentar para restaurar
@@ -111,6 +112,10 @@ const SERVICOS_MENU = [
     relatorios: [{ label: 'Relatório Diário', file: 'Supervisao_Serviclean.html', modulo: 'servicos', item: 'supervisao_serviclean' }] },
   { nome: 'Supervisão de Maqueiros', categoria: 'supervisao', icon: 'move', cor: '#334155', wip: true,
     relatorios: [{ label: 'Relatório Diário', file: 'Supervisao_Maqueiros.html', modulo: 'servicos', item: 'supervisao_maqueiros' }] },
+  { nome: 'Secretaria Geral', categoria: 'secretaria_geral', icon: 'clipboard', cor: '#1E3A8A',
+    relatorios: [{ label: 'Secretaria Geral', file: 'secretaria_geral.html', modulo: 'sistemas_independentes', item: 'secretaria_geral' }] },
+  { nome: 'Reprografia', categoria: 'reprografia', icon: 'printer', cor: '#1F5FA8',
+    relatorios: [{ label: 'Controlo de Formulários Impressos', file: 'reprografia.html', modulo: 'sistemas_independentes', item: 'reprografia' }] },
 ];
 
 // Categorias usadas para agrupar SERVICOS_MENU — partilhadas entre
@@ -151,6 +156,10 @@ const CATEGORIAS_SERVICOS = [
     icon: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>' },
   { id: 'supervisao', label: 'Supervisão',
     icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>' },
+  { id: 'secretaria_geral', label: 'Secretaria Geral',
+    icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>' },
+  { id: 'reprografia', label: 'Reprografia',
+    icon: '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>' },
   { id: 'outros', label: 'Outros',
     icon: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/>' },
 ];
@@ -162,9 +171,8 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
   { nome: 'Dias-Cama & Dias-Doente', file: 'dias_cama_doente.html', modulo: 'sistemas_independentes', item: 'dias_cama_doente' },
   { nome: 'Registo VIH · Geral', file: 'registo_hiv.html', modulo: 'sistemas_independentes', item: 'registo_hiv' },
-  // destaque: true — em vez de ficar dentro da árvore "Sistemas Locais" nos
-  // menus, aparece como atalho próprio no topo, antes da Estatística.
-  { nome: 'Secretaria Geral', file: 'secretaria_geral.html', modulo: 'sistemas_independentes', item: 'secretaria_geral', destaque: true },
+  // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),
+  // cada uma com a sua entrada, a seguir à Supervisão.
 ];
 
 // Agrupa os serviços de uma categoria para os menus em árvore: serviços com
