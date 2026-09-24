@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-AO">
 <head>
+<script src="zelo_pdf.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>window.ZELO_MODULE='sistemas_independentes';</script>
 <script>window.ZELO_SO_ADMIN=true; // Serviço de Estatística — só administradores</script>
@@ -13,7 +14,7 @@
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Controlo de Faltas · GEPE/DEMA · Hospital do Prenda</title>
+<title>Controlo de Faltas · Hospital do Prenda</title>
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <style>
   :root{
@@ -266,7 +267,7 @@
 <div id="splash">
   <img class="mark" src="icons/logo.png" alt="ZELO">
   <div class="t1">Hospital do Prenda</div>
-  <div class="t2">Controlo de Faltas · GEPE/DEMA</div>
+  <div class="t2">Controlo de Faltas</div>
 </div>
 
 <header class="top">
@@ -274,7 +275,7 @@
     <img class="logo" src="icons/logo.png" alt="ZELO">
     <div>
       <h1>Controlo de Faltas</h1>
-      <p>GEPE/DEMA · Departamento de Estatística Médica</p>
+      <p>Serviço de Admissão e Arquivo Médico Estatístico</p>
     </div>
   </div>
   <div class="hint">Toque num dia do calendário para registar quem faltou. Tudo fica guardado automaticamente, sem precisar de internet.</div>
@@ -1410,137 +1411,40 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
       showToast("Erro ao carregar gerador de PDF");
       return;
     }
-    var jsPDF = window.jspdf.jsPDF;
-    var doc = new jsPDF({unit:"pt", format:"a4"});
-    var pageW = doc.internal.pageSize.getWidth();
-    var marginX = 40;
-    var y = 46;
-
-    // Cabeçalho institucional
-    doc.setFillColor(15,41,66); // navy
-    doc.roundedRect(marginX, y-24, pageW-2*marginX, 54, 8, 8, "F");
-    var _logo = _zeloLogoDataURL();
-    if(_logo){ try{ doc.addImage(_logo,"PNG", pageW-marginX-14-38, y-24+7, 38, 38); }catch(e){} }
-    doc.setTextColor(255,255,255);
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(13);
-    doc.text("HOSPITAL DO PRENDA", marginX+14, y-2);
-    doc.setFontSize(9.5);
-    doc.setFont("helvetica","normal");
-    doc.text("GEPE/DEMA — Departamento de Estatística e Admissão Médica", marginX+14, y+13);
-
-    y += 50;
-    doc.setTextColor(15,41,66);
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(14);
-    doc.text("Relatório Mensal de Controlo de Faltas", marginX, y);
-    y += 16;
-    doc.setFont("helvetica","normal");
-    doc.setFontSize(10.5);
-    doc.setTextColor(90,110,130);
-    doc.text(MESES[state.month] + " de " + state.year, marginX, y);
-    doc.text("Emitido em: " + new Date().toLocaleDateString("pt-PT"), pageW-marginX, y, {align:"right"});
-    y += 20;
-
-    // Tabela resumo por funcionário
-    doc.setDrawColor(221,230,237);
-    doc.setFillColor(6,182,212);
-    doc.roundedRect(marginX, y, pageW-2*marginX, 22, 4, 4, "F");
-    doc.setTextColor(255,255,255);
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(9.5);
-    doc.text("FUNCIONÁRIO", marginX+10, y+15);
-    doc.text("CARGO", marginX+190, y+15);
-    doc.text("DIAS DE FALTA", pageW-marginX-10, y+15, {align:"right"});
-    y += 22;
+    var Z = window.ZeloPDF;
+    var doc = Z.novo();
+    var y = Z.cabecalho(doc, "Controlo de Faltas — Relatório Mensal", MESES[state.month] + " de " + state.year);
 
     var totalGeral = 0;
-    var detalhes = []; // {emp, dias:[{data,obs}]}
-
-    EMPREGADOS.forEach(function(emp, idx){
+    var detalhes = [];
+    var linhas = EMPREGADOS.map(function(emp){
       var dias = [];
       Object.keys(state.faltas).sort().forEach(function(key){
         if(!key.startsWith(state.year+"-"+pad(state.month+1))) return;
-        if(state.faltas[key][emp.id]){
-          dias.push({data:key, obs:state.faltas[key][emp.id].observacao||""});
-        }
+        if(state.faltas[key][emp.id]) dias.push({data:key, obs:state.faltas[key][emp.id].observacao||""});
       });
       totalGeral += dias.length;
       detalhes.push({emp:emp, dias:dias});
-
-      var rowH = 20;
-      doc.setFillColor(idx%2===0 ? 248 : 255, idx%2===0 ? 250 : 255, idx%2===0 ? 252 : 255);
-      doc.rect(marginX, y, pageW-2*marginX, rowH, "F");
-      doc.setTextColor(15,41,66);
-      doc.setFont("helvetica","bold");
-      doc.setFontSize(9.5);
-      doc.text(emp.nome, marginX+10, y+14);
-      doc.setFont("helvetica","normal");
-      doc.setTextColor(90,110,130);
-      doc.text(emp.cargo, marginX+190, y+14);
-      doc.setFont("helvetica","bold");
-      doc.setTextColor(224,82,74);
-      doc.text(String(dias.length), pageW-marginX-10, y+14, {align:"right"});
-      y += rowH;
+      return [emp.nome, emp.cargo, String(dias.length)];
     });
+    linhas.push(["TOTAL", "", String(totalGeral)]);
 
-    y += 8;
-    doc.setDrawColor(221,230,237);
-    doc.line(marginX, y, pageW-marginX, y);
-    y += 16;
-    doc.setFont("helvetica","bold");
-    doc.setTextColor(15,41,66);
-    doc.setFontSize(10);
-    doc.text("Total de faltas registadas no mês: " + totalGeral, marginX, y);
-    y += 26;
+    y = Z.secao(doc, y, "1. Resumo por funcionário");
+    y = Z.tabela(doc, y, ["Funcionário","Cargo","Dias de falta"], [45,35,20], linhas);
 
-    // Detalhe por funcionário (datas + observações)
+    var corpo = [];
     detalhes.forEach(function(item){
-      if(item.dias.length === 0) return;
-
-      if(y > 720){ doc.addPage(); y = 46; }
-
-      doc.setFillColor(15,41,66);
-      doc.roundedRect(marginX, y, pageW-2*marginX, 20, 4, 4, "F");
-      doc.setTextColor(255,255,255);
-      doc.setFont("helvetica","bold");
-      doc.setFontSize(9.5);
-      doc.text(item.emp.nome.toUpperCase(), marginX+10, y+14);
-      y += 28;
-
       item.dias.forEach(function(d){
-        if(y > 740){ doc.addPage(); y = 46; }
         var dObj = new Date(d.data+"T00:00:00");
-        var dataFmt = pad(dObj.getDate())+"/"+pad(dObj.getMonth()+1)+"/"+dObj.getFullYear();
-
-        doc.setFont("helvetica","bold");
-        doc.setFontSize(9.5);
-        doc.setTextColor(15,41,66);
-        doc.text("• " + dataFmt, marginX+10, y);
-
-        if(d.obs && d.obs.trim().length>0){
-          doc.setFont("helvetica","italic");
-          doc.setFontSize(9);
-          doc.setTextColor(90,110,130);
-          var lines = doc.splitTextToSize(d.obs, pageW-2*marginX-100);
-          doc.text(lines, marginX+90, y);
-          y += (lines.length-1)*11;
-        }
-        y += 16;
+        corpo.push([item.emp.nome, pad(dObj.getDate())+"/"+pad(dObj.getMonth()+1)+"/"+dObj.getFullYear(), (d.obs||"").trim() || "—"]);
       });
-      y += 8;
     });
-
-    // Rodapé
-    var pageCount = doc.internal.getNumberOfPages();
-    for(var p=1;p<=pageCount;p++){
-      doc.setPage(p);
-      doc.setFont("helvetica","normal");
-      doc.setFontSize(8);
-      doc.setTextColor(150,165,180);
-      doc.text("Hospital do Prenda · GEPE/DEMA · Controlo de Faltas", marginX, 810);
-      doc.text("Pág. "+p+"/"+pageCount, pageW-marginX, 810, {align:"right"});
+    if(corpo.length){
+      y = Z.secao(doc, y, "2. Detalhe das faltas (datas e observações)");
+      y = Z.tabela(doc, y, ["Funcionário","Data","Observação"], [35,18,47], corpo);
     }
+
+    Z.rodape(doc);
 
     var nomeFicheiro = "faltas-" + MESES[state.month].toLowerCase() + "-" + state.year + ".pdf";
     doc.save(nomeFicheiro);
