@@ -288,6 +288,8 @@
       if (!opts.styles || opts.styles.cellPadding == null) o.styles.cellPadding = 2;
       o.headStyles = juntar(opts.headStyles, { fillColor: NAVY, textColor: '#FFFFFF', fontStyle: 'bold', fontSize: tam });
       o.alternateRowStyles = juntar(opts.alternateRowStyles, { fillColor: FUNDO });
+      // Uma linha nunca fica partida entre duas páginas.
+      if (o.rowPageBreak == null) o.rowPageBreak = 'avoid';
       var mg = opts.margin || {};
       o.margin = juntar({ top: TOPO_CONTINUACAO, bottom: 21 }, typeof mg === 'number' ? { left: mg, right: mg } : mg);
       if (!denso && o.margin.bottom < 21) o.margin.bottom = 21;
