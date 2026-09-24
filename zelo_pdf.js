@@ -27,7 +27,7 @@
     return { W: W, H: H, M: 14, CW: W - 28, FIM: H - 21 };
   }
   // O tipo de letra do PDF não tem "≥"/"≤" (saíam estragados).
-  function limpar(t){ return String(t == null ? '' : t).replace(/≥\s*/g, '>= ').replace(/≤\s*/g, '<= ').replace(/[‐-–]/g, '-'); }
+  function limpar(t){ return String(t == null ? '' : t).replace(/≥\s*/g, '>= ').replace(/≤\s*/g, '<= ').replace(/[\u2010-\u2013]/g, '-').replace(/[+-]?\s*∞\s*%?/g, 'n/d'); }
   function autorAtual(){
     try{ var n = sessionStorage.getItem('zeloNome') || sessionStorage.getItem('zeloEmail'); return n ? 'Documento exportado por: ' + n : ''; }
     catch(e){ return ''; }
@@ -309,7 +309,12 @@
         var cs = opts.columnStyles && (opts.columnStyles[data.column.index] || opts.columnStyles[data.column.dataKey]);
         var largura = cs && typeof cs.cellWidth === 'number' ? cs.cellWidth : null;
         if (largura){
-          var pad = 4.4, fs = data.cell.styles.fontSize || tam;
+          var cp = data.cell.styles.cellPadding, pad;
+          if (typeof cp === 'number') pad = cp * 2;
+          else if (cp && typeof cp === 'object') pad = (cp.left != null ? cp.left : (cp.horizontal || 0)) + (cp.right != null ? cp.right : (cp.horizontal || 0));
+          else pad = 4;
+          pad += 0.6;
+          var fs = data.cell.styles.fontSize || tam;
           d.setFont('helvetica', data.cell.styles.fontStyle === 'bold' || data.section === 'head' ? 'bold' : 'normal');
           var palavras = [].concat(data.cell.text || []).join(' ').split(/\s+/);
           d.setFontSize(fs);
@@ -353,6 +358,15 @@
     novo: novo, criar: criar, cabecalho: cabecalho, cabecalhoCompacto: cabecalhoCompacto, rodape: rodape, quebra: quebra, secao: secao,
     barra: barra, padronizar: padronizar, rodapeCompacto: rodapeCompacto,
     indicadores: indicadores, tabela: tabela, texto: texto, autoTable: autoTable, opcoesAutoTable: opcoesAutoTable,
-    limpar: limpar, TOPO_CONTINUACAO: TOPO_CONTINUACAO
+    limpar: limpar, TOPO_CONTINUACAO: TOPO_CONTINUACAO,
+    // "REGISTO DIÁRIO DE EXAMES" → "Registo Diário de Exames"
+    capitalizar: function(t){
+      var pequenas = { de:1, da:1, do:1, das:1, dos:1, e:1, a:1, o:1, em:1, por:1, para:1, com:1, vs:1 };
+      return String(t == null ? '' : t).toLowerCase().split(/(\s+)/).map(function(w, i){
+        if (!w.trim()) return w;
+        if (i > 0 && pequenas[w]) return w;
+        return w.charAt(0).toUpperCase() + w.slice(1);
+      }).join('');
+    }
   };
 })();
