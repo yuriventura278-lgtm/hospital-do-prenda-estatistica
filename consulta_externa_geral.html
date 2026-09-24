@@ -2753,23 +2753,6 @@ CE.Registo = (function(){
       }, 150);
     });
   }
-  function _fbMostrarAvisoNovosDados(data, sessoesRemotas){
-    if (document.getElementById('fb-novos-dados-banner')) return;
-    var banner = document.createElement('div');
-    banner.id = 'fb-novos-dados-banner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999998;background:#3E5C87;color:#fff;text-align:center;font-family:Inter,Arial,sans-serif;font-size:.82rem;font-weight:600;padding:10px 14px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;';
-    banner.innerHTML = '<span>🔄 Outro utilizador guardou dados mais recentes para este dia.</span>' +
-      '<button type="button" data-act="atualizar" style="background:#fff;color:#3E5C87;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.8rem;">Atualizar página</button>' +
-      '<button type="button" data-act="dispensar" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:6px 14px;font-weight:600;cursor:pointer;font-family:inherit;font-size:.8rem;">Agora não</button>';
-    banner.querySelector('[data-act="atualizar"]').onclick = function(){
-      banner.remove();
-      _fbAplicarSessoesRemotas(data, sessoesRemotas).then(function(){
-        toast('Dados atualizados com a versão mais recente.');
-      }).catch(function(e){ console.warn('ZELO: falha ao aplicar dados remotos da Consulta Externa.', e); });
-    };
-    banner.querySelector('[data-act="dispensar"]').onclick = function(){ banner.remove(); };
-    document.body.insertBefore(banner, document.body.firstChild);
-  }
   async function _fbEscutarDia(data){
     if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
     var banner = document.getElementById('fb-novos-dados-banner');
@@ -2784,15 +2767,19 @@ CE.Registo = (function(){
       var sessoesRemotas = remoto && remoto.snapshot && remoto.snapshot.sessoes;
       if (!savedAt || !sessoesRemotas){ primeira = false; return; }
       if (savedAt === _fbBaselineSavedAt[data]){ primeira = false; return; }
-      if (primeira){
-        primeira = false;
-        if (data !== (document.getElementById('f-data') && document.getElementById('f-data').value)) return;
-        if (localStorage.getItem(DRAFT_KEY)) return; // rascunho por guardar — nunca sobrescrever em silêncio
-        _fbBaselineSavedAt[data] = savedAt;
-        _fbAplicarSessoesRemotas(data, sessoesRemotas).catch(function(e){ console.warn('ZELO: falha ao aplicar dados remotos da Consulta Externa.', e); });
-        return;
-      }
-      _fbMostrarAvisoNovosDados(data, sessoesRemotas);
+      primeira = false;
+      if (data !== (document.getElementById('f-data') && document.getElementById('f-data').value)) return;
+      if (localStorage.getItem(DRAFT_KEY)) return; // rascunho por guardar — nunca sobrescrever em silêncio
+      _fbBaselineSavedAt[data] = savedAt;
+      // Cada especialidade tem sempre UMA sessão por dia (chave natural
+      // especialidade+data) — _fbAplicarSessoesRemotas já mescla ao nível da
+      // sessão, substituindo só a(s) especialidade(s) que mudaram e mantendo
+      // as restantes sessões do dia intactas. Aplica-se sempre de imediato,
+      // sem aviso (a pedido: sincronização automática entre utilizadores em
+      // simultâneo, sem notificações a interromper), tanto na primeira
+      // leitura do dia como em qualquer gravação seguinte enquanto o dia
+      // continua aberto.
+      _fbAplicarSessoesRemotas(data, sessoesRemotas).catch(function(e){ console.warn('ZELO: falha ao aplicar dados remotos da Consulta Externa.', e); });
     });
   }
 
