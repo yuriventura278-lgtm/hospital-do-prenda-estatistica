@@ -678,18 +678,48 @@
   function escolherVoz(idioma, vozes){
     var manual = vozEscolhidaManualmente(vozes);
     if (manual) return manual;
-    var doIdioma = vozes.filter(function (v) { return v.lang === idioma; });
-    if (!doIdioma.length) doIdioma = vozes.filter(function (v) { return /pt/i.test(v.lang); });
-    if (!doIdioma.length) return null;
-    return doIdioma.find(ehVozMasculina) || doIdioma[0];
+    // Vozes em português, da melhor para a pior: as vozes "naturais"/neurais
+    // (Edge "Online (Natural)", Google, "Premium"/"Enhanced" no iPhone/Mac)
+    // pronunciam muito melhor do que as vozes básicas do sistema.
+    var pt = vozes.filter(function (v) { return /^pt/i.test(v.lang || ''); });
+    if (!pt.length) return null;
+    function nota(v) {
+      var n = 0, nome = v.name || '';
+      if ((v.lang || '').replace('_', '-').toLowerCase() === idioma.toLowerCase()) n += 20;
+      if (/natural|neural|online|premium|enhanced|melhorad/i.test(nome)) n += 12;
+      if (/google/i.test(nome)) n += 8;
+      if (ehVozMasculina(v)) n += 3;
+      if (/compact|espeak|robot/i.test(nome)) n -= 10;
+      return n;
+    }
+    return pt.slice().sort(function (a, b) { return nota(b) - nota(a); })[0];
   }
   // Fala calma e bem pronunciada: o texto é dividido em frases curtas, cada
   // uma dita por inteiro e com uma pequena pausa entre elas. Frases longas
   // numa só leitura eram cortadas por alguns navegadores (o Chrome pára a
   // meio ao fim de ~15 s) e soavam apressadas.
-  var VELOCIDADE_FALA = 0.86;
+  var VELOCIDADE_FALA = 0.82;
+  var MESES_FALA = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  // Siglas ditas letra a letra (senão a voz tenta lê-las como palavras).
+  var SIGLAS_FALA = { UCI: 'U C I', PDF: 'P D F', NUP: 'N U P', VIH: 'V I H', HIV: 'H I V', HP: 'H P', RH: 'R H', TAC: 'T A C', RX: 'R X', ECG: 'E C G', GEPE: 'G E P E', DEMA: 'D E M A', ID: 'I D' };
+  function _horaFalada(h, m){
+    h = parseInt(h, 10); m = parseInt(m, 10);
+    var hs = h === 1 ? 'uma hora' : (h === 0 ? 'zero horas' : h + ' horas');
+    return m ? hs + ' e ' + m + (m === 1 ? ' minuto' : ' minutos') : hs;
+  }
   function _prepararTexto(texto){
     return String(texto || '')
+      // datas: 25/09/2026 → 25 de setembro de 2026; 25/09 → 25 de setembro
+      .replace(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/g, function (x, d, m, a) { return +m >= 1 && +m <= 12 ? (+d) + ' de ' + MESES_FALA[+m - 1] + ' de ' + a : x; })
+      .replace(/\b(\d{1,2})\/(\d{1,2})\b/g, function (x, d, m) { return +m >= 1 && +m <= 12 && +d <= 31 ? (+d) + ' de ' + MESES_FALA[+m - 1] : x; })
+      // horas: 05:20 → 5 horas e 20 minutos
+      .replace(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g, function (x, h, m) { return _horaFalada(h, m); })
+      // percentagens e decimais: 67,6% → 67 vírgula 6 por cento
+      .replace(/(\d+),(\d+)\s?%/g, '$1 vírgula $2 por cento').replace(/(\d+)\s?%/g, '$1 por cento')
+      .replace(/(\d+),(\d+)/g, '$1 vírgula $2')
+      .replace(/\b([A-Z]{2,4})\b/g, function (x) { return SIGLAS_FALA[x] || x; })
+      .replace(/\bZELO\b/g, 'Zelo')
+      .replace(/\s*[·|]\s*/g, ', ')
       .replace(/[•\n]+/g, '. ')
       .replace(/\s+—\s+/g, ', ')
       .replace(/\bEnf\.\s/g, '')
@@ -703,9 +733,9 @@
     var out = [];
     partes.forEach(function (f) {
       f = f.trim(); if (!f) return;
-      // frases ainda muito longas: divide nas vírgulas, sem partir palavras
-      while (f.length > 170) {
-        var corte = f.lastIndexOf(',', 170);
+      // frases longas: divide nas vírgulas (pausa breve), sem partir palavras
+      while (f.length > 110) {
+        var corte = f.lastIndexOf(',', 110);
         if (corte < 40) corte = f.lastIndexOf(' ', 170);
         if (corte < 40) break;
         out.push(f.slice(0, corte + 1).trim()); f = f.slice(corte + 1).trim();
@@ -714,11 +744,14 @@
     });
     return out;
   }
-  function _dizer(texto){
+  function _dizer(texto, imediato){
     window.speechSynthesis.cancel();
     var idioma = idiomaVoz();
     var voz = escolherVoz(idioma, window.speechSynthesis.getVoices());
-    _frases(texto).forEach(function (f) {
+    var frases = _frases(texto);
+    // Pequena espera depois de cancelar: alguns navegadores perdiam a
+    // primeira palavra quando a fala nova começava logo a seguir.
+    var falarTudo = function () { frases.forEach(function (f) {
       var u = new SpeechSynthesisUtterance(f);
       u.lang = idioma;
       if (voz) u.voice = voz;
@@ -726,7 +759,8 @@
       u.pitch = 1;
       u.volume = 1;
       window.speechSynthesis.speak(u);
-    });
+    }); };
+    if (imediato) falarTudo(); else setTimeout(falarTudo, 120);
   }
   function falar(texto){
     if (!window.speechSynthesis) return;
@@ -743,7 +777,7 @@
   function falarSincrono(texto){
     if (!window.speechSynthesis) return;
     if ((localStorage.getItem('zeloVoz') || 'on') === 'off') return;
-    try { _dizer(texto); } catch (e) {}
+    try { _dizer(texto, true); } catch (e) {}
   }
 
   // ── Ler em voz dados já visíveis no ecrã ──
