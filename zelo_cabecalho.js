@@ -66,6 +66,13 @@
     if (largo) {
       if (alvo.classList.contains('zelo-footer')) f.classList.add('zelo-footer');
       alvo.parentNode.insertBefore(f, alvo);
+      // Dentro de um contentor com margens interiores: estica até às bordas.
+      var pai = alvo.parentNode;
+      if (pai && pai !== document.body) {
+        var cp = getComputedStyle(pai);
+        var pl = parseFloat(cp.paddingLeft) || 0, pr = parseFloat(cp.paddingRight) || 0;
+        if (pl || pr) { f.style.setProperty('margin-left', -pl + 'px', 'important'); f.style.setProperty('margin-right', -pr + 'px', 'important'); f.style.setProperty('align-self', 'stretch', 'important'); f.style.setProperty('max-width', 'none', 'important'); }
+      }
     } else {
       document.body.appendChild(f);
     }
