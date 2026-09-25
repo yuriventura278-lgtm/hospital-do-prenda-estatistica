@@ -100,6 +100,15 @@
   window.zeloQueueWrite = zeloQueueWrite;
   window.zeloQueueUpdate = zeloQueueUpdate;
   window.zeloPendingCount = zeloPendingCount;
+  // Escritas ainda em fila (gravadas sem internet) cujo caminho começa por
+  // "prefixo" — usado pelo assistente para não dar como em falta um dia que
+  // já foi guardado neste aparelho mas ainda não chegou ao servidor.
+  window.zeloPendingItems = async function (prefixo) {
+    try {
+      const todos = await QUEUE_DB.getAll('pending');
+      return todos.filter(function (i) { return !prefixo || String(i.path).indexOf(prefixo) === 0; });
+    } catch (e) { return []; }
+  };
   window.zeloFlushQueue = zeloFlushQueue;
 
   window.addEventListener('online', function () { zeloFlushQueue(); });

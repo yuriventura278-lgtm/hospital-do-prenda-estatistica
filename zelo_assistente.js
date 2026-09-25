@@ -44,7 +44,7 @@
     try { permissoes = JSON.parse(sessionStorage.getItem('zeloPermissoes') || '{}'); } catch (e) {}
     return {
       role: sessionStorage.getItem('zeloRole') || 'funcionario',
-      nome: (sessionStorage.getItem('zeloNome') || '').split(' ')[0] || '',
+      nome: _doisNomes(sessionStorage.getItem('zeloNome') || ''),
       permissoes: permissoes
     };
   }
@@ -683,19 +683,56 @@
     if (!doIdioma.length) return null;
     return doIdioma.find(ehVozMasculina) || doIdioma[0];
   }
+  // Fala calma e bem pronunciada: o texto é dividido em frases curtas, cada
+  // uma dita por inteiro e com uma pequena pausa entre elas. Frases longas
+  // numa só leitura eram cortadas por alguns navegadores (o Chrome pára a
+  // meio ao fim de ~15 s) e soavam apressadas.
+  var VELOCIDADE_FALA = 0.86;
+  function _prepararTexto(texto){
+    return String(texto || '')
+      .replace(/[•\n]+/g, '. ')
+      .replace(/\s+—\s+/g, ', ')
+      .replace(/\bEnf\.\s/g, '')
+      .replace(/\bDr\.\s/g, 'Doutor ').replace(/\bDra\.\s/g, 'Doutora ')
+      .replace(/\bn\.º\s?/gi, 'número ')
+      .replace(/\(a\)/g, '')
+      .replace(/\s{2,}/g, ' ').trim();
+  }
+  function _frases(texto){
+    var partes = _prepararTexto(texto).match(/[^.!?;:]+[.!?;:]*/g) || [];
+    var out = [];
+    partes.forEach(function (f) {
+      f = f.trim(); if (!f) return;
+      // frases ainda muito longas: divide nas vírgulas, sem partir palavras
+      while (f.length > 170) {
+        var corte = f.lastIndexOf(',', 170);
+        if (corte < 40) corte = f.lastIndexOf(' ', 170);
+        if (corte < 40) break;
+        out.push(f.slice(0, corte + 1).trim()); f = f.slice(corte + 1).trim();
+      }
+      if (f) out.push(f);
+    });
+    return out;
+  }
+  function _dizer(texto){
+    window.speechSynthesis.cancel();
+    var idioma = idiomaVoz();
+    var voz = escolherVoz(idioma, window.speechSynthesis.getVoices());
+    _frases(texto).forEach(function (f) {
+      var u = new SpeechSynthesisUtterance(f);
+      u.lang = idioma;
+      if (voz) u.voice = voz;
+      u.rate = Number(localStorage.getItem('zeloVozVelocidade')) || VELOCIDADE_FALA;
+      u.pitch = 1;
+      u.volume = 1;
+      window.speechSynthesis.speak(u);
+    });
+  }
   function falar(texto){
     if (!window.speechSynthesis) return;
     if ((localStorage.getItem('zeloVoz') || 'on') === 'off') return;
     vozesProntas(function () {
-      try {
-        window.speechSynthesis.cancel();
-        var u = new SpeechSynthesisUtterance(texto.replace(/[•\n]/g, '. '));
-        var idioma = idiomaVoz();
-        u.lang = idioma;
-        var voz = escolherVoz(idioma, window.speechSynthesis.getVoices());
-        if (voz) u.voice = voz;
-        window.speechSynthesis.speak(u);
-      } catch (e) {}
+      try { _dizer(texto); } catch (e) {}
     });
   }
   // Versão sem espera por vozesProntas() — precisa de falar já, de forma
@@ -706,15 +743,7 @@
   function falarSincrono(texto){
     if (!window.speechSynthesis) return;
     if ((localStorage.getItem('zeloVoz') || 'on') === 'off') return;
-    try {
-      window.speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(texto.replace(/[•\n]/g, '. '));
-      var idioma = idiomaVoz();
-      u.lang = idioma;
-      var voz = escolherVoz(idioma, window.speechSynthesis.getVoices());
-      if (voz) u.voice = voz;
-      window.speechSynthesis.speak(u);
-    } catch (e) {}
+    try { _dizer(texto); } catch (e) {}
   }
 
   // ── Ler em voz dados já visíveis no ecrã ──
@@ -886,12 +915,28 @@
   // está a voltar agora — não é a primeira entrada do dia, mas também não faz
   // sentido ficar em silêncio: uma saudação curta de boas-vindas, sem repetir
   // a recomendação (essa já foi dita na primeira entrada de hoje).
-  var BOAS_VINDAS_VOLTA = [
-    'Bem-vindo(a) de volta, NOME!',
-    'Olá de novo, NOME! Que bom ver-te outra vez por aqui hoje.',
-    'De volta, NOME? Sou o Zelo, sempre por perto.',
-    'Olá, NOME — bem-vindo(a) de volta ao ZELO.'
+  // Saudações de regresso, conforme o tempo que a pessoa esteve fora
+  // (última atividade guardada neste aparelho). Frases neutras, sem
+  // "bem-vindo(a)", para soarem naturais em voz alta.
+  var VOLTA_POUCO_TEMPO = [
+    'Que bom ter-te de volta, NOME. Estiveste fora pouco tempo, podes continuar de onde paraste.',
+    'Olá outra vez, NOME. Está tudo como deixaste, continua à vontade.',
+    'De volta, NOME? Ótimo. O Zelo continua aqui contigo.'
   ];
+  var VOLTA_PAUSA = [
+    'SAUDACAO, NOME. Que bom ver-te de volta. Espero que a pausa tenha sido boa.',
+    'SAUDACAO, NOME. De volta ao trabalho? Conta comigo para o que precisares.',
+    'SAUDACAO, NOME. Bom regresso. Vamos continuar com calma e atenção aos registos.'
+  ];
+  var VOLTA_DEPOIS_DE_DIAS = [
+    'Que bom ter-te de volta depois de uns dias.',
+    'Há uns dias que não te via por aqui. Que bom ter-te de volta.',
+    'Bom regresso ao ZELO depois destes dias.'
+  ];
+  function _escolher(lista){ return lista[Math.floor(Math.random() * lista.length)]; }
+  function _chaveAtividade(){ return 'zeloUltimaAtividade_' + (sessionStorage.getItem('zeloEmail') || 'geral'); }
+  function _ultimaAtividade(){ return Number(localStorage.getItem(_chaveAtividade())) || 0; }
+  function _registarAtividade(){ try { if (sessionStorage.getItem('zeloNome')) localStorage.setItem(_chaveAtividade(), String(Date.now())); } catch (e) {} }
   // Nota do Serviço de Estatística, pedida para vir sempre no fim da
   // saudação completa (não na de "bem-vindo de volta", mais curta e que já
   // não repete a recomendação) — texto fixo, por ser uma instrução
@@ -906,22 +951,26 @@
   // simples recarga da mesma página/sessão não repete nada.
   function tentarSaudarEntrada(){
     if (!estaNaPaginaInicial()) return;
-    var nome = _primeiroNome(sessionStorage.getItem('zeloNome') || '');
+    var nome = _doisNomes(sessionStorage.getItem('zeloNome') || '');
     if (!nome) return;
     if (sessionStorage.getItem('zeloSaudacaoSessao')) return;
     sessionStorage.setItem('zeloSaudacaoSessao', '1');
     var agora = dataHoraAngola();
+    var ultima = _ultimaAtividade();
+    var foraMin = ultima ? (Date.now() - ultima) / 60000 : Infinity;
+    _registarAtividade();
     if (localStorage.getItem('zeloSaudacaoDia') === agora.data) {
-      var boasVindas = BOAS_VINDAS_VOLTA[Math.floor(Math.random() * BOAS_VINDAS_VOLTA.length)].replace('NOME', nome);
-      falar(boasVindas);
+      var lista = foraMin < 45 ? VOLTA_POUCO_TEMPO : VOLTA_PAUSA;
+      falar(_escolher(lista).replace('SAUDACAO', saudacaoPorHora(agora.hora)).replace('NOME', nome));
       return;
     }
     localStorage.setItem('zeloSaudacaoDia', agora.data);
+    var regressoDias = foraMin !== Infinity && foraMin > 2 * 24 * 60 ? ' ' + _escolher(VOLTA_DEPOIS_DE_DIAS).replace('NOME', nome) : '';
     var listaAberturas = agora.diaSemana === 'Mon' ? ABERTURAS_ENTRADA_SEGUNDA : ABERTURAS_ENTRADA_DIA;
     var abertura = listaAberturas[Math.floor(Math.random() * listaAberturas.length)];
     var transicao = TRANSICOES_RECOMENDACAO[Math.floor(Math.random() * TRANSICOES_RECOMENDACAO.length)];
     var lembrete = LEMBRETES_SAUDACAO[Math.floor(Math.random() * LEMBRETES_SAUDACAO.length)];
-    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '. ' + abertura + ' ' + transicao + ' ' + lembrete + NOTA_ESTATISTICA;
+    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '.' + regressoDias + ' ' + abertura + ' ' + transicao + ' ' + lembrete + NOTA_ESTATISTICA;
     falar(texto);
   }
   // Exposto para o index.html chamar assim que o login terminar. É preciso
@@ -949,6 +998,19 @@
     if (p.length > 1 && /\.$/.test(p[0])) return p[0] + ' ' + p[1];
     return p[0] || '';
   }
+  // Dois nomes de cada utilizador (primeiro e último — "Ana Silva", e não só
+  // "Ana"); um título abreviado ("Enf.", "Dr.") fica à frente. Partículas
+  // como "da", "de", "dos" nunca ficam sozinhas no fim.
+  function _doisNomes(n){
+    var p = String(n || '').trim().split(/\s+/).filter(Boolean);
+    if (!p.length) return '';
+    var titulo = '';
+    if (p.length > 1 && /\.$/.test(p[0])) titulo = p.shift() + ' ';
+    var primeiro = p[0];
+    var resto = p.slice(1).filter(function (x) { return !/^(da|de|do|das|dos|e)$/i.test(x); });
+    return titulo + primeiro + (resto.length ? ' ' + resto[resto.length - 1] : '');
+  }
+  window.zeloDoisNomes = _doisNomes;
   // ── Aviso de preenchimento em falta ──
   // Cada página com este aviso diz como encontrar os seus próprios dados no
   // Firebase (window.ZELO_MODULE/ZELO_ITEM, já definidos no topo de cada
@@ -997,7 +1059,7 @@
     if (window.ZELO_MODULE === 'procedimentos_enfermagem' && window.ZELO_ITEM) {
       return {
         fbPathBase: 'registos_enf/' + window.ZELO_ITEM,
-        servicoLabel: 'Procedimentos de Enfermagem de ' + labelEspecialidadeEnfermagem(window.ZELO_ITEM),
+        servicoLabel: window.ZELO_ITEM === 'geral' ? 'Procedimentos de Enfermagem' : 'Procedimentos de Enfermagem de ' + labelEspecialidadeEnfermagem(window.ZELO_ITEM),
         itemPlural: 'procedimentos',
         chaveAviso: 'enf_' + window.ZELO_ITEM
       };
@@ -1005,13 +1067,25 @@
     // Movimento Hospitalar: os dias preenchidos vêm dos dados deste aparelho
     // (zeloDiasComRegistoLocal, em zelo_movimento_grelha.js); o nó do
     // Firebase guarda o mês inteiro de uma vez, sem chaves por dia.
-    if (window.ZELO_MODULE === 'movimento_mensal' && window.ZELO_ITEM && window.ZELO_ITEM !== 'banco_urgencia' &&
-        typeof window.zeloDiasComRegistoLocal === 'function') {
+    if (window.ZELO_MODULE === 'movimento_mensal' && window.ZELO_ITEM && window.ZELO_ITEM !== 'banco_urgencia') {
       return {
-        fbPathBase: 'registos_movimento/' + window.ZELO_ITEM + '/__sem_dias',
+        movimento: true,
+        fbPathBase: 'registos_movimento/' + window.ZELO_ITEM,
         servicoLabel: 'Movimento Hospitalar de ' + labelMovimento(window.ZELO_ITEM),
         itemPlural: 'registos',
         chaveAviso: 'mov_' + window.ZELO_ITEM
+      };
+    }
+    // Movimento do Banco de Urgência: registos independentes (um por fecho de
+    // turno, pequena cirurgia…), cada um com a sua data — um dia conta como
+    // preenchido quando tem pelo menos um registo não eliminado.
+    if (window.ZELO_MODULE === 'movimento_mensal' && window.ZELO_ITEM === 'banco_urgencia') {
+      return {
+        fbPathBase: 'registos_sistemas_locais/banco_urgencia',
+        servicoLabel: 'Movimento do Banco de Urgência',
+        itemPlural: 'registos',
+        chaveAviso: 'mov_banco_urgencia',
+        porRegistos: true
       };
     }
     var chave = window.ZELO_MODULE + '|' + window.ZELO_ITEM;
@@ -1079,6 +1153,66 @@
     ' Vale sempre lembrar: dados bem guardados hoje tornam-se boas decisões amanhã. Qualquer dúvida, é só ligar para a extensão 1403, Serviço de Estatística.'
   ];
   var avisoPreenchimentoEmCurso = false;
+  // Um dia só conta como preenchido se tiver dados a sério: um nó que só tem
+  // o histórico de alterações, marcas de eliminação ou um formulário todo a
+  // zeros (ex.: gravado automaticamente para as outras especialidades) NÃO
+  // é um dia preenchido. Assim o Zelo nunca diz que um dia está feito quando
+  // não está.
+  var CHAVES_META = /^(savedAt|criadoPor|atualizadoPor|autor|autorNome|autorEmail|historico|tombstones|_?ts|updatedAt|uid|email|data|date|dia|mes|ano|id|versao|dispositivo|origem|slug|servico|turno|_nivel)$/i;
+  var CHAVES_TEXTO_UTIL = /obs|nota|diagn|nome|paciente|descr|procedimento|exame|ocorr|motivo|causa/i;
+  function _temConteudo(v, chave, prof){
+    prof = prof || 0;
+    if (v == null || prof > 12) return false;
+    if (typeof v === 'number') return v > 0;
+    if (typeof v === 'boolean') return false;
+    if (typeof v === 'string') {
+      var t = v.trim();
+      if (!t) return false;
+      if (/^-?\d+([.,]\d+)?$/.test(t)) return parseFloat(t.replace(',', '.')) > 0;
+      if (t.charAt(0) === '{' || t.charAt(0) === '[') { try { return _temConteudo(JSON.parse(t), chave, prof + 1); } catch (e) {} }
+      return CHAVES_TEXTO_UTIL.test(chave || '');
+    }
+    if (typeof v === 'object') {
+      if (v.apagado === true || v.deleted === true || v._apagado === true) return false;
+      return Object.keys(v).some(function (k) { return !CHAVES_META.test(k) && _temConteudo(v[k], k, prof + 1); });
+    }
+    return false;
+  }
+  // Dias (AAAA-MM-DD) com dados a sério, a partir do nó do Firebase.
+  function _diasPreenchidos(cfg, mes, prefixoMes){
+    var dias = {};
+    if (!mes || typeof mes !== 'object') return dias;
+    if (cfg.movimento) {
+      // { savedAt, snapshot: { 'AAAA-MM': { campo: [valor do dia 1, dia 2, …] } } }
+      var anoMes = prefixoMes.slice(0, 7);
+      var m = (mes.snapshot || mes)[anoMes];
+      if (!m || typeof m !== 'object') return dias;
+      Object.keys(m).forEach(function (campo) {
+        var arr = m[campo];
+        if (!arr || typeof arr !== 'object') return;
+        Object.keys(arr).forEach(function (i) {
+          var v = arr[i];
+          if (v !== null && v !== undefined && v !== '' && /^\d+$/.test(i)) dias[anoMes + '-' + String(Number(i) + 1).padStart(2, '0')] = true;
+        });
+      });
+      return dias;
+    }
+    if (cfg.porRegistos) {
+      Object.keys(mes).forEach(function (k) {
+        var r = mes[k];
+        if (!r || r.apagado) return;
+        var reg = r;
+        if (typeof r.json === 'string') { try { reg = JSON.parse(r.json); } catch (e) { return; } }
+        var d = String(reg.data || '').slice(0, 10);
+        if (d.indexOf(prefixoMes) === 0) dias[d] = true;
+      });
+      return dias;
+    }
+    Object.keys(mes).forEach(function (k) {
+      if (k.indexOf(prefixoMes) === 0 && _temConteudo(mes[k], k)) dias[k.slice(0, 10)] = true;
+    });
+    return dias;
+  }
   // Junta uma lista de itens em texto natural: "A", "A e B", "A, B e C" —
   // usado para não terminar frases com uma vírgula a mais antes do último.
   function _juntarComE(itens){
@@ -1104,7 +1238,9 @@
     });
     if (inicio !== null) grupos.push([inicio, anterior]);
     var frases = grupos.map(function (g) {
-      return g[0] === g[1] ? ('o dia ' + g[0]) : ('os dias ' + g[0] + ' até ' + g[1]);
+      if (g[0] === g[1]) return 'o dia ' + g[0];
+      if (g[1] === g[0] + 1) return 'os dias ' + g[0] + ' e ' + g[1];
+      return 'os dias ' + g[0] + ' até ' + g[1];
     });
     return _juntarComE(frases);
   }
@@ -1118,7 +1254,7 @@
   function tentarAvisarPreenchimento(){
     var cfg = configAvisoPreenchimento();
     if (!cfg) return;
-    var nome = _primeiroNome(sessionStorage.getItem('zeloNome') || '');
+    var nome = _doisNomes(sessionStorage.getItem('zeloNome') || '');
     if (!nome) return;
     var agora = dataHoraAngola();
     var partes = agora.data.split('-');
@@ -1138,72 +1274,58 @@
       // estando guardado. Um dia só conta como em falta se NÃO estiver nem
       // no Firebase nem localmente.
       var diasLocais = (typeof window.zeloDiasComRegistoLocal === 'function') ? (window.zeloDiasComRegistoLocal() || []) : [];
+      var prefixoMes = partes[0] + '-' + partes[1] + '-';
+      var feitos = _diasPreenchidos(cfg, mes, prefixoMes);
+      // Escritas ainda em fila neste aparelho (sem internet) também contam.
+      var fila = typeof window.zeloPendingItems === 'function' ? window.zeloPendingItems(cfg.fbPathBase + '/') : Promise.resolve([]);
+      return Promise.resolve(fila).catch(function () { return []; }).then(function (pend) {
+        (pend || []).forEach(function (it) {
+          var resto = String(it.path).slice(cfg.fbPathBase.length + 1);
+          if (cfg.movimento) {
+            if (!resto) Object.assign(feitos, _diasPreenchidos(cfg, it.data, prefixoMes));
+          } else if (cfg.porRegistos) {
+            var o = {}; o[resto] = it.data;
+            Object.assign(feitos, _diasPreenchidos(cfg, o, prefixoMes));
+          } else {
+            var dia = resto.slice(0, 10);
+            if (dia.indexOf(prefixoMes) === 0 && resto.indexOf('/historico') === -1 && _temConteudo(it.data, dia)) feitos[dia] = true;
+          }
+        });
+        return { feitos: feitos, diasLocais: diasLocais };
+      });
+    }).then(function (res) {
+      if (!res) return;
+      var feitos = res.feitos, diasLocais = res.diasLocais;
       var diasFalta = [];
       for (var d = 1; d < diaHoje; d++) {
         var chave = partes[0] + '-' + partes[1] + '-' + String(d).padStart(2, '0');
-        if (!mes[chave] && diasLocais.indexOf(chave) === -1) diasFalta.push(String(d));
+        if (!feitos[chave] && diasLocais.indexOf(chave) === -1) diasFalta.push(String(d));
       }
       var texto;
       var soFaltaOntem = diasFalta.length === 1 && diasFalta[0] === String(diaHoje - 1);
+      var saud = saudacaoPorHora(agora.hora);
       if (diasFalta.length) {
-        // Só volta a falar dos dias em falta uma vez por sessão — se a
-        // pessoa continuar a navegar/recarregar páginas deste serviço sem
-        // sair do sistema, o aviso não se repete. Volta a falar só depois
-        // de sair (sessionStorage é limpo no logout) e entrar de novo — ou
-        // assim que o mês mudar, mesmo dentro da mesma sessão (a chave
-        // inclui ano-mês): uma sessão que atravesse a virada do mês (ex.:
-        // aparelho deixado ligado durante a noite) tem sempre direito a um
-        // aviso novo sobre o mês novo, em vez de ficar calada até à
-        // próxima entrada no sistema.
+        // Só volta a falar dos dias em falta uma vez por sessão (e de novo se
+        // o mês mudar dentro da mesma sessão).
         var chaveFaltaSessao = 'zeloAvisoPreenchimentoFaltaSessao_' + cfg.chaveAviso + '_' + partes[0] + '-' + partes[1];
         if (sessionStorage.getItem(chaveFaltaSessao)) return;
         sessionStorage.setItem(chaveFaltaSessao, '1');
         if (soFaltaOntem) {
-          // Falta só o dia de ontem: ainda é "em falta" tecnicamente, mas
-          // entrar no sistema sem ainda ter tido oportunidade de preencher
-          // ontem é normal — reconhece o comprometimento em vez de soar
-          // como um aviso, e mesmo assim lembra que os dados não são só
-          // números, são decisões.
-          var aberturaQuase = ABERTURAS_QUASE_EM_DIA[Math.floor(Math.random() * ABERTURAS_QUASE_EM_DIA.length)].replace('NOME', nome);
-          texto = aberturaQuase + ' Em ' + cfg.servicoLabel + ', falta só o registo de ontem — aproveite para preencher esse dia hoje. Encare estes dados não como apenas números, mas como decisões.';
+          texto = saud + ', ' + nome + '. Em ' + cfg.servicoLabel + ', falta apenas o registo de ontem. Aproveite para o preencher hoje, por favor.';
         } else {
-          var diasPorExtenso = _formatarDiasEmFalta(diasFalta);
-          // Do dia 20 ao fim do mês, com dias por preencher, o aviso muda de
-          // tom — deixa de ser a variante casual e passa a insistir na
-          // urgência de fecho de mês, sempre com a mesma frase (a seriedade
-          // não pede variedade).
-          if (diaHoje >= 20) {
-            var diasRestantesMes = _diasNoMes(partes[0], partes[1]) - diaHoje;
-            var fraseRestantes = diasRestantesMes === 0
-              ? 'Hoje é o último dia do mês'
-              : ('Faltam ' + diasRestantesMes + (diasRestantesMes === 1 ? ' dia' : ' dias') + ' para o mês terminar');
-            texto = 'Olá, ' + nome + '. ' + fraseRestantes + ' e ainda tens dias em falta em ' + cfg.servicoLabel + ': ' +
-              diasPorExtenso + '. Precisamos levar este trabalho a sério — estes dados não são só números, eles representam o hospital.';
-          } else {
-            var aberturaAviso = ABERTURAS_AVISO_FALTA[Math.floor(Math.random() * ABERTURAS_AVISO_FALTA.length)].replace('NOME', nome);
-            texto = aberturaAviso + ' Em ' + cfg.servicoLabel + ', este mês, ainda sem registo: ' + diasPorExtenso + '.';
-          }
+          texto = saud + ', ' + nome + '. O seu serviço tem dados em falta por preencher de turnos passados. Em ' + cfg.servicoLabel +
+            ', ainda não têm registo ' + _formatarDiasEmFalta(diasFalta) + '. Por favor, preencha assim que puder.';
         }
       } else {
         if (localStorage.getItem(chaveOkHoje) === agora.data) return;
         localStorage.setItem(chaveOkHoje, agora.data);
-        var aberturaParabens = ABERTURAS_PARABENS_EM_DIA[Math.floor(Math.random() * ABERTURAS_PARABENS_EM_DIA.length)]
-          .replace('NOME', nome).replace('ITENS', cfg.itemPlural);
-        texto = aberturaParabens + ' Em ' + cfg.servicoLabel + ', está tudo preenchido até ontem.';
+        texto = _escolher(ABERTURAS_PARABENS_EM_DIA).replace('NOME', nome).replace('ITENS', cfg.itemPlural) +
+          ' Em ' + cfg.servicoLabel + ', está tudo preenchido até ontem.';
       }
-      // O lembrete fixo de sexta-feira (entregar as folhas de papel na
-      // Estatística) só faz sentido em Procedimentos de Enfermagem — é o
-      // único serviço com folhas de procedimentos em papel a entregar.
-      // Quando há dias em falta, a lista concreta é repetida logo a seguir
-      // ao pedido de entrega — é exactamente o que a pessoa precisa de
-      // saber para separar as folhas de papel a levar à Estatística.
       if (agora.diaSemana === 'Fri' && window.ZELO_MODULE === 'procedimentos_enfermagem') {
-        texto += LEMBRETE_SEXTA_FEIRA;
-        if (diasFalta.length) {
-          texto += ' Os procedimentos que estão em falta são: ' + _formatarDiasEmFalta(diasFalta) + ' — caso tenha em falta.';
-        }
-      } else {
-        texto += LEMBRETES_FECHO_PREENCHIMENTO[Math.floor(Math.random() * LEMBRETES_FECHO_PREENCHIMENTO.length)];
+        texto += ' Hoje é sexta-feira: lembre-se de entregar na Estatística as folhas de procedimentos desta semana.';
+      } else if (diasFalta.length) {
+        texto += ' Qualquer dúvida, ligue para a extensão 1403, do Serviço de Estatística.';
       }
       // Sem acesso à página (ecrã de bloqueio visível): nem voz nem mensagem.
       if (window.__zeloAcessoBloqueado) return;
@@ -1212,14 +1334,16 @@
         if (!temAcessoModulo(eu.role, eu.permissoes, window.ZELO_MODULE, window.ZELO_ITEM || null)) return;
       }
       falar(texto);
-      // Também no ecrã, no mesmo modelo dos ecrãs de espera (zelo_espera.js).
+      // No ecrã: só o nome e uma frase curta em letras grandes.
       if (window.ZeloEspera && window.ZeloEspera.mensagem) {
         window.ZeloEspera.mensagem({
           icone: diasFalta.length ? 'calendario' : 'ok',
-          etiqueta: diasFalta.length ? (diasFalta.length === 1 ? 'Falta 1 dia' : 'Faltam ' + diasFalta.length + ' dias') : 'Tudo em dia',
-          titulo: cfg.servicoLabel,
-          texto: texto,
-          botoes: [{ texto: diasFalta.length ? 'Vou preencher' : 'Continuar', principal: true }]
+          nome: 'Olá, ' + nome,
+          grande: true,
+          titulo: diasFalta.length
+            ? (soFaltaOntem ? 'Falta apenas o registo de ontem por preencher.' : 'O seu serviço tem dados em falta por preencher de turnos passados.')
+            : 'O seu serviço está com tudo em dia. Obrigado pela dedicação!',
+          botoes: [{ texto: 'Entendido', principal: true }]
         });
       }
     }).catch(function () {}).then(function () { avisoPreenchimentoEmCurso = false; });
@@ -1492,6 +1616,11 @@
     // navegador (speechSynthesis.getVoices()) para carregarem.
     setTimeout(tentarSaudarEntrada, 1200);
     setTimeout(tentarAvisarPreenchimento, 1200);
+    // Última atividade (para a saudação de regresso saber quanto tempo a
+    // pessoa esteve fora). Só começa depois da saudação ter lido o valor.
+    setTimeout(function () { _registarAtividade(); setInterval(_registarAtividade, 60000); }, 5000);
+    window.addEventListener('pagehide', _registarAtividade);
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') _registarAtividade(); });
     // Ver nota acima de tentarAvisarPreenchimento: cobre o caso de a sessão
     // só ficar confirmada depois dos 1200ms fixos.
     window.addEventListener('zelo-gate-ready', function () {

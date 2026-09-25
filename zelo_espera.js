@@ -530,6 +530,10 @@
     num.innerHTML = '<span style="color:' + (tipo === 'aviso' || tipo === 'obra' || tipo === 'calendario' ? '#FCD34D' : tipo === 'ok' ? '#4ADE80' : '#7DD3FC') + ';display:flex">' + (ICONES[tipo] || ICONES.info) + '</span>';
     var msg = el('div', 'ze-msg'); msg.textContent = opcoes.titulo || 'Aviso';
     msg.style.fontSize = '1.25rem';
+    // Mensagem curta em letras grandes (ex.: lembrete de dados em falta).
+    if (opcoes.grande) { msg.style.fontSize = 'clamp(1.45rem, 4.6vw, 2rem)'; msg.style.lineHeight = '1.25'; msg.style.fontWeight = '800'; msg.style.maxWidth = '560px'; msg.style.margin = '10px auto 0'; }
+    var nomeEl = null;
+    if (opcoes.nome) { nomeEl = el('div', 'ze-det'); nomeEl.textContent = opcoes.nome; nomeEl.style.cssText = 'margin-top:18px;font-size:1.05rem;font-weight:700;color:#BFF3FF;letter-spacing:.01em;opacity:1;'; }
     var etiqueta = null;
     if (opcoes.etiqueta) { etiqueta = el('div', 'ze-tag lenta'); etiqueta.textContent = opcoes.etiqueta; etiqueta.style.margin = '14px 0 0'; }
     var det = el('div', 'ze-det'); det.style.fontSize = '.9rem'; det.style.lineHeight = '1.5'; det.style.opacity = '.9';
@@ -539,6 +543,7 @@
     if (opcoes.detalhe) extra.textContent = opcoes.detalhe;
     caixa.appendChild(anel.el);
     if (etiqueta) caixa.appendChild(etiqueta);
+    if (nomeEl) caixa.appendChild(nomeEl);
     caixa.appendChild(msg); caixa.appendChild(det); caixa.appendChild(extra);
     var bt = el('div', 'ze-botoes');
     (opcoes.botoes || [{ texto: 'Entendi', principal: true }]).forEach(function (b) {
