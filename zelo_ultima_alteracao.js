@@ -14,7 +14,11 @@
   if (window.__zeloUltAlt || window.self !== window.top) return;
   var ficheiro = decodeURIComponent((location.pathname.split('/').pop() || ''));
   var PAGINAS = /^([a-z_]+_movimento|banco_urgencia|controlo_pacientes_[a-z_]+|reprografia|psicologia_atendimento|bloco_operatorio_ficha_operatoria|secretaria_geral|controlo_faltas_gepedema)\.html$/;
-  if (!PAGINAS.test(ficheiro)) return;
+  // Páginas que já têm a sua própria etiqueta (por dia): quando ela fica
+  // vazia (dia sem autor guardado), mostra a última alteração da página.
+  var REUTILIZAR = /^(imagiologia_radiologia_geral|laboratorio_geral|hemoterapia|consulta_externa_geral|farmacia_central)\.html$/;
+  var reutilizar = REUTILIZAR.test(ficheiro);
+  if (!PAGINAS.test(ficheiro) && !reutilizar) return;
   window.__zeloUltAlt = true;
 
   // Páginas que só guardam neste aparelho: conta a gravação destas chaves.
@@ -45,8 +49,11 @@
   }
   function mostrar(info) {
     if (!info || !info.ts || !el) return;
-    if (atual && atual.ts >= info.ts) return;
+    if (atual && atual.ts >= info.ts && el.dataset.zeloUlt === '1') return;
     atual = info;
+    // Etiqueta da própria página já preenchida por ela: não mexe.
+    if (reutilizar && el.style.display !== 'none' && el.dataset.zeloUlt !== '1') return;
+    el.dataset.zeloUlt = '1';
     nomeEl.textContent = info.nome || '—';
     horaEl.textContent = hora(info.ts);
     el.style.display = 'inline-flex';
@@ -54,7 +61,18 @@
   }
 
   function criarEtiqueta() {
-    if (document.getElementById('last-saved-status')) return false;
+    var existente = document.getElementById('last-saved-status');
+    if (existente && reutilizar) {
+      el = existente; nomeEl = document.getElementById('last-saved-name'); horaEl = document.getElementById('last-saved-time');
+      if (!nomeEl || !horaEl) { el = null; return false; }
+      // A página volta a mostrar a sua própria informação: deixa de ser nossa.
+      if (window.MutationObserver) new MutationObserver(function () {
+        if (el.style.display === 'none' && atual) { el.dataset.zeloUlt = ''; var a = atual; atual = null; setTimeout(function () { mostrar(a); }, 50); }
+      }).observe(el, { attributes: true, attributeFilter: ['style'] });
+      try { mostrar(JSON.parse(localStorage.getItem(LS) || 'null')); } catch (e) {}
+      return true;
+    }
+    if (existente) return false;
     var cab = document.querySelector('.zc-cab');
     var id = cab && cab.querySelector('.zc-id');
     if (!cab || !id) return false;

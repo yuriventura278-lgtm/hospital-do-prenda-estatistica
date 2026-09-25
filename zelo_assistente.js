@@ -1356,9 +1356,7 @@
         texto = _escolher(ABERTURAS_PARABENS_EM_DIA).replace('NOME', nome).replace('ITENS', cfg.itemPlural) +
           ' Em ' + cfg.servicoLabel + ', está tudo preenchido até ontem.';
       }
-      if (agora.diaSemana === 'Fri' && window.ZELO_MODULE === 'procedimentos_enfermagem') {
-        texto += ' Hoje é sexta-feira: lembre-se de entregar na Estatística as folhas de procedimentos desta semana.';
-      } else if (diasFalta.length) {
+      if (diasFalta.length) {
         texto += ' Qualquer dúvida, ligue para a extensão 1403, do Serviço de Estatística.';
       }
       // Sem acesso à página (ecrã de bloqueio visível): nem voz nem mensagem.

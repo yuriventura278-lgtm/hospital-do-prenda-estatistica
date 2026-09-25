@@ -322,6 +322,22 @@
       el.style.setProperty('flex-shrink', '0', 'important');
     }
     window.zeloColocarEtiqueta = colocarEtiqueta;
+    // "Terminar sessão" é sempre o último botão do cabeçalho.
+    function sairEmUltimo() {
+      var cab = document.querySelector('.zc-cab'); if (!cab) return;
+      var b = Array.prototype.filter.call(cab.querySelectorAll('button,a'), function (e) {
+        return /terminar sess/i.test(e.textContent || '') || /terminar sess/i.test(e.getAttribute('title') || '') || /zeloLogout/.test(e.getAttribute('onclick') || '');
+      })[0];
+      if (!b) return;
+      // Último botão/ligação visível do cabeçalho (pode estar noutro bloco).
+      var todos = Array.prototype.filter.call(cab.querySelectorAll('button,a'), function (e) {
+        return e.getClientRects().length && !e.closest('.zc-id') && !e.closest('#last-saved-status');
+      });
+      var ult = todos[todos.length - 1];
+      if (!ult || ult === b) return;
+      ult.parentNode.insertBefore(b, ult.nextSibling);
+    }
+    [300, 1500, 4000].forEach(function (ms) { setTimeout(sairEmUltimo, ms); });
     [400, 1500, 4000, 8000].forEach(function (ms) { setTimeout(colocarEtiqueta, ms); });
     if (aplicar()) return;
     // Cabeçalhos que só aparecem depois (ex.: após verificar a sessão).
