@@ -253,7 +253,7 @@ function zeloAvisoSemPermissao(texto){
     var soAdmin = /administradores/i.test(texto || '');
     window.ZeloEspera.mensagem({
       icone: soAdmin ? 'admin' : 'info',
-      titulo: soAdmin ? 'Acesso só para administradores' : 'Sem permissão de acesso',
+      titulo: /chefes de servi/i.test(texto || '') ? 'Acesso restrito' : (soAdmin ? 'Acesso só para administradores' : 'Sem permissão de acesso'),
       texto: (texto || 'Não tem permissão para aceder a esta página.') + ' Contacte um dos administradores do ZELO.',
       botoes: [{ texto: 'Entendi', principal: true }]
     });
@@ -301,7 +301,10 @@ function zeloPodeAbrirLink(a){
 }
 function zeloTentarAbrirLink(a){
   if (zeloPodeAbrirLink(a)) return true;
-  if (a.dataset.soAdmin) zeloAvisoSoAdmin(); else zeloAvisoSemPermissao();
+  if (a.dataset.soAdmin) zeloAvisoSoAdmin();
+  else if ((a.dataset.modulo || a.dataset.module) === 'movimento_mensal' && a.dataset.item !== 'banco_urgencia')
+    zeloAvisoSemPermissao('O acesso ao Movimento Hospitalar é somente para chefes de serviço e administradores.');
+  else zeloAvisoSemPermissao();
   return false;
 }
 if (typeof document !== 'undefined') {

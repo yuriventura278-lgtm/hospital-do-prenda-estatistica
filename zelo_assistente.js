@@ -16,8 +16,8 @@
   // em cada página (nem sempre expõe um global fiável a tempo de o Zelo correr).
   var ROLE_DEFAULT_PERMISSOES = {
     supervisor:       { estatistica:'leitura', servicos:'leitura', procedimentos_enfermagem:'leitura', movimento_mensal:'leitura', sistemas_independentes:false },
-    chefe_servico:    { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:'leitura', sistemas_independentes:false },
-    enfermeiro_chefe: { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false },
+    chefe_servico:    { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:false },
+    enfermeiro_chefe: { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:false },
     medico:           { estatistica:false, servicos:true, procedimentos_enfermagem:'leitura', movimento_mensal:false, sistemas_independentes:false },
     enfermeiro:       { estatistica:false, servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false },
     tdt:              { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false },
@@ -28,6 +28,7 @@
   };
   function temAcessoModulo(role, permissoes, mod, itemSlug){
     if (role === 'admin') return true;
+    if (mod === 'movimento_mensal' && itemSlug !== 'banco_urgencia' && role !== 'chefe_servico' && role !== 'enfermeiro_chefe') return false;
     var modPerm = permissoes ? permissoes[mod] : undefined;
     if (modPerm === undefined) modPerm = (ROLE_DEFAULT_PERMISSOES[role] || ROLE_DEFAULT_PERMISSOES.funcionario)[mod];
     if (modPerm === false) return false;
@@ -1203,6 +1204,12 @@
         }
       } else {
         texto += LEMBRETES_FECHO_PREENCHIMENTO[Math.floor(Math.random() * LEMBRETES_FECHO_PREENCHIMENTO.length)];
+      }
+      // Sem acesso à página (ecrã de bloqueio visível): nem voz nem mensagem.
+      if (window.__zeloAcessoBloqueado) return;
+      if (window.ZELO_MODULE) {
+        var eu = estadoUtilizador();
+        if (!temAcessoModulo(eu.role, eu.permissoes, window.ZELO_MODULE, window.ZELO_ITEM || null)) return;
       }
       falar(texto);
       // Também no ecrã, no mesmo modelo dos ecrãs de espera (zelo_espera.js).

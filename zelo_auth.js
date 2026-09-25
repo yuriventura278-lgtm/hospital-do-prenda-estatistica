@@ -334,8 +334,8 @@ function escapeHtml(str) {
 const ROLE_DEFAULT_PERMISSOES = {
   direcao:          { estatistica:'leitura', servicos:'leitura', procedimentos_enfermagem:'leitura', movimento_mensal:'leitura', sistemas_independentes:false, informacoes_zelo:true },
   supervisor:       { estatistica:'leitura', servicos:'leitura', procedimentos_enfermagem:'leitura', movimento_mensal:'leitura', sistemas_independentes:false, informacoes_zelo:true },
-  chefe_servico:    { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:'leitura', sistemas_independentes:false, informacoes_zelo:true },
-  enfermeiro_chefe: { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
+  chefe_servico:    { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:false, informacoes_zelo:true },
+  enfermeiro_chefe: { estatistica:'leitura', servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:false, informacoes_zelo:true },
   medico:           { estatistica:false, servicos:true, procedimentos_enfermagem:'leitura', movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
   enfermeiro:       { estatistica:false, servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
   tdt:              { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
@@ -354,8 +354,16 @@ function roleDefaultPermForModule(role, mod) {
 // true/'editar'/'leitura' = módulo acessível; false = módulo todo bloqueado;
 // objeto {itemSlug: false, ..., _nivel?: 'leitura'} = bloqueio item a item
 // (ausência no objeto = permitido), com nível opcional (por omissão 'editar').
+// Movimento Hospitalar (enfermarias, UCI e resumo mensal): só administradores,
+// chefes de serviço e enfermeiros-chefes — regra fixa, que nenhuma permissão
+// explícita consegue alargar. O Movimento do Banco de Urgência fica de fora.
+const ROLES_MOVIMENTO = ['admin', 'chefe_servico', 'enfermeiro_chefe'];
+function eMovimentoHospitalar(mod, itemSlug) {
+  return mod === 'movimento_mensal' && itemSlug !== 'banco_urgencia';
+}
 function hasModuleAccess(role, permissoes, mod, itemSlug) {
   if (role === 'admin') return true;
+  if (eMovimentoHospitalar(mod, itemSlug) && ROLES_MOVIMENTO.indexOf(role) === -1) return false;
   let modPerm = permissoes ? permissoes[mod] : undefined;
   if (modPerm === undefined) modPerm = roleDefaultPermForModule(role, mod);
   if (modPerm === false) return false;
@@ -384,7 +392,7 @@ export {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, fetchUserProfileOuFalhar, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES
+  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES, eMovimentoHospitalar
 };
 
 window.ZeloAuth = {
@@ -393,5 +401,5 @@ window.ZeloAuth = {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, fetchUserProfileOuFalhar, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES
+  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES, eMovimentoHospitalar
 };
