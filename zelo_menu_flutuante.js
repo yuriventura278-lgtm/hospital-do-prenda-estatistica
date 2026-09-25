@@ -350,9 +350,6 @@
           <a class="zmf-link" href="index.html"><span class="zmf-ic">${ICON_DASH}</span>Página Inicial</a>
         </div>
         <div class="zmf-group">
-          <button type="button" class="zmf-link" id="zmf-assistente-zelo"><span class="zmf-ic">${ICON_ZELO_ASSIST}</span>Assistente Zelo</button>
-        </div>
-        <div class="zmf-group">
           <div class="zmf-parent-row">
             <button type="button" class="zmf-link" id="zmf-servicos-label" style="flex:1;"><span class="zmf-ic">${ICON_SVC}</span>Serviços</button>
             <button type="button" class="zmf-toggle" id="zmf-servicos-toggle" aria-expanded="false">${ICON_CHEV}</button>
@@ -365,6 +362,7 @@
         <div class="zmf-group">
           <a class="zmf-link" href="perfil.html"><span class="zmf-ic">${ICON_PERFIL}</span>O meu perfil</a>
           <a class="zmf-link" href="informacoes_zelo.html"><span class="zmf-ic">${ICON_INFO}</span>Informações do ZELO</a>
+          <button type="button" class="zmf-link" id="zmf-assistente-zelo"><span class="zmf-ic">${ICON_ZELO_ASSIST}</span>Assistente Zelo</button>
           ${temLogout ? '<button type="button" class="zmf-link" id="zmf-sair"><span class="zmf-ic">' + ICON_SAIR + '</span>Sair</button>' : ''}
         </div>
       </nav>
