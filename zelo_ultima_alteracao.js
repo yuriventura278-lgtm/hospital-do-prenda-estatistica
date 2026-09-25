@@ -73,6 +73,7 @@
     if (dir) dir.insertBefore(el, dir.firstChild);
     else { el.style.marginLeft = 'auto'; id.parentNode.insertBefore(el, id.nextSibling); }
     try { mostrar(JSON.parse(localStorage.getItem(LS) || 'null')); } catch (e) {}
+    if (typeof window.zeloColocarEtiqueta === 'function') window.zeloColocarEtiqueta();
     if (typeof window.zeloUltIniciar === 'function') window.zeloUltIniciar();
     return true;
   }

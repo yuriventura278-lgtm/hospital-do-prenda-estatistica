@@ -310,6 +310,19 @@
   function iniciar() {
     var st = document.createElement('style'); st.id = 'zc-estilos'; st.textContent = css;
     document.head.appendChild(st);
+    // "Última alteração": sempre logo a seguir ao nome do serviço (nunca à
+    // esquerda do logótipo). No telemóvel, zelo_menu_flutuante.js trata dela.
+    function colocarEtiqueta() {
+      var el = document.getElementById('last-saved-status'), id = document.querySelector('.zc-cab .zc-id');
+      if (!el || !id || window.innerWidth <= 760) return;
+      if (document.getElementById('zelo-ult-slot') && document.getElementById('zelo-ult-slot').contains(el)) return;
+      if (el.parentNode === id && id.lastElementChild === el) return;
+      id.appendChild(el);
+      el.style.setProperty('margin-left', '14px', 'important');
+      el.style.setProperty('flex-shrink', '0', 'important');
+    }
+    window.zeloColocarEtiqueta = colocarEtiqueta;
+    [400, 1500, 4000, 8000].forEach(function (ms) { setTimeout(colocarEtiqueta, ms); });
     if (aplicar()) return;
     // Cabeçalhos que só aparecem depois (ex.: após verificar a sessão).
     var n = 0, iv = setInterval(function () { if (aplicar() || ++n > 20) clearInterval(iv); }, 300);
