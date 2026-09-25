@@ -399,14 +399,25 @@ function cargoOptionsHtml(selecionado){
 }
 document.getElementById('cCargo').innerHTML = cargoOptionsHtml();
 
-const SERVICOS = [
-  'Hemoterapia', 'Farmácia', 'Neurocirurgia', 'Maxilo Facial', 'Medicina Homem', 'Medicina Mulher',
-  'Ortopedia', 'UCI', 'UTI', 'Nefrologia', 'Laboratório', 'Consulta Externa', 'Secretaria',
-  'Supervisão', 'Gabinete do Utente', 'RH', 'Imagiologia', 'Hospital de Dia', 'Banco de Urgência',
-  'Centro de Hemodiálise', 'Outro'
-];
+// Serviços = exatamente os do menu (SERVICOS_MENU em zelo_servicos_menu.js),
+// mais o Serviço de Estatística e "Outro". Um valor antigo que já não esteja
+// na lista continua a aparecer no utilizador que o tem, para não se perder.
+const SERVICOS = (function(){
+  var lista = [];
+  try {
+    (typeof SERVICOS_MENU !== 'undefined' ? SERVICOS_MENU : (window.SERVICOS_MENU || [])).forEach(function(sv){
+      if (sv && sv.nome && lista.indexOf(sv.nome) === -1) lista.push(sv.nome);
+    });
+  } catch (e) {}
+  [window.ZELO_SERVICO_ESTATISTICA || 'Serviço de Estatística', 'Outro'].forEach(function(n){
+    if (lista.indexOf(n) === -1) lista.push(n);
+  });
+  return lista;
+})();
 function servicoOptionsHtml(selecionado){
-  return '<option value="">— Selecionar —</option>' + SERVICOS.map(function(s){
+  var opcoes = SERVICOS.slice();
+  if (selecionado && opcoes.indexOf(selecionado) === -1) opcoes.splice(opcoes.length - 1, 0, selecionado);
+  return '<option value="">— Selecionar —</option>' + opcoes.map(function(s){
     return '<option value="' + escapeHtml(s) + '" ' + (s === selecionado ? 'selected' : '') + '>' + escapeHtml(s) + '</option>';
   }).join('');
 }
