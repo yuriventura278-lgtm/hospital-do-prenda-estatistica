@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<script src="zelo_espera.js"></script>
+<script defer src="zelo_cabecalho.js"></script>
+<script src="zelo_pdf.js"></script>
+<script>document.documentElement.style.visibility='hidden';</script>
+<script>window.ZELO_MODULE='sistemas_independentes';</script>
+<script>window.ZELO_SO_ADMIN=true; // Serviço de Estatística — só administradores</script>
+<script>window.ZELO_ITEM='fluxograma_relatorio';</script>
+<script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_pagegate_watchdog.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluxograma do Relatório · Hospital do Prenda</title>
+<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--nv:#0B2545;--bg:#F2F5FA;--sf:#fff;--br:#E3E8F0;--tx:#132033;--tx2:#4B5B70;--tx3:#8B98AA;--ouro:#D4A017;--f:Inter,'Segoe UI',Arial,sans-serif}
+html[data-zelo-theme="dark"]{--bg:#0B1220;--sf:#111A2B;--br:#1F2A3D;--tx:#E6ECF5;--tx2:#AAB6C8;--tx3:#7C8AA0}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--f);background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+header.flx-top{display:flex;align-items:center;gap:14px;padding:14px 24px;background:var(--nv);color:#fff}
+header.flx-top img{width:34px;height:34px;border-radius:9px}
+header.flx-top h1{margin:0;font-size:1.05rem}
+header.flx-top .acoes{margin-left:auto;display:flex;gap:10px}
+header.flx-top a,header.flx-top button{display:inline-flex;gap:7px;align-items:center;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:8px 14px;font:700 .78rem var(--f);text-decoration:none;cursor:pointer}
+main{flex:1;width:100%;padding:28px 24px 40px}
+.titulo{text-align:center;margin-bottom:26px}
+.titulo h2{margin:0;font-size:clamp(1.3rem,3vw,1.9rem);font-weight:900;color:var(--nv);letter-spacing:.01em}
+html[data-zelo-theme="dark"] .titulo h2{color:#E6ECF5}
+.titulo p{margin:8px 0 0;color:#C0561C;font-weight:700;font-size:.98rem}
+.titulo hr{width:min(420px,70%);border:0;border-top:2px solid var(--ouro);margin:14px auto 0}
+.fluxo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,640px) minmax(0,1fr);row-gap:0}
+.col{grid-column:2;display:flex;flex-direction:column;align-items:center}
+.passo{width:100%;background:var(--sf);border:2px solid var(--c);border-radius:16px;padding:18px 20px;display:flex;gap:16px;align-items:flex-start;box-shadow:6px 6px 0 rgba(15,30,55,.08)}
+.num{width:42px;height:42px;border-radius:50%;background:var(--c);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem}
+.passo h3{margin:2px 0 6px;font-size:1.05rem;font-weight:800}
+.passo p{margin:0;color:var(--tx2);font-size:.9rem;line-height:1.5}
+.seta{width:2px;height:30px;background:var(--nv);position:relative;margin:0 auto}
+html[data-zelo-theme="dark"] .seta{background:#8FA6C8}
+.seta:after{content:"";position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);border:7px solid transparent;border-top:9px solid var(--nv);border-bottom:0}
+html[data-zelo-theme="dark"] .seta:after{border-top-color:#8FA6C8}
+.seta.sim{background:var(--ouro)}.seta.sim:after{border-top-color:var(--ouro)}
+.rot{font-size:.78rem;font-weight:800;color:var(--ouro);margin:4px 0 0 12px;align-self:center;transform:translateX(26px)}
+.decisao-linha{position:relative;width:100%;display:flex;justify-content:center;align-items:center;margin:28px 0 0}
+.losango{width:270px;height:120px;display:flex;align-items:center;justify-content:center;position:relative}
+.losango svg{position:absolute;inset:0;width:100%;height:100%}
+.losango span{position:relative;font-weight:800;font-size:.92rem;text-align:center;max-width:170px}
+.nao{position:absolute;left:calc(50% + 135px);top:50%;display:flex;align-items:center;transform:translateY(-50%)}
+.nao .linha{width:90px;height:2px;background:#B3263E;position:relative}
+.nao .linha b{position:absolute;top:-20px;left:14px;color:#B3263E;font-size:.78rem}
+.nao .caixa{background:var(--sf);border:2px solid #B3263E;border-radius:14px;padding:12px 14px;font-weight:700;font-size:.85rem;width:210px;display:flex;gap:8px;box-shadow:5px 5px 0 rgba(15,30,55,.08)}
+.nao .caixa i{width:12px;height:12px;border-radius:50%;background:#B3263E;flex-shrink:0;margin-top:3px}
+.pe{display:flex;justify-content:space-between;margin-top:34px;padding-top:12px;border-top:1px solid #B8C6DA;color:var(--tx2);font-size:.8rem}
+.pe em{font-style:italic}
+@media(max-width:900px){
+  .fluxo{grid-template-columns:1fr}.col{grid-column:1}
+  .nao{position:static;transform:none;flex-direction:column;margin-top:0}
+  .nao .linha{width:2px;height:22px}.nao .linha b{top:4px;left:8px}
+  .decisao-linha{flex-direction:column}
+  main{padding:18px 14px 30px}
+}
+@media print{header.flx-top,#zmf-btn,#zas-btn,.zr-rodape{display:none !important}body{background:#fff}main{padding:0}}
+</style>
+</head>
+<body>
+<header class="flx-top">
+  <img src="icons/logo.png" alt="ZELO">
+  <h1>Fluxograma do Relatório do Hospital</h1>
+  <div class="acoes">
+    <button type="button" id="flxPdf"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>PDF</button>
+    <a href="index.html"><svg class="i" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</a>
+  </div>
+</header>
+<main>
+  <div class="titulo">
+    <h2>COMO PREENCHER O RELATÓRIO DO HOSPITAL</h2>
+    <p>Todas as Fases — Serviço de Admissão e Arquivo Médico Estatístico</p>
+    <hr>
+  </div>
+  <div class="fluxo">
+    <div class="col">
+      <div class="passo" style="--c:#2C6E91"><div class="num">1</div><div><h3>Recolha de dados por serviço</h3><p>Cada área envia os dados dentro dos prazos: diário, semanal e mensal.</p></div></div>
+      <div class="seta"></div>
+      <div class="passo" style="--c:#3B7A4E"><div class="num">2</div><div><h3>Verificação e validação</h3><p>O responsável da área valida o conteúdo; o Chefe de Serviço dá a validação final.</p></div></div>
+      <div class="decisao-linha">
+        <div class="losango">
+          <svg viewBox="0 0 270 120" preserveAspectRatio="none"><polygon points="135,3 267,60 135,117 3,60" fill="var(--sf)" stroke="#3B7A4E" stroke-width="2.5"/></svg>
+          <span>Dados validados e completos?</span>
+        </div>
+        <div class="nao"><div class="linha"><b>NÃO</b></div><div class="caixa"><i></i>Devolve-se ao serviço de origem para correção</div></div>
+      </div>
+      <div class="seta sim"></div>
+      <div class="rot">SIM</div>
+      <div class="passo" style="--c:#C28A17;margin-top:6px"><div class="num">3</div><div><h3>Preenchimento do Movimento Hospitalar</h3><p>Existência Anterior, Admitidos, Saídos e Ficam Existindo, por serviço de internamento.</p></div></div>
+      <div class="seta"></div>
+      <div class="passo" style="--c:#0B2545"><div class="num">4</div><div><h3>Cálculo dos indicadores</h3><p>Dias Camas, Dias Doentes, taxa de ocupação, média de permanência e taxa de rotação.</p></div></div>
+      <div class="seta"></div>
+      <div class="passo" style="--c:#6A4C9C"><div class="num">5</div><div><h3>Consolidação do relatório</h3><p>Reúnem-se os mapas de todas as áreas num único relatório, com gráficos e anexos.</p></div></div>
+      <div class="seta"></div>
+      <div class="passo" style="--c:#B3263E"><div class="num">6</div><div><h3>Validação final e envio à Direção Clínica</h3><p>O Chefe de Serviço aprova; o relatório é arquivado e remetido à Direção do hospital.</p></div></div>
+    </div>
+  </div>
+  <div class="pe"><em>Hospital do Prenda — Serviço de Estatística</em><span>Fases de Elaboração do Relatório do Hospital</span></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* PDF do fluxograma: desenhado em vetor (fica nítido a qualquer tamanho). */
+document.getElementById('flxPdf').addEventListener('click', function(){
+  var Z = window.ZeloPDF;
+  if (!Z || !(window.jspdf && window.jspdf.jsPDF)){ alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return; }
+  var d = Z.novo(), W = d.internal.pageSize.getWidth();
+  var y = Z.cabecalho(d, 'Como preencher o relatório do hospital', 'Todas as fases — Serviço de Admissão e Arquivo Médico Estatístico');
+  var x = 35, w = W - 70, h = 20;
+  var PASSOS = [
+    ['#2C6E91', 'Recolha de dados por serviço', 'Cada área envia os dados dentro dos prazos: diário, semanal e mensal.'],
+    ['#3B7A4E', 'Verificação e validação', 'O responsável da área valida o conteúdo; o Chefe de Serviço dá a validação final.'],
+    null,
+    ['#C28A17', 'Preenchimento do Movimento Hospitalar', 'Existência Anterior, Admitidos, Saídos e Ficam Existindo, por serviço de internamento.'],
+    ['#0B2545', 'Cálculo dos indicadores', 'Dias Camas, Dias Doentes, taxa de ocupação, média de permanência e taxa de rotação.'],
+    ['#6A4C9C', 'Consolidação do relatório', 'Reúnem-se os mapas de todas as áreas num único relatório, com gráficos e anexos.'],
+    ['#B3263E', 'Validação final e envio à Direção Clínica', 'O Chefe de Serviço aprova; o relatório é arquivado e remetido à Direção do hospital.']
+  ];
+  function seta(y0, y1, cor){ d.setDrawColor(cor); d.setLineWidth(0.6); d.line(W / 2, y0, W / 2, y1 - 2); d.setFillColor(cor); d.triangle(W / 2 - 2, y1 - 2.5, W / 2 + 2, y1 - 2.5, W / 2, y1, 'F'); }
+  var n = 0;
+  PASSOS.forEach(function(p, i){
+    if (!p){
+      // Decisão
+      var cy = y + 11, lw = 36, lh = 11;
+      d.setDrawColor('#3B7A4E'); d.setLineWidth(0.7); d.setFillColor('#FFFFFF');
+      d.lines([[lw, lh], [-lw, lh], [-lw, -lh], [lw, -lh]], W / 2, cy - lh, [1, 1], 'FD', true);
+      d.setFont('helvetica', 'bold'); d.setFontSize(9); d.setTextColor('#132033');
+      d.text('Dados validados e completos?', W / 2, cy + 1, { align: 'center' });
+      d.setDrawColor('#B3263E'); d.line(W / 2 + lw, cy, W / 2 + lw + 14, cy);
+      d.setTextColor('#B3263E'); d.setFontSize(8); d.text('NÃO', W / 2 + lw + 3, cy - 2);
+      d.roundedRect(W / 2 + lw + 14, cy - 8, 42, 16, 2.5, 2.5, 'S');
+      d.setTextColor('#132033'); d.setFontSize(8.5);
+      d.text(d.splitTextToSize('Devolve-se ao serviço de origem para correção', 36), W / 2 + lw + 35, cy - 2, { align: 'center' });
+      seta(cy + lh, cy + lh + 9, '#D4A017');
+      d.setTextColor('#B8860B'); d.setFontSize(8); d.text('SIM', W / 2 + 3, cy + lh + 6);
+      y = cy + lh + 9; return;
+    }
+    n++;
+    d.setDrawColor(p[0]); d.setLineWidth(0.7); d.setFillColor('#FFFFFF'); d.roundedRect(x, y, w, h, 3, 3, 'FD');
+    d.setFillColor(p[0]); d.circle(x + 9, y + h / 2, 4.5, 'F');
+    d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(10); d.text(String(n), x + 9, y + h / 2 + 1.3, { align: 'center' });
+    d.setTextColor('#132033'); d.setFontSize(11); d.text(p[1], x + 18, y + 7);
+    d.setFont('helvetica', 'normal'); d.setFontSize(9); d.setTextColor('#4B5B70');
+    d.text(d.splitTextToSize(p[2], w - 24), x + 18, y + 12.5);
+    y += h;
+    if (i < PASSOS.length - 1 && PASSOS[i + 1]) { seta(y, y + 8, '#0B2545'); y += 8; }
+    else if (i < PASSOS.length - 1) { seta(y, y + 6, '#0B2545'); y += 6; }
+  });
+  Z.rodape(d);
+  d.save('fluxograma_relatorio_hospital.pdf');
+});
+</script>
+<script src="zelo_servicos_menu.js"></script>
+<script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script src="zelo_assistente.js"></script>
+</body>
+</html>

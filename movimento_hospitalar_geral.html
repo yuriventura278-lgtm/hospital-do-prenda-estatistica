@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<script src="zelo_espera.js"></script>
+<script defer src="zelo_cabecalho.js"></script>
+<script src="zelo_pdf.js"></script>
+<script>document.documentElement.style.visibility='hidden';</script>
+<script>window.ZELO_MODULE='sistemas_independentes';</script>
+<script>window.ZELO_SO_ADMIN=true; // Serviço de Estatística — só administradores</script>
+<script>window.ZELO_ITEM='movimento_hospitalar_geral';</script>
+<script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_pagegate_watchdog.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Movimento Hospitalar Geral · Hospital do Prenda</title>
+<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--nv:#111C2B;--nv2:#2B415E;--nv3:#3E5C87;--cy:#22D3EE;--bg:#F2F5FA;--sf:#fff;--br:#E3E8F0;--tx:#132033;--tx2:#4B5B70;--tx3:#8B98AA;--ok:#16A34A;--er:#DC2626;--am:#D97706;--bl:#1A56DB;
+  --f:Inter,'Segoe UI',Arial,sans-serif;--m:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+html[data-zelo-theme="dark"]{--bg:#0B1220;--sf:#111A2B;--br:#1F2A3D;--tx:#E6ECF5;--tx2:#AAB6C8;--tx3:#7C8AA0}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--f);background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+header.mhg-top{display:flex;align-items:center;gap:14px;padding:14px 24px;background:var(--nv);color:#fff}
+header.mhg-top img{width:34px;height:34px;border-radius:9px}
+header.mhg-top h1{margin:0;font-size:1.05rem}
+header.mhg-top .acoes{margin-left:auto;display:flex;gap:10px;align-items:center}
+header.mhg-top a,header.mhg-top button{display:inline-flex;gap:7px;align-items:center;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:8px 14px;font:700 .78rem var(--f);text-decoration:none;cursor:pointer}
+main{flex:1;width:100%;padding:20px 24px 32px}
+.nota{display:flex;gap:10px;align-items:center;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A;border-radius:12px;padding:10px 14px;font-size:.84rem;margin-bottom:16px}
+html[data-zelo-theme="dark"] .nota{background:#0F2340;border-color:#1E3A8A;color:#BFDBFE}
+.barra{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.barra label{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+.barra input{font:600 .88rem var(--m);border:1px solid var(--br);border-radius:10px;padding:9px 12px;background:var(--sf);color:var(--tx)}
+.barra .esp{flex:1}
+.btn{border:0;border-radius:10px;padding:10px 16px;font:700 .84rem var(--f);display:inline-flex;gap:8px;align-items:center;cursor:pointer;white-space:nowrap}
+.bp{background:linear-gradient(135deg,#1E3350,#34507A);color:#fff;box-shadow:0 6px 16px rgba(30,51,80,.25)}.bp svg{color:var(--cy)}
+.bs{background:var(--sf);color:var(--tx);border:1px solid var(--br)}
+.estado{font-size:.8rem;color:var(--tx3)}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:16px}
+.k{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:14px 16px;position:relative;overflow:hidden}
+.k:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.k span{display:block;font-size:.66rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3)}
+.k b{display:block;font-size:1.6rem;font-weight:800;margin-top:6px}
+.card{background:var(--sf);border:1px solid var(--br);border-radius:16px;overflow:hidden;margin-bottom:16px}
+.ch{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--br)}
+.ch h2{margin:0;font-size:.95rem;font-weight:800;display:flex;align-items:center;gap:9px}
+.ch h2:before{content:"";width:4px;height:18px;border-radius:2px;background:var(--cy)}
+.ch small{margin-left:auto;font:600 .72rem var(--m);color:var(--tx3)}
+.rolar{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th{text-align:right;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);font-weight:800;padding:10px 12px;background:rgba(148,163,184,.08);border-bottom:1px solid var(--br);white-space:nowrap}
+td{text-align:right;padding:10px 12px;border-bottom:1px solid var(--br);font-family:var(--m);font-size:.8rem;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;font-family:var(--f);font-size:.84rem;position:sticky;left:0;background:var(--sf);z-index:1}
+th:first-child{background:#F3F6FA}
+html[data-zelo-theme="dark"] th:first-child{background:#162033}
+tr.total td{font-weight:800;background:rgba(34,211,238,.08)}
+tr.total td:first-child{background:#E8FAFD}
+html[data-zelo-theme="dark"] tr.total td:first-child{background:#0E2A33}
+td.sem{color:var(--tx3)}
+.grelha td,.grelha th{padding:7px 6px;font-size:.72rem}
+.grelha td:first-child{font-size:.76rem}
+.grelha .tipo{font-weight:700;color:var(--tx2);font-family:var(--f);font-size:.68rem;text-align:left}
+.grelha tr.dd td{border-bottom:2px solid var(--br)}
+.taxa{display:inline-flex;align-items:center;gap:8px}
+.taxa i{display:inline-block;width:60px;height:6px;border-radius:9px;background:#E6EBF2;overflow:hidden}
+.taxa i b{display:block;height:100%;background:var(--c)}
+.vazio{padding:28px;text-align:center;color:var(--tx3);font-size:.9rem}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}main{padding:14px}header.mhg-top{padding:12px 14px}}
+</style>
+</head>
+<body>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível.', e);
+    window.__fbReady = false;
+  }
+  window.dispatchEvent(new Event('mhg-fb'));
+</script>
+
+<header class="mhg-top">
+  <img src="icons/logo.png" alt="ZELO">
+  <h1>Movimento Hospitalar Geral</h1>
+  <div class="acoes">
+    <a href="index.html"><svg class="i" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</a>
+  </div>
+</header>
+
+<main>
+  <div class="nota">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+    <span>Página só de leitura: junta os dados preenchidos no Movimento Hospitalar de todos os serviços de internamento. Para corrigir um valor, abra o movimento do próprio serviço.</span>
+  </div>
+
+  <div class="barra">
+    <label for="mhgMes">Mês</label>
+    <input type="month" id="mhgMes">
+    <span class="estado" id="mhgEstado"></span>
+    <div class="esp"></div>
+    <button class="btn bs" id="mhgAtualizar" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>Atualizar</button>
+    <button class="btn bp" id="mhgPdf" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>Relatório em PDF</button>
+  </div>
+
+  <div class="kpis" id="mhgKpis"></div>
+
+  <div class="card">
+    <div class="ch"><h2>Resumo por serviço</h2><small id="mhgResumoInfo"></small></div>
+    <div class="rolar"><table id="mhgResumo"></table></div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><h2>Dias-cama e dias-doente por dia</h2><small>DC = dias-cama · DD = dias-doente</small></div>
+    <div class="rolar"><table class="grelha" id="mhgGrelha"></table></div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="zelo_servicos_menu.js"></script>
+<script>
+/* Movimento Hospitalar Geral — só leitura.
+   Cada serviço guarda em registos_movimento/<serviço>:
+     { savedAt, snapshot: { 'AAAA-MM': { campo: [valor do dia 1, dia 2, …] } } }
+   Campos usados (os mesmos da página de cada serviço):
+     diretos + transferidos_adm = Admitidos
+     altas + menos_48 + mais_48 + transferidos_sai = Saídos (menos_48 + mais_48 = Falecidos)
+     dia_cama = Dias-cama · dia_doente = Dias-doente */
+(function(){
+  var MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  function servicos(){
+    var lista = [];
+    (window.SERVICOS_MENU || []).forEach(function(s){
+      (s.movimento || []).forEach(function(m){
+        if (m.item === 'banco_urgencia') return;
+        var partes = String(m.label).split(/\s+—\s+/);
+        lista.push({ item: m.item, nome: partes.length > 1 ? partes[1] : s.nome });
+      });
+    });
+    return lista;
+  }
+  var SERVICOS = servicos();
+  var dados = null;   // { item: mesObj }
+  var mesAtual = null;
+
+  var elMes = document.getElementById('mhgMes');
+  var hoje = new Date();
+  elMes.value = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+
+  function diasNoMes(ym){ var p = ym.split('-'); return new Date(+p[0], +p[1], 0).getDate(); }
+  function val(m, campo, i){
+    if (!m || !m[campo]) return null;
+    var v = m[campo][i];
+    if (v === null || v === undefined || v === '') return null;
+    var n = parseInt(v, 10);
+    return isNaN(n) ? null : n;
+  }
+  function soma(m, campo, n){ var t = 0, tem = false; for (var i = 0; i < n; i++){ var v = val(m, campo, i); if (v != null){ t += v; tem = true; } } return tem ? t : null; }
+  function somaVarios(m, campos, n){ var t = 0, tem = false; campos.forEach(function(c){ var v = soma(m, c, n); if (v != null){ t += v; tem = true; } }); return tem ? t : null; }
+  function fmt(v){ return v == null ? '—' : v.toLocaleString('pt-PT'); }
+  function pct(a, b){ return b ? (a / b * 100) : null; }
+  function fmtPct(v){ return v == null ? '—' : v.toLocaleString('pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; }
+  function fmtDec(v){ return v == null ? '—' : v.toLocaleString('pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+
+  function resumoServico(m, n){
+    var adm = somaVarios(m, ['diretos', 'transferidos_adm'], n);
+    var fal = somaVarios(m, ['menos_48', 'mais_48'], n);
+    var sai = somaVarios(m, ['altas', 'menos_48', 'mais_48', 'transferidos_sai'], n);
+    var dc = soma(m, 'dia_cama', n), dd = soma(m, 'dia_doente', n);
+    var altas = soma(m, 'altas', n);
+    return { adm: adm, sai: sai, altas: altas, fal: fal, dc: dc, dd: dd,
+      taxa: dc ? pct(dd || 0, dc) : null, perm: sai ? (dd || 0) / sai : null };
+  }
+
+  function desenhar(){
+    var ym = elMes.value, n = diasNoMes(ym);
+    var p = ym.split('-');
+    var tot = { adm: 0, sai: 0, altas: 0, fal: 0, dc: 0, dd: 0 };
+    var linhas = SERVICOS.map(function(s){
+      var r = resumoServico(dados[s.item], n);
+      ['adm', 'sai', 'altas', 'fal', 'dc', 'dd'].forEach(function(k){ tot[k] += r[k] || 0; });
+      return { s: s, r: r };
+    });
+    tot.taxa = tot.dc ? pct(tot.dd, tot.dc) : null;
+    tot.perm = tot.sai ? tot.dd / tot.sai : null;
+    var comDados = linhas.filter(function(l){ return l.r.dc != null || l.r.dd != null || l.r.adm != null; }).length;
+
+    var K = [
+      ['Admitidos', fmt(tot.adm), '#0891B2'], ['Saídos', fmt(tot.sai), '#DC2626'], ['Falecidos', fmt(tot.fal), '#7C3AED'],
+      ['Dias-cama', fmt(tot.dc), '#1A56DB'], ['Dias-doente', fmt(tot.dd), '#16A34A'], ['Taxa de ocupação', fmtPct(tot.taxa), '#D97706']
+    ];
+    document.getElementById('mhgKpis').innerHTML = K.map(function(k){ return '<div class="k" style="--c:' + k[2] + '"><span>' + k[0] + '</span><b>' + k[1] + '</b></div>'; }).join('');
+    document.getElementById('mhgResumoInfo').textContent = MESES[+p[1] - 1] + ' de ' + p[0] + ' · ' + comDados + ' de ' + SERVICOS.length + ' serviços com dados';
+
+    var h = '<thead><tr><th>Serviço</th><th>Admitidos</th><th>Saídos</th><th>Altas</th><th>Falecidos</th><th>Dias-cama</th><th>Dias-doente</th><th>Taxa de ocupação</th><th>Perm. média (dias)</th></tr></thead><tbody>';
+    linhas.forEach(function(l){
+      var r = l.r, sem = r.dc == null && r.dd == null && r.adm == null;
+      var cor = r.taxa == null ? '#94A3B8' : r.taxa > 100 ? '#DC2626' : r.taxa >= 85 ? '#D97706' : '#16A34A';
+      h += '<tr><td>' + l.s.nome + (sem ? ' <small style="color:var(--tx3)">(sem dados)</small>' : '') + '</td>' + [r.adm, r.sai, r.altas, r.fal, r.dc, r.dd].map(function(v){ return '<td class="' + (v == null ? 'sem' : '') + '">' + fmt(v) + '</td>'; }).join('') +
+        '<td>' + (r.taxa == null ? '<span class="sem">—</span>' : '<span class="taxa" style="--c:' + cor + '"><i><b style="width:' + Math.min(100, r.taxa) + '%"></b></i>' + fmtPct(r.taxa) + '</span>') + '</td>' +
+        '<td class="' + (r.perm == null ? 'sem' : '') + '">' + fmtDec(r.perm) + '</td></tr>';
+    });
+    h += '<tr class="total"><td>TOTAL DO HOSPITAL</td>' + [tot.adm, tot.sai, tot.altas, tot.fal, tot.dc, tot.dd].map(function(v){ return '<td>' + fmt(v) + '</td>'; }).join('') +
+      '<td>' + fmtPct(tot.taxa) + '</td><td>' + fmtDec(tot.perm) + '</td></tr></tbody>';
+    document.getElementById('mhgResumo').innerHTML = h;
+
+    // Grelha diária
+    var g = '<thead><tr><th>Serviço</th><th></th>';
+    for (var d = 1; d <= n; d++) g += '<th>' + d + '</th>';
+    g += '<th>Total</th></tr></thead><tbody>';
+    var totDia = { dc: new Array(n).fill(null), dd: new Array(n).fill(null) };
+    linhas.forEach(function(l){
+      var m = dados[l.s.item];
+      [['dc', 'dia_cama', 'DC'], ['dd', 'dia_doente', 'DD']].forEach(function(c, k){
+        g += '<tr class="' + c[0] + '">' + (k === 0 ? '<td rowspan="2">' + l.s.nome + '</td>' : '') + '<td class="tipo">' + c[2] + '</td>';
+        for (var i = 0; i < n; i++){
+          var v = val(m, c[1], i);
+          if (v != null) totDia[c[0]][i] = (totDia[c[0]][i] || 0) + v;
+          g += '<td class="' + (v == null ? 'sem' : '') + '">' + (v == null ? '·' : v) + '</td>';
+        }
+        g += '<td><b>' + fmt(soma(m, c[1], n)) + '</b></td></tr>';
+      });
+    });
+    [['dc', 'DC'], ['dd', 'DD']].forEach(function(c, k){
+      g += '<tr class="total">' + (k === 0 ? '<td rowspan="2">TOTAL</td>' : '') + '<td class="tipo">' + c[1] + '</td>';
+      var t = 0;
+      totDia[c[0]].forEach(function(v){ t += v || 0; g += '<td>' + (v == null ? '·' : v) + '</td>'; });
+      g += '<td>' + fmt(t) + '</td></tr>';
+    });
+    g += '</tbody>';
+    document.getElementById('mhgGrelha').innerHTML = g;
+    mesAtual = { ym: ym, n: n, linhas: linhas, tot: tot, totDia: totDia };
+  }
+
+  function carregar(){
+    var estado = document.getElementById('mhgEstado');
+    if (!window.__fbReady || !window.__fbGet){ estado.textContent = 'Sem ligação ao servidor — não é possível ler os dados agora.'; return; }
+    estado.textContent = 'A ler os dados dos serviços…';
+    var ym = elMes.value;
+    Promise.all(SERVICOS.map(function(s){
+      return window.__fbGet('registos_movimento/' + s.item).catch(function(){ return null; });
+    })).then(function(res){
+      dados = {};
+      SERVICOS.forEach(function(s, i){
+        var v = res[i] || {};
+        var snap = v.snapshot || v;
+        dados[s.item] = (snap && snap[ym]) || null;
+      });
+      estado.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+      desenhar();
+    }).catch(function(){ estado.textContent = 'Não foi possível ler os dados.'; });
+  }
+  elMes.addEventListener('change', carregar);
+  document.getElementById('mhgAtualizar').addEventListener('click', carregar);
+  if (window.__fbGet) carregar(); else window.addEventListener('mhg-fb', carregar, { once: true });
+
+  // ── PDF horizontal: resumo + dias-cama e dias-doente de todos os dias ──
+  document.getElementById('mhgPdf').addEventListener('click', function(){
+    if (!mesAtual){ alert('Aguarde que os dados sejam lidos.'); return; }
+    var Z = window.ZeloPDF;
+    if (!Z || !(window.jspdf && window.jspdf.jsPDF)){ alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return; }
+    var p = mesAtual.ym.split('-'), n = mesAtual.n, periodo = MESES[+p[1] - 1] + ' de ' + p[0];
+    var doc = Z.novo({ orientation: 'landscape', format: 'a4' });
+    var y = Z.cabecalho(doc, 'Movimento Hospitalar Geral', periodo);
+    var t = mesAtual.tot;
+    y = Z.secao(doc, y, '1. Resumo por serviço');
+    var corpo = mesAtual.linhas.map(function(l){ var r = l.r; return [l.s.nome, fmt(r.adm), fmt(r.sai), fmt(r.altas), fmt(r.fal), fmt(r.dc), fmt(r.dd), fmtPct(r.taxa), fmtDec(r.perm)]; });
+    corpo.push(['TOTAL DO HOSPITAL', fmt(t.adm), fmt(t.sai), fmt(t.altas), fmt(t.fal), fmt(t.dc), fmt(t.dd), fmtPct(t.taxa), fmtDec(t.perm)]);
+    y = Z.autoTable(doc, { startY: y, head: [['Serviço', 'Admitidos', 'Saídos', 'Altas', 'Falecidos', 'Dias-cama', 'Dias-doente', 'Taxa ocupação', 'Perm. média']],
+      body: corpo, styles: { fontSize: 10 }, columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' }, 6: { halign: 'right' }, 7: { halign: 'right' }, 8: { halign: 'right' } } });
+
+    // Grelha diária numa folha própria, toda na horizontal.
+    doc.addPage();
+    y = Z.cabecalho(doc, 'Dias-cama e dias-doente por dia', periodo);
+    var head = ['Serviço', ''];
+    for (var d = 1; d <= n; d++) head.push(String(d));
+    head.push('Total');
+    var body = [];
+    mesAtual.linhas.forEach(function(l){
+      var m = dados[l.s.item];
+      [['dia_cama', 'DC'], ['dia_doente', 'DD']].forEach(function(c, k){
+        var linha = [k === 0 ? { content: l.s.nome, rowSpan: 2 } : null, c[1]].filter(function(x){ return x !== null; });
+        for (var i = 0; i < n; i++){ var v = val(m, c[0], i); linha.push(v == null ? '' : String(v)); }
+        linha.push(fmt(soma(m, c[0], n)));
+        body.push(linha);
+      });
+    });
+    [['dc', 'DC'], ['dd', 'DD']].forEach(function(c, k){
+      var linha = [k === 0 ? { content: 'TOTAL', rowSpan: 2 } : null, c[1]].filter(function(x){ return x !== null; });
+      var tt = 0;
+      mesAtual.totDia[c[0]].forEach(function(v){ tt += v || 0; linha.push(v == null ? '' : String(v)); });
+      linha.push(fmt(tt));
+      body.push(linha);
+    });
+    var cs = { 0: { cellWidth: 30, fontStyle: 'bold', halign: 'left' }, 1: { cellWidth: 7, fontStyle: 'bold', halign: 'center' } };
+    cs[n + 2] = { fontStyle: 'bold', cellWidth: 11 };
+    doc.autoTable({ startY: y, head: [head], body: body, theme: 'grid',
+      margin: { left: 8, right: 8, top: 20, bottom: 18 },
+      styles: { fontSize: 6, cellPadding: 0.9, halign: 'center', valign: 'middle', lineWidth: 0.15 },
+      headStyles: { fontSize: 6.2, halign: 'center' },
+      columnStyles: cs, horizontalPageBreak: false,
+      didParseCell: function(data){
+        if (data.section !== 'body') return;
+        var raw = data.row.raw || [];
+        var primeiro = raw[0] && raw[0].content != null ? raw[0].content : raw[0];
+        if (primeiro === 'TOTAL' || (data.row.index >= body.length - 2)) { data.cell.styles.fontStyle = 'bold'; data.cell.styles.fillColor = '#E6F7FB'; }
+      }
+    });
+    var fy = (doc.lastAutoTable && doc.lastAutoTable.finalY) || y;
+    doc.setFontSize(8); doc.setTextColor('#475569');
+    doc.text('DC = dias-cama (camas disponíveis no dia) · DD = dias-doente (doentes internados no dia). Taxa de ocupação = total DD ÷ total DC × 100.', 8, Math.min(fy + 6, doc.internal.pageSize.getHeight() - 20));
+    Z.rodape(doc);
+    doc.save('movimento_hospitalar_geral_' + mesAtual.ym + '.pdf');
+  });
+})();
+</script>
+<script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script src="zelo_assistente.js"></script>
+</body>
+</html>

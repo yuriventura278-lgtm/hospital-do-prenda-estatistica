@@ -203,6 +203,8 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Procedimentos de Enfermagem · Geral', file: 'procedimentos_enfermagem_geral.html', modulo: 'procedimentos_enfermagem', item: 'geral' },
   { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
   { nome: 'Registo VIH · Geral', file: 'registo_hiv.html', modulo: 'sistemas_independentes', item: 'registo_hiv' },
+  { nome: 'Movimento Hospitalar Geral', file: 'movimento_hospitalar_geral.html', modulo: 'sistemas_independentes', item: 'movimento_hospitalar_geral' },
+  { nome: 'Fluxograma do Relatório', file: 'fluxograma_relatorio.html', modulo: 'sistemas_independentes', item: 'fluxograma_relatorio' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),
   // cada uma com a sua entrada, a seguir à Supervisão.
 ];
