@@ -62,6 +62,19 @@
     '.ze-ok .ze-num b{color:#4ADE80;font-size:3.2rem;} .ze-ok .ze-num small{color:#4ADE80;opacity:1;}',
     '.ze-ok .ze-msg{color:#86EFAC;}',
     '@keyframes zeGira{to{transform:rotate(360deg);}}',
+    // Janelas de boas-vindas / ajuda (#welcomeModal) e mensagens de boas-vindas
+    // no ecrã de abertura: mesmo visual dos ecrãs de espera.
+    '#welcomeModal,#splash.ze-splash-msg{background:linear-gradient(180deg,rgba(8,18,38,.84),rgba(6,13,26,.93)),url(icons/login_bg.jpg) center/cover no-repeat !important;}',
+    '#welcomeModal > *{background:rgba(12,26,52,.62) !important;border:1px solid rgba(255,255,255,.16) !important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.45) !important;color:#E2E8F0 !important;}',
+    '#welcomeModal > * *:not(svg):not(path):not(circle):not(line):not(polyline){color:#E2E8F0 !important;}',
+    '#welcomeModal h2:not(#ze-x),#welcomeModal b:not(#ze-x),#welcomeModal strong:not(#ze-x){color:#fff !important;}',
+    '#welcomeModal h3:not(#ze-x){color:#7DD3FC !important;}',
+    '#welcomeModal svg{color:#7DD3FC;}',
+    '#welcomeModal .modal-header{background:transparent !important;border-bottom:1px solid rgba(34,211,238,.35) !important;}',
+    '#welcomeModal [class*="box"],#welcomeModal [class*="def"],#welcomeModal [class*="tip"]{background:rgba(255,255,255,.06) !important;border-color:rgba(255,255,255,.14) !important;}',
+    '#welcomeModal button{background:rgba(255,255,255,.1) !important;border:1px solid rgba(255,255,255,.25) !important;color:#fff !important;}',
+    '#welcomeModal .ze-logo-wm{display:block;width:46px;height:46px;margin:18px auto 2px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.35);}',
+    '#splash.ze-splash-msg #splash-msg{background:rgba(12,26,52,.62) !important;border:1px solid rgba(255,255,255,.16) !important;}',
     // faixas pequenas no topo (ligação lenta / restabelecida / sem internet)
     '.ze-faixa{position:fixed;top:10px;left:50%;transform:translate(-50%,-140%);z-index:2147483001;display:flex;align-items:center;gap:10px;',
     '  max-width:min(94vw,560px);padding:9px 14px;border-radius:14px;font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:.82rem;line-height:1.35;',
@@ -420,6 +433,7 @@
       var pedeClique = s && Array.prototype.some.call(s.querySelectorAll('button,a[href],input,[onclick]'), function (b) { return b.getClientRects().length > 0; });
       if (acabou || pedeClique || Date.now() - inicio > 30000) {
         clearInterval(iv);
+        if (pedeClique && s) s.classList.add('ze-splash-msg');
         abertura.concluir(function () {
           document.documentElement.classList.add('zelo-espera-off');
           abertura = null;
@@ -455,9 +469,11 @@
     info: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
     aviso: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     obra: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+    calendario: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="12" y1="19.5" x2="12.01" y2="19.5"/></svg>',
+    ok: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
     admin: '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>'
   };
-  var CORES_MSG = { info: 'normal', aviso: 'lenta', admin: 'proc', obra: 'lenta' };
+  var CORES_MSG = { info: 'normal', aviso: 'lenta', admin: 'proc', obra: 'lenta', calendario: 'lenta', ok: 'ok' };
   function mensagem(opcoes) {
     opcoes = opcoes || {};
     var tipo = opcoes.icone || 'info';
@@ -470,7 +486,7 @@
     anel.cor(CORES_MSG[tipo] || 'normal'); anel.valor(100);
     anel.el.querySelector('.ze-brilho').style.display = 'none';
     var num = anel.el.querySelector('.ze-num');
-    num.innerHTML = '<span style="color:' + (tipo === 'aviso' || tipo === 'obra' ? '#FCD34D' : '#7DD3FC') + ';display:flex">' + (ICONES[tipo] || ICONES.info) + '</span>';
+    num.innerHTML = '<span style="color:' + (tipo === 'aviso' || tipo === 'obra' || tipo === 'calendario' ? '#FCD34D' : tipo === 'ok' ? '#4ADE80' : '#7DD3FC') + ';display:flex">' + (ICONES[tipo] || ICONES.info) + '</span>';
     var msg = el('div', 'ze-msg'); msg.textContent = opcoes.titulo || 'Aviso';
     msg.style.fontSize = '1.25rem';
     var etiqueta = null;
@@ -523,6 +539,16 @@
     if (texto) e.mensagem(texto);
   }
   if (window.ZELO_ESPERA_MODO === 'entrada' && !noIframe) abrirEntrada('A carregar…');
+
+  function vestirBoasVindas() {
+    var wm = document.getElementById('welcomeModal');
+    if (wm && wm.firstElementChild && !wm.querySelector('.ze-logo-wm')) {
+      var l = logoZelo(); l.className = 'ze-logo-wm';
+      wm.firstElementChild.insertBefore(l, wm.firstElementChild.firstChild);
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', vestirBoasVindas);
+  else vestirBoasVindas();
 
   window.ZeloEspera = {
     mensagem: mensagem,

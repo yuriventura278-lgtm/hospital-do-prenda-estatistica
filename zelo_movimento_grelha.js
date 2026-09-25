@@ -650,3 +650,26 @@
 
   window.zeloMovimentoGrelha = { desfazer: desfazer, refazer: refazer, refrescar: refrescarCalculados };
 })();
+
+// Dias do mês corrente com algum valor registado neste aparelho — usado pelo
+// aviso de "dias em falta" do assistente (zelo_assistente.js).
+window.zeloDiasComRegistoLocal = function(){
+  try {
+    var hoje = new Date();
+    var mes = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+    var m = (typeof data !== 'undefined' && data) ? data[mes] : null;
+    if (!m) return [];
+    var dias = [];
+    Object.keys(m).forEach(function(campo){
+      var arr = m[campo];
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function(v, i){
+        if (v !== null && v !== undefined && v !== '') {
+          var chave = mes + '-' + String(i + 1).padStart(2, '0');
+          if (dias.indexOf(chave) === -1) dias.push(chave);
+        }
+      });
+    });
+    return dias;
+  } catch (e) { return []; }
+};

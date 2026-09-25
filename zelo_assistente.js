@@ -905,7 +905,7 @@
   // simples recarga da mesma página/sessão não repete nada.
   function tentarSaudarEntrada(){
     if (!estaNaPaginaInicial()) return;
-    var nome = (sessionStorage.getItem('zeloNome') || '').split(' ')[0];
+    var nome = _primeiroNome(sessionStorage.getItem('zeloNome') || '');
     if (!nome) return;
     if (sessionStorage.getItem('zeloSaudacaoSessao')) return;
     sessionStorage.setItem('zeloSaudacaoSessao', '1');
@@ -941,6 +941,13 @@
   // Noite de hoje quando ainda é de manhã.
   window.zeloDataHoraAngola = dataHoraAngola;
 
+  // Primeiro nome para cumprimentar; títulos abreviados (ex.: "Enf.", "Dr.")
+  // ficam juntos com o nome seguinte — "Enf. Ana", e não "Enf.".
+  function _primeiroNome(n){
+    var p = String(n || '').trim().split(/\s+/);
+    if (p.length > 1 && /\.$/.test(p[0])) return p[0] + ' ' + p[1];
+    return p[0] || '';
+  }
   // ── Aviso de preenchimento em falta ──
   // Cada página com este aviso diz como encontrar os seus próprios dados no
   // Firebase (window.ZELO_MODULE/ZELO_ITEM, já definidos no topo de cada
@@ -973,8 +980,18 @@
     'sistemas_independentes|bloco_operatorio_ficha_operatoria': { fbPathBase: 'registos_sistemas_locais/bloco_operatorio_ficha', servicoLabel: 'Bloco Operatório — Ficha Operatória', itemPlural: 'fichas' },
     'sistemas_independentes|consulta_externa_geral': { fbPathBase: 'registos_sistemas_locais/consulta_externa', servicoLabel: 'Consulta Externa', itemPlural: 'registos' },
     'sistemas_independentes|laboratorio_geral': { fbPathBase: 'registos_sistemas_locais/laboratorio', servicoLabel: 'Laboratório', itemPlural: 'registos' },
-    'sistemas_independentes|imagiologia_radiologia_geral': { fbPathBase: 'registos_sistemas_locais/imagiologia', servicoLabel: 'Imagiologia', itemPlural: 'registos' }
+    'sistemas_independentes|imagiologia_radiologia_geral': { fbPathBase: 'registos_sistemas_locais/imagiologia', servicoLabel: 'Imagiologia', itemPlural: 'registos' },
+    'servicos|fisioterapia': { fbPathBase: 'registos/fisioterapia', servicoLabel: 'Fisioterapia', itemPlural: 'registos' }
   };
+  // Nome do serviço de uma página de Movimento Hospitalar (lido do menu).
+  function labelMovimento(item){
+    var menu = window.SERVICOS_MENU || [];
+    for (var i = 0; i < menu.length; i++) {
+      var mv = menu[i].movimento || [];
+      for (var j = 0; j < mv.length; j++) if (mv[j].item === item) return (mv[j].label.split(' — ')[1]) || menu[i].nome;
+    }
+    return item;
+  }
   function configAvisoPreenchimento(){
     if (window.ZELO_MODULE === 'procedimentos_enfermagem' && window.ZELO_ITEM) {
       return {
@@ -982,6 +999,18 @@
         servicoLabel: 'Procedimentos de Enfermagem de ' + labelEspecialidadeEnfermagem(window.ZELO_ITEM),
         itemPlural: 'procedimentos',
         chaveAviso: 'enf_' + window.ZELO_ITEM
+      };
+    }
+    // Movimento Hospitalar: os dias preenchidos vêm dos dados deste aparelho
+    // (zeloDiasComRegistoLocal, em zelo_movimento_grelha.js); o nó do
+    // Firebase guarda o mês inteiro de uma vez, sem chaves por dia.
+    if (window.ZELO_MODULE === 'movimento_mensal' && window.ZELO_ITEM && window.ZELO_ITEM !== 'banco_urgencia' &&
+        typeof window.zeloDiasComRegistoLocal === 'function') {
+      return {
+        fbPathBase: 'registos_movimento/' + window.ZELO_ITEM + '/__sem_dias',
+        servicoLabel: 'Movimento Hospitalar de ' + labelMovimento(window.ZELO_ITEM),
+        itemPlural: 'registos',
+        chaveAviso: 'mov_' + window.ZELO_ITEM
       };
     }
     var chave = window.ZELO_MODULE + '|' + window.ZELO_ITEM;
@@ -1088,7 +1117,7 @@
   function tentarAvisarPreenchimento(){
     var cfg = configAvisoPreenchimento();
     if (!cfg) return;
-    var nome = (sessionStorage.getItem('zeloNome') || '').split(' ')[0];
+    var nome = _primeiroNome(sessionStorage.getItem('zeloNome') || '');
     if (!nome) return;
     var agora = dataHoraAngola();
     var partes = agora.data.split('-');
@@ -1176,6 +1205,16 @@
         texto += LEMBRETES_FECHO_PREENCHIMENTO[Math.floor(Math.random() * LEMBRETES_FECHO_PREENCHIMENTO.length)];
       }
       falar(texto);
+      // Também no ecrã, no mesmo modelo dos ecrãs de espera (zelo_espera.js).
+      if (window.ZeloEspera && window.ZeloEspera.mensagem) {
+        window.ZeloEspera.mensagem({
+          icone: diasFalta.length ? 'calendario' : 'ok',
+          etiqueta: diasFalta.length ? (diasFalta.length === 1 ? 'Falta 1 dia' : 'Faltam ' + diasFalta.length + ' dias') : 'Tudo em dia',
+          titulo: cfg.servicoLabel,
+          texto: texto,
+          botoes: [{ texto: diasFalta.length ? 'Vou preencher' : 'Continuar', principal: true }]
+        });
+      }
     }).catch(function () {}).then(function () { avisoPreenchimentoEmCurso = false; });
     // ^ reposto no fim (sucesso ou falha): sem isto, se a leitura ao
     // Firebase falhar/demorar na primeira tentativa (setTimeout de
