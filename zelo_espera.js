@@ -54,6 +54,10 @@
     '.ze-logo{width:46px;height:46px;border-radius:12px;display:block;margin:0 auto 14px;object-fit:contain;box-shadow:0 6px 18px rgba(0,0,0,.35);}',
     '.ze-anel{position:relative;width:160px;height:160px;margin:0 auto;}',
     '.ze-anel > svg{width:100%;height:100%;transform:rotate(-90deg);display:block;}',
+    '.ze-anel.ze-indet{width:96px;height:96px;}',
+    '.ze-anel.ze-indet > svg{animation:zeGiraI 1s linear infinite;}',
+    '.ze-anel.ze-indet .ze-num,.ze-anel.ze-indet .ze-brilho{display:none;}',
+    '@keyframes zeGiraI{from{transform:rotate(-90deg);}to{transform:rotate(270deg);}}',
     '.ze-anel .ze-pista{fill:none;stroke-width:11;}',
     '.ze-escura .ze-pista{stroke:rgba(255,255,255,.14);}',
     '.ze-anel .ze-arco{fill:none;stroke-width:11;stroke-linecap:round;}',
@@ -153,6 +157,8 @@
       cor: function (k) { arco.setAttribute('stroke', 'url(#' + ids[k] + ')'); },
       valor: function (v) { arco.setAttribute('stroke-dashoffset', C * (1 - Math.max(0, Math.min(100, v)) / 100)); },
       texto: function (t) { num.querySelector('b').textContent = t; },
+      // Sem percentagem: um arco a girar (abertura das páginas).
+      indeterminado: function () { wrap.classList.add('ze-indet'); arco.style.strokeDashoffset = (C * 0.72) + 'px'; },
       rotulo: function (t) { num.querySelector('small').textContent = t || ''; }
     };
     api.cor('normal');
@@ -213,6 +219,7 @@
     var centro = el('div', 'ze-centro');
     var logo = logoZelo();
     var anel = criarAnel(opcoes.rotulo || 'ZELO');
+    if (opcoes.indeterminado) anel.indeterminado();
     var msg = el('div', 'ze-msg'); msg.textContent = opcoes.mensagem || 'A carregar…';
     var det = el('div', 'ze-det'); det.textContent = opcoes.detalhe || 'Hospital do Prenda · ZELO';
     var passos = null;
@@ -243,6 +250,7 @@
       concluir: function (cb) {
         if (fechado) return; fechado = true;
         msgFixa = true;
+        if (opcoes.indeterminado) { m.parar(); semEcra(); sair(camada, cb); return; }
         m.terminar(function () { m.parar(); msg.textContent = opcoes.mensagemFim || 'Pronto'; setTimeout(function () { semEcra(); sair(camada, cb); }, 250); });
       },
       fechar: function (cb) { if (fechado) return; fechado = true; m.parar(); semEcra(); sair(camada, cb); },
@@ -422,10 +430,9 @@
   }
   function iniciarAbertura(sp) {
     if (abertura || window.ZELO_ESPERA_MODO === 'entrada' || noIframe) return;
-    abertura = ecra({
-      rotulo: nomePagina() || 'ZELO', mensagem: 'A abrir os dados deste aparelho…', detalhe: 'Hospital do Prenda · ZELO',
-      mensagens: ['A abrir os dados deste aparelho…', 'A sincronizar com o servidor…', 'A preparar a página…']
-    });
+    // Só a informação de carregar a página: sem percentagem nem textos
+    // próprios de cada página.
+    abertura = ecra({ indeterminado: true, mensagem: 'A carregar a página…', detalhe: 'Aguarde um momento.' });
     var visto = false, inicio = Date.now();
     var iv = setInterval(function () {
       var s = document.getElementById('splash');
@@ -457,6 +464,25 @@
       }
     }, 120);
   }
+  // Ao clicar num link para outra página do sistema: só "A carregar a página…".
+  var navEcra = null;
+  window.addEventListener('click', function (e) {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target && e.target.closest && e.target.closest('a[href]');
+    if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
+    var href = a.getAttribute('href') || '';
+    if (!href || href.charAt(0) === '#' || /^(javascript|mailto|tel|blob|data):/i.test(href)) return;
+    var u; try { u = new URL(href, location.href); } catch (x) { return; }
+    if (u.origin !== location.origin || !/\.html?$|\/$/.test(u.pathname)) return;
+    if (u.pathname === location.pathname && u.search === location.search) return;
+    setTimeout(function () {
+      if (e.defaultPrevented || navEcra || noIframe) return;
+      navEcra = ecra({ indeterminado: true, mensagem: 'A carregar a página…', detalhe: 'Aguarde um momento.' });
+    }, 0);
+  });
+  window.addEventListener('pageshow', function (ev) {
+    if (navEcra) { navEcra.fechar(); navEcra = null; }
+  });
   // O #splash é inserido pelo parser logo no início do <body>.
   function procurarSplash() {
     var s = document.getElementById('splash');
