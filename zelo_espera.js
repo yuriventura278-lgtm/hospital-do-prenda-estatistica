@@ -8,6 +8,21 @@
 // lenta, cinzento sem internet, verde com um visto quando termina) e a
 // percentagem aparece em números grandes no meio.
 // Tem de ser carregado cedo, no <head>, antes do ecrã de abertura da página.
+// Também carrega zelo_icones.js (emojis → ícones SVG) em todas as páginas.
+// E zelo_graficos.js (gráficos no modelo da Consulta Externa), de forma
+// síncrona, para estar pronto antes de o Chart.js da página ser carregado.
+(function () {
+  var eu = document.currentScript && document.currentScript.src;
+  function url(f) { return eu ? eu.replace(/zelo_espera\.js(\?.*)?$/, f) : f; }
+  if (!window.__zeloGraficos && !document.querySelector('script[src$="zelo_graficos.js"]')) {
+    if (document.readyState === 'loading') document.write('<script src="' + url('zelo_graficos.js') + '"><\/script>');
+    else { var g = document.createElement('script'); g.src = url('zelo_graficos.js'); document.head.appendChild(g); }
+  }
+  if (window.__zeloIcones || document.querySelector('script[src$="zelo_icones.js"]')) return;
+  var sc = document.createElement('script');
+  sc.src = url('zelo_icones.js');
+  (document.head || document.documentElement).appendChild(sc);
+})();
 (function () {
   if (window.ZeloEspera) return;
   var NS = 'http://www.w3.org/2000/svg';
