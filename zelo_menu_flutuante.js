@@ -714,6 +714,8 @@
     [800, 2500, 6000].forEach(function(ms){ setTimeout(ultReposicionar, ms); });
   }
 
+  // zelo_ultima_alteracao.js cria a etiqueta mais tarde nalgumas páginas.
+  window.zeloUltIniciar = function(){ limparPrefixoUltimaAlteracao(); ultIniciar(); };
   function iniciar(){
     limparPrefixoUltimaAlteracao();
     ultIniciar();

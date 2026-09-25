@@ -18,6 +18,10 @@
     if (document.readyState === 'loading') document.write('<script src="' + url('zelo_graficos.js') + '"><\/script>');
     else { var g = document.createElement('script'); g.src = url('zelo_graficos.js'); document.head.appendChild(g); }
   }
+  if (!document.querySelector('script[src$="zelo_ultima_alteracao.js"]')) {
+    var ua = document.createElement('script'); ua.src = url('zelo_ultima_alteracao.js'); ua.defer = true;
+    (document.head || document.documentElement).appendChild(ua);
+  }
   if (window.__zeloIcones || document.querySelector('script[src$="zelo_icones.js"]')) return;
   var sc = document.createElement('script');
   sc.src = url('zelo_icones.js');
