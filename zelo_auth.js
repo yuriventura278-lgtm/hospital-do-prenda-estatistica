@@ -342,6 +342,7 @@ const ROLE_DEFAULT_PERMISSOES = {
   secretario:       { estatistica:false, servicos:'leitura', procedimentos_enfermagem:false, movimento_mensal:true, sistemas_independentes:false, informacoes_zelo:true },
   tecnico_farmacia: { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
   psicologo:        { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
+  chefe_turno:      { estatistica:false, servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
   funcionario:      { estatistica:true, servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:false, informacoes_zelo:true },
 };
 
@@ -354,16 +355,35 @@ function roleDefaultPermForModule(role, mod) {
 // true/'editar'/'leitura' = módulo acessível; false = módulo todo bloqueado;
 // objeto {itemSlug: false, ..., _nivel?: 'leitura'} = bloqueio item a item
 // (ausência no objeto = permitido), com nível opcional (por omissão 'editar').
-// Movimento Hospitalar (enfermarias, UCI e resumo mensal): só administradores,
-// chefes de serviço e enfermeiros-chefes — regra fixa, que nenhuma permissão
-// explícita consegue alargar. O Movimento do Banco de Urgência fica de fora.
+// Páginas com acesso por função (o administrador pode abrir ou fechar a
+// página a qualquer pessoa em Permissões — fica em permissoes._paginas
+// ['modulo|item'] = true/false, que ganha sempre a esta regra):
+//   • Movimento Hospitalar (enfermarias, UCI e resumo mensal): chefes de
+//     serviço, enfermeiros-chefes e administradores. O Movimento do Banco de
+//     Urgência fica de fora (segue a permissão normal).
+//   • Controlo de Pacientes: enfermeiros, chefes de serviço, enfermeiros-
+//     chefes, chefes de turno, secretários e administradores.
 const ROLES_MOVIMENTO = ['admin', 'chefe_servico', 'enfermeiro_chefe'];
+const ROLES_CONTROLO_PACIENTES = ['admin', 'chefe_servico', 'enfermeiro_chefe', 'chefe_turno', 'enfermeiro', 'secretario'];
 function eMovimentoHospitalar(mod, itemSlug) {
   return mod === 'movimento_mensal' && itemSlug !== 'banco_urgencia';
 }
+function eControloPacientes(mod, itemSlug) {
+  return mod === 'sistemas_independentes' && /^controlo_pacientes_/.test(itemSlug || '');
+}
+function papeisDaPagina(mod, itemSlug) {
+  if (eMovimentoHospitalar(mod, itemSlug)) return ROLES_MOVIMENTO;
+  if (eControloPacientes(mod, itemSlug)) return ROLES_CONTROLO_PACIENTES;
+  return null;
+}
 function hasModuleAccess(role, permissoes, mod, itemSlug) {
   if (role === 'admin') return true;
-  if (eMovimentoHospitalar(mod, itemSlug) && ROLES_MOVIMENTO.indexOf(role) === -1) return false;
+  const papeis = papeisDaPagina(mod, itemSlug);
+  if (papeis) {
+    const explicito = permissoes && permissoes._paginas ? permissoes._paginas[mod + '|' + (itemSlug || '')] : undefined;
+    if (explicito === true || explicito === false) return explicito;
+    return papeis.indexOf(role) !== -1;
+  }
   let modPerm = permissoes ? permissoes[mod] : undefined;
   if (modPerm === undefined) modPerm = roleDefaultPermForModule(role, mod);
   if (modPerm === false) return false;
@@ -392,7 +412,8 @@ export {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, fetchUserProfileOuFalhar, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES, eMovimentoHospitalar
+  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES, eMovimentoHospitalar,
+  eControloPacientes, papeisDaPagina, ROLES_MOVIMENTO, ROLES_CONTROLO_PACIENTES
 };
 
 window.ZeloAuth = {
@@ -401,5 +422,6 @@ window.ZeloAuth = {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, fetchUserProfileOuFalhar, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
-  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES, eMovimentoHospitalar
+  hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES, eMovimentoHospitalar,
+  eControloPacientes, papeisDaPagina
 };

@@ -24,11 +24,19 @@
     secretario:       { estatistica:false, servicos:'leitura', procedimentos_enfermagem:false, movimento_mensal:true, sistemas_independentes:false },
     tecnico_farmacia: { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false },
     psicologo:        { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false },
+    chefe_turno:      { estatistica:false, servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false },
     funcionario:      { estatistica:true, servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:false },
   };
   function temAcessoModulo(role, permissoes, mod, itemSlug){
     if (role === 'admin') return true;
-    if (mod === 'movimento_mensal' && itemSlug !== 'banco_urgencia' && role !== 'chefe_servico' && role !== 'enfermeiro_chefe') return false;
+    var papeis = null;
+    if (mod === 'movimento_mensal' && itemSlug !== 'banco_urgencia') papeis = ['chefe_servico', 'enfermeiro_chefe'];
+    else if (mod === 'sistemas_independentes' && /^controlo_pacientes_/.test(itemSlug || '')) papeis = ['chefe_servico', 'enfermeiro_chefe', 'chefe_turno', 'enfermeiro', 'secretario'];
+    if (papeis) {
+      var explicito = permissoes && permissoes._paginas ? permissoes._paginas[mod + '|' + (itemSlug || '')] : undefined;
+      if (explicito === true || explicito === false) return explicito;
+      return papeis.indexOf(role) !== -1;
+    }
     var modPerm = permissoes ? permissoes[mod] : undefined;
     if (modPerm === undefined) modPerm = (ROLE_DEFAULT_PERMISSOES[role] || ROLE_DEFAULT_PERMISSOES.funcionario)[mod];
     if (modPerm === false) return false;

@@ -356,7 +356,8 @@ tbody tr:hover{background:#EEF4FF;}
 <script type="module">
 import {
   auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
-  fetchUserProfile, onAuthStateChanged, signOut, sendPasswordResetEmail, logAuditEvent, escapeHtml, ROLE_DEFAULT_PERMISSOES
+  fetchUserProfile, onAuthStateChanged, signOut, sendPasswordResetEmail, logAuditEvent, escapeHtml, ROLE_DEFAULT_PERMISSOES,
+  papeisDaPagina
 } from './zelo_auth.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signOut as secondarySignOut, deleteUser } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
@@ -434,6 +435,7 @@ const ROLES = [
   { value: 'supervisor', label: 'Supervisor' },
   { value: 'chefe_servico', label: 'Chefe de Serviço' },
   { value: 'enfermeiro_chefe', label: 'Enfermeiro-Chefe' },
+  { value: 'chefe_turno', label: 'Chefe de Turno' },
   { value: 'medico', label: 'Médico' },
   { value: 'enfermeiro', label: 'Enfermeiro' },
   { value: 'tdt', label: 'TDT' },
@@ -448,7 +450,7 @@ function roleLabel(role){
 }
 const ROLE_COLORS = {
   admin: '#7C3AED', direcao: '#0D1B3E', supervisor: '#1A56DB', chefe_servico: '#0EA5E9',
-  enfermeiro_chefe: '#0891B2', medico: '#059669', enfermeiro: '#16A34A',
+  enfermeiro_chefe: '#0891B2', chefe_turno: '#0E7490', medico: '#059669', enfermeiro: '#16A34A',
   tdt: '#D97706', secretario: '#DB2777', tecnico_farmacia: '#0D9488', psicologo: '#9333EA', funcionario: '#64748B',
 };
 function roleColor(role){ return ROLE_COLORS[role || 'funcionario'] || ROLE_COLORS.funcionario; }
@@ -649,7 +651,10 @@ function estadoModulo(permissoes, roleDefaults, key){
   return { nivel: nivel, negados: negados, isDefault: isDefault };
 }
 
-let permEstado = null; // { [modulo]: { nivel, negados, isDefault } } — base para guardar
+let permEstado = null;
+// Páginas com acesso por função (Movimento Hospitalar, Controlo de Pacientes):
+// { 'modulo|item': true/false } só quando o administrador muda a regra da função.
+let permRole = 'funcionario', permPaginas = {}; // { [modulo]: { nivel, negados, isDefault } } — base para guardar
 function openPermModal(uid, permissoes, nome, role){
   permUid = uid;
   document.getElementById('permModalTitle').textContent = 'Permissões — ' + (nome || uid);
@@ -665,6 +670,8 @@ function openPermModal(uid, permissoes, nome, role){
   }
   saveBtn.style.display = ''; ferramentas.style.display = '';
   const roleDefaults = ROLE_DEFAULT_PERMISSOES[role] || ROLE_DEFAULT_PERMISSOES.funcionario || {};
+  permRole = role || 'funcionario';
+  permPaginas = Object.assign({}, (permissoes && permissoes._paginas) || {});
   permEstado = {};
   MODULES.forEach(function(m){ permEstado[m.key] = estadoModulo(permissoes, roleDefaults, m.key); });
 
@@ -689,6 +696,18 @@ function openPermModal(uid, permissoes, nome, role){
     const info = MOD_INFO[p.modulo] || { tag: p.modulo };
     if(p.soAdmin){
       return '<div class="perm-pag perm-pag-admin" data-busca="' + escapeHtml((p.label||'').toLowerCase()) + '"><span class="perm-pag-txt">' + escapeHtml(p.label) + '</span><span class="perm-badge admin">Só administradores</span></div>';
+    }
+    const papeis = papeisDaPagina(p.modulo, p.item || undefined);
+    if(papeis){
+      const chave = p.modulo + '|' + (p.item || '');
+      const exp = permPaginas[chave];
+      const padrao = papeis.indexOf(permRole) !== -1;
+      const marcadoF = (exp === true || exp === false) ? exp : padrao;
+      return '<label class="perm-pag" data-busca="' + escapeHtml((p.label||'').toLowerCase()) + '">' +
+        '<input type="checkbox" class="perm-item-check perm-por-funcao" data-chave="' + escapeHtml(chave) + '" data-padrao="' + (padrao ? '1' : '0') + '" data-mod="' + p.modulo + '"' + (p.item ? ' data-item="' + p.item + '"' : ' data-sem-item="1"') + ' ' + (marcadoF ? 'checked' : '') + '/>' +
+        '<span class="perm-pag-txt">' + escapeHtml(p.label) + '</span>' +
+        '<span class="perm-badge" title="Por omissão depende da função; marcar ou desmarcar aqui ganha à função.">Por função' + ((exp === true || exp === false) ? ' · alterado' : '') + '</span>' +
+      '</label>';
     }
     const st = permEstado[p.modulo] || { negados: {} };
     const temItem = !!p.item;
@@ -722,7 +741,7 @@ function openPermModal(uid, permissoes, nome, role){
     '<aside class="perm-areas"><div class="perm-sec-titulo">1. Tipo de acesso por área</div>' +
       '<p class="perm-sec-sub">«Sem acesso» bloqueia todas as páginas dessa área. «Só ver» deixa abrir sem guardar alterações.</p>' + areasHtml + '</aside>' +
     '<section class="perm-paginas"><div class="perm-sec-titulo">2. Páginas do menu</div>' +
-      '<p class="perm-sec-sub">Desmarque as páginas a que este utilizador não deve ter acesso. Todas as páginas continuam visíveis no menu; sem permissão, a pessoa vê uma mensagem ao clicar.</p>' +
+      '<p class="perm-sec-sub">Desmarque as páginas a que este utilizador não deve ter acesso. Todas as páginas continuam visíveis no menu; sem permissão, a pessoa vê uma mensagem ao clicar. As páginas «Por função» (Movimento Hospitalar e Controlo de Pacientes) seguem a função da pessoa; marcar ou desmarcar aqui abre ou fecha a página só a este utilizador.</p>' +
       '<div class="perm-blocos">' + blocosHtml + '</div></section>';
   document.getElementById('permSearch').value = '';
   atualizarEstadoPermissoes();
@@ -735,7 +754,7 @@ function atualizarEstadoPermissoes(){
   const nivelDe = {};
   document.querySelectorAll('.perm-nivel-radio:checked').forEach(function(r){ nivelDe[r.dataset.mod] = r.value; });
   document.querySelectorAll('.perm-item-check').forEach(function(c){
-    const bloqueado = nivelDe[c.dataset.mod] === 'nenhum';
+    const bloqueado = nivelDe[c.dataset.mod] === 'nenhum' && !c.classList.contains('perm-por-funcao');
     c.disabled = bloqueado;
     c.closest('.perm-pag').classList.toggle('perm-bloqueada', bloqueado);
   });
@@ -753,6 +772,7 @@ function atualizarEstadoPermissoes(){
   document.getElementById('permResumo').textContent = permitidas + ' de ' + total + ' páginas permitidas';
 }
 function sincronizarDuplicadas(c){
+  if(c.dataset.chave){ document.querySelectorAll('.perm-por-funcao').forEach(function(o){ if(o.dataset.chave === c.dataset.chave) o.checked = c.checked; }); return; }
   const sel = c.dataset.item ? '.perm-item-check[data-mod="' + c.dataset.mod + '"][data-item="' + c.dataset.item + '"]'
                              : '.perm-item-check[data-mod="' + c.dataset.mod + '"][data-sem-item]';
   document.querySelectorAll(sel).forEach(function(o){ o.checked = c.checked; });
@@ -798,13 +818,21 @@ document.getElementById('permModalSave').addEventListener('click', async functio
     const base = (permEstado && permEstado[m.key]) ? permEstado[m.key].negados : {};
     const denied = {};
     Object.keys(base).forEach(function(k){ if(k !== '_nivel' && base[k] === false) denied[k] = false; });
-    document.querySelectorAll('.perm-item-check[data-mod="' + m.key + '"][data-item]').forEach(function(c){
+    document.querySelectorAll('.perm-item-check[data-mod="' + m.key + '"][data-item]:not(.perm-por-funcao)').forEach(function(c){
       if(c.checked) delete denied[c.dataset.item]; else denied[c.dataset.item] = false;
     });
     const anyDenied = Object.keys(denied).length > 0;
     if(nivel === 'leitura'){ denied._nivel = 'leitura'; perms[m.key] = denied; }
     else { perms[m.key] = anyDenied ? denied : true; }
   });
+  // Páginas por função: só fica guardado o que difere da regra da função.
+  const paginas = {};
+  Object.keys(permPaginas).forEach(function(k){ if(permPaginas[k] === true || permPaginas[k] === false) paginas[k] = permPaginas[k]; });
+  document.querySelectorAll('.perm-por-funcao').forEach(function(c){
+    const padrao = c.dataset.padrao === '1';
+    if(c.checked === padrao) delete paginas[c.dataset.chave]; else paginas[c.dataset.chave] = c.checked;
+  });
+  if(Object.keys(paginas).length) perms._paginas = paginas;
   try{
     await update(ref(db, 'users/' + permUid), { permissoes: perms });
     await logAuditEvent(currentUid, currentEmail, 'alterar_permissoes', { alvoUid: permUid });

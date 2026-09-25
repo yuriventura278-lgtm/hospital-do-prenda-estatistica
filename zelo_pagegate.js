@@ -1,5 +1,5 @@
 // ZELO — proteção de página com sessão Firebase real (verifica módulo + item específico)
-import { auth, fetchUserProfileOuFalhar, onAuthStateChanged, hasModuleAccess, getModuleAccessLevel, startInactivityWatch, signOut, eMovimentoHospitalar } from './zelo_auth.js';
+import { auth, fetchUserProfileOuFalhar, onAuthStateChanged, hasModuleAccess, getModuleAccessLevel, startInactivityWatch, signOut, eMovimentoHospitalar, eControloPacientes } from './zelo_auth.js';
 
 var moduleKey = window.ZELO_MODULE || null;
 var itemKey = window.ZELO_ITEM || null;
@@ -287,7 +287,18 @@ function showBlockedScreen(role, permissoes, soAdmin){
       icone: 'admin',
       etiqueta: 'Acesso restrito',
       titulo: 'Movimento Hospitalar',
-      texto: 'O acesso ao Movimento Hospitalar é somente para chefes de serviço e administradores.',
+      texto: 'O acesso ao Movimento Hospitalar é só para chefes de serviço, chefes de enfermagem e administradores.',
+      fechavel: false,
+      botoes: [{ texto: 'Voltar ao Início', principal: true, href: 'index.html' }]
+    });
+    return;
+  }
+  if (window.ZeloEspera && window.ZeloEspera.mensagem && eControloPacientes(moduleKey, itemKey) && !soAdmin){
+    window.ZeloEspera.mensagem({
+      icone: 'admin',
+      etiqueta: 'Acesso restrito',
+      titulo: 'Controlo de Pacientes',
+      texto: 'O Controlo de Pacientes é só para enfermeiros, chefes de serviço, chefes de enfermagem, chefes de turno, secretários e administradores.',
       fechavel: false,
       botoes: [{ texto: 'Voltar ao Início', principal: true, href: 'index.html' }]
     });
