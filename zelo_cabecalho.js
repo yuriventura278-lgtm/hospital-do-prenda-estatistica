@@ -1,3 +1,92 @@
+// ── ZELO — Rodapé único em todas as páginas ──
+// Mesmo modelo do cabeçalho: degradé azul com a linha de tendência e a linha
+// ciano (aqui em cima); à esquerda o logótipo, ZELO e o nome do sistema; à
+// direita a versão, os direitos e o suporte. Substitui o rodapé que a página
+// já tinha (no mesmo sítio) ou, se não tinha, fica no fim da página.
+(function () {
+  if (window.__zeloRodape || window.self !== window.top) return;
+  var ficheiro = decodeURIComponent((location.pathname.split('/').pop() || 'index.html'));
+  if (/^Dashboard\.html$/i.test(ficheiro)) return;
+  window.__zeloRodape = true;
+  var VERSAO = '3.1';
+  window.ZELO_VERSAO = VERSAO;
+  var DECO = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 60' preserveAspectRatio='none'%3E%3Cpolyline points='0,46 40,50 80,38 120,42 160,26 200,32 240,16 280,22 320,10 360,15 400,6' fill='none' stroke='%237FD4FF' stroke-width='1.6' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E\")";
+  var css = [
+    '.zr-rodape{position:relative;overflow:hidden;display:flex !important;align-items:center;justify-content:space-between;gap:14px 24px;flex-wrap:wrap;',
+    '  background:linear-gradient(135deg,#111C2B 0%,#2B415E 55%,#3E5C87 100%) !important;border-top:1px solid rgba(34,211,238,.28) !important;',
+    '  box-shadow:0 -4px 20px rgba(11,18,32,.18);color:#C7D2E8 !important;padding:16px 26px !important;margin:0 !important;border-radius:0 !important;',
+    '  font-family:Inter,"Segoe UI",Arial,sans-serif !important;text-align:left !important;box-sizing:border-box;width:auto;max-width:none !important;flex:0 0 auto !important;min-height:60px;height:auto !important;}',
+    '.zr-rodape::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.3;background:' + DECO + ' center/100% 100% no-repeat;',
+    '  -webkit-mask-image:linear-gradient(90deg,transparent 0,transparent 40%,#000 75%);mask-image:linear-gradient(90deg,transparent 0,transparent 40%,#000 75%);}',
+    '.zr-rodape > *{position:relative;z-index:1;}',
+    '.zr-id{display:flex;align-items:center;gap:11px;min-width:0;}',
+    '.zr-id img{width:30px;height:30px;border-radius:8px;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.14);}',
+    '.zr-zelo{padding-left:10px;border-left:3px solid #22D3EE;font-size:1.05rem;line-height:1;font-weight:900;letter-spacing:.22em;color:#fff;',
+    '  text-shadow:0 0 10px rgba(34,211,238,.45);white-space:nowrap;}',
+    '.zr-sep{width:1px;align-self:stretch;min-height:26px;background:rgba(255,255,255,.18);flex-shrink:0;}',
+    '.zr-txt{display:flex;flex-direction:column;gap:2px;line-height:1.2;min-width:0;}',
+    '.zr-txt small{font-size:.58rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#BFF3FF;}',
+    '.zr-txt b{font-size:.84rem;font-weight:800;color:#fff;}',
+    '.zr-meta{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;font-size:.7rem;color:#AFC0DD;}',
+    '.zr-meta span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}',
+    '.zr-meta svg{width:13px;height:13px;flex-shrink:0;stroke:#7FD4FF;}',
+    '.zr-versao{padding:3px 9px;border-radius:999px;background:rgba(34,211,238,.14);border:1px solid rgba(34,211,238,.35);color:#BFF3FF !important;',
+    '  font-weight:800;font-size:.66rem;letter-spacing:.06em;}',
+    '.zr-antigo{display:none !important;}',
+    '@media(max-width:700px){.zr-rodape{padding:14px 16px !important;flex-direction:column;align-items:flex-start;}.zr-meta{gap:6px 12px;}.zr-meta span{white-space:normal;}}'
+  ].join('\n');
+  var ICO = {
+    suporte: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9.35a4 4 0 1 0 0 5.3"/></svg>',
+    acesso: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+  };
+  function montar() {
+    var st = document.createElement('style'); st.id = 'zr-estilos'; st.textContent = css; document.head.appendChild(st);
+    // <div> e não <footer>: as regras "footer{…}" de cada página não o afetam.
+    var f = document.createElement('div');
+    f.className = 'zr-rodape';
+    f.setAttribute('role', 'contentinfo');
+    f.innerHTML =
+      '<div class="zr-id"><img alt="ZELO" src="icons/logo.png"><div class="zr-zelo">ZELO</div><div class="zr-sep"></div>' +
+      '<div class="zr-txt"><small>Sistema Estatístico e Gestão de Ocorrências</small><b>Hospital do Prenda</b></div></div>' +
+      '<div class="zr-meta"><span class="zr-versao">Versão ' + VERSAO + '</span>' +
+      '<span>' + ICO.copy + new Date().getFullYear() + ' · Todos os direitos reservados</span>' +
+      '<span>' + ICO.suporte + 'Suporte: contacte um Administrador do ZELO</span></div>';
+    // Rodapé antigo da página: o novo fica no lugar dele (mantém o layout),
+    // a não ser que esteja dentro de uma coluna estreita.
+    var antigos = Array.prototype.filter.call(document.querySelectorAll('footer,.zelo-foot,.app-footer,.pagefoot,#rodape,#app-footer'), function (e) {
+      return e !== f && !e.closest('.ze-camada,[role="dialog"],.modal,dialog') && !(e.parentElement && e.parentElement.closest('footer,.zelo-foot,.app-footer,.pagefoot'));
+    });
+    var alvo = antigos[0];
+    // Página inicial: o último acesso continua no rodapé.
+    var ultimo = document.getElementById('zeloUltimoAcessoFooter');
+    if (ultimo) { var sp = document.createElement('span'); sp.innerHTML = ICO.acesso; sp.appendChild(ultimo); f.querySelector('.zr-meta').appendChild(sp); }
+    var largo = alvo && alvo.getBoundingClientRect().width >= window.innerWidth * 0.9 - 300;
+    antigos.forEach(function (e) { e.classList.add('zr-antigo'); });
+    if (largo) {
+      if (alvo.classList.contains('zelo-footer')) f.classList.add('zelo-footer');
+      alvo.parentNode.insertBefore(f, alvo);
+    } else {
+      document.body.appendChild(f);
+    }
+    // Página curta: o rodapé desce até ao fundo do ecrã.
+    var agendado = false;
+    function encostar() {
+      agendado = false;
+      f.style.removeProperty('margin-top');
+      var falta = window.innerHeight - (f.getBoundingClientRect().bottom + window.scrollY);
+      var docH = document.documentElement.scrollHeight;
+      if (falta > 0 && docH <= window.innerHeight + 1) f.style.setProperty('margin-top', Math.floor(falta) + 'px', 'important');
+    }
+    function pedir() { if (!agendado) { agendado = true; requestAnimationFrame(encostar); } }
+    encostar();
+    window.addEventListener('resize', pedir);
+    if (window.ResizeObserver) new ResizeObserver(pedir).observe(document.body);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montar);
+  else montar();
+})();
+
 // ── ZELO — Cabeçalho único em todas as páginas ──
 // Aplica às páginas o cabeçalho da página inicial: fundo em degradé azul com
 // a linha de tendência e a linha ciano em baixo; à esquerda o logótipo, ZELO
@@ -79,6 +168,7 @@
     '.zc-oculto{display:none !important;}',
     '@media(max-width:1180px){.zc-relogio{display:none;}}',
     '@media(max-width:1100px){.zc-id{flex:0 1 auto;}}',
+    '@media(max-width:600px){.zc-cab{flex-wrap:wrap !important;height:auto !important;row-gap:8px !important;}.zc-acoes{flex-wrap:wrap !important;justify-content:flex-end !important;max-width:100% !important;min-width:0 !important;row-gap:6px !important;margin-left:auto !important;}}',
     '@media(max-width:760px){.zc-zelo,.zc-sep{display:none;}.zc-id{gap:9px;}.zc-logo{width:30px;height:30px;}.zc-pag b{font-size:.9rem;}.zc-pag small{font-size:.56rem;}}'
   ].join('\n');
 
@@ -200,6 +290,12 @@
       h.style.setProperty('padding-bottom', '12px', 'important');
       Array.prototype.forEach.call(h.children, function (c) { if (c !== deco) { c.style.marginTop = '0'; c.style.marginBottom = '0'; } });
     }
+    // Telemóvel: os botões do cabeçalho passam para a linha seguinte em vez
+    // de saírem do ecrã.
+    Array.prototype.forEach.call(h.children, function (c) {
+      if (c === deco || c.contains(bloco)) return;
+      if (getComputedStyle(c).display.indexOf('flex') >= 0 && c.querySelector('button,a')) c.classList.add('zc-acoes');
+    });
     clarearTexto(h);
     return true;
   }
