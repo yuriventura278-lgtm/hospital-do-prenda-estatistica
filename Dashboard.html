@@ -219,8 +219,6 @@ main{padding:20px 22px 64px;max-width:none;}
       <button class="period-tab" data-p="ano">Anual</button>
     </div>
     <div class="period-fields" id="periodFields"></div>
-    <button class="btn-carregar" id="btnCarregar">Carregar</button>
-    <button class="btn-carregar btn-pdf" id="btnExportarPDF">Exportar PDF</button>
     <div class="period-label" id="periodResumoLabel"></div>
   </div>
 
@@ -308,6 +306,17 @@ periodTabsEl.addEventListener('click', function(e){
   btn.classList.add('active');
   periodoAtivo = btn.dataset.p;
   renderPeriodFields();
+  agendarCarga(0);
+});
+/* Carrega automaticamente ao escolher o período ou mudar a data. */
+let _cargaTimer = null;
+function agendarCarga(ms){
+  clearTimeout(_cargaTimer);
+  _cargaTimer = setTimeout(function(){ if (window._zeloDashPronto) carregarTudo(); }, ms);
+}
+periodFieldsEl.addEventListener('change', function(){ agendarCarga(0); });
+periodFieldsEl.addEventListener('input', function(e){
+  if (e.target && e.target.type === 'number') agendarCarga(600);
 });
 renderPeriodFields();
 
@@ -1282,6 +1291,7 @@ const _CARREGADORES = {
   hemo:  function(periodo){ return _protegido(carregarHemoterapia(periodo), 'Hemoterapia', 'hemo'); },
   farm:  function(){ return _protegido(carregarFarmacia(), 'Farmácia', 'farm'); },
 };
+let _cargaSeq = 0;
 async function carregarTudo(){
   const periodo = calcularPeriodo();
   if (!periodo || !periodo.dates.length){ return; }
@@ -1292,65 +1302,19 @@ async function carregarTudo(){
   }
   document.getElementById('periodResumoLabel').textContent = 'A carregar ' + periodo.label + '…';
   document.getElementById('resumoGeral').innerHTML = '<div class="rg-loading">A carregar…</div>';
-  const btn = document.getElementById('btnCarregar');
-  btn.disabled = true; btn.textContent = 'A carregar…';
+  const seq = ++_cargaSeq;
   await Promise.all(SECOES.map(function(s){ return _CARREGADORES[s.id](periodo); }));
+  if (seq !== _cargaSeq) return;
   document.getElementById('periodResumoLabel').textContent = 'A mostrar: ' + periodo.label;
-  btn.disabled = false; btn.textContent = 'Carregar';
   _ultimoPeriodo = periodo;
   atualizarResumoGeral();
 }
-document.getElementById('btnCarregar').addEventListener('click', carregarTudo);
 Promise.all([esperarPermissoes(), esperarFirebase()]).then(function(){
+  window._zeloDashPronto = true;
   renderizarSecoes();
   carregarTudo();
 });
 
-/* ── Exportar PDF — resumo do período actualmente carregado, com os KPIs
-   e os próprios gráficos (capturados como imagem dos canvas já desenhados)
-   de cada secção, na mesma ordem em que aparecem no ecrã. ── */
-async function exportarPDF(){
-  const jspdfNS = window.jspdf;
-  if (!jspdfNS || !jspdfNS.jsPDF){ alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return; }
-  if (!_ultimoPeriodo){ alert('Carregue um período antes de exportar.'); return; }
-  const btn = document.getElementById('btnExportarPDF');
-  btn.disabled = true; const txtOriginal = btn.textContent; btn.textContent = 'A gerar…';
-  try{
-    const Z = window.ZeloPDF;
-    const doc = Z.novo();
-    let y = Z.cabecalho(doc, 'Página Inicial — Resumo por Serviço', _ultimoPeriodo.label);
-    let n = 0;
-
-    SECOES.forEach(function(s){
-      y = Z.secao(doc, y, (++n) + '. ' + s.titulo);
-      const kpis = _kpisPDF[s.id];
-      if (!kpis){ y = Z.texto(doc, y + 1, '', 'Sem dados para este período.'); return; }
-      y = Z.autoTable(doc, { startY: y, head: [['Indicador', 'Valor']],
-        body: kpis.map(function(k){ return [k.lbl, String(k.val)]; }),
-        columnStyles: { 1: { halign: 'right' } } }) + 1;
-      const canvases = document.querySelectorAll('#sec-'+s.id+' canvas.ce-pdf');
-      let x = 14; const imgW = 88, imgH = 50;
-      canvases.forEach(function(cv, i){
-        try{
-          if (x + imgW > 196.5){ x = 14; y += imgH + 4; }
-          if (x === 14) y = Z.quebra(doc, y, imgH + 2);
-          doc.addImage(cv.toDataURL('image/png', 1.0), 'PNG', x, y, imgW, imgH);
-          x += imgW + 6;
-        }catch(e){ console.warn('ZELO Dashboard: falha ao capturar gráfico', e); }
-      });
-      if (canvases.length) y += imgH + 6;
-    });
-
-    Z.rodape(doc);
-    doc.save('dashboard_' + _ultimoPeriodo.label.replace(/[^\w-]+/g,'_') + '.pdf');
-  }catch(e){
-    console.error('ZELO Dashboard: falha ao exportar PDF', e);
-    alert('Não foi possível gerar o PDF. Tente novamente.');
-  }finally{
-    btn.disabled = false; btn.textContent = txtOriginal;
-  }
-}
-document.getElementById('btnExportarPDF').addEventListener('click', exportarPDF);
 </script>
 
 <footer style="max-width:1400px;margin:0 auto;padding:0 20px 30px;color:var(--tx3);font-size:.66rem;text-align:center;">
