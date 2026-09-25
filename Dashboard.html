@@ -534,6 +534,21 @@ const SECOES_TODAS = [
   { id:'lab',   eyebrow:'Análises Clínicas',cor:'#6B4E9E', titulo:'Laboratório', modulo:'sistemas_independentes', item:'laboratorio_geral' },
   { id:'hemo',  eyebrow:'Hemoterapia',      cor:'#A6467A', titulo:'Hemoterapia', modulo:'sistemas_independentes', item:'hemoterapia' },
   { id:'farm',  eyebrow:'Farmácia',         cor:'#6B7A3F', titulo:'Farmácia', modulo:'sistemas_independentes', item:'farmacia_central' },
+  // Restantes serviços com registo diário (leitura genérica: dias com registo)
+  { id:'fisio', eyebrow:'Reabilitação',     cor:'#0F766E', titulo:'Fisioterapia', modulo:'servicos', item:'fisioterapia', atividade:{ path:'registos/fisioterapia' } },
+  { id:'oft',   eyebrow:'Especialidade',    cor:'#B91C1C', titulo:'Oftalmologia', modulo:'servicos', item:'oftalmologia', atividade:{ path:'registos/oftalmologia' } },
+  { id:'otor',  eyebrow:'Especialidade',    cor:'#C2410C', titulo:'Otorrinolaringologia', modulo:'servicos', item:'otorrinolaringologia', atividade:{ path:'registos/otorrinolaringologia' } },
+  { id:'psico', eyebrow:'Saúde Mental',     cor:'#7C3AED', titulo:'Psicologia Clínica', modulo:'sistemas_independentes', item:'psicologia_atendimento', atividade:{ path:'registos_sistemas_locais/psicologia_atendimento/atendimentos', porRegistos:true } },
+  { id:'repro', eyebrow:'Apoio',            cor:'#1F5FA8', titulo:'Reprografia', modulo:'sistemas_independentes', item:'reprografia', atividade:{ path:'registos_sistemas_locais/reprografia', porRegistos:true } },
+  // Páginas em construção — sempre por último
+  { id:'wip_estom', eyebrow:'Em construção', cor:'#64748B', titulo:'Estomatologia', modulo:'servicos', item:'estomatologia', wip:true },
+  { id:'wip_hemod', eyebrow:'Em construção', cor:'#64748B', titulo:'Centro de Hemodiálise', modulo:'servicos', item:'centro_hemodialise', wip:true },
+  { id:'wip_anat',  eyebrow:'Em construção', cor:'#64748B', titulo:'Anatomia Patológica', modulo:'servicos', item:'anatomia_patologica', wip:true },
+  { id:'wip_morgue',eyebrow:'Em construção', cor:'#64748B', titulo:'Morgue', modulo:'servicos', item:'morgue', wip:true },
+  { id:'wip_lav',   eyebrow:'Em construção', cor:'#64748B', titulo:'Lavandaria e Esterilização', modulo:'servicos', item:'lavandaria_esterilizacao', wip:true },
+  { id:'wip_suph',  eyebrow:'Em construção', cor:'#64748B', titulo:'Supervisão do Hospital', modulo:'servicos', item:'supervisao_hospital', wip:true },
+  { id:'wip_supsc', eyebrow:'Em construção', cor:'#64748B', titulo:'Supervisão Serviclean', modulo:'servicos', item:'supervisao_serviclean', wip:true },
+  { id:'wip_supmq', eyebrow:'Em construção', cor:'#64748B', titulo:'Supervisão de Maqueiros', modulo:'servicos', item:'supervisao_maqueiros', wip:true },
 ];
 function _secaoPermitida(s){
   // Rede de segurança: esperarPermissoes() já devia garantir que esta função
@@ -582,12 +597,15 @@ function esperarPermissoes(){
 }
 function renderizarSecoes(){
   SECOES = SECOES_TODAS.filter(_secaoPermitida);
+  // 1 serviço: ocupa o ecrã todo; 2: metade cada; mais: grelha.
+  var grelha = document.getElementById('secoes');
+  grelha.style.gridTemplateColumns = SECOES.length <= 1 ? '1fr' : (SECOES.length === 2 ? 'repeat(2,minmax(0,1fr))' : '');
   document.getElementById('secoes').innerHTML = SECOES.length ? SECOES.map(function(s){
     return '<div class="svc-section" id="sec-'+s.id+'" style="--svc-cor:'+s.cor+';">'+
       '<div class="svc-hdr"><div><div class="svc-eyebrow">'+s.eyebrow+'</div>'+
       '<div class="svc-title">'+s.titulo+'</div>'+
       '<div class="svc-atualizado" id="upd-'+s.id+'"></div></div>'+
-      '<button class="svc-voz-btn" onclick="narrarSecao(\''+s.id+'\')">Ler em voz</button></div>'+
+      (s.wip ? '' : '<button class="svc-voz-btn" onclick="narrarSecao(\''+s.id+'\')">Ler em voz</button>')+'</div>'+
       '<div id="corpo-'+s.id+'"><div class="svc-loading">A carregar…</div></div>'+
       '</div>';
   }).join('') : '<div class="svc-section" style="grid-column:1/-1;text-align:center;color:var(--tx3);padding:32px;">Ainda não tens nenhum serviço atribuído para ver aqui. Contacta um administrador do ZELO.</div>';
@@ -848,19 +866,36 @@ const PROC_SLUGS = {
   medicina_homem:'Medicina Homem', medicina_mulher:'Medicina Mulher', nefrologia:'Nefrologia',
   neurocirurgia:'Neurocirurgia', ortopedia:'Ortopedia', uci_intermedio:'UCI / Cuidados Intermédios',
 };
-function _totalProcNoSub(sub){
+// Total de procedimentos de um dia. As páginas de Procedimentos gravam
+// snapshot = { sub: { especialidade: { cats: { cat: {d:[…], n:[…]} } } }, raw }
+// ou, nalgumas gravações, só { raw: { specs: { especialidade: { dia:{…}, noite:{…} } } } }.
+// Lê os dois formatos (e o antigo sub[esp][cat] = {d,n}); "medicina" e
+// "bloco_op" são totais calculados, não se somam.
+function _somaLista(l){ return (Array.isArray(l) ? l : Object.values(l || {})).reduce(function(a,v){ return a + (parseInt(v,10)||0); }, 0); }
+function _totalProcNoSnap(snap){
+  if (!snap || typeof snap !== 'object') return 0;
   let n = 0;
-  if (!sub) return n;
-  Object.values(sub).forEach(function(especialidade){
-    // Um histórico com meses de uso pode ter entradas mal formadas (ex.:
-    // uma especialidade editada/removida que ficou a null em vez de
-    // apagada) — ignora-as em vez de rebentar e perder a secção inteira.
-    if (!especialidade || typeof especialidade !== 'object') return;
-    Object.keys(especialidade).forEach(function(catId){
-      const cat = especialidade[catId];
-      if (!cat || !Array.isArray(cat.d)) return;
-      n += cat.d.reduce(function(a,v){return a+(v||0);},0);
-      n += (cat.n||[]).reduce(function(a,v){return a+(v||0);},0);
+  const raw = snap.raw;
+  if (raw && raw.specs && typeof raw.specs === 'object'){
+    Object.keys(raw.specs).forEach(function(id){
+      if (id === 'medicina' || id === 'bloco_op') return;
+      const sp = raw.specs[id];
+      if (!sp || typeof sp !== 'object') return;
+      n += _somaLista(sp.dia) + _somaLista(sp.noite);
+    });
+    return n;
+  }
+  const sub = snap.sub;
+  if (!sub || typeof sub !== 'object') return 0;
+  Object.keys(sub).forEach(function(id){
+    if (id === 'medicina' || id === 'bloco_op') return;
+    const esp = sub[id];
+    if (!esp || typeof esp !== 'object') return;
+    const cats = (esp.cats && typeof esp.cats === 'object') ? esp.cats : esp;
+    Object.keys(cats).forEach(function(catId){
+      const cat = cats[catId];
+      if (!cat || typeof cat !== 'object' || !cat.d) return;
+      n += _somaLista(cat.d) + _somaLista(cat.n);
     });
   });
   return n;
@@ -874,7 +909,7 @@ async function _totalProcParaPeriodo(dates){
   const historicos = await Promise.all(slugs.map(function(slug){ return lerHistoricoCompleto('registos_enf/'+slug, dates[0], dates[dates.length-1]); }));
   let total = 0;
   historicos.forEach(function(hist){
-    dates.forEach(function(d){ total += _totalProcNoSub(hist[d] && hist[d].snapshot && hist[d].snapshot.sub); });
+    dates.forEach(function(d){ total += _totalProcNoSnap(hist[d] && hist[d].snapshot); });
   });
   return total;
 }
@@ -888,9 +923,7 @@ async function carregarProcedimentos(periodo){
     let n = 0;
     const hist = historicos[i] || {};
     periodo.dates.forEach(function(d){
-      const snap = hist[d] && hist[d].snapshot;
-      const sub = snap && snap.sub;
-      const dia = _totalProcNoSub(sub);
+      const dia = _totalProcNoSnap(hist[d] && hist[d].snapshot);
       n += dia; porDia[d] += dia;
       if (hist[d] && hist[d].savedAt) ultimaAtualizacao = _maisRecente(ultimaAtualizacao, hist[d].savedAt);
     });
@@ -1226,7 +1259,12 @@ const NARRADORES = { proc:narrarProcedimentos, bloco:narrarBloco, ce:narrarConsu
 window.narrarSecao = function(id){
   if (typeof window.zeloFalar !== 'function') return;
   const fn = NARRADORES[id];
-  if (fn) fn();
+  if (fn) { fn(); return; }
+  const d = _secaoDados[id];
+  const sec = SECOES_TODAS.filter(function(s){ return s.id === id; })[0];
+  if (!sec) return;
+  if (!d){ window.zeloFalar('Ainda não há registos de ' + sec.titulo + ' neste período.'); return; }
+  window.zeloFalar(sec.titulo + ': ' + d.dias + (d.dias === 1 ? ' dia' : ' dias') + ' com registo, de ' + d.total + '.');
 };
 
 /* ── Carregar tudo para o período seleccionado ── */
@@ -1260,6 +1298,9 @@ const RESUMO_CONFIG = [
   { id:'hemo', lbl:'Transfusões', valFn: function(d){ return d ? d.totalTransf : null; } },
   { id:'farm', lbl:'Alertas de Stock', valFn: function(d){ return d ? (d.esgotados + d.baixo) : null; }, alerta: true },
 ];
+SECOES_TODAS.forEach(function(s){
+  if (s.atividade) RESUMO_CONFIG.push({ id:s.id, lbl:s.titulo + (s.atividade.porRegistos ? ' (registos)' : ' (dias)'), valFn: function(d){ return d ? (s.atividade.porRegistos ? d.registos : d.dias) : null; } });
+});
 // Faixa de estado tipo "semáforo": cada item mostra verde quando há dados e
 // nada em alerta, amarelo quando o valor é o próprio alerta (ex.: stock),
 // e cinzento neutro quando ainda não há dados para o período — a cor deixa
@@ -1291,6 +1332,47 @@ const _CARREGADORES = {
   hemo:  function(periodo){ return _protegido(carregarHemoterapia(periodo), 'Hemoterapia', 'hemo'); },
   farm:  function(){ return _protegido(carregarFarmacia(), 'Farmácia', 'farm'); },
 };
+SECOES_TODAS.forEach(function(s){
+  if (s.atividade) _CARREGADORES[s.id] = function(periodo){ return _protegido(carregarAtividade(s, periodo), s.titulo, s.id); };
+  if (s.wip) _CARREGADORES[s.id] = function(){ renderSecaoVazia(s.id, 'Página em construção. Os dados vão aparecer aqui quando o registo estiver disponível.'); return Promise.resolve(); };
+});
+// Serviços com leitura genérica: dias com registo no período (e registos,
+// nas páginas que guardam um registo de cada vez).
+function _temAlgo(v){
+  if (v == null) return false;
+  if (typeof v === 'number') return v > 0;
+  if (typeof v === 'string') return v.trim() !== '' && v.trim() !== '0';
+  if (typeof v === 'object') return Object.keys(v).some(function(k){ return !/^(savedAt|criadoPor|historico|_ts|updatedAt)$/.test(k) && _temAlgo(v[k]); });
+  return false;
+}
+async function carregarAtividade(sec, periodo){
+  const d0 = periodo.dates[0], d1 = periodo.dates[periodo.dates.length-1];
+  const hist = sec.atividade.porRegistos ? await lerHistoricoCompleto(sec.atividade.path) : await lerHistoricoCompleto(sec.atividade.path, d0, d1);
+  const porDia = {}; periodo.dates.forEach(function(d){ porDia[d] = 0; });
+  let ultima = null, registos = 0;
+  Object.keys(hist || {}).forEach(function(k){
+    const v = hist[k];
+    if (!v || typeof v !== 'object') return;
+    if (sec.atividade.porRegistos){
+      if (v.apagado) return;
+      let reg = v; if (typeof v.json === 'string'){ try{ reg = JSON.parse(v.json); }catch(e){ return; } }
+      const d = String(reg.data || reg.date || reg.dia || '').slice(0,10);
+      if (porDia[d] === undefined) return;
+      porDia[d]++; registos++;
+    } else {
+      if (porDia[k] === undefined || !_temAlgo(v.snapshot || v)) return;
+      porDia[k]++; registos++;
+    }
+    if (v.savedAt) ultima = _maisRecente(ultima, typeof v.savedAt === 'number' ? new Date(v.savedAt).toISOString() : v.savedAt);
+  });
+  const dias = periodo.dates.filter(function(d){ return porDia[d] > 0; }).length;
+  if (!dias){ renderSecaoVazia(sec.id); _secaoDados[sec.id] = null; return; }
+  const kpis = [ {val: dias, lbl:'Dias com registo'}, {val: periodo.dates.length - dias, lbl:'Dias sem registo'} ];
+  if (sec.atividade.porRegistos) kpis.unshift({val: registos, lbl:'Registos no período'});
+  const charts = periodo.dates.length > 1 ? [{ title:'Registos por dia', canvasId:'chart-'+sec.id, config: barChartConfig(periodo.dates.map(function(d){ return d.slice(8,10)+'/'+d.slice(5,7); }), periodo.dates.map(function(d){ return porDia[d]; }), {color: sec.cor}) }] : [];
+  renderSecao(sec.id, kpis, charts, ultima);
+  _secaoDados[sec.id] = { dias: dias, registos: registos, total: periodo.dates.length, titulo: sec.titulo, periodoFalado: periodo.periodoFalado };
+}
 let _cargaSeq = 0;
 async function carregarTudo(){
   const periodo = calcularPeriodo();
