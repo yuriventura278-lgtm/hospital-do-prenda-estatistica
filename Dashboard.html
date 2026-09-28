@@ -872,6 +872,8 @@ const PROC_SLUGS = {
 // Lê os dois formatos (e o antigo sub[esp][cat] = {d,n}); "medicina" e
 // "bloco_op" são totais calculados, não se somam.
 function _somaLista(l){ return (Array.isArray(l) ? l : Object.values(l || {})).reduce(function(a,v){ return a + (parseInt(v,10)||0); }, 0); }
+// Diálise (Nefrologia) tem contagem própria: não entra no total de procedimentos.
+function _somaTurno(t){ return Object.keys(t || {}).reduce(function(a,k){ return /^dialise_/.test(k) ? a : a + (parseInt(t[k],10)||0); }, 0); }
 function _totalProcNoSnap(snap){
   if (!snap || typeof snap !== 'object') return 0;
   let n = 0;
@@ -881,7 +883,7 @@ function _totalProcNoSnap(snap){
       if (id === 'medicina' || id === 'bloco_op') return;
       const sp = raw.specs[id];
       if (!sp || typeof sp !== 'object') return;
-      n += _somaLista(sp.dia) + _somaLista(sp.noite);
+      n += _somaTurno(sp.dia) + _somaTurno(sp.noite);
     });
     return n;
   }

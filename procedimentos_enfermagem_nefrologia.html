@@ -499,6 +499,25 @@ html.dark .hdr-date input[type=date]{background:var(--surface);}
 html.dark .period-row input,.html.dark .period-row select{background:var(--surface);}
 html.dark .period-row input,.period-row select{background:var(--surface);}
 html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!important;}
+/* Diálise — contagem própria (bloco destacado, fora do Total Geral) */
+.dialise-card{border:1.5px solid #EA580C !important;border-left:5px solid #C2410C !important;background:linear-gradient(180deg,#FFF7ED,#fff 60%) !important}
+.dialise-card .card-label{color:#9A3412 !important}
+.dialise-hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.dialise-tit{font-family:Inter,Arial,sans-serif;font-weight:800;font-size:.95rem;color:#9A3412;letter-spacing:.02em}
+.dialise-nota{font-family:Inter,Arial,sans-serif;font-size:.7rem;color:#B45309;font-weight:600}
+.card-label .dialise-nota{margin-left:8px;font-weight:600;text-transform:none;letter-spacing:0}
+.dialise-tots{display:flex;gap:8px}
+.dialise-tots span{display:flex;flex-direction:column;align-items:center;min-width:70px;padding:6px 10px;border-radius:10px;background:#FFEDD5;color:#9A3412}
+.dialise-tots span.g{background:#C2410C;color:#fff}
+.dialise-tots small{font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;opacity:.85}
+.dialise-tots b{font-size:1.15rem}
+.dialise-card .proc-num{color:#C2410C;font-weight:800}
+.dialise-card .proc-total-val{color:#9A3412;font-weight:800}
+.dialise-total td{background:#FED7AA !important;color:#7C2D12 !important}
+html.dark .dialise-card{background:linear-gradient(180deg,rgba(194,65,12,.18),transparent 60%) !important}
+html.dark .dialise-tit,html.dark .dialise-card .card-label{color:#FDBA74 !important}
+html.dark .dialise-nota{color:#FDBA74}
+html.dark .dialise-tots span{background:rgba(234,88,12,.25);color:#FED7AA}
 </style>
 <script>/* tema carregado após init */</script>
 </head>
@@ -1111,6 +1130,106 @@ const CATEGORIES = [
 
 const TURNOS = ['dia','noite'];
 
+// ── Diálise: contagem própria ──
+// Diálise Peritoneal e Hemodiálise ficam no fim, num bloco à parte: os
+// números NÃO entram no Total Geral dos procedimentos (nem nas categorias,
+// nem na Página Inicial) e têm os seus próprios totais e destaque no PDF.
+// Guardam-se no mesmo registo do dia, com chaves "dialise_…".
+const DIALISE = { id:'dialise', label:'Diálise — contagem própria', procs:['Diálise Peritoneal','Hemodiálise'] };
+function _dialiseEspecs(){ return SPECIALTIES.filter(sp => sp.id !== 'medicina' && sp.id !== 'bloco_op'); }
+// Totais da diálise num conjunto de datas: { linhas:[{proc,d,n,t}], d, n, t }
+function aggDialise(dates, filterSpecId){
+  const specs = _dialiseEspecs().filter(sp => !filterSpecId || filterSpecId === 'all' || sp.id === filterSpecId);
+  const linhas = DIALISE.procs.map(proc => ({ proc, d:0, n:0, t:0 }));
+  dates.forEach(date => {
+    const raw = _storageGet(storageKey(date));
+    if(!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      specs.forEach(sp => {
+        const spData = data.specs?.[sp.id];
+        if(!spData) return;
+        DIALISE.procs.forEach((proc, i) => {
+          const k = pKey(DIALISE.id, proc);
+          linhas[i].d += spData.dia?.[k] || 0;
+          linhas[i].n += spData.noite?.[k] || 0;
+        });
+      });
+    } catch(e){}
+  });
+  let d = 0, n = 0;
+  linhas.forEach(l => { l.t = l.d + l.n; d += l.d; n += l.n; });
+  return { linhas, d, n, t: d + n };
+}
+// Secção destacada no PDF (cor laranja, fora do Total Geral).
+function pdfSecaoDialise(doc, dates, filterSpecId, startY){
+  const a = aggDialise(dates, filterSpecId);
+  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight();
+  const ML = 13, MR = 13, CW = PW - ML - MR;
+  const LARANJA = [194, 65, 12], LARANJA2 = [234, 88, 12], CREME = [255, 247, 237], TOTAL = [254, 215, 170], CASTANHO = [124, 45, 18];
+  let cy = startY || ((doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 10 : 40);
+  if(cy > PH - 75){ doc.addPage(); cy = 18; }
+  const topo = cy;
+  // Faixa de título
+  doc.setFillColor(...LARANJA); doc.roundedRect(ML, cy, CW, 9, 1.6, 1.6, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(255);
+  doc.text('DIÁLISE — CONTAGEM PRÓPRIA', ML + 5, cy + 6.2);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+  doc.text('Não incluída no Total Geral dos procedimentos', ML + CW - 4, cy + 6.2, { align:'right' });
+  cy += 13;
+  // Caixas de totais
+  const bw = (CW - 8 - 8) / 3;
+  [['Total Diálise', a.t, LARANJA], ['Turno Dia', a.d, LARANJA2], ['Turno Noite', a.n, LARANJA2]].forEach((c, i) => {
+    const bx = ML + 4 + i * (bw + 4);
+    doc.setFillColor(...c[2]); doc.roundedRect(bx, cy, bw, 14, 2, 2, 'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(255, 237, 213);
+    doc.text(c[0], bx + bw / 2, cy + 5, { align:'center' });
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(255);
+    doc.text(String(c[1]), bx + bw / 2, cy + 12, { align:'center' });
+  });
+  cy += 18;
+  const body = a.linhas.map(l => [l.proc, l.d, l.n, l.t]);
+  body.push(['TOTAL DIÁLISE', a.d, a.n, a.t]);
+  doc.autoTable({ startY: cy, head:[['Procedimento','Turno Dia','Turno Noite','Total']], body,
+    margin:{ left: ML + 4, right: MR + 4 }, styles:{ fontSize:9, cellPadding:2.4 },
+    columnStyles:{ 0:{ halign:'left', cellWidth:(CW - 8) * .5, fontStyle:'bold' }, 1:{ halign:'center' }, 2:{ halign:'center' }, 3:{ halign:'center', fontStyle:'bold' } },
+    // Cores próprias da diálise (aplicadas no desenho, por cima do modelo geral)
+    willDrawCell(dd){
+      if(dd.section === 'head'){ dd.cell.styles.fillColor = LARANJA; dd.cell.styles.textColor = [255,255,255]; }
+      else if(dd.row.index === body.length - 1){ dd.cell.styles.fillColor = TOTAL; dd.cell.styles.textColor = CASTANHO; dd.cell.styles.fontStyle = 'bold'; }
+      else { dd.cell.styles.fillColor = CREME; dd.cell.styles.textColor = CASTANHO; }
+      doc.setFillColor(...dd.cell.styles.fillColor); doc.setTextColor(...dd.cell.styles.textColor);
+    }
+  });
+  const fim = doc.lastAutoTable.finalY + 4;
+  // Moldura de destaque à volta de toda a secção (se ficou na mesma página)
+  if(fim > topo){
+    doc.setDrawColor(...LARANJA); doc.setLineWidth(0.7);
+    doc.roundedRect(ML - 1, topo - 1, CW + 2, fim - topo + 1, 2.2, 2.2, 'S');
+  }
+  doc.setTextColor(0); doc.setDrawColor(0); doc.setLineWidth(0.2);
+  return fim + 6;
+}
+function _htmlDialiseRelatorio(dates, filterSpecId){
+  const a = aggDialise(dates, filterSpecId);
+  let h = '<div class="card dialise-card"><div class="card-label">Diálise — contagem própria <span class="dialise-nota">não entra no Total Geral</span></div>' +
+    '<div class="rpt-wrap"><table class="rpt-table"><thead><tr><th>Procedimento</th><th class="num">Dia</th><th class="num">Noite</th><th class="num">Total</th></tr></thead><tbody>';
+  a.linhas.forEach(l => { h += '<tr><td>' + l.proc + '</td><td class="num d">' + l.d + '</td><td class="num n">' + l.n + '</td><td class="num">' + l.t + '</td></tr>'; });
+  h += '<tr class="rpt-total-row dialise-total"><td>TOTAL DIÁLISE</td><td class="num">' + a.d + '</td><td class="num">' + a.n + '</td><td class="num">' + a.t + '</td></tr></tbody></table></div></div>';
+  return h;
+}
+function recalcDialise(specId){
+  let dT = 0, nT = 0;
+  DIALISE.procs.forEach(proc => {
+    const dv = parseInt(document.getElementById(iid(specId,'dia',DIALISE.id,proc))?.value) || 0;
+    const nv = parseInt(document.getElementById(iid(specId,'noite',DIALISE.id,proc))?.value) || 0;
+    const t = document.getElementById('dl-t-' + specId + '-' + pKey(DIALISE.id, proc)); if(t) t.textContent = dv + nv;
+    dT += dv; nT += nv;
+  });
+  const set = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+  set('dl-dia-' + specId, dT); set('dl-noite-' + specId, nT); set('dl-tot-' + specId, dT + nT);
+}
+
 // Sequência canónica de apresentação — igual à página original
 const ORDERED_PROCS = [
   {proc:'Medicação Oral',                          catId:'medicacao'},
@@ -1636,6 +1755,11 @@ function persist(date) {
           data.specs[sp.id][turno][pKey(cat.id, proc)] = raw === '' ? null : (parseInt(raw) || 0);
         });
       });
+      DIALISE.procs.forEach(proc => {
+        const el = document.getElementById(iid(sp.id, turno, DIALISE.id, proc));
+        const raw = el ? el.value.trim() : '';
+        data.specs[sp.id][turno][pKey(DIALISE.id, proc)] = raw === '' ? null : (parseInt(raw) || 0);
+      });
       const notesEl = document.getElementById('notes-' + turno + '-' + sp.id);
       if(notesEl) data.specs[sp.id]['notes' + turno.charAt(0).toUpperCase() + turno.slice(1)] = notesEl.value || '';
     });
@@ -1994,10 +2118,15 @@ function clearDayState() {
           if(el) el.value = '';
         });
       });
+      DIALISE.procs.forEach(proc => {
+        const el = document.getElementById(iid(sp.id, turno, DIALISE.id, proc));
+        if(el) el.value = '';
+      });
       const notesEl = document.getElementById('notes-' + turno + '-' + sp.id);
       if(notesEl) notesEl.value = '';
     });
     recalc(sp.id);
+    recalcDialise(sp.id);
   });
   recalcMedicina();
   recalcBlocoOp();
@@ -2190,11 +2319,19 @@ function _popularProcedimentos(data) {
           }
         });
       });
+      DIALISE.procs.forEach(proc => {
+        const el = document.getElementById(iid(sp.id, turno, DIALISE.id, proc));
+        if(el) {
+          const stored = spData?.[turno]?.[pKey(DIALISE.id, proc)];
+          el.value = (stored === null || stored === undefined) ? '' : stored;
+        }
+      });
       const notesEl = document.getElementById('notes-' + turno + '-' + sp.id);
       const notesKey = 'notes' + turno.charAt(0).toUpperCase() + turno.slice(1);
       if(notesEl) notesEl.value = spData?.[notesKey] || '';
     });
     recalc(sp.id);
+    recalcDialise(sp.id);
   });
   recalcMedicina();
   recalcBlocoOp();
@@ -2608,6 +2745,31 @@ function buildUI() {
       </div>
     </div>`;
     if(!isReadonly) {
+      html += `<div class="card dialise-card" id="dialise-${sp.id}">
+        <div class="dialise-hdr">
+          <div><div class="dialise-tit">Diálise — contagem própria</div>
+            <div class="dialise-nota">Estes números não entram no Total Geral dos procedimentos.</div></div>
+          <div class="dialise-tots">
+            <span><small>Dia</small><b id="dl-dia-${sp.id}">0</b></span>
+            <span><small>Noite</small><b id="dl-noite-${sp.id}">0</b></span>
+            <span class="g"><small>∑ Total Diálise</small><b id="dl-tot-${sp.id}">0</b></span>
+          </div>
+        </div>
+        <div class="proc-table-head">
+          <span class="proc-chk-cell"></span>
+          <span class="ph-name">Procedimento</span>
+          <span class="ph-dia"><svg class="svc-icon" aria-hidden="true"><use href="#i-sun"/></svg> Dia</span>
+          <span class="ph-noite"><svg class="svc-icon" aria-hidden="true"><use href="#i-moon"/></svg> Noite</span>
+          <span class="ph-total">∑ Total</span>
+        </div>
+        ${DIALISE.procs.map((proc, i) => `<div class="proc-row">
+          <div class="proc-chk-cell"></div>
+          <div class="proc-name"><span class="proc-num">D${i+1}.</span> ${_escHtml(proc)}</div>
+          <div class="proc-cell"><input type="number" min="0" id="${iid(sp.id,'dia',DIALISE.id,proc)}" oninput="recalcDialise('${sp.id}');autoSave();"></div>
+          <div class="proc-cell"><input type="number" min="0" class="night-inp" id="${iid(sp.id,'noite',DIALISE.id,proc)}" oninput="recalcDialise('${sp.id}');autoSave();"></div>
+          <div class="proc-cell"><div class="proc-total-val" id="dl-t-${sp.id}-${pKey(DIALISE.id, proc)}">0</div></div>
+        </div>`).join('')}
+      </div>`;
       html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="card notes-area"><div class="card-label"><svg class="svc-icon" aria-hidden="true"><use href="#i-notes"/></svg> Notas — Dia</div>
           <textarea id="notes-dia-${sp.id}" placeholder="Observações do turno dia…" oninput="autoSave()"></textarea></div>
@@ -2837,7 +2999,8 @@ function renderReport(containerId, dates, title, colorClass, filterSpec, periodo
           amb, ambD, ambN, int, intD, intN, urg, urgD, urgN,
           specData, filteredSpecs } = aggregate(dates, filterSpec);
   if(grand===0) {
-    const _cEl=document.getElementById(containerId); if(_cEl) _cEl.innerHTML = `<div class="no-data"><span>📭</span>Sem dados para este período.</div>`;
+    const _dl = aggDialise(dates, filterSpec);
+    const _cEl=document.getElementById(containerId); if(_cEl) _cEl.innerHTML = `<div class="no-data"><span>📭</span>Sem dados para este período.</div>` + (_dl.t ? _htmlDialiseRelatorio(dates, filterSpec) : '');
     _procReportData[containerId] = null;
     return;
   }
@@ -2876,6 +3039,9 @@ function renderReport(containerId, dates, title, colorClass, filterSpec, periodo
     });
     html += `</tbody></table></div></div>`;
   }
+
+  // ── Diálise (contagem própria, fora do Total Geral)
+  html += _htmlDialiseRelatorio(dates, filterSpec);
 
   // ── Por Serviço e Procedimento (pesquisável)
   const _uid = containerId;
@@ -3570,6 +3736,9 @@ function construirPDF() {
     cy = doc.lastAutoTable.finalY+8;
   }
 
+  // ── Diálise: contagem própria, em destaque ──
+  cy = pdfSecaoDialise(doc, [date], 'all', cy);
+
   // ── Rodapé em todas as páginas ──
   ZeloPDF.rodape(doc, registadoPorTxt || undefined); // modelo geral de PDF (zelo_pdf.js)
   return doc;
@@ -3769,6 +3938,7 @@ function buildReportPDF(dates, titleLine1, titleLine2, specLabel, filename, filt
     }
 
 
+    pdfSecaoDialise(doc, dates, filterSpecId);
     ZeloPDF.rodape(doc); // modelo geral de PDF (zelo_pdf.js)
     doc.save(filename);
     _guardarPDFNaPastaBackup(doc, _BKAUTO_SUBPASTA_POR_TITULO[titleLine2] || 'Outros', filename);
@@ -4044,6 +4214,7 @@ function buildReportPDF(dates, titleLine1, titleLine2, specLabel, filename, filt
   });
 
   // ── Footer em todas as páginas ──
+  pdfSecaoDialise(doc, dates, filterSpecId);
   ZeloPDF.rodape(doc); // modelo geral de PDF (zelo_pdf.js)
   doc.save(filename);
   _guardarPDFNaPastaBackup(doc, _BKAUTO_SUBPASTA_POR_TITULO[titleLine2] || 'Outros', filename);
@@ -4061,7 +4232,7 @@ function exportDiarioPDF() {
   const { jsPDF } = window.jspdf;
   if(!jsPDF) { showToast('❌ Biblioteca PDF não carregada'); return; }
   const { grand, grandD, grandN, catD, catN, procD, procN } = aggregate([d], specId);
-  if(grand === 0) { showToast('⚠️ Sem dados para este período'); return; }
+  if(grand === 0 && !aggDialise([d], specId).t) { showToast('⚠️ Sem dados para este período'); return; }
   const doc = ZeloPDF.padronizar(new window.jspdf.jsPDF({ orientation:'portrait', unit:'mm', format:'a4' }));
   const PW = doc.internal.pageSize.getWidth();
   const PH = doc.internal.pageSize.getHeight();
@@ -4144,6 +4315,7 @@ function exportDiarioPDF() {
       });
     }
   }
+  pdfSecaoDialise(doc, [d], specId);
   ZeloPDF.rodape(doc); // modelo geral de PDF (zelo_pdf.js)
   const _nomeDiarioPdf = `Diario_${d}${specId!=='all'?'_'+specId:''}.pdf`;
   doc.save(_nomeDiarioPdf);
