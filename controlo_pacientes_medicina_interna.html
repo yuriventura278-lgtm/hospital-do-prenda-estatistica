@@ -1931,6 +1931,14 @@ function _cpSync() {
     // Um paciente conta como um registo (proteção contra apagar em massa).
     grupo: function (k) { return k.split('|').slice(0, 2).join('|'); },
     ajustar: function (obj) {
+      // Formato antigo no servidor ({ patients: [...] }): converte cada
+      // paciente para o formato novo (por NUP) — nunca se perde nenhum.
+      if (obj.patients) {
+        const antigos = Array.isArray(obj.patients) ? obj.patients : Object.keys(obj.patients).map(k => obj.patients[k]);
+        obj.pacientes = obj.pacientes || {};
+        antigos.forEach(p => { if (p && (p.nup || p.n != null)) { const k = _cpChave(p); if (!obj.pacientes[k]) obj.pacientes[k] = p; } });
+        delete obj.patients;
+      }
       // O mesmo número atribuído em dois computadores: fica com o número quem
       // entrou primeiro; os outros passam para o fim (igual em todos os aparelhos).
       const lista = Object.keys(obj.pacientes || {}).map(k => obj.pacientes[k]).filter(Boolean);
