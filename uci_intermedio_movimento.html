@@ -590,6 +590,7 @@
   </div>
 </div>
 
+<script src="zelo_sync_objeto.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -740,13 +741,26 @@ function persistData() {
 // mesma forma nos dois lados, sem duplicar lógica de fusão por mês.
 const FB_MOVIMENTO_PATH = 'registos_movimento/uci_intermedio';
 let _fbUltimoEnvioSavedAt = 0;
-function _fbSyncMovimento(){
-  if (typeof zeloQueueWrite !== 'function') return;
-  const savedAt = Date.now();
-  _fbUltimoEnvioSavedAt = savedAt;
-  zeloQueueWrite(FB_MOVIMENTO_PATH, { savedAt: savedAt, snapshot: data }).then(function(r){
-    if (r && r.ok){ try{ localStorage.setItem(LS_KEY + '_fbSavedAt', String(savedAt)); }catch(e){} }
-  }).catch(function(e){ console.warn('ZELO: falha ao sincronizar Movimento Hospitalar com o Firebase', e); });
+function _fbSyncMovimento(){ _movSync().guardou(); }
+// Sincronização campo a campo (zelo_sync_objeto.js): cada dia de cada campo
+// tem a sua hora de alteração; juntar nunca perde o que outro computador
+// registou, e o que chega de fora é aplicado sozinho.
+function _movSync(){
+  if (window.__movSync) return window.__movSync;
+  window.__movSync = ZeloSyncObjeto.criar({
+    caminho: FB_MOVIMENTO_PATH,
+    chaveLocal: 'mov_' + FB_MOVIMENTO_PATH,
+    maxApagar: 2, // células esvaziadas numa só gravação (correções)
+    obter: function(){ return data; },
+    aplicar: function(obj){
+      data = obj || {};
+      Object.keys(data).filter(function(k){ return /^\d{4}-\d{2}$/.test(k); }).forEach(function(m){ loadMonth(m); });
+      persistRaw(data);
+      if (!currentMonth) currentMonth = getCurrentMonth();
+      try { updatePeriodDisplay(); renderTable(); updateStats(); } catch(e){ console.warn(e); }
+    }
+  });
+  return window.__movSync;
 }
 // Aviso fixo no topo quando outro dispositivo grava dados mais recentes deste
 // serviço ENQUANTO esta página já está aberta — nunca substitui silenciosamente o
@@ -786,33 +800,7 @@ function _fbEsperarPronto(timeoutMs){
     }, 150);
   });
 }
-async function _fbCarregarEEscutar(){
-  const pronto = await _fbEsperarPronto();
-  if (!pronto || typeof window.__fbGet !== 'function') return;
-  try{
-    const remoto = await window.__fbGet(FB_MOVIMENTO_PATH);
-    if (remoto && remoto.snapshot){
-      const localSavedAt = Number(localStorage.getItem(LS_KEY + '_fbSavedAt')) || 0;
-      if ((remoto.savedAt||0) > localSavedAt){
-        data = remoto.snapshot;
-        persistRaw(data);
-        try{ localStorage.setItem(LS_KEY + '_fbSavedAt', String(remoto.savedAt)); }catch(e){}
-        currentMonth = getCurrentMonth();
-        updatePeriodDisplay();
-        renderTable();
-        updateStats();
-      }
-    }
-  }catch(e){ console.warn('ZELO: falha ao ler Movimento Hospitalar do Firebase', e); }
-  if (typeof window.__fbListen !== 'function') return;
-  let primeira = true;
-  window.__fbListen(FB_MOVIMENTO_PATH, function(remoto){
-    if (!remoto || !remoto.savedAt) { primeira = false; return; }
-    if (remoto.savedAt === _fbUltimoEnvioSavedAt) { primeira = false; return; }
-    if (primeira) { primeira = false; return; }
-    _fbMostrarAvisoMovimento(remoto);
-  });
-}
+async function _fbCarregarEEscutar(){ _movSync().iniciar(); }
 
 async function loadInitialData() {
   dbInstance = await openIndexedDB();

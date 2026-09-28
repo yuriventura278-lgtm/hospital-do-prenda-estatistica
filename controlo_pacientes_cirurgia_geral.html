@@ -1610,6 +1610,7 @@
   </div>
 </div>
 
+<script src="zelo_sync_objeto.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -1882,13 +1883,49 @@ function _normalizarDados(d) {
   return { patients: lista, nextN: Math.max(Number(d.nextN) || 1, maiorN + 1) };
 }
 
-function _fbSyncPacientes() {
-  if (typeof zeloQueueWrite !== 'function') return;
-  const savedAt = Number(localStorage.getItem(LS_KEY + '_savedAt')) || Date.now();
-  _fbUltimoEnvio = savedAt;
-  zeloQueueWrite(FB_PACIENTES_PATH, { savedAt: savedAt, snapshot: data })
-    .then(r => { if (r && r.ok) { try { localStorage.setItem(LS_KEY + '_fbSavedAt', String(savedAt)); } catch (e) {} } })
-    .catch(e => console.warn('ZELO: falha ao sincronizar o Controlo de Pacientes', e));
+function _fbSyncPacientes() { _cpSync().guardou(); }
+// Sincronização campo a campo (zelo_sync_objeto.js): cada paciente é
+// identificado pelo NUP (único), cada campo tem a sua hora de alteração.
+// Dois computadores a registar ao mesmo tempo nunca se apagam; o que chega
+// de outro computador é aplicado sozinho.
+function _cpChave(p) { return p.nup ? 'nup_' + String(p.nup).trim() : 'n_' + p.n; }
+function _cpSync() {
+  if (window.__cpSync) return window.__cpSync;
+  window.__cpSync = ZeloSyncObjeto.criar({
+    caminho: FB_PACIENTES_PATH,
+    chaveLocal: 'cp_' + FB_PACIENTES_PATH,
+    obter: function () {
+      const pac = {};
+      (data.patients || []).forEach(p => { if (p) pac[_cpChave(p)] = p; });
+      return { pacientes: pac, nextN: data.nextN };
+    },
+    // Um paciente conta como um registo (proteção contra apagar em massa).
+    grupo: function (k) { return k.split('|').slice(0, 2).join('|'); },
+    ajustar: function (obj) {
+      // O mesmo número atribuído em dois computadores: fica com o número quem
+      // entrou primeiro; os outros passam para o fim (igual em todos os aparelhos).
+      const lista = Object.keys(obj.pacientes || {}).map(k => obj.pacientes[k]).filter(Boolean);
+      let max = lista.reduce((m, p) => Math.max(m, Number(p.n) || 0), 0);
+      const porN = {};
+      lista.forEach(p => { (porN[p.n] = porN[p.n] || []).push(p); });
+      Object.keys(porN).map(Number).sort((a, b) => a - b).forEach(n => {
+        const g = porN[n];
+        if (g.length < 2) return;
+        g.sort((a, b) => String(a.dataEntrada || '').localeCompare(String(b.dataEntrada || '')) || _cpChave(a).localeCompare(_cpChave(b)));
+        g.slice(1).forEach(p => { p.n = ++max; });
+      });
+      obj.nextN = Math.max(Number(obj.nextN) || 1, max + 1);
+      return obj;
+    },
+    aplicar: function (obj) {
+      const lista = Object.keys(obj.pacientes || {}).map(k => obj.pacientes[k]);
+      data = _normalizarDados({ patients: lista, nextN: obj.nextN });
+      data.patients.sort((a, b) => (Number(a.n) || 0) - (Number(b.n) || 0));
+      saveData({ semSync: true });
+      try { updateStats(); renderInternados(); updateStorageStatus(); } catch (e) { console.warn(e); }
+    }
+  });
+  return window.__cpSync;
 }
 
 // Espera que a ligação ao Firebase esteja pronta (até 30 s — redes lentas).
@@ -1933,28 +1970,7 @@ async function _aplicarRemoto(remoto) {
   updateStorageStatus();
 }
 
-async function _fbCarregarEEscutar() {
-  const pronto = await _fbEsperarPronto();
-  if (!pronto || typeof window.__fbGet !== 'function') return;
-  try {
-    const remoto = await window.__fbGet(FB_PACIENTES_PATH);
-    const localSavedAt = Number(localStorage.getItem(LS_KEY + '_savedAt')) || 0;
-    if (remoto && remoto.snapshot && (remoto.savedAt || 0) > localSavedAt) {
-      await _aplicarRemoto(remoto);
-    } else if (localSavedAt > (remoto && remoto.savedAt || 0) && data.patients.length) {
-      // Há registos locais que ainda não chegaram ao servidor (ex.: sem internet).
-      _fbSyncPacientes();
-    }
-  } catch (e) { console.warn('ZELO: falha ao ler o Controlo de Pacientes do servidor', e); }
-  if (typeof window.__fbListen !== 'function') return;
-  let primeira = true;
-  window.__fbListen(FB_PACIENTES_PATH, remoto => {
-    if (primeira) { primeira = false; return; }
-    if (!remoto || !remoto.savedAt || remoto.savedAt === _fbUltimoEnvio) return;
-    const localSavedAt = Number(localStorage.getItem(LS_KEY + '_savedAt')) || 0;
-    if (remoto.savedAt > localSavedAt) _fbMostrarAviso(remoto);
-  });
-}
+async function _fbCarregarEEscutar() { _cpSync().iniciar(); }
 
 // ====== FUNÇÕES DE EXPORT ======
 
