@@ -9,7 +9,7 @@
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
 <script type="module">
-  // Os relatórios mensais e o arquivo de dados vivem no Firebase Storage, atrás
+  // Os relatórios mensais e o arquivo de dados vivem na Realtime Database (relatorios_mensais), atrás
   // do login do ZELO (ver storage.rules) — nunca no repositório público do
   // GitHub. Expostos em window para serem chamados a partir dos onclick dos
   // cartões, gerados dinamicamente pelo script mais abaixo.
@@ -185,7 +185,7 @@ main,.hero-in{max-width:none !important;width:100%;box-sizing:border-box;}
   <div class="sec-title" style="margin-top:30px;">Resumos Mensais em PDF</div>
   <div class="hero-note" style="background:#fff;border:1px solid var(--br);color:var(--tx2);margin-bottom:16px;margin-top:0;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-    <span>No dia 2 de cada mês, um processo automático gera sozinho o resumo em PDF do mês anterior e guarda-o aqui — sem precisar que ninguém abra o sistema. Em seguida, o histórico confirmado desse mês é removido do Firebase, mantendo o sistema sempre leve.</span>
+    <span>No dia 2 de cada mês, um processo automático gera sozinho o resumo em PDF do mês anterior e guarda-o aqui — sem precisar que ninguém abra o sistema. Nenhum dado é apagado: os registos continuam guardados no Firebase.</span>
   </div>
   <a id="admin-report-trigger" href="https://github.com/yuriventura278-lgtm/hospital-do-prenda-estatistica/actions/workflows/relatorio-mensal.yml" target="_blank" rel="noopener" class="rep-card" style="display:none;margin-bottom:16px;cursor:pointer;">
     <div class="rep-ic" style="background:#EEF2FF;color:#4338CA;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
@@ -199,7 +199,7 @@ main,.hero-in{max-width:none !important;width:100%;box-sizing:border-box;}
   <div class="sec-title" style="margin-top:30px;">Cópia de Segurança Mensal (JSON por Serviço)</div>
   <div class="hero-note" style="background:#fff;border:1px solid var(--br);color:var(--tx2);margin-bottom:16px;margin-top:0;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--bl)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-    <span>Um ficheiro JSON por serviço/página, com todos os registos diários em bruto desse mês (sem nomes de doentes). Fica guardado aqui para sempre, mesmo depois da limpeza mensal do Firebase — é a cópia de segurança oficial.</span>
+    <span>Um ficheiro JSON por serviço/página, com todos os registos diários em bruto desse mês, gerado na hora a partir dos dados guardados no Firebase (que nunca são apagados). Só administradores têm acesso.</span>
   </div>
   <div id="backup-content"><div class="loading">A carregar cópias de segurança…</div></div>
 </main>
@@ -439,7 +439,7 @@ function mostrarGatilhoAdmin(role){
   if(el) el.style.display = (role === 'admin') ? 'flex' : 'none';
 }
 
-// Os relatórios e o arquivo vivem agora no Firebase Storage, atrás do login —
+// Os relatórios e o arquivo vivem agora na Realtime Database (relatorios_mensais), atrás do login —
 // só é seguro lê-los depois de o gate confirmar uma sessão real (nunca antes,
 // ao contrário do antigo fetch() directo ao repositório público).
 window.addEventListener('zelo-gate-ready', e => {

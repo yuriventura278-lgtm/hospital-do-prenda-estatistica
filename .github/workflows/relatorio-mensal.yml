@@ -1,15 +1,10 @@
-name: Relatório mensal e limpeza do histórico
+name: Relatório mensal (sem apagar dados)
 
 on:
   schedule:
     # 06:00 UTC do dia 2 de cada mês
     - cron: '0 6 2 * *'
   workflow_dispatch:
-    inputs:
-      skip_cleanup:
-        description: 'Gerar o PDF sem apagar o histórico do Firebase (modo de teste)'
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -33,10 +28,11 @@ jobs:
       - name: Instalar Chromium do Playwright
         run: npx playwright install --with-deps chromium
 
-      - name: Gerar resumo mensal, publicar no Firebase Storage e limpar histórico
+      # Gera o PDF e os dados do mês anterior e guarda-os em relatorios_mensais/
+      # na Realtime Database. NUNCA apaga dados do Firebase.
+      - name: Gerar resumo mensal (sem apagar dados)
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          SKIP_CLEANUP: ${{ github.event.inputs.skip_cleanup || 'false' }}
         run: npm run relatorio-mensal
 
       - name: Abrir alerta se o relatório mensal falhar
@@ -49,6 +45,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `Falha no relatório mensal automático (${new Date().toISOString().slice(0,7)})`,
-              body: `O processo automático que gera o resumo mensal em PDF e limpa o histórico do Firebase falhou.\n\nVer o registo completo aqui: ${runUrl}\n\nO histórico do Firebase deste mês pode ainda não ter sido limpo — verificar antes de correr o relatório novamente.`,
+              body: `O processo automático que gera o resumo mensal em PDF falhou (nenhum dado foi apagado).\n\nVer o registo completo aqui: ${runUrl}`,
               labels: ['relatorio-mensal', 'falha-automatica'],
             });

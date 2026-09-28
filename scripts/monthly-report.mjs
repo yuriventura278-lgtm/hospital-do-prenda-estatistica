@@ -1,5 +1,5 @@
-// Gera o resumo mensal em PDF de todos os serviços e limpa o histórico
-// confirmado do mês anterior no Firebase. Pensado para correr via
+// Gera o resumo mensal em PDF de todos os serviços. NUNCA apaga dados do
+// Firebase (regra do hospital: nenhum dado pode ser apagado). Pensado para correr via
 // GitHub Actions no dia 2 de cada mês (ver .github/workflows/relatorio-mensal.yml),
 // mas pode ser executado manualmente com `npm run relatorio-mensal`.
 import admin from 'firebase-admin';
@@ -7,7 +7,10 @@ import { chromium } from 'playwright';
 import fs from 'fs';
 
 const DATABASE_URL = 'https://hospital-do-prenda-1de35-default-rtdb.europe-west1.firebasedatabase.app';
-const STORAGE_BUCKET = 'hospital-do-prenda-1de35.firebasestorage.app';
+// Os relatórios ficam na própria Realtime Database (plano gratuito; o Firebase
+// Storage exige o plano pago), em relatorios_mensais/…, que só os
+// administradores podem ler (ver database.rules.json).
+const RAIZ_RELATORIOS = 'relatorios_mensais';
 
 const CATS = {
   cirurgicas: {label: 'Especialidades Cirúrgicas', color: '#DC2626'},
@@ -688,31 +691,36 @@ async function main(){
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: DATABASE_URL,
-    storageBucket: STORAGE_BUCKET,
   });
   const db = admin.database();
-  const bucket = admin.storage().bucket();
 
-  // O PDF e o arquivo bruto já não são publicados no repositório GitHub (que é
-  // público) — passam a viver no Firebase Storage, atrás das mesmas regras de
-  // segurança que só deixam ler quem tem sessão iniciada no ZELO (ver
-  // storage.rules). Estes 3 auxiliares substituem as antigas leituras/escritas
-  // em disco por leituras/escritas equivalentes no Storage.
+  // Relatórios gravados na Realtime Database (relatorios_mensais/…), só
+  // legível por administradores. Os caminhos "tipo ficheiro" usados antes no
+  // Storage continuam a ser os nomes lógicos:
+  //   relatorios/index.json  → relatorios_mensais/indice
+  //   relatorios/<ym>.json   → relatorios_mensais/dados/<ym>
+  //   relatorios/<ym>.pdf    → relatorios_mensais/pdf/<ym> (base64)
+  function caminhoDB(path){
+    if(path === 'relatorios/index.json') return RAIZ_RELATORIOS + '/indice';
+    let m = /^relatorios\/(\d{4}-\d{2})\.json$/.exec(path); if(m) return RAIZ_RELATORIOS + '/dados/' + m[1];
+    m = /^relatorios\/(\d{4}-\d{2})\.pdf$/.exec(path); if(m) return RAIZ_RELATORIOS + '/pdf/' + m[1];
+    throw new Error('Caminho de relatório desconhecido: ' + path);
+  }
   async function storageReadJSON(path, fallback){
     try{
-      const [buf] = await bucket.file(path).download();
-      return JSON.parse(buf.toString('utf-8'));
+      const v = (await db.ref(caminhoDB(path)).once('value')).val();
+      return v == null ? fallback : v;
     }catch(e){
-      if(e && e.code === 404) return fallback;
-      console.warn(`Aviso: falha ao ler ${path} do Storage (${e && e.message}); a usar valor por omissão.`);
+      console.warn(`Aviso: falha ao ler ${path} (${e && e.message}); a usar valor por omissão.`);
       return fallback;
     }
   }
   async function storageWriteJSON(path, obj){
-    await bucket.file(path).save(JSON.stringify(obj, null, 2), {contentType: 'application/json', resumable: false});
+    // JSON.parse(JSON.stringify()) tira undefined (que a Realtime Database recusa).
+    await db.ref(caminhoDB(path)).set(JSON.parse(JSON.stringify(obj)));
   }
-  async function storageUploadFile(localPath, destPath, contentType){
-    await bucket.upload(localPath, {destination: destPath, metadata: {contentType}});
+  async function storageUploadFile(localPath, destPath){
+    await db.ref(caminhoDB(destPath)).set(fs.readFileSync(localPath).toString('base64'));
   }
 
   const {year, month} = getTargetMonth(); // month é 0-based, mês ANTERIOR ao actual
@@ -728,7 +736,6 @@ async function main(){
   const archivedServices = [];
 
   const perService = [];
-  const toDelete = []; // {prefix, id, date}
 
   // Banco de Urgência: contagens mensais (Tabela 2 — Atendimento, Tabela 3 — Movimento)
   // por especialidade, e diagnósticos em bruto para o Top 20 (ver URGENCIA_ROWS/
@@ -745,7 +752,8 @@ async function main(){
   for(const svc of ALL_SERVICES){
     const prefix = svc.fbPrefix || 'registos';
     const fbId = svc.slug || svc.id;
-    const snap = await db.ref(prefix + '/' + fbId).once('value');
+    // Só as datas do mês (as chaves são AAAA-MM-DD): poupa downloads.
+    const snap = await db.ref(prefix + '/' + fbId).orderByKey().startAt(ym + '-01').endAt(ym + '-31').once('value');
     const all = snap.val() || {};
     const monthEntries = Object.entries(all).filter(([date]) => date.startsWith(ym));
 
@@ -772,17 +780,12 @@ async function main(){
         transfRRaw.push(...transfEntriesFromSnapshot(s, 'r'));
         transfERaw.push(...transfEntriesFromSnapshot(s, 'e'));
       }
-      toDelete.push({prefix, id: fbId, date});
     }
 
+    // Os dados do mês NÃO são apagados nem copiados: continuam no Firebase.
+    // A "cópia do mês" que o Estatística.html descarrega é gerada na hora a
+    // partir deles (ver zelo_relatorios.js).
     if(monthEntries.length){
-      const semNomes = monthEntries.map(([date, rec]) => {
-        const limpo = Object.assign({}, rec);
-        if(limpo && limpo.snapshot) limpo.snapshot = stripNomesDoentes(limpo.snapshot);
-        return [date, limpo];
-      });
-      const raw = Object.fromEntries(semNomes.sort((a, b) => a[0].localeCompare(b[0])));
-      await storageWriteJSON(`arquivo/${ym}/${prefix}/${fbId}.json`, raw);
       archivedServices.push({id: svc.id, name: svc.name, cat: svc.cat, prefix, fbId, daysReported: monthEntries.length});
     }
 
@@ -792,21 +795,6 @@ async function main(){
       headlineTotal, headlineLabel: headlineLabel(svc.id), secondaryTotals,
     });
   }
-
-  if(archivedServices.length){
-    await storageWriteJSON(`arquivo/${ym}/index.json`, {
-      ym, label: monthLabel, generatedAt: new Date().toISOString(), services: archivedServices,
-    });
-  }
-
-  let archiveIndex = await storageReadJSON('arquivo/index.json', []);
-  archiveIndex = archiveIndex.filter(entry => entry.ym !== ym);
-  if(archivedServices.length){
-    archiveIndex.push({ym, label: monthLabel, servicesCount: archivedServices.length, generatedAt: new Date().toISOString()});
-    archiveIndex.sort((a, b) => b.ym.localeCompare(a.ym));
-  }
-  await storageWriteJSON('arquivo/index.json', archiveIndex);
-  console.log(`Arquivo de ${ym} guardado no Firebase Storage (${archivedServices.length} serviço(s) com dados).`);
 
   const diagTop20 = mergeDiagCounts(diagRaw).slice(0, 20);
   const transferencias = {
@@ -843,9 +831,9 @@ async function main(){
     margin: {top: '18mm', bottom: '14mm', left: '10mm', right: '10mm'},
   });
   await browser.close();
-  await storageUploadFile(pdfPath, `relatorios/${ym}.pdf`, 'application/pdf');
+  await storageUploadFile(pdfPath, `relatorios/${ym}.pdf`);
   fs.rmSync('relatorios', {recursive: true, force: true});
-  console.log(`PDF gerado e publicado no Firebase Storage em relatorios/${ym}.pdf`);
+  console.log(`PDF gerado e guardado em ${RAIZ_RELATORIOS}/pdf/${ym}`);
 
   // ── Dados estruturados do mês (para a secção "Tendências" do Estatística.html) ──
   // Mesmos totais já calculados acima para o PDF, só que persistidos em JSON para
@@ -875,34 +863,27 @@ async function main(){
     })),
     urgenciaTotal,
     diagTop5: diagTop20.slice(0, 5),
-    // Cópia de segurança mensal por serviço/página — aponta para o arquivo em bruto
-    // (já escrito acima em arquivo/<ym>/<prefix>/<fbId>.json, nomes de doentes já
-    // removidos) para poder ser descarregado directamente a partir do Estatística.html.
+    // Cópia do mês por serviço/página — nome lógico arquivo/<ym>/<prefix>/<fbId>.json;
+    // o Estatística.html gera-a na hora a partir dos dados do mês no Firebase
+    // (que nunca são apagados), ver zelo_relatorios.js.
     arquivo: archivedServices.map(s => ({
       id: s.id, name: s.name, cat: s.cat, daysReported: s.daysReported,
       file: `arquivo/${ym}/${s.prefix}/${s.fbId}.json`,
     })),
   };
   await storageWriteJSON(`relatorios/${ym}.json`, dataOut);
-  console.log(`Dados estruturados publicados no Firebase Storage em relatorios/${ym}.json`);
+  console.log(`Dados estruturados guardados em ${RAIZ_RELATORIOS}/dados/${ym}`);
 
   let index = await storageReadJSON('relatorios/index.json', []);
+  if(!Array.isArray(index)) index = Object.values(index || {});
   index = index.filter(entry => entry.ym !== ym);
-  index.push({ym, label: monthLabel, file: `${ym}.pdf`, dataFile: `${ym}.json`, generatedAt: new Date().toISOString()});
+  index.push({ym, label: monthLabel, file: `${ym}.pdf`, dataFile: `${ym}.json`, servicesCount: archivedServices.length, generatedAt: new Date().toISOString()});
   index.sort((a, b) => b.ym.localeCompare(a.ym));
   await storageWriteJSON('relatorios/index.json', index);
-  console.log('Índice actualizado no Firebase Storage em relatorios/index.json');
+  console.log(`Índice actualizado em ${RAIZ_RELATORIOS}/indice`);
 
-  if(process.env.SKIP_CLEANUP === 'true'){
-    console.log('SKIP_CLEANUP=true — histórico do Firebase NÃO foi apagado (modo de teste).');
-    return;
-  }
-
-  console.log(`A remover ${toDelete.length} registo(s) confirmado(s) de ${ym} do Firebase…`);
-  for(const {prefix, id, date} of toDelete){
-    await db.ref(prefix + '/' + id + '/' + date).remove();
-  }
-  console.log('Limpeza concluída.');
+  // Nenhum dado é apagado do Firebase (regra do hospital).
+  console.log('Concluído. Nenhum dado foi apagado do Firebase.');
 }
 
 main().then(()=>process.exit(0)).catch(e=>{

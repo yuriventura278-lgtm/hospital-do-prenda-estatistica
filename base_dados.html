@@ -32,7 +32,7 @@
   }
 </script>
 <script type="module">
-  // Os relatórios mensais e o arquivo de dados vivem no Firebase Storage, atrás
+  // Os relatórios mensais e o arquivo de dados vivem na Realtime Database (relatorios_mensais), atrás
   // do login do ZELO (ver storage.rules) — nunca no repositório público do
   // GitHub.
   import { fetchRelatorioJSON, abrirRelatorioPDF, baixarRelatorioFicheiro } from './zelo_relatorios.js';
@@ -218,7 +218,7 @@ main,.hero-in{max-width:none !important;width:100%;box-sizing:border-box;}
     <div class="zbd-stats">
       <div class="zbd-stat"><div class="n" id="zbdStatAoVivo">—</div><div class="l">Registos ao vivo no Firebase</div></div>
       <div class="zbd-stat"><div class="n" id="zbdStatMeses">—</div><div class="l">Meses já arquivados</div></div>
-      <div class="zbd-stat"><div class="n">Dia 2</div><div class="l">Próxima limpeza automática</div></div>
+      <div class="zbd-stat"><div class="n">Dia 2</div><div class="l">Próximo relatório automático</div></div>
       <div class="zbd-stat"><div class="n" id="zbdStatEspaco">—</div><div class="l" id="zbdStatEspacoL">Espaço local usado</div></div>
     </div>
     <p class="zbd-note">O Firebase mantém apenas os dados do mês atual e do mês anterior. No dia 2 de cada mês, um processo automático gera um relatório em PDF e um arquivo completo (sem resumir nem perder nenhum dado), guarda tudo permanentemente neste repositório do GitHub, e só depois liberta esse espaço no Firebase — nada é apagado sem ficar arquivado primeiro.</p>
@@ -232,7 +232,7 @@ main,.hero-in{max-width:none !important;width:100%;box-sizing:border-box;}
 
   <div class="zbd-panel">
     <h2>Manutenção</h2>
-    <p class="zbd-note">A limpeza mensal corre automaticamente todo o dia 2. Para a correr manualmente antes disso (por exemplo, para testar), um Administrador com acesso ao repositório GitHub pode fazê-lo em Actions → "Relatório mensal e limpeza do histórico" → Run workflow.</p>
+    <p class="zbd-note">O relatório mensal é gerado automaticamente todo o dia 2 (nenhum dado é apagado). Para o gerar manualmente antes disso, um Administrador com acesso ao repositório GitHub pode fazê-lo em Actions → "Relatório mensal (sem apagar dados)" → Run workflow.</p>
     <a href="https://github.com/yuriventura278-lgtm/hospital-do-prenda-estatistica/actions/workflows/relatorio-mensal.yml" target="_blank" rel="noopener" class="zbd-btn">Abrir no GitHub Actions</a>
   </div>
 
@@ -542,7 +542,7 @@ function ensureScript(url, checkFn, cb){
 function ensureExcelLib(cb){ ensureScript('https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js', function(){ return !!window.XLSX; }, cb); }
 
 // Os relatórios e o arquivo já não são ficheiros públicos do GitHub Pages —
-// vivem no Firebase Storage, atrás do login (ver zelo_relatorios.js).
+// vivem na Realtime Database (relatorios_mensais), atrás do login (ver zelo_relatorios.js).
 async function fetchJsonSeguro(path){
   if(typeof window.fetchRelatorioJSON !== 'function') return null;
   return await window.fetchRelatorioJSON(path);
