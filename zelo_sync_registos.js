@@ -42,11 +42,27 @@
       escrever(reg.id, { id: String(reg.id), savedAt: ts, json: JSON.stringify(copia) });
     }
     // Chamado depois de eliminar um registo neste aparelho.
+    // Proteção contra perda de dados: as eliminações esperam 4 s antes de
+    // seguir para o servidor. Eliminar um ou dois registos (corrigir um
+    // engano) é normal; mais do que isso de seguida (um erro, uma limpeza)
+    // não passa para os outros computadores — e os registos voltam do
+    // servidor na próxima abertura/sincronização.
+    var filaApagar = [], tApagar = null;
     function apagar(id) {
       if (aplicando || id == null) return;
-      var ts = Date.now();
-      marcarApagado(String(id), ts);
-      escrever(id, { id: String(id), savedAt: ts, apagado: true });
+      filaApagar.push({ id: String(id), ts: Date.now() });
+      clearTimeout(tApagar);
+      tApagar = setTimeout(function () {
+        var fila = filaApagar; filaApagar = [];
+        if (fila.length > 2) {
+          console.warn('ZELO: ' + fila.length + ' eliminações seguidas — não enviadas (proteção contra perda de dados).');
+          return;
+        }
+        fila.forEach(function (e) {
+          marcarApagado(e.id, e.ts);
+          escrever(e.id, { id: e.id, savedAt: e.ts, apagado: true });
+        });
+      }, 4000);
     }
 
     async function juntar(remoto, enviarEmFalta) {

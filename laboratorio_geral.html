@@ -2684,6 +2684,21 @@ const _fbUltimoEnvioSavedAt = {};
 async function _fbSyncLaboratorio(date, data){
   if (typeof zeloQueueWrite !== 'function' || !date) return;
   try{
+    // Antes de enviar, junta com o que já está no servidor (campo a campo):
+    // se outro computador registou exames entretanto, não se perdem.
+    if (window.__fbReady && typeof window.__fbGet === 'function'){
+      try{
+        const remoto = await window.__fbGet('registos_sistemas_locais/laboratorio/' + date);
+        if (remoto && remoto.snapshot){
+          const mesclado = _mesclarDadosLaboratorio(data, remoto.snapshot);
+          if (JSON.stringify(mesclado) !== JSON.stringify(data)){
+            data = mesclado;
+            LS.setItem(sk(date), JSON.stringify(mesclado));
+            if (date === currentDate){ cd = {...newData(date), ...mesclado}; renderForm(); }
+          }
+        }
+      }catch(e){ console.warn('ZELO: não foi possível ler o Laboratório antes de enviar', e); }
+    }
     const savedAt = new Date().toISOString();
     _fbUltimoEnvioSavedAt[date] = savedAt; // é a nossa própria gravação — não avisar sobre ela
     await zeloQueueWrite('registos_sistemas_locais/laboratorio/' + date, {
