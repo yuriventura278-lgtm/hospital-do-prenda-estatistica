@@ -28,7 +28,7 @@
   const DB_NAME = 'zelo_backup_db';
   const STORE = 'handles';
   const HANDLE_KEY = 'pasta_raiz';
-  const VERIFICACAO_MS = 60 * 60 * 1000; // verifica de hora a hora enquanto a página estiver aberta (poupar o limite de downloads do Firebase)
+  const VERIFICACAO_MS = 60 * 60 * 1000; // de hora a hora só confirma se o dia mudou — o backup automático corre 1x por dia por computador
 
   function _abrirDB() {
     return new Promise((resolve, reject) => {
@@ -334,14 +334,31 @@
     return resultado;
   }
 
+  // O backup automático corre UMA vez por dia em cada computador (poupa o
+  // limite de downloads do Firebase). O botão "Verificar agora" e a escolha
+  // da pasta continuam a correr na hora, quando a pessoa quiser.
+  function _hojeLocal() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function _chaveDia(slug) { return 'zbk_auto_ultimo_dia_' + slug; }
+  async function _automaticoDiario(slug) {
+    let feito = null;
+    try { feito = localStorage.getItem(_chaveDia(slug)); } catch (e) {}
+    if (feito === _hojeLocal()) return;
+    const r = await verificarEExecutar(slug);
+    const semPasta = r && Object.keys(r).some(function (k) { return r[k] === 'sem pasta'; });
+    if (!semPasta) { try { localStorage.setItem(_chaveDia(slug), _hojeLocal()); } catch (e) {} }
+  }
   function iniciar(slug) {
     if (!suportado()) return;
     // Primeira verificação pouco depois de a página abrir (recuperação de
-    // períodos terminados enquanto ninguém tinha o sistema aberto).
-    setTimeout(() => { verificarEExecutar(slug).catch(() => {}); }, 4000);
-    // Verificações periódicas — cobre o caso de a meia-noite passar com a
-    // página aberta (só pode ser detetado enquanto está aberta).
-    setInterval(() => { verificarEExecutar(slug).catch(() => {}); }, VERIFICACAO_MS);
+    // períodos terminados enquanto ninguém tinha o sistema aberto) — só se
+    // ainda não correu hoje neste computador.
+    setTimeout(() => { _automaticoDiario(slug).catch(() => {}); }, 4000);
+    // De hora a hora só se vê se o dia mudou (a meia-noite passou com a
+    // página aberta); nada é lido do Firebase se já correu hoje.
+    setInterval(() => { _automaticoDiario(slug).catch(() => {}); }, VERIFICACAO_MS);
   }
 
   // ── Fábrica de ZBK_getBackupJSON/ZBK_periodosDisponiveis para páginas cujos
