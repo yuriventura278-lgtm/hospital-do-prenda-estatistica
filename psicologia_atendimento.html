@@ -712,7 +712,7 @@ function currentFiltered(){
 // ═══════════════════════════════════════════════════════════════════
 const charts={};
 function mkChart(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg);}
-Chart.register({id:'whiteBg',beforeDraw:c=>{const x=c.ctx;x.save();x.globalCompositeOperation='destination-over';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.restore();}});
+if (window.Chart) Chart.register({id:'whiteBg',beforeDraw:c=>{const x=c.ctx;x.save();x.globalCompositeOperation='destination-over';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.restore();}});
 Chart.defaults.font.family="'Inter',sans-serif";
 Chart.defaults.font.size=11;
 Chart.defaults.plugins.legend.labels.boxWidth=12;
