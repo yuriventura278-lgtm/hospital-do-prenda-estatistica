@@ -357,8 +357,12 @@
       var apps = appMod.getApps();
       var app = apps.length ? apps[0] : appMod.initializeApp(cfgMod.firebaseConfig);
       var db = dbMod.getDatabase(app);
-      return function (path) {
-        return dbMod.get(dbMod.ref(db, path)).then(function (snap) { return snap.exists() ? snap.val() : null; });
+      // ler(caminho) ou ler(caminho, de, ate) — com intervalo, só descarrega
+      // as chaves (datas) entre "de" e "ate" (poupa o limite de downloads).
+      return function (path, de, ate) {
+        var r = dbMod.ref(db, path);
+        if (de && ate) r = dbMod.query(r, dbMod.orderByKey(), dbMod.startAt(de), dbMod.endAt(ate));
+        return dbMod.get(r).then(function (snap) { return snap.exists() ? snap.val() : null; });
       };
     });
     return _fbLeituraPromise;
@@ -1284,7 +1288,13 @@
     avisoPreenchimentoEmCurso = true;
     var chaveOkHoje = 'zeloAvisoPreenchimentoOK_' + cfg.chaveAviso;
     obterFirebaseLeitura().then(function (ler) {
-      return ler(cfg.fbPathBase);
+      // Movimento: a página já sincroniza e os dias vêm deste aparelho.
+      if (cfg.movimento) return {};
+      // Registos soltos (Banco de Urgência): chaves não são datas.
+      if (cfg.porRegistos) return ler(cfg.fbPathBase);
+      // Resto: só os dias do mês atual.
+      var pm = partes[0] + '-' + partes[1] + '-';
+      return ler(cfg.fbPathBase, pm + '01', pm + '31');
     }).then(function (mes) {
       mes = mes || {};
       // Cruza com o que está guardado LOCALMENTE neste aparelho (quando a

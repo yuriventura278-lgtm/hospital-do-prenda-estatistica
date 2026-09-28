@@ -24,13 +24,14 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbGetRange = (path, minKey, maxKey)=>get(query(ref(db,path), orderByKey(), startAt(minKey), endAt(maxKey))).then(snap=>snap.exists()?snap.val():null);
     window.__fbReady = true;
   }catch(e){
     console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
@@ -3155,7 +3156,7 @@ function zeloTemAcessoEdicao(){
 async function sincronizarHistoricoFirebase(){
   if(!window.__fbReady || !window.__fbGet) return;
   try{
-    const remoto = await window.__fbGet(FB_PATH);
+    const remoto = await (window.zeloLerHistorico ? window.zeloLerHistorico(FB_PATH) : window.__fbGet(FB_PATH));
     if(!remoto) return;
     let hist=[]; try{hist=JSON.parse(localStorage.getItem('orl_v1_hist')||'[]');}catch(e){hist=[];}
     const porData={};

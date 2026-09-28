@@ -89,6 +89,9 @@
     var meusTs = lerLS(K_TS, {});        // hora de alteração de cada valor, neste aparelho
     var anterior = lerLS(K_ANT, null);   // último estado conhecido (para ver o que mudou)
     var ultimoEnvio = 0, aplicando = false, emCurso = null, pendente = false;
+    // Com a escuta em tempo real ativa, o último valor do servidor já está
+    // aqui — não é preciso descarregar o bloco outra vez a cada gravação.
+    var ouvindo = false, ultimoRemoto = null;
 
     // Marca com a hora atual os valores que a pessoa mudou desde a última vez.
     function registarAlteracoes() {
@@ -147,7 +150,10 @@
         var v = usarRemoto ? rv : lv;
         plano[k] = v; ts[k] = Math.max(lt, rt);
         if (JSON.stringify(v) !== JSON.stringify(lv)) mudouLocal = true;
-        if (JSON.stringify(v) !== JSON.stringify(rv) || rTs[k] !== ts[k]) mudouRemoto = true;
+        // Só é preciso enviar se o valor for diferente do servidor ou se aqui
+        // houver uma alteração mais recente (nunca por "sem hora" vs "hora 0",
+        // senão os computadores reenviavam uns aos outros sem parar).
+        if (JSON.stringify(vazio(v) ? null : v) !== JSON.stringify(vazio(rv) ? null : rv) || (ts[k] || 0) > (rTs[k] || 0)) mudouRemoto = true;
       });
       var obj = reconstruir(Object.keys(plano).reduce(function (o, k) { if (!vazio(plano[k])) o[k] = plano[k]; return o; }, {}));
       if (typeof cfg.ajustar === 'function') obj = cfg.ajustar(obj) || obj;
@@ -176,7 +182,9 @@
       // Só valores com conteúdo (ou apagados de propósito) seguem com hora.
       var tsEnv = {};
       Object.keys(meusTs).forEach(function (k) { tsEnv[k] = meusTs[k]; });
-      return window.zeloQueueWrite(cfg.caminho, { savedAt: savedAt, snapshot: obj, camposTs: tsParaServidor(tsEnv) })
+      var valor = { savedAt: savedAt, snapshot: obj, camposTs: tsParaServidor(tsEnv) };
+      ultimoRemoto = JSON.parse(JSON.stringify(valor));
+      return window.zeloQueueWrite(cfg.caminho, valor)
         .catch(function (e) { console.warn('ZELO: falha ao sincronizar', cfg.caminho, e); });
     }
 
@@ -186,9 +194,13 @@
     function sincronizar() {
       if (emCurso) { pendente = true; return emCurso; }
       emCurso = (async function () {
+        // Garante que "emCurso" já está atribuído antes de o "finally" o
+        // limpar (sem isto, uma sincronização sem esperas ficava presa).
+        await Promise.resolve();
         try {
           var remoto = null;
-          if (pronto()) { try { remoto = await window.__fbGet(cfg.caminho); } catch (e) { remoto = null; } }
+          if (ouvindo) remoto = ultimoRemoto;
+          else if (pronto()) { try { remoto = await window.__fbGet(cfg.caminho); } catch (e) { remoto = null; } }
           var res = juntar(remoto);
           aplicarLocal(res);
           if (res.mudouRemoto || !remoto) await escrever(cfg.obter());
@@ -211,15 +223,18 @@
       var inicio = Date.now();
       while (!pronto() && Date.now() - inicio < 30000) await new Promise(function (r) { setTimeout(r, 200); });
       if (!pronto()) return;
-      await sincronizar();
-      if (typeof window.__fbListen === 'function') {
-        window.__fbListen(cfg.caminho, function (remoto) {
-          if (!remoto || Number(remoto.savedAt) === ultimoEnvio) return;
-          var res = juntar(remoto);
-          aplicarLocal(res);
-          if (res.mudouRemoto) escrever(cfg.obter());
-        });
-      }
+      if (typeof window.__fbListen !== 'function') { await sincronizar(); return; }
+      // Uma só leitura: a escuta em tempo real traz o valor atual logo ao
+      // início e depois só as alterações.
+      var primeira = true;
+      window.__fbListen(cfg.caminho, function (remoto) {
+        ultimoRemoto = remoto; ouvindo = true;
+        if (primeira) { primeira = false; sincronizar(); return; }
+        if (!remoto || Number(remoto.savedAt) === ultimoEnvio) return;
+        var res = juntar(remoto);
+        aplicarLocal(res);
+        if (res.mudouRemoto) escrever(cfg.obter());
+      });
     }
 
     return { iniciar: iniciar, guardou: guardou, sincronizar: sincronizar, aplicando: function () { return aplicando; } };

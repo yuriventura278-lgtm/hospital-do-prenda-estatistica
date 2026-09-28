@@ -98,6 +98,29 @@
   }
 
   window.zeloQueueWrite = zeloQueueWrite;
+
+  // Leitura incremental de um histórico por datas (<caminho>/<AAAA-MM-DD>):
+  // descarrega tudo só na primeira vez neste computador e depois uma vez por
+  // mês; nas outras vezes só os últimos 60 dias (o resto já está guardado
+  // aqui). Pedidos repetidos em menos de 10 minutos não voltam a descarregar.
+  // Poupa o limite gratuito de downloads do Firebase (10 GB/mês).
+  var _ultimaLeitura = {};
+  window.zeloLerHistorico = async function (caminho) {
+    var agora = Date.now();
+    if (_ultimaLeitura[caminho] && agora - _ultimaLeitura[caminho].ts < 10 * 60 * 1000) return _ultimaLeitura[caminho].v;
+    var chave = 'zeloLeituraTotal_' + caminho, total = 0;
+    try { total = Number(localStorage.getItem(chave)) || 0; } catch (e) {}
+    var v;
+    if (total && agora - total < 30 * 86400000 && typeof window.__fbGetRange === 'function') {
+      var desde = new Date(agora - 60 * 86400000).toISOString().slice(0, 10);
+      v = await window.__fbGetRange(caminho, desde, '9999');
+    } else {
+      v = await window.__fbGet(caminho);
+      try { localStorage.setItem(chave, String(agora)); } catch (e) {}
+    }
+    _ultimaLeitura[caminho] = { ts: agora, v: v };
+    return v;
+  };
   window.zeloQueueUpdate = zeloQueueUpdate;
   window.zeloPendingCount = zeloPendingCount;
   // Escritas ainda em fila (gravadas sem internet) cujo caminho começa por

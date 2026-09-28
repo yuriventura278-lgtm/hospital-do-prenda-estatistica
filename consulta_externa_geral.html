@@ -16,13 +16,14 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbGetRange = (path, minKey, maxKey)=>get(query(ref(db,path), orderByKey(), startAt(minKey), endAt(maxKey))).then(snap=>snap.exists()?snap.val():null);
     window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
     window.__fbReady = true;
   }catch(e){
@@ -2783,7 +2784,7 @@ CE.Registo = (function(){
       try{
         var pronto = await _fbEsperarPronto();
         if (!pronto || !window.__fbGet) return;
-        var tudo = await window.__fbGet('registos_sistemas_locais/consulta_externa');
+        var tudo = await (window.zeloLerHistorico ? window.zeloLerHistorico('registos_sistemas_locais/consulta_externa') : window.__fbGet('registos_sistemas_locais/consulta_externa'));
         if (!tudo) return;
         var locais = await CE.Store.getAllSessoes();
         for (var data in tudo){

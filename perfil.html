@@ -148,7 +148,7 @@ main,.hero-in{max-width:none !important;width:100%;box-sizing:border-box;}
 
 <script type="module">
 import {
-  auth, db, ref, get, set, onValue, query, orderByChild, limitToLast,
+  auth, db, ref, get, set, onValue, query, orderByChild, orderByKey, limitToLast,
   fetchUserProfile, onAuthStateChanged, logAuditEvent, escapeHtml
 } from './zelo_auth.js';
 import {
@@ -330,7 +330,7 @@ onAuthStateChanged(auth, async function(user){
   document.getElementById('pEmail').value = perfil.email || user.email || '';
   document.getElementById('pRole').innerHTML = '<span class="pill ' + (perfil.role === 'admin' ? 'admin' : 'funcionario') + '">' + (perfil.role === 'admin' ? 'Administrador' : 'Funcionário') + '</span>';
   renderAvatar(perfil.nome, perfil.foto);
-  onValue(query(ref(db, 'user_activity/' + user.uid), orderByChild('ts'), limitToLast(50)), function(snap){
+  onValue(query(ref(db, 'user_activity/' + user.uid), orderByKey(), limitToLast(50)), function(snap){
     renderActivity(snap.val());
   });
 });

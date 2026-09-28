@@ -5,7 +5,7 @@ import {
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
-  getDatabase, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast
+  getDatabase, ref, get, set, update, remove, onValue, query, orderByChild, orderByKey, limitToLast
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
 const firebaseConfig = {
@@ -25,7 +25,7 @@ const db = getDatabase(app);
 const INACTIVITY_WARNING_MS = 43 * 60 * 1000; // 43 minutos — mostra aviso de expiração
 const INACTIVITY_LIMIT_MS = 45 * 60 * 1000; // 45 minutos sem interação — logout automático
 const MAX_SESSION_MS = 8 * 60 * 60 * 1000; // 8 horas — sessão máxima mesmo com atividade contínua (fim de turno)
-const REVALIDATE_INTERVAL_MS = 2 * 60 * 1000; // 2 minutos — reconfirma em segundo plano que a conta continua activa
+const REVALIDATE_INTERVAL_MS = 10 * 60 * 1000; // 10 minutos — reconfirma em segundo plano que a conta continua activa (só ativo/role/permissoes, para poupar downloads)
 
 // Numa ligação muito lenta ou instável, get() pode ficar pendente por muito
 // tempo (o SDK do Firebase não desiste sozinho). Sem um limite aqui, uma
@@ -58,6 +58,18 @@ async function fetchUserProfileOuFalhar(uid) {
     new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FETCH_PERFIL_TIMEOUT_MS))
   ]);
   return snap.exists() ? snap.val() : null;
+}
+
+// Reconfirmação leve: só os campos que decidem a sessão (sem nome, foto,
+// email…) — cada página aberta faz isto de 10 em 10 minutos.
+async function fetchEstadoSessaoOuFalhar(uid) {
+  const ler = (c) => get(ref(db, 'users/' + uid + '/' + c)).then(s => s.exists() ? s.val() : null);
+  const [ativo, role, permissoes] = await Promise.race([
+    Promise.all([ler('ativo'), ler('role'), ler('permissoes')]),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FETCH_PERFIL_TIMEOUT_MS))
+  ]);
+  if (ativo === null && role === null) return null;
+  return { ativo, role, permissoes };
 }
 
 async function isFirstAdminNeeded() {
@@ -181,12 +193,12 @@ function startInactivityWatch(onTimeout, uid, permissoesSnapshot, onPermissoesCh
     if (uid) {
       let perfil;
       try {
-        perfil = await fetchUserProfileOuFalhar(uid);
+        perfil = await fetchEstadoSessaoOuFalhar(uid);
       } catch (e) {
         // Falha momentânea de rede/timeout ao reconfirmar em segundo plano —
         // NUNCA terminar a sessão só por isto (isso fechava o sistema a meio
         // de o utilizador escrever, sem a conta ter sido realmente desativada).
-        // Tenta-se de novo no próximo ciclo, dentro de 2 minutos.
+        // Tenta-se de novo no próximo ciclo, dentro de 10 minutos.
         console.warn('ZELO: falha temporária ao reconfirmar sessão, a tentar de novo no próximo ciclo', e);
         return;
       }
@@ -406,7 +418,7 @@ function getModuleAccessLevel(role, permissoes, mod) {
 }
 
 export {
-  app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
+  app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, orderByKey, limitToLast,
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, fetchUserProfileOuFalhar, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
@@ -416,7 +428,7 @@ export {
 };
 
 window.ZeloAuth = {
-  app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
+  app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, orderByKey, limitToLast,
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   fetchUserProfile, fetchUserProfileOuFalhar, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,

@@ -355,7 +355,7 @@ tbody tr:hover{background:#EEF4FF;}
 <script src="zelo_pdf.js"></script>
 <script type="module">
 import {
-  auth, db, ref, get, set, update, remove, onValue, query, orderByChild, limitToLast,
+  auth, db, ref, get, set, update, remove, onValue, query, orderByChild, orderByKey, limitToLast,
   fetchUserProfile, onAuthStateChanged, signOut, sendPasswordResetEmail, logAuditEvent, escapeHtml, ROLE_DEFAULT_PERMISSOES,
   papeisDaPagina
 } from './zelo_auth.js';
@@ -1364,7 +1364,7 @@ onAuthStateChanged(auth, async function(user){
   onValue(ref(db, 'users'), function(snap){
     renderUsers(snap.val());
   });
-  onValue(query(ref(db, 'audit_log'), orderByChild('ts'), limitToLast(100)), function(snap){
+  onValue(query(ref(db, 'audit_log'), orderByKey(), limitToLast(100)), function(snap){
     renderAudit(snap.val());
   });
   onValue(ref(db, 'avisos_integridade_enf'), function(snap){

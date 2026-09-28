@@ -733,7 +733,7 @@ footer{background:var(--nv);color:#C7D2E8;margin-top:auto;}
 <script src="zelo_servicos_menu.js"></script>
 <script type="module">
 import {
-  auth, db, ref, get, onValue, query, orderByChild, limitToLast,
+  auth, db, ref, get, onValue, query, orderByChild, orderByKey, limitToLast,
   fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
@@ -1261,7 +1261,7 @@ function initZeloNotifications(){
     }).join('');
   }
 
-  onValue(query(ref(db, 'audit_log'), orderByChild('ts'), limitToLast(50)), function(snap){
+  onValue(query(ref(db, 'audit_log'), orderByKey(), limitToLast(50)), function(snap){
     var val = snap.val() || {};
     latestEvents = Object.values(val).filter(function(ev){ return NOTIF_LABELS[ev.action]; });
     latestEvents.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
@@ -1317,7 +1317,7 @@ async function carregarUltimosRegistos(){
   try{
     const results = await Promise.all(REGISTO_PATHS.map(async function(r){
       try{
-        const snap = await get(query(ref(db, r.path), orderByChild('savedAt'), limitToLast(1)));
+        const snap = await get(query(ref(db, r.path), orderByKey(), limitToLast(1)));
         if(!snap.exists()) return null;
         let entry = null;
         snap.forEach(function(child){ entry = child.val(); });
@@ -1452,7 +1452,7 @@ async function carregarTendenciaSemanal(){
   try{
     await Promise.all(REGISTO_PATHS.map(async function(r){
       try{
-        const snap = await get(query(ref(db, r.path), orderByChild('savedAt'), limitToLast(9)));
+        const snap = await get(query(ref(db, r.path), orderByKey(), limitToLast(9)));
         if(!snap.exists()) return;
         snap.forEach(function(child){
           const dataChave = child.key;
@@ -1502,7 +1502,7 @@ async function carregarAlertasAdmin(){
     const usersObj = usersSnap.exists() ? usersSnap.val() : {};
     const bloqueados = Object.values(usersObj).filter(function(u){ return u.ativo === false; }).length;
 
-    const auditSnap = await get(query(ref(db, 'audit_log'), orderByChild('ts'), limitToLast(200)));
+    const auditSnap = await get(query(ref(db, 'audit_log'), orderByKey(), limitToLast(200)));
     let erros = 0;
     if(auditSnap.exists()){
       const since = Date.now() - 24*60*60*1000;

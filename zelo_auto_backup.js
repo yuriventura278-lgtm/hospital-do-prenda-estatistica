@@ -28,7 +28,7 @@
   const DB_NAME = 'zelo_backup_db';
   const STORE = 'handles';
   const HANDLE_KEY = 'pasta_raiz';
-  const VERIFICACAO_MS = 5 * 60 * 1000; // verifica a cada 5 minutos enquanto a página estiver aberta
+  const VERIFICACAO_MS = 60 * 60 * 1000; // verifica de hora a hora enquanto a página estiver aberta (poupar o limite de downloads do Firebase)
 
   function _abrirDB() {
     return new Promise((resolve, reject) => {
@@ -305,6 +305,11 @@
   async function verificarEExecutar(slug) {
     const agora = new Date();
     const resultado = {};
+    // Sem pasta de backup escolhida neste computador não há onde gravar:
+    // não ler nada do Firebase (antes lia o serviço inteiro a cada 5 min à
+    // toa — era a maior fonte de downloads do plano gratuito).
+    const pastaAtiva = await obterPastaAtiva(false);
+    if (pastaAtiva.estado !== 'ok') { CADENCIAS.forEach(function (c) { resultado[c] = 'sem pasta'; }); return resultado; }
     for (const cadencia of CADENCIAS) {
       const periodos = await _periodosAConsiderar(slug, cadencia, agora);
       if (periodos.length === 0) { resultado[cadencia] = 'sem dados'; continue; }
@@ -348,7 +353,7 @@
   // verificados no mesmo ciclo) em vez de um pedido por dia.
   function criarBackupFirebase(caminhoBase) {
     let cacheTodos = null, cachePromessa = null, cacheTs = 0;
-    const CACHE_MS = 60 * 1000;
+    const CACHE_MS = 30 * 60 * 1000;
 
     async function _lerTodos() {
       const agora = Date.now();
