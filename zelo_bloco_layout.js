@@ -5,8 +5,7 @@
 //     relógio e estado do bloco ("Bloco em atividade — N cirurgias hoje");
 //   • indicadores com ícones: cirurgias, urgentes, eletivas, suspensas,
 //     óbitos e transferências para a UCI (com homens/mulheres);
-//   • "Quadro do Bloco": linha do tempo das cirurgias por hora (urgente /
-//     eletiva) com os turnos, especialidades em destaque, técnicas
+//   • "Quadro do Bloco": especialidades em destaque, técnicas
 //     anestésicas usadas e desfechos;
 //   • especialidades com cirurgias realçadas.
 // Só lê os dados da página (surgeries, totais) — não altera nada.
@@ -66,21 +65,12 @@
     '.bx-quadro{background:#fff;border:1px solid var(--bx-br);border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.04)}',
     '.bx-q-h{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px dashed var(--bx-br);font:800 .9rem Inter,Arial,sans-serif;color:var(--bx-tx)}',
     '.bx-q-h small{margin-left:auto;font:600 .72rem Inter,Arial,sans-serif;color:var(--bx-mut)}',
-    '.bx-q-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:0}',
+    '.bx-q-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}',
     '.bx-q-col{padding:14px 16px;border-right:1px solid #EEF2F7;min-width:0}',
     '.bx-q-col:last-child{border-right:0}',
     '.bx-q-t{font:800 .64rem Inter,Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--bx-mut);margin-bottom:10px;display:flex;align-items:center;gap:8px}',
     '.bx-leg{margin-left:auto;display:flex;gap:10px;font:600 .64rem Inter,Arial,sans-serif;text-transform:none;letter-spacing:0}',
     '.bx-leg span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;background:var(--c)}',
-    '.bx-horas{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;align-items:end;height:110px;padding:0 2px;background:linear-gradient(transparent 49.5%,#EEF2F7 50%,transparent 50.5%)}',
-    '.bx-h{display:flex;flex-direction:column-reverse;height:100%;border-radius:4px 4px 0 0;overflow:hidden;background:#F1F5F9;position:relative;cursor:default}',
-    '.bx-h i{display:block;width:100%}',
-    '.bx-h.agora{outline:2px solid #5EEAD4;outline-offset:1px}',
-    '.bx-eixo{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;padding:4px 2px 0;font:600 .58rem ui-monospace,Consolas,monospace;color:#94A3B8;text-align:center}',
-    '.bx-turnos{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}',
-    '.bx-turno{flex:1;min-width:90px;border:1px solid #E3E8F0;border-radius:10px;padding:7px 10px;background:#F8FAFC}',
-    '.bx-turno b{font:700 1rem ui-monospace,Consolas,monospace;color:var(--bx-tx)}',
-    '.bx-turno span{display:block;font:700 .6rem Inter,Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--bx-mut)}',
     '.bx-top{display:flex;flex-direction:column;gap:9px}',
     '.bx-top-l{display:grid;grid-template-columns:1fr auto;gap:4px 8px;font:600 .8rem Inter,Arial,sans-serif;color:var(--bx-tx)}',
     '.bx-top-l b{font-family:ui-monospace,Consolas,monospace}',
@@ -112,10 +102,10 @@
     // Escuro
     'html.dark .bx-kpi,html.dark .bx-quadro,html[data-zelo-theme="dark"] .bx-kpi,html[data-zelo-theme="dark"] .bx-quadro{background:#111A2B;border-color:#1F2A3D}',
     'html.dark .bx-q-h,html.dark .bx-top-l,html[data-zelo-theme="dark"] .bx-q-h,html[data-zelo-theme="dark"] .bx-top-l{color:#E6ECF5}',
-    'html.dark .bx-turno,html.dark .bx-desf div,html.dark .bx-h,html[data-zelo-theme="dark"] .bx-turno,html[data-zelo-theme="dark"] .bx-desf div,html[data-zelo-theme="dark"] .bx-h{background:#0F1828;border-color:#1F2A3D}',
+    'html.dark .bx-desf div,html[data-zelo-theme="dark"] .bx-desf div{background:#0F1828;border-color:#1F2A3D}',
     'html.dark .main-content .card > .card-title,html[data-zelo-theme="dark"] .main-content .card > .card-title{color:#E6ECF5 !important}',
-    '@media(max-width:1100px){.bx-kpis{grid-template-columns:repeat(3,1fr)}.bx-q-grid{grid-template-columns:1fr 1fr}.bx-q-col:first-child{grid-column:1/-1;border-right:0;border-bottom:1px solid #EEF2F7}}',
-    '@media(max-width:700px){.bx-kpis{grid-template-columns:repeat(2,1fr)}.bx-q-grid{grid-template-columns:1fr}.bx-q-col{border-right:0;border-bottom:1px solid #EEF2F7}.main-content .card > .card-title{margin:-18px -16px 14px !important}.bx-eixo span:nth-child(odd){visibility:hidden}}'
+    '@media(max-width:1100px){.bx-kpis{grid-template-columns:repeat(3,1fr)}}',
+    '@media(max-width:700px){.bx-kpis{grid-template-columns:repeat(2,1fr)}.bx-q-grid{grid-template-columns:1fr}.bx-q-col{border-right:0;border-bottom:1px solid #EEF2F7}.main-content .card > .card-title{margin:-18px -16px 14px !important}}'
   ].join('\n');
 
   function ic(d) { return '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; }
@@ -142,7 +132,6 @@
   function lista() {
     try { return (typeof surgeries !== 'undefined' && surgeries) ? [].concat(surgeries.urg || [], surgeries.elet || []) : []; } catch (e) { return []; }
   }
-  function hora(s) { var m = /^(\d{1,2})/.exec(String(s.hora || '')); var h = m ? +m[1] : NaN; return h >= 0 && h < 24 ? h : null; }
 
   var KPIS = [
     ['total', 'Cirurgias do dia', '#0F766E', I.bisturi],
@@ -180,7 +169,7 @@
     // Quadro do Bloco, no início da secção das cirurgias.
     var quadro = document.createElement('div'); quadro.className = 'bx-quadro';
     quadro.innerHTML = '<div class="bx-q-h"><span class="bx-n" style="background:' + VERDE_ESC + '">' + ic(I.monitor).replace('<svg ', '<svg style="width:15px;height:15px;stroke:#fff" ') + '</span>Quadro do Bloco<small id="bx-q-nota"></small></div>' +
-      '<div class="bx-q-grid"><div class="bx-q-col" id="bx-col-horas"></div><div class="bx-q-col" id="bx-col-esp"></div><div class="bx-q-col" id="bx-col-anest"></div></div>';
+      '<div class="bx-q-grid"><div class="bx-q-col" id="bx-col-esp"></div><div class="bx-q-col" id="bx-col-anest"></div></div>';
     var secCir = document.getElementById('cirurgias');
     var hdrCir = secCir && secCir.querySelector('.section-header');
     if (hdrCir) hdrCir.parentNode.insertBefore(quadro, hdrCir.nextSibling);
@@ -216,24 +205,6 @@
       if (chave === ultimo) return;
       ultimo = chave;
       var nota = document.getElementById('bx-q-nota'); if (nota) nota.textContent = n ? n + ' cirurgia(s) · ' + urg + ' urgente(s) · ' + elet + ' eletiva(s)' : '';
-
-      // 1) Linha do tempo por hora
-      var porHora = []; for (var i = 0; i < 24; i++) porHora.push({ u: 0, e: 0 });
-      var semHora = 0;
-      ss.forEach(function (s) { var hh = hora(s); if (hh === null) { semHora++; return; } if (s.carac === 'Urgente') porHora[hh].u++; else porHora[hh].e++; });
-      var max = Math.max.apply(null, porHora.map(function (x) { return x.u + x.e; }).concat([1]));
-      var agora = new Date().getHours();
-      var turno = function (a, b) { var t = 0; for (var i2 = a; i2 < b; i2++) t += porHora[i2].u + porHora[i2].e; return t; };
-      document.getElementById('bx-col-horas').innerHTML =
-        '<div class="bx-q-t">Cirurgias por hora<span class="bx-leg"><span style="--c:' + URG + '">Urgente</span><span style="--c:' + ELET + '">Eletiva</span></span></div>' +
-        '<div class="bx-horas">' + porHora.map(function (x, hh) {
-          var t = x.u + x.e;
-          return '<div class="bx-h' + (hh === agora ? ' agora' : '') + '" title="' + String(hh).padStart(2, '0') + 'h — ' + t + ' cirurgia(s)">' +
-            '<i style="height:' + (x.e / max * 100) + '%;background:' + ELET + '"></i><i style="height:' + (x.u / max * 100) + '%;background:' + URG + '"></i></div>';
-        }).join('') + '</div>' +
-        '<div class="bx-eixo">' + porHora.map(function (x, hh) { return '<span>' + (hh % 3 === 0 ? String(hh).padStart(2, '0') : '') + '</span>'; }).join('') + '</div>' +
-        '<div class="bx-turnos"><div class="bx-turno"><span>Manhã 07–13h</span><b>' + turno(7, 13) + '</b></div><div class="bx-turno"><span>Tarde 13–19h</span><b>' + turno(13, 19) + '</b></div><div class="bx-turno"><span>Noite 19–07h</span><b>' + (turno(19, 24) + turno(0, 7)) + '</b></div>' +
-        (semHora ? '<div class="bx-turno"><span>Sem hora</span><b>' + semHora + '</b></div>' : '') + '</div>';
 
       // 2) Especialidades em destaque
       var esp = {};
