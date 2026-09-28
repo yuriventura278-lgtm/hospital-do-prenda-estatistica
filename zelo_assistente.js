@@ -24,14 +24,13 @@
     secretario:       { estatistica:false, servicos:'leitura', procedimentos_enfermagem:false, movimento_mensal:true, sistemas_independentes:false },
     tecnico_farmacia: { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false },
     psicologo:        { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false },
-    chefe_turno:      { estatistica:false, servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false },
     funcionario:      { estatistica:true, servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:false },
   };
   function temAcessoModulo(role, permissoes, mod, itemSlug){
     if (role === 'admin') return true;
     var papeis = null;
     if (mod === 'movimento_mensal' && itemSlug !== 'banco_urgencia') papeis = ['chefe_servico', 'enfermeiro_chefe'];
-    else if (mod === 'sistemas_independentes' && /^controlo_pacientes_/.test(itemSlug || '')) papeis = ['chefe_servico', 'enfermeiro_chefe', 'chefe_turno', 'enfermeiro', 'secretario'];
+    else if (mod === 'sistemas_independentes' && /^controlo_pacientes_/.test(itemSlug || '')) papeis = ['chefe_servico', 'enfermeiro_chefe', 'enfermeiro', 'secretario'];
     if (papeis) {
       var explicito = permissoes && permissoes._paginas ? permissoes._paginas[mod + '|' + (itemSlug || '')] : undefined;
       if (explicito === true || explicito === false) return explicito;
@@ -1342,6 +1341,9 @@
         localStorage.setItem(chaveOkHoje, agora.data);
         texto = _escolher(ABERTURAS_PARABENS_EM_DIA).replace('NOME', nome).replace('ITENS', cfg.itemPlural) +
           ' Está tudo preenchido até ontem.';
+      }
+      if (diasFalta.length) {
+        texto += ' Qualquer dúvida, ligue para a extensão 1403, do Serviço de Estatística.';
       }
       // Sem acesso à página (ecrã de bloqueio visível): nem voz nem mensagem.
       if (window.__zeloAcessoBloqueado) return;

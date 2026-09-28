@@ -342,7 +342,6 @@ const ROLE_DEFAULT_PERMISSOES = {
   secretario:       { estatistica:false, servicos:'leitura', procedimentos_enfermagem:false, movimento_mensal:true, sistemas_independentes:false, informacoes_zelo:true },
   tecnico_farmacia: { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
   psicologo:        { estatistica:false, servicos:true, procedimentos_enfermagem:false, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
-  chefe_turno:      { estatistica:false, servicos:true, procedimentos_enfermagem:true, movimento_mensal:false, sistemas_independentes:false, informacoes_zelo:true },
   funcionario:      { estatistica:true, servicos:true, procedimentos_enfermagem:true, movimento_mensal:true, sistemas_independentes:false, informacoes_zelo:true },
 };
 
@@ -362,9 +361,9 @@ function roleDefaultPermForModule(role, mod) {
 //     serviço, enfermeiros-chefes e administradores. O Movimento do Banco de
 //     Urgência fica de fora (segue a permissão normal).
 //   • Controlo de Pacientes: enfermeiros, chefes de serviço, enfermeiros-
-//     chefes, chefes de turno, secretários e administradores.
+//     chefes, secretários e administradores.
 const ROLES_MOVIMENTO = ['admin', 'chefe_servico', 'enfermeiro_chefe'];
-const ROLES_CONTROLO_PACIENTES = ['admin', 'chefe_servico', 'enfermeiro_chefe', 'chefe_turno', 'enfermeiro', 'secretario'];
+const ROLES_CONTROLO_PACIENTES = ['admin', 'chefe_servico', 'enfermeiro_chefe', 'enfermeiro', 'secretario'];
 function eMovimentoHospitalar(mod, itemSlug) {
   return mod === 'movimento_mensal' && itemSlug !== 'banco_urgencia';
 }

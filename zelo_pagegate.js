@@ -298,7 +298,7 @@ function showBlockedScreen(role, permissoes, soAdmin){
       icone: 'admin',
       etiqueta: 'Acesso restrito',
       titulo: 'Controlo de Pacientes',
-      texto: 'O Controlo de Pacientes é só para enfermeiros, chefes de serviço, chefes de enfermagem, chefes de turno, secretários e administradores.',
+      texto: 'O Controlo de Pacientes é só para enfermeiros, chefes de serviço, chefes de enfermagem, secretários e administradores.',
       fechavel: false,
       botoes: [{ texto: 'Voltar ao Início', principal: true, href: 'index.html' }]
     });
