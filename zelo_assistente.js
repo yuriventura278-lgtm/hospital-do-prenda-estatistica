@@ -702,11 +702,11 @@
     }
     return pt.slice().sort(function (a, b) { return nota(b) - nota(a); })[0];
   }
-  // Fala calma e bem pronunciada: o texto é dividido em frases curtas, cada
-  // uma dita por inteiro e com uma pequena pausa entre elas. Frases longas
-  // numa só leitura eram cortadas por alguns navegadores (o Chrome pára a
-  // meio ao fim de ~15 s) e soavam apressadas.
-  var VELOCIDADE_FALA = 0.82;
+  // Fala em ritmo normal e bem pronunciada: o texto é dividido em frases
+  // curtas, cada uma dita por inteiro e com uma pequena pausa entre elas.
+  // Frases longas numa só leitura eram cortadas por alguns navegadores (o
+  // Chrome pára a meio ao fim de ~15 s).
+  var VELOCIDADE_FALA = 0.97;
   var MESES_FALA = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   // Siglas ditas letra a letra (senão a voz tenta lê-las como palavras).
   var SIGLAS_FALA = { UCI: 'U C I', PDF: 'P D F', NUP: 'N U P', VIH: 'V I H', HIV: 'H I V', HP: 'H P', RH: 'R H', TAC: 'T A C', RX: 'R X', ECG: 'E C G', GEPE: 'G E P E', DEMA: 'D E M A', ID: 'I D' };
@@ -917,34 +917,20 @@
   // para não soar sempre igual ao fim de semanas de uso diário — mas nunca
   // ao mesmo tempo que se repete a mesma combinação todos os dias.
   var ABERTURAS_ENTRADA_DIA = [
-    'Eu sou o assistente Zelo. Desejo-te um bom turno de trabalho.',
-    'Aqui é o Zelo. Espero que o turno corra bem.',
-    'Sou o Zelo, sempre por perto. Bom turno de trabalho.',
-    'O Zelo está por aqui, como sempre. Desejo-te um bom turno.'
+    'Bom turno de trabalho.',
+    'Que o turno corra bem.',
+    'Desejo-te um bom turno.'
   ];
   // Só na primeira entrada de uma segunda-feira: em vez da abertura normal,
   // pergunta pelo fim de semana e deseja uma boa semana de trabalho.
   var ABERTURAS_ENTRADA_SEGUNDA = [
-    'Sou o Zelo. Espero que tenhas passado bem o fim de semana — desejo-te uma óptima semana de trabalho.',
-    'Bom regresso! Espero que o fim de semana tenha corrido bem. Boa semana de trabalho.',
-    'Sou o Zelo. Espero que tenhas descansado bem no fim de semana — vamos a uma boa semana!',
-    'Nova semana a começar. Espero que o fim de semana tenha sido bom — desejo-te uma semana de trabalho produtiva.'
-  ];
-  var TRANSICOES_RECOMENDACAO = [
-    'E uma recomendação:',
-    'Já agora, uma dica:',
-    'Um lembrete rápido:',
-    'Deixo-te aqui uma sugestão:'
+    'Boa semana de trabalho.',
+    'Espero que o fim de semana tenha sido bom. Boa semana.'
   ];
   var LEMBRETES_SAUDACAO = [
-    'tenha sempre atenção ao escrever e ao guardar os registos — cada dado certo faz diferença para o doente e para a equipa.',
-    'confirme bem os dados antes de guardar — um registo certo hoje poupa tempo e dúvidas mais tarde.',
-    'escreva com calma e reveja antes de guardar — a qualidade dos registos começa em cada detalhe.',
-    'antes de guardar, dê sempre uma segunda olhadela aos dados — vale a pena o cuidado extra.',
-    'não deixe o registo do dia para depois — o que fica para trás é mais fácil de se esquecer.',
-    'se algum campo ficar em dúvida, confirme com a equipa antes de guardar — é sempre melhor perguntar do que adivinhar.',
-    'um registo bem preenchido hoje é um problema a menos amanhã — vale o minuto extra.',
-    'dados incompletos contam metade da história — tente preencher tudo o que se aplica ao dia.'
+    'Confirme os dados antes de guardar.',
+    'Não deixe o registo do dia para depois.',
+    'Reveja os registos antes de guardar.'
   ];
   // Só sauda na página inicial (index.html) — é aí que se entra no sistema;
   // abrir directamente outra página (ex.: um separador deixado aberto, ou um
@@ -961,19 +947,15 @@
   // (última atividade guardada neste aparelho). Frases neutras, sem
   // "bem-vindo(a)", para soarem naturais em voz alta.
   var VOLTA_POUCO_TEMPO = [
-    'Que bom ter-te de volta, NOME. Estiveste fora pouco tempo, podes continuar de onde paraste.',
-    'Olá outra vez, NOME. Está tudo como deixaste, continua à vontade.',
-    'De volta, NOME? Ótimo. O Zelo continua aqui contigo.'
+    'Olá outra vez, NOME.',
+    'De volta, NOME? Continue de onde parou.'
   ];
   var VOLTA_PAUSA = [
-    'SAUDACAO, NOME. Que bom ver-te de volta. Espero que a pausa tenha sido boa.',
-    'SAUDACAO, NOME. De volta ao trabalho? Conta comigo para o que precisares.',
-    'SAUDACAO, NOME. Bom regresso. Vamos continuar com calma e atenção aos registos.'
+    'SAUDACAO, NOME. Bom regresso.',
+    'SAUDACAO, NOME. Que bom tê-lo de volta.'
   ];
   var VOLTA_DEPOIS_DE_DIAS = [
-    'Que bom ter-te de volta depois de uns dias.',
-    'Há uns dias que não te via por aqui. Que bom ter-te de volta.',
-    'Bom regresso ao ZELO depois destes dias.'
+    'Bom regresso, depois destes dias.'
   ];
   function _escolher(lista){ return lista[Math.floor(Math.random() * lista.length)]; }
   function _chaveAtividade(){ return 'zeloUltimaAtividade_' + (sessionStorage.getItem('zeloEmail') || 'geral'); }
@@ -983,7 +965,7 @@
   // saudação completa (não na de "bem-vindo de volta", mais curta e que já
   // não repete a recomendação) — texto fixo, por ser uma instrução
   // operacional, não uma frase de cortesia a variar.
-  var NOTA_ESTATISTICA = ' Nota importante: o Serviço de Estatística agradece se, antes das suas atividades, levar os dados produzidos do último turno. Não guarde registos estatísticos no departamento — peça ao secretário do serviço para os levar à Estatística.';
+  var NOTA_ESTATISTICA = ' Lembrete: os dados do último turno devem seguir para a Estatística, pelo secretário do serviço.';
   // Só sauda quando já há sessão iniciada (sessionStorage.zeloNome) — não na
   // página de login. A saudação completa (com recomendação) só acontece uma
   // vez por dia, guardada em localStorage (vale para o dispositivo todo, não
@@ -1010,9 +992,8 @@
     var regressoDias = foraMin !== Infinity && foraMin > 2 * 24 * 60 ? ' ' + _escolher(VOLTA_DEPOIS_DE_DIAS).replace('NOME', nome) : '';
     var listaAberturas = agora.diaSemana === 'Mon' ? ABERTURAS_ENTRADA_SEGUNDA : ABERTURAS_ENTRADA_DIA;
     var abertura = listaAberturas[Math.floor(Math.random() * listaAberturas.length)];
-    var transicao = TRANSICOES_RECOMENDACAO[Math.floor(Math.random() * TRANSICOES_RECOMENDACAO.length)];
     var lembrete = LEMBRETES_SAUDACAO[Math.floor(Math.random() * LEMBRETES_SAUDACAO.length)];
-    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '.' + regressoDias + ' ' + abertura + ' ' + transicao + ' ' + lembrete + NOTA_ESTATISTICA;
+    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '.' + regressoDias + ' ' + abertura + ' ' + lembrete + NOTA_ESTATISTICA;
     falar(texto);
   }
   // Exposto para o index.html chamar assim que o login terminar. É preciso
@@ -1174,10 +1155,8 @@
   // Aberturas dos parabéns quando está tudo em dia (a parte "Em {serviço},
   // está tudo preenchido até ontem." também não varia, pelo mesmo motivo).
   var ABERTURAS_PARABENS_EM_DIA = [
-    'Parabéns, NOME, pela dedicação em enviar os ITENS a tempo e horas.',
-    'Muito bem, NOME! Continuas em dia com os ITENS.',
-    'Boa, NOME — os ITENS estão todos a tempo este mês.',
-    'NOME, os teus ITENS continuam impecáveis este mês. Parabéns pela dedicação.'
+    'Muito bem, NOME.',
+    'Parabéns, NOME.'
   ];
   // Aberturas para quando só falta o dia de ontem — caso especial: em vez do
   // aviso de "dias em falta", reconhece o comprometimento (é normal ainda
@@ -1353,19 +1332,16 @@
         if (sessionStorage.getItem(chaveFaltaSessao)) return;
         sessionStorage.setItem(chaveFaltaSessao, '1');
         if (soFaltaOntem) {
-          texto = saud + ', ' + nome + '. Em ' + cfg.servicoLabel + ', falta apenas o registo de ontem. Aproveite para o preencher hoje, por favor.';
+          texto = saud + ', ' + nome + '. Falta o registo de ontem. Por favor, preencha hoje.';
         } else {
-          texto = saud + ', ' + nome + '. O seu serviço tem dados em falta por preencher de turnos passados. Em ' + cfg.servicoLabel +
-            ', ainda não têm registo ' + _formatarDiasEmFalta(diasFalta) + '. Por favor, preencha assim que puder.';
+          texto = saud + ', ' + nome + '. O seu serviço tem dados em falta de turnos passados. ' +
+            (diasFalta.length > 4 ? 'São ' + diasFalta.length + ' dias por preencher este mês.' : 'Falta registar ' + _formatarDiasEmFalta(diasFalta) + '.');
         }
       } else {
         if (localStorage.getItem(chaveOkHoje) === agora.data) return;
         localStorage.setItem(chaveOkHoje, agora.data);
         texto = _escolher(ABERTURAS_PARABENS_EM_DIA).replace('NOME', nome).replace('ITENS', cfg.itemPlural) +
-          ' Em ' + cfg.servicoLabel + ', está tudo preenchido até ontem.';
-      }
-      if (diasFalta.length) {
-        texto += ' Qualquer dúvida, ligue para a extensão 1403, do Serviço de Estatística.';
+          ' Está tudo preenchido até ontem.';
       }
       // Sem acesso à página (ecrã de bloqueio visível): nem voz nem mensagem.
       if (window.__zeloAcessoBloqueado) return;
