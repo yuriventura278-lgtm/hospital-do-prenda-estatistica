@@ -3,7 +3,8 @@
 // Medicina Interna, Cirurgia Geral, Ortopedia, Neurocirurgia, Maxilo-Facial
 // e Nefrologia) passam a ter o mesmo esqueleto da Consulta Externa:
 //   • menu lateral branco à esquerda (Controlo de Pacientes / Registos /
-//     Serviços), com o item atual realçado;
+//     Backup), com o item atual realçado — sem links para outras páginas
+//     (nem o menu flutuante geral);
 //   • faixa de saudação ("Bom dia" + data e hora) no topo do conteúdo;
 //   • indicadores e secções no mesmo estilo (cartões com barra de cor,
 //     secções numeradas), a toda a largura.
@@ -88,6 +89,48 @@
     '.cpx-main select,.cpx-main input[type=month],.cpx-main input[type=date]{border:1px solid var(--cpx-ring);border-radius:9px;padding:8px 10px;font:600 .84rem Inter,Arial,sans-serif;background:var(--cpx-sf);color:var(--cpx-tx)}',
     '.modal-header{background:linear-gradient(135deg,#2B415E,#3E5C87) !important;color:#fff !important}',
     '.modal-header *{color:inherit}',
+    // ── Sem links para outras páginas: o menu flutuante geral não aparece aqui
+    '#zmf-btn,#zmf-overlay,#zmf-panel{display:none !important}',
+    // ── Janelas (Novo Paciente, Editar, Registar Saída) ──
+    '.modal-overlay{backdrop-filter:blur(4px);background:rgba(15,23,42,.45) !important}',
+    '.modal-card{max-width:780px !important;width:calc(100% - 32px) !important;border-radius:18px !important;border:1px solid var(--cpx-br) !important;box-shadow:0 24px 60px rgba(15,23,42,.28) !important;overflow:hidden;background:var(--cpx-sf) !important}',
+    '.modal-header{padding:18px 24px !important;border:0 !important}',
+    '.modal-header h2{font:800 1.05rem Inter,"Segoe UI",Arial,sans-serif !important;letter-spacing:.2px}',
+    '.modal-header .icon{width:34px !important;height:34px !important;padding:8px;border-radius:10px;background:rgba(255,255,255,.16);box-sizing:border-box}',
+    '.modal-close{width:34px !important;height:34px !important;border-radius:10px !important;background:rgba(255,255,255,.16) !important;border:1px solid rgba(255,255,255,.3) !important;color:#fff !important;font-size:20px !important}',
+    '.modal-body{display:flex !important;flex-direction:column;gap:16px;padding:22px 24px 24px !important;background:var(--cpx-sf)}',
+    '.modal-body .form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr)) !important;gap:16px !important;margin:0 !important}',
+    '.modal-body .form-row:has(#fNome),.modal-body .form-row:has(#eNome){grid-template-columns:2fr 1fr !important}',
+    '@media(max-width:560px){.modal-body .form-row:has(#fNome),.modal-body .form-row:has(#eNome){grid-template-columns:1fr !important}}',
+    '.btn-danger{text-transform:none !important;letter-spacing:0 !important}',
+    '.field{display:flex;flex-direction:column;gap:7px}',
+    '.field label{margin:0 !important;font:700 .7rem Inter,"Segoe UI",Arial,sans-serif !important;text-transform:uppercase;letter-spacing:.08em;color:var(--cpx-mut) !important}',
+    '.field label .required{color:#DC2626 !important}',
+    '.field input,.field select,.field textarea{height:46px;box-sizing:border-box;width:100%;border:1.5px solid #D5DEEA !important;border-radius:11px !important;background:#F8FAFC !important;padding:0 14px !important;font:500 .95rem Inter,"Segoe UI",Arial,sans-serif !important;color:var(--cpx-tx) !important;transition:border-color .15s,box-shadow .15s,background .15s}',
+    '.field textarea{height:auto;min-height:90px;padding:12px 14px !important}',
+    '.field input:hover,.field select:hover{border-color:var(--cpx-ring) !important}',
+    '.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--cpx-accent) !important;background:#fff !important;box-shadow:0 0 0 4px rgba(62,92,135,.14) !important}',
+    '.field input:valid{border-color:#D5DEEA !important}',
+    '.field input::placeholder{color:#9AA8BC}',
+    'html[data-zelo-theme="dark"] .field input,html[data-zelo-theme="dark"] .field select{background:#0F1828 !important;border-color:#2A3A52 !important}',
+    '.modal-body .summary-card{background:var(--cpx-tint) !important;border:1px solid var(--cpx-ring) !important;border-radius:12px !important;padding:12px 14px !important;color:var(--cpx-tx) !important;font-size:.88rem}',
+    '.modal-footer{padding:16px 24px !important;background:#F8FAFC;border-top:1px solid var(--cpx-br) !important}',
+    'html[data-zelo-theme="dark"] .modal-footer{background:#0F1828}',
+    '.modal-footer .btn{height:44px;padding:0 20px !important;font-size:.9rem !important}',
+    // ── Cartões dos internados ──
+    '.internados-list{display:grid !important;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}',
+    '.internados-card{background:var(--cpx-sf) !important;border:1px solid var(--cpx-br) !important;border-left:4px solid var(--cpx-accent) !important;border-radius:14px !important;padding:14px 16px !important;box-shadow:0 1px 3px rgba(15,23,42,.05) !important;transition:transform .15s,box-shadow .15s;margin:0 !important}',
+    '.internados-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,23,42,.08) !important}',
+    '.internado-n{display:inline-block;font:700 .68rem ui-monospace,Consolas,monospace !important;color:var(--cpx-accent) !important;background:var(--cpx-tint);border-radius:6px;padding:3px 8px;margin-bottom:8px}',
+    '.internado-nome{font:800 1rem Inter,"Segoe UI",Arial,sans-serif !important;color:var(--cpx-tx) !important;margin-bottom:8px}',
+    '.internado-info{font-size:.82rem !important;color:var(--cpx-mut) !important;line-height:1.55}',
+    '.internado-info strong{color:var(--cpx-tx) !important;font-weight:600}',
+    // ── Tabela ──
+    '.table-section table{border-collapse:separate !important;border-spacing:0}',
+    '.table-section td{padding:11px 12px !important;border-bottom:1px solid var(--cpx-br) !important;font-size:.86rem}',
+    '.table-section tbody tr:hover td{background:var(--cpx-tint) !important}',
+    '.table-section code{background:var(--cpx-tint);border-radius:6px;padding:2px 7px;color:var(--cpx-accent)}',
+    '.btn-small{border-radius:9px !important;height:32px;padding:0 12px !important}',
     // Menu no telemóvel: botão que abre o menu lateral por cima
     '.cpx-abrir{display:none}',
     '@media(max-width:900px){',
@@ -147,11 +190,7 @@
       '<div class="cpx-lista">' +
         '<button type="button" class="cpx-item" data-modal="historicoModal">' + ic('relogio') + 'Histórico Diário</button>' +
         '<button type="button" class="cpx-item" data-modal="backupModal">' + ic('copia') + 'Cópia de Segurança</button>' +
-      '</div>' +
-      (servicos.length ? '<hr class="cpx-div"><div class="cpx-sec">Serviços</div><div class="cpx-lista">' +
-        servicos.map(function (s) {
-          return '<a class="cpx-item' + (s.file === ficheiro ? ' ativo' : '') + '" href="' + s.file + '">' + ic('servico') + s.nome + '<span class="cpx-sig">' + sig(s.nome) + '</span></a>';
-        }).join('') + '</div>' : '');
+      '</div>';
 
     function fecharMenu() { side.classList.remove('aberto'); fundo.classList.remove('aberto'); }
     fundo.addEventListener('click', fecharMenu);

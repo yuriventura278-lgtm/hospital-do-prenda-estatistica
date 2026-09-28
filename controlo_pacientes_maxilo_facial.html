@@ -977,6 +977,8 @@
                 <th>Nome</th>
                 <th>NUP</th>
                 <th>Idade</th>
+                <th>Género</th>
+                <th>Cama / Sala</th>
                 <th>Entrada</th>
                 <th>Diagnóstico</th>
                 <th>Proveniência</th>
@@ -985,7 +987,7 @@
             </thead>
             <tbody id="tabelaInternados">
               <tr class="empty-state-row">
-                <td colspan="8">
+                <td colspan="10">
                   <div class="empty-state">
                     <div class="empty-state-icon">
                       <svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1262,6 +1264,20 @@
       </div>
       <div class="form-row">
         <div class="field">
+          <label>Género <span class="required">*</span></label>
+          <select id="fGenero" required>
+            <option value="">Selecionar...</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Feminino">Feminino</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Cama / Sala</label>
+          <input type="text" id="fCama" placeholder="Ex.: Sala 2 · Cama 5" autocomplete="off">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
           <label>Data de Entrada <span class="required">*</span></label>
           <input type="datetime-local" id="fDataEntrada" required>
         </div>
@@ -1331,6 +1347,20 @@
         <div class="field">
           <label>NUP <span class="required">*</span></label>
           <input type="text" id="eNUP" placeholder="Número Único do Paciente" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Género <span class="required">*</span></label>
+          <select id="eGenero" required>
+            <option value="">Selecionar...</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Feminino">Feminino</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Cama / Sala</label>
+          <input type="text" id="eCama" placeholder="Ex.: Sala 2 · Cama 5" autocomplete="off">
         </div>
       </div>
       <div class="form-row">
@@ -1425,7 +1455,7 @@
           <label>Tipo de Saída <span class="required">*</span></label>
           <select id="fTipoSaida" required onchange="updateSubtipoOptions()">
             <option value="">Selecionar...</option>
-            <option value="Alta Vivo">Alta Vivo</option>
+            <option value="Alta Vivo">Alta</option>
             <option value="Óbito">Óbito</option>
             <option value="Transferência">Transferência</option>
           </select>
@@ -1433,7 +1463,7 @@
       </div>
       <div class="form-row" id="subtipoRow">
         <div class="field">
-          <label>Detalhes</label>
+          <label id="fSubtipoLabel">Detalhes</label>
           <select id="fSubtipo">
             <option value="">Selecionar...</option>
           </select>
@@ -2260,8 +2290,10 @@ function addPaciente() {
   const dataEntrada = document.getElementById('fDataEntrada').value;
   const diagnostico = document.getElementById('fDiagnostico').value.trim();
   const proveniencia = document.getElementById('fProveniencia').value;
+  const genero = document.getElementById('fGenero').value;
+  const cama = document.getElementById('fCama').value.trim();
   
-  if (!nome || !nup || !idade || !dataEntrada || !diagnostico) {
+  if (!nome || !nup || !idade || !genero || !dataEntrada || !diagnostico) {
     showFeedback('Preencha todos os campos obrigatórios', 'error');
     return;
   }
@@ -2274,7 +2306,7 @@ function addPaciente() {
   
   data.patients.push({
     n: n,
-    nome, nup, idade: parseInt(idade), dataEntrada, diagnostico, proveniencia,
+    nome, nup, idade: parseInt(idade), genero, cama, dataEntrada, diagnostico, proveniencia,
     status: 'internado', dataSaida: null, tipoSaida: null, subtipo: null
   });
   
@@ -2298,6 +2330,7 @@ function addSaida() {
   const tipoSaida = document.getElementById('fTipoSaida').value;
   
   if (!dataSaida || !tipoSaida) { showFeedback('Preencha os campos obrigatórios', 'error'); return; }
+  if (tipoSaida === 'Alta Vivo' && !document.getElementById('fSubtipo').value) { showFeedback('Escolha o tipo de alta (médica, por fuga ou a pedido do familiar)', 'error'); return; }
   
   if (new Date(dataSaida) < new Date(paciente.dataEntrada)) {
     showFeedback('A data de saída não pode ser anterior à data de entrada', 'error');
@@ -2370,7 +2403,7 @@ function updateSaidaInfo() {
   
   document.getElementById('saidaInfo').innerHTML = `
     <b>${escapeHTML(p.nome)}</b>
-    NUP: ${escapeHTML(p.nup)} | Idade: ${p.idade} | Entrada: ${formatDate(p.dataEntrada)}
+    NUP: ${escapeHTML(p.nup)} | Idade: ${p.idade}${p.genero ? ' | ' + escapeHTML(p.genero) : ''}${p.cama ? ' | Cama/Sala: ' + escapeHTML(p.cama) : ''} | Entrada: ${formatDate(p.dataEntrada)}
   `;
   document.getElementById('saidaInfoDiv').style.display = 'block';
   updateObitoClassificacao();
@@ -2379,7 +2412,7 @@ function updateSaidaInfo() {
 function updateSubtipoOptions() {
   const tipo = document.getElementById('fTipoSaida').value;
   const opts = {
-    'Alta Vivo': ['Alta Melhorado', 'Alta contra parecer médico'],
+    'Alta Vivo': ['Alta Médica', 'Alta por Fuga', 'Alta a Pedido do Familiar'],
     'Transferência': ['Transferência para Luanda', 'Transferência para Hospital Privado', 'Transferência para outro Hospital']
   };
   const subtipoRow = document.getElementById('subtipoRow');
@@ -2398,6 +2431,8 @@ function updateSubtipoOptions() {
     obitoRow.style.display = 'none';
     diagFinalRow.style.display = 'none';
     subtipoSel.innerHTML = '<option value="">Selecionar...</option>' + (opts[tipo] || []).map(o => `<option>${o}</option>`).join('');
+    const lbl = document.getElementById('fSubtipoLabel');
+    if (lbl) lbl.innerHTML = tipo === 'Alta Vivo' ? 'Tipo de Alta <span class="required">*</span>' : 'Detalhes';
   }
 }
 
@@ -2501,8 +2536,9 @@ function renderInternadosPanel() {
         <strong>NUP:</strong> <code>${escapeHTML(p.nup)}</code>
       </div>
       <div class="internado-info">
-        <strong>Idade:</strong> ${p.idade} anos
+        <strong>Idade:</strong> ${p.idade} anos${p.genero ? ' · ' + escapeHTML(p.genero) : ''}
       </div>
+      ${p.cama ? `<div class="internado-info"><strong>Cama / Sala:</strong> ${escapeHTML(p.cama)}</div>` : ''}
       <div class="internado-info">
         <strong>Entrada:</strong> ${formatDate(p.dataEntrada)}
       </div>
@@ -2533,7 +2569,7 @@ function renderInternados() {
   
   const tbody = document.getElementById('tabelaInternados');
   if (internados.length === 0) {
-    tbody.innerHTML = `<tr class="empty-state-row"><td colspan="8"><div class="empty-state"><div class="empty-state-icon"><svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/><path d="M12 12c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2z"/></svg></div><div class="empty-state-title">Nenhum paciente internado</div></div></td></tr>`;
+    tbody.innerHTML = `<tr class="empty-state-row"><td colspan="10"><div class="empty-state"><div class="empty-state-icon"><svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/><path d="M12 12c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2z"/></svg></div><div class="empty-state-title">Nenhum paciente internado</div></div></td></tr>`;
     renderInternadosPanel();
     return;
   }
@@ -2544,6 +2580,8 @@ function renderInternados() {
       <td>${escapeHTML(p.nome)}</td>
       <td><code>${escapeHTML(p.nup)}</code></td>
       <td>${p.idade}</td>
+      <td>${escapeHTML(p.genero || '—')}</td>
+      <td>${escapeHTML(p.cama || '—')}</td>
       <td>${formatDate(p.dataEntrada)}</td>
       <td>${escapeHTML(p.diagnostico)}</td>
       <td>${escapeHTML(p.proveniencia)}</td>
@@ -2588,6 +2626,8 @@ function editPaciente(n) {
   document.getElementById('eDataEntrada').value = paciente.dataEntrada;
   document.getElementById('eDiagnostico').value = paciente.diagnostico;
   document.getElementById('eProveniencia').value = paciente.proveniencia || '';
+  document.getElementById('eGenero').value = paciente.genero || '';
+  document.getElementById('eCama').value = paciente.cama || '';
   
   // Mostrar diagnóstico final se for óbito
   const editDiagFinalRow = document.getElementById('editDiagnosticoFinalRow');
@@ -2611,8 +2651,10 @@ function updatePaciente() {
   const dataEntrada = document.getElementById('eDataEntrada').value;
   const diagnostico = document.getElementById('eDiagnostico').value.trim();
   const proveniencia = document.getElementById('eProveniencia').value;
+  const genero = document.getElementById('eGenero').value;
+  const cama = document.getElementById('eCama').value.trim();
   
-  if (!nome || !idade || !nup || !dataEntrada || !diagnostico) {
+  if (!nome || !idade || !nup || !genero || !dataEntrada || !diagnostico) {
     showFeedback('Preencha todos os campos obrigatórios', 'error');
     return;
   }
@@ -2631,6 +2673,8 @@ function updatePaciente() {
     paciente.dataEntrada = dataEntrada;
     paciente.diagnostico = diagnostico;
     paciente.proveniencia = proveniencia;
+    paciente.genero = genero;
+    paciente.cama = cama;
     
     // Guardar diagnóstico final se for óbito
     if (paciente.tipoSaida === 'Óbito') {
