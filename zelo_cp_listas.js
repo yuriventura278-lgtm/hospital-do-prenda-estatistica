@@ -1,7 +1,7 @@
 // ── ZELO — Controlo de Pacientes: listas por género, pacientes do dia e saídos ──
-// • "Pacientes no Serviço": separados em Mulheres e Homens, com o total.
-// • "Pacientes do Dia": em cartões iguais aos do serviço (em vez da tabela),
-//   também por género. Mostra quem estava no serviço no dia escolhido no
+// Todas as listas em tabela, separadas em Mulheres e Homens, com o total:
+// • "Pacientes no Serviço" (os internados agora).
+// • "Pacientes do Dia": igual à do serviço. Mostra quem estava no serviço no dia escolhido no
 //   painel de data (hoje = os mesmos pacientes do serviço).
 // • "Pacientes Saídos": tabela dos saídos no dia escolhido e no mês desse dia, por género.
 // Só muda a forma de mostrar: lê `data.patients` da página e não altera nem
@@ -31,15 +31,12 @@
     '.cpg-gh{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;margin-bottom:10px;font:800 .8rem Inter,Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--g);background:var(--gf)}',
     '.cpg-gh .cpg-ic{width:24px;height:24px;border-radius:7px;background:var(--g);color:#fff;display:inline-flex;align-items:center;justify-content:center;font:800 .8rem Inter,Arial,sans-serif}',
     '.cpg-gh b{margin-left:auto;font:800 .95rem ui-monospace,Consolas,monospace}',
-    '.cpg-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}',
-    '.cpg-cards .internados-card{border-left-color:var(--g) !important}',
     '.cpg-vazio{grid-column:1/-1;font:500 .85rem Inter,Arial,sans-serif;color:#94A3B8;padding:6px 4px 10px}',
     '.cpg-total{grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;border-top:1px dashed var(--cpx-br,#E3E8F0);padding-top:12px;margin-top:4px}',
     '.cpg-tag{display:inline-block;border-radius:6px;padding:2px 8px;font:700 .66rem Inter,Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;margin-left:6px;vertical-align:middle}',
     '.cpg-tag.novo{background:#ECFDF5;color:#047857}',
     '.cpg-tag.saiu{background:#FEF3C7;color:#92400E}',
-    '.cpg-saida{display:inline-block;border-radius:8px;padding:3px 10px;font:700 .72rem Inter,Arial,sans-serif;color:#fff;background:var(--t);margin:2px 0 6px}',
-    '.cp-card-btn-remover{flex:0 0 auto !important;background:#fff !important;color:#DC2626 !important;border:1px solid #FECACA !important}',
+    '.cpg-saida{display:inline-block;border-radius:8px;padding:3px 10px;font:700 .72rem Inter,Arial,sans-serif;color:#fff;background:var(--t)}',
     '.cpg-sec{margin-bottom:16px}',
     '.cpg-sec-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px dashed var(--cpx-br,#E3E8F0)}',
     '.cpg-sec-h .cpx-tit{font:800 .95rem Inter,Arial,sans-serif;color:var(--cpx-tx,#0F172A);display:flex;align-items:center;gap:10px}',
@@ -48,9 +45,22 @@
     '.cpg-tab{border:1px solid var(--cpx-br,#E3E8F0);background:#fff;border-radius:999px;padding:6px 14px;font:700 .8rem Inter,Arial,sans-serif;color:#475569;cursor:pointer}',
     '.cpg-tab.on{background:var(--cpx-accent,#1E3A5F);border-color:transparent;color:#fff}',
     '.cpg-tw{border:1px solid var(--cpx-br,#E3E8F0);border-radius:10px;overflow-x:auto;margin-bottom:6px}',
-    '.cpg-tw table{width:100%;min-width:820px}',
-    '.cpg-tw td{white-space:nowrap}',
-    '.cpg-porTipo{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin-bottom:2px}',
+    '.cpg-tw table{width:100%;min-width:760px;border-collapse:separate;border-spacing:0}',
+    '.cpg-tw th{background:var(--cpx-tint,#F1F5F9) !important;color:var(--cpx-accent,#1E3A5F) !important;font:800 .66rem Inter,Arial,sans-serif !important;letter-spacing:.06em;text-transform:uppercase;padding:10px 10px !important;text-align:left;white-space:nowrap}',
+    '.cpg-tw td{padding:9px 10px !important;font-size:.86rem;border-bottom:1px solid var(--cpx-br,#E3E8F0) !important;white-space:nowrap;vertical-align:middle}',
+    '.cpg-tw td:nth-child(2){white-space:normal;min-width:130px}',
+    '.cpg-tw tbody tr:last-child td{border-bottom:0 !important}',
+    '.cpg-tw tbody tr:hover td{background:var(--cpx-tint,#F8FAFC) !important}',
+    '.cpg-tw code{background:var(--cpx-tint,#F1F5F9);border-radius:6px;padding:2px 7px;color:var(--cpx-accent,#1E3A5F)}',
+    '.cpg-tw .cpg-tag{display:table;margin:3px 0 0}',
+    '.cpg-acoes .btn{text-transform:none !important;letter-spacing:0 !important;padding:6px 10px !important;font-size:.78rem !important;white-space:nowrap}',
+    '.cpg-acoes .cpg-ico{padding:6px 8px !important}',
+    '#internados-lista{display:block !important}',
+    '.cpg-acoes{display:flex;gap:6px;flex-wrap:nowrap}',
+    '.cpg-btn-saida{background:#FFFBEB !important;color:#B45309 !important;border:1px solid #FCD34D !important}',
+    '.cpg-sec-b{display:block !important}',
+    '.cpg-tw tbody tr td:first-child{border-left:3px solid var(--g)}',
+    '.cpg-porTipo{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}',
     'html.dark .cpg-chip,html.dark .cpg-tab,html[data-zelo-theme="dark"] .cpg-chip,html[data-zelo-theme="dark"] .cpg-tab{background:#111A2B;border-color:#1F2A3D;color:#CBD5E1}',
     'html.dark .cpg-gh,html[data-zelo-theme="dark"] .cpg-gh{background:#0F1828}',
     '@media(max-width:700px){.cpg-resumo{margin-left:0;width:100%}.cpg-tabs{margin-left:0}}'
@@ -70,60 +80,35 @@
   var SVG_SAIDA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>';
   var SVG_REMOVER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
 
-  // Cartão igual ao de "Pacientes no Serviço".
-  function cartao(p, op) {
-    op = op || {};
-    var tags = '';
-    if (op.dia && dia(p.dataEntrada) === op.dia) tags += '<span class="cpg-tag novo">Entrou neste dia</span>';
-    var saida = '';
-    if (op.saida) {
-      var t = p.tipoSaida || 'Saída';
-      saida = '<div class="cpg-saida" style="--t:' + (TIPO_COR[t] || '#D97706') + '">' + esc(t === 'Alta Vivo' ? 'Alta' : t) + (p.subtipo && p.subtipo !== '—' ? ' · ' + esc(p.subtipo) : '') + '</div>';
-    }
-    var acoes = '<button type="button" class="cp-card-btn cp-card-btn-atualizar" onclick="editPaciente(' + p.n + ')">' + SVG_ATUALIZAR + 'Atualizar</button>';
-    if (p.status === 'internado' && !op.saida) acoes += '<button type="button" class="cp-card-btn cp-card-btn-saida" onclick="cpRegistarSaidaDe(' + p.n + ')">' + SVG_SAIDA + 'Registar saída</button>';
-    if (op.remover) acoes += '<button type="button" class="cp-card-btn cp-card-btn-remover" title="Remover este registo (pede confirmação)" onclick="deletePaciente(' + p.n + ')">' + SVG_REMOVER + '</button>';
-    return '<div class="internados-card" data-busca="' + esc([p.nome, p.nup, p.idade, p.genero, p.cama, p.diagnostico].join(' ').toLowerCase()) + '">' +
-      '<div class="internado-n">Paciente #' + p.n + tags + '</div>' +
-      '<div class="internado-nome">' + esc(p.nome) + '</div>' + saida +
-      '<div class="internado-info"><strong>NUP:</strong> <code>' + esc(p.nup) + '</code></div>' +
-      '<div class="internado-info"><strong>Idade:</strong> ' + esc(p.idade) + ' anos' + (p.genero ? ' · ' + esc(p.genero) : '') + '</div>' +
-      (p.cama ? '<div class="internado-info"><strong>Cama / Sala:</strong> ' + esc(p.cama) + '</div>' : '') +
-      '<div class="internado-info"><strong>Entrada:</strong> ' + fmt(p.dataEntrada) + '</div>' +
-      (op.saida ? '<div class="internado-info"><strong>Saída:</strong> ' + fmt(p.dataSaida) + ' · ' + dias(p.dataEntrada, p.dataSaida) + ' dia(s)</div>' : '') +
-      '<div class="internado-info"><strong>Diagnóstico:</strong> ' + esc(p.diagnosticoFinal && op.saida ? p.diagnosticoFinal : p.diagnostico) + '</div>' +
-      '<div class="cp-card-acoes">' + acoes + '</div></div>';
+  function btn(cls, onclick, svg, txt, titulo) {
+    return '<button type="button" class="btn btn-small ' + cls + '" onclick="' + onclick + '"' + (titulo ? ' title="' + titulo + '"' : '') + '>' + svg.replace('<svg ', '<svg class="icon-sm" ') + txt + '</button>';
   }
-
-  // Lista dividida em Mulheres / Homens (+ sem género, se houver) com totais.
+  function tipoSaida(p) {
+    var t = p.tipoSaida || 'Saída';
+    return '<span class="cpg-saida" style="--t:' + (TIPO_COR[t] || '#D97706') + '">' + esc(t === 'Alta Vivo' ? 'Alta' : t) + (p.subtipo && p.subtipo !== '—' ? ' · ' + esc(p.subtipo) : '') + '</span>';
+  }
+  // Uma linha da tabela. op.saida = lista de saídos; op.dia = dia em vista; op.remover = mostra "Remover".
+  function linha(p, op) {
+    var acoes = btn('btn-primary cp-btn-atualizar', 'editPaciente(' + p.n + ')', SVG_ATUALIZAR, 'Atualizar', 'Atualizar os dados deste paciente');
+    if (p.status === 'internado' && !op.saida) acoes += btn('cpg-btn-saida', 'cpRegistarSaidaDe(' + p.n + ')', SVG_SAIDA, 'Registar saída');
+    if (op.remover) acoes += btn('btn-danger cpg-ico', 'deletePaciente(' + p.n + ')', SVG_REMOVER, '', 'Remover este registo (pede confirmação)');
+    var novo = op.dia && dia(p.dataEntrada) === op.dia ? '<span class="cpg-tag novo">Entrou neste dia</span>' : '';
+    var cels = '<td><strong>' + p.n + '</strong></td><td>' + esc(p.nome) + novo + '</td><td><code>' + esc(p.nup) + '</code></td><td>' + esc(p.idade) + '</td><td>' + esc(p.cama || '—') + '</td><td>' + fmt(p.dataEntrada) + '</td>';
+    if (op.saida) cels += '<td>' + fmt(p.dataSaida) + '</td><td>' + tipoSaida(p) + '</td><td>' + dias(p.dataEntrada, p.dataSaida) + '</td><td>' + esc(p.diagnosticoFinal || p.diagnostico) + '</td>';
+    else cels += '<td>' + esc(p.diagnostico) + '</td><td>' + esc(p.proveniencia || '—') + '</td>';
+    return '<tr data-busca="' + esc([p.n, p.nome, p.nup, p.idade, p.cama, p.diagnostico].join(' ').toLowerCase()) + '">' + cels + '<td><div class="cpg-acoes">' + acoes + '</div></td></tr>';
+  }
+  // Lista em tabela, dividida em Mulheres / Homens (+ sem género, se houver), com totais.
   function grupos(lista, op, vazio) {
     if (!lista.length) return '<div class="cpg-vazio">' + vazio + '</div>';
     var c = contar(lista);
+    var cab = '<th>N</th><th>Nome</th><th>NUP</th><th>Idade</th><th>Cama / Sala</th><th>Entrada</th>' +
+      (op.saida ? '<th>Saída</th><th>Tipo de saída</th><th>Dias</th><th>Diagnóstico</th>' : '<th>Diagnóstico</th><th>Proveniência</th>') + '<th>Ações</th>';
     return GRUPOS.filter(function (g) { return g.k !== '?' || c['?']; }).map(function (g) {
       var sub = lista.filter(function (p) { return genero(p) === g.k; });
       return '<div class="cpg-grupo" style="--g:' + g.cor + ';--gf:' + g.fundo + '">' +
         '<div class="cpg-gh"><span class="cpg-ic">' + (g.k === '?' ? '?' : g.k) + '</span>' + g.nome + '<b>' + sub.length + '</b></div>' +
-        (sub.length ? '<div class="cpg-cards">' + sub.map(function (p) { return cartao(p, op); }).join('') + '</div>' : '<div class="cpg-vazio">Nenhum paciente.</div>') +
-        '</div>';
-    }).join('') + '<div class="cpg-total">' + chips(lista) + '</div>';
-  }
-  // Mesma divisão por género, mas em tabela (usada nos Pacientes Saídos).
-  function gruposTabela(lista, vazio) {
-    if (!lista.length) return '<div class="cpg-vazio">' + vazio + '</div>';
-    var c = contar(lista);
-    return GRUPOS.filter(function (g) { return g.k !== '?' || c['?']; }).map(function (g) {
-      var sub = lista.filter(function (p) { return genero(p) === g.k; });
-      return '<div class="cpg-grupo" style="--g:' + g.cor + ';--gf:' + g.fundo + '">' +
-        '<div class="cpg-gh"><span class="cpg-ic">' + (g.k === '?' ? '?' : g.k) + '</span>' + g.nome + '<b>' + sub.length + '</b></div>' +
-        (sub.length ? '<div class="table-wrapper cpg-tw"><table><thead><tr><th>N</th><th>Nome</th><th>NUP</th><th>Idade</th><th>Cama / Sala</th><th>Entrada</th><th>Saída</th><th>Tipo de saída</th><th>Dias</th><th>Diagnóstico</th><th>Ações</th></tr></thead><tbody>' +
-          sub.map(function (p) {
-            var t = p.tipoSaida || 'Saída';
-            return '<tr><td><strong>' + p.n + '</strong></td><td>' + esc(p.nome) + '</td><td><code>' + esc(p.nup) + '</code></td><td>' + esc(p.idade) + '</td><td>' + esc(p.cama || '—') + '</td>' +
-              '<td>' + fmt(p.dataEntrada) + '</td><td>' + fmt(p.dataSaida) + '</td>' +
-              '<td><span class="cpg-saida" style="--t:' + (TIPO_COR[t] || '#D97706') + ';margin:0">' + esc(t === 'Alta Vivo' ? 'Alta' : t) + (p.subtipo && p.subtipo !== '—' ? ' · ' + esc(p.subtipo) : '') + '</span></td>' +
-              '<td>' + dias(p.dataEntrada, p.dataSaida) + '</td><td>' + esc(p.diagnosticoFinal || p.diagnostico) + '</td>' +
-              '<td><button class="btn btn-small btn-primary cp-btn-atualizar" onclick="editPaciente(' + p.n + ')">' + SVG_ATUALIZAR.replace('<svg ', '<svg class="icon-sm" ') + 'Atualizar</button></td></tr>';
-          }).join('') + '</tbody></table></div>' : '<div class="cpg-vazio">Nenhum paciente.</div>') +
+        (sub.length ? '<div class="table-wrapper cpg-tw"><table><thead><tr>' + cab + '</tr></thead><tbody>' + sub.map(function (p) { return linha(p, op); }).join('') + '</tbody></table></div>' : '<div class="cpg-vazio">Nenhum paciente.</div>') +
         '</div>';
     }).join('') + '<div class="cpg-total">' + chips(lista) + '</div>';
   }
@@ -176,13 +161,13 @@
     var tipos = {}; lista.forEach(function (p) { var k = p.tipoSaida || 'Saída'; tipos[k] = (tipos[k] || 0) + 1; });
     var porTipo = Object.keys(tipos).map(function (k) { return '<span class="cpg-chip" style="color:' + (TIPO_COR[k] || '#B45309') + '">' + esc(k === 'Alta Vivo' ? 'Altas' : k) + ' <b>' + tipos[k] + '</b></span>'; }).join('');
     el.innerHTML = (porTipo ? '<div class="cpg-porTipo">' + porTipo + '</div>' : '') +
-      gruposTabela(lista, modoSaidos === 'dia' ? 'Nenhuma saída neste dia.' : 'Nenhuma saída neste mês.');
+      grupos(lista, { saida: true }, modoSaidos === 'dia' ? 'Nenhuma saída neste dia.' : 'Nenhuma saída neste mês.');
   }
 
   function filtrar() {
     var inp = document.getElementById('searchInternados');
     var q = inp ? inp.value.trim().toLowerCase() : '';
-    document.querySelectorAll('#cpg-dia .internados-card').forEach(function (c) {
+    document.querySelectorAll('#cpg-dia tbody tr').forEach(function (c) {
       c.style.display = !q || (c.getAttribute('data-busca') || '').indexOf(q) >= 0 ? '' : 'none';
     });
   }
@@ -199,7 +184,7 @@
     var hdr = painel.querySelector('.internados-header');
     if (hdr) hdr.insertAdjacentHTML('beforeend', '<div class="cpg-resumo" id="cpg-resumo-servico"></div>');
 
-    // Secção 2: a tabela passa a cartões iguais aos do serviço.
+    // Secção 2: tabela igual à dos Pacientes no Serviço.
     var th = tab.querySelector('.table-header');
     var tit = th && th.querySelector('.cpx-tit');
     if (tit) tit.innerHTML = '<span class="cpx-n">2</span><span id="cpg-dia-tit">Pacientes do Dia</span>';
