@@ -3,7 +3,7 @@
 // • "Pacientes do Dia": em cartões iguais aos do serviço (em vez da tabela),
 //   também por género. Mostra quem estava no serviço no dia escolhido no
 //   painel de data (hoje = os mesmos pacientes do serviço).
-// • "Pacientes Saídos": saídos no dia escolhido e no mês desse dia, por género.
+// • "Pacientes Saídos": tabela dos saídos no dia escolhido e no mês desse dia, por género.
 // Só muda a forma de mostrar: lê `data.patients` da página e não altera nem
 // apaga nenhum registo.
 (function () {
@@ -47,6 +47,9 @@
     '.cpg-tabs{display:flex;gap:6px;margin-left:auto}',
     '.cpg-tab{border:1px solid var(--cpx-br,#E3E8F0);background:#fff;border-radius:999px;padding:6px 14px;font:700 .8rem Inter,Arial,sans-serif;color:#475569;cursor:pointer}',
     '.cpg-tab.on{background:var(--cpx-accent,#1E3A5F);border-color:transparent;color:#fff}',
+    '.cpg-tw{border:1px solid var(--cpx-br,#E3E8F0);border-radius:10px;overflow-x:auto;margin-bottom:6px}',
+    '.cpg-tw table{width:100%;min-width:820px}',
+    '.cpg-tw td{white-space:nowrap}',
     '.cpg-porTipo{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin-bottom:2px}',
     'html.dark .cpg-chip,html.dark .cpg-tab,html[data-zelo-theme="dark"] .cpg-chip,html[data-zelo-theme="dark"] .cpg-tab{background:#111A2B;border-color:#1F2A3D;color:#CBD5E1}',
     'html.dark .cpg-gh,html[data-zelo-theme="dark"] .cpg-gh{background:#0F1828}',
@@ -104,6 +107,26 @@
         '</div>';
     }).join('') + '<div class="cpg-total">' + chips(lista) + '</div>';
   }
+  // Mesma divisão por género, mas em tabela (usada nos Pacientes Saídos).
+  function gruposTabela(lista, vazio) {
+    if (!lista.length) return '<div class="cpg-vazio">' + vazio + '</div>';
+    var c = contar(lista);
+    return GRUPOS.filter(function (g) { return g.k !== '?' || c['?']; }).map(function (g) {
+      var sub = lista.filter(function (p) { return genero(p) === g.k; });
+      return '<div class="cpg-grupo" style="--g:' + g.cor + ';--gf:' + g.fundo + '">' +
+        '<div class="cpg-gh"><span class="cpg-ic">' + (g.k === '?' ? '?' : g.k) + '</span>' + g.nome + '<b>' + sub.length + '</b></div>' +
+        (sub.length ? '<div class="table-wrapper cpg-tw"><table><thead><tr><th>N</th><th>Nome</th><th>NUP</th><th>Idade</th><th>Cama / Sala</th><th>Entrada</th><th>Saída</th><th>Tipo de saída</th><th>Dias</th><th>Diagnóstico</th><th>Ações</th></tr></thead><tbody>' +
+          sub.map(function (p) {
+            var t = p.tipoSaida || 'Saída';
+            return '<tr><td><strong>' + p.n + '</strong></td><td>' + esc(p.nome) + '</td><td><code>' + esc(p.nup) + '</code></td><td>' + esc(p.idade) + '</td><td>' + esc(p.cama || '—') + '</td>' +
+              '<td>' + fmt(p.dataEntrada) + '</td><td>' + fmt(p.dataSaida) + '</td>' +
+              '<td><span class="cpg-saida" style="--t:' + (TIPO_COR[t] || '#D97706') + ';margin:0">' + esc(t === 'Alta Vivo' ? 'Alta' : t) + (p.subtipo && p.subtipo !== '—' ? ' · ' + esc(p.subtipo) : '') + '</span></td>' +
+              '<td>' + dias(p.dataEntrada, p.dataSaida) + '</td><td>' + esc(p.diagnosticoFinal || p.diagnostico) + '</td>' +
+              '<td><button class="btn btn-small btn-primary cp-btn-atualizar" onclick="editPaciente(' + p.n + ')">' + SVG_ATUALIZAR.replace('<svg ', '<svg class="icon-sm" ') + 'Atualizar</button></td></tr>';
+          }).join('') + '</tbody></table></div>' : '<div class="cpg-vazio">Nenhum paciente.</div>') +
+        '</div>';
+    }).join('') + '<div class="cpg-total">' + chips(lista) + '</div>';
+  }
   function chips(lista) {
     var c = contar(lista);
     return '<span class="cpg-chip f">Mulheres <b>' + c.F + '</b></span><span class="cpg-chip m">Homens <b>' + c.M + '</b></span>' +
@@ -153,7 +176,7 @@
     var tipos = {}; lista.forEach(function (p) { var k = p.tipoSaida || 'Saída'; tipos[k] = (tipos[k] || 0) + 1; });
     var porTipo = Object.keys(tipos).map(function (k) { return '<span class="cpg-chip" style="color:' + (TIPO_COR[k] || '#B45309') + '">' + esc(k === 'Alta Vivo' ? 'Altas' : k) + ' <b>' + tipos[k] + '</b></span>'; }).join('');
     el.innerHTML = (porTipo ? '<div class="cpg-porTipo">' + porTipo + '</div>' : '') +
-      grupos(lista, { saida: true }, modoSaidos === 'dia' ? 'Nenhuma saída neste dia.' : 'Nenhuma saída neste mês.');
+      gruposTabela(lista, modoSaidos === 'dia' ? 'Nenhuma saída neste dia.' : 'Nenhuma saída neste mês.');
   }
 
   function filtrar() {
