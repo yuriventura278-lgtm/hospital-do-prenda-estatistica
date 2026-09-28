@@ -131,6 +131,15 @@
     '.table-section tbody tr:hover td{background:var(--cpx-tint) !important}',
     '.table-section code{background:var(--cpx-tint);border-radius:6px;padding:2px 7px;color:var(--cpx-accent)}',
     '.btn-small{border-radius:9px !important;height:32px;padding:0 12px !important}',
+    // Botão Atualizar bem visível (tabela e cartões)
+    '.cp-btn-atualizar{background:linear-gradient(135deg,#2B415E,#3E5C87) !important;color:#fff !important;border:0 !important;height:36px !important;padding:0 16px !important;font:700 .84rem Inter,Arial,sans-serif !important;box-shadow:0 3px 10px rgba(43,65,94,.28) !important;display:inline-flex !important;align-items:center;gap:7px}',
+    '.cp-btn-atualizar:hover{filter:brightness(1.12);transform:translateY(-1px)}',
+    '.cp-card-acoes{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--cpx-br)}',
+    '.cp-card-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;border-radius:10px;font:700 .82rem Inter,Arial,sans-serif;cursor:pointer;transition:filter .15s,transform .15s}',
+    '.cp-card-btn svg{width:15px;height:15px}',
+    '.cp-card-btn-atualizar{background:linear-gradient(135deg,#2B415E,#3E5C87);color:#fff;border:0;box-shadow:0 3px 10px rgba(43,65,94,.25)}',
+    '.cp-card-btn-saida{background:#fff;color:#B45309;border:1.5px solid #FCD34D}',
+    '.cp-card-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}',
     // Menu no telemóvel: botão que abre o menu lateral por cima
     '.cpx-abrir{display:none}',
     '@media(max-width:900px){',

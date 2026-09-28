@@ -2552,6 +2552,16 @@ function renderInternadosPanel() {
       <div class="internado-info">
         <strong>Diagnóstico:</strong> ${escapeHTML(p.diagnostico)}
       </div>
+      <div class="cp-card-acoes">
+        <button type="button" class="cp-card-btn cp-card-btn-atualizar" onclick="editPaciente(${p.n})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Atualizar
+        </button>
+        <button type="button" class="cp-card-btn cp-card-btn-saida" onclick="cpRegistarSaidaDe(${p.n})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          Registar saída
+        </button>
+      </div>
     </div>
   `).join('');
 }
@@ -2593,11 +2603,11 @@ function renderInternados() {
       <td>${escapeHTML(p.diagnostico)}</td>
       <td>${escapeHTML(p.proveniencia)}</td>
       <td style="display: flex; gap: 6px;">
-        <button class="btn btn-small btn-primary" onclick="editPaciente(${p.n})">
+        <button class="btn btn-small btn-primary cp-btn-atualizar" onclick="editPaciente(${p.n})" title="Atualizar os dados deste paciente">
           <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
-          Editar
+          Atualizar
         </button>
         <button class="btn btn-small btn-danger" onclick="deletePaciente(${p.n})">
           <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2610,6 +2620,15 @@ function renderInternados() {
   `).join('');
   
   renderInternadosPanel();
+}
+
+// Abre "Registar Saída" já com este paciente escolhido.
+function cpRegistarSaidaDe(n) {
+  openModal('saidaModal');
+  renderSaidaPacienteOptions();
+  const sel = document.getElementById('fSaidaPaciente');
+  sel.value = String(n);
+  updateSaidaInfo();
 }
 
 function deletePaciente(n) {
