@@ -2364,8 +2364,7 @@ function _avisoServicosEmFalta() {
     html: html,
     botoes: [{ texto: n ? 'Vou verificar' : 'Continuar', principal: true }]
   });
-  // Só no ecrã — sem leitura em voz (pedido do serviço).
-  void texto;
+  if (typeof window.zeloFalar === 'function') window.zeloFalar(texto);
 }
 function _abrirStatusServicosModal() {
   const m = document.getElementById('statusServicosModal');
