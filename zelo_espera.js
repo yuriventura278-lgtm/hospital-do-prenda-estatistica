@@ -253,7 +253,7 @@
     var anel = criarAnel(opcoes.rotulo || 'ZELO');
     if (opcoes.indeterminado) anel.indeterminado();
     var msg = el('div', 'ze-msg'); msg.textContent = opcoes.mensagem || 'A carregar…';
-    var det = el('div', 'ze-det'); det.textContent = opcoes.detalhe || 'Hospital do Prenda · ZELO';
+    var det = el('div', 'ze-det'); det.textContent = opcoes.detalhe || 'ZELO · Sistema Estatístico e Gestão de Ocorrências';
     var passos = null;
     if (opcoes.passos) { passos = el('div', 'ze-passos'); for (var i = 0; i < opcoes.passos; i++) passos.appendChild(el('i')); }
     var tag = el('div', 'ze-tag');
@@ -638,7 +638,7 @@
   var entrada = null;
   function abrirEntrada(texto) {
     if (entrada && entrada.aberto()) return entrada;
-    entrada = ecra({ rotulo: 'ZELO', mensagem: texto || 'A carregar…', detalhe: 'Hospital do Prenda', passos: 4, mensagemFim: 'Pronto' });
+    entrada = ecra({ rotulo: 'ZELO', mensagem: texto || 'A carregar…', detalhe: 'ZELO · Sistema Estatístico e Gestão de Ocorrências', passos: 4, mensagemFim: 'Pronto' });
     return entrada;
   }
   function faseEntrada(texto) {
