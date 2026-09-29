@@ -1125,6 +1125,7 @@
                 <th>Nome</th>
                 <th>NUP</th>
                 <th>Idade</th>
+                <th>Data Entrada</th>
                 <th>Data Saída</th>
                 <th>Tipo</th>
                 <th>Detalhes</th>
@@ -1133,7 +1134,7 @@
             </thead>
             <tbody id="relatorioSaidaBody">
               <tr class="empty-state-row">
-                <td colspan="8">
+                <td colspan="9">
                   <div class="empty-state">
                     <div class="empty-state-icon">
                       <svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -3053,10 +3054,10 @@ function updateRelatorio() {
   const saidaBody = document.getElementById('relatorioSaidaBody');
   document.getElementById('relatorioSaidaCount').textContent = `${saidas.length} registo(s)`;
   if (saidas.length === 0) {
-    saidaBody.innerHTML = `<tr class="empty-state-row"><td colspan="8"><div class="empty-state"><div class="empty-state-icon"><svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/><path d="M12 12c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2z"/></svg></div><div class="empty-state-title">Nenhuma saída registada</div></div></td></tr>`;
+    saidaBody.innerHTML = `<tr class="empty-state-row"><td colspan="9"><div class="empty-state"><div class="empty-state-icon"><svg class="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/><path d="M12 12c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2z"/></svg></div><div class="empty-state-title">Nenhuma saída registada</div></div></td></tr>`;
   } else {
     saidaBody.innerHTML = saidas.map(p => `
-      <tr><td>${p.n}</td><td>${escapeHTML(p.nome)}</td><td><code>${escapeHTML(p.nup)}</code></td><td>${p.idade}</td><td>${formatDate(p.dataSaida)}</td><td><span class="badge badge-${p.tipoSaida === 'Alta Vivo' ? 'alta' : p.tipoSaida === 'Óbito' ? 'obito' : 'transf'}">${escapeHTML(p.tipoSaida === 'Alta Vivo' ? 'Alta' : p.tipoSaida)}</span></td><td>${escapeHTML(p.subtipo) || '—'}</td><td>${daysBetween(p.dataEntrada, p.dataSaida)} d</td></tr>
+      <tr><td>${p.n}</td><td>${escapeHTML(p.nome)}</td><td><code>${escapeHTML(p.nup)}</code></td><td>${p.idade}</td><td>${formatDate(p.dataEntrada)}</td><td>${formatDate(p.dataSaida)}</td><td><span class="badge badge-${p.tipoSaida === 'Alta Vivo' ? 'alta' : p.tipoSaida === 'Óbito' ? 'obito' : 'transf'}">${escapeHTML(p.tipoSaida === 'Alta Vivo' ? 'Alta' : p.tipoSaida)}</span></td><td>${escapeHTML(p.subtipo) || '—'}</td><td>${daysBetween(p.dataEntrada, p.dataSaida)} d</td></tr>
     `).join('');
   }
 
@@ -3267,7 +3268,8 @@ function exportRelatorioPDF() {
 
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_cp_layout.js"></script>
-<script src="zelo_cp_relatorio.js"></script>
+<script src="zelo_cp_relatorio.js?v=4"></script>
+<script src="zelo_cp_listas.js?v=4"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
 <script src="zelo_assistente.js"></script>

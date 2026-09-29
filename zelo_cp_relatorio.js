@@ -10,8 +10,9 @@
 //    pelo código.
 // 3) Relatório no ecrã e PDF com a estrutura da Consulta Externa: indicadores,
 //    saídas por tipo, diagnósticos das entradas e dos óbitos por frequência,
-//    faixa etária (as mesmas da Consulta Externa) por género, proveniência e
-//    as listas de doentes.
+//    resumo por género (entradas, altas, óbitos, transferências), faixa etária
+//    (0–14, 15–24, 25–44, 45–64, 65 ou mais) por género e por tipo de saída,
+//    proveniência e as listas de doentes.
 (function () {
   if (window.__zeloCpRelatorio) return;
   window.__zeloCpRelatorio = true;
@@ -200,13 +201,30 @@
   }
 
   // ── Análise do período ──
-  var FAIXAS = ['0-4 anos', '5-9 anos', '10-14 anos', '15-24 anos', '25-45 anos', '46-64 anos', '65+'];
+  var FAIXAS = ['0–14 anos', '15–24 anos', '25–44 anos', '45–64 anos', '65 ou mais'];
   function faixa(idade) {
+    if (idade === null || idade === undefined || idade === '') return null;
     idade = Number(idade);
-    if (isNaN(idade) || idade === null) return null;
-    if (idade <= 4) return '0-4 anos'; if (idade <= 9) return '5-9 anos'; if (idade <= 14) return '10-14 anos';
-    if (idade <= 24) return '15-24 anos'; if (idade <= 45) return '25-45 anos'; if (idade <= 64) return '46-64 anos';
-    return '65+';
+    if (isNaN(idade)) return null;
+    if (idade <= 14) return '0–14 anos'; if (idade <= 24) return '15–24 anos'; if (idade <= 44) return '25–44 anos';
+    if (idade <= 64) return '45–64 anos';
+    return '65 ou mais';
+  }
+  // Resumo por género: entradas, altas, óbitos, transferências, saídas e internados no fim.
+  function resumoGenero(a) {
+    var c = function (l) { var r = { F: 0, M: 0, N: 0 }; l.forEach(function (p) { r[genero(p)]++; }); r.T = l.length; return r; };
+    return [['Entradas', c(a.entradas)], ['Altas', c(a.altas)], ['Óbitos', c(a.obitos)], ['Transferências', c(a.transf)], ['Total de saídas', c(a.saidas)], ['Internados no fim do período', c(a.internados)]];
+  }
+  // Saídas por faixa etária e tipo.
+  function saidasFaixa(saidas) {
+    var t = {};
+    FAIXAS.concat(['Não especificado']).forEach(function (f) { t[f] = { alta: 0, obito: 0, transf: 0, total: 0 }; });
+    saidas.forEach(function (p) {
+      var f = faixa(p.idade) || 'Não especificado';
+      if (p.tipoSaida === 'Alta Vivo') t[f].alta++; else if (p.tipoSaida === 'Óbito') t[f].obito++; else if (p.tipoSaida === 'Transferência') t[f].transf++;
+      t[f].total++;
+    });
+    return t;
   }
   function genero(p) { var g = norm(p.genero); return g.indexOf('mas') === 0 ? 'M' : (g.indexOf('fem') === 0 ? 'F' : 'N'); }
   function frequencia(pacientes, campoDiag, campoCid) {
@@ -345,22 +363,29 @@
       else { var v = document.getElementById('relatorioView'); if (!v) return; v.appendChild(alvo); }
     }
     var dObitos = diagObitos(a.obitos);
-    var gen = '<div class="cprel-gen">' +
-      '<div><span>Entradas · Masculino</span><b>' + a.genEntradas.M + '</b></div><div><span>Entradas · Feminino</span><b>' + a.genEntradas.F + '</b></div>' +
-      '<div><span>Óbitos · Masculino</span><b>' + a.genObitos.M + '</b></div><div><span>Óbitos · Feminino</span><b>' + a.genObitos.F + '</b></div></div>';
+    var rg = resumoGenero(a), temN = rg.some(function (l) { return l[1].N; });
+    var gen = '<table><thead><tr><th>Movimento</th><th class="num">Mulheres</th><th class="num">Homens</th>' + (temN ? '<th class="num">Não esp.</th>' : '') + '<th class="num">Total</th></tr></thead><tbody>' +
+      rg.map(function (l, i) { return '<tr' + (i === 4 ? ' class="tot"' : '') + '><td>' + l[0] + '</td><td class="num">' + l[1].F + '</td><td class="num">' + l[1].M + '</td>' + (temN ? '<td class="num">' + l[1].N + '</td>' : '') + '<td class="num"><b>' + l[1].T + '</b></td></tr>'; }).join('') + '</tbody></table>';
+    var sf = saidasFaixa(a.saidas);
+    var sfl = FAIXAS.concat(['Não especificado']).filter(function (f) { return f !== 'Não especificado' || sf[f].total; });
+    var sft = { alta: 0, obito: 0, transf: 0, total: 0 }; sfl.forEach(function (f) { Object.keys(sft).forEach(function (k) { sft[k] += sf[f][k]; }); });
+    var tabSf = a.saidas.length ? '<table><thead><tr><th>Faixa etária</th><th class="num">Altas</th><th class="num">Óbitos</th><th class="num">Transf.</th><th class="num">Total</th></tr></thead><tbody>' +
+      sfl.map(function (f) { var v = sf[f]; return '<tr><td>' + f + '</td><td class="num">' + v.alta + '</td><td class="num">' + v.obito + '</td><td class="num">' + v.transf + '</td><td class="num"><b>' + v.total + '</b></td></tr>'; }).join('') +
+      '<tr class="tot"><td>TOTAL</td><td class="num">' + sft.alta + '</td><td class="num">' + sft.obito + '</td><td class="num">' + sft.transf + '</td><td class="num">' + sft.total + '</td></tr></tbody></table>' : '<div class="vazio">Sem saídas neste período.</div>';
     var tipos = a.tiposSaida.length ? '<table><thead><tr><th>Tipo de saída</th><th>Detalhe</th><th class="num">Nº</th><th class="num">%</th></tr></thead><tbody>' +
       a.tiposSaida.map(function (t) { return '<tr><td>' + esc(t.tipo) + '</td><td>' + esc(t.det) + '</td><td class="num"><b>' + t.n + '</b></td><td class="num">' + pct(t.n / (a.saidas.length || 1) * 100) + '</td></tr>'; }).join('') +
       '<tr class="tot"><td>TOTAL</td><td></td><td class="num">' + a.saidas.length + '</td><td class="num">100%</td></tr></tbody></table>' : '<div class="vazio">Sem saídas neste período.</div>';
     var prov = a.proveniencia.length ? '<table><thead><tr><th>Proveniência</th><th class="num">Nº</th></tr></thead><tbody>' +
       a.proveniencia.map(function (p) { return '<tr><td>' + esc(p[0]) + '</td><td class="num"><b>' + p[1] + '</b></td></tr>'; }).join('') + '</tbody></table>' : '<div class="vazio">Sem entradas neste período.</div>';
     alvo.innerHTML =
-      sec(1, 'Género', gen, { largo: true }) +
+      sec(1, 'Resumo por género', gen, { largo: true, nota: 'Mulheres e homens' }) +
       sec(2, 'Diagnósticos das entradas — por frequência', tabelaDiag(a.diagEntradas), { largo: true, nota: a.entradas.length + ' entrada(s)' }) +
       sec(3, 'Óbitos por diagnóstico — por frequência', tabelaDiag(dObitos), { largo: true, vermelho: true, nota: a.obitos.length + ' óbito(s)' }) +
       sec(4, 'Entradas por faixa etária e género', tabelaFaixa(a.faixaEntradas)) +
       sec(5, 'Óbitos por faixa etária e género', a.obitos.length ? tabelaFaixa(a.faixaObitos, true) : '<div class="vazio">Sem óbitos neste período.</div>', { vermelho: true }) +
-      sec(6, 'Saídas por tipo', tipos) +
-      sec(7, 'Proveniência das entradas', prov);
+      sec(6, 'Saídas por faixa etária e tipo', tabSf) +
+      sec(7, 'Saídas por tipo', tipos) +
+      sec(8, 'Proveniência das entradas', prov);
   }
 
   // ── PDF (estrutura da Consulta Externa) ──
@@ -383,7 +408,15 @@
       ': ' + a.altas.length + ' alta(s), ' + a.transf.length + ' transferência(s) e ' + a.obitos.length + ' óbito(s) (' + a.obitos48 + ' com menos de 48 h e ' + a.obitosMais48 + ' com mais de 48 h)' +
       (a.saidas.length ? ', uma taxa de mortalidade de ' + pct(taxa) + ' das saídas.' : '.'));
 
-    y = pdf.secT(y, '2. Saídas por Tipo');
+    y = pdf.secT(y, '2. Resumo por Género');
+    (function () {
+      var rg = resumoGenero(a), temN = rg.some(function (l) { return l[1].N; });
+      var cols = ['Movimento', 'Mulheres', 'Homens'].concat(temN ? ['Não esp.'] : []).concat(['Total']);
+      var larg = cols.map(function (c, i) { return i === 0 ? CW - (cols.length - 1) * 26 : 26; });
+      y = pdf.tabela(y, cols, larg, rg.map(function (l) { return [l[0], String(l[1].F), String(l[1].M)].concat(temN ? [String(l[1].N)] : []).concat([String(l[1].T)]); }));
+    })();
+
+    y = pdf.secT(y, '3. Saídas por Tipo');
     if (a.tiposSaida.length) y = pdf.tabela(y, ['Tipo de saída', 'Detalhe', 'Nº', '%'], [45, CW - 95, 25, 25],
       a.tiposSaida.map(function (t) { return [t.tipo, t.det, String(t.n), pct(t.n / a.saidas.length * 100)]; }).concat([['TOTAL', '', String(a.saidas.length), '100%']]));
     else y = pdf.txt(y, ' ', 'Sem saídas registadas neste período.');
@@ -395,9 +428,9 @@
         linhas.map(function (l) { return [l.diag, l.cid, String(l.n), String(l.M), String(l.F), pct(l.pct)]; })
           .concat([['TOTAL', '', String(tot), String(linhas.reduce(function (s, l) { return s + l.M; }, 0)), String(linhas.reduce(function (s, l) { return s + l.F; }, 0)), '100%']]));
     };
-    y = pdf.secT(y, '3. Diagnósticos das Entradas — por Frequência');
+    y = pdf.secT(y, '4. Diagnósticos das Entradas — por Frequência');
     y = tabDiag(y, a.diagEntradas, 'Sem entradas neste período.');
-    y = pdf.secT(y, '4. Óbitos por Diagnóstico — por Frequência');
+    y = pdf.secT(y, '5. Óbitos por Diagnóstico — por Frequência');
     y = tabDiag(y, diagObitos(a.obitos), 'Sem óbitos neste período.');
 
     var tabFaixa = function (y, t, obitos) {
@@ -409,27 +442,36 @@
       var lin = function (nome, v) { return [nome, String(v.M), String(v.F)].concat(tot.N ? [String(v.N)] : []).concat([String(v.total)]).concat(obitos ? [String(v.a48), String(v.d48)] : []); };
       return pdf.tabela(y, cols, larg, fx.map(function (f) { return lin(f, t[f]); }).concat([lin('TOTAL GERAL', tot)]));
     };
-    y = pdf.secT(y, '5. Entradas por Faixa Etária e Género');
+    y = pdf.secT(y, '6. Entradas por Faixa Etária e Género');
     y = a.entradas.length ? tabFaixa(y, a.faixaEntradas) : pdf.txt(y, ' ', 'Sem entradas neste período.');
-    y = pdf.secT(y, '6. Óbitos por Faixa Etária e Género');
+    y = pdf.secT(y, '7. Óbitos por Faixa Etária e Género');
     y = a.obitos.length ? tabFaixa(y, a.faixaObitos, true) : pdf.txt(y, ' ', 'Sem óbitos neste período.');
 
-    y = pdf.secT(y, '7. Proveniência das Entradas');
+    y = pdf.secT(y, '8. Saídas por Faixa Etária e Tipo');
+    if (a.saidas.length) {
+      var sf = saidasFaixa(a.saidas);
+      var sfl = FAIXAS.concat(['Não especificado']).filter(function (f) { return f !== 'Não especificado' || sf[f].total; });
+      var sft = { alta: 0, obito: 0, transf: 0, total: 0 }; sfl.forEach(function (f) { Object.keys(sft).forEach(function (k) { sft[k] += sf[f][k]; }); });
+      var lf = function (n, v) { return [n, String(v.alta), String(v.obito), String(v.transf), String(v.total)]; };
+      y = pdf.tabela(y, ['Faixa Etária', 'Altas', 'Óbitos', 'Transferências', 'Total'], [CW - 104, 26, 26, 26, 26], sfl.map(function (f) { return lf(f, sf[f]); }).concat([lf('TOTAL', sft)]));
+    } else y = pdf.txt(y, ' ', 'Sem saídas neste período.');
+
+    y = pdf.secT(y, '9. Proveniência das Entradas');
     y = a.proveniencia.length ? pdf.tabela(y, ['Proveniência', 'Nº'], [CW - 30, 30], a.proveniencia.map(function (p) { return [p[0], String(p[1])]; })) : pdf.txt(y, ' ', 'Sem entradas neste período.');
 
-    y = pdf.secT(y, '8. Entradas no Período (' + a.entradas.length + ')');
+    y = pdf.secT(y, '10. Entradas no Período (' + a.entradas.length + ')');
     if (a.entradas.length) y = pdf.tabela(y, ['Nº', 'Nome', 'Idade', 'Género', 'Entrada', 'Diagnóstico', 'CID-10'], [10, 45, 14, 20, 24, CW - 135, 22],
       a.entradas.slice().sort(function (x, z) { return String(x.dataEntrada).localeCompare(String(z.dataEntrada)); })
         .map(function (p) { return [String(p.n), p.nome, String(p.idade), p.genero || '—', fd(p.dataEntrada), p.diagnostico || '—', p.cid || '—']; }));
     else y = pdf.txt(y, ' ', 'Sem entradas neste período.');
 
-    y = pdf.secT(y, '9. Saídas no Período (' + a.saidas.length + ')');
-    if (a.saidas.length) y = pdf.tabela(y, ['Nº', 'Nome', 'Idade', 'Género', 'Saída', 'Tipo', 'Detalhe', 'Dias'], [10, 42, 13, 20, 22, 25, CW - 150, 18],
+    y = pdf.secT(y, '11. Saídas no Período (' + a.saidas.length + ')');
+    if (a.saidas.length) y = pdf.tabela(y, ['Nº', 'Nome', 'Idade', 'Género', 'Entrada', 'Saída', 'Tipo', 'Detalhe', 'Dias'], [9, 38, 12, 19, 21, 21, 22, CW - 157, 15],
       a.saidas.slice().sort(function (x, z) { return String(x.dataSaida).localeCompare(String(z.dataSaida)); })
-        .map(function (p) { return [String(p.n), p.nome, String(p.idade), p.genero || '—', fd(p.dataSaida), p.tipoSaida === 'Alta Vivo' ? 'Alta' : p.tipoSaida, p.subtipo || '—', dias(p)]; }));
+        .map(function (p) { return [String(p.n), p.nome, String(p.idade), p.genero || '—', fd(p.dataEntrada), fd(p.dataSaida), p.tipoSaida === 'Alta Vivo' ? 'Alta' : p.tipoSaida, p.subtipo || '—', dias(p)]; }));
     else y = pdf.txt(y, ' ', 'Sem saídas neste período.');
 
-    y = pdf.secT(y, '10. Doentes que ficam internados (' + a.internados.length + ')');
+    y = pdf.secT(y, '12. Doentes que ficam internados (' + a.internados.length + ')');
     if (a.internados.length) y = pdf.tabela(y, ['Nº', 'Nome', 'Idade', 'Género', 'Cama/Sala', 'Entrada', 'Diagnóstico'], [10, 45, 14, 20, 24, 24, CW - 137],
       a.internados.map(function (p) { return [String(p.n), p.nome, String(p.idade), p.genero || '—', p.cama || '—', fd(p.dataEntrada), p.diagnostico || '—']; }));
     else y = pdf.txt(y, ' ', 'Nenhum doente internado no fim deste período.');
