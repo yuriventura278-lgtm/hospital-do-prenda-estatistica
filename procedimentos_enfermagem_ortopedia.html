@@ -1957,6 +1957,9 @@ async function _fbEscutarDia(date){
     try{ localSavedAt = localStorage.getItem(_FB_SAVEDAT_PREFIX + date); }catch(e){}
     if (localSavedAt && localSavedAt >= savedAt) return;
     if (date !== currentLoadedDate) return;
+    // O que está escrito e ainda não foi gravado (gravação automática em
+    // espera) grava-se já — senão os dados que chegam apagavam-no.
+    if (autoSaveTimer && _diaAlterado){ clearTimeout(autoSaveTimer); autoSaveTimer = null; try{ persist(date); }catch(e){} const _dot = document.getElementById('as-dot'); if(_dot) _dot.classList.remove('saving'); }
     // Mescla sempre os dados vindos doutro dispositivo com os que já
     // estavam gravados localmente — campo a campo, nunca o dia inteiro
     // (ver _mesclarDadosDia) — e aplica-os de imediato, sem aviso, seja
@@ -1969,7 +1972,7 @@ async function _fbEscutarDia(date){
       const mesclado = _mesclarDadosDia(localRaw, remoto.snapshot.raw);
       _storageSet(storageKey(date), JSON.stringify(mesclado));
       try{ localStorage.setItem(_FB_SAVEDAT_PREFIX + date, savedAt); }catch(e){}
-      if (date === currentLoadedDate){ _popularProcedimentos(mesclado); }
+      if (date === currentLoadedDate){ _popularProcedimentos(mesclado, true); }
       // Se a mesclagem recuperou campos que o Firebase não tinha (o outro
       // dispositivo guardou com menos dados preenchidos), reenvia a versão
       // mesclada para que essa recuperação fique disponível para todos.
@@ -2170,7 +2173,11 @@ function toggleSpecEdit(specId) {
 // Preenche o formulário a partir de dados já desserializados (localStorage/
 // IndexedDB local, ou um snapshot recebido do Firebase) — extraído de
 // loadFromStorage() para poder ser reutilizado sem recursão.
-function _popularProcedimentos(data) {
+// remoto=true: dados que chegaram doutro computador enquanto o dia está
+// aberto — não mexe nos bloqueios ("Concluído" só com Guardar neste
+// computador) nem no campo onde o utilizador está a escrever.
+function _popularProcedimentos(data, remoto) {
+  const _foco = remoto ? document.activeElement : null;
   if (data.criadoPor?.nome && data._ts) {
     _mostrarHoraGuardado(data.criadoPor.nome, data._ts);
   }
@@ -2183,7 +2190,7 @@ function _popularProcedimentos(data) {
       CATEGORIES.forEach(cat => {
         cat.procs.forEach(proc => {
           const el = document.getElementById(iid(sp.id, turno, cat.id, proc));
-          if(el) {
+          if(el && el !== _foco) {
             const stored = spData?.[turno]?.[pKey(cat.id, proc)];
             el.value = (stored === null || stored === undefined) ? '' : stored;
           }
@@ -2191,13 +2198,13 @@ function _popularProcedimentos(data) {
       });
       const notesEl = document.getElementById('notes-' + turno + '-' + sp.id);
       const notesKey = 'notes' + turno.charAt(0).toUpperCase() + turno.slice(1);
-      if(notesEl) notesEl.value = spData?.[notesKey] || '';
+      if(notesEl && notesEl !== _foco) notesEl.value = spData?.[notesKey] || '';
     });
     recalc(sp.id);
   });
   recalcMedicina();
   recalcBlocoOp();
-  _resetBloqueiosParaDia(data);
+  if (!remoto) _resetBloqueiosParaDia(data);
 }
 
 // saveAll: guarda explicitamente + toast
