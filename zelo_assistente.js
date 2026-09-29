@@ -1046,6 +1046,10 @@
   // não repete a recomendação) — texto fixo, por ser uma instrução
   // operacional, não uma frase de cortesia a variar.
   var NOTA_ESTATISTICA = ' Lembrete: os dados do último turno devem seguir para a Estatística, pelo secretário do serviço.';
+  // Livros de registo físicos (pedido do Serviço de Estatística): o registo
+  // em papel continua obrigatório e vem sempre primeiro; o ZELO recebe
+  // depois os dados já escritos no livro.
+  var NOTA_LIVROS = ' Colegas, mantenham sempre os livros de registo físicos em dia: registem primeiro no livro e só depois lancem os dados no ZELO.';
   // Só sauda quando já há sessão iniciada (sessionStorage.zeloNome) — não na
   // página de login. A saudação completa (com recomendação) só acontece uma
   // vez por dia, guardada em localStorage (vale para o dispositivo todo, não
@@ -1073,7 +1077,7 @@
     var listaAberturas = agora.diaSemana === 'Mon' ? ABERTURAS_ENTRADA_SEGUNDA : ABERTURAS_ENTRADA_DIA;
     var abertura = listaAberturas[Math.floor(Math.random() * listaAberturas.length)];
     var lembrete = LEMBRETES_SAUDACAO[Math.floor(Math.random() * LEMBRETES_SAUDACAO.length)];
-    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '.' + regressoDias + ' ' + abertura + ' ' + lembrete + NOTA_ESTATISTICA;
+    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '.' + regressoDias + ' ' + abertura + ' ' + lembrete + NOTA_LIVROS + NOTA_ESTATISTICA;
     falar(texto);
   }
   // Exposto para o index.html chamar assim que o login terminar. É preciso
