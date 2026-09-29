@@ -1082,6 +1082,10 @@
     return item;
   }
   function configAvisoPreenchimento(){
+    // Procedimentos de Enfermagem · Geral: o aviso é o dos serviços em falta,
+    // feito pela própria página com os dados que ela mostra (não este, que lia
+    // o Firebase de registos_enf/geral).
+    if (window.ZELO_MODULE === 'procedimentos_enfermagem' && window.ZELO_ITEM === 'geral') return null;
     if (window.ZELO_MODULE === 'procedimentos_enfermagem' && window.ZELO_ITEM) {
       return {
         fbPathBase: 'registos_enf/' + window.ZELO_ITEM,

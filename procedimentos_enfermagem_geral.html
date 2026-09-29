@@ -2298,6 +2298,7 @@ function _renderStatusServicosDia(data) {
     if (_servicoTemDados(data?.specs?.[sp.id])) preenchidos.push(sp); else faltam.push(sp);
   });
   const total = preenchidos.length + faltam.length;
+  window.__ssdEstado = { data: currentLoadedDate, preenchidos: preenchidos.map(sp => sp.label), faltam: faltam.map(sp => sp.label), total };
   const pct = total ? Math.round(preenchidos.length / total * 100) : 0;
   const tudoBom = total > 0 && faltam.length === 0;
   const chip = (sp, cls) => `<span class="ssd-chip ${cls}">${sp.icon} ${_escHtml(sp.label)}</span>`;
@@ -2325,6 +2326,34 @@ function _renderStatusServicosDia(data) {
     ${corpo}`;
 }
 
+// Aviso dos serviços em falta — mesmo design dos lembretes do Zelo (ecrã
+// escuro com círculo, etiqueta "Faltam N serviços", texto e botão). O texto
+// dito pelo assistente é exatamente o que aparece no ecrã, calculado a partir
+// dos dados que esta página mostra (não de outra leitura ao Firebase).
+function _juntarE(l){ return l.length < 2 ? (l[0] || '') : l.slice(0, -1).join(', ') + ' e ' + l[l.length - 1]; }
+function _avisoServicosEmFalta() {
+  const e = window.__ssdEstado;
+  if (!e || !window.ZeloEspera || !window.ZeloEspera.mensagem) { _abrirStatusServicosModal(); return; }
+  const nomeCompleto = sessionStorage.getItem('zeloNome') || '';
+  const nome = (typeof window.zeloDoisNomes === 'function' ? window.zeloDoisNomes(nomeCompleto) : nomeCompleto.split(' ')[0]) || '';
+  const t = new Date(), hojeStr = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+  const hoje = e.data === hojeStr;
+  const quando = hoje ? 'Hoje' : 'No dia ' + fmtDate(e.data);
+  const n = e.faltam.length;
+  const texto = n
+    ? (nome ? 'Olá, ' + nome + '. ' : '') + quando + ', ' + (n === 1 ? 'ainda falta 1 serviço' : 'ainda faltam ' + n + ' serviços') + ' preencher os procedimentos de enfermagem: ' + _juntarE(e.faltam) + '. ' +
+      'Já preencheram ' + e.preenchidos.length + ' de ' + e.total + ' serviços. Dúvidas, ligue para a extensão 1403, Serviço de Estatística.'
+    : (nome ? 'Muito bem, ' + nome + '. ' : '') + quando + ', todos os ' + e.total + ' serviços já preencheram os procedimentos de enfermagem.';
+  window.ZeloEspera.mensagem({
+    icone: n ? 'calendario' : 'ok',
+    etiqueta: n ? (n === 1 ? 'Falta 1 serviço' : 'Faltam ' + n + ' serviços') : 'Tudo em dia',
+    titulo: 'Procedimentos de Enfermagem',
+    texto: texto,
+    botoes: n ? [{ texto: 'Vou verificar', principal: true }, { texto: 'Ver a lista dos serviços', acao: _abrirStatusServicosModal }]
+              : [{ texto: 'Continuar', principal: true }]
+  });
+  if (typeof window.zeloFalar === 'function') window.zeloFalar(texto);
+}
 function _abrirStatusServicosModal() {
   const m = document.getElementById('statusServicosModal');
   if (m) m.classList.add('open');
@@ -5277,7 +5306,8 @@ buildUI();
   loadFromStorage();
   switchSpec(SPECIALTIES[0].id);
   const _al = document.getElementById('active-label'); if(_al) _al.textContent = SPECIALTIES[0].label;
-  _abrirStatusServicosModal();
+  // Espera um pouco pelos dados dos outros computadores antes de avisar.
+  setTimeout(_avisoServicosEmFalta, 2500);
   if (typeof ZeloAutoBackup !== 'undefined') ZeloAutoBackup.iniciar('procedimentos_geral');
 })();
 
