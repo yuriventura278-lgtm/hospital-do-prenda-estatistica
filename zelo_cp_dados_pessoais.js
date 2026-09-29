@@ -36,6 +36,9 @@
     try { nome = sessionStorage.getItem('zeloNome') || sessionStorage.getItem('zeloEmail') || ''; role = sessionStorage.getItem('zeloRole') || ''; } catch (e) {}
     return { nome: nome || 'Utilizador', funcao: FUNCOES[role] || role };
   }
+  function norm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function mesmoNome(a, b) { a = norm(a); b = norm(b); if (!a || !b || a === b) return true; var x = a.split(' '), y = b.split(' '); return x[0] === y[0] && x[x.length - 1] === y[y.length - 1]; }
+  function chaveEp(nup, ep) { return 'nup_' + nup + (Number(ep) > 1 ? '_e' + Number(ep) : ''); }
   function pessoais(p) { return { nome: p.nome || '', idade: p.idade == null ? '' : p.idade, genero: p.genero || '', alergias: p.alergias || null }; }
 
   var css = document.createElement('style');
@@ -93,7 +96,9 @@
       var u = todos[0]; if (!u) { ov.querySelector('.cpd-body').textContent = 'Processo não encontrado.'; return; }
       var servs = todos.map(function (p) { return NOMES[p.servico] || p.servico; }).filter(function (s, i, a) { return a.indexOf(s) === i; });
       ov.innerHTML = '<div class="cpd-card" role="dialog" aria-label="Dados pessoais"><div class="cpd-top"><div><h3>Dados pessoais do doente</h3><small>NUP ' + esc(nup) + ' · ' + todos.length + ' internamento(s): ' + esc(servs.join(', ')) + '</small></div><button type="button" class="x" data-cpd-fechar aria-label="Fechar">×</button></div>' +
-        '<div class="cpd-body"><div class="cpd-info">Os dados pessoais são do doente: qualquer utilizador os pode atualizar. A alteração passa para todos os internamentos deste NUP, em todos os serviços. Os dados de cada internamento (entrada, diagnóstico, saída, evolução) só são alterados pelo serviço respetivo. O NUP não se altera aqui.</div>' +
+        '<div class="cpd-body"><div class="cpd-info">Os dados pessoais são do doente: qualquer utilizador os pode atualizar. A alteração passa para todos os internamentos deste NUP, em todos os serviços. Os dados de cada internamento (entrada, diagnóstico, saída, evolução) só são alterados pelo serviço respetivo. O NUP também pode ser corrigido (em todos os internamentos).</div>' +
+        '<div class="cpd-g" style="grid-template-columns:1fr 2fr;margin-bottom:10px"><div><label for="cpd-nup">NUP *</label><input id="cpd-nup" type="text" value="' + esc(nup) + '"></div>' +
+        '<div style="align-self:end;font:600 .78rem Inter,Arial,sans-serif;color:#64748B;padding-bottom:4px">Escrito por engano? Corrija aqui: o NUP muda em todos os internamentos deste doente, em todos os serviços (o anterior fica registado no histórico).</div></div>' +
         '<div class="cpd-g"><div><label for="cpd-nome">Nome completo *</label><input id="cpd-nome" type="text" value="' + esc(u.nome || '') + '"></div>' +
         '<div><label for="cpd-idade">Idade *</label><input id="cpd-idade" type="number" min="0" max="130" value="' + esc(u.idade == null ? '' : u.idade) + '"></div>' +
         '<div><label for="cpd-genero">Género *</label><select id="cpd-genero"><option value="">Selecionar…</option>' + ['Masculino', 'Feminino'].map(function (g) { return '<option' + (u.genero === g ? ' selected' : '') + '>' + g + '</option>'; }).join('') + '</select></div></div>' +
@@ -113,6 +118,9 @@
     var erro = ov.querySelector('#cpd-erro'), bt = ov.querySelector('[data-cpd-guardar]');
     var nome = ov.querySelector('#cpd-nome').value.trim().replace(/\s+/g, ' '), idade = parseInt(ov.querySelector('#cpd-idade').value, 10), genero = ov.querySelector('#cpd-genero').value;
     if (!nome || isNaN(idade) || idade < 0 || !genero) { erro.textContent = 'Preencha o nome, a idade e o género.'; return; }
+    var nupNovo = nupN(ov.querySelector('#cpd-nup').value);
+    if (!nupNovo) { erro.textContent = 'Indique o NUP.'; return; }
+    if (/[.#$\[\]\/]/.test(nupNovo)) { erro.textContent = 'O NUP não pode ter os caracteres . # $ [ ] /'; return; }
     var ea = comp ? comp.validar() : '';
     if (ea) { erro.textContent = ea; comp.assinalar(); return; }
     var q = quem(), agora = Date.now(), iso = new Date(agora).toISOString();
@@ -120,6 +128,7 @@
     if (comp && comp.tocado()) novos.alergias = comp.valor();
     var antes = pessoais(u);
     var mudou = Object.keys(novos).some(function (k) { return JSON.stringify(k === 'alergias' ? { e: (antes.alergias || {}).estado, i: (antes.alergias || {}).itens || {} } : antes[k]) !== JSON.stringify(k === 'alergias' ? { e: novos.alergias.estado, i: novos.alergias.itens } : novos[k]); });
+    if (nupNovo !== atualNup) { corrigirNup(r, u, nupNovo, novos, antes, q, agora, iso, bt, erro); return; }
     if (!mudou) { fechar(); if (typeof showFeedback === 'function') showFeedback('Sem alterações nos dados pessoais', 'info'); return; }
     bt.disabled = true; erro.textContent = '';
     var marca = { dadosPessoaisPor: q.nome, dadosPessoaisFuncao: q.funcao, dadosPessoaisEm: iso, dadosPessoaisServico: r.S };
@@ -162,6 +171,88 @@
       var cpn = document.getElementById('cpn-processos'); if (cpn && cpn.classList.contains('on')) cpn.classList.remove('on');
     }, function () { bt.disabled = false; erro.textContent = 'Não foi possível guardar. Tente outra vez.'; });
   }
+
+  // ── Correção do NUP (escrito por engano) ──
+  // Passa todos os internamentos do NUP antigo para o novo, em todos os
+  // serviços. Não deixa usar o NUP de outro doente, nem juntar dois
+  // internamentos ativos. Cópia completa de antes fica no histórico dos dois NUP.
+  function corrigirNup(r, u, nupNovo, novos, antes, q, agora, iso, bt, erro) {
+    bt.disabled = true; erro.textContent = 'A verificar o NUP ' + nupNovo + ' em todos os serviços…';
+    var ler = typeof window.zeloCpInternamentosNUP === 'function' ? window.zeloCpInternamentosNUP(nupNovo, true) : Promise.resolve([]);
+    ler.then(function (eps2) {
+      var S = r.S, locais2 = pacientes().filter(function (p) { return nupN(p.nup) === nupNovo && !p.anulado; });
+      var destino = locais2.map(function (p) { return Object.assign({}, p, { servico: S }); }).concat((eps2 || []).filter(function (q2) { return q2.servico !== S; }));
+      var dono = destino.filter(function (p) { return !mesmoNome(p.nome, novos.nome); })[0];
+      if (dono) { bt.disabled = false; erro.textContent = 'O NUP ' + nupNovo + ' pertence a ' + dono.nome + ' (' + (NOMES[dono.servico] || dono.servico) + '). Cada NUP é de um só doente.'; return; }
+      var movidos = r.locais.map(function (p) { return { local: p, servico: S, ep: p }; })
+        .concat(r.remotos.map(function (p) { return { local: null, servico: p.servico, ep: p }; }))
+        .sort(function (a, b) { return String(a.ep.dataEntrada || '').localeCompare(String(b.ep.dataEntrada || '')); });
+      if (destino.some(function (p) { return p.status === 'internado'; }) && movidos.some(function (m) { return m.ep.status === 'internado'; })) {
+        bt.disabled = false; erro.textContent = 'O doente com o NUP ' + nupNovo + ' já está internado — não se podem juntar dois internamentos ativos. Registe primeiro a saída de um deles.'; return;
+      }
+      var maxEp = destino.reduce(function (m, p) { return Math.max(m, Number(p.episodio) || 1); }, 0);
+      movidos.forEach(function (m, i) { m.novoEp = maxEp ? maxEp + 1 + i : (Number(m.ep.episodio) || 1); });
+      var marca = { dadosPessoaisPor: q.nome, dadosPessoaisFuncao: q.funcao, dadosPessoaisEm: iso, dadosPessoaisServico: r.S, nupAnterior: atualNup, nupCorrigidoEm: iso, nupCorrigidoPor: q.nome };
+      var nupVelho = atualNup, envios = [];
+      var copias = movidos.map(function (m) { var c = JSON.parse(JSON.stringify(m.ep)); delete c._chave; delete c._local; c.servico = m.servico; return c; });
+
+      // 1) Histórico nos dois processos (cópia completa de antes).
+      var reg = { tipo: 'correcao_nup', em: iso, por: q.nome, funcao: q.funcao, servico: r.S, servicoNome: NOMES[r.S] || r.S, de: nupVelho, para: nupNovo, antes: antes, depois: novos, internamentos: copias };
+      [nupVelho, nupNovo].forEach(function (n) { envios.push(window.zeloQueueWrite('registos_sistemas_locais/controlo_pacientes_processos/' + chaveSegura(n) + '/historico/' + agora + '_nup', reg)); });
+      envios.push(window.zeloQueueWrite('registos_sistemas_locais/controlo_pacientes_processos/' + chaveSegura(nupNovo) + '/dados', Object.assign({ nup: nupNovo }, novos, marca)));
+
+      // 2) Este serviço: um internamento de cada vez (a proteção contra
+      //    apagar em massa só deixa mudar um registo por gravação).
+      movidos.filter(function (m) { return m.local; }).forEach(function (m) {
+        var p = m.local;
+        Object.keys(novos).forEach(function (k) { p[k] = k === 'alergias' ? JSON.parse(JSON.stringify(novos[k])) : novos[k]; });
+        Object.assign(p, marca); p.nup = nupNovo; p.episodio = m.novoEp;
+        try { saveData(); } catch (e) {}
+      });
+      try { updateStats(); renderInternados(); } catch (e) {}
+
+      // 3) Outros serviços: o registo passa para a chave nova (com hora em
+      //    todos os campos) e sai da antiga (com hora, para não voltar).
+      var porServ = {};
+      movidos.filter(function (m) { return !m.local; }).forEach(function (m) { (porServ[m.servico] = porServ[m.servico] || []).push(m); });
+      Object.keys(porServ).forEach(function (serv) {
+        var patch = { savedAt: agora };
+        porServ[serv].forEach(function (m) {
+          var velha = m.ep._chave, nova = chaveEp(nupNovo, m.novoEp);
+          var obj = JSON.parse(JSON.stringify(m.ep)); delete obj._chave;
+          Object.keys(novos).forEach(function (k) { obj[k] = novos[k]; });
+          Object.assign(obj, marca); obj.nup = nupNovo; obj.episodio = m.novoEp;
+          patch['snapshot/pacientes/' + nova] = obj;
+          Object.keys(folhas(obj, 'pacientes|' + codificar(nova))).forEach(function (f) { patch['camposTs/' + codificar(f)] = agora; });
+          patch['snapshot/pacientes/' + velha] = null;
+          Object.keys(folhas(m.ep, 'pacientes|' + codificar(velha))).forEach(function (f) { if (!/\|_chave$/.test(f)) patch['camposTs/' + codificar(f)] = agora; });
+        });
+        envios.push(window.zeloQueueWrite(BASE + serv, patch, 'update'));
+      });
+
+      Promise.all(envios).then(function (res) {
+        var fila = res.some(function (x) { return x && x.queued; });
+        fechar();
+        if (typeof showFeedback === 'function') showFeedback('NUP corrigido de ' + nupVelho + ' para ' + nupNovo + ' em ' + movidos.length + ' internamento(s)' + (fila ? ' — será enviado quando houver rede' : ''), 'success');
+        var cpp = document.getElementById('cpp-processo'); if (cpp) cpp.classList.remove('on');
+        var cpn = document.getElementById('cpn-processos'); if (cpn) cpn.classList.remove('on');
+      }, function () { bt.disabled = false; erro.textContent = 'Não foi possível guardar. Tente outra vez.'; });
+    }, function () { bt.disabled = false; erro.textContent = 'Sem ligação para verificar o NUP novo — tente quando houver rede.'; });
+  }
+
+  // "Atualizar dados": o NUP corrige-se na janela dos dados pessoais (muda em
+  // todos os internamentos do doente, não só neste).
+  function ligarEdicao() {
+    var m = document.getElementById('editModal'), f = document.getElementById('eNUP');
+    if (!m || !f) return false; if (f.__cpd) return true; f.__cpd = true;
+    f.readOnly = true; f.style.background = '#F1F5F9'; f.title = 'Para corrigir o NUP use «Corrigir NUP»';
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Corrigir NUP (em todos os internamentos)';
+    b.style.cssText = 'margin-top:6px;border:1px solid #D6E0EC;background:#fff;color:#1E3A5F;border-radius:9px;padding:6px 11px;font:700 .8rem Inter,Arial,sans-serif;cursor:pointer';
+    b.addEventListener('click', function (e) { e.preventDefault(); try { closeModal('editModal'); } catch (x) {} abrir(f.value); });
+    f.parentNode.appendChild(b);
+    return true;
+  }
+  var nL = 0, ivL = setInterval(function () { nL++; if (ligarEdicao() || nL > 80) clearInterval(ivL); }, 250);
 
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-dp-nup]'); if (!b) return;
