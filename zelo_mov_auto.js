@@ -49,7 +49,10 @@
   // Doentes internados fora do serviço (zelo_cp_fora.js): a cama é emprestada.
   //   Serviço de origem: +1 dia de cama por cada doente seu internado fora.
   //   Serviço que empresta: −1 dia de cama por cada doente de outro serviço.
-  function periodosFora(p) { try { var l = JSON.parse(p.foraServico || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+  // Só contam os pedidos autorizados pelo serviço que recebe (sem estado =
+  // registos antigos, já autorizados). Pendentes/recusados não mexem nas camas.
+  function periodosFora(p) { try { var l = JSON.parse(p.foraServico || '[]'); return Array.isArray(l) ? l.filter(function (f) { return !f.estado || f.estado === 'autorizado'; }) : []; } catch (e) { return []; } }
+  function estadoExt(r) { return r.resposta && r.resposta.decisao ? (r.estado === 'cancelado' ? 'cancelado' : r.resposta.decisao) : (r.estado || 'autorizado'); }
   function cobre(desde, ate, dd) { return dia(desde) <= dd && (!ate || dia(ate) > dd); }
   // opts.foraUso: { dia: nº de camas fora de uso nesse dia } (avaria, obras…)
   // opts.existencia: existência anterior do mês (escrita à mão no 1º mês ou
@@ -120,7 +123,8 @@
   function lerExternos(item) {
     var m = MAPA[item]; if (!m || typeof window.__fbGet !== 'function') return Promise.resolve([]);
     return window.__fbGet('registos_sistemas_locais/cp_fora/' + m[0]).then(function (v) {
-      return Object.keys(v || {}).map(function (k) { return v[k]; }).filter(function (r) { return r && r.desde && (!m[1] || r.genero === m[1]); });
+      return Object.keys(v || {}).map(function (k) { return v[k]; }).filter(function (r) { return r && r.desde && estadoExt(r) === 'autorizado' && (!m[1] || r.genero === m[1]); })
+        .map(function (r) { return r.resposta && r.resposta.desde ? Object.assign({}, r, { desde: r.resposta.desde }) : r; });
     }).catch(function () { return []; });
   }
   window.ZeloMovAuto = { MAPA: MAPA, CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, lerExternos: lerExternos };
