@@ -1387,7 +1387,8 @@
         var eu = estadoUtilizador();
         if (!temAcessoModulo(eu.role, eu.permissoes, window.ZELO_MODULE, window.ZELO_ITEM || null)) return;
       }
-      falar(texto);
+      // Lembrete só no ecrã — a leitura em voz foi retirada (pedido do serviço).
+      void texto;
       // No ecrã: só o nome e uma frase curta em letras grandes.
       if (window.ZeloEspera && window.ZeloEspera.mensagem) {
         window.ZeloEspera.mensagem({
