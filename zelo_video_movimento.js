@@ -22,7 +22,7 @@
     }).join('');
   }
 
-  var CENAS = [
+  var CENAS_MOV = [
     { dur: 12, cor: '#1E3A5F', titulo: 'Abertura',
       falas: ['Olá! Neste vídeo vamos ver, passo a passo, como se calcula o Movimento Hospitalar de um serviço.', 'Que dados registar, o que são os dias-cama e os dias-doente, e porque são tão importantes.'],
       svg: function () {
@@ -110,7 +110,12 @@
           a(11, t(260, 272, 'ZELO — Serviço de Admissão e Arquivo Médico e Estatístico', { s: 12, c: '#7DD3FC', m: 1 })));
       } }
   ];
-  var TOTAL = CENAS.reduce(function (s, c) { return s + c.dur; }, 0);
+  // O mesmo leitor serve outros vídeos (ex.: Controlo de Pacientes — zelo_video_cp.js):
+  // window.ZELO_VIDEO_DEF = { titulo, cenas, escritas() }.
+  var DEF_MOV = { titulo: 'Como se calcula o Movimento Hospitalar', cenas: CENAS_MOV, escritas: function () { if (typeof window.showWelcomeModal === 'function') window.showWelcomeModal(); } };
+  var CENAS = CENAS_MOV, DEF = DEF_MOV;
+  function total() { return CENAS.reduce(function (s, c) { return s + c.dur; }, 0); }
+  var TOTAL = total();
 
   // ── Voz ──
   var voz = null, comVoz = true;
@@ -216,16 +221,17 @@
     else if (e.key === 'ArrowRight') { e.preventDefault(); mostrarCena(cena + 1); }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); mostrarCena(cena - 1); }
   }
-  function abrir() {
+  function abrir(def) {
     if (ov) return; css();
-    ov = document.createElement('div'); ov.className = 'vm-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Vídeo de instruções do Movimento Hospitalar');
-    ov.innerHTML = '<div class="vm-box"><div class="vm-top"><div><b>Como se calcula o Movimento Hospitalar</b><br><small></small></div><button type="button" class="x" data-vm="fechar" aria-label="Fechar">×</button></div>' +
+    DEF = (def && def.cenas) ? def : (window.ZELO_VIDEO_DEF || DEF_MOV); CENAS = DEF.cenas; TOTAL = total();
+    ov = document.createElement('div'); ov.className = 'vm-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Vídeo de instruções: ' + DEF.titulo);
+    ov.innerHTML = '<div class="vm-box"><div class="vm-top"><div><b>' + DEF.titulo + '</b><br><small></small></div><button type="button" class="x" data-vm="fechar" aria-label="Fechar">×</button></div>' +
       '<div class="vm-palco pausa"></div><div class="vm-leg" aria-live="polite"></div>' +
       '<div class="vm-ctl"><button type="button" class="p" data-vm="play"></button><button type="button" data-vm="ant" title="Cena anterior" aria-label="Cena anterior">‹</button><button type="button" data-vm="seg" title="Cena seguinte" aria-label="Cena seguinte">›</button>' +
       '<div class="vm-barra" title="Ir para uma cena">' + CENAS.map(function (c) { return '<i style="flex:' + c.dur + '"><b style="background:' + c.cor + '"></b></i>'; }).join('') + '</div><span class="vm-tempo"></span>' +
       '<button type="button" data-vm="voz" title="Ligar/desligar a voz">Voz: ligada</button><button type="button" data-vm="ecra" title="Ecrã inteiro" aria-label="Ecrã inteiro">⤢</button></div>' +
       '<div class="vm-cenas">' + CENAS.map(function (c, i) { return '<button type="button" data-vm-cena="' + i + '">' + (i + 1) + '. ' + c.titulo + '</button>'; }).join('') +
-      (typeof window.showWelcomeModal === 'function' ? '<button type="button" class="vm-escrito" data-vm="escrito">Ver instruções escritas</button>' : '') + '</div></div>';
+      (typeof DEF.escritas === 'function' ? '<button type="button" class="vm-escrito" data-vm="escrito">Ver instruções escritas</button>' : '') + '</div></div>';
     document.body.appendChild(ov);
     tocar = false; botaoPlay(); mostrarCena(0);
     $('.vm-palco').insertAdjacentHTML('beforeend', '<div class="vm-inicio" data-vm="iniciar"><span><svg width="34" height="34" viewBox="0 0 24 24" fill="#0F172A"><path d="M8 5l12 7-12 7z"/></svg></span></div>');
@@ -240,7 +246,7 @@
       else if (k === 'seg') mostrarCena(cena + 1);
       else if (k === 'voz') { comVoz = !comVoz; b.textContent = 'Voz: ' + (comVoz ? 'ligada' : 'desligada'); if (tocar) { pararVoz(); falar(); } }
       else if (k === 'ecra') { var bx = $('.vm-box'); try { if (document.fullscreenElement) document.exitFullscreen(); else bx.requestFullscreen(); } catch (er) {} }
-      else if (k === 'escrito') { fechar(); try { window.showWelcomeModal(); } catch (er) {} }
+      else if (k === 'escrito') { fechar(); try { DEF.escritas(); } catch (er) {} }
     });
     document.addEventListener('keydown', teclas, true);
     raf = requestAnimationFrame(ciclo);
@@ -258,19 +264,19 @@
     if (b && !b.dataset.vm) {
       b.dataset.vm = '1'; b.removeAttribute('onclick'); b.onclick = null;
       b.innerHTML = ICONE + '<span class="vm-lbl">Instruções</span>';
-      b.title = 'Vídeo: como se calcula o Movimento Hospitalar'; b.setAttribute('aria-label', 'Instruções (vídeo)');
-      b.style.width = 'auto'; b.style.padding = '0 12px'; b.style.gap = '6px'; b.style.borderRadius = '999px'; b.style.display = 'inline-flex'; b.style.alignItems = 'center'; b.style.font = '700 .8rem Inter,Arial,sans-serif';
-      b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); abrir(); }, true);
+      b.title = 'Vídeo de instruções'; b.setAttribute('aria-label', 'Instruções (vídeo)');
+      b.style.width = 'auto'; b.style.padding = '0 12px'; b.style.gap = '6px'; b.style.borderRadius = '999px'; b.style.display = 'inline-flex'; b.style.alignItems = 'center'; b.style.flexDirection = 'row'; b.style.justifyContent = 'center'; b.style.whiteSpace = 'nowrap'; b.style.height = b.offsetHeight > 30 ? b.offsetHeight + 'px' : '40px'; b.style.font = '700 .8rem Inter,Arial,sans-serif';
+      b.addEventListener('click', function (e) { e.preventDefault(); e.stopImmediatePropagation(); abrir(); }, true);
       return true;
     }
     var mhg = document.querySelector('header.mhg-top .acoes');
     if (mhg && !document.getElementById('vmBtnMhg')) {
       var n = document.createElement('button'); n.type = 'button'; n.id = 'vmBtnMhg'; n.innerHTML = ICONE + 'Instruções'; n.title = 'Vídeo: como se calcula o Movimento Hospitalar';
-      n.addEventListener('click', abrir); mhg.insertBefore(n, mhg.firstChild); return true;
+      n.addEventListener('click', function () { abrir(); }); mhg.insertBefore(n, mhg.firstChild); return true;
     }
     return !!(b && b.dataset.vm) || !!document.getElementById('vmBtnMhg');
   }
   var tent = 0, iv = setInterval(function () { tent++; if (botao() || tent > 60) clearInterval(iv); }, 250);
 
-  window.ZeloVideoMov = { abrir: abrir, CENAS: CENAS, TOTAL: TOTAL };
+  window.ZeloVideoMov = { abrir: abrir, CENAS: CENAS_MOV, TOTAL: TOTAL, h: { a: a, t: t, svg: svg, camas: camas } };
 })();
