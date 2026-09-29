@@ -310,6 +310,28 @@
     .b2-form .b2-et .ico{width:24px;height:24px;margin-bottom:3px;border-radius:8px}
     .b2-form .b2-et .ico svg{width:14px;height:14px}
   }
+  /* Janela: secções numeradas, resumo e estado */
+  .b2-tit{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+  .b2-fres{font:600 .8rem Inter,"Segoe UI",Roboto,Arial;color:rgba(255,255,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .b2-card.b2-form .b2-cb{background:#F4F7FB}
+  .b2-sec{background:#fff;border:1px solid #E3E8F0;border-radius:14px;padding:10px 12px 12px;margin:10px 0 0}
+  .b2-sh{display:flex;align-items:center;gap:8px;font:800 .9rem Inter,"Segoe UI",Roboto,Arial;color:#1E3A5F;margin-bottom:8px}
+  .b2-sh i{font-style:normal;width:22px;height:22px;border-radius:50%;background:#1E3A5F;color:#fff;font:800 .74rem Inter,Arial;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+  .b2-sh em{font-style:normal;color:#DC2626}
+  .b2-sub{font-weight:600;font-size:.76rem;color:#64748B}
+  .b2-lh{margin:0 !important;height:0;overflow:hidden}
+  .b2-sec:has(.b2-lh.err){border-color:#FCA5A5;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+  .b2-sec .b2-pair + .b2-pair{margin-top:2px}
+  .b2-sec .b2-lab{margin:6px 0 5px}
+  .b2-bt b{font-size:1.1rem;line-height:1}
+  .b2-rod{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .b2-req{display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex:1;min-width:0}
+  .b2-reqn{display:inline-flex;align-items:center;gap:5px;font:800 .82rem Inter,Arial;color:#B45309;background:#FFFBEB;border:1px solid #FDE68A;border-radius:999px;padding:5px 11px}
+  .b2-reqn.ok{color:#047857;background:#ECFDF5;border-color:#A7F3D0}.b2-reqn svg{width:14px;height:14px}
+  .b2-reqc{font:700 .76rem Inter,Arial;color:#64748B;background:#F1F5F9;border-radius:999px;padding:4px 9px}
+  .b2-reqc.ok{color:#047857;background:#ECFDF5}
+  .b2-rod .b2-acts{flex:0 0 auto;width:min(520px,100%);margin-left:auto}
+  @media (max-width:700px){ .b2-reqc{display:none} .b2-rod{gap:8px} .b2-sec{padding:8px 10px 10px} }
   #b2-idade::-webkit-outer-spin-button,#b2-idade::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   #b2-idade{-moz-appearance:textfield}
 `;
@@ -531,23 +553,38 @@
       var e = ESP[k];
       return '<div class="b2-et' + (F.esp === k ? ' on' : '') + '" data-esp="' + esc(k) + '"><div class="ico" style="background:' + e[1] + ';color:' + e[2] + '">' + IC[e[0]] + '</div>' + esc(k === 'Otorrinolaringologia' ? 'Otorrino' : k) + '</div>';
     }).join('');
+    var sub = function (t) { return ' <span class="b2-sub">' + t + '</span>'; };
     fm.innerHTML = '<div class="b2-col">' + (edit ? '<div class="b2-edit">' + IC.alerta.replace('<svg ', '<svg width="16" height="16" ') + 'A editar a cirurgia das ' + esc(F.hora || '--:--') + '</div>' : '') +
-      '<div class="b2-lab" data-l="esp">Especialidade *</div><div class="b2-esp">' + espHtml + '</div>' +
-      '<div class="b2-pair"><div><div class="b2-lab" data-l="sexo">Sexo *</div><div class="b2-big"><div class="b2-bt m' + (F.sexo === 'M' ? ' on' : '') + '" data-sexo="M">♂<small>Masculino</small></div><div class="b2-bt f' + (F.sexo === 'F' ? ' on' : '') + '" data-sexo="F">♀<small>Feminino</small></div></div></div>' +
+      '<section class="b2-sec"><div class="b2-sh"><i>1</i>Especialidade <em>*</em></div><div class="b2-lab b2-lh" data-l="esp"></div><div class="b2-esp">' + espHtml + '</div></section>' +
+      '<section class="b2-sec"><div class="b2-sh"><i>2</i>Doente e cirurgia</div>' +
+      '<div class="b2-pair"><div><div class="b2-lab" data-l="sexo">Sexo *</div><div class="b2-big"><div class="b2-bt m' + (F.sexo === 'M' ? ' on' : '') + '" data-sexo="M"><b>♂</b><small>Masculino</small></div><div class="b2-bt f' + (F.sexo === 'F' ? ' on' : '') + '" data-sexo="F"><b>♀</b><small>Feminino</small></div></div></div>' +
       '<div><div class="b2-lab">Caráter *</div><div class="b2-big"><div class="b2-bt u' + (F.carac === 'Urgente' ? ' on' : '') + '" data-carac="Urgente">' + IC.alerta + '<small>Urgente</small></div><div class="b2-bt e' + (F.carac === 'Eletiva' ? ' on' : '') + '" data-carac="Eletiva">' + IC.cal + '<small>Eletiva</small></div></div></div></div>' +
       '<div class="b2-pair"><div><div class="b2-lab">Idade</div><div class="b2-inp"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" id="b2-idade" value="' + esc(F.idade) + '"><span>anos</span></div></div>' +
-      '<div><div class="b2-lab">Hora</div><div class="b2-inp"><input type="time" id="b2-hora" value="' + esc(F.hora) + '"><button type="button" class="b2-agora" id="b2-agora">AGORA</button></div></div></div>' +
+      '<div><div class="b2-lab">Hora</div><div class="b2-inp"><input type="time" id="b2-hora" value="' + esc(F.hora) + '"><button type="button" class="b2-agora" id="b2-agora">AGORA</button></div></div></div></section>' +
       '</div><div class="b2-col">' +
-      '<div class="b2-lab">Diagnóstico <span style="text-transform:none;letter-spacing:0;font-weight:600">— CID opcional</span></div>' + diagHtml() +
-      '<div class="b2-lab" data-l="anest">Técnica anestésica * <span style="text-transform:none;letter-spacing:0;font-weight:600">— pode escolher várias</span></div><div class="b2-an">' +
-      ANEST.map(function (a) { return '<div class="b2-at' + (F.anest[a[0]] ? ' on' : '') + '" data-an="' + a[0] + '"><i>' + a[1] + '</i>' + a[2] + '</div>'; }).join('') + '</div>' +
-      '<div class="b2-lab">Desfecho</div><div class="b2-ds">' +
+      '<section class="b2-sec"><div class="b2-sh"><i>3</i>Diagnóstico' + sub('CID opcional') + '</div>' + diagHtml() + '</section>' +
+      '<section class="b2-sec"><div class="b2-sh"><i>4</i>Técnica anestésica <em>*</em>' + sub('pode escolher várias') + '</div><div class="b2-lab b2-lh" data-l="anest"></div><div class="b2-an">' +
+      ANEST.map(function (a) { return '<div class="b2-at' + (F.anest[a[0]] ? ' on' : '') + '" data-an="' + a[0] + '"><i>' + a[1] + '</i>' + a[2] + '</div>'; }).join('') + '</div></section>' +
+      '<section class="b2-sec"><div class="b2-sh"><i>5</i>Desfecho</div><div class="b2-ds">' +
       [['', IC.ok, 'Sem intercorr.'], ['uci', IC.uci, 'Transf. UCI'], ['sala', IC.sala, 'Transf. sala'], ['obito', '<span class="x">†</span>', 'Óbito']].map(function (d) {
         return '<div class="b2-dt' + (F.desfecho === d[0] ? ' on' : '') + (d[0] === 'obito' ? ' ob' : '') + '" data-ds="' + d[0] + '">' + d[1] + d[2] + '</div>';
-      }).join('') + '</div></div>';
-    var rod = $('b2-form-rodape'); if (rod) rod.innerHTML =
+      }).join('') + '</div></section></div>';
+    var rod = $('b2-form-rodape'); if (rod) rod.innerHTML = '<div class="b2-req" id="b2-req"></div>' +
       (edit ? '<div class="b2-acts ed"><button type="button" class="b2-b o" id="b2-cancelar">Cancelar</button><button type="button" class="b2-b p" id="b2-guardar">✓ Atualizar cirurgia</button></div>'
             : '<div class="b2-acts"><button type="button" class="b2-b o" id="b2-outra">Guardar + outra</button><button type="button" class="b2-b p" id="b2-guardar">✓ Guardar cirurgia</button></div>');
+    resumoForm();
+  }
+  // Resumo ao vivo no cabeçalho e estado dos campos obrigatórios no rodapé.
+  function resumoForm() {
+    var idade = ($('b2-idade') || {}).value || F.idade, hora = ($('b2-hora') || {}).value || F.hora;
+    var partes = [F.esp, F.sexo === 'M' ? 'Masculino' : F.sexo === 'F' ? 'Feminino' : '', idade ? idade + ' anos' : '', F.carac, hora].filter(Boolean);
+    var r = $('b2-fres'); if (r) r.textContent = partes.length ? partes.join(' · ') : 'Preencha os campos com *';
+    var temAn = Object.keys(F.anest).some(function (k) { return F.anest[k]; });
+    var req = [['Especialidade', !!F.esp], ['Sexo', !!F.sexo], ['Anestesia', temAn]];
+    var ok = req.filter(function (x) { return x[1]; }).length;
+    var q = $('b2-req');
+    if (q) q.innerHTML = '<span class="b2-reqn' + (ok === 3 ? ' ok' : '') + '">' + (ok === 3 ? IC.ok + 'Pronto a guardar' : ok + '/3 obrigatórios') + '</span>' +
+      req.map(function (x) { return '<span class="b2-reqc' + (x[1] ? ' ok' : '') + '">' + (x[1] ? '✓ ' : '') + x[0] + '</span>'; }).join('');
   }
   function lerCampos() {
     var i = $('b2-idade'), h = $('b2-hora');
@@ -667,7 +704,7 @@
         '<div class="b2-mini" id="b2-mini"></div></div>' +
       '<div class="b2-card"><div class="b2-ch"><span class="i">' + IC.relogio + '</span>Linha do tempo do turno (24 horas)<small><span id="b2-tl-nota"></span><br><span style="color:#EF4444">■</span> Urgente &nbsp;<span style="color:#06B6D4">■</span> Eletiva</small></div>' +
         '<div class="b2-tl"><div class="b2-track" id="b2-track"></div><div class="b2-ax">' + Array.apply(null, Array(24)).map(function (x, i) { return '<span>' + (i % 3 === 0 ? String(i).padStart(2, '0') + 'h' : '') + '</span>'; }).join('') + '</div><div class="b2-sem" id="b2-sem"></div></div></div>' +
-      '<div class="b2-grid"><div class="b2-card b2-form" id="b2-form"><div class="b2-ch"><span class="i">' + IC.mais + '</span><span id="b3-ftit">Nova cirurgia</span><button type="button" class="b2-fecharf" id="b2-fecharf" aria-label="Fechar">×</button></div><div class="b2-cb" id="b2-form-corpo"></div><div class="b2-rod" id="b2-form-rodape"></div></div>' +
+      '<div class="b2-grid"><div class="b2-card b2-form" id="b2-form"><div class="b2-ch"><span class="i">' + IC.mais + '</span><span class="b2-tit"><span id="b3-ftit">Nova cirurgia</span><span class="b2-fres" id="b2-fres"></span></span><button type="button" class="b2-fecharf" id="b2-fecharf" aria-label="Fechar">×</button></div><div class="b2-cb" id="b2-form-corpo"></div><div class="b2-rod" id="b2-form-rodape"></div></div>' +
         '<div class="b2-card"><div class="b2-ch"><span class="i" style="background:linear-gradient(135deg,#0EA5E9,#2563EB);box-shadow:0 6px 14px rgba(37,99,235,.3)">' + IC.cal + '</span>Cirurgias do turno<small id="b2-lista-nota"></small></div><div class="b2-fil" id="b2-fil"></div><div id="b2-lista"></div><div style="height:12px"></div></div></div>' +
       '<div class="b2-grid2"><div class="b2-card"><div class="b2-ch"><span class="i" style="background:linear-gradient(135deg,#F59E0B,#EA580C);box-shadow:0 6px 14px rgba(234,88,12,.3)">' + IC.osso + '</span>Especialidades do turno<small>urgente · eletiva</small></div><div class="b2-bars" id="b2-bars"></div></div>' +
         '<div class="b2-card"><div class="b2-ch"><span class="i" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);box-shadow:0 6px 14px rgba(109,40,217,.3)">' + IC.gota + '</span>Anestesia e sexo<small>técnicas mais usadas</small></div><div class="b2-anr" id="b2-anr"></div><div class="b2-sx" id="b2-sx"></div></div></div>' +
@@ -696,11 +733,16 @@
     document.body.appendChild(ov);
     var fm = $('b2-form'); if (fm) ov.appendChild(fm);
     ov.addEventListener('click', function (e) { if (e.target === ov) fecharFormMob(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ov.classList.contains('on')) fecharFormMob(); });
+    document.addEventListener('keydown', function (e) {
+      if (!ov.classList.contains('on')) return;
+      if (e.key === 'Escape') fecharFormMob();
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); guardar(false); }
+    });
     $('b3-q').addEventListener('input', function () { buscaB = this.value; desenhar(); });
     document.addEventListener('input', function (e) {
       var el = e.target; if (!el || !el.closest || !el.closest('#b2-form')) return;
       if (el.id === 'b2-idade') { var v = el.value.replace(/\D/g, '').slice(0, 3); if (v !== el.value) el.value = v; }
+      if (el.id === 'b2-idade' || el.id === 'b2-hora') resumoForm();
     });
     document.addEventListener('change', function (e) {
       var el = e.target; if (!el || !el.closest || !el.closest('#b2-form')) return;
@@ -718,7 +760,7 @@
       if ((t = e.target.closest('[data-carac]'))) { lerCampos(); F.carac = t.dataset.carac; desenharForm(); return; }
       if ((t = e.target.closest('[data-an]'))) { lerCampos(); F.anest[t.dataset.an] = !F.anest[t.dataset.an]; desenharForm(); return; }
       if ((t = e.target.closest('[data-ds]'))) { lerCampos(); F.desfecho = t.dataset.ds; desenharForm(); return; }
-      if (e.target.closest('#b2-agora')) { var d = new Date(); var h = $('b2-hora'); if (h) h.value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); lerCampos(); return; }
+      if (e.target.closest('#b2-agora')) { var d = new Date(); var h = $('b2-hora'); if (h) h.value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); lerCampos(); resumoForm(); return; }
       if (e.target.closest('#b2-dgmais')) { lerCampos(); F.diags.push({ nome: '', cid: '' }); desenharForm(); var n = document.querySelector('#b2-form [data-dn="' + (F.diags.length - 1) + '"]'); if (n) n.focus(); return; }
       if ((t = e.target.closest('[data-dx]'))) { lerCampos(); F.diags.splice(+t.dataset.dx, 1); if (!F.diags.length) F.diags.push({ nome: '', cid: '' }); desenharForm(); return; }
       if (e.target.closest('#b2-guardar')) { guardar(false); return; }
