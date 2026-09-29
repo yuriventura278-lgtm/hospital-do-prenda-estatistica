@@ -565,12 +565,12 @@
     fm.innerHTML = '<div class="b2-col">' + (edit ? '<div class="b2-edit">' + IC.alerta.replace('<svg ', '<svg width="16" height="16" ') + 'A editar a cirurgia das ' + esc(F.hora || '--:--') + '</div>' : '') +
       '<section class="b2-sec"><div class="b2-sh"><i>1</i>Especialidade <em>*</em></div><div class="b2-lab b2-lh" data-l="esp"></div><div class="b2-esp">' + espHtml + '</div></section>' +
       '<section class="b2-sec"><div class="b2-sh"><i>2</i>Doente e cirurgia</div>' +
-      '<div class="b2-pair"><div><div class="b2-lab" data-l="sexo">Sexo *</div><div class="b2-big"><div class="b2-bt m' + (F.sexo === 'M' ? ' on' : '') + '" data-sexo="M"><b>♂</b><small>Masculino</small></div><div class="b2-bt f' + (F.sexo === 'F' ? ' on' : '') + '" data-sexo="F"><b>♀</b><small>Feminino</small></div></div></div>' +
+      '<div class="b2-pair"><div><div class="b2-lab" data-l="sexo">Género *</div><div class="b2-big"><div class="b2-bt m' + (F.sexo === 'M' ? ' on' : '') + '" data-sexo="M"><b>♂</b><small>Masculino</small></div><div class="b2-bt f' + (F.sexo === 'F' ? ' on' : '') + '" data-sexo="F"><b>♀</b><small>Feminino</small></div></div></div>' +
       '<div><div class="b2-lab">Caráter *</div><div class="b2-big"><div class="b2-bt u' + (F.carac === 'Urgente' ? ' on' : '') + '" data-carac="Urgente">' + IC.alerta + '<small>Urgente</small></div><div class="b2-bt e' + (F.carac === 'Eletiva' ? ' on' : '') + '" data-carac="Eletiva">' + IC.cal + '<small>Eletiva</small></div></div></div></div>' +
-      '<div class="b2-pair"><div><div class="b2-lab">Idade</div><div class="b2-inp"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" id="b2-idade" value="' + esc(F.idade) + '"><span>anos</span></div></div>' +
+      '<div class="b2-pair"><div><div class="b2-lab" data-l="idade">Idade *</div><div class="b2-inp"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" id="b2-idade" value="' + esc(F.idade) + '"><span>anos</span></div></div>' +
       '<div><div class="b2-lab">Hora</div><div class="b2-inp"><input type="time" id="b2-hora" value="' + esc(F.hora) + '"><button type="button" class="b2-agora" id="b2-agora">AGORA</button></div></div></div></section>' +
       '</div><div class="b2-col">' +
-      '<section class="b2-sec"><div class="b2-sh"><i>3</i>Diagnóstico' + sub('CID opcional') + '</div>' + diagHtml() + '</section>' +
+      '<section class="b2-sec"><div class="b2-sh"><i>3</i>Diagnóstico <em>*</em>' + sub('CID opcional') + '</div><div class="b2-lab b2-lh" data-l="diag"></div>' + diagHtml() + '</section>' +
       '<section class="b2-sec"><div class="b2-sh"><i>4</i>Técnica anestésica <em>*</em>' + sub('pode escolher várias') + '</div><div class="b2-lab b2-lh" data-l="anest"></div><div class="b2-an">' +
       ANEST.map(function (a) { return '<div class="b2-at' + (F.anest[a[0]] ? ' on' : '') + '" data-an="' + a[0] + '"><i>' + a[1] + '</i>' + a[2] + '</div>'; }).join('') + '</div></section>' +
       '<section class="b2-sec"><div class="b2-sh"><i>5</i>Desfecho</div><div class="b2-ds">' +
@@ -588,10 +588,12 @@
     var partes = [F.esp, F.sexo === 'M' ? 'Masculino' : F.sexo === 'F' ? 'Feminino' : '', idade ? idade + ' anos' : '', F.carac, hora].filter(Boolean);
     var r = $('b2-fres'); if (r) r.textContent = partes.length ? partes.join(' · ') : 'Preencha os campos com *';
     var temAn = Object.keys(F.anest).some(function (k) { return F.anest[k]; });
-    var req = [['Especialidade', !!F.esp], ['Sexo', !!F.sexo], ['Anestesia', temAn]];
+    var idadeOk = !!String(($('b2-idade') || {}).value || F.idade || '').trim();
+    var diagOk = Array.prototype.some.call(document.querySelectorAll('#b2-form [data-dn],#b2-form [data-dc]'), function (e) { return e.value.trim(); }) || F.diags.some(function (d) { return d.nome || d.cid; });
+    var req = [['Especialidade', !!F.esp], ['Género', !!F.sexo], ['Idade', idadeOk], ['Diagnóstico', diagOk], ['Anestesia', temAn]];
     var ok = req.filter(function (x) { return x[1]; }).length;
     var q = $('b2-req');
-    if (q) q.innerHTML = '<span class="b2-reqn' + (ok === 3 ? ' ok' : '') + '">' + (ok === 3 ? IC.ok + 'Pronto a guardar' : ok + '/3 obrigatórios') + '</span>' +
+    if (q) q.innerHTML = '<span class="b2-reqn' + (ok === req.length ? ' ok' : '') + '">' + (ok === req.length ? IC.ok + 'Pronto a guardar' : ok + '/' + req.length + ' obrigatórios') + '</span>' +
       req.map(function (x) { return '<span class="b2-reqc' + (x[1] ? ' ok' : '') + '">' + (x[1] ? '✓ ' : '') + x[0] + '</span>'; }).join('');
   }
   function lerCampos() {
@@ -604,9 +606,12 @@
   function validar() {
     var falta = [];
     if (!F.esp) falta.push('esp'); if (!F.sexo) falta.push('sexo');
+    if (!String(F.idade || '').trim()) falta.push('idade');
+    if (!F.diags.some(function (d) { return String(d.nome || '').trim() || String(d.cid || '').trim(); })) falta.push('diag');
     if (!Object.keys(F.anest).some(function (k) { return F.anest[k]; })) falta.push('anest');
     document.querySelectorAll('#b2-form-corpo .b2-lab[data-l]').forEach(function (l) { l.classList.toggle('err', falta.indexOf(l.dataset.l) >= 0); });
-    if (falta.length) aviso('Falta escolher: ' + falta.map(function (f) { return { esp: 'especialidade', sexo: 'sexo', anest: 'técnica anestésica' }[f]; }).join(', '), true);
+    if (falta.length) aviso('Falta preencher: ' + falta.map(function (f) { return { esp: 'especialidade', sexo: 'género', idade: 'idade', diag: 'diagnóstico', anest: 'técnica anestésica' }[f]; }).join(', '), true);
+    if (falta.indexOf('idade') >= 0 && falta.length === 1) { var ii = $('b2-idade'); if (ii) ii.focus(); }
     return !falta.length;
   }
   // Passa os valores para o formulário original (escondido) da página.
@@ -750,7 +755,7 @@
     document.addEventListener('input', function (e) {
       var el = e.target; if (!el || !el.closest || !el.closest('#b2-form')) return;
       if (el.id === 'b2-idade') { var v = el.value.replace(/\D/g, '').slice(0, 3); if (v !== el.value) el.value = v; }
-      if (el.id === 'b2-idade' || el.id === 'b2-hora') resumoForm();
+      if (el.id === 'b2-idade' || el.id === 'b2-hora' || (el.dataset && (el.dataset.dn != null || el.dataset.dc != null))) resumoForm();
     });
     document.addEventListener('change', function (e) {
       var el = e.target; if (!el || !el.closest || !el.closest('#b2-form')) return;
