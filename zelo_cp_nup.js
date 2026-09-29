@@ -4,7 +4,14 @@
 //   regresso é um novo internamento do MESMO processo (episodio 2, 3, …),
 //   guardado à parte (chave nup_<NUP>_e2 …) — nada do anterior é alterado.
 // • Não deixa registar: o NUP de outro doente (nome diferente), nem um
-//   doente que já está internado neste serviço.
+//   doente que já está internado — neste serviço ou em QUALQUER outro (um
+//   doente só pode estar internado num serviço de cada vez; para mudar de
+//   serviço, o serviço onde está regista primeiro a saída/transferência).
+// • Cada internamento guarda o serviço onde foi feito. Se o doente sai e
+//   volta, pode ser internado noutro serviço, e o processo mostra todos os
+//   internamentos anteriores, de todos os serviços.
+// • Registos eliminados (anulados) não aparecem em lado nenhum — ficam só
+//   guardados no arquivo (nunca se apagam do servidor).
 // • Processos nunca se apagam: "Anular registo" guarda uma cópia no arquivo
 //   (registos_sistemas_locais/controlo_pacientes_arquivo/<serviço>) antes de
 //   o tirar das listas e estatísticas; pode ser restaurado.
@@ -71,7 +78,8 @@
       ]).then(function (r) {
         var l = [];
         Object.keys(r[0] || {}).forEach(function (k) { var p = r[0][k]; if (p && typeof p === 'object') l.push(Object.assign({}, p, { servico: s[0] })); });
-        Object.keys(r[1] || {}).forEach(function (k) { var p = r[1][k]; if (p && typeof p === 'object') { l.push(Object.assign({}, p, { servico: s[0], anulado: true, _arq: k })); if (s[0] === slug()) arquivoRemoto[k] = p; } });
+        // Eliminados: não entram no índice (não aparecem); só contam para a numeração deste serviço.
+        Object.keys(r[1] || {}).forEach(function (k) { var p = r[1][k]; if (p && typeof p === 'object' && s[0] === slug()) arquivoRemoto[k] = p; });
         return l;
       });
     })).then(function (ls) { indice = [].concat.apply([], ls); indiceTs = Date.now(); aCarregar = null; return indice; })
@@ -82,9 +90,49 @@
   // frescos) + os dos outros serviços (índice) + arquivo.
   function todos(incluirOutros) {
     var s = slug(), l = pacientes().map(function (p) { return Object.assign({}, p, { servico: s, _local: true }); });
-    var arq = arquivo(); Object.keys(arq).forEach(function (k) { l.push(Object.assign({}, arq[k], { servico: s, anulado: true, _arq: k })); });
     if (incluirOutros && indice) indice.forEach(function (p) { if (p.servico !== s) l.push(p); });
     return l;
+  }
+
+  // ── Internamentos deste NUP em todos os serviços (só as chaves desse NUP) ──
+  // Lê em cada serviço só os registos nup_<NUP>, nup_<NUP>_e2… (poucos bytes).
+  var porNUP = {};
+  function internamentosNUP(nup, forcar) {
+    nup = nupN(nup); if (!nup) return Promise.resolve([]);
+    var c = porNUP[nup];
+    if (c && !forcar && (c.p || Date.now() - c.ts < 60000)) return c.p || Promise.resolve(c.eps);
+    var k = chaveSegura('nup_' + nup);
+    var ler = function (s) {
+      var base = 'registos_sistemas_locais/controlo_pacientes/' + s + '/snapshot/pacientes';
+      if (typeof window.__fbGetRange === 'function') return window.__fbGetRange(base, k, k + '_e\uf8ff').catch(function () { return null; });
+      return window.__fbGet(base + '/' + k).then(function (v) { var o = {}; if (v) o[k] = v; return o; }).catch(function () { return null; });
+    };
+    if (typeof window.__fbGet !== 'function') return Promise.resolve([]);
+    var pr = Promise.all(SERVICOS.map(function (s) {
+      return ler(s[0]).then(function (v) {
+        return Object.keys(v || {}).map(function (kk) { return v[kk]; }).filter(function (p) { return p && typeof p === 'object' && nupN(p.nup) === nup && !p.anulado; })
+          .map(function (p) { return Object.assign({}, p, { servico: s[0] }); });
+      });
+    })).then(function (ls) { var eps = [].concat.apply([], ls); porNUP[nup] = { ts: Date.now(), eps: eps }; return eps; })
+      .catch(function () { porNUP[nup] = { ts: Date.now(), eps: [] }; return []; });
+    porNUP[nup] = { ts: Date.now(), eps: (c && c.eps) || [], p: pr };
+    pr.then(function () { if (porNUP[nup]) delete porNUP[nup].p; });
+    return pr;
+  }
+  window.zeloCpInternamentosNUP = internamentosNUP;
+
+  // Volta a tentar registar sozinho depois de uma verificação — uma só vez, e só
+  // se a janela Novo Paciente continuar aberta com o mesmo NUP (evita repetições).
+  var repetirPendente = null;
+  function repetirDepois(promessa, nup) {
+    if (repetirPendente === nup) return;
+    repetirPendente = nup;
+    promessa.then(function () {
+      repetirPendente = null;
+      var m = document.getElementById('novoModal'), f = document.getElementById('fNUP');
+      if (!m || !m.classList.contains('active') || !f || nupN(f.value) !== nup) return;
+      try { if (typeof addPaciente === 'function') addPaciente(); } catch (e) {}
+    });
   }
 
   // ── Validação do NUP ──
@@ -97,17 +145,31 @@
     // Os outros serviços ainda estão a ser lidos: espera e volta a tentar
     // sozinho (não deixa passar um NUP de outro doente por falta de dados).
     if (!indice && aCarregar && excluirN == null && !mesmos.length) {
-      aCarregar.then(function () { try { if (typeof addPaciente === 'function') addPaciente(); } catch (e) {} });
+      repetirDepois(aCarregar, nup);
       return { ok: false, msg: 'A verificar o NUP ' + nup + ' nos outros serviços… o registo continua sozinho dentro de instantes.' };
     }
     var internado = mesmos.filter(function (p) { return p.status === 'internado'; })[0];
     if (internado) return { ok: false, msg: internado.nome + ' (NUP ' + nup + ') já está internado neste serviço desde ' + fmt(internado.dataEntrada) + '. Registe primeiro a saída.' };
+    // Internado noutro serviço? Verifica sempre no servidor (dados frescos) antes de registar.
+    if (excluirN == null) {
+      var c = porNUP[nup];
+      if (!c || c.p || Date.now() - c.ts > 60000) {
+        repetirDepois(c && c.p ? c.p : internamentosNUP(nup, true), nup);
+        return { ok: false, msg: 'A verificar o NUP ' + nup + ' em todos os serviços… o registo continua sozinho dentro de instantes.' };
+      }
+      var noutro = c.eps.filter(function (p) { return p.servico !== slug() && p.status === 'internado'; })[0];
+      if (noutro) return { ok: false, msg: noutro.nome + ' (NUP ' + nup + ') está internado em ' + nomeServ(noutro.servico) + ' desde ' + fmt(noutro.dataEntrada) +
+        '. Um doente não pode estar internado em dois serviços. Para o internar aqui, ' + nomeServ(noutro.servico) + ' tem de registar primeiro a saída (transferência).' };
+      var outroDono = c.eps.filter(function (p) { return p.servico !== slug() && !mesmoNome(p.nome, nome); })[0];
+      if (outroDono) return { ok: false, msg: 'O NUP ' + nup + ' pertence a ' + outroDono.nome + ' (' + nomeServ(outroDono.servico) + '). Cada NUP é de um só doente.' };
+    }
     if (indice) {
       var fora = indice.filter(function (p) { return p.servico !== slug() && !p.anulado && nupN(p.nup) === nup && !mesmoNome(p.nome, nome); })[0];
       if (fora) return { ok: false, msg: 'O NUP ' + nup + ' pertence a ' + fora.nome + ' (' + nomeServ(fora.servico) + '). Cada NUP é de um só doente.' };
     }
     var arq = arquivo(), maxEp = 0;
     mesmos.forEach(function (p) { maxEp = Math.max(maxEp, Number(p.episodio) || 1); });
+    ((porNUP[nup] && porNUP[nup].eps) || []).forEach(function (p) { maxEp = Math.max(maxEp, Number(p.episodio) || 1); });
     Object.keys(arq).forEach(function (k) { var p = arq[k]; if (nupN(p.nup) === nup) maxEp = Math.max(maxEp, Number(p.episodio) || 1); });
     return { ok: true, episodio: maxEp ? maxEp + 1 : 1, processo: mesmos.length > 0 };
   };
@@ -116,6 +178,7 @@
   function processos(lista) {
     var g = {};
     lista.forEach(function (p) {
+      if (p.anulado) return; // eliminados não aparecem
       var k = p.nup ? 'nup:' + nupN(p.nup) : 'n:' + p.servico + ':' + p.n;
       (g[k] = g[k] || { nup: nupN(p.nup), eps: [] }).eps.push(p);
     });
@@ -254,7 +317,7 @@
         (p.registadoPor ? '<div>Registado por ' + esc(p.registadoPor) + (p.saidaRegistadaPor ? ' · saída por ' + esc(p.saidaRegistadaPor) : '') + '</div>' : '') +
         (p.anulado ? '<div style="color:#B91C1C;font-weight:700">Registo anulado' + (p.anuladoPor ? ' por ' + esc(p.anuladoPor) : '') + (p.anuladoEm ? ' em ' + fmt(p.anuladoEm) : '') + ' — guardado no arquivo</div>' : '') + '</div>' +
         (p._local && !p.anulado ? '<button type="button" class="cpn-bt" data-cpn="ep" data-n="' + p.n + '">Ver ficha</button>' : '') +
-        (p.anulado && p._arq && p.servico === slug() ? '<button type="button" class="cpn-bt v" data-cpn="restaurar" data-arq="' + esc(p._arq) + '">Restaurar</button>' : '') + '</div>';
+        '</div>';
     });
     var aqui = x.eps.filter(function (p) { return p.servico === slug() && !p.anulado && p.status === 'internado'; })[0];
     h += '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px"><button type="button" class="cpn-bt" data-cpn="voltar">‹ Voltar à lista</button>' +
@@ -330,21 +393,62 @@
     }
     return true;
   }
+  // Lista curta dos internamentos anteriores (todos os serviços) para o aviso do Novo Paciente.
+  function resumoEps(eps) {
+    eps = eps.slice().sort(function (a, b) { return String(a.dataEntrada || '').localeCompare(String(b.dataEntrada || '')); });
+    return eps.map(function (p, i) {
+      return (i + 1) + 'º ' + nomeServ(p.servico) + ': ' + fmt(p.dataEntrada) + (p.status === 'internado' ? ' — ainda internado' : ' → ' + fmt(p.dataSaida) + (p.tipoSaida ? ' (' + p.tipoSaida + ')' : '')) +
+        (p.diagnostico ? ' · ' + p.diagnostico : '');
+    });
+  }
+  var tVerif = null;
   function verificarNUP() {
     var nup = document.getElementById('fNUP'), nome = document.getElementById('fNome'), info = document.getElementById('cpn-nupinfo');
     if (!nup || !info) return;
     var v = nupN(nup.value); if (!v) { info.style.display = 'none'; return; }
+    // Consulta os internamentos deste NUP em todos os serviços (dados frescos) e volta a mostrar.
+    var c = porNUP[v];
+    if (!c || (!c.p && Date.now() - c.ts > 60000)) { clearTimeout(tVerif); tVerif = setTimeout(function () { internamentosNUP(v, true).then(function () { if (nupN(nup.value) === v) verificarNUP(); }); }, 350); }
+    var eps = (porNUP[v] && porNUP[v].eps) || [];
+    var noutro = eps.filter(function (p) { return p.servico !== slug() && p.status === 'internado'; })[0];
+    if (noutro) {
+      info.style.display = 'block'; info.className = 'cpn-nupinfo er';
+      info.innerHTML = esc(noutro.nome) + ' está internado em <b>' + esc(nomeServ(noutro.servico)) + '</b> desde ' + fmt(noutro.dataEntrada) + '. Não pode ser internado em dois serviços — ' + esc(nomeServ(noutro.servico)) + ' tem de registar primeiro a saída (transferência).';
+      return;
+    }
     var r = window.zeloCpValidarNUP(v, nome ? nome.value : '', null);
     var dono = procurar(v, true).filter(function (x) { return x.nup === v; })[0];
     info.style.display = 'block';
     if (!r.ok) { info.className = 'cpn-nupinfo er'; info.textContent = r.msg; }
-    else if (dono) {
+    else if (dono || eps.length) {
+      var todosEps = eps.slice(); pacientes().forEach(function (p) { if (nupN(p.nup) === v && !todosEps.some(function (q) { return q.servico === slug() && q.n === p.n; })) todosEps.push(Object.assign({}, p, { servico: slug() })); });
+      var nm = dono ? dono.nome : (todosEps[0] && todosEps[0].nome);
       info.className = 'cpn-nupinfo reg';
-      info.textContent = 'Processo existente: ' + dono.nome + ' — será registado como novo internamento deste processo. O anterior fica intacto.' +
-        (dono.internado && dono.internado.servico !== slug() ? ' Atenção: ainda consta como internado em ' + nomeServ(dono.internado.servico) + ' — se é uma transferência, registe lá a saída.' : '');
-      if (nome && !nome.value.trim()) { nome.value = dono.nome; }
+      var l = resumoEps(todosEps);
+      info.innerHTML = 'Processo existente: <b>' + esc(nm) + '</b> — será registado como novo internamento deste processo; os anteriores ficam intactos.' +
+        (l.length ? '<div style="margin-top:6px;font-weight:600">Internamentos anteriores (' + l.length + '):<br>' + l.map(esc).join('<br>') + '</div>' : '');
+      if (nome && !nome.value.trim() && nm) { nome.value = nm; }
     }
     else { info.className = 'cpn-nupinfo ok'; info.textContent = 'NUP novo — será aberto um processo clínico.'; }
+  }
+
+  // Cada internamento guarda o serviço onde foi feito (fica no próprio registo).
+  function ligarServico() {
+    var f = window.addPaciente; if (typeof f !== 'function') return false; if (f.__cpnServ) return true;
+    var novo = function () {
+      var antes = pacientes().length, r = f.apply(this, arguments);
+      try {
+        var l = pacientes();
+        if (l.length > antes) {
+          var S = window.CP_UCI ? window.CP_UCI.slug : slug();
+          l.slice(antes).forEach(function (p) { if (!p.servico) { p.servico = S; p.servicoNome = nomeServ(S); } });
+          if (typeof saveData === 'function') saveData();
+        }
+      } catch (e) {}
+      return r;
+    };
+    novo.__cpnServ = true; Object.keys(f).forEach(function (k) { if (!(k in novo)) novo[k] = f[k]; });
+    window.addPaciente = novo; return true;
   }
 
   // Ao abrir o Novo Paciente: lê os outros serviços (uma vez a cada 10 min) para validar o NUP.
@@ -360,7 +464,7 @@
 
   var n = 0, iv = setInterval(function () {
     n++;
-    var ok = menu() & novoModal() & ligarAbrir();
+    var ok = menu() & novoModal() & ligarAbrir() & ligarServico();
     if (ok || n > 80) clearInterval(iv);
   }, 250);
   window.ZeloCpNup = { abrir: abrirProcessos, procurar: procurar, lerIndice: lerIndice };

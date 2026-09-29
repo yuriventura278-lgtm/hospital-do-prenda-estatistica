@@ -193,6 +193,7 @@
             return '<div class="cpp-f largo"><span>' + fmt(q.dataEntrada) + (q.status === 'internado' ? ' · internado' : ' → ' + fmt(q.dataSaida) + (q.tipoSaida ? ' · ' + esc(q.tipoSaida) : '')) + '</span><b><button type="button" class="cpp-bt" data-outro="' + q.n + '" style="padding:4px 10px">Ver este internamento</button></b></div>';
           }).join('') + '</div></div>';
         })() +
+        '<div class="cpp-sec" id="cpp-outros-serv" style="display:none"></div>' +
         '<div class="cpp-sec"><h4>Internamento' + (Number(p.episodio) > 1 ? ' (' + p.episodio + 'º do processo)' : '') + '</h4><div class="cpp-grid">' +
           campo('Data e hora de entrada', fmtDH(p.dataEntrada)) + campo('Cama / Sala', esc(p.cama)) + campo('Proveniência', esc(p.proveniencia)) + campo('Dias internado', nDias == null ? '' : nDias + ' dia(s)') +
           campo(diags(p).length > 1 ? 'Diagnósticos de entrada (' + diags(p).length + ')' : 'Diagnóstico de entrada', diagsHTML(p), true) +
@@ -210,6 +211,20 @@
         '<button type="button" class="cpp-bt p" data-acao="atu">Atualizar dados</button>' +
         (internado ? '<button type="button" class="cpp-bt s" data-acao="sai">Registar saída</button>' : '') + '</div></div>';
     ov.querySelector('[data-pdf]').addEventListener('click', function () { pdfProcesso(p.n); });
+    // Internamentos deste processo noutros serviços (lidos no servidor só para este NUP; sem os eliminados).
+    if (p.nup && typeof window.zeloCpInternamentosNUP === 'function') {
+      var S = (function () { try { return window.CP_UCI ? window.CP_UCI.slug : String(FB_PACIENTES_PATH).split('/').pop(); } catch (e) { return ''; } })();
+      window.zeloCpInternamentosNUP(p.nup).then(function (eps) {
+        var box = ov.querySelector('#cpp-outros-serv'); if (!box) return;
+        eps = eps.filter(function (q) { return q.servico !== S; }).sort(function (a, b) { return String(a.dataEntrada || '').localeCompare(String(b.dataEntrada || '')); });
+        if (!eps.length) return;
+        var NOMES = { medicina_interna: 'Medicina Interna', cirurgia_geral: 'Cirurgia Geral', ortopedia: 'Ortopedia', neurocirurgia: 'Neurocirurgia', maxilo_facial: 'Maxilo-Facial', nefrologia: 'Nefrologia', uci_intensivo: 'UCI', uci_intermedio: 'Cuidados Intermédios' };
+        box.innerHTML = '<h4>Internamentos noutros serviços (' + eps.length + ')</h4><div class="cpp-grid">' + eps.map(function (q) {
+          return '<div class="cpp-f largo"><span>' + esc(NOMES[q.servico] || q.servico) + ' · ' + fmt(q.dataEntrada) + (q.status === 'internado' ? ' · internado' : ' → ' + fmt(q.dataSaida) + (q.tipoSaida ? ' · ' + esc(q.tipoSaida) : '')) + '</span><b>' + esc(diagsTxt(q)) + '</b></div>';
+        }).join('') + '</div>';
+        box.style.display = '';
+      });
+    }
     ov.querySelectorAll('[data-outro]').forEach(function (b) { b.addEventListener('click', function () { abrir(+b.dataset.outro); }); });
     ov.querySelectorAll('[data-acao]').forEach(function (b) {
       b.addEventListener('click', function () {
