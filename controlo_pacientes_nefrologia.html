@@ -1919,7 +1919,9 @@ function _fbSyncPacientes() { _cpSync().guardou(); }
 // identificado pelo NUP (único), cada campo tem a sua hora de alteração.
 // Dois computadores a registar ao mesmo tempo nunca se apagam; o que chega
 // de outro computador é aplicado sozinho.
-function _cpChave(p) { return p.nup ? 'nup_' + String(p.nup).trim() : 'n_' + p.n; }
+// Regresso do mesmo doente (mesmo NUP): cada novo internamento tem chave própria
+// (nup_<NUP>_e2, _e3…) — o primeiro mantém a chave de sempre, nada se sobrepõe.
+function _cpChave(p) { return p.nup ? 'nup_' + String(p.nup).trim() + (Number(p.episodio) > 1 ? '_e' + Number(p.episodio) : '') : 'n_' + p.n; }
 function _cpSync() {
   if (window.__cpSync) return window.__cpSync;
   window.__cpSync = ZeloSyncObjeto.criar({
@@ -2307,14 +2309,18 @@ function addPaciente() {
     return;
   }
   
-  // Validar NUP duplicado
-  if (data.patients.some(p => p.nup === nup)) {
-    showFeedback('Este NUP já está registado. Utilize um número diferente.', 'error');
+  // NUP: um NUP = um só doente. O mesmo doente pode voltar — é um novo
+  // internamento do mesmo processo (zelo_cp_nup.js); o anterior fica intacto.
+  const _v = window.zeloCpValidarNUP ? window.zeloCpValidarNUP(nup, nome, null)
+    : { ok: !data.patients.some(p => p.nup === nup), msg: 'Este NUP já está registado. Utilize um número diferente.' };
+  if (!_v.ok) {
+    showFeedback(_v.msg, 'error');
     return;
   }
   
   data.patients.push({
     n: n,
+    ...(_v.episodio > 1 ? { episodio: _v.episodio } : {}),
     nome, nup, idade: parseInt(idade), genero, cama, dataEntrada, diagnostico, proveniencia,
     status: 'internado', dataSaida: null, tipoSaida: null, subtipo: null
   });
@@ -2634,12 +2640,15 @@ function cpRegistarSaidaDe(n) {
 }
 
 function deletePaciente(n) {
-  if (confirm('Tem a certeza que deseja remover este paciente?')) {
+  if (confirm('Anular este registo? O processo do doente não é apagado: fica guardado no arquivo do Processo clínico e pode ser restaurado.')) {
+    // Nunca apagar: guarda uma cópia no arquivo antes de tirar da lista.
+    const _p = data.patients.find(p => p.n === n);
+    if (_p && window.zeloCpArquivar) window.zeloCpArquivar(_p);
     data.patients = data.patients.filter(p => p.n !== n);
     saveData();
     updateStats();
     renderInternados();
-    showFeedback('Paciente removido', 'success');
+    showFeedback('Registo anulado — fica no arquivo do Processo clínico', 'success');
   }
 }
 
@@ -2687,13 +2696,18 @@ function updatePaciente() {
     return;
   }
   
-  // Validar NUP duplicado (excluindo o paciente atual)
-  if (data.patients.some(p => p.nup === nup && p.n !== editingPacienteN)) {
-    showFeedback('Este NUP já está registado num outro paciente. Utilize um número diferente.', 'error');
+  // NUP: não pode ser de outro doente (zelo_cp_nup.js)
+  const _v = window.zeloCpValidarNUP ? window.zeloCpValidarNUP(nup, nome, editingPacienteN)
+    : { ok: !data.patients.some(p => p.nup === nup && p.n !== editingPacienteN), msg: 'Este NUP já está registado num outro paciente. Utilize um número diferente.' };
+  const _pAtual = data.patients.find(p => p.n === editingPacienteN);
+  // Só é conflito "já internado" se este registo também estiver internado.
+  if (!_v.ok && !(_pAtual && _pAtual.status !== 'internado' && /já está internado/.test(_v.msg))) {
+    showFeedback(_v.msg, 'error');
     return;
   }
   
-  const paciente = data.patients.find(p => p.n === editingPacienteN);
+  const paciente = _pAtual;
+  if (paciente && String(paciente.nup).trim() !== nup && _v.episodio > 1) paciente.episodio = _v.episodio;
   if (paciente) {
     paciente.nome = nome;
     paciente.idade = idade;
@@ -3262,10 +3276,11 @@ function exportRelatorioPDF() {
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_cp_layout.js?v=2"></script>
 <script src="zelo_cid10.js?v=1"></script>
-<script src="zelo_cid_busca.js?v=2"></script>
+<script src="zelo_cid_busca.js?v=3"></script>
 <script src="zelo_cp_relatorio.js?v=8"></script>
 <script src="zelo_cp_listas.js?v=7"></script>
-<script src="zelo_cp_processo.js?v=2"></script>
+<script src="zelo_cp_processo.js?v=3"></script>
+<script src="zelo_cp_nup.js?v=4"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
 <script src="zelo_assistente.js"></script>

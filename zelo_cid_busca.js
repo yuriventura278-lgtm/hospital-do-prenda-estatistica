@@ -119,8 +119,13 @@
     }
   }
 
+  // Só abre para o campo onde a pessoa está a escrever (valores postos pelo
+  // programa não abrem a lista).
   document.addEventListener('focusin', function (e) { if (modoDe(e.target)) mostrar(e.target); });
-  document.addEventListener('input', function (e) { if (e.target === alvo || modoDe(e.target)) mostrar(e.target); }, true);
+  document.addEventListener('input', function (e) { if (document.activeElement !== e.target) return; if (e.target === alvo || modoDe(e.target)) mostrar(e.target); }, true);
+  // Fecha ao clicar fora, e quando o campo deixa de estar visível (janela fechada).
+  document.addEventListener('mousedown', function (e) { if (dd && dd.style.display !== 'none' && !dd.contains(e.target) && e.target !== alvo) fechar(); }, true);
+  setInterval(function () { if (dd && dd.style.display !== 'none' && (!alvo || !alvo.isConnected || !alvo.offsetParent)) fechar(); }, 300);
   document.addEventListener('focusout', function (e) { if (e.target === alvo) setTimeout(function () { if (document.activeElement !== alvo) fechar(); }, 150); });
   document.addEventListener('keydown', function (e) {
     if (!dd || dd.style.display === 'none' || e.target !== alvo) return;

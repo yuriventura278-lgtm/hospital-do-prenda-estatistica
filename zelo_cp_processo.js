@@ -185,7 +185,15 @@
         '<div class="cpp-sec"><h4>Identificação</h4><div class="cpp-grid">' +
           campo('Nome', esc(p.nome), true) + campo('NUP', esc(p.nup)) + campo('Idade', p.idade != null && p.idade !== '' ? esc(p.idade) + ' anos' : '') + campo('Faixa etária', faixa(p.idade)) + campo('Género', esc(p.genero)) +
         '</div></div>' +
-        '<div class="cpp-sec"><h4>Internamento</h4><div class="cpp-grid">' +
+        (function () {
+          var outros = pacientes().filter(function (q) { return q !== p && p.nup && String(q.nup).trim() === String(p.nup).trim(); })
+            .sort(function (a, b) { return String(a.dataEntrada || '').localeCompare(String(b.dataEntrada || '')); });
+          if (!outros.length) return '';
+          return '<div class="cpp-sec"><h4>Outros internamentos deste processo (' + outros.length + ')</h4><div class="cpp-grid">' + outros.map(function (q) {
+            return '<div class="cpp-f largo"><span>' + fmt(q.dataEntrada) + (q.status === 'internado' ? ' · internado' : ' → ' + fmt(q.dataSaida) + (q.tipoSaida ? ' · ' + esc(q.tipoSaida) : '')) + '</span><b><button type="button" class="cpp-bt" data-outro="' + q.n + '" style="padding:4px 10px">Ver este internamento</button></b></div>';
+          }).join('') + '</div></div>';
+        })() +
+        '<div class="cpp-sec"><h4>Internamento' + (Number(p.episodio) > 1 ? ' (' + p.episodio + 'º do processo)' : '') + '</h4><div class="cpp-grid">' +
           campo('Data e hora de entrada', fmtDH(p.dataEntrada)) + campo('Cama / Sala', esc(p.cama)) + campo('Proveniência', esc(p.proveniencia)) + campo('Dias internado', nDias == null ? '' : nDias + ' dia(s)') +
           campo(diags(p).length > 1 ? 'Diagnósticos de entrada (' + diags(p).length + ')' : 'Diagnóstico de entrada', diagsHTML(p), true) +
           campo('Registado por', autorTxt(p.registadoPor, p.registadoFuncao, p.registadoEm), true) +
@@ -202,6 +210,7 @@
         '<button type="button" class="cpp-bt p" data-acao="atu">Atualizar dados</button>' +
         (internado ? '<button type="button" class="cpp-bt s" data-acao="sai">Registar saída</button>' : '') + '</div></div>';
     ov.querySelector('[data-pdf]').addEventListener('click', function () { pdfProcesso(p.n); });
+    ov.querySelectorAll('[data-outro]').forEach(function (b) { b.addEventListener('click', function () { abrir(+b.dataset.outro); }); });
     ov.querySelectorAll('[data-acao]').forEach(function (b) {
       b.addEventListener('click', function () {
         fechar();
@@ -251,12 +260,12 @@
     var modal = document.getElementById('editModal'); if (!modal || document.getElementById('cpp-eliminar')) return;
     var foot = modal.querySelector('.modal-footer'); if (!foot) return;
     var b = document.createElement('button'); b.type = 'button'; b.id = 'cpp-eliminar'; b.className = 'btn cpp-eliminar';
-    b.innerHTML = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Eliminar registo';
+    b.innerHTML = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Anular registo';
     foot.insertBefore(b, foot.firstChild);
     b.addEventListener('click', function () {
       var n; try { n = editingPacienteN; } catch (e) { n = null; }
       var p = porN(n); if (!p) return;
-      if (!confirm('Eliminar o registo de ' + p.nome + ' (NUP ' + (p.nup || '—') + ')?\n\nO registo sai deste serviço em todos os computadores. Esta ação não pode ser desfeita.')) return;
+      if (!confirm('Anular o registo de ' + p.nome + ' (NUP ' + (p.nup || '—') + ')?\n\nSai da lista e das estatísticas deste serviço, mas o processo NÃO é apagado: fica guardado no arquivo do Processo clínico e pode ser restaurado.')) return;
       var orig = window.confirm; window.confirm = function () { return true; };   // já confirmou acima
       try { deletePaciente(p.n); } finally { window.confirm = orig; }
       if (!porN(p.n)) { try { closeModal('editModal'); } catch (e) {} try { editingPacienteN = null; } catch (e) {} }
