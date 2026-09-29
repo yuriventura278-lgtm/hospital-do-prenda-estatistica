@@ -18,6 +18,11 @@
     if (document.readyState === 'loading') document.write('<script src="' + url('zelo_graficos.js') + '"><\/script>');
     else { var g = document.createElement('script'); g.src = url('zelo_graficos.js'); document.head.appendChild(g); }
   }
+  // Ecrã de espera por inatividade (logótipo em puzzle) em todas as páginas.
+  if (!document.querySelector('script[src*="zelo_protecao_ecra.js"]')) {
+    var pe = document.createElement('script'); pe.src = url('zelo_protecao_ecra.js?v=1'); pe.defer = true;
+    (document.head || document.documentElement).appendChild(pe);
+  }
   if (!document.querySelector('script[src*="zelo_ultima_alteracao.js"]')) {
     var ua = document.createElement('script'); ua.src = url('zelo_ultima_alteracao.js?v=5'); ua.defer = true;
     (document.head || document.documentElement).appendChild(ua);

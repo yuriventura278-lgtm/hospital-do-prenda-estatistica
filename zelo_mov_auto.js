@@ -260,20 +260,26 @@
       inp.style.background = '#F1F5F9'; inp.style.color = '#334155';
     });
   }
+  function eAdmin() { try { return sessionStorage.getItem('zeloRole') === 'admin'; } catch (e) { return false; } }
+  window.addEventListener('zelo-gate-ready', function () { try { faixa(); } catch (e) {} });
   function faixa() {
     var el = document.getElementById('mva-faixa');
     var sec = document.querySelector('.table-section'); if (!sec) return;
     if (!el) { el = document.createElement('div'); el.id = 'mva-faixa'; sec.parentNode.insertBefore(el, document.getElementById('m2') || sec); }
     var on = !desligado(), noMes = typeof currentMonth !== 'undefined' && auto[currentMonth];
+    // Só os administradores veem esta faixa e podem desligar/ligar o
+    // preenchimento automático (por omissão fica ligado). Os outros
+    // utilizadores veem apenas o Movimento.
+    if (!eAdmin()) { el.style.cssText = 'display:none'; el.innerHTML = ''; return; }
     el.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:12px;padding:10px 14px;margin-bottom:12px;font:600 .86rem Inter,"Segoe UI",Arial,sans-serif;' +
       (on ? 'background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46' : 'background:#F1F5F9;border:1px solid #E2E8F0;color:#475569');
     el.innerHTML = on
       ? '<span style="font-size:1.1rem">⟳</span><span style="flex:1 1 300px;min-width:0">' + (noMes ? '<b>Preenchido automaticamente</b> a partir do Controlo de Pacientes (entradas, saídas, óbitos, dias-doente e dias de cama = camas × dias). Para corrigir um número, corrija o registo do doente no Controlo de Pacientes.' : 'Este mês não tem doentes no Controlo de Pacientes — preenchimento manual.') + '</span>' +
         '<button type="button" id="mva-off" style="margin-left:auto;flex-shrink:0;border:1px solid #A7F3D0;background:#fff;color:#065F46;border-radius:9px;padding:6px 10px;font:700 .78rem Inter,Arial,sans-serif;cursor:pointer">Preencher à mão</button>'
-      : '<span>Preenchimento automático desligado neste serviço.</span><button type="button" id="mva-on" style="margin-left:auto;border:1px solid #CBD5E1;background:#fff;color:#1E3A5F;border-radius:9px;padding:6px 10px;font:700 .78rem Inter,Arial,sans-serif;cursor:pointer">Ligar preenchimento automático</button>';
+      : '<span><b>Preenchimento automático desligado</b> neste serviço — os números do Movimento são escritos à mão. (Só administradores veem esta faixa.)</span><button type="button" id="mva-on" style="margin-left:auto;border:1px solid #CBD5E1;background:#fff;color:#1E3A5F;border-radius:9px;padding:6px 10px;font:700 .78rem Inter,Arial,sans-serif;cursor:pointer">Ligar preenchimento automático</button>';
     var off = document.getElementById('mva-off'), onb = document.getElementById('mva-on');
-    if (off) off.onclick = function () { if (!confirm('Desligar o preenchimento automático neste serviço? Os números ficam como estão e passam a ser escritos à mão.')) return; data.__autoDesligado = true; auto = {}; persistData(); renderTable(); updateStats(); faixa(); };
-    if (onb) onb.onclick = function () { data.__autoDesligado = false; persistData(); aplicar(); };
+    if (off) off.onclick = function () { if (!eAdmin()) return; if (!confirm('Desligar o preenchimento automático neste serviço? Os números ficam como estão e passam a ser escritos à mão.')) return; data.__autoDesligado = true; auto = {}; persistData(); renderTable(); updateStats(); faixa(); };
+    if (onb) onb.onclick = function () { if (!eAdmin()) return; data.__autoDesligado = false; persistData(); aplicar(); };
   }
   function envolver() {
     var r = window.renderTable; if (typeof r !== 'function' || r.__mva) return false;
