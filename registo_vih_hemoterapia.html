@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt" data-theme="light">
+<head>
+<style id="zelo-sem-setas">/* ZELO: nenhuma caixa de preenchimento com setas (em todo o sistema) */
+input[type=number]{-moz-appearance:textfield !important;appearance:textfield !important}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none !important;appearance:none !important;margin:0 !important;display:none !important}</style>
+<script id="zelo-sem-setas-js">/* A roda do rato e as setas do teclado não mudam números sem querer
+   (as páginas que usam as setas para andar entre células continuam a funcionar). */
+(function(){if(window.__zeloSemSetas)return;window.__zeloSemSetas=1;
+function num(e){return e&&e.tagName==='INPUT'&&e.type==='number';}
+document.addEventListener('wheel',function(e){var t=e.target;if(num(t)&&document.activeElement===t)t.blur();},{passive:true});
+document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='ArrowUp'||e.key==='ArrowDown')&&!e.defaultPrevented)e.preventDefault();});})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
+    window.__fbGetRange = (path,de,ate)=>get(query(ref(db,path), orderByKey(), startAt(de), endAt(ate))).then(snap=>snap.exists()?snap.val():null);
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — o registo fica guardado neste computador.', e);
+    window.__fbReady = false;
+  }
+</script>
+<script src="zelo_espera.js"></script>
+<script defer src="zelo_cabecalho.js"></script>
+<script>document.documentElement.style.visibility='hidden';</script>
+<script>window.ZELO_MODULE='sistemas_independentes';</script>
+<script>window.ZELO_ITEM='registo_vih_hemoterapia';</script>
+<script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_pagegate_watchdog.js"></script>
+<script src="zelo_indexeddb.js"></script>
+<script src="zelo_sync.js"></script>
+<script src="zelo_pdf.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<title>Zelo — Registo de VIH — Hemoterapia</title>
+<link rel="stylesheet" href="zelo_vih.css?v=1">
+<script>
+window.VIH_CFG = { mod: 'vih_hemoterapia', titulo: 'Registo de VIH — Hemoterapia', curto: 'Hemoterapia', setor: 'Hemoterapia', classe: 'vih-hemo',
+  fonte: 'Livro de registo de testagem do Serviço de Hemoterapia' };
+</script>
+</head>
+<body>
+<header>
+  <div class="logo-area">
+    <div class="logo-img"><img src="icons/logo.png" alt=""></div>
+    <div class="logo-text">
+      <h1>Zelo</h1>
+      <p>Hemoterapia · Registo de VIH</p>
+    </div>
+  </div>
+  <div class="hdr-mid">
+    <div class="hdr-date-wrap">
+      <label for="data-registo">Data</label>
+      <input type="date" id="data-registo" class="hdr-date-inp">
+    </div>
+    <span class="clock-b" id="clock">--:--:--</span>
+    <span id="last-saved-status" style="display:none;font-size:.65rem;color:#64748B;margin-left:8px;white-space:nowrap;">· Última alteração: <span id="last-saved-name">—</span> às <span id="last-saved-time">—</span></span>
+  </div>
+  <div class="hdr-right">
+    <a class="btn-h btn-out" href="index.html" data-ic="home">Início</a>
+    <button type="button" class="btn-h btn-out" id="btnPdfDia" data-ic="pdf">Exportar PDF</button>
+    <button type="button" class="btn-h btn-save" id="btnGuardar" data-ic="save">Guardar</button>
+  </div>
+</header>
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="sb-hdr"><span>Registo de VIH · Hemoterapia</span></div>
+    <div class="nav-list">
+      <button class="nav-item" data-sec="sec-dashboard" data-ic="dash">Dashboard</button>
+      <button class="nav-item active" data-sec="sec-registo" data-ic="reg">Registo Diário</button>
+      <div class="sb-sec">Relatórios</div>
+      <button class="nav-item" data-sec="sec-semanal" data-ic="sem">Semanal</button>
+      <button class="nav-item" data-sec="sec-mensal" data-ic="mes">Relatório Mensal</button>
+      <button class="nav-item" data-sec="sec-trimestral" data-ic="tri">Trimestral</button>
+      <button class="nav-item" data-sec="sec-semestral" data-ic="tri">Semestral</button>
+      <button class="nav-item" data-sec="sec-anual" data-ic="ano">Anual</button>
+      <hr class="sb-divider">
+      <button class="nav-item" data-sec="sec-historico" data-ic="hist">Histórico</button>
+      <button class="nav-item" id="btnJson" data-ic="json">Cópia de segurança (JSON)</button>
+    </div>
+  </nav>
+  <main class="main-content">
+    <!-- DASHBOARD -->
+    <div class="section" id="sec-dashboard">
+      <div class="pg-hdr"><div class="pg-hdr-icon" data-ic="dash"></div><div><h2>Dashboard</h2><p>Registo de VIH · Hemoterapia</p></div>
+        <div class="pg-extra period-row" style="margin:0;padding:8px 12px"><div class="fld"><label for="dash-mes">Mês</label><input type="month" id="dash-mes"></div></div></div>
+      <div class="dash-grid" id="dashKpis"></div>
+      <div class="card"><div class="card-label">Testados e positivos por mês · <span id="dashAno"></span></div><div id="dashCols"></div></div>
+      <div class="grid2">
+        <div class="card"><div class="card-label">Testados por faixa etária (mês)</div><div id="dashFaixas"></div></div>
+        <div class="card"><div class="card-label">Positivos por faixa etária (mês)</div><div id="dashFaixasP"></div></div>
+      </div>
+    </div>
+    <!-- REGISTO DIÁRIO -->
+    <div class="section active" id="sec-registo">
+      <div class="pg-hdr"><div class="pg-hdr-icon" data-ic="reg"></div><div><h2>Registo Diário de VIH</h2><p id="vihDiaTxt"></p></div></div>
+      <div class="card">
+        <div class="card-label">Identificação</div>
+        <div class="grid2">
+          <div class="fld"><label for="vihFormacao">Formação Sanitária</label><input type="text" id="vihFormacao" placeholder="Hospital do Prenda"></div>
+          <div class="fld"><label for="vihFonte">Fonte</label><input type="text" id="vihFonte"></div>
+        </div>
+      </div>
+      <div class="card-label" style="margin:6px 0 10px">Resumo geral (automático)</div>
+      <div class="kpi-grid" id="vihResumo"></div>
+      <div class="aviso-cons" id="vihAviso" style="margin:-6px 0 14px"></div>
+      <div class="grid3" id="vihCards"></div>
+      <div class="card">
+        <div class="card-label">Observações</div>
+        <div class="fld"><textarea id="vihObs" placeholder="Notas do dia (opcional)"></textarea></div>
+      </div>
+    </div>
+    <div class="section" id="sec-semanal">
+      <div class="pg-hdr"><div class="pg-hdr-icon" data-ic="sem"></div><div><h2>Relatório Semanal</h2><p>Registo de VIH · Hemoterapia</p></div></div>
+      <div class="period-row"><div class="fld"><label for="rs-data">Um dia da semana</label><input type="date" id="rs-data"></div><button class="btn-load" data-gerar="semanal">Gerar relatório</button><button class="btn-load pdf" data-pdf="semanal" data-ic="pdf">PDF</button></div>
+      <div id="out-semanal"><div class="no-data">Escolha o período e carregue em «Gerar relatório»</div></div>
+    </div>
+    <div class="section" id="sec-mensal">
+      <div class="pg-hdr"><div class="pg-hdr-icon" data-ic="mes"></div><div><h2>Relatório Mensal</h2><p>Registo de VIH · Hemoterapia</p></div></div>
+      <div class="period-row"><div class="fld"><label for="rm-mes">Mês</label><input type="month" id="rm-mes"></div><button class="btn-load" data-gerar="mensal">Gerar relatório</button><button class="btn-load pdf" data-pdf="mensal" data-ic="pdf">PDF</button></div>
+      <div id="out-mensal"><div class="no-data">Escolha o período e carregue em «Gerar relatório»</div></div>
+    </div>
+    <div class="section" id="sec-trimestral">
+      <div class="pg-hdr"><div class="pg-hdr-icon" data-ic="tri"></div><div><h2>Relatório Trimestral</h2><p>Registo de VIH · Hemoterapia</p></div></div>
+      <div class="period-row"><div class="fld"><label for="rt-ano">Ano</label><input type="number" id="rt-ano" min="2020" max="2100"></div><div class="fld"><label for="rt-q">Trimestre</label><select id="rt-q"><option value="1">1.º (Jan–Mar)</option><option value="2">2.º (Abr–Jun)</option><option value="3">3.º (Jul–Set)</option><option value="4">4.º (Out–Dez)</option></select></div><button class="btn-load" data-gerar="trimestral">Gerar relatório</button><button class="btn-load pdf" data-pdf="trimestral" data-ic="pdf">PDF</button></div>
+      <div id="out-trimestral"><div class="no-data">Escolha o período e carregue em «Gerar relatório»</div></div>
+    </div>
+    <div class="section" id="sec-semestral">
+      <div class="pg-hdr"><div class="pg-hdr-icon" data-ic="tri"></div><div><h2>Relatório Semestral</h2><p>Registo de VIH · Hemoterapia</p></div></div>
+      <div class="period-row"><div class="fld"><label for="rsm-ano">Ano</label><input type="number" id="rsm-ano" min="2020" max="2100"></div><div class="fld"><label for="rsm-s">Semestre</label><select id="rsm-s"><option value="1">1.º (Jan–Jun)</option><option value="2">2.º (Jul–Dez)</option></select></div><button class="btn-load" data-gerar="semestral">Gerar relatório</button><button class="btn-load pdf" data-pdf="semestral" data-ic="pdf">PDF</button></div>
+      <div id="out-semestral"><div class="no-data">Escolha o período e carregue em «Gerar relatório»</div></div>
+    </div>
+    <div class="section" id="sec-anual">
+      <div class="pg-hdr"><div class="pg-hdr-icon" data-ic="ano"></div><div><h2>Relatório Anual</h2><p>Registo de VIH · Hemoterapia</p></div></div>
+      <div class="period-row"><div class="fld"><label for="ra-ano">Ano</label><input type="number" id="ra-ano" min="2020" max="2100"></div><button class="btn-load" data-gerar="anual">Gerar relatório</button><button class="btn-load pdf" data-pdf="anual" data-ic="pdf">PDF</button></div>
+      <div id="out-anual"><div class="no-data">Escolha o período e carregue em «Gerar relatório»</div></div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="section" id="sec-historico">
+      <div class="pg-hdr"><div class="pg-hdr-icon" data-ic="hist"></div><div><h2>Histórico</h2><p>Dias registados · clique para abrir</p></div></div>
+      <div class="period-row"><div class="fld"><label for="hist-mes">Mês</label><input type="month" id="hist-mes"></div><button class="btn-load alt" id="histTodos">Ver todos</button></div>
+      <div class="card" style="padding:0;overflow:hidden" id="histLista"></div>
+    </div>
+  </main>
+</div>
+<div class="save-bar">
+  <span class="save-status" id="saveStatus"></span>
+  <button type="button" class="btn-h btn-save" id="btnGuardar2" data-ic="save">Guardar</button>
+</div>
+<div class="ov" id="ovGuardar">
+  <div class="mdl">
+    <div class="mdl-h"><b>Confirmar registo</b><small id="mdlSub"></small></div>
+    <div class="mdl-b" id="mdlCorpo"></div>
+    <div class="mdl-f"><button class="n" id="mdlNao">Não — corrigir</button><button class="s" id="mdlSim">Sim — guardar</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="zelo_vih.js?v=1"></script>
+<script src="zelo_servicos_menu.js"></script>
+<script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script src="zelo_assistente.js"></script>
+</body>
+</html>

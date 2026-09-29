@@ -47,6 +47,8 @@
     if (modPerm === true || modPerm === undefined || modPerm === null || modPerm === 'editar' || modPerm === 'leitura') return true;
     if (typeof modPerm === 'object') {
       if (!itemSlug) return true;
+      var HERDA = { registo_vih_laboratorio: 'laboratorio_geral', registo_vih_hemoterapia: 'hemoterapia' };
+      if (modPerm[itemSlug] === undefined && HERDA[itemSlug]) return modPerm[HERDA[itemSlug]] !== false;
       return modPerm[itemSlug] !== false;
     }
     return true;

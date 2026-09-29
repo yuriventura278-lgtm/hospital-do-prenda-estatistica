@@ -104,10 +104,12 @@ const SERVICOS_MENU = [
     relatorios: [
       // oculto a pedido: { label: 'Relatório Diário', file: 'Laboratório_Clínico.html', modulo: 'servicos', item: 'laboratorio_clinico' } — sistema antigo do "banco", descomentar para restaurar
       { label: 'Exames Realizados', file: 'laboratorio_geral.html', modulo: 'sistemas_independentes', item: 'laboratorio_geral' },
+      { label: 'Registo de VIH', file: 'registo_vih_laboratorio.html', modulo: 'sistemas_independentes', item: 'registo_vih_laboratorio' },
     ] },
   { nome: 'Hemoterapia', categoria: 'hemoterapia', icon: 'droplet', cor: '#BE123C',
     relatorios: [
       { label: 'Saúde Pública', file: 'hemoterapia.html', modulo: 'sistemas_independentes', item: 'hemoterapia' },
+      { label: 'Registo de VIH', file: 'registo_vih_hemoterapia.html', modulo: 'sistemas_independentes', item: 'registo_vih_hemoterapia' },
     ] },
   { nome: 'Fisioterapia', categoria: 'fisioterapia', icon: 'users', cor: '#059669',
     relatorios: [{ label: 'Relatório Diário', file: 'banco_fisioterapia_v1-1-1.html', modulo: 'servicos', item: 'fisioterapia' }] },
