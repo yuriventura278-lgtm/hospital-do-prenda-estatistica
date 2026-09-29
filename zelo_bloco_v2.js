@@ -199,6 +199,74 @@
     .main-content{padding-bottom:110px !important}
   }
   .b2-fecharf{display:none;margin-left:auto;border:1px solid #E2E8F0;background:#fff;border-radius:10px;width:36px;height:36px;font-size:1.2rem;cursor:pointer}
+
+  /* ── Estilo do Controlo de Pacientes (azul-marinho) ── */
+  html:root{--bx-accent:#1E3A5F;--bx-tint:#EEF2F8;--bx-ring:#C7D2E4}
+  .bx-hdr i{background:linear-gradient(135deg,#1E3A5F,#2B5A8A) !important}
+  .b2-hero,.b2-grid,.b2-grid2,.b2-fab,.b2-card.b2-tlcard{display:none !important}
+  .b3-faixa{background:linear-gradient(135deg,#1E3A5F,#2B5A8A);color:#fff;border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 8px 20px rgba(30,58,95,.2);margin-bottom:14px;font-family:Inter,"Segoe UI",Arial,sans-serif}
+  .b3-faixa .d{margin-right:auto}.b3-faixa .d small{display:block;font:700 .62rem Inter,Arial;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
+  .b3-faixa .d b{display:block;font:800 1.15rem ui-monospace,Consolas,monospace;margin-top:2px}.b3-faixa .d span{font-size:.8rem;opacity:.85}
+  .b3-nums{display:flex;flex-wrap:wrap}
+  .b3-num{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:78px;padding:2px 10px;border-left:1px solid rgba(255,255,255,.18)}
+  .b3-num b{font:800 1.5rem ui-monospace,Consolas,monospace;line-height:1.1}.b3-num span{font:700 .56rem Inter,Arial;letter-spacing:.08em;text-transform:uppercase;opacity:.85;white-space:nowrap}
+  .b3-num.u b{color:#FCA5A5}.b3-num.e b{color:#A5F3FC}.b3-num.m b{color:#93C5FD}.b3-num.f b{color:#F9A8D4}.b3-num.s b{color:#FCD34D}.b3-num.v b{color:#C4B5FD}
+  .b3-ctl{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .b3-btn{display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:11px 18px;font:700 .86rem Inter,Arial;cursor:pointer;border:1.5px solid #CBD5E1;background:#fff;color:#1E3A5F}
+  .b3-btn svg{width:16px;height:16px}.b3-btn.p{background:#1E3A5F;border-color:#1E3A5F;color:#fff;box-shadow:0 6px 14px rgba(30,58,95,.25)}
+  .b3-card{background:#fff;border:1px solid #E3E8F0;border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.04);margin-bottom:16px;font-family:Inter,"Segoe UI",Arial,sans-serif;color:#0F172A}
+  .b3-tabs{display:flex;gap:4px;padding:10px 12px 0;border-bottom:1px solid #E3E8F0;background:#FAFBFD;overflow-x:auto}
+  .b3-tab{border:1px solid transparent;border-bottom:0;margin-bottom:-1px;background:transparent;padding:10px 16px;border-radius:10px 10px 0 0;font:700 .86rem Inter,Arial;color:#64748B;display:flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap}
+  .b3-tab i{font-style:normal;background:#F1F5F9;border-radius:999px;padding:1px 8px;font:800 .74rem ui-monospace,monospace;color:#475569}
+  .b3-tab.on{background:#fff;color:#1E3A5F;border-color:#E3E8F0}.b3-tab.on i{background:#1E3A5F;color:#fff}
+  .b3-pane{display:none}.b3-pane.on{display:block}
+  .b3-barra{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px}
+  .b3-busca{flex:1 1 240px;display:flex;align-items:center;gap:8px;border:1.5px solid #D5DEEA;border-radius:10px;padding:0 12px;background:#F8FAFC;height:42px;min-width:180px}
+  .b3-busca svg{width:16px;height:16px;color:#94A3B8;flex-shrink:0}.b3-busca input{border:0 !important;background:transparent !important;outline:none;flex:1;font:500 .88rem Inter,Arial;box-shadow:none !important;padding:0 !important}
+  .b3-gh{display:flex;align-items:center;gap:10px;margin:6px 16px 0;padding:7px 12px;border-radius:10px;font:800 .76rem Inter,Arial;letter-spacing:.05em;text-transform:uppercase;color:var(--g);background:var(--gf)}
+  .b3-gh b{margin-left:auto;font:800 .95rem ui-monospace,monospace}
+  .b3-tw{overflow-x:auto;padding:0 16px}
+  .b3-tw table{width:100%;border-collapse:separate;border-spacing:0;font:500 .86rem Inter,Arial;margin:4px 0 6px;min-width:780px}
+  .b3-tw th{font:800 .64rem Inter,Arial;letter-spacing:.07em;text-transform:uppercase;color:#64748B;text-align:left;padding:9px 10px;border-bottom:1px solid #E3E8F0;white-space:nowrap;background:transparent}
+  .b3-tw td{padding:9px 10px;border-bottom:1px solid #EEF2F7;vertical-align:middle;color:#0F172A}
+  .b3-tw tbody tr:nth-child(even) td{background:#FAFBFD}.b3-tw tbody tr:hover td{background:#EEF4FB}
+  .b3-tw tbody tr td:first-child{box-shadow:inset 3px 0 0 var(--g)}
+  .b3-tw tr.ed td{background:#FFFBEB !important}
+  .b3-hora{font:800 .92rem ui-monospace,Consolas,monospace}
+  .b3-esp{display:flex;align-items:center;gap:8px;font-weight:700;white-space:nowrap}
+  .b3-esp i{width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.b3-esp i svg{width:14px;height:14px}
+  .b3-ac{display:flex;gap:5px}
+  .b3-ac button{display:inline-flex;align-items:center;gap:5px;border:1px solid #E3E8F0;background:#fff;border-radius:8px;padding:5px 9px;font:700 .74rem Inter,Arial;color:#334155;cursor:pointer;white-space:nowrap}
+  .b3-ac button.r{color:#DC2626;border-color:#FECACA;padding:5px 8px}
+  .b3-tw tr:hover .b3-ac button.ed{background:#1E3A5F;border-color:#1E3A5F;color:#fff}.b3-tw tr:hover .b3-ac button.r{background:#DC2626;border-color:#DC2626;color:#fff}
+  .b3-total{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;padding:10px 16px 14px}
+  .b3-chipt{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font:700 .74rem Inter,Arial;border:1px solid #E3E8F0;background:#fff;color:#334155}
+  .b3-chipt b{font-family:ui-monospace,monospace;font-size:.86rem}.b3-chipt.u{color:#B91C1C;background:#FEF2F2;border-color:#FECACA}.b3-chipt.e{color:#0E7490;background:#ECFEFF;border-color:#A5F3FC}.b3-chipt.t{color:#fff;background:#1E3A5F;border-color:#1E3A5F}
+  .b3-mob{display:none}
+  .b3-lin{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #EEF2F7;box-shadow:inset 3px 0 0 var(--g)}
+  .b3-lin .t{flex:1;min-width:0}.b3-lin .t b{font-size:.92rem}.b3-lin .l2{font-size:.74rem;color:#64748B;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+  .b3-pad{padding:4px 16px 16px}
+  .b2-fil{padding:0}
+  .b2-chip.on{background:#1E3A5F}
+  .b2-card.b2-form{border-radius:18px;max-width:760px;width:100%;margin:0 auto;max-height:calc(100vh - 40px);overflow:auto;box-shadow:0 24px 60px rgba(15,23,42,.35)}
+  .b2-card.b2-form .b2-ch{background:linear-gradient(90deg,#1E3A5F,#2B5A8A);color:#fff;position:sticky;top:0;z-index:2}
+  .b2-card.b2-form .b2-ch small{color:rgba(255,255,255,.8)}
+  .b2-card.b2-form .b2-ch .i{background:rgba(255,255,255,.14);box-shadow:none}
+  .b2-card.b2-form .b2-cb{padding-top:12px}
+  .b3-ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2147483646;display:none;align-items:flex-start;justify-content:center;padding:20px 14px;overflow:auto}
+  .b3-ov.on{display:flex}
+  .b2-fecharf{display:inline-flex !important;margin-left:auto;background:rgba(255,255,255,.14) !important;border:1px solid rgba(255,255,255,.25) !important;color:#fff;align-items:center;justify-content:center}
+  .b2-et.on{border-color:#1E3A5F;background:#EEF2F8;box-shadow:0 0 0 3px rgba(30,58,95,.15);color:#1E3A5F}
+  .b2-b.p{background:linear-gradient(135deg,#2B5A8A,#1E3A5F);box-shadow:0 10px 22px rgba(30,58,95,.3)}.b2-b.o{color:#1E3A5F;border-color:#C7D2E4}
+  .b2-agora{background:#1E3A5F}
+  .b3-tlw{padding:12px 16px 14px}
+  .b2-link{color:#1E3A5F}
+  @media (max-width:700px){
+    .b3-tw{display:none}.b3-mob{display:block}
+    .b3-nums{width:100%}.b3-num{flex:1;min-width:0;padding:2px 3px}.b3-num:first-child{border-left:0}.b3-num b{font-size:1.1rem}.b3-num span{font-size:.46rem;white-space:normal;text-align:center;letter-spacing:.03em}
+    .b3-tab{padding:8px 10px;font-size:.78rem}.b3-gh{margin:8px 10px 4px}
+    .b3-ov{padding:0}.b2-card.b2-form{border-radius:0;max-height:100vh;min-height:100vh}
+  }
   `;
 
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -218,7 +286,7 @@
   function nomeTec(tag) { for (var i = 0; i < ANEST.length; i++) if (ANEST[i][1] === tag) return ANEST[i][2]; return tag; }
 
   // ── Estado do formulário ──
-  var F = null, edit = null, filtro = 'todas', verTodasEsp = false;
+  var F = null, edit = null, filtro = 'todas', verTodasEsp = false, sepB = 'cir', buscaB = '';
   function novoF(manter) {
     F = { esp: manter ? F.esp : '', sexo: '', carac: manter ? F.carac : 'Urgente', idade: '', hora: '', diag: '', anest: {}, desfecho: '' };
   }
@@ -234,6 +302,17 @@
     var espN = {}; ss.forEach(function (s) { espN[s.esp] = (espN[s.esp] || 0) + 1; });
     var dataSel = ($('regDate') || {}).value || hojeISO();
 
+    // Faixa de números (como no Controlo de Pacientes)
+    var fx = $('b3-nums');
+    if (fx) {
+      $('b3-data').textContent = dataLonga(dataSel);
+      var nn = function (c, v, r) { return '<div class="b3-num ' + c + '"><b>' + v + '</b><span>' + r + '</span></div>'; };
+      fx.innerHTML = nn('', n, 'Cirurgias') + nn('u', urg, 'Urgentes') + nn('e', elt, 'Eletivas') + nn('m', mas, 'Homens') + nn('f', fem, 'Mulheres') +
+        nn('s', sus, 'Suspensas') + nn('', ob, 'Óbitos') + nn('v', uci, 'Transf. UCI');
+      var tabs = [['cir', 'Cirurgias do turno', n], ['tl', 'Linha do tempo', '24 h'], ['esp', 'Especialidades', Object.keys(espN).length], ['an', 'Anestesia e sexo', '']];
+      $('b3-tabs').innerHTML = tabs.map(function (t) { return '<button type="button" class="b3-tab' + (sepB === t[0] ? ' on' : '') + '" data-sep="' + t[0] + '">' + t[1] + (t[2] !== '' ? ' <i>' + t[2] + '</i>' : '') + '</button>'; }).join('');
+      ['cir', 'tl', 'esp', 'an'].forEach(function (k) { var pn = $('b3-p-' + k); if (pn) pn.classList.toggle('on', sepB === k); });
+    }
     // Monitor
     var h = $('b2-hero');
     if (h) {
@@ -281,6 +360,38 @@
         return '<button type="button" class="b2-chip' + (filtro === f[0] ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '<b>' + f[2] + '</b></button>';
       }).join('');
       var vis = ss.filter(function (s) { return filtro === 'todas' || (filtro === 'urg' && s.carac === 'Urgente') || (filtro === 'elet' && s.carac !== 'Urgente') || (filtro === 'int' && (s.deceased || s.transfer)); });
+      var q = String(buscaB || '').toLowerCase().trim();
+      if (q) vis = vis.filter(function (s) { return [s.hora, s.esp, s.diag, s.idade, (s.anest || []).join(' '), s.carac, s.transfer, s.deceased ? 'óbito obito' : ''].join(' ').toLowerCase().indexOf(q) >= 0; });
+      var tabela = $('b3-lista');
+      if (tabela) {
+        var gruposB = [['Urgente', 'Urgentes', URG, '#FEF2F2'], ['Eletiva', 'Eletivas', '#0891B2', '#ECFEFF']];
+        var desf = function (s) { return s.deceased ? '<span class="b2-tg d">† Óbito</span>' : s.transfer === 'UCI' ? '<span class="b2-tg uci">→ UCI</span>' : s.transfer === 'Sala' ? '<span class="b2-tg sl">→ Sala</span>' : '<span style="color:#94A3B8">—</span>'; };
+        var ac = function (s) { return '<div class="b3-ac"><button type="button" class="ed" data-ed="' + s._src + ':' + s._idx + '">' + IC.lista.replace('<svg ', '<svg width="13" height="13" ').replace(IC.lista.match(/<path[^>]*>/)[0], '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>') + 'Editar</button><button type="button" class="r" data-rm="' + s._src + ':' + s._idx + '" title="Remover">×</button></div>'; };
+        var htmlT = '';
+        gruposB.forEach(function (g) {
+          var sub = vis.filter(function (s) { return (s.carac === 'Urgente') === (g[0] === 'Urgente'); });
+          htmlT += '<div style="--g:' + g[2] + ';--gf:' + g[3] + '"><div class="b3-gh">● ' + g[1] + '<b>' + sub.length + '</b></div>';
+          if (!sub.length) { htmlT += '<div class="b2-vazio" style="padding:10px 20px;text-align:left">Nenhuma cirurgia.</div></div>'; return; }
+          htmlT += '<div class="b3-tw"><table><thead><tr><th>Nº</th><th>Hora</th><th>Especialidade</th><th>Sexo · Idade</th><th>Diagnóstico</th><th>Anestesia</th><th>Desfecho</th><th>Ações</th></tr></thead><tbody>' +
+            sub.map(function (s, i) {
+              var e = espInfo(s.esp), ed = edit && edit.src === s._src && edit.idx === s._idx;
+              var sx = s.sexo === 'M' ? '♂ M' : s.sexo === 'F' ? '♀ F' : '—';
+              return '<tr' + (ed ? ' class="ed"' : '') + '><td>' + (i + 1) + '</td><td class="b3-hora">' + esc(s.hora && s.hora !== '—' ? s.hora : '--:--') + '</td>' +
+                '<td><span class="b3-esp"><i style="background:' + e[1] + ';color:' + e[2] + '">' + IC[e[0]] + '</i>' + esc(s.esp) + '</span></td>' +
+                '<td style="white-space:nowrap">' + sx + (s.idade && s.idade !== '—' ? ' · ' + esc(s.idade) + ' anos' : '') + '</td>' +
+                '<td>' + esc(s.diag && s.diag !== '—' ? s.diag : '—') + '</td>' +
+                '<td>' + ((s.anest || []).map(function (a) { return '<span class="b2-tg a" title="' + esc(nomeTec(a)) + '">' + esc(a) + '</span>'; }).join(' ') || '—') + '</td>' +
+                '<td>' + desf(s) + '</td><td>' + ac(s) + '</td></tr>';
+            }).join('') + '</tbody></table></div><div class="b3-mob">' +
+            sub.map(function (s) {
+              var sx = s.sexo === 'M' ? '♂' : s.sexo === 'F' ? '♀' : '';
+              return '<div class="b3-lin"><div class="t"><b>' + esc(s.hora && s.hora !== '—' ? s.hora : '--:--') + ' · ' + esc(s.esp) + '</b><div class="l2">' + sx + (s.idade && s.idade !== '—' ? ' ' + esc(s.idade) + ' anos' : '') +
+                (s.diag && s.diag !== '—' ? ' · ' + esc(s.diag) : '') + ' ' + (s.anest || []).map(function (a) { return '<span class="b2-tg a">' + esc(a) + '</span>'; }).join('') + ' ' + (s.deceased || s.transfer ? desf(s) : '') + '</div></div>' + ac(s) + '</div>';
+            }).join('') + '</div></div>';
+        });
+        tabela.innerHTML = (vis.length || n ? htmlT : '<div class="b2-vazio">Ainda sem cirurgias neste turno. Carregue em "Nova cirurgia".</div>') +
+          '<div class="b3-total"><span class="b3-chipt u">Urgentes <b>' + urg + '</b></span><span class="b3-chipt e">Eletivas <b>' + elt + '</b></span><span class="b3-chipt t">Total <b>' + n + '</b></span></div>';
+      }
       lst.innerHTML = vis.length ? vis.map(function (s) {
         var e = espInfo(s.esp), ed = edit && edit.src === s._src && edit.idx === s._idx;
         var sx = s.sexo === 'M' ? '♂' : s.sexo === 'F' ? '♀' : '';
@@ -321,6 +432,7 @@
   // ── Formulário ──
   function desenharForm() {
     var fm = $('b2-form-corpo'); if (!fm) return;
+    var ft = $('b3-ftit'); if (ft) ft.textContent = edit ? 'Editar cirurgia' : 'Nova cirurgia';
     var espHtml = Object.keys(ESP).map(function (k) {
       var e = ESP[k];
       return '<div class="b2-et' + (F.esp === k ? ' on' : '') + '" data-esp="' + esc(k) + '"><div class="ico" style="background:' + e[1] + ';color:' + e[2] + '">' + IC[e[0]] + '</div>' + esc(k === 'Otorrinolaringologia' ? 'Otorrino' : k) + '</div>';
@@ -393,7 +505,6 @@
     F = { esp: s.esp === '—' ? '' : s.esp, sexo: s.sexo === '—' ? '' : s.sexo, carac: s.carac || 'Urgente', idade: s.idade === '—' ? '' : s.idade, hora: s.hora === '—' ? '' : s.hora,
       diag: s.diag === '—' ? '' : s.diag, anest: an, desfecho: s.deceased ? 'obito' : s.transfer === 'UCI' ? 'uci' : s.transfer === 'Sala' ? 'sala' : '' };
     desenharForm(); desenhar(); abrirFormMob();
-    var f = $('b2-form'); if (f && window.innerWidth > 700) f.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function remover(src, idx) {
     var s; try { s = surgeries[src][idx]; } catch (e) {} if (!s) return;
@@ -403,24 +514,9 @@
   }
   // Altura da barra "Guardar Registo" do rodapé, para o botão ficar por cima dela.
   function medirRodape() { var sb = document.querySelector('.save-bar'); if (sb) document.documentElement.style.setProperty('--b2-rod', (sb.getBoundingClientRect().height || 60) + 'px'); }
-  // No telemóvel o formulário abre em ecrã inteiro: passa para o <body> (fora
-  // de contentores que o limitariam) e volta ao seu lugar ao fechar.
-  var lugarForm = null;
-  function abrirFormMob() {
-    var f = $('b2-form'); if (!f) return;
-    f.classList.add('aberto');
-    if (window.innerWidth <= 700) {
-      if (!lugarForm) { lugarForm = document.createComment('b2-form'); f.parentNode.insertBefore(lugarForm, f); }
-      document.body.appendChild(f); f.classList.add('b2-folha');
-      document.documentElement.classList.add('b2-form-aberto'); f.scrollTop = 0;
-    }
-  }
-  function fecharFormMob() {
-    var f = $('b2-form'); if (!f) return;
-    f.classList.remove('aberto', 'b2-folha');
-    if (lugarForm && lugarForm.parentNode) { lugarForm.parentNode.insertBefore(f, lugarForm); lugarForm.parentNode.removeChild(lugarForm); lugarForm = null; }
-    document.documentElement.classList.remove('b2-form-aberto');
-  }
+  // O formulário abre numa janela (em ecrã inteiro no telemóvel).
+  function abrirFormMob() { var ov = $('b3-ov'); if (ov) { ov.classList.add('on'); ov.scrollTop = 0; var f = $('b2-form'); if (f) f.scrollTop = 0; } }
+  function fecharFormMob() { var ov = $('b3-ov'); if (ov) ov.classList.remove('on'); }
 
   // ── Um só aviso, discreto ──
   var tEl, tT;
@@ -470,15 +566,40 @@
         '<div class="b2-mini" id="b2-mini"></div></div>' +
       '<div class="b2-card"><div class="b2-ch"><span class="i">' + IC.relogio + '</span>Linha do tempo do turno (24 horas)<small><span id="b2-tl-nota"></span><br><span style="color:#EF4444">■</span> Urgente &nbsp;<span style="color:#06B6D4">■</span> Eletiva</small></div>' +
         '<div class="b2-tl"><div class="b2-track" id="b2-track"></div><div class="b2-ax">' + Array.apply(null, Array(24)).map(function (x, i) { return '<span>' + (i % 3 === 0 ? String(i).padStart(2, '0') + 'h' : '') + '</span>'; }).join('') + '</div><div class="b2-sem" id="b2-sem"></div></div></div>' +
-      '<div class="b2-grid"><div class="b2-card b2-form" id="b2-form"><div class="b2-ch"><span class="i">' + IC.mais + '</span>Nova cirurgia<small>campos grandes, toques rápidos</small><button type="button" class="b2-fecharf" id="b2-fecharf" aria-label="Fechar">×</button></div><div class="b2-cb" id="b2-form-corpo"></div></div>' +
+      '<div class="b2-grid"><div class="b2-card b2-form" id="b2-form"><div class="b2-ch"><span class="i">' + IC.mais + '</span><span id="b3-ftit">Nova cirurgia</span><small>toque para escolher</small><button type="button" class="b2-fecharf" id="b2-fecharf" aria-label="Fechar">×</button></div><div class="b2-cb" id="b2-form-corpo"></div></div>' +
         '<div class="b2-card"><div class="b2-ch"><span class="i" style="background:linear-gradient(135deg,#0EA5E9,#2563EB);box-shadow:0 6px 14px rgba(37,99,235,.3)">' + IC.cal + '</span>Cirurgias do turno<small id="b2-lista-nota"></small></div><div class="b2-fil" id="b2-fil"></div><div id="b2-lista"></div><div style="height:12px"></div></div></div>' +
       '<div class="b2-grid2"><div class="b2-card"><div class="b2-ch"><span class="i" style="background:linear-gradient(135deg,#F59E0B,#EA580C);box-shadow:0 6px 14px rgba(234,88,12,.3)">' + IC.osso + '</span>Especialidades do turno<small>urgente · eletiva</small></div><div class="b2-bars" id="b2-bars"></div></div>' +
         '<div class="b2-card"><div class="b2-ch"><span class="i" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);box-shadow:0 6px 14px rgba(109,40,217,.3)">' + IC.gota + '</span>Anestesia e sexo<small>técnicas mais usadas</small></div><div class="b2-anr" id="b2-anr"></div><div class="b2-sx" id="b2-sx"></div></div></div>' +
       '<button type="button" class="b2-fab" id="b2-fab">＋ Nova cirurgia</button>';
     sec.insertBefore(raiz, sec.firstChild);
+    // Estrutura do Controlo de Pacientes: faixa de números, botões, caixa com separadores.
+    var novo = document.createElement('div'); novo.id = 'b3-raiz';
+    novo.innerHTML =
+      '<div class="b3-faixa"><div class="d"><small>Registo diário · turno de 24 horas</small><b id="b2-clock">--:--</b><span id="b3-data"></span></div><div class="b3-nums" id="b3-nums"></div></div>' +
+      '<div class="b3-ctl"><button type="button" class="b3-btn p" id="b3-nova">' + IC.mais + 'Nova cirurgia</button><button type="button" class="b3-btn" id="b3-susp">' + IC.pausa + 'Registar suspensa</button></div>' +
+      '<div class="b3-card"><div class="b3-tabs" id="b3-tabs"></div>' +
+        '<div class="b3-pane" id="b3-p-cir"><div class="b3-barra"><label class="b3-busca">' + P('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>') + '<input type="text" id="b3-q" placeholder="Procurar por especialidade, diagnóstico, hora ou técnica…" autocomplete="off"></label><div class="b2-fil" id="b2-fil"></div></div><div id="b3-lista"></div><div id="b2-lista" style="display:none"></div></div>' +
+        '<div class="b3-pane" id="b3-p-tl"><div class="b3-tlw" id="b3-tlw"></div></div>' +
+        '<div class="b3-pane" id="b3-p-esp"><div class="b3-pad" id="b3-espw"></div></div>' +
+        '<div class="b3-pane" id="b3-p-an"><div id="b3-anw" style="padding-top:12px"></div></div>' +
+      '</div>';
+    sec.insertBefore(novo, raiz);
+    ['b2-fil', 'b2-lista'].forEach(function (id) { var v = raiz.querySelector('#' + id); if (v) v.parentNode.removeChild(v); });
+    // Reaproveita as peças já existentes dentro dos separadores.
+    var mover = function (id, dest) { var el = $(id), d = $(dest); if (el && d) d.appendChild(el); };
+    var tl = $('b2-track'); if (tl) { var velhoCard = tl.closest('.b2-card'); if (velhoCard) velhoCard.style.display = 'none'; $('b3-tlw').appendChild(tl.parentNode); var nota = $('b2-tl-nota'); if (nota) { var sp = document.createElement('div'); sp.style.cssText = 'font:600 .74rem Inter,Arial;color:#64748B;margin-top:8px'; sp.appendChild(nota); sp.insertAdjacentHTML('beforeend', ' · <span style="color:#EF4444">■</span> Urgente &nbsp;<span style="color:#06B6D4">■</span> Eletiva · toque numa cirurgia para editar'); $('b3-tlw').appendChild(sp); } }
+    mover('b2-bars', 'b3-espw'); mover('b2-anr', 'b3-anw'); mover('b2-sx', 'b3-anw');
+    var velhaClock = raiz.querySelector('#b2-clock'); if (velhaClock) velhaClock.removeAttribute('id');
+    // Formulário numa janela (como "Novo Paciente").
+    var ov = document.createElement('div'); ov.className = 'b3-ov'; ov.id = 'b3-ov';
+    document.body.appendChild(ov);
+    var fm = $('b2-form'); if (fm) ov.appendChild(fm);
+    ov.addEventListener('click', function (e) { if (e.target === ov) fecharFormMob(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ov.classList.contains('on')) fecharFormMob(); });
+    $('b3-q').addEventListener('input', function () { buscaB = this.value; desenhar(); });
 
     document.addEventListener('click', function (e) {
-      if (!e.target.closest || !e.target.closest('#b2-raiz,#b2-form')) return;
+      if (!e.target.closest || !e.target.closest('#b2-raiz,#b2-form,#b3-raiz')) return;
       var t;
       if ((t = e.target.closest('[data-esp]'))) { lerCampos(); F.esp = t.dataset.esp; desenharForm(); return; }
       if ((t = e.target.closest('[data-sexo]'))) { lerCampos(); F.sexo = t.dataset.sexo; desenharForm(); return; }
@@ -492,6 +613,9 @@
       if (e.target.closest('#b2-fecharf')) { fecharFormMob(); return; }
       if (e.target.closest('#b2-fab')) { abrirFormMob(); return; }
       if ((t = e.target.closest('[data-f]'))) { filtro = t.dataset.f; desenhar(); return; }
+      if ((t = e.target.closest('[data-sep]'))) { sepB = t.dataset.sep; desenhar(); return; }
+      if (e.target.closest('#b3-nova')) { if (edit) { edit = null; novoF(); desenharForm(); } abrirFormMob(); return; }
+      if (e.target.closest('#b3-susp')) { var nv = document.querySelector('.nav-item[data-section="suspensas"]'); if (nv) nv.click(); return; }
       if (e.target.closest('#b2-vertodas')) { verTodasEsp = !verTodasEsp; desenhar(); return; }
       if ((t = e.target.closest('[data-ed]'))) { var p = t.dataset.ed.split(':'); editar(p[0], +p[1]); return; }
       if ((t = e.target.closest('[data-rm]'))) { var q = t.dataset.rm.split(':'); remover(q[0], +q[1]); return; }
