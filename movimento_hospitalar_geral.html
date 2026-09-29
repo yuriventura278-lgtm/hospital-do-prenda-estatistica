@@ -174,6 +174,7 @@ tr.novo td{animation:realce 2.4s ease-out}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="zelo_servicos_menu.js"></script>
+<script src="zelo_mov_auto.js?v=2"></script>
 <script>
 /* Movimento Hospitalar Geral — supervisão e estatística (só leitura).
    Cada serviço guarda em registos_movimento/<serviço>:
@@ -336,7 +337,8 @@ tr.novo td{animation:realce 2.4s ease-out}
       if (r.taxa != null && r.taxa > 100) al.push('<span class="alerta">Ocupação ' + fmtPct(r.taxa) + '</span>');
       if (r.semDcDd) al.push('<span class="alerta am">DC/DD em falta em ' + r.semDcDd + (r.semDcDd === 1 ? ' dia' : ' dias') + '</span>');
       if (r.falta.length && ua && ua.ts && Date.now() - ua.ts > 3 * 86400000) al.push('<span class="alerta am">Sem alterações ' + haQuanto(ua.ts) + '</span>');
-      h += '<tr class="' + (recentes[l.s.item] ? 'novo' : '') + '"><td><b>' + esc(l.s.nome) + '</b></td>' +
+      var viaCP = lista.some(function (ym) { return ((cache[l.s.item] || {})[ym] || {}).__auto; });
+      h += '<tr class="' + (recentes[l.s.item] ? 'novo' : '') + '"><td><b>' + esc(l.s.nome) + '</b>' + (viaCP ? '<br><small style="color:#047857;font:600 .7rem var(--f)">⟳ do Controlo de Pacientes</small>' : '') + '</td>' +
         '<td><span class="est ' + e[0] + '">' + e[1] + '</span></td>' +
         '<td>' + (p == null ? '<span class="sem">—</span>' : '<span class="prog" style="--c:' + cor + '"><i><b style="width:' + p + '%"></b></i>' + r.feitos + '/' + r.exig + '</span>') + '</td>' +
         '<td>' + (r.falta.length ? '<span class="falta-d">' + (r.falta.length > 1 ? r.falta.length + ' dias: ' : 'Dia ') + faltaTxt + '</span>' : '<span class="sem">—</span>') + '</td>' +
@@ -464,12 +466,34 @@ tr.novo td{animation:realce 2.4s ease-out}
       return window.__fbGet('registos_movimento/' + item + '/snapshot/' + ym).then(function(v){ cache[item][ym] = v || null; }).catch(function(){ if (!(ym in cache[item])) cache[item][ym] = null; });
     }));
   }
+  // ── Controlo de Pacientes: os meses com doentes lá registados usam os
+  //    números calculados a partir deles (zelo_mov_auto.js) — o mesmo que a
+  //    página de Movimento de cada serviço preenche sozinha.
+  var cpPac = {}, capacidade = {}, cpLido = {};
+  function lerCP(item, forcar){
+    var A = window.ZeloMovAuto; if (!A || !A.MAPA[item]) return Promise.resolve();
+    if (cpLido[item] && !forcar) return Promise.resolve();
+    return Promise.all([A.lerPacientes(item),
+      window.__fbGet('registos_movimento/' + item + '/snapshot/__capacity').catch(function(){ return null; })]).then(function(r){
+        cpLido[item] = true; cpPac[item] = r[0] || []; capacidade[item] = Number(r[1]) > 0 ? Number(r[1]) : 50;
+      });
+  }
+  function aplicarCP(item, lista){
+    var A = window.ZeloMovAuto, ps = cpPac[item]; if (!A || !ps || !ps.length) return;
+    cache[item] = cache[item] || {};
+    lista.forEach(function(ym){
+      if (!A.ativoNoMes(ps, ym)) return;
+      var r = A.calcular(ps, ym, capacidade[item]), m = {};
+      A.CAMPOS.forEach(function(k){ m[k] = r.campos[k]; });
+      m.__auto = true; cache[item][ym] = m;
+    });
+  }
   function carregar(forcar){
     var st = $('mhgEstado');
     if (!window.__fbReady || !window.__fbGet){ st.textContent = 'Sem ligação ao servidor — não é possível ler os dados agora.'; return; }
     var lista = meses(); if (!lista.length){ desenhar(); return; }
     st.textContent = 'A ler os dados dos serviços…';
-    Promise.all(SERVICOS.map(function(s){ return lerServico(s.item, lista, forcar); })).then(function(){
+    Promise.all(SERVICOS.map(function(s){ return lerServico(s.item, lista, forcar).then(function(){ return lerCP(s.item, forcar); }).then(function(){ aplicarCP(s.item, lista); }); })).then(function(){
       st.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
       desenhar();
     }).catch(function(){ st.textContent = 'Não foi possível ler os dados.'; });
@@ -487,10 +511,13 @@ tr.novo td{animation:realce 2.4s ease-out}
         if (primeira){ primeira = false; return; }
         if (v && v !== antes){
           // Só relê os meses deste serviço que estão à vista.
-          lerServico(s.item, meses(), true).then(function(){ recentes[s.item] = true; clearTimeout(tRe); tRe = setTimeout(desenhar, 300);
+          lerServico(s.item, meses(), true).then(function(){ aplicarCP(s.item, meses()); recentes[s.item] = true; clearTimeout(tRe); tRe = setTimeout(desenhar, 300);
             $('mhgEstado').textContent = s.nome + ' atualizou às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }); });
         }
       });
+      // Controlo de Pacientes gravou: volta a calcular este serviço.
+      var A = window.ZeloMovAuto, cpm = A && A.MAPA[s.item];
+      if (cpm){ var pr = true; window.__fbListen('registos_sistemas_locais/controlo_pacientes/' + cpm[0] + '/savedAt', function(){ if (pr){ pr = false; return; } lerCP(s.item, true).then(function(){ aplicarCP(s.item, meses()); recentes[s.item] = true; clearTimeout(tRe); tRe = setTimeout(desenhar, 300); $('mhgEstado').textContent = s.nome + ' (Controlo de Pacientes) atualizou às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }); }); }); }
       var chave = String(s.file || '').replace(/\.html$/, '').replace(/[.#$\[\]\/]/g, '_');
       if (chave) window.__fbListen('registos_sistemas_locais/ultimas_alteracoes/' + chave, function(v){ if (v && v.ts){ ultAlt[s.item] = v; clearTimeout(tRe); tRe = setTimeout(desenhar, 300); } });
     });

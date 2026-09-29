@@ -87,6 +87,8 @@
   .m2-st button:active{background:#E2E8F0}
   .m2-st input{flex:1;min-width:0;width:100%;border:0;text-align:center;font:800 1.08rem ui-monospace,Consolas,monospace;color:#0F172A;background:transparent;outline:none}
   .m2-st input::placeholder{color:#CBD5E1;font-weight:600}
+  .m2-st.auto{background:#F1F5F9;border-style:dashed}.m2-st.auto input{color:#1E3A5F}
+  .m2-autonota{background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;border-radius:10px;padding:8px 10px;font:600 .8rem Inter,Arial,sans-serif;margin-bottom:10px}
   .m2-st.x{border-color:#FCA5A5;background:#FEF2F2}.m2-st.x input{color:#B91C1C}
   .m2-dica{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .m2-dica button{border:1px dashed #BFD3EA;background:#F4F8FC;color:#1E3A5F;border-radius:9px;padding:6px 10px;font:700 .76rem Inter,Arial,sans-serif;cursor:pointer}
@@ -216,26 +218,29 @@
     }
     return '<div class="m2-dias" id="m2Dias">' + h + '</div><div class="m2-leg"><span><i style="background:#A7F3D0"></i>Registado</span><span><i style="background:#FDE68A"></i>Em falta</span><span><i style="background:#1E3A5F"></i>Aberto</span></div>';
   }
+  // Mês preenchido automaticamente a partir do Controlo de Pacientes (zelo_mov_auto.js)
+  function autoMes() { return !!(window.ZeloMovAuto && window.ZeloMovAuto.mesAuto && window.ZeloMovAuto.mesAuto(currentMonth)); }
   function formDia() {
-    var m = currentMonth, d = dia, p = m.split('-');
+    var m = currentMonth, d = dia, p = m.split('-'), au = autoMes();
     var w = new Date(+p[0], +p[1] - 1, d + 1).getDay();
     var base = isBaselineCell(d, m);
     var h = '<div class="m2-diah"><b>' + SEM_LONGO[w] + ', ' + (d + 1) + ' de ' + MESES[+p[1] - 1].toLowerCase() + '</b>' +
-      (base ? '<span>· primeiro dia com registo: indique quantos doentes estavam internados (existência anterior)</span>' : '') + '</div>';
+      (base && !au ? '<span>· primeiro dia com registo: indique quantos doentes estavam internados (existência anterior)</span>' : '') + '</div>' +
+      (au ? '<div class="m2-autonota">⟳ Calculado automaticamente a partir do Controlo de Pacientes — para corrigir, corrija o registo do doente lá.</div>' : '');
     h += '<div class="m2-flux" id="m2Flux"></div>';
     GRUPOS.forEach(function (g) {
       h += '<div class="m2-grp ' + g[0] + '"><h4>' + (g[0] === 'e' ? '↘ ' : g[0] === 's' ? '↗ ' : '') + g[1] + '</h4><div class="m2-campos">';
       g[2].forEach(function (c) {
         var v = raw(m, c[0], d);
-        h += '<div class="m2-cp"><label title="' + esc(c[1]) + '">' + esc(c[1]) + '</label><div class="m2-st" data-st="' + c[0] + '"><button type="button" data-m2menos="' + c[0] + '" aria-label="Menos">−</button>' +
-          '<input type="text" inputmode="numeric" autocomplete="off" data-m2c="' + c[0] + '" value="' + (v == null || isNaN(v) ? '' : v) + '" placeholder="0" aria-label="' + esc(c[1]) + '"><button type="button" data-m2mais="' + c[0] + '" aria-label="Mais">+</button></div></div>';
+        h += '<div class="m2-cp"><label title="' + esc(c[1]) + '">' + esc(c[1]) + '</label><div class="m2-st' + (au ? ' auto' : '') + '" data-st="' + c[0] + '">' + (au ? '' : '<button type="button" data-m2menos="' + c[0] + '" aria-label="Menos">−</button>') +
+          '<input type="text" inputmode="numeric" autocomplete="off" data-m2c="' + c[0] + '" value="' + (v == null || isNaN(v) ? '' : v) + '" placeholder="0" aria-label="' + esc(c[1]) + '"' + (au ? ' readonly tabindex="-1"' : '') + '>' + (au ? '' : '<button type="button" data-m2mais="' + c[0] + '" aria-label="Mais">+</button>') + '</div></div>';
       });
       h += '</div>' + (g[0] === 'c' ? '<div class="m2-dica" id="m2Dica"></div><div id="m2AvisoC"></div>' : '') + '</div>';
     });
     var n = getDaysInMonth(m);
     h += '<div class="m2-guard"><span class="m2-ok" id="m2Ok">✓ Guardado</span>' +
       '<button type="button" class="m2-b o" data-m2="diaAnt"' + (d === 0 ? ' disabled' : '') + '>‹ Dia ' + (d === 0 ? '' : d) + '</button>' +
-      (d < n - 1 ? '<button type="button" class="m2-b p" data-m2="diaSeg">✓ Guardar e ir para o dia ' + (d + 2) + '</button>' : '<button type="button" class="m2-b p" data-m2="fim">✓ Guardar — último dia do mês</button>') + '</div>';
+      (au ? (d < n - 1 ? '<button type="button" class="m2-b p" data-m2="diaSeg">Dia ' + (d + 2) + ' ›</button>' : '') : d < n - 1 ? '<button type="button" class="m2-b p" data-m2="diaSeg">✓ Guardar e ir para o dia ' + (d + 2) + '</button>' : '<button type="button" class="m2-b p" data-m2="fim">✓ Guardar — último dia do mês</button>') + '</div>';
     return h;
   }
   // Partes que mudam enquanto se escreve (sem redesenhar os campos).
@@ -243,13 +248,13 @@
     if (!raiz || currentView !== 'mensal') return;
     var m = currentMonth, d = dia, fl = $('m2Flux'); if (!fl) return;
     var ex = getExistencia(d, m), en = resolveValue('admitidos', d, m), sa = resolveValue('saidos', d, m), fi = getExistindo(d, m);
-    var base = isBaselineCell(d, m);
+    var base = isBaselineCell(d, m) && !autoMes();
     fl.innerHTML = '<div class="m2-fx">' + (base ? '<input type="text" inputmode="numeric" id="m2Base" value="' + ex + '" title="Existência anterior (doentes internados no início)">' : '<b>' + ex + '</b>') + '<span>Existência</span></div><span class="m2-op">+</span>' +
       '<div class="m2-fx e"><b>' + en + '</b><span>Entradas</span></div><span class="m2-op">−</span>' +
       '<div class="m2-fx s"><b>' + sa + '</b><span>Saídas</span></div><span class="m2-op">=</span>' +
       '<div class="m2-fx f"><b>' + fi + '</b><span>Ficam</span></div>';
     var dc = raw(m, 'dia_cama', d), dd = raw(m, 'dia_doente', d), cap = getCapacity(), dica = $('m2Dica'), av = $('m2AvisoC');
-    if (dica) dica.innerHTML = (dc == null ? '<button type="button" data-m2fill="dia_cama" data-v="' + cap + '">Dias de cama = ' + cap + ' camas</button>' : '') +
+    if (dica) dica.innerHTML = autoMes() ? '' : (dc == null ? '<button type="button" data-m2fill="dia_cama" data-v="' + cap + '">Dias de cama = ' + cap + ' camas</button>' : '') +
       (dd == null || dd !== fi ? '<button type="button" data-m2fill="dia_doente" data-v="' + fi + '">Dias-doente = ' + fi + ' (ficam)</button>' : '');
     var erro = dc != null && dd != null && dd > dc;
     var st = raiz.querySelector('[data-st="dia_doente"]'); if (st) st.classList.toggle('x', erro);
@@ -367,6 +372,7 @@
     });
   }
   function guardarValor(id, v) {
+    if (autoMes()) return; // calculado a partir do Controlo de Pacientes
     var m = currentMonth; loadMonth(m);
     data[m][id][dia] = v === '' || v == null ? null : Math.max(0, parseInt(v, 10) || 0);
     persistData();
