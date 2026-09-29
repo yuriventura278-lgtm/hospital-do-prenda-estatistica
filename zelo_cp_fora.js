@@ -4,12 +4,14 @@
 //   internados ≥ camas do Movimento) o sistema pergunta em que serviço o
 //   doente pode ficar. Serviços sem leitos livres não podem ser escolhidos
 //   ("não é possível — o serviço X já não tem leitos disponíveis").
-// • Escolher outro serviço NÃO interna logo: fica um PEDIDO à espera de
-//   autorização. O serviço pedido é notificado e carrega em Autorizar ou
-//   Recusar. Só depois de autorizado o doente passa a contar como internado
-//   lá (cama emprestada: −1 dia de cama lá, +1 no serviço do doente).
-// • Se em 24 horas o serviço pedido não responder, o pedido fica "sem
-//   resposta" e o serviço de origem é notificado (pode pedir a outro serviço).
+// • Escolher outro serviço: o doente sobe logo para lá (fisicamente) e fica um
+//   PEDIDO para o serviço pedido confirmar no sistema (Autorizar/Recusar).
+//   A cama emprestada conta desde a subida (−1 dia de cama lá, +1 no serviço
+//   do doente), também enquanto aguarda a autorização.
+// • O serviço pedido é lembrado sempre (ao abrir a página e de hora a hora)
+//   para verificar o doente no internamento e autorizar no sistema. Passadas
+//   24 horas sem autorização, o serviço de origem também é lembrado para ir
+//   ter com o chefe do serviço pedido. O pedido não fecha sozinho.
 // • O doente continua a ser do seu serviço (admitidos, saídos, dias-doente).
 // Guardado em:
 //   doente.foraServico (texto JSON): [{ k, servico, estado, pedidoEm, desde, ate, por, funcao, em,
@@ -46,14 +48,19 @@
   // Pedido à espera de autorização
   function pendente(p) { if (!p || p.status !== 'internado') return null; var u = ultimo(p); return u && !u.ate && est(u) === 'pendente' ? u : null; }
   function restante(pedidoEm) { var r = H24 - (Date.now() - Date.parse(pedidoEm || 0)); return r; }
+  function haQuanto(iso) { var ms = Date.now() - Date.parse(iso || 0); if (!(ms >= 0)) return ''; var h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000); return 'há ' + (h >= 24 ? Math.floor(h / 24) + ' d ' + (h % 24) + ' h' : h ? h + ' h ' + m + ' min' : m + ' min'); }
+  // Lembretes repetidos: "Mais tarde" adia 1 hora (neste separador)
+  var HORA = 3600 * 1000;
+  function adiado(k) { try { var t = Number(sessionStorage.getItem('cpfora_adiar_' + k)) || 0; return Date.now() - t < HORA; } catch (e) { return false; } }
+  function adiar(k) { try { sessionStorage.setItem('cpfora_adiar_' + k, String(Date.now())); } catch (e) {} }
   function fmtRest(ms) { if (ms <= 0) return 'prazo terminado'; var h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000); return 'faltam ' + (h ? h + ' h ' : '') + m + ' min'; }
   window.zeloCpForaLista = lista;
-  window.zeloCpForaAtivo = ativo;
+  window.zeloCpForaAtivo = function (p) { return ativo(p) || pendente(p); };
   window.zeloCpForaTxt = function (p) {
     var f = ativo(p);
     if (f) return '<span class="cpf-tag" title="Internado fora do serviço desde ' + esc(fmtDH(f.desde)) + '">Internado em ' + esc(nomeServ(f.servico)) + '</span>';
     f = pendente(p);
-    return f ? '<span class="cpf-tag e" title="Pedido enviado ' + esc(fmtEm(f.pedidoEm)) + '">A aguardar autorização de ' + esc(nomeServ(f.servico)) + '</span>' : '';
+    return f ? '<span class="cpf-tag e" title="Pedido enviado ' + esc(fmtEm(f.pedidoEm)) + '">Em ' + esc(nomeServ(f.servico)) + ' · aguarda autorização no sistema</span>' : '';
   };
   function aviso(titulo, texto, botoes, icone) {
     if (window.ZeloEspera && window.ZeloEspera.mensagem) {
@@ -90,7 +97,7 @@
   // Doentes que ocupam cama neste serviço: os seus (menos os que estão
   // noutro serviço) + os de outros serviços autorizados aqui.
   function ocupacao(genero) {
-    return pacientes().filter(function (p) { return p.status === 'internado' && !ativo(p); }).length + ativosAqui().length;
+    return pacientes().filter(function (p) { return p.status === 'internado' && !ativo(p) && !pendente(p); }).length + ativosAqui().length + pedidosAqui().length;
   }
 
   // ── Disponibilidade nos outros serviços (lido só quando o serviço está cheio) ──
@@ -104,8 +111,8 @@
         var cap = r[0];
         var ps = r[1] && typeof r[1] === 'object' ? Object.keys(r[1]).map(function (k) { return r[1][k]; }) : [];
         var ex = r[2] && typeof r[2] === 'object' ? Object.keys(r[2]).map(function (k) { return r[2][k]; }) : [];
-        var oc = ps.filter(function (p) { return p && p.status === 'internado' && !ativo(p) && (!gf || p.genero === gf); }).length +
-          ex.filter(function (x) { return x && estR(x) === 'autorizado' && !x.ate && !x.dataSaida && x.status !== 'saido' && (!gf || x.genero === gf); }).length;
+        var oc = ps.filter(function (p) { return p && p.status === 'internado' && !ativo(p) && !pendente(p) && (!gf || p.genero === gf); }).length +
+          ex.filter(function (x) { return x && (estR(x) === 'autorizado' || estR(x) === 'pendente') && !x.ate && !x.dataSaida && x.status !== 'saido' && (!gf || x.genero === gf); }).length;
         return { s: s[0], cap: cap, oc: oc, livres: cap - oc };
       });
     }));
@@ -132,10 +139,11 @@
     });
   }
   // Pedido de internamento noutro serviço (fica à espera de autorização)
-  function pedir(p, servico) {
+  // desde: quando o doente sobe (no registo = a entrada do doente; depois = agora).
+  function pedir(p, servico, desde) {
     var q = quem(), l = lista(p), em = new Date().toISOString();
     var k = (slug() + '_' + String(p.nup || ('n' + p.n)) + '_e' + (p.episodio || 1) + '_' + em.replace(/\D/g, '').slice(0, 14)).replace(/[.#$\[\]\/]/g, '_');
-    l.push({ k: k, servico: servico, estado: 'pendente', pedidoEm: em, desde: agoraLocal(), ate: null, por: q.nome, funcao: q.funcao, em: em });
+    l.push({ k: k, servico: servico, estado: 'pendente', pedidoEm: em, desde: desde || agoraLocal(), ate: null, por: q.nome, funcao: q.funcao, em: em });
     p.foraServico = JSON.stringify(l);
   }
   function guardar() { try { saveData(); updateStats(); renderInternados(); } catch (e) {} desenhar(); }
@@ -146,7 +154,7 @@
   // (a cama emprestada fica livre); o serviço que emprestou é avisado.
   function regressou(n) {
     var p = porN(n); if (!p) return;
-    var u = ativo(p); if (!u) return;
+    var u = ativo(p) || pendente(p); if (!u) return;
     var fazer = function () {
       var l = lista(p), f = l[l.length - 1], q = quem(); f.ate = agoraLocal(); f.regressoPor = q.nome; f.regressoFuncao = q.funcao; f.regressoEm = new Date().toISOString();
       p.foraServico = JSON.stringify(l); guardar();
@@ -177,7 +185,7 @@
       if (!host) return;
       var l = lista(p), f = l[l.length - 1]; if (f && !f.visto && (est(f) === 'recusado' || est(f) === 'sem_resposta')) f.visto = true; p.foraServico = JSON.stringify(l);
       pedir(p, host); guardar();
-      if (typeof showFeedback === 'function') showFeedback('Pedido enviado a ' + nomeServ(host) + ' — aguarda autorização (24 horas)', 'success');
+      if (typeof showFeedback === 'function') showFeedback(p.nome + ' internado em ' + nomeServ(host) + ' — o serviço tem de autorizar no sistema', 'success');
     }, p.nome);
   }
 
@@ -207,7 +215,7 @@
     var ov = document.createElement('div'); ov.className = 'cpf-ov';
     var intro = cap ? 'O serviço tem <b>' + cap + ' camas</b> e já estão <b>' + oc + ' doentes</b> internados. ' : '';
     ov.innerHTML = '<div class="cpf-card" role="dialog" aria-label="Sem camas livres"><div class="cpf-top"><b>' + (nomeDoente ? 'Pedir cama noutro serviço — ' + esc(nomeDoente) : 'Sem camas livres em ' + esc(nomeServ(slug()))) + '</b><button type="button" class="x" data-x aria-label="Fechar">×</button></div><div class="cpf-cb">' +
-      '<div style="text-align:left">' + intro + 'Escolha o serviço a que vai <b>pedir</b> uma cama. O doente só fica internado lá depois de esse serviço <b>autorizar</b> (tem 24 horas para responder); até lá fica à espera neste serviço.</div>' +
+      '<div style="text-align:left">' + intro + 'Escolha o serviço onde o doente vai ficar internado. O doente <b>sobe já</b> para esse serviço, e esse serviço tem de <b>autorizar no sistema</b> (é lembrado até o fazer).</div>' +
       '<div class="cpf-lista" id="cpf-lista"><div class="cpf-vz" style="grid-column:1/-1">A verificar as camas livres em cada serviço…</div></div>' +
       (comAqui ? '<button type="button" class="cpf-aqui" data-aqui>Fica neste serviço mesmo assim (cama extra)</button>' : '') + '</div></div>';
     document.body.appendChild(ov);
@@ -248,9 +256,9 @@
       var r = f.apply(self, args);
       var p = pacientes().filter(function (x) { return x.n === n; })[0];
       if (p && host) {
-        pedir(p, host);
+        pedir(p, host, p.dataEntrada);
         try { saveData(); renderInternados(); } catch (e) {}
-        if (typeof showFeedback === 'function') showFeedback(p.nome + ' registado — pedido de cama enviado a ' + nomeServ(host) + '; aguarda autorização (24 horas)', 'success');
+        if (typeof showFeedback === 'function') showFeedback(p.nome + ' registado — internado em ' + nomeServ(host) + '; o serviço tem de autorizar no sistema', 'success');
       }
       if (p) { confirmouAqui = false; hostEscolhido = ''; }
       desenhar();
@@ -275,33 +283,20 @@
     if (!r) return '';
     if (r.estado === 'cancelado') return 'cancelado';
     if (r.resposta && r.resposta.decisao) return r.resposta.decisao;
-    var e = r.estado || 'autorizado';
-    if (e === 'pendente' && restante(r.pedidoEm) <= 0) return 'sem_resposta';
-    return e;
+    return r.estado || 'autorizado';
   }
-  function desdeR(r) { return (r.resposta && r.resposta.desde) || r.desde; }
+  function desdeR(r) { return r.desde || (r.resposta && r.resposta.desde); }
   function todosR() { return Object.keys(recebidos).map(function (k) { var r = recebidos[k]; if (r) r._k = k; return r; }).filter(Boolean); }
   function ativosAqui() { return todosR().filter(function (r) { return estR(r) === 'autorizado' && !r.ate && !r.dataSaida && r.status !== 'saido'; }); }
-  function pedidosAqui() { return todosR().filter(function (r) { return estR(r) === 'pendente' && r.status !== 'saido' && !r.dataSaida; }); }
+  function pedidosAqui() { return todosR().filter(function (r) { return estR(r) === 'pendente' && !r.ate && r.status !== 'saido' && !r.dataSaida; }); }
   function decidir(k, decisao) {
     var r = recebidos[k]; if (!r || estR(r) !== 'pendente') return;
-    if (decisao === 'autorizado') {
-      var it = itemMov(r.genero), cap = it && camas[it];
-      if (cap) {
-        var oc = ocupacao(r.genero);
-        if (oc >= cap) {
-          aviso('Sem leitos disponíveis', 'Não é possível autorizar: o serviço ' + nomeServ(slug()) + ' já não tem leitos disponíveis (' + cap + ' camas, ' + oc + ' doentes internados). Pode recusar o pedido para o serviço de ' + (r.deNome || nomeServ(r.de)) + ' pedir noutro serviço.', null, 'aviso');
-          return;
-        }
-      }
-    }
     var q = quem(), res = { decisao: decisao, por: q.nome, funcao: q.funcao, em: new Date().toISOString(), desde: agoraLocal(), servico: slug() };
     r.resposta = res;
     try {
       window.zeloQueueWrite('registos_sistemas_locais/cp_fora/' + slug() + '/' + k + '/resposta', res);
       window.zeloQueueWrite('registos_sistemas_locais/cp_fora_resposta/' + r.de + '/' + k, res);
     } catch (e) {}
-    var vv = vistos(); vv['p:' + k] = Date.now(); try { localStorage.setItem('cpfora_visto_' + slug(), JSON.stringify(vv)); } catch (e) {}
     desenhar();
     if (typeof showFeedback === 'function') showFeedback(decisao === 'autorizado' ? r.nome + ' autorizado — fica internado em ' + nomeServ(slug()) : 'Pedido de ' + r.nome + ' recusado — o serviço de ' + (r.deNome || nomeServ(r.de)) + ' foi avisado', 'success');
   }
@@ -321,7 +316,7 @@
       l.forEach(function (f) {
         var r = respostas[chaveF(p, f)];
         if (!r || !r.decisao || est(f) !== 'pendente') return;
-        if (r.decisao === 'autorizado') { f.estado = 'autorizado'; f.desde = r.desde || agoraLocal(); f.autorizadoPor = r.por || ''; f.autorizadoFuncao = r.funcao || ''; f.autorizadoEm = r.em || ''; }
+        if (r.decisao === 'autorizado') { f.estado = 'autorizado'; f.autorizadoPor = r.por || ''; f.autorizadoFuncao = r.funcao || ''; f.autorizadoEm = r.em || ''; }
         else { f.estado = 'recusado'; f.ate = r.desde || agoraLocal(); f.recusadoPor = r.por || ''; f.recusadoFuncao = r.funcao || ''; f.recusadoEm = r.em || ''; }
         alt = true;
       });
@@ -336,7 +331,6 @@
       var l = lista(p), u = l[l.length - 1];
       if (!u || u.ate || est(u) !== 'pendente') return;
       if (p.status !== 'internado') { u.estado = 'cancelado'; u.ate = p.dataSaida || agoraLocal(); u.visto = true; }
-      else if (restante(u.pedidoEm) <= 0 && !respostas[chaveF(p, u)]) { u.estado = 'sem_resposta'; u.ate = agoraLocal(); u.expirouEm = new Date().toISOString(); }
       else return;
       p.foraServico = JSON.stringify(l); mud = true;
     });
@@ -357,18 +351,28 @@
       var kk = 'o:' + chaveF(p, u) + ':' + u.estado; if (v[kk]) return;
       novos.push({ p: p, u: u, kk: kk });
     });
-    if (!novos.length) return;
+    if (!novos.length) { lembrarOrigem(); return; }
     var x = novos[0], p = x.p, u = x.u, sv = nomeServ(u.servico);
     var marcar = function () { var vv = vistos(); vv[x.kk] = Date.now(); try { localStorage.setItem('cpfora_visto_' + slug(), JSON.stringify(vv)); } catch (e) {} setTimeout(avisarOrigem, 400); };
     if (u.estado === 'autorizado') {
       aviso('Pedido autorizado', 'O serviço de ' + sv + ' autorizou o internamento de ' + p.nome + ' (NUP ' + (p.nup || '—') + '). Autorizado por ' + (u.autorizadoPor || '—') + (u.autorizadoFuncao ? ' (' + u.autorizadoFuncao + ')' : '') + ' em ' + fmtEm(u.autorizadoEm) + '. O doente passa a estar internado em ' + sv + '.', [{ texto: 'OK', principal: true, acao: marcar }], 'ok');
     } else if (u.estado === 'recusado') {
-      aviso('Pedido recusado', 'O serviço de ' + sv + ' recusou o internamento de ' + p.nome + ' (NUP ' + (p.nup || '—') + '). Recusado por ' + (u.recusadoPor || '—') + (u.recusadoFuncao ? ' (' + u.recusadoFuncao + ')' : '') + ' em ' + fmtEm(u.recusadoEm) + '. O doente continua neste serviço.',
+      aviso('Pedido recusado', 'O serviço de ' + sv + ' recusou o internamento de ' + p.nome + ' (NUP ' + (p.nup || '—') + '). Recusado por ' + (u.recusadoPor || '—') + (u.recusadoFuncao ? ' (' + u.recusadoFuncao + ')' : '') + ' em ' + fmtEm(u.recusadoEm) + '. O doente volta para este serviço (a cama em ' + sv + ' deixou de contar).',
         [{ texto: 'Pedir a outro serviço', principal: true, acao: function () { marcar(); pedirOutro(p.n); } }, { texto: 'Fechar', acao: marcar }]);
     } else {
       aviso('Sem resposta em 24 horas', 'O serviço de ' + sv + ' não autorizou em 24 horas o internamento de ' + p.nome + ' (NUP ' + (p.nup || '—') + '), pedido em ' + fmtEm(u.pedidoEm) + '. O doente continua neste serviço.',
         [{ texto: 'Pedir a outro serviço', principal: true, acao: function () { marcar(); pedirOutro(p.n); } }, { texto: 'Fechar', acao: marcar }]);
     }
+  }
+
+  // Passadas 24 h sem autorização: lembra o serviço de origem (ao abrir e de hora a hora)
+  function lembrarOrigem() {
+    if (document.querySelector('.ze-camada[role=alertdialog]')) return;
+    var atrasados = pacientes().filter(function (p) { var u = pendente(p); return u && restante(u.pedidoEm) <= 0 && !adiado('o:' + chaveF(p, u)); });
+    if (!atrasados.length) return;
+    var p = atrasados[0], u = pendente(p), sv = nomeServ(u.servico), k = 'o:' + chaveF(p, u);
+    aviso('Internamento ainda não autorizado', 'O serviço de ' + sv + ' ainda não autorizou no sistema o internamento de ' + p.nome + ' (NUP ' + (p.nup || '—') + '), doente de ' + nomeServ(slug()) + ' internado no serviço de ' + sv + ' desde ' + fmtDH(u.desde) + ' (pedido ' + haQuanto(u.pedidoEm) + '). Por favor, vá ter com o chefe de serviço de ' + sv + ' para fazer isso no sistema.' + (atrasados.length > 1 ? ' E mais ' + (atrasados.length - 1) + ' doente(s).' : ''),
+      [{ texto: 'Entendi', principal: true, acao: function () { adiar(k); setTimeout(lembrarOrigem, 400); } }]);
   }
 
   // ── Quadros na página ──
@@ -380,9 +384,9 @@
     // Pedidos recebidos (à espera da decisão deste serviço)
     var ped = pedidosAqui();
     if (ped.length) {
-      h += '<div class="cpf-q cpf-pedidos"><div class="cpf-qh"><b>Pedidos de internamento no seu serviço — a aguardar autorização</b><span class="cpf-n on">' + ped.length + '</span></div><table class="cpf-t"><thead><tr><th>Doente</th><th>Serviço do doente</th><th>Pedido</th><th>Pedido por</th><th></th></tr></thead><tbody>' + ped.map(function (r) {
+      h += '<div class="cpf-q cpf-pedidos"><div class="cpf-qh"><b>Doentes de outros serviços internados aqui — verifique e autorize no sistema</b><span class="cpf-n on">' + ped.length + '</span></div><table class="cpf-t"><thead><tr><th>Doente</th><th>Serviço do doente</th><th>Pedido</th><th>Pedido por</th><th></th></tr></thead><tbody>' + ped.map(function (r) {
         return '<tr id="cpf-r-' + esc(r._k) + '"><td><b>' + esc(r.nome) + '</b><small>NUP ' + esc(r.nup || '—') + (r.genero ? ' · ' + esc(r.genero) : '') + (r.idade !== '' && r.idade != null ? ' · ' + esc(r.idade) + ' anos' : '') + '</small>' + (r.diagnostico ? '<small>' + esc(r.diagnostico) + '</small>' : '') + '</td>' +
-          '<td><span class="cpf-tag o">' + esc(r.deNome || nomeServ(r.de)) + '</span></td><td>' + fmtEm(r.pedidoEm) + '<small>' + fmtRest(restante(r.pedidoEm)) + '</small></td>' +
+          '<td><span class="cpf-tag o">' + esc(r.deNome || nomeServ(r.de)) + '</span></td><td>' + fmtEm(r.pedidoEm) + '<small>' + haQuanto(r.pedidoEm) + (restante(r.pedidoEm) <= 0 ? ' — atrasado' : '') + '</small></td>' +
           '<td>' + esc(r.por || '—') + (r.funcao ? ' <small>' + esc(r.funcao) + '</small>' : '') + '</td>' +
           '<td class="cpf-acs"><button type="button" class="cpf-bt p" data-autorizar="' + esc(r._k) + '">Autorizar</button><button type="button" class="cpf-bt r" data-recusar="' + esc(r._k) + '">Recusar</button></td></tr>';
       }).join('') + '</tbody></table></div>';
@@ -393,7 +397,7 @@
     h += meus.length ? '<table class="cpf-t"><thead><tr><th>Doente</th><th>Serviço</th><th>Situação</th><th>Registado por</th><th></th></tr></thead><tbody>' + meus.map(function (p) {
       var f = ultimo(p), sit, bt;
       if (ativo(p)) { sit = 'Internado desde ' + fmtDH(f.desde) + (f.autorizadoPor ? '<small>Autorizado por ' + esc(f.autorizadoPor) + '</small>' : ''); bt = '<button type="button" class="cpf-bt p" data-regresso="' + p.n + '" title="O doente volta para este serviço com a data de entrada real">Mover para o serviço</button>'; }
-      else if (pendente(p)) { sit = '<span class="cpf-est e">A aguardar autorização</span><small>Pedido ' + fmtEm(f.pedidoEm) + ' · ' + fmtRest(restante(f.pedidoEm)) + '</small>'; bt = '<button type="button" class="cpf-bt" data-cancelar="' + p.n + '">Cancelar pedido</button>'; }
+      else if (pendente(p)) { sit = 'Internado desde ' + fmtDH(f.desde) + '<small><span class="cpf-est e">Aguarda autorização no sistema</span> · pedido ' + haQuanto(f.pedidoEm) + '</small>'; bt = '<button type="button" class="cpf-bt p" data-regresso="' + p.n + '" title="O doente volta para este serviço com a data de entrada real">Mover para o serviço</button><button type="button" class="cpf-bt" data-cancelar="' + p.n + '" title="O doente não chegou a subir">Cancelar pedido</button>'; }
       else { sit = '<span class="cpf-est r">' + (f.estado === 'recusado' ? 'Recusado' : 'Sem resposta em 24 h') + '</span><small>' + (f.estado === 'recusado' ? 'por ' + esc(f.recusadoPor || '—') + ' · ' + fmtEm(f.recusadoEm) : 'pedido ' + fmtEm(f.pedidoEm)) + '</small>'; bt = '<button type="button" class="cpf-bt p" data-outro="' + p.n + '">Pedir a outro serviço</button><button type="button" class="cpf-bt" data-fica="' + p.n + '">Fica aqui</button>'; }
       return '<tr><td><b class="cpp-link" data-proc="' + p.n + '">' + esc(p.nome) + '</b><small>NUP ' + esc(p.nup || '—') + '</small></td><td><span class="cpf-tag">' + esc(nomeServ(f.servico)) + '</span></td><td>' + sit + '</td><td>' + esc(f.por || '—') + (f.funcao ? ' <small>' + esc(f.funcao) + '</small>' : '') + '<small>' + fmtEm(f.em) + '</small></td>' +
         '<td class="cpf-acs">' + bt + '</td></tr>';
@@ -423,15 +427,15 @@
   function vistos() { try { return JSON.parse(localStorage.getItem('cpfora_visto_' + slug()) || '{}'); } catch (e) { return {}; } }
   function notificar() {
     var v = vistos();
-    var ped = pedidosAqui().filter(function (r) { return !v['p:' + r._k]; });
+    if (document.querySelector('.ze-camada[role=alertdialog]')) return;
+    var ped = pedidosAqui().filter(function (r) { return !adiado('p:' + r._k); });
     if (ped.length) {
       var r = ped[0];
-      var marcar = function () { var vv = vistos(); vv['p:' + r._k] = Date.now(); try { localStorage.setItem('cpfora_visto_' + slug(), JSON.stringify(vv)); } catch (e) {} setTimeout(notificar, 400); };
-      var texto = 'O serviço de ' + (r.deNome || nomeServ(r.de)) + ' pede autorização para internar no seu serviço: ' + r.nome + ' (NUP ' + (r.nup || '—') + (r.genero ? ', ' + r.genero : '') + (r.idade !== '' && r.idade != null ? ', ' + r.idade + ' anos' : '') + ')' + (r.diagnostico ? ' — ' + r.diagnostico : '') + '. Pedido por ' + (r.por || '—') + (r.funcao ? ' (' + r.funcao + ')' : '') + ' em ' + fmtEm(r.pedidoEm) + '. Tem 24 horas para responder (' + fmtRest(restante(r.pedidoEm)) + ').' + (ped.length > 1 ? ' E mais ' + (ped.length - 1) + ' pedido(s).' : '');
-      aviso('Pedido de internamento', texto, [
+      var texto = 'Verifique no internamento o doente de outro serviço: ' + r.nome + ' (NUP ' + (r.nup || '—') + (r.genero ? ', ' + r.genero : '') + (r.idade !== '' && r.idade != null ? ', ' + r.idade + ' anos' : '') + ')' + (r.diagnostico ? ' — ' + r.diagnostico : '') + ', do serviço de ' + (r.deNome || nomeServ(r.de)) + ', internado no seu serviço desde ' + fmtDH(r.desde) + '. Registado por ' + (r.por || '—') + (r.funcao ? ' (' + r.funcao + ')' : '') + ' ' + haQuanto(r.pedidoEm) + '. Assim que verificar, autorize no sistema.' + (ped.length > 1 ? ' E mais ' + (ped.length - 1) + ' doente(s) por autorizar.' : '');
+      aviso('Autorizar internamento no sistema', texto, [
         { texto: 'Autorizar', principal: true, acao: function () { decidir(r._k, 'autorizado'); setTimeout(notificar, 400); } },
-        { texto: 'Recusar', acao: function () { decidir(r._k, 'recusado'); setTimeout(notificar, 400); } },
-        { texto: 'Mais tarde', acao: function () { var vv = vistos(); vv['p:' + r._k] = Date.now(); try { localStorage.setItem('cpfora_visto_' + slug(), JSON.stringify(vv)); } catch (e) {} } }]);
+        { texto: 'Recusar', acao: function () { pedirDecisao(r._k, 'recusado'); } },
+        { texto: 'Mais tarde', acao: function () { adiar('p:' + r._k); setTimeout(notificar, 400); } }]);
       return;
     }
     // Doente que estava aqui voltou para o seu serviço (a cama ficou livre)
@@ -463,8 +467,8 @@
     });
     return true;
   }
-  // Prazos de 24 h e contagem do tempo em falta
-  setInterval(function () { if (respLidas) processarOrigem(); else desenhar(); }, 60000);
+  // Lembretes (de hora a hora, com "Mais tarde") e tempo de espera
+  setInterval(function () { if (respLidas) processarOrigem(); else desenhar(); notificar(); }, 60000);
 
   var css = document.createElement('style');
   css.textContent = [

@@ -64,10 +64,11 @@
   // Doentes internados fora do serviço (zelo_cp_fora.js): a cama é emprestada.
   //   Serviço de origem: +1 dia de cama por cada doente seu internado fora.
   //   Serviço que empresta: −1 dia de cama por cada doente de outro serviço.
-  // Só contam os pedidos autorizados pelo serviço que recebe (sem estado =
-  // registos antigos, já autorizados). Pendentes/recusados não mexem nas camas.
-  function periodosFora(p) { try { var l = JSON.parse(p.foraServico || '[]'); return Array.isArray(l) ? l.filter(function (f) { return !f.estado || f.estado === 'autorizado'; }) : []; } catch (e) { return []; } }
-  function estadoExt(r) { return r.resposta && r.resposta.decisao ? (r.estado === 'cancelado' ? 'cancelado' : r.resposta.decisao) : (r.estado || 'autorizado'); }
+  // A cama emprestada conta desde que o doente sobe (desde), também enquanto
+  // aguarda a autorização no sistema, até regressar/sair (ate) — ou até à
+  // recusa. Só um pedido cancelado (o doente não chegou a subir) não conta.
+  function periodosFora(p) { try { var l = JSON.parse(p.foraServico || '[]'); return Array.isArray(l) ? l.filter(function (f) { return f.estado !== 'cancelado'; }) : []; } catch (e) { return []; } }
+  function estadoExt(r) { return r.estado === 'cancelado' ? 'cancelado' : r.resposta && r.resposta.decisao ? r.resposta.decisao : (r.estado || 'autorizado'); }
   function cobre(desde, ate, dd) { return dia(desde) <= dd && (!ate || dia(ate) > dd); }
   // opts.foraUso: { dia: nº de camas fora de uso nesse dia } (avaria, obras…)
   // opts.existencia: existência anterior do mês (escrita à mão no 1º mês ou
@@ -143,8 +144,8 @@
     var fs = fontes(item); if (!fs.length || typeof window.__fbGet !== 'function') return Promise.resolve([]);
     return Promise.all(fs.map(function (m) {
       return window.__fbGet('registos_sistemas_locais/cp_fora/' + m[0]).then(function (v) {
-        return Object.keys(v || {}).map(function (k) { return v[k]; }).filter(function (r) { return r && r.desde && estadoExt(r) === 'autorizado' && (!m[1] || r.genero === m[1]); })
-          .map(function (r) { return r.resposta && r.resposta.desde ? Object.assign({}, r, { desde: r.resposta.desde }) : r; });
+        return Object.keys(v || {}).map(function (k) { return v[k]; }).filter(function (r) { return r && r.desde && estadoExt(r) !== 'cancelado' && (!m[1] || r.genero === m[1]); })
+          .map(function (r) { return estadoExt(r) === 'recusado' && !r.ate && r.resposta && r.resposta.desde ? Object.assign({}, r, { ate: r.resposta.desde }) : r; });
       });
     })).then(function (ls) { return [].concat.apply([], ls); }).catch(function () { return []; });
   }
