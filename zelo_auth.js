@@ -391,7 +391,14 @@ function hasModuleAccess(role, permissoes, mod, itemSlug) {
   if (role === 'admin') return true;
   const papeis = papeisDaPagina(mod, itemSlug);
   if (papeis) {
-    const explicito = permissoes && permissoes._paginas ? permissoes._paginas[mod + '|' + (itemSlug || '')] : undefined;
+    let explicito = permissoes && permissoes._paginas ? permissoes._paginas[mod + '|' + (itemSlug || '')] : undefined;
+    // Movimentos juntos (Medicina Interna; UCI / Cuidados Intermédios): valem
+    // as permissões dadas antes às páginas antigas que foram juntas.
+    const JUNTOS = { medicina_interna: ['medicina_homem', 'medicina_mulher'], uci: ['uci_intensivo', 'uci_intermedio'] };
+    if (explicito === undefined && mod === 'movimento_mensal' && JUNTOS[itemSlug] && permissoes && permissoes._paginas) {
+      const v = JUNTOS[itemSlug].map(x => permissoes._paginas[mod + '|' + x]);
+      if (v.some(x => x === true)) explicito = true; else if (v.every(x => x === false)) explicito = false;
+    }
     if (explicito === true || explicito === false) return explicito;
     return papeis.indexOf(role) !== -1;
   }

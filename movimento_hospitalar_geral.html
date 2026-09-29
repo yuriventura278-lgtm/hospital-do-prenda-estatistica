@@ -174,7 +174,7 @@ tr.novo td{animation:realce 2.4s ease-out}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="zelo_servicos_menu.js"></script>
-<script src="zelo_mov_auto.js?v=6"></script>
+<script src="zelo_mov_auto.js?v=7"></script>
 <script>
 /* Movimento Hospitalar Geral — supervisão e estatística (só leitura).
    Cada serviço guarda em registos_movimento/<serviço>:
@@ -195,7 +195,7 @@ tr.novo td{animation:realce 2.4s ease-out}
     var lista = [];
     (window.SERVICOS_MENU || []).forEach(function(s){
       (s.movimento || []).forEach(function(m){
-        if (m.item === 'banco_urgencia') return;
+        if (m.item === 'banco_urgencia' || lista.some(function(x){ return x.item === m.item; })) return;
         var partes = String(m.label).split(/\s+—\s+/);
         lista.push({ item: m.item, file: m.file, nome: partes.length > 1 ? partes[1] : s.nome });
       });
@@ -463,7 +463,12 @@ tr.novo td{animation:realce 2.4s ease-out}
     cache[item] = cache[item] || {};
     return Promise.all(lista.map(function(ym){
       if (!forcar && ym in cache[item]) return null;
-      return window.__fbGet('registos_movimento/' + item + '/snapshot/' + ym).then(function(v){ cache[item][ym] = v || null; }).catch(function(){ if (!(ym in cache[item])) cache[item][ym] = null; });
+      return window.__fbGet('registos_movimento/' + item + '/snapshot/' + ym).then(function(v){
+        var A = window.ZeloMovAuto, velhos = A && A.FUSAO && A.FUSAO[item];
+        // Movimento junto ainda sem este mês: soma os das páginas antigas.
+        if (velhos && !A.temValores(v)) return Promise.all(velhos.map(function(x){ return window.__fbGet('registos_movimento/' + x + '/snapshot/' + ym).catch(function(){ return null; }); })).then(function(ms){ cache[item][ym] = A.somarMeses(ms, ym) || v || null; });
+        cache[item][ym] = v || null;
+      }).catch(function(){ if (!(ym in cache[item])) cache[item][ym] = null; });
     }));
   }
   // ── Controlo de Pacientes: os meses com doentes lá registados usam os
@@ -479,6 +484,17 @@ tr.novo td{animation:realce 2.4s ease-out}
       window.__fbGet('registos_movimento/' + item + '/snapshot/__camasForaUso').catch(function(){ return null; })]).then(function(r){
         cpLido[item] = true; cpPac[item] = r[0] || []; capacidade[item] = Number(r[1]) > 0 ? Number(r[1]) : 50; cpExt[item] = r[2] || [];
         cpBase[item] = r[3] || {}; cpForaUso[item] = r[4] || {};
+        // Movimento junto ainda não aberto: camas e existência das páginas antigas.
+        var velhos = A.FUSAO && A.FUSAO[item];
+        if (!velhos || Number(r[1]) > 0) return;
+        return Promise.all(velhos.map(function(x){ return Promise.all(['__capacity', '__baselines', '__camasForaUso'].map(function(c){ return window.__fbGet('registos_movimento/' + x + '/snapshot/' + c).catch(function(){ return null; }); })); })).then(function(vs){
+          var caps = vs.map(function(v){ return Number(v[0]) || 0; });
+          capacidade[item] = A.CAP_INICIAL[item] || (caps.every(function(c){ return c > 0; }) ? caps.reduce(function(a, c){ return a + c; }, 0) : 50);
+          vs.forEach(function(v){
+            Object.keys(v[1] || {}).forEach(function(ym){ if (r[3] && r[3][ym] != null) return; cpBase[item][ym] = (Number(cpBase[item][ym]) || 0) + (parseInt(v[1][ym], 10) || 0); });
+            Object.keys(v[2] || {}).forEach(function(ym){ if (r[4] && r[4][ym]) return; var d = v[2][ym] || {}; cpForaUso[item][ym] = cpForaUso[item][ym] || {}; Object.keys(d).forEach(function(dd){ cpForaUso[item][ym][dd] = (cpForaUso[item][ym][dd] || 0) + (Number(d[dd]) || 0); }); });
+          });
+        });
       });
   }
   function aplicarCP(item, lista){
@@ -535,8 +551,8 @@ tr.novo td{animation:realce 2.4s ease-out}
         }
       });
       // Controlo de Pacientes gravou: volta a calcular este serviço.
-      var A = window.ZeloMovAuto, cpm = A && A.MAPA[s.item];
-      if (cpm){ var pr = true; window.__fbListen('registos_sistemas_locais/controlo_pacientes/' + cpm[0] + '/savedAt', function(){ if (pr){ pr = false; return; } lerCP(s.item, true).then(function(){ aplicarCP(s.item, meses()); recentes[s.item] = true; clearTimeout(tRe); tRe = setTimeout(desenhar, 300); $('mhgEstado').textContent = s.nome + ' (Controlo de Pacientes) atualizou às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }); }); }); }
+      var A = window.ZeloMovAuto;
+      (A && A.fontes ? A.fontes(s.item) : []).forEach(function(cpm){ var pr = true; window.__fbListen('registos_sistemas_locais/controlo_pacientes/' + cpm[0] + '/savedAt', function(){ if (pr){ pr = false; return; } lerCP(s.item, true).then(function(){ aplicarCP(s.item, meses()); recentes[s.item] = true; clearTimeout(tRe); tRe = setTimeout(desenhar, 300); $('mhgEstado').textContent = s.nome + ' (Controlo de Pacientes) atualizou às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }); }); }); });
       var chave = String(s.file || '').replace(/\.html$/, '').replace(/[.#$\[\]\/]/g, '_');
       if (chave) window.__fbListen('registos_sistemas_locais/ultimas_alteracoes/' + chave, function(v){ if (v && v.ts){ ultAlt[s.item] = v; clearTimeout(tRe); tRe = setTimeout(desenhar, 300); } });
     });

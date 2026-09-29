@@ -66,22 +66,31 @@
   }
 
   // ── Camas do serviço (do Movimento) e ocupação ──
-  function itemDe(s, genero) { if (s === 'medicina_interna') return genero === 'Feminino' ? 'medicina_mulher' : genero === 'Masculino' ? 'medicina_homem' : null; return s; }
-  function itemMov(genero) { return itemDe(slug(), genero); }
+  // Camas de cada Controlo de Pacientes (do Movimento do serviço):
+  //   Medicina Interna: as camas do Movimento da Medicina Interna (homens e mulheres juntos);
+  //   UCI e Cuidados Intermédios: um só Movimento (16 camas), 8 camas cada.
+  var PARTES_UCI = { uci_intensivo: 8, uci_intermedio: 8 };
+  function itemDe(s) { return PARTES_UCI[s] ? 'uci' : s; }
+  function itemMov() { return slug(); }
+  function capDe(s) {
+    var get = function (c) { return window.__fbGet(c).catch(function () { return null; }); };
+    if (PARTES_UCI[s]) return get('registos_movimento/uci/snapshot/__capacidadePartes/' + s).then(function (v) { return Number(v) > 0 ? Number(v) : PARTES_UCI[s]; });
+    return get('registos_movimento/' + s + '/snapshot/__capacity').then(function (v) {
+      if (Number(v) > 0) return Number(v);
+      if (s !== 'medicina_interna') return 50;
+      // Movimento da Medicina Interna ainda não aberto: soma das páginas antigas (Homem + Mulher)
+      return Promise.all([get('registos_movimento/medicina_homem/snapshot/__capacity'), get('registos_movimento/medicina_mulher/snapshot/__capacity')]).then(function (c) { return Number(c[0]) > 0 && Number(c[1]) > 0 ? Number(c[0]) + Number(c[1]) : 50; });
+    });
+  }
   var camas = {};
   function lerCamas() {
     if (typeof window.__fbGet !== 'function') return Promise.resolve();
-    var itens = slug() === 'medicina_interna' ? ['medicina_homem', 'medicina_mulher'] : [slug()];
-    return Promise.all(itens.map(function (it) {
-      return window.__fbGet('registos_movimento/' + it + '/snapshot/__capacity').then(function (v) { camas[it] = Number(v) > 0 ? Number(v) : 50; }).catch(function () {});
-    }));
+    return capDe(slug()).then(function (c) { camas[slug()] = c; });
   }
   // Doentes que ocupam cama neste serviço: os seus (menos os que estão
   // noutro serviço) + os de outros serviços autorizados aqui.
   function ocupacao(genero) {
-    var med = slug() === 'medicina_interna';
-    return pacientes().filter(function (p) { return p.status === 'internado' && !ativo(p) && (!med || p.genero === genero); }).length +
-      ativosAqui().filter(function (r) { return !med || r.genero === genero; }).length;
+    return pacientes().filter(function (p) { return p.status === 'internado' && !ativo(p); }).length + ativosAqui().length;
   }
 
   // ── Disponibilidade nos outros serviços (lido só quando o serviço está cheio) ──
@@ -90,10 +99,9 @@
     if (typeof window.__fbGet !== 'function') return Promise.resolve(outros.map(function (s) { return { s: s[0], livres: null }; }));
     var get = function (c) { return window.__fbGet(c).catch(function () { return null; }); };
     return Promise.all(outros.map(function (s) {
-      var it = itemDe(s[0], g), gf = s[0] === 'medicina_interna' ? g : null;
-      if (!it) return { s: s[0], livres: null };
-      return Promise.all([get('registos_movimento/' + it + '/snapshot/__capacity'), get('registos_sistemas_locais/controlo_pacientes/' + s[0] + '/snapshot/pacientes'), get('registos_sistemas_locais/cp_fora/' + s[0])]).then(function (r) {
-        var cap = Number(r[0]) > 0 ? Number(r[0]) : 50;
+      var gf = null;
+      return Promise.all([capDe(s[0]), get('registos_sistemas_locais/controlo_pacientes/' + s[0] + '/snapshot/pacientes'), get('registos_sistemas_locais/cp_fora/' + s[0])]).then(function (r) {
+        var cap = r[0];
         var ps = r[1] && typeof r[1] === 'object' ? Object.keys(r[1]).map(function (k) { return r[1][k]; }) : [];
         var ex = r[2] && typeof r[2] === 'object' ? Object.keys(r[2]).map(function (k) { return r[2][k]; }) : [];
         var oc = ps.filter(function (p) { return p && p.status === 'internado' && !ativo(p) && (!gf || p.genero === gf); }).length +
@@ -177,10 +185,10 @@
   function lotacao() {
     var el = document.getElementById('cpf-lot'); if (!el) return;
     var g = (document.getElementById('fGenero') || {}).value || '', it = itemMov(g);
-    if (!it || !camas[it]) { el.textContent = slug() === 'medicina_interna' && !g ? 'Escolha o género para ver as camas livres (Medicina Homem / Mulher).' : ''; return; }
+    if (!it || !camas[it]) { el.textContent = ''; return; }
     var oc = ocupacao(g), livres = camas[it] - oc;
     el.className = 'cpf-lot' + (livres <= 0 ? ' cheio' : '');
-    el.textContent = (slug() === 'medicina_interna' ? (g === 'Feminino' ? 'Medicina Mulher' : 'Medicina Homem') + ': ' : '') + camas[it] + ' camas · ' + oc + ' internados no serviço · ' + (livres > 0 ? livres + ' livre(s)' : 'sem camas livres');
+    el.textContent = camas[it] + ' camas · ' + oc + ' internados no serviço · ' + (livres > 0 ? livres + ' livre(s)' : 'sem camas livres');
   }
   var hostEscolhido = '';
   // Pergunta em que serviço pedir cama. cb(serviço) / cb('') = fica aqui (cama extra).

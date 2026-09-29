@@ -33,6 +33,11 @@
     else if (mod === 'sistemas_independentes' && /^controlo_pacientes_/.test(itemSlug || '')) papeis = ['chefe_servico', 'enfermeiro_chefe', 'enfermeiro', 'secretario'];
     if (papeis) {
       var explicito = permissoes && permissoes._paginas ? permissoes._paginas[mod + '|' + (itemSlug || '')] : undefined;
+      var JUNTOS = { medicina_interna: ['medicina_homem', 'medicina_mulher'], uci: ['uci_intensivo', 'uci_intermedio'] };
+      if (explicito === undefined && mod === 'movimento_mensal' && JUNTOS[itemSlug] && permissoes && permissoes._paginas) {
+        var v = JUNTOS[itemSlug].map(function (x) { return permissoes._paginas[mod + '|' + x]; });
+        if (v.some(function (x) { return x === true; })) explicito = true; else if (v.every(function (x) { return x === false; })) explicito = false;
+      }
       if (explicito === true || explicito === false) return explicito;
       return papeis.indexOf(role) !== -1;
     }

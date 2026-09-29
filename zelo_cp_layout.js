@@ -201,12 +201,12 @@
         '<button type="button" class="cpx-item" data-modal="backupModal">' + ic('copia') + 'Cópia de Segurança</button>' +
       '</div>';
 
-    // Movimento Hospitalar deste serviço (Medicina Interna: Homem e Mulher).
+    // Movimento Hospitalar deste serviço (UCI e Cuidados Intermédios: um só Movimento).
     // O acesso continua a ser verificado (só chefes e administradores).
     var MOV = {
-      medicina_interna: [['medicina_homem', 'Medicina Homem'], ['medicina_mulher', 'Medicina Mulher']],
+      medicina_interna: [['medicina_interna']],
       cirurgia_geral: [['cirurgia_geral']], ortopedia: [['ortopedia']], neurocirurgia: [['neurocirurgia']], maxilo_facial: [['maxilo_facial']],
-      nefrologia: [['nefrologia']], uci_intensivo: [['uci_intensivo']], uci_intermedio: [['uci_intermedio']]
+      nefrologia: [['nefrologia']], uci_intensivo: [['uci', 'UCI / Cuidados Intermédios']], uci_intermedio: [['uci', 'UCI / Cuidados Intermédios']]
     };
     var mm = /controlo_pacientes_([a-z_]+)\.html/.exec(decodeURIComponent(location.pathname)), mov = mm && MOV[mm[1]];
     if (mov) {

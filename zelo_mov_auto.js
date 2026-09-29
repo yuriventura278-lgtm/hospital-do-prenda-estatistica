@@ -9,10 +9,15 @@
 //              ainda não saíram) — igual ao "Ficam existindo" do dia.
 //   Dias de cama do dia = camas disponíveis no serviço (no mês: camas × dias).
 //   Existência anterior (1º dia do mês) = doentes internados antes do dia 1.
-// A Medicina Interna tem um só Controlo de Pacientes: Medicina Homem usa os
-// doentes do género Masculino e Medicina Mulher os do Feminino.
+// Serviços com um só Movimento a juntar vários Controlos de Pacientes:
+//   Medicina Interna (homens e mulheres) → registos_movimento/medicina_interna
+//   UCI + Cuidados Intermédios (2 Controlos de Pacientes, 8 camas cada,
+//   16 no total) → registos_movimento/uci
+// As páginas antigas (Medicina Homem/Mulher, UCI Intensivo/Intermédio) ficam
+// com os seus dados no Firebase (nunca apagados); na 1.ª abertura do
+// Movimento junto, os meses escritos à mão nelas são somados para lá.
 //
-// Usado pelas 9 páginas de Movimento (preenchem sozinhas os meses em que o
+// Usado pelas páginas de Movimento (preenchem sozinhas os meses em que o
 // Controlo de Pacientes tem doentes, e acompanham ao vivo) e pelo Movimento
 // Hospitalar Geral. Meses sem dados no Controlo de Pacientes ficam como estão.
 // Nada é apagado: antes de substituir números escritos à mão, é guardada uma
@@ -24,8 +29,17 @@
   var MAPA = {
     cirurgia_geral: ['cirurgia_geral'], maxilo_facial: ['maxilo_facial'], nefrologia: ['nefrologia'], neurocirurgia: ['neurocirurgia'],
     ortopedia: ['ortopedia'], uci_intensivo: ['uci_intensivo'], uci_intermedio: ['uci_intermedio'],
-    medicina_homem: ['medicina_interna', 'Masculino'], medicina_mulher: ['medicina_interna', 'Feminino']
+    medicina_homem: ['medicina_interna', 'Masculino'], medicina_mulher: ['medicina_interna', 'Feminino'],
+    medicina_interna: ['medicina_interna'], uci: ['uci_intensivo']
   };
+  // Controlos de Pacientes de cada Movimento: [[serviço, género], …]
+  var FONTES = { uci: [['uci_intensivo'], ['uci_intermedio']] };
+  function fontes(item) { return FONTES[item] || (MAPA[item] ? [MAPA[item]] : []); }
+  // Movimento junto ← Movimentos antigos (dados preservados, somados)
+  var FUSAO = { medicina_interna: ['medicina_homem', 'medicina_mulher'], uci: ['uci_intensivo', 'uci_intermedio'] };
+  // Camas de cada Controlo de Pacientes dentro de um Movimento junto
+  var PARTES = { uci: { uci_intensivo: 8, uci_intermedio: 8 } };
+  var CAP_INICIAL = { uci: 16 };
   var CAMPOS = ['diretos', 'transferidos_adm', 'altas', 'menos_48', 'mais_48', 'transferidos_sai', 'dia_cama', 'dia_doente'];
 
   function dia(iso) { return String(iso || '').slice(0, 10); }
@@ -33,9 +47,10 @@
   function isoDia(ym, d) { return ym + '-' + String(d).padStart(2, '0'); }
   function hoje() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function lista(pac) { if (!pac) return []; return (Array.isArray(pac) ? pac : Object.keys(pac).map(function (k) { return pac[k]; })).filter(function (p) { return p && typeof p === 'object' && p.dataEntrada; }); }
-  function doServico(pac, item) {
+  function doServico(pac, item, genero) {
     var m = MAPA[item]; if (!m) return [];
-    return lista(pac).filter(function (p) { return !m[1] || p.genero === m[1]; });
+    var g = arguments.length > 2 ? genero : m[1];
+    return lista(pac).filter(function (p) { return !g || p.genero === g; });
   }
   function transferido(p) { return /^\s*transfer/i.test(String(p.proveniencia || '')); }
   function saiu(p) { return p.status !== 'internado' && p.dataSaida; }
@@ -104,8 +119,10 @@
     return l.filter(function (m) { return ativoNoMes(ps, m); });
   }
   function lerPacientes(item) {
-    var m = MAPA[item]; if (!m || typeof window.__fbGet !== 'function') return Promise.resolve(null);
-    return window.__fbGet('registos_sistemas_locais/controlo_pacientes/' + m[0] + '/snapshot/pacientes').then(function (v) { return v ? doServico(v, item) : []; }).catch(function () { return null; });
+    var fs = fontes(item); if (!fs.length || typeof window.__fbGet !== 'function') return Promise.resolve(null);
+    return Promise.all(fs.map(function (f) {
+      return window.__fbGet('registos_sistemas_locais/controlo_pacientes/' + f[0] + '/snapshot/pacientes').then(function (v) { return v ? doServico(v, item, f[1]) : []; });
+    })).then(function (ls) { return [].concat.apply([], ls); }).catch(function () { return null; });
   }
 
   // Meses em que há camas emprestadas a doentes de outros serviços.
@@ -120,14 +137,30 @@
     return Object.keys(set).sort();
   }
   // Doentes de outros serviços com cama emprestada por este serviço.
+  // (Entre as partes de um Movimento junto — ex. doente da UCI numa cama dos
+  // Cuidados Intermédios — o +1 e o −1 anulam-se: a unidade não ganha camas.)
   function lerExternos(item) {
-    var m = MAPA[item]; if (!m || typeof window.__fbGet !== 'function') return Promise.resolve([]);
-    return window.__fbGet('registos_sistemas_locais/cp_fora/' + m[0]).then(function (v) {
-      return Object.keys(v || {}).map(function (k) { return v[k]; }).filter(function (r) { return r && r.desde && estadoExt(r) === 'autorizado' && (!m[1] || r.genero === m[1]); })
-        .map(function (r) { return r.resposta && r.resposta.desde ? Object.assign({}, r, { desde: r.resposta.desde }) : r; });
-    }).catch(function () { return []; });
+    var fs = fontes(item); if (!fs.length || typeof window.__fbGet !== 'function') return Promise.resolve([]);
+    return Promise.all(fs.map(function (m) {
+      return window.__fbGet('registos_sistemas_locais/cp_fora/' + m[0]).then(function (v) {
+        return Object.keys(v || {}).map(function (k) { return v[k]; }).filter(function (r) { return r && r.desde && estadoExt(r) === 'autorizado' && (!m[1] || r.genero === m[1]); })
+          .map(function (r) { return r.resposta && r.resposta.desde ? Object.assign({}, r, { desde: r.resposta.desde }) : r; });
+      });
+    })).then(function (ls) { return [].concat.apply([], ls); }).catch(function () { return []; });
   }
-  window.ZeloMovAuto = { MAPA: MAPA, CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, lerExternos: lerExternos };
+  // Soma campo a campo de meses de Movimento (arrays ou objetos do Firebase).
+  function arr(v, n) { var a = []; for (var i = 0; i < n; i++) { var x = v ? v[i] : null; a.push(x === undefined || x === '' ? null : x); } return a; }
+  function temValores(m) { return !!m && CAMPOS.some(function (k) { return arr(m[k], 31).some(function (x) { return x !== null && x !== undefined; }); }); }
+  function somarMeses(ms, ym) {
+    var n = diasNoMes(ym), out = {}, algum = false;
+    CAMPOS.forEach(function (k) {
+      out[k] = new Array(n).fill(null);
+      ms.forEach(function (m) { if (!m) return; arr(m[k], n).forEach(function (x, i) { if (x !== null && !isNaN(parseInt(x, 10))) { out[k][i] = (out[k][i] || 0) + parseInt(x, 10); algum = true; } }); });
+    });
+    return algum ? out : null;
+  }
+  window.ZeloMovAuto = { MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
+    CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, lerExternos: lerExternos };
 
   // ─────────────── Na página de Movimento de um serviço ───────────────
   function item() { try { return String(FB_MOVIMENTO_PATH).split('/').pop(); } catch (e) { return null; } }
@@ -222,6 +255,45 @@
     if (typeof u === 'function' && !u.__mva) { var nu = function () { var x = u.apply(this, arguments); aplicar(); return x; }; nu.__mva = true; window.updateCapacity = nu; }
     return true;
   }
+  // Movimento junto: na 1.ª abertura soma os meses escritos à mão nas
+  // páginas antigas (que ficam intactas no Firebase) e acerta as camas.
+  function fundir() {
+    var it = item(), velhos = FUSAO[it];
+    if (!velhos || data.__fundido) return Promise.resolve();
+    return Promise.all(velhos.map(function (v) { return window.__fbGet('registos_movimento/' + v + '/snapshot').catch(function () { return undefined; }); })).then(function (snaps) {
+      if (snaps.some(function (x) { return x === undefined; })) return; // sem ligação: tenta noutra abertura
+      if (data.__fundido) return;
+      snaps = snaps.map(function (x) { return x || {}; });
+      var meses = {};
+      snaps.forEach(function (sn) { Object.keys(sn).forEach(function (k) { if (/^\d{4}-\d{2}$/.test(k)) meses[k] = 1; }); });
+      Object.keys(meses).sort().forEach(function (ym) {
+        if (temValores(data[ym])) return;
+        var soma = somarMeses(snaps.map(function (sn) { return sn[ym]; }), ym);
+        if (!soma) return;
+        loadMonth(ym); CAMPOS.forEach(function (k) { data[ym][k] = soma[k]; });
+      });
+      var bl = {}, fu = {}, fum = {};
+      snaps.forEach(function (sn) {
+        Object.keys(sn.__baselines || {}).forEach(function (ym) { var x = parseInt(sn.__baselines[ym], 10); if (!isNaN(x)) bl[ym] = (bl[ym] || 0) + x; });
+        Object.keys(sn.__camasForaUso || {}).forEach(function (ym) { var d = sn.__camasForaUso[ym] || {}; fu[ym] = fu[ym] || {}; Object.keys(d).forEach(function (dd) { var x = Number(d[dd]) || 0; if (x) fu[ym][dd] = (fu[ym][dd] || 0) + x; }); });
+        Object.keys(sn.__camasForaUsoMotivo || {}).forEach(function (ym) { var d = sn.__camasForaUsoMotivo[ym] || {}; fum[ym] = fum[ym] || {}; Object.keys(d).forEach(function (dd) { if (d[dd]) fum[ym][dd] = fum[ym][dd] ? fum[ym][dd] + ' / ' + d[dd] : d[dd]; }); });
+      });
+      data.__baselines = data.__baselines || {};
+      Object.keys(bl).forEach(function (ym) { if (data.__baselines[ym] === undefined) data.__baselines[ym] = bl[ym]; });
+      data.__camasForaUso = data.__camasForaUso || {}; data.__camasForaUsoMotivo = data.__camasForaUsoMotivo || {};
+      Object.keys(fu).forEach(function (ym) { if (!data.__camasForaUso[ym]) data.__camasForaUso[ym] = fu[ym]; });
+      Object.keys(fum).forEach(function (ym) { if (!data.__camasForaUsoMotivo[ym]) data.__camasForaUsoMotivo[ym] = fum[ym]; });
+      if (!(data.__capacity > 0)) {
+        var caps = snaps.map(function (sn) { return Number(sn.__capacity) || 0; });
+        data.__capacity = CAP_INICIAL[it] || (caps.every(function (c) { return c > 0; }) ? caps.reduce(function (a, c) { return a + c; }, 0) : 50);
+      }
+      if (PARTES[it] && !data.__capacidadePartes) data.__capacidadePartes = Object.assign({}, PARTES[it]);
+      data.__fundido = { em: new Date().toISOString(), de: velhos };
+      aplicando = true;
+      try { persistData(); } finally { aplicando = false; }
+      try { renderTable(); updateStats(); } catch (e) {}
+    });
+  }
   function ler() {
     var it = item(); if (!MAPA[it]) return;
     Promise.all([lerPacientes(it), lerExternos(it)]).then(function (r) { if (r[0]) { ps = r[0]; ext = r[1] || []; aplicar(); } });
@@ -229,15 +301,14 @@
   var t = 0, iv = setInterval(function () {
     t++;
     if (window.__fbReady && typeof window.__fbGet === 'function' && typeof data !== 'undefined' && typeof currentMonth !== 'undefined' && currentMonth && envolver()) {
-      clearInterval(iv); ler();
+      clearInterval(iv); fundir().then(ler, ler);
       // Ao vivo: quando o Controlo de Pacientes grava, volta a calcular.
-      var m = MAPA[item()];
-      if (m && typeof window.__fbListen === 'function') {
+      if (typeof window.__fbListen === 'function') fontes(item()).forEach(function (m) {
         var primeira = true;
         window.__fbListen('registos_sistemas_locais/controlo_pacientes/' + m[0] + '/savedAt', function () { if (primeira) { primeira = false; return; } ler(); });
         var primeiraF = true;
         window.__fbListen('registos_sistemas_locais/cp_fora/' + m[0], function () { if (primeiraF) { primeiraF = false; return; } ler(); });
-      }
+      });
     } else if (t > 160) clearInterval(iv);
   }, 250);
 })();

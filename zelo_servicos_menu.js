@@ -23,11 +23,11 @@ const SERVICOS_MENU = [
   { nome: 'Medicina Homem', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_homem.html', modulo: 'procedimentos_enfermagem', item: 'medicina_homem' }],
-    movimento: [{ label: 'Movimento Hospitalar', file: 'medicina_homem_movimento.html', modulo: 'movimento_mensal', item: 'medicina_homem' }] },
+    movimento: [{ label: 'Movimento Hospitalar — Medicina Interna', file: 'medicina_interna_movimento.html', modulo: 'movimento_mensal', item: 'medicina_interna' }] }, // um só Movimento para a Medicina Interna (Homem + Mulher)
   { nome: 'Medicina Mulher', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_mulher.html', modulo: 'procedimentos_enfermagem', item: 'medicina_mulher' }],
-    movimento: [{ label: 'Movimento Hospitalar', file: 'medicina_mulher_movimento.html', modulo: 'movimento_mensal', item: 'medicina_mulher' }] },
+    movimento: [{ label: 'Movimento Hospitalar — Medicina Interna', file: 'medicina_interna_movimento.html', modulo: 'movimento_mensal', item: 'medicina_interna' }] }, // um só Movimento para a Medicina Interna (Homem + Mulher)
   { nome: 'Cirurgia Geral', categoria: 'internamento', icon: 'stretcher', cor: '#DC2626',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_cirurgia_geral.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_cirurgia_geral' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Cirurgia_Geral.html', modulo: 'servicos', item: 'cirurgia_geral' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_cirurgia_geral.html', modulo: 'procedimentos_enfermagem', item: 'cirurgia_geral' }],
@@ -54,12 +54,10 @@ const SERVICOS_MENU = [
       { label: 'Controlo de Pacientes — Cuidados Intermédios', file: 'controlo_pacientes_uci_intermedio.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_uci_intermedio' },
     ], // oculto a pedido: { label: 'Relatório Diário', file: 'banco_uci_v1-3-1-1.html', modulo: 'servicos', item: 'uci_cuidados_intermedios' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_uci_cuidados_intermedios.html', modulo: 'procedimentos_enfermagem', item: 'uci_cuidados_intermedios' }],
-    // Movimento Hospitalar tem dois botões aqui (a pedido): UCI (cuidados
-    // intensivos) e Cuidados Intermédios são unidades distintas, cada uma
-    // com o seu próprio registo mensal de movimento.
+    // Um só Movimento Hospitalar (a pedido): junta os dois Controlos de
+    // Pacientes (UCI e Cuidados Intermédios, 8 camas cada — 16 no total).
     movimento: [
-      { label: 'Movimento — UCI', file: 'uci_intensivo_movimento.html', modulo: 'movimento_mensal', item: 'uci_intensivo' },
-      { label: 'Movimento — Cuidados Intermédios', file: 'uci_intermedio_movimento.html', modulo: 'movimento_mensal', item: 'uci_intermedio' },
+      { label: 'Movimento Hospitalar — UCI / Cuidados Intermédios', file: 'uci_movimento.html', modulo: 'movimento_mensal', item: 'uci' },
     ] },
   { nome: 'Banco de Urgência', categoria: 'urgencia', icon: 'shield', cor: '#059669',
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_banco_urgencia.html', modulo: 'procedimentos_enfermagem', item: 'banco_urgencia' }],
