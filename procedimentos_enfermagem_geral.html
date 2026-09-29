@@ -2339,12 +2339,13 @@ function _avisoServicosEmFalta() {
   const t = new Date(), hojeStr = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
   const hoje = e.data === hojeStr;
   const quando = hoje ? 'hoje' : 'no dia ' + fmtDate(e.data);
+  const doDia = hoje ? 'de hoje' : 'do dia ' + fmtDate(e.data);
   const n = e.faltam.length, feitos = e.preenchidos.length, pct = e.total ? Math.round(feitos / e.total * 100) : 0;
   // Texto dito pelo assistente = o que o cartão mostra.
   const texto = n
-    ? (nome ? 'Olá, ' + nome + '. ' : '') + 'Procedimentos de enfermagem de ' + quando + ': ' + feitos + ' de ' + e.total + ' serviços já preencheram. ' +
+    ? (nome ? 'Olá, ' + nome + '. ' : '') + 'Procedimentos de enfermagem ' + doDia + ': ' + feitos + ' de ' + e.total + ' serviços já preencheram. ' +
       (n === 1 ? 'Falta 1 serviço: ' : 'Faltam ' + n + ' serviços: ') + _juntarE(e.faltam) + '. Dúvidas, ligue para a extensão 1403, Serviço de Estatística.'
-    : (nome ? 'Muito bem, ' + nome + '. ' : '') + 'Procedimentos de enfermagem de ' + quando + ': todos os ' + e.total + ' serviços já preencheram.';
+    : (nome ? 'Muito bem, ' + nome + '. ' : '') + 'Procedimentos de enfermagem ' + doDia + ': todos os ' + e.total + ' serviços já preencheram.';
   const chip = (txt, cor, fundo, marca) => '<span style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:10px;background:' + fundo + ';border:1px solid rgba(255,255,255,.12);font:600 .8rem Inter,Arial,sans-serif;color:#F1F5F9;text-align:left;line-height:1.2">' +
     '<i style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:' + cor + ';display:inline-flex;align-items:center;justify-content:center;font:800 .62rem Inter,Arial;color:#0B1B2B;font-style:normal">' + marca + '</i>' + _escHtml(txt) + '</span>';
   const titulo = (t2) => '<div style="font:800 .62rem Inter,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#94A3B8;margin:14px 0 8px;text-align:left">' + t2 + '</div>';

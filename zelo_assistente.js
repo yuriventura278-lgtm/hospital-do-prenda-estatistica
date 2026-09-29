@@ -718,8 +718,55 @@
     var hs = h === 1 ? 'uma hora' : (h === 0 ? 'zero horas' : h + ' horas');
     return m ? hs + ' e ' + m + (m === 1 ? ' minuto' : ' minutos') : hs;
   }
+  // Números por extenso (português europeu), com género: a voz do sistema
+  // lia mal números soltos ("1403" como mil quatrocentos e três numa
+  // extensão, "2 horas" como "dois horas", anos, dias…).
+  var UNID_M = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'catorze', 'quinze', 'dezasseis', 'dezassete', 'dezoito', 'dezanove'];
+  var DEZENAS = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+  var CENTENAS_M = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+  function _ate999(n, fem){
+    var u = function (k) { return fem && k === 1 ? 'uma' : fem && k === 2 ? 'duas' : UNID_M[k]; };
+    if (n < 20) return u(n);
+    if (n < 100) return DEZENAS[Math.floor(n / 10)] + (n % 10 ? ' e ' + u(n % 10) : '');
+    if (n === 100) return 'cem';
+    var c = CENTENAS_M[Math.floor(n / 100)]; if (fem && n >= 200) c = c.replace(/os$/, 'as');
+    return c + (n % 100 ? ' e ' + _ate999(n % 100, fem) : '');
+  }
+  function _extenso(n, fem){
+    n = parseInt(n, 10); if (isNaN(n)) return '';
+    if (n < 1000) return _ate999(n, fem);
+    if (n < 1000000) {
+      var mil = Math.floor(n / 1000), r = n % 1000;
+      var m = (mil === 1 ? 'mil' : _ate999(mil, fem) + ' mil');
+      return m + (r ? ((r < 100 || r % 100 === 0) ? ' e ' : ' ') + _ate999(r, fem) : '');
+    }
+    return String(n);
+  }
+  // Palavras femininas que costumam vir a seguir a um número.
+  var FEMININOS = /^(hora|horas|semana|semanas|pessoa|pessoas|cirurgia|cirurgias|cama|camas|vez|vezes|consulta|consultas|unidade|unidades|dose|doses|alta|altas|mulher|mulheres|criança|crianças|análise|análises|sessão|sessões|transfusão|transfusões|entrada|entradas|saída|saídas|admissão|admissões|urgência|urgências|falta|faltas)\b/i;
+  function _numerosPorExtenso(t){
+    return t.replace(/\d+/g, function (num, pos, todo) {
+      var ant = todo.charAt(pos - 1);
+      if (/[A-Za-zÀ-ÿ.]/.test(ant)) return num; // códigos (K35, S72.0)
+      if (num.length > 6) return num.split('').map(function (d) { return UNID_M[+d]; }).join(' ');
+      var seg = todo.slice(pos + num.length).replace(/^\s+/, '');
+      // "dia" antes do número ("o dia 1") fica masculino; o género vem da palavra seguinte
+      return _extenso(num, FEMININOS.test(seg));
+    });
+  }
   function _prepararTexto(texto){
+    return _numerosPorExtenso(_prepararTextoBase(texto));
+  }
+  function _prepararTextoBase(texto){
     return String(texto || '')
+      // extensões telefónicas: dígito a dígito ("1403" → um, quatro, zero, três)
+      .replace(/\b(extens[ãa]o|ext\.?|telefone|tel\.?)\s*(n\.?º\s*)?(\d{3,})/gi, function (x, p, q, n) { return 'extensão ' + n.split('').map(function (d) { return UNID_M[+d]; }).join(', '); })
+      // abreviaturas com ponto (o ponto partia a frase ao meio na leitura)
+      .replace(/\bBloco Op\.\s*Electiv[ao]\b/g, 'Bloco Operatório eletivo').replace(/\bBloco Op\.\s*Urgente\b/g, 'Bloco Operatório urgente').replace(/\bBloco Op\.\s*/g, 'Bloco Operatório ').replace(/\bOp\.\s/g, 'Operatório ')
+      .replace(/\bElectiv([ao]s?)\b/g, 'Eletiv$1').replace(/\belectiv([ao]s?)\b/g, 'eletiv$1')
+      .replace(/\bMed\.\s/g, 'Medicina ').replace(/\bCirurg\.\s/g, 'Cirurgia ').replace(/\bServ\.\s/g, 'Serviço ')
+      .replace(/\bSr\.\s/g, 'Senhor ').replace(/\bSra\.\s/g, 'Senhora ')
+      .replace(/\b(\d+)\s*[-–]\s*(\d+)\b(?!\/)/g, '$1 a $2')
       // datas: 25/09/2026 → 25 de setembro de 2026; 25/09 → 25 de setembro
       .replace(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/g, function (x, d, m, a) { return +m >= 1 && +m <= 12 ? (+d) + ' de ' + MESES_FALA[+m - 1] + ' de ' + a : x; })
       .replace(/\b(\d{1,2})\/(\d{1,2})\b/g, function (x, d, m) { return +m >= 1 && +m <= 12 && +d <= 31 ? (+d) + ' de ' + MESES_FALA[+m - 1] : x; })
@@ -740,7 +787,7 @@
       .replace(/\s{2,}/g, ' ').trim();
   }
   function _frases(texto){
-    var partes = _prepararTexto(texto).match(/[^.!?;:]+[.!?;:]*/g) || [];
+    var partes = _prepararTexto(texto).split(/(?<=[.!?;:])\s+/);
     var out = [];
     partes.forEach(function (f) {
       f = f.trim(); if (!f) return;
@@ -1290,7 +1337,7 @@
     var frases = grupos.map(function (g) {
       if (g[0] === g[1]) return 'o dia ' + g[0];
       if (g[1] === g[0] + 1) return 'os dias ' + g[0] + ' e ' + g[1];
-      return 'os dias ' + g[0] + ' até ' + g[1];
+      return 'os dias ' + g[0] + ' a ' + g[1];
     });
     return _juntarComE(frases);
   }
