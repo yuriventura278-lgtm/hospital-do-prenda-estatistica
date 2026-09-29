@@ -258,6 +258,7 @@
       '<div class="cpp-body">' +
         '<div class="cpp-sec"><h4>Identificação</h4><div class="cpp-grid">' +
           campo('Nome', esc(p.nome), true) + campo('NUP', esc(p.nup)) + campo('Idade', p.idade != null && p.idade !== '' ? esc(p.idade) + ' anos' : '') + campo('Faixa etária', faixa(p.idade)) + campo('Género', esc(p.genero)) +
+          campo('Alergias', window.zeloCpAlergiasHTML ? window.zeloCpAlergiasHTML(p) : '', true) +
         '</div></div>' +
         // Processo clínico partilhado: todos os internamentos anteriores deste doente
         // (este serviço e os outros), com as evoluções — os dos outros serviços só para ver.
@@ -314,7 +315,7 @@
     y = pdf.cab('Processo do Paciente — ' + servico(), p.nome + ' · NUP ' + (p.nup || '—') + ' · ' + (internado ? 'Internado' : 'Saiu do serviço'));
     var tab = function (y, linhas) { return pdf.tabela(y, ['Campo', 'Informação'], [55, CW - 55], linhas.map(function (l) { return [l[0], String(l[1] == null || l[1] === '' ? '—' : l[1])]; })); };
     y = pdf.secT(y, '1. Identificação');
-    y = tab(y, [['Nome', p.nome], ['NUP', p.nup], ['Nº do processo', p.n], ['Idade', p.idade !== '' && p.idade != null ? p.idade + ' anos' : ''], ['Faixa etária', faixa(p.idade)], ['Género', p.genero]]);
+    y = tab(y, [['Nome', p.nome], ['NUP', p.nup], ['Nº do processo', p.n], ['Idade', p.idade !== '' && p.idade != null ? p.idade + ' anos' : ''], ['Faixa etária', faixa(p.idade)], ['Género', p.genero], ['Alergias', window.zeloCpAlergiasTxt ? window.zeloCpAlergiasTxt(p) : '']]);
     y = pdf.secT(y, '2. Internamento');
     var ds = diags(p);
     y = tab(y, [['Data e hora de entrada', fmtDH(p.dataEntrada)], ['Cama / Sala', p.cama], ['Proveniência', p.proveniencia], ['Dias internado', nD == null ? '' : nD + ' dia(s)' + (internado ? ' (até hoje)' : '')]]
