@@ -154,16 +154,30 @@
     // Internado noutro serviço? Verifica sempre no servidor (dados frescos) antes de registar.
     if (excluirN == null) {
       var c = porNUP[nup];
-      if (!c || c.p || Date.now() - c.ts > 60000) {
+      // Ao registar, a verificação tem de ser recente (o outro serviço pode ter
+      // acabado de registar a saída); durante a escrita basta a do último minuto.
+      if (!c || c.p || Date.now() - c.ts > (soVerificar ? 60000 : 5000)) {
         if (!soVerificar) repetirDepois(c && c.p ? c.p : internamentosNUP(nup, true), nup);
         else if (!(c && c.p)) internamentosNUP(nup, true);
         return { ok: false, msg: 'A verificar o NUP ' + nup + ' em todos os serviços… o registo continua sozinho dentro de instantes.' };
       }
+      var outroDono = c.eps.filter(function (p) { return p.servico !== slug() && !mesmoNome(p.nome, nome); })[0];
+      if (outroDono) return { ok: false, msg: 'O NUP ' + nup + ' pertence a ' + outroDono.nome + ' (' + nomeServ(outroDono.servico) + '). Cada NUP é de um só doente.' };
       var noutro = c.eps.filter(function (p) { return p.servico !== slug() && p.status === 'internado'; })[0];
       if (noutro) return { ok: false, msg: noutro.nome + ' (NUP ' + nup + ') está internado em ' + nomeServ(noutro.servico) + ' desde ' + fmt(noutro.dataEntrada) +
         '. Um doente não pode estar internado em dois serviços. Para o internar aqui, ' + nomeServ(noutro.servico) + ' tem de registar primeiro a saída (transferência).' };
-      var outroDono = c.eps.filter(function (p) { return p.servico !== slug() && !mesmoNome(p.nome, nome); })[0];
-      if (outroDono) return { ok: false, msg: 'O NUP ' + nup + ' pertence a ' + outroDono.nome + ' (' + nomeServ(outroDono.servico) + '). Cada NUP é de um só doente.' };
+    }
+    // Ao alterar o NUP de um registo existente: também não pode ser o NUP de outro doente noutro serviço.
+    if (excluirN != null) {
+      var atual = pacientes().filter(function (p) { return p.n === excluirN; })[0];
+      if (!atual || nupN(atual.nup) !== nup) {
+        var cx = porNUP[nup];
+        if (!cx || cx.p || Date.now() - cx.ts > 60000) { if (!(cx && cx.p)) internamentosNUP(nup, true); return { ok: false, msg: 'A verificar o NUP ' + nup + ' em todos os serviços… carregue em Guardar outra vez dentro de instantes.' }; }
+        var od = cx.eps.filter(function (p) { return p.servico !== slug() && !mesmoNome(p.nome, nome); })[0];
+        if (od) return { ok: false, msg: 'O NUP ' + nup + ' pertence a ' + od.nome + ' (' + nomeServ(od.servico) + '). Cada NUP é de um só doente.' };
+        var oi = cx.eps.filter(function (p) { return p.servico !== slug() && p.status === 'internado'; })[0];
+        if (oi && atual && atual.status === 'internado') return { ok: false, msg: oi.nome + ' (NUP ' + nup + ') está internado em ' + nomeServ(oi.servico) + '. Um doente não pode estar internado em dois serviços.' };
+      }
     }
     if (indice) {
       var fora = indice.filter(function (p) { return p.servico !== slug() && !p.anulado && nupN(p.nup) === nup && !mesmoNome(p.nome, nome); })[0];
@@ -334,6 +348,21 @@
   function preencherNovo(p) {
     var set = function (id, v) { var e = document.getElementById(id); if (e && v != null && v !== '') { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); } };
     set('fNome', p.nome); set('fNUP', nupN(p.nup)); set('fGenero', p.genero); set('fIdade', idadeAtual(p));
+    // Saiu do último internamento por transferência: a proveniência é esse serviço
+    // (confirmado no servidor — o índice pode ser de antes da saída).
+    var provDe = function (u) {
+      var prov = document.getElementById('fProveniencia');
+      if (!prov || prov.value || !u || u.status === 'internado' || !/transfer/i.test(u.tipoSaida || '') || !u.servico || u.servico === slug()) return;
+      var alvo = norm(nomeServ(u.servico).replace(/UCI — Intensivos/, 'UCI'));
+      var op = [].slice.call(prov.options).filter(function (o) { return /^Transfer/.test(o.value) && norm(o.textContent) === alvo; })[0];
+      if (op) set('fProveniencia', op.value);
+    };
+    if (p.nup) internamentosNUP(p.nup, true).then(function (eps) {
+      var f = document.getElementById('fNUP'); if (!f || nupN(f.value) !== nupN(p.nup)) return;
+      var u = eps.slice().sort(function (a, b) { return String(b.dataEntrada || '').localeCompare(String(a.dataEntrada || '')); })[0];
+      provDe(u || p);
+    });
+    else provDe(p);
     verificarNUP();
   }
   function regresso(i) {
@@ -413,6 +442,7 @@
     if (!c || (!c.p && Date.now() - c.ts > 60000)) { clearTimeout(tVerif); tVerif = setTimeout(function () { internamentosNUP(v, true).then(function () { if (nupN(nup.value) === v) verificarNUP(); }); }, 350); }
     var eps = (porNUP[v] && porNUP[v].eps) || [];
     var noutro = eps.filter(function (p) { return p.servico !== slug() && p.status === 'internado'; })[0];
+    if (noutro && c && !c.p && Date.now() - c.ts > 5000) { clearTimeout(tVerif); tVerif = setTimeout(function () { internamentosNUP(v, true).then(function () { if (nupN(nup.value) === v) verificarNUP(); }); }, 350); }
     if (noutro) {
       info.style.display = 'block'; info.className = 'cpn-nupinfo er';
       info.innerHTML = esc(noutro.nome) + ' está internado em <b>' + esc(nomeServ(noutro.servico)) + '</b> desde ' + fmt(noutro.dataEntrada) + '. Não pode ser internado em dois serviços — ' + esc(nomeServ(noutro.servico)) + ' tem de registar primeiro a saída (transferência).';
@@ -427,11 +457,26 @@
       var nm = dono ? dono.nome : (todosEps[0] && todosEps[0].nome);
       info.className = 'cpn-nupinfo reg';
       var l = resumoEps(todosEps);
-      info.innerHTML = 'Processo existente: <b>' + esc(nm) + '</b> — será registado como novo internamento deste processo; os anteriores ficam intactos.' +
+      info.innerHTML = 'Processo existente: <b>' + esc(nm) + '</b> — será registado como novo internamento do mesmo processo clínico. Os dados do doente, os internamentos anteriores e as evoluções de todos os serviços ficam visíveis na ficha (só leitura); este serviço acrescenta os seus.' +
         (l.length ? '<div style="margin-top:6px;font-weight:600">Internamentos anteriores (' + l.length + '):<br>' + l.map(esc).join('<br>') + '</div>' : '');
       if (nome && !nome.value.trim() && nm) { nome.value = nm; }
     }
     else { info.className = 'cpn-nupinfo ok'; info.textContent = 'NUP novo — será aberto um processo clínico.'; }
+  }
+
+  // Dois serviços a internar o mesmo doente no mesmo instante (antes de um ver o
+  // registo do outro): volta a verificar no servidor pouco depois de registar e
+  // avisa, para o serviço que registou por último corrigir (nada se apaga).
+  function confirmarUnico(p, S) {
+    setTimeout(function () {
+      internamentosNUP(p.nup, true).then(function (eps) {
+        var outro = eps.filter(function (q) { return q.servico !== S && q.status === 'internado'; })[0];
+        if (!outro || p.status !== 'internado') return;
+        var ta = String(outro.registadoEm || outro.dataEntrada || ''), tb = String(p.registadoEm || p.dataEntrada || ''), primeiroOutro = ta < tb || (ta === tb && outro.servico < S);
+        alert('Atenção: ' + (p.nome || 'o doente') + ' (NUP ' + nupN(p.nup) + ') também foi internado em ' + nomeServ(outro.servico) + ' (' + fmt(outro.dataEntrada) + ').\n\n' +
+          'Um doente só pode estar internado num serviço de cada vez. ' + (primeiroOutro ? 'O outro serviço registou primeiro: anule este registo (Atualizar dados › Anular registo) ou peça a ' + nomeServ(outro.servico) + ' para registar a saída (transferência).' : 'Este serviço registou primeiro: ' + nomeServ(outro.servico) + ' tem de corrigir o registo dele.'));
+      });
+    }, 3000);
   }
 
   // Cada internamento guarda o serviço onde foi feito (fica no próprio registo).
@@ -445,6 +490,7 @@
           var S = window.CP_UCI ? window.CP_UCI.slug : slug();
           l.slice(antes).forEach(function (p) { if (!p.servico) { p.servico = S; p.servicoNome = nomeServ(S); } });
           if (typeof saveData === 'function') saveData();
+          l.slice(antes).forEach(function (p) { if (p.nup) confirmarUnico(p, S); });
         }
       } catch (e) {}
       return r;
