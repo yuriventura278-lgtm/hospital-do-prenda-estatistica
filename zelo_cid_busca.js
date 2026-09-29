@@ -123,12 +123,14 @@
   document.addEventListener('input', function (e) { if (e.target === alvo || modoDe(e.target)) mostrar(e.target); }, true);
   document.addEventListener('focusout', function (e) { if (e.target === alvo) setTimeout(function () { if (document.activeElement !== alvo) fechar(); }, 150); });
   document.addEventListener('keydown', function (e) {
-    if (!dd || dd.style.display === 'none' || e.target !== alvo || !itens.length) return;
+    if (!dd || dd.style.display === 'none' || e.target !== alvo) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fechar(); return; }
+    if (!itens.length) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault(); ativo = (ativo + (e.key === 'ArrowDown' ? 1 : -1) + itens.length) % itens.length;
       Array.prototype.forEach.call(dd.querySelectorAll('.it'), function (el, k) { el.classList.toggle('on', k === ativo); if (k === ativo) el.scrollIntoView({ block: 'nearest' }); });
     } else if (e.key === 'Enter' && ativo >= 0) { e.preventDefault(); e.stopPropagation(); escolher(ativo); }
-    else if (e.key === 'Escape') fechar();
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fechar(); } // só fecha a lista, não a janela
   }, true);
   window.addEventListener('resize', posicionar);
   window.addEventListener('scroll', posicionar, true);
