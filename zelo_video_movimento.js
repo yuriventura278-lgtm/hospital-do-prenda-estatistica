@@ -70,13 +70,14 @@
           a(10, '<rect x="24" y="200" width="472" height="70" rx="12" fill="#ECFDF5"/>' + t(40, 228, 'No mês: soma de todos os dias', { s: 14, w: 800, c: '#065F46' }) + t(40, 254, '12 camas × 30 dias = 360 DC  (menos as camas fora de uso)', { s: 13, c: '#065F46' })));
       } },
     { dur: 21, cor: '#D97706', titulo: 'Dias-doente',
-      falas: ['Os dias-doente são os doentes internados em cada dia. É o ficam existindo da conta de cada dia.', 'Se hoje ficaram 9 doentes, são 9 dias-doente.', 'No mês somam-se os de todos os dias: por exemplo, 270 dias-doente.', 'Normalmente, os dias-doente não podem ser maiores do que os dias-cama.'],
+      falas: ['Os dias-doente são os doentes internados em cada dia. É o ficam existindo da conta de cada dia.', 'Se hoje ficaram 9 doentes, são 9 dias-doente.', 'No mês somam-se os de todos os dias: por exemplo, 270 dias-doente.', 'Normalmente, os dias-doente não podem ser maiores do que os dias-cama: não pode haver mais doentes do que camas disponíveis. Se isso acontecer, verifique os números ou as camas extra.'],
       svg: function () {
         var l = []; for (var i = 0; i < 6; i++) l.push([24 + i * 56, 72, i === 4 ? 'c' : 'd', 0.5 + i * 0.35]); for (i = 0; i < 4; i++) l.push([24 + i * 56, 128, 'd', 2.6 + i * 0.35]);
         return svg('#F8FAFC',
           a(0.1, t(24, 36, 'Dias-doente (DD)', { s: 17, w: 800, c: '#D97706' }) + t(24, 56, 'Doentes internados em cada dia = o "ficam existindo" do dia', { s: 12, c: '#475569' })) +
           camas(l) + a(4.2, t(372, 110, '9 camas ocupadas', { s: 13, c: '#475569' })) + a(5.0, t(372, 142, '= 9 DD', { s: 24, w: 800, c: '#D97706' }) + t(372, 160, 'neste dia', { s: 11, c: '#64748B' })) +
-          a(9, '<rect x="24" y="200" width="472" height="70" rx="12" fill="#FFFBEB"/>' + t(40, 228, 'No mês: soma dos doentes de cada dia', { s: 14, w: 800, c: '#92400E' }) + t(40, 254, 'Ex.: 9 + 10 + 8 + … (30 dias) = 270 DD', { s: 13, c: '#92400E' })));
+          a(9, '<rect x="24" y="200" width="472" height="70" rx="12" fill="#FFFBEB"/>' + t(40, 228, 'No mês: soma dos doentes de cada dia', { s: 14, w: 800, c: '#92400E' }) + t(40, 254, 'Ex.: 9 + 10 + 8 + … (30 dias) = 270 DD', { s: 13, c: '#92400E' })) +
+          a(15, '<rect x="360" y="176" width="136" height="30" rx="15" fill="#FEF2F2" stroke="#FECACA"/>' + t(428, 196, 'DD ≤ DC', { s: 14, w: 800, c: '#DC2626', m: 1 })));
       } },
     { dur: 21, cor: '#DC2626', titulo: 'Taxa de ocupação',
       falas: ['Com estes dois números sabemos se o serviço está bem aproveitado.', 'Dias-doente a dividir por dias-cama, vezes 100, dá a taxa de ocupação: 270 a dividir por 360 são 75 por cento.', 'Abaixo de 85 por cento há folga. Acima, o serviço está sobrelotado e é preciso agir.'],
@@ -127,7 +128,8 @@
   if ('speechSynthesis' in window) { escolherVoz(); try { speechSynthesis.addEventListener('voiceschanged', escolherVoz); } catch (e) {} }
 
   // ── Leitor ──
-  var ov = null, cena = 0, fala = 0, t0 = 0, decorrido = 0, tocar = false, raf = 0, falaAtiva = false, falaFim = 0;
+  var ov = null, cena = 0, fala = 0, t0 = 0, decorrido = 0, tocar = false, raf = 0, falaAtiva = false, falaFim = 0, calada = 0;
+  function aFalar() { try { return 'speechSynthesis' in window && (speechSynthesis.speaking || speechSynthesis.pending); } catch (e) { return false; } }
   function css() {
     if (document.getElementById('vm-css')) return;
     var s = document.createElement('style'); s.id = 'vm-css';
@@ -189,8 +191,13 @@
       decorrido = (agora - t0) / 1000;
       // sem voz (ou erro): avança a legenda pelo tempo de leitura
       if (falaAtiva && falaFim && agora >= falaFim) { falaFim = 0; falaAtiva = false; fala++; falar(); }
+      // Voz do aparelho que termina sem avisar (acontece em alguns navegadores):
+      // calada há mais de 1,5 s → passa à frase seguinte (nunca corta uma frase).
+      if (falaAtiva && !falaFim && comVoz && !aFalar()) { if (!calada) calada = agora; else if (agora - calada > 1500) { calada = 0; falaAtiva = false; fala++; falar(); } } else calada = 0;
       var c = CENAS[cena], acabouFala = fala >= c.falas.length;
-      if (decorrido >= c.dur && acabouFala || decorrido >= c.dur + 12) {
+      // A cena só muda depois de dita a última frase; o limite extra só vale
+      // se a voz estiver parada (nunca corta a narração).
+      if (decorrido >= c.dur && acabouFala || decorrido >= c.dur + 20 && !aFalar() && !falaFim) {
         if (cena < CENAS.length - 1) mostrarCena(cena + 1);
         else { tocar = false; pararVoz(); botaoPlay(); $('.vm-palco').insertAdjacentHTML('beforeend', '<div class="vm-inicio" data-vm="rever"><span><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.4" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></span></div>'); }
       }
