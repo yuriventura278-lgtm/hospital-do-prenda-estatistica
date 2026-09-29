@@ -18,7 +18,13 @@
   // vazia (dia sem autor guardado), mostra a última alteração da página.
   var REUTILIZAR = /^(imagiologia_radiologia_geral|laboratorio_geral|hemoterapia|consulta_externa_geral|farmacia_central)\.html$/;
   var reutilizar = REUTILIZAR.test(ficheiro);
-  if (!PAGINAS.test(ficheiro) && !reutilizar) return;
+  // Procedimentos de Enfermagem (cada serviço): a etiqueta passa a mostrar só
+  // quem alterou por último ESTA página (este serviço) — antes mostrava o
+  // autor guardado na cópia local do dia, que é partilhada pelas páginas de
+  // procedimentos no mesmo computador (podia aparecer quem gravou noutro
+  // serviço, ex.: Maxilo Facial ao abrir Ortopedia).
+  var proc = /^procedimentos_enfermagem_(?!index)[a-z_]+\.html$/.test(ficheiro);
+  if (!PAGINAS.test(ficheiro) && !reutilizar && !proc) return;
   window.__zeloUltAlt = true;
 
   // Páginas que só guardam neste aparelho: conta a gravação destas chaves.
@@ -52,16 +58,39 @@
     if (atual && atual.ts >= info.ts && el.dataset.zeloUlt === '1') return;
     atual = info;
     // Etiqueta da própria página já preenchida por ela: não mexe.
-    if (reutilizar && el.style.display !== 'none' && el.dataset.zeloUlt !== '1') return;
+    if (reutilizar && !proc && el.style.display !== 'none' && el.dataset.zeloUlt !== '1') return;
     el.dataset.zeloUlt = '1';
     nomeEl.textContent = info.nome || '—';
-    horaEl.textContent = hora(info.ts);
+    var dataEl = document.getElementById('last-saved-date');
+    if (proc && dataEl) {
+      var d = new Date(info.ts);
+      dataEl.textContent = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+      horaEl.textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      el.title = 'Última alteração feita nesta página (' + servicoNome() + ') por ' + (info.nome || '—') + ', em ' +
+        d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' }) + ' às ' + horaEl.textContent +
+        (info.dia ? ' — no registo de ' + info.dia.split('-').reverse().join('/') : '') + ' · clique para ver o histórico';
+    } else horaEl.textContent = hora(info.ts);
     el.style.display = 'inline-flex';
     try { localStorage.setItem(LS, JSON.stringify(info)); } catch (e) {}
   }
 
+  function servicoNome() { var t = document.title.split(/[—–-]/); return t[t.length - 1].trim() || 'este serviço'; }
   function criarEtiqueta() {
     var existente = document.getElementById('last-saved-status');
+    if (existente && proc) {
+      el = existente; nomeEl = document.getElementById('last-saved-name'); horaEl = document.getElementById('last-saved-time');
+      if (!nomeEl || !horaEl) { el = null; return false; }
+      // A página deixava de mostrar o autor da cópia local do dia: esconde
+      // até sabermos quem alterou esta página.
+      if (el.dataset.zeloUlt !== '1') el.style.display = 'none';
+      window._mostrarHoraGuardado = function (nome, quando) {
+        if (!nome && !quando) registar();          // gravação feita agora nesta página
+        else if (atual) mostrar(atual);            // autor vindo do dia: ignora, repõe o da página
+        else el.style.display = 'none';
+      };
+      try { mostrar(JSON.parse(localStorage.getItem(LS) || 'null')); } catch (e) {}
+      return true;
+    }
     if (existente && reutilizar) {
       el = existente; nomeEl = document.getElementById('last-saved-name'); horaEl = document.getElementById('last-saved-time');
       if (!nomeEl || !horaEl) { el = null; return false; }
@@ -101,6 +130,7 @@
   function registar() {
     if (!gesto()) return;
     var info = { nome: doisNomes(sessionStorage.getItem('zeloNome') || '') || 'Utilizador', ts: Date.now() };
+    if (proc) { try { if (typeof currentLoadedDate !== 'undefined' && currentLoadedDate) info.dia = currentLoadedDate; } catch (e) {} }
     mostrar(info);
     clearTimeout(tRegisto);
     tRegisto = setTimeout(function () {
@@ -133,13 +163,32 @@
     } catch (e) {}
   }
 
+  // Ainda sem registo por página: procura nos registos DESTE serviço dos
+  // últimos 7 dias quem gravou por último (7 leituras pequenas, uma vez).
+  var semeado = false;
+  function semear() {
+    if (semeado || atual || typeof window.__fbGet !== 'function') return; semeado = true;
+    var slug; try { slug = FB_SLUG; } catch (e) { return; }
+    var dias = []; for (var i = 0; i < 7; i++) { var d = new Date(Date.now() - i * 86400000); dias.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')); }
+    Promise.all(dias.map(function (d) { return window.__fbGet('registos_enf/' + slug + '/' + d).then(function (v) { return v ? { d: d, v: v } : null; }).catch(function () { return null; }); }))
+      .then(function (l) {
+        var melhor = null;
+        l.forEach(function (x) {
+          if (!x) return; var raw = x.v.snapshot && x.v.snapshot.raw, nome = raw && raw.criadoPor && raw.criadoPor.nome;
+          var ts = raw && raw._ts || (x.v.savedAt ? Date.parse(x.v.savedAt) : 0);
+          if (nome && ts && (!melhor || ts > melhor.ts)) melhor = { nome: doisNomes(nome), ts: ts, dia: x.d };
+        });
+        if (melhor && !atual) mostrar(melhor);
+      });
+  }
+
   var escutando = false;
   function ligar() {
     ['zeloQueueWrite', 'zeloQueueUpdate', '__fbSet', '__fbUpdate'].forEach(envolver);
     if (!escutando && window.__fbReady) {
       escutando = true;
       try {
-        if (typeof window.__fbListen === 'function') window.__fbListen(CHAVE, function (v) { mostrar(v && typeof v.val === 'function' ? v.val() : v); });
+        if (typeof window.__fbListen === 'function') window.__fbListen(CHAVE, function (v) { v = v && typeof v.val === 'function' ? v.val() : v; if (v) mostrar(v); else if (proc) semear(); });
         else if (typeof window.__fbGet === 'function') window.__fbGet(CHAVE).then(mostrar).catch(function () {});
       } catch (e) {}
     }
