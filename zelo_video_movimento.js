@@ -274,9 +274,25 @@
       var n = document.createElement('button'); n.type = 'button'; n.id = 'vmBtnMhg'; n.innerHTML = ICONE + 'Instruções'; n.title = 'Vídeo: como se calcula o Movimento Hospitalar';
       n.addEventListener('click', function () { abrir(); }); mhg.insertBefore(n, mhg.firstChild); return true;
     }
-    return !!(b && b.dataset.vm) || !!document.getElementById('vmBtnMhg');
+    // Páginas sem botão de ajuda (ex.: Procedimentos, Bloco, Imagiologia,
+    // Hemoterapia, Laboratório): botão novo antes de "Terminar sessão".
+    if (!b && window.ZELO_VIDEO_DEF && !document.getElementById('vmBtnCab')) {
+      var cab = document.querySelector('.zc-cab'); if (!cab) return false;
+      var sair = Array.prototype.filter.call(cab.querySelectorAll('button,a'), function (e) { return /terminar sess/i.test(e.textContent || '') || /terminar sess/i.test(e.getAttribute('title') || ''); })[0];
+      if (!sair) return false;
+      var nb = document.createElement('button'); nb.type = 'button'; nb.id = 'vmBtnCab'; nb.className = sair.className;
+      nb.innerHTML = ICONE + '<span>Instruções</span>'; nb.title = 'Vídeo de instruções'; nb.setAttribute('aria-label', 'Instruções (vídeo)');
+      // Mesmo aspeto do botão "Terminar sessão" (as páginas estilizam-no por id/seletor)
+      var cs = getComputedStyle(sair);
+      ['border', 'borderRadius', 'background', 'color', 'padding', 'font', 'height', 'letterSpacing', 'textTransform', 'boxShadow'].forEach(function (k) { try { nb.style[k] = cs[k]; } catch (e) {} });
+      nb.style.display = 'inline-flex'; nb.style.alignItems = 'center'; nb.style.gap = '6px'; nb.style.whiteSpace = 'nowrap'; nb.style.cursor = 'pointer'; nb.style.flexShrink = '0';
+      var ic = nb.querySelector('svg'); if (ic) { ic.setAttribute('width', '15'); ic.setAttribute('height', '15'); }
+      nb.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); abrir(); });
+      sair.parentNode.insertBefore(nb, sair); return true;
+    }
+    return !!(b && b.dataset.vm) || !!document.getElementById('vmBtnMhg') || !!document.getElementById('vmBtnCab');
   }
-  var tent = 0, iv = setInterval(function () { tent++; if (botao() || tent > 60) clearInterval(iv); }, 250);
+  var tent = 0, iv = setInterval(function () { tent++; if (botao() || tent > 80) clearInterval(iv); }, 250);
 
   window.ZeloVideoMov = { abrir: abrir, CENAS: CENAS_MOV, TOTAL: TOTAL, h: { a: a, t: t, svg: svg, camas: camas } };
 })();
