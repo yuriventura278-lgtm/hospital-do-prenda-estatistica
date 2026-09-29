@@ -279,6 +279,37 @@
   .b2-dgx{width:38px;height:38px;border-radius:12px;border:1.5px solid #FECACA;background:#FEF2F2;color:#B91C1C;font:800 1.2rem Inter,Arial;cursor:pointer;line-height:1}
   .b2-dgmais{border:1.5px dashed #99F6E4;background:#F0FDFA;color:#0F766E;border-radius:12px;padding:9px 14px;font:700 .86rem Inter,"Segoe UI",Roboto,Arial;cursor:pointer}
   @media (max-width:560px){.b2-dg{grid-template-columns:1fr 88px 38px}}
+  /* Janela do formulário: cabeçalho e botões sempre visíveis, sem barra de rolagem */
+  .b3-ov{align-items:center;overflow:hidden}
+  .b2-card.b2-form{display:flex;flex-direction:column;max-width:1180px;max-height:calc(100vh - 32px);overflow:hidden}
+  .b2-card.b2-form .b2-ch{flex:0 0 auto;padding:10px 18px}
+  .b2-card.b2-form .b2-cb{flex:1 1 auto;min-height:0;overflow:auto;scrollbar-width:none;-ms-overflow-style:none;padding:4px 20px 8px}
+  .b2-card.b2-form .b2-cb::-webkit-scrollbar{display:none;width:0;height:0}
+  .b2-rod{flex:0 0 auto;padding:10px 20px 12px;border-top:1px solid #E3E8F0;background:#fff}
+  .b2-rod .b2-acts{margin-top:0}
+  .b2-rod .b2-b{padding:12px}
+  .b2-form .b2-lab{margin:10px 0 6px}
+  @media (min-width:900px){
+    #b2-form-corpo{display:grid;grid-template-columns:1.05fr 1fr;gap:0 26px;align-items:start}
+    .b2-form .b2-esp{grid-template-columns:repeat(4,1fr);gap:6px}
+    .b2-form .b2-et{padding:6px 4px 5px}
+    .b2-form .b2-et .ico{width:26px;height:26px;margin-bottom:3px;border-radius:8px}
+    .b2-form .b2-et .ico svg{width:15px;height:15px}
+    .b2-form .b2-bt{padding:7px 6px}
+    .b2-form .b2-inp,.b2-form .b2-dg .b2-inp{height:42px}
+    .b2-form .b2-at{padding:6px 8px}
+    .b2-form .b2-dt{padding:7px 4px}
+    .b2-rod .b2-acts{max-width:560px;margin-left:auto}
+  }
+  @media (max-width:700px){
+    .b2-card.b2-form{max-height:100vh;height:100vh;min-height:0}
+    .b2-rod{padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+    .b2-card.b2-form .b2-cb{padding:2px 14px 8px}
+    .b2-form .b2-esp{grid-template-columns:repeat(4,1fr);gap:5px}
+    .b2-form .b2-et{padding:6px 2px 5px;font-size:.68rem}
+    .b2-form .b2-et .ico{width:24px;height:24px;margin-bottom:3px;border-radius:8px}
+    .b2-form .b2-et .ico svg{width:14px;height:14px}
+  }
   #b2-idade::-webkit-outer-spin-button,#b2-idade::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   #b2-idade{-moz-appearance:textfield}
 `;
@@ -500,19 +531,21 @@
       var e = ESP[k];
       return '<div class="b2-et' + (F.esp === k ? ' on' : '') + '" data-esp="' + esc(k) + '"><div class="ico" style="background:' + e[1] + ';color:' + e[2] + '">' + IC[e[0]] + '</div>' + esc(k === 'Otorrinolaringologia' ? 'Otorrino' : k) + '</div>';
     }).join('');
-    fm.innerHTML = (edit ? '<div class="b2-edit">' + IC.alerta.replace('<svg ', '<svg width="16" height="16" ') + 'A editar a cirurgia das ' + esc(F.hora || '--:--') + '</div>' : '') +
+    fm.innerHTML = '<div class="b2-col">' + (edit ? '<div class="b2-edit">' + IC.alerta.replace('<svg ', '<svg width="16" height="16" ') + 'A editar a cirurgia das ' + esc(F.hora || '--:--') + '</div>' : '') +
       '<div class="b2-lab" data-l="esp">Especialidade *</div><div class="b2-esp">' + espHtml + '</div>' +
       '<div class="b2-pair"><div><div class="b2-lab" data-l="sexo">Sexo *</div><div class="b2-big"><div class="b2-bt m' + (F.sexo === 'M' ? ' on' : '') + '" data-sexo="M">♂<small>Masculino</small></div><div class="b2-bt f' + (F.sexo === 'F' ? ' on' : '') + '" data-sexo="F">♀<small>Feminino</small></div></div></div>' +
       '<div><div class="b2-lab">Caráter *</div><div class="b2-big"><div class="b2-bt u' + (F.carac === 'Urgente' ? ' on' : '') + '" data-carac="Urgente">' + IC.alerta + '<small>Urgente</small></div><div class="b2-bt e' + (F.carac === 'Eletiva' ? ' on' : '') + '" data-carac="Eletiva">' + IC.cal + '<small>Eletiva</small></div></div></div></div>' +
       '<div class="b2-pair"><div><div class="b2-lab">Idade</div><div class="b2-inp"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" id="b2-idade" value="' + esc(F.idade) + '"><span>anos</span></div></div>' +
       '<div><div class="b2-lab">Hora</div><div class="b2-inp"><input type="time" id="b2-hora" value="' + esc(F.hora) + '"><button type="button" class="b2-agora" id="b2-agora">AGORA</button></div></div></div>' +
+      '</div><div class="b2-col">' +
       '<div class="b2-lab">Diagnóstico <span style="text-transform:none;letter-spacing:0;font-weight:600">— CID opcional</span></div>' + diagHtml() +
       '<div class="b2-lab" data-l="anest">Técnica anestésica * <span style="text-transform:none;letter-spacing:0;font-weight:600">— pode escolher várias</span></div><div class="b2-an">' +
       ANEST.map(function (a) { return '<div class="b2-at' + (F.anest[a[0]] ? ' on' : '') + '" data-an="' + a[0] + '"><i>' + a[1] + '</i>' + a[2] + '</div>'; }).join('') + '</div>' +
       '<div class="b2-lab">Desfecho</div><div class="b2-ds">' +
       [['', IC.ok, 'Sem intercorr.'], ['uci', IC.uci, 'Transf. UCI'], ['sala', IC.sala, 'Transf. sala'], ['obito', '<span class="x">†</span>', 'Óbito']].map(function (d) {
         return '<div class="b2-dt' + (F.desfecho === d[0] ? ' on' : '') + (d[0] === 'obito' ? ' ob' : '') + '" data-ds="' + d[0] + '">' + d[1] + d[2] + '</div>';
-      }).join('') + '</div>' +
+      }).join('') + '</div></div>';
+    var rod = $('b2-form-rodape'); if (rod) rod.innerHTML =
       (edit ? '<div class="b2-acts ed"><button type="button" class="b2-b o" id="b2-cancelar">Cancelar</button><button type="button" class="b2-b p" id="b2-guardar">✓ Atualizar cirurgia</button></div>'
             : '<div class="b2-acts"><button type="button" class="b2-b o" id="b2-outra">Guardar + outra</button><button type="button" class="b2-b p" id="b2-guardar">✓ Guardar cirurgia</button></div>');
   }
@@ -634,7 +667,7 @@
         '<div class="b2-mini" id="b2-mini"></div></div>' +
       '<div class="b2-card"><div class="b2-ch"><span class="i">' + IC.relogio + '</span>Linha do tempo do turno (24 horas)<small><span id="b2-tl-nota"></span><br><span style="color:#EF4444">■</span> Urgente &nbsp;<span style="color:#06B6D4">■</span> Eletiva</small></div>' +
         '<div class="b2-tl"><div class="b2-track" id="b2-track"></div><div class="b2-ax">' + Array.apply(null, Array(24)).map(function (x, i) { return '<span>' + (i % 3 === 0 ? String(i).padStart(2, '0') + 'h' : '') + '</span>'; }).join('') + '</div><div class="b2-sem" id="b2-sem"></div></div></div>' +
-      '<div class="b2-grid"><div class="b2-card b2-form" id="b2-form"><div class="b2-ch"><span class="i">' + IC.mais + '</span><span id="b3-ftit">Nova cirurgia</span><button type="button" class="b2-fecharf" id="b2-fecharf" aria-label="Fechar">×</button></div><div class="b2-cb" id="b2-form-corpo"></div></div>' +
+      '<div class="b2-grid"><div class="b2-card b2-form" id="b2-form"><div class="b2-ch"><span class="i">' + IC.mais + '</span><span id="b3-ftit">Nova cirurgia</span><button type="button" class="b2-fecharf" id="b2-fecharf" aria-label="Fechar">×</button></div><div class="b2-cb" id="b2-form-corpo"></div><div class="b2-rod" id="b2-form-rodape"></div></div>' +
         '<div class="b2-card"><div class="b2-ch"><span class="i" style="background:linear-gradient(135deg,#0EA5E9,#2563EB);box-shadow:0 6px 14px rgba(37,99,235,.3)">' + IC.cal + '</span>Cirurgias do turno<small id="b2-lista-nota"></small></div><div class="b2-fil" id="b2-fil"></div><div id="b2-lista"></div><div style="height:12px"></div></div></div>' +
       '<div class="b2-grid2"><div class="b2-card"><div class="b2-ch"><span class="i" style="background:linear-gradient(135deg,#F59E0B,#EA580C);box-shadow:0 6px 14px rgba(234,88,12,.3)">' + IC.osso + '</span>Especialidades do turno<small>urgente · eletiva</small></div><div class="b2-bars" id="b2-bars"></div></div>' +
         '<div class="b2-card"><div class="b2-ch"><span class="i" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);box-shadow:0 6px 14px rgba(109,40,217,.3)">' + IC.gota + '</span>Anestesia e sexo<small>técnicas mais usadas</small></div><div class="b2-anr" id="b2-anr"></div><div class="b2-sx" id="b2-sx"></div></div></div>' +
