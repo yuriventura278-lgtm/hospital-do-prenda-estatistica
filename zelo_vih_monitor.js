@@ -174,9 +174,75 @@
     return h + '<tr class="tot"><td class="l">TOTAL</td><td>' + tot.lt + '</td><td>' + tot.lp + '</td><td>' + tot.li + '</td><td>' + tot.ht + '</td><td>' + tot.hp + '</td><td>' + tot.hi + '</td><td>' +
       (tot.lt + tot.ht) + '</td><td>' + (tot.lp + tot.hp) + '</td><td>' + (tot.li + tot.hi) + '</td><td>' + pct(tot.lp + tot.hp, tot.lt + tot.ht) + '</td></tr></tbody></table></div>';
   }
+  // ── Período anterior (para comparar) ──
+  function fimMes(y, m) { return y + '-' + pad(m) + '-' + pad(new Date(y, m, 0).getDate()); }
+  function anterior(I) {
+    var y = +I.de.slice(0, 4), m = +I.de.slice(5, 7), meses = { mes: 1, tri: 3, sem: 6, ano: 12 }[I.tipo];
+    if (meses) {
+      var d0 = new Date(y, m - 1 - meses, 1), d1 = new Date(y, m - 1 - 1, 1);
+      return { de: iso(d0), ate: fimMes(d1.getFullYear(), d1.getMonth() + 1) };
+    }
+    var n = I.tipo === 'semana' ? 7 : 1, a = dt(I.de), b = dt(I.ate); a.setDate(a.getDate() - n); b.setDate(b.getDate() - n);
+    return { de: iso(a), ate: iso(b) };
+  }
+  function variacao(a, b, taxa) {
+    if (taxa) { if (a == null || b == null) return '<span class="var-eq">—</span>'; var d = a - b; return '<span class="' + (d > 0 ? 'var-up' : d < 0 ? 'var-dn' : 'var-eq') + '">' + (d > 0 ? '+' : '') + d.toFixed(1).replace('.', ',') + ' p.p.</span>'; }
+    if (!b) return a ? '<span class="var-up">novo</span>' : '<span class="var-eq">—</span>';
+    var v = (a - b) * 100 / b; return '<span class="' + (v > 0 ? 'var-up' : v < 0 ? 'var-dn' : 'var-eq') + '">' + (v > 0 ? '+' : '') + v.toFixed(1).replace('.', ',') + '%</span>';
+  }
+  function comparacao(I, R) {
+    var A = anterior(I), RA = calcular(A);
+    $('monCompPer').textContent = '(' + fmtD(A.de) + ' a ' + fmtD(A.ate) + ')';
+    var h = '<div class="r-wrap"><table class="r-table"><thead><tr><th class="l" style="background:var(--accent);color:#fff">Indicador</th><th style="background:var(--accent);color:#fff">Período atual</th><th style="background:var(--accent);color:#fff">Período anterior</th><th style="background:var(--accent);color:#fff">Variação</th></tr></thead><tbody>';
+    function taxa(a) { var t = soma(a, 'testados'); return t ? soma(a, 'positivos') * 100 / t : null; }
+    [['soma', 'Soma'], ['lab', 'Laboratório'], ['hemo', 'Hemoterapia']].forEach(function (f, k) {
+      var a = R[f[0]].a, b = RA[f[0]].a;
+      h += '<tr class="' + (k ? '' : '') + '"><td class="l" colspan="4" style="background:var(--surface2);font-weight:800">' + f[1] + '</td></tr>';
+      IND.forEach(function (x) { var va = soma(a, x.id), vb = soma(b, x.id); h += '<tr><td class="l">' + x.nome + '</td><td>' + va + '</td><td>' + vb + '</td><td>' + variacao(va, vb) + '</td></tr>'; });
+      var ta = taxa(a), tb = taxa(b);
+      h += '<tr><td class="l">Taxa de positividade</td><td>' + pct(soma(a, 'positivos'), soma(a, 'testados')) + '</td><td>' + pct(soma(b, 'positivos'), soma(b, 'testados')) + '</td><td>' + variacao(ta, tb, true) + '</td></tr>';
+    });
+    $('monComp').innerHTML = h + '</tbody></table></div><div class="legenda" style="margin-top:6px">Variação: <span class="var-up">subiu</span> · <span class="var-dn">desceu</span> · p.p. = pontos percentuais</div>';
+    return { A: A, RA: RA };
+  }
+  function evolucao(I) {
+    var itens = [];
+    if (I.tipo === 'mes' || I.tipo === 'semana' || I.tipo === 'dia') {
+      for (var d = dt(I.de); iso(d) <= I.ate; d.setDate(d.getDate() + 1)) {
+        var k = iso(d), l = dados.lab[k] && dados.lab[k].snapshot, h = dados.hemo[k] && dados.hemo[k].snapshot;
+        itens.push({ m: String(d.getDate()), lt: l ? soma(l, 'testados') : 0, ht: h ? soma(h, 'testados') : 0, p: (l ? soma(l, 'positivos') : 0) + (h ? soma(h, 'positivos') : 0) });
+      }
+      $('monEvolTit').textContent = 'Evolução por dia — testados (Laboratório + Hemoterapia)';
+    } else {
+      var y = +I.de.slice(0, 4);
+      for (var m = +I.de.slice(5, 7); m <= +I.ate.slice(5, 7); m++) {
+        var a = y + '-' + pad(m) + '-01', b = y + '-' + pad(m) + '-31';
+        var L = agregar(entre('lab', a, b).map(function (x) { return x.s; })), H = agregar(entre('hemo', a, b).map(function (x) { return x.s; }));
+        itens.push({ m: MESES[m - 1].slice(0, 3), lt: soma(L, 'testados'), ht: soma(H, 'testados'), p: soma(L, 'positivos') + soma(H, 'positivos') });
+      }
+      $('monEvolTit').textContent = 'Evolução por mês — testados (Laboratório + Hemoterapia)';
+    }
+    var mx = 1; itens.forEach(function (x) { mx = Math.max(mx, x.lt + x.ht); });
+    $('monEvol').innerHTML = '<div class="cols">' + itens.map(function (x) {
+      return '<div class="c" title="' + x.m + ': Laboratório ' + x.lt + ', Hemoterapia ' + x.ht + ' testados; ' + x.p + ' positivos"><span class="v">' + ((x.lt + x.ht) || '') + '</span><div class="b" style="height:' + Math.max(2, (x.lt + x.ht) * 100 / mx) + '%"><i style="height:' + ((x.lt + x.ht) ? x.lt * 100 / (x.lt + x.ht) : 0) + '%;background:#3E5C87"></i><i style="flex:1;background:#9F1239"></i></div></div>';
+    }).join('') + '</div><div class="cols-lb">' + itens.map(function (x) { return '<span>' + x.m + '</span>'; }).join('') + '</div>' +
+      '<div class="legenda"><span><i style="background:#3E5C87"></i>Laboratório</span><span><i style="background:#9F1239"></i>Hemoterapia</span></div>';
+  }
+  function porSexo(a) {
+    var h = '<div class="r-wrap"><table class="r-table"><thead><tr><th class="l" style="background:var(--accent);color:#fff">Sexo</th><th class="gT">Testados</th><th class="gP">Positivos</th><th class="gI">Indeterm.</th><th style="background:#b45309;color:#fff">Taxa pos.</th></tr></thead><tbody>';
+    [['f', 'Feminino'], ['m', 'Masculino']].forEach(function (x) { var t = soma(a, 'testados', x[0]), p = soma(a, 'positivos', x[0]); h += '<tr><td class="l">' + x[1] + '</td><td>' + t + '</td><td>' + p + '</td><td>' + soma(a, 'indeterminados', x[0]) + '</td><td>' + pct(p, t) + '</td></tr>'; });
+    h += '</tbody></table></div>';
+    var top = FAIXAS.map(function (n, i) { return { n: n, p: val(a, 'positivos', i, 'f') + val(a, 'positivos', i, 'm'), t: val(a, 'testados', i, 'f') + val(a, 'testados', i, 'm') }; })
+      .filter(function (x) { return x.p; }).sort(function (x, y) { return y.p - x.p; }).slice(0, 5);
+    h += '<div style="margin-top:12px;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted)">Faixas etárias com mais positivos</div>';
+    h += top.length ? '<div class="bars" style="margin-top:8px">' + top.map(function (x) { return '<div class="bar-row"><span class="lb">' + esc(x.n) + '</span><div class="bar-track"><i style="width:' + (x.p * 100 / top[0].p) + '%;background:#b91c1c"></i></div><span class="nm">' + x.p + ' <small style="color:var(--muted)">(' + pct(x.p, x.t) + ')</small></span></div>'; }).join('') + '</div>'
+      : '<div class="no-data" style="padding:14px">Sem positivos no período</div>';
+    $('monSexo').innerHTML = h;
+  }
   function relatorio() {
     var I = intervalo(), R = calcular(I), linhas = linhasPeriodo(I, R), a = R[vistaFonte].a;
     $('monTit').textContent = I.rot;
+    comparacao(I, R); evolucao(I); porSexo(R.soma.a);
     $('monKpis').innerHTML = kpiCol(R.lab.a, 'Laboratório', '#3E5C87', R.lab.regs.length) + kpiCol(R.hemo.a, 'Hemoterapia', '#9F1239', R.hemo.regs.length) + kpiCol(R.soma.a, 'Soma (Laboratório + Hemoterapia)', '#0F766E');
     document.querySelectorAll('#monFontes button').forEach(function (b) { b.classList.toggle('on', b.dataset.f === vistaFonte); });
     $('monFaixas').innerHTML = tabelaFaixas(a);
@@ -234,6 +300,13 @@
   }
   var sec = 'sec-painel';
   function redesenhar() { if (sec === 'sec-painel') painel(); else if (sec === 'sec-relatorio') relatorio(); else registos(); }
+  var TIT = { mes: 'Estatística Mensal', tri: 'Estatística Trimestral', sem: 'Estatística Semestral', ano: 'Estatística Anual' };
+  function estatistica(tipo) {
+    $('perTipo').value = tipo; ajustarCampos();
+    $('monH2').textContent = TIT[tipo];
+    mostrar('sec-relatorio');
+    document.querySelectorAll('.nav-item[data-sec],.nav-item[data-est]').forEach(function (n) { n.classList.toggle('active', n.dataset.est === tipo); });
+  }
   function mostrar(id) {
     sec = id;
     document.querySelectorAll('.section').forEach(function (s) { s.classList.toggle('active', s.id === id); });
@@ -245,7 +318,7 @@
   function pdf() {
     if (!(window.jspdf && window.jspdf.jsPDF) || !window.ZeloPDF) { toast('O gerador de PDF ainda está a carregar — tente de novo'); return; }
     var I = intervalo(), R = calcular(I), linhas = linhasPeriodo(I, R), Z = ZeloPDF.criar(), d = Z.d;
-    var y = Z.cab('Testagem de VIH · Laboratório + Hemoterapia', I.rot);
+    var y = Z.cab('Testagem de VIH · ' + (TIT[I.tipo] || 'Relatório') + ' · Laboratório + Hemoterapia', I.rot);
     function tri(a) { var T = soma(a, 'testados'), P = soma(a, 'positivos'); return [String(T), String(P), String(soma(a, 'indeterminados')), pct(P, T)]; }
     y = Z.secT(y, '1. Resumo por serviço e soma');
     y = ZeloPDF.autoTable(d, { startY: y, head: [['', 'Testados', 'Positivos', 'Indeterminados', 'Taxa pos.']],
@@ -256,6 +329,17 @@
       var tl = ['TOTAL']; IND.forEach(function (Ix) { var f = soma(a, Ix.id, 'f'), m = soma(a, Ix.id, 'm'); tl.push(f, m, f + m); }); body.push(tl);
       y = ZeloPDF.autoTable(d, { startY: y, head: [[{ content: 'Faixa etária', rowSpan: 2 }].concat(IND.map(function (Ix) { return { content: Ix.nome, colSpan: 3, styles: { halign: 'center' } }; })), ['F', 'M', 'Total', 'F', 'M', 'Total', 'F', 'M', 'Total']],
         body: body, styles: { fontSize: 10, halign: 'center' }, columnStyles: { 0: { halign: 'left' } } }) + 4;
+    }
+    if (I.tipo !== 'dia') {
+      var A = anterior(I), RA = calcular(A);
+      y = Z.secT(y, 'Comparação com o período anterior (' + fmtD(A.de) + ' a ' + fmtD(A.ate) + ')');
+      var bc = [];
+      [['soma', 'Soma'], ['lab', 'Laboratório'], ['hemo', 'Hemoterapia']].forEach(function (f) {
+        var a = R[f[0]].a, b = RA[f[0]].a;
+        IND.forEach(function (x) { var va = soma(a, x.id), vb = soma(b, x.id); bc.push([f[1] + ' · ' + x.nome, va, vb, vb ? ((va - vb) * 100 / vb).toFixed(1).replace('.', ',') + '%' : (va ? 'novo' : '—')]); });
+        bc.push([f[1] + ' · Taxa de positividade', pct(soma(a, 'positivos'), soma(a, 'testados')), pct(soma(b, 'positivos'), soma(b, 'testados')), '']);
+      });
+      y = ZeloPDF.autoTable(d, { startY: y, head: [['Indicador', 'Período atual', 'Período anterior', 'Variação']], body: bc, styles: { fontSize: 10, halign: 'center' }, columnStyles: { 0: { halign: 'left' } } }) + 4;
     }
     faixas('2. Soma — por faixa etária e sexo', R.soma.a);
     faixas('3. Laboratório — por faixa etária e sexo', R.lab.a);
@@ -271,8 +355,12 @@
     var ag = new Date();
     $('perDia').value = hoje(); $('perMes').value = hoje().slice(0, 7); $('perAno').value = ag.getFullYear(); $('regMes').value = hoje().slice(0, 7); $('dashMes').value = hoje().slice(0, 7);
     $('perTipo').value = 'mes'; ajustarCampos();
-    document.querySelectorAll('.nav-item[data-sec]').forEach(function (n) { n.addEventListener('click', function () { mostrar(n.dataset.sec); }); });
-    ['perTipo'].forEach(function (id) { $(id).addEventListener('change', function () { ajustarCampos(); relatorio(); }); });
+    document.querySelectorAll('.nav-item[data-sec]').forEach(function (n) { n.addEventListener('click', function () {
+      if (n.dataset.sec === 'sec-relatorio') $('monH2').textContent = 'Relatório por período';
+      mostrar(n.dataset.sec); document.querySelectorAll('.nav-item[data-est]').forEach(function (e) { e.classList.remove('active'); });
+    }); });
+    document.querySelectorAll('.nav-item[data-est]').forEach(function (n) { n.addEventListener('click', function () { estatistica(n.dataset.est); }); });
+    ['perTipo'].forEach(function (id) { $(id).addEventListener('change', function () { ajustarCampos(); var t = $('perTipo').value; $('monH2').textContent = TIT[t] || 'Relatório por período'; document.querySelectorAll('.nav-item[data-est]').forEach(function (e) { e.classList.toggle('active', e.dataset.est === t); }); relatorio(); }); });
     ['perDia', 'perMes', 'perAno', 'perParte'].forEach(function (id) { $(id).addEventListener('change', relatorio); });
     $('regMes').addEventListener('change', registos); $('dashMes').addEventListener('change', painel);
     $('monFontes').addEventListener('click', function (e) { var b = e.target.closest('button[data-f]'); if (b) { vistaFonte = b.dataset.f; relatorio(); } });

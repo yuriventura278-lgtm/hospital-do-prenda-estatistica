@@ -73,6 +73,7 @@ tr.mon-dia{cursor:pointer}
 .sync-bar{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);margin-bottom:14px}
 .ponto-vivo{display:inline-block;width:8px;height:8px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.2);animation:pv 2s infinite}
 @keyframes pv{50%{box-shadow:0 0 0 6px rgba(22,163,74,.05)}}
+.var-up{color:#b91c1c;font-weight:700}.var-dn{color:#0a7a4e;font-weight:700}.var-eq{color:var(--muted)}
 .nota-mon{font-size:11.5px;color:var(--muted);background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:8px 12px;margin-bottom:14px}
 #ovDia .mdl{max-width:1000px;max-height:90vh;overflow:auto}
 @media(max-width:1000px){.mon-grid{grid-template-columns:1fr}}
@@ -94,7 +95,13 @@ tr.mon-dia{cursor:pointer}
     <div class="sb-hdr"><span>Testagem de VIH · Estatística</span></div>
     <div class="nav-list">
       <button class="nav-item active" data-sec="sec-painel">Painel</button>
-      <button class="nav-item" data-sec="sec-relatorio">Relatório por período</button>
+      <div class="sb-sec">Estatística</div>
+      <button class="nav-item" data-est="mes">Estatística Mensal</button>
+      <button class="nav-item" data-est="tri">Estatística Trimestral</button>
+      <button class="nav-item" data-est="sem">Estatística Semestral</button>
+      <button class="nav-item" data-est="ano">Estatística Anual</button>
+      <button class="nav-item" data-sec="sec-relatorio">Outro período (dia, semana…)</button>
+      <hr class="sb-divider">
       <button class="nav-item" data-sec="sec-registos">Registos individuais</button>
       <hr class="sb-divider">
       <button class="nav-item" id="btnPdf">Exportar PDF</button>
@@ -110,7 +117,7 @@ tr.mon-dia{cursor:pointer}
       <div class="card"><div class="card-label">Testados por mês · <span id="dashAno"></span> (Laboratório + Hemoterapia)</div><div id="dashGraf"></div></div>
     </div>
     <div class="section" id="sec-relatorio">
-      <div class="pg-hdr"><div><h2>Relatório por período</h2><p id="monTit"></p></div></div>
+      <div class="pg-hdr"><div><h2 id="monH2">Relatório por período</h2><p id="monTit"></p></div></div>
       <div class="period-row">
         <div class="fld"><label for="perTipo">Período</label><select id="perTipo"><option value="dia">Diário</option><option value="semana">Semanal</option><option value="mes">Mensal</option><option value="tri">Trimestral</option><option value="sem">Semestral</option><option value="ano">Anual</option></select></div>
         <div class="fld" id="wDia"><label for="perDia">Dia</label><input type="date" id="perDia"></div>
@@ -119,6 +126,11 @@ tr.mon-dia{cursor:pointer}
         <div class="fld" id="wParte"><label for="perParte">Parte</label><select id="perParte"></select></div>
       </div>
       <div class="mon-grid" id="monKpis"></div>
+      <div class="card"><div class="card-label">Comparação com o período anterior <span id="monCompPer" style="margin-left:6px;text-transform:none;letter-spacing:0;font-weight:600"></span></div><div id="monComp"></div></div>
+      <div class="grid2">
+        <div class="card"><div class="card-label" id="monEvolTit">Evolução</div><div id="monEvol"></div></div>
+        <div class="card"><div class="card-label">Por sexo (soma) e faixas com mais positivos</div><div id="monSexo"></div></div>
+      </div>
       <div class="card"><div class="card-label">Por faixa etária e sexo<div class="mon-fontes" id="monFontes"><button type="button" data-f="soma" class="on">Soma</button><button type="button" data-f="lab">Laboratório</button><button type="button" data-f="hemo">Hemoterapia</button></div></div><div id="monFaixas"></div></div>
       <div class="card"><div class="card-label" id="monLinhasTit"></div><div id="monLinhas"></div></div>
     </div>
@@ -131,7 +143,7 @@ tr.mon-dia{cursor:pointer}
 </div>
 <div class="ov" id="ovDia"><div class="mdl"><div class="mdl-h" style="display:flex;align-items:center;gap:10px"><div><b>Registos do dia</b><small id="mdlDiaTit"></small></div><button type="button" id="mdlDiaFechar" style="margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700">Fechar</button></div><div class="mdl-b" id="mdlDiaCorpo" style="display:block"></div></div></div>
 <div class="toast" id="toast"></div>
-<script src="zelo_vih_monitor.js?v=1"></script>
+<script src="zelo_vih_monitor.js?v=2"></script>
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
