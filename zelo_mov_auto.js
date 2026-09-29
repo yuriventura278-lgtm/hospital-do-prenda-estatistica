@@ -46,7 +46,13 @@
     return ps.some(function (p) { var e = dia(p.dataEntrada); return e <= fim && (!saiu(p) || dia(p.dataSaida) >= ini); });
   }
   // { campos: {campo: [dia1..diaN]}, existencia, ate }  — dias até hoje
-  function calcular(ps, ym, capacidade) {
+  // Doentes internados fora do serviço (zelo_cp_fora.js): a cama é emprestada.
+  //   Serviço de origem: +1 dia de cama por cada doente seu internado fora.
+  //   Serviço que empresta: −1 dia de cama por cada doente de outro serviço.
+  function periodosFora(p) { try { var l = JSON.parse(p.foraServico || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+  function cobre(desde, ate, dd) { return dia(desde) <= dd && (!ate || dia(ate) > dd); }
+  function calcular(ps, ym, capacidade, externos) {
+    externos = externos || [];
     var n = diasNoMes(ym), h = hoje(), ate = ym < h.slice(0, 7) ? n : ym === h.slice(0, 7) ? +h.slice(8, 10) : 0;
     var c = {}; CAMPOS.forEach(function (k) { c[k] = new Array(n).fill(null); });
     for (var d = 1; d <= ate; d++) {
@@ -61,8 +67,16 @@
           else if (p.tipoSaida === 'Transferência') c.transferidos_sai[i]++;
           else c.altas[i]++;
         }
-        if (e <= dd && (!s || s > dd)) c.dia_doente[i]++;
+        if (e <= dd && (!s || s > dd)) {
+          c.dia_doente[i]++;
+          if (periodosFora(p).some(function (f) { return f.servico && cobre(f.desde, f.ate, dd); })) c.dia_cama[i]++;
+        }
       });
+      externos.forEach(function (r) {
+        var fim = [r.ate, r.dataSaida].filter(Boolean).map(dia).sort()[0] || null;
+        if (dia(r.desde) <= dd && (!fim || fim > dd)) c.dia_cama[i]--;
+      });
+      if (c.dia_cama[i] < 0) c.dia_cama[i] = 0;
     }
     var ini = isoDia(ym, 1);
     var existencia = ps.filter(function (p) { var e = dia(p.dataEntrada); return e < ini && (!saiu(p) || dia(p.dataSaida) >= ini); }).length;
@@ -81,13 +95,31 @@
     return window.__fbGet('registos_sistemas_locais/controlo_pacientes/' + m[0] + '/snapshot/pacientes').then(function (v) { return v ? doServico(v, item) : []; }).catch(function () { return null; });
   }
 
-  window.ZeloMovAuto = { MAPA: MAPA, CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes };
+  // Meses em que há camas emprestadas a doentes de outros serviços.
+  function mesesExt(ext) {
+    var h = hoje().slice(0, 7), set = {};
+    (ext || []).forEach(function (r) {
+      var ini = dia(r.desde).slice(0, 7), fim = ([r.ate, r.dataSaida].filter(Boolean).map(dia).sort()[0] || hoje()).slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(ini)) return;
+      var y = +ini.slice(0, 4), mm = +ini.slice(5, 7), k;
+      while ((k = y + '-' + String(mm).padStart(2, '0')) <= fim && k <= h) { set[k] = 1; mm++; if (mm > 12) { mm = 1; y++; } }
+    });
+    return Object.keys(set).sort();
+  }
+  // Doentes de outros serviços com cama emprestada por este serviço.
+  function lerExternos(item) {
+    var m = MAPA[item]; if (!m || typeof window.__fbGet !== 'function') return Promise.resolve([]);
+    return window.__fbGet('registos_sistemas_locais/cp_fora/' + m[0]).then(function (v) {
+      return Object.keys(v || {}).map(function (k) { return v[k]; }).filter(function (r) { return r && r.desde && (!m[1] || r.genero === m[1]); });
+    }).catch(function () { return []; });
+  }
+  window.ZeloMovAuto = { MAPA: MAPA, CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, lerExternos: lerExternos };
 
   // ─────────────── Na página de Movimento de um serviço ───────────────
   function item() { try { return String(FB_MOVIMENTO_PATH).split('/').pop(); } catch (e) { return null; } }
   if (!/_movimento\.html$/.test(location.pathname)) return;
 
-  var ps = null, auto = {}, aplicando = false;
+  var ps = null, ext = [], auto = {}, aplicando = false;
   window.ZeloMovAuto.mesAuto = function (m) { return !!auto[m]; };
 
   function desligado() { try { return !!(data && data.__autoDesligado); } catch (e) { return false; } }
@@ -96,7 +128,7 @@
     var cap = getCapacity(), mudou = false, lm = meses(ps);
     auto = {}; lm.forEach(function (m) { auto[m] = true; });
     lm.forEach(function (m) {
-      var r = calcular(ps, m, cap);
+      var r = calcular(ps, m, cap, ext);
       loadMonth(m);
       // Cópia do que estava escrito à mão, antes da 1ª substituição (nunca apagar).
       data.__manual = data.__manual || {};
@@ -114,6 +146,20 @@
       if (data.__baselines[m] !== r.existencia) { data.__baselines[m] = r.existencia; mudou = true; }
       data.__auto = data.__auto || {};
       if (!data.__auto[m]) { data.__auto[m] = true; mudou = true; }
+    });
+    // Meses sem doentes próprios no Controlo de Pacientes (preenchidos à mão),
+    // mas com camas emprestadas a doentes de outros serviços: só os dias de
+    // cama são acertados (camas − camas emprestadas); o resto fica como está.
+    mesesExt(ext).forEach(function (m) {
+      if (auto[m]) return;
+      var r = calcular([], m, cap, ext);
+      loadMonth(m);
+      for (var i = 0; i < r.ate; i++) {
+        var novo = r.campos.dia_cama[i], velho = data[m].dia_cama[i];
+        if (velho === null || velho === undefined || velho === '' || parseInt(velho, 10) !== novo) { data[m].dia_cama[i] = novo; mudou = true; }
+      }
+      data.__camasEmprestadas = data.__camasEmprestadas || {};
+      if (!data.__camasEmprestadas[m]) { data.__camasEmprestadas[m] = true; mudou = true; }
     });
     if (mudou) {
       aplicando = true;
@@ -156,7 +202,7 @@
   }
   function ler() {
     var it = item(); if (!MAPA[it]) return;
-    lerPacientes(it).then(function (l) { if (l) { ps = l; aplicar(); } });
+    Promise.all([lerPacientes(it), lerExternos(it)]).then(function (r) { if (r[0]) { ps = r[0]; ext = r[1] || []; aplicar(); } });
   }
   var t = 0, iv = setInterval(function () {
     t++;
@@ -167,6 +213,8 @@
       if (m && typeof window.__fbListen === 'function') {
         var primeira = true;
         window.__fbListen('registos_sistemas_locais/controlo_pacientes/' + m[0] + '/savedAt', function () { if (primeira) { primeira = false; return; } ler(); });
+        var primeiraF = true;
+        window.__fbListen('registos_sistemas_locais/cp_fora/' + m[0], function () { if (primeiraF) { primeiraF = false; return; } ler(); });
       }
     } else if (t > 160) clearInterval(iv);
   }, 250);

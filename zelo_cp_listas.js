@@ -178,7 +178,7 @@
   }
   function linha(p, op) {
     var novo = op.dia && dia(p.dataEntrada) === op.dia ? '<span class="cpg-tag">Entrou ' + (op.dia === hojeISO() ? 'hoje' : 'neste dia') + '</span>' : '';
-    var c = '<td>' + p.n + '</td><td class="cpg-nome"><b class="cpp-link" data-proc="' + p.n + '" title="Ver o processo completo">' + esc(p.nome) + '</b>' + novo + '<small>NUP ' + esc(p.nup || '—') + '</small></td>' +
+    var c = '<td>' + p.n + '</td><td class="cpg-nome"><b class="cpp-link" data-proc="' + p.n + '" title="Ver o processo completo">' + esc(p.nome) + '</b>' + novo + '<small>NUP ' + esc(p.nup || '—') + (window.zeloCpForaTxt ? window.zeloCpForaTxt(p) : '') + '</small></td>' +
       '<td>' + esc(p.idade) + '</td><td><span class="cpg-fxc">' + (faixa(p) || '—') + '</span></td><td>' + esc(p.cama || '—') + '</td><td>' + fmt(p.dataEntrada) + '</td>';
     if (op.saida) c += '<td>' + fmt(p.dataSaida) + '</td><td>' + tipoSaida(p) + '</td><td>' + diasDe(p) + '</td><td>' + esc(p.diagnosticoFinal || p.diagnostico || '—') + '</td>';
     else c += '<td>' + diasDe(p, op.ate) + '</td><td class="cpg-diag">' + diagTxt(p) + '</td><td>' + esc(p.proveniencia || '—') + '</td>';
@@ -193,6 +193,7 @@
   function linhaMob(p, op) {
     var novo = op.dia && dia(p.dataEntrada) === op.dia ? '<span class="cpg-tag">' + (op.dia === hojeISO() ? 'Hoje' : 'Entrou') + '</span>' : '';
     var l2 = [esc(p.cama || 'Sem cama'), esc(p.idade) + ' anos', faixa(p) || '—'];
+    if (window.zeloCpForaAtivo && window.zeloCpForaAtivo(p)) l2.unshift(window.zeloCpForaTxt(p));
     if (op.saida) l2.push('Entrada ' + fmt(p.dataEntrada), 'Saída ' + fmt(p.dataSaida));
     var extra = op.saida ? tipoSaida(p) + diasDe(p) : diasDe(p, op.ate);
     return '<div class="cpg-lin"><div class="t"><b class="cpp-link" data-proc="' + p.n + '">' + esc(p.nome) + '</b>' + novo + '<div class="l2">' + l2.join(' · ') + ' ' + extra + '</div></div>' +
