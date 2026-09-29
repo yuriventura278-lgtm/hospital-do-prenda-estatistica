@@ -113,7 +113,12 @@
         return Object.keys(v || {}).filter(function (kk) { var p = v[kk]; return p && typeof p === 'object' && nupN(p.nup) === nup && !p.anulado; })
           .map(function (kk) { return Object.assign({}, v[kk], { servico: s[0], _chave: kk }); });
       });
-    })).then(function (ls) { var eps = [].concat.apply([], ls); porNUP[nup] = { ts: Date.now(), eps: eps }; return eps; })
+    }).concat([typeof window.zeloCpArquivoNUP === 'function' ? window.zeloCpArquivoNUP(nup) : Promise.resolve([])])).then(function (ls) {
+      // Internamentos arquivados (saídas antigas) juntam-se aos do bloco de cada serviço.
+      var arq = ls.pop() || [], eps = [].concat.apply([], ls), tem = {};
+      eps.forEach(function (p) { tem[p.servico + '|' + p._chave] = 1; });
+      arq.forEach(function (p) { if (!tem[p.servico + '|' + p._chave]) eps.push(p); });
+      porNUP[nup] = { ts: Date.now(), eps: eps }; return eps; })
       .catch(function () { porNUP[nup] = { ts: Date.now(), eps: [] }; return []; });
     porNUP[nup] = { ts: Date.now(), eps: (c && c.eps) || [], p: pr };
     pr.then(function () { if (porNUP[nup]) delete porNUP[nup].p; });
@@ -278,6 +283,14 @@
       var a = b.dataset.cpn;
       if (a === 'este' || a === 'todos') { vista.todos = a === 'todos'; if (vista.todos) { lista(true); lerIndice().then(function () { lista(); }); } else lista(); }
       else if (a === 'abrir') detalhe(b.dataset.k);
+      else if (a === 'abrirArq') {
+        b.disabled = true; b.textContent = 'A abrir…';
+        internamentosNUP(b.dataset.nup, true).then(function (eps) {
+          var x = processos(eps.concat(pacientes().filter(function (p) { return nupN(p.nup) === nupN(b.dataset.nup); }).map(function (p) { return Object.assign({}, p, { servico: slug(), _local: true }); })))[0];
+          if (!x) { b.textContent = 'Não encontrado'; return; }
+          ultimaLista.push(x); detalhe(ultimaLista.length - 1);
+        });
+      }
       else if (a === 'voltar') lista();
       else if (a === 'ep') { ov.classList.remove('on'); if (window.ZeloCpProcesso) window.ZeloCpProcesso.abrir(+b.dataset.n); }
       else if (a === 'regresso') { ov.classList.remove('on'); regresso(b.dataset.k); }
@@ -312,7 +325,22 @@
       });
       h += '</tbody></table>';
     }
+    h += '<div id="cpn-arq"></div>';
     ov.innerHTML = '<div class="cpn-card" role="dialog" aria-label="Processo clínico">' + h + '</div></div>';
+    // Arquivo de saídas antigas: procura pelo início do nome ou do apelido (ou NUP exato).
+    if (vista.q.trim().length >= 3 && typeof window.zeloCpArquivoNomes === 'function') {
+      var qq = vista.q.trim();
+      window.zeloCpArquivoNomes(qq).then(function (lr) {
+        var box = ov.querySelector('#cpn-arq'); if (!box || vista.q.trim() !== qq) return;
+        var ja = {}; l.forEach(function (x) { if (x.nup) ja[x.nup] = 1; });
+        lr = lr.filter(function (x) { return x.nup && !ja[x.nup] && (vista.todos || x.servico === slug()); });
+        var porN = {}; lr.forEach(function (x) { if (!porN[x.nup] || String(x.dataSaida) > String(porN[x.nup].dataSaida)) porN[x.nup] = x; });
+        lr = Object.keys(porN).map(function (k) { return porN[k]; }); if (!lr.length) return;
+        box.innerHTML = '<div style="padding:10px 14px 4px;font:800 .7rem Inter,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#64748B">No arquivo (saídas antigas)</div><table class="cpn-t"><tbody>' + lr.map(function (x) {
+          return '<tr><td><span class="cpn-nup">' + esc(x.nup) + '</span></td><td><b>' + esc(x.nome) + '</b></td><td>' + esc(x.genero || '—') + (x.idade ? ' · ' + esc(x.idade) + ' anos' : '') + '</td><td>' + esc(nomeServ(x.servico)) + '</td><td>Saiu ' + fmt(x.dataSaida) + '</td><td><button type="button" class="cpn-bt p" data-cpn="abrirArq" data-nup="' + esc(x.nup) + '">Abrir processo</button></td></tr>';
+        }).join('') + '</tbody></table>';
+      });
+    }
     var q = ov.querySelector('#cpn-q');
     q.addEventListener('input', function () { vista.q = q.value; var pos = q.selectionStart; lista(); var n = ov.querySelector('#cpn-q'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} });
   }
@@ -414,6 +442,22 @@
       res.innerHTML = achados.length ? achados.map(function (x, i) {
         return '<button type="button" data-i="' + i + '"><span class="cpn-nup">' + esc(x.nup || '—') + '</span><span><b>' + esc(x.nome) + '</b><small>' + esc(x.genero || '') + (x.idade ? ' · ' + esc(x.idade) + ' anos' : '') + ' · ' + x.eps.filter(function (p) { return !p.anulado; }).length + ' internamento(s) · ' + (x.internado ? 'internado em ' + esc(nomeServ(x.internado.servico)) : 'última entrada ' + fmt(x.ult.dataEntrada)) + '</small></span></button>';
       }).join('') : '<div class="cpn-info" style="padding:4px 2px">Sem processo com esse nome ou NUP — é um doente novo.</div>';
+      // Doentes com saída antiga (arquivo): procura pelo início do nome ou do apelido.
+      if (t.length >= 3 && typeof window.zeloCpArquivoNomes === 'function') {
+        clearTimeout(q.__tArq); q.__tArq = setTimeout(function () {
+          window.zeloCpArquivoNomes(t).then(function (l) {
+            if (q.value.trim() !== t) return;
+            var nups = {}; achados.forEach(function (x) { if (x.nup) nups[x.nup] = 1; });
+            l = l.filter(function (x) { return !x.nup || !nups[x.nup]; }).slice(0, 8); if (!l.length) return;
+            var base = achados.length;
+            l.forEach(function (x) { nups[x.nup] = 1; achados.push({ nup: nupN(x.nup), nome: x.nome, genero: x.genero, idade: x.idade, eps: [x], ult: Object.assign({ status: 'saido' }, x), internado: null }); });
+            var vazio = res.querySelector('.cpn-info'); if (vazio) vazio.remove();
+            res.insertAdjacentHTML('beforeend', l.map(function (x, i) {
+              return '<button type="button" data-i="' + (base + i) + '"><span class="cpn-nup">' + esc(x.nup || '—') + '</span><span><b>' + esc(x.nome) + '</b><small>' + esc(x.genero || '') + (x.idade ? ' · ' + esc(x.idade) + ' anos' : '') + ' · ' + esc(nomeServ(x.servico)) + ' · saída ' + fmt(x.dataSaida) + ' (arquivo)</small></span></button>';
+            }).join(''));
+          });
+        }, 400);
+      }
     });
     res.addEventListener('click', function (e) { var b = e.target.closest('button[data-i]'); if (!b) return; preencherNovo(achados[+b.dataset.i].ult); res.innerHTML = ''; q.value = ''; });
     var nup = document.getElementById('fNUP'), nome = document.getElementById('fNome');

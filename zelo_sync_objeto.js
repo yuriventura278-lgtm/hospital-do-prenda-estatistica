@@ -26,7 +26,9 @@
 //     aplicar: function (obj) { … grava localmente e redesenha … },
 //     ajustar: function (obj) { return obj; },    // opcional, depois de juntar
 //     grupo: function (chave) { … },              // opcional: a que registo pertence
-//     maxApagar: 1                                // registos que se podem esvaziar por gravação
+//     maxApagar: 1,                               // registos que se podem esvaziar por gravação
+//     esquecer: function (chave, plano) { … }      // opcional: valores que saíram para um arquivo
+//                                                 // (não se enviam, não voltam, e saem do servidor)
 //   });
 //   s.iniciar();          // ao abrir a página
 //   s.guardou();          // sempre que a página grava localmente
@@ -85,6 +87,9 @@
   function gravarLS(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 
   function criar(cfg) {
+    // Valores arquivados noutro sítio (cfg.esquecer): tirados do plano e das horas.
+    function esquecido(k, plano) { try { return typeof cfg.esquecer === 'function' && !!cfg.esquecer(k, plano); } catch (e) { return false; } }
+    function limparPlano(pl) { if (typeof cfg.esquecer !== 'function') return pl; Object.keys(pl).forEach(function (k) { if (esquecido(k, pl)) delete pl[k]; }); return pl; }
     var K_TS = 'zeloSO_ts_' + cfg.chaveLocal, K_ANT = 'zeloSO_ant_' + cfg.chaveLocal;
     var meusTs = lerLS(K_TS, {});        // hora de alteração de cada valor, neste aparelho
     var anterior = lerLS(K_ANT, null);   // último estado conhecido (para ver o que mudou)
@@ -97,6 +102,12 @@
     function registarAlteracoes() {
       var agora = Date.now();
       var atual = achatar(cfg.obter());
+      if (typeof cfg.esquecer === 'function') {
+        var marca = Object.assign({}, anterior || {}, atual);
+        Object.keys(meusTs).forEach(function (k) { if (esquecido(k, marca)) delete meusTs[k]; });
+        if (anterior) Object.keys(anterior).forEach(function (k) { if (esquecido(k, marca)) delete anterior[k]; });
+        limparPlano(atual);
+      }
       if (!anterior) {
         // Primeira vez neste aparelho: o que já existia conta como antigo (0),
         // para nunca se sobrepor a alterações mais recentes de outro lado.
@@ -159,6 +170,7 @@
         // senão os computadores reenviavam uns aos outros sem parar).
         if (JSON.stringify(vazio(v) ? null : v) !== JSON.stringify(vazio(rv) ? null : rv) || (ts[k] || 0) > (rTs[k] || 0)) mudouRemoto = true;
       });
+      if (typeof cfg.esquecer === 'function') Object.keys(plano).forEach(function (k) { if (esquecido(k, plano)) { delete plano[k]; delete ts[k]; } });
       var obj = reconstruir(Object.keys(plano).reduce(function (o, k) { if (!vazio(plano[k])) o[k] = plano[k]; return o; }, {}));
       if (typeof cfg.ajustar === 'function') obj = cfg.ajustar(obj) || obj;
       // Mudou aqui? (compara só valores com conteúdo, já depois do ajuste)
@@ -197,6 +209,8 @@
         if (JSON.stringify(a) !== JSON.stringify(b)) { patch['snapshot/' + caminhoDe(k)] = b; n++; }
       });
       Object.keys(nT).forEach(function (k) { if (sT[k] !== nT[k] && (nT[k] || sT[k])) { patch['camposTs/' + k] = nT[k]; n++; } });
+      // Horas de valores já arquivados: saem do servidor (o registo está no arquivo).
+      if (typeof cfg.esquecer === 'function') Object.keys(sT).forEach(function (k) { if (!(k in nT) && esquecido(descodificar(k), nP)) { patch['camposTs/' + k] = null; n++; } });
       if (!n) return {};
       // Um caminho dentro de outro (ex.: valor que passou a lista) não se pode
       // escrever por partes — envia o bloco completo.

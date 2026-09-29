@@ -273,13 +273,13 @@
           (p.diagnosticoFinal ? campo('Diagnóstico final', esc(p.diagnosticoFinal) + (p.cidFinal ? ' <small>CID-10: ' + esc(p.cidFinal) + '</small>' : ''), true) : '') +
           campo('Saída registada por', autorTxt(p.saidaRegistadaPor, p.saidaRegistadaFuncao, p.saidaRegistadaEm), true) +
         '</div></div>' : '') +
-        '<div class="cpp-sec" id="cpp-evolucao">' + evolucaoHTML(p) + '</div>' +
+        '<div class="cpp-sec" id="cpp-evolucao">' + (p._arquivo ? '<h4>Evolução clínica deste internamento (' + evolucoes(p).length + ')</h4>' + evoListaHTML(evolucoes(p)) : evolucaoHTML(p)) + '</div>' +
         '<div class="cpp-sec"><h4>Percurso</h4><div class="cpp-tl">' + tl + '</div></div>' +
       '</div>' +
       '<div class="cpp-acoes"><button type="button" class="cpp-bt" data-fechar>Fechar</button>' +
         '<button type="button" class="cpp-bt" data-pdf>Guardar em PDF</button>' +
-        '<button type="button" class="cpp-bt p" data-acao="atu">Atualizar dados</button>' +
-        (internado ? '<button type="button" class="cpp-bt s" data-acao="sai">Registar saída</button>' : '') + '</div></div>';
+        (p._arquivo ? '<span style="margin-right:auto;font:700 .8rem Inter,Arial,sans-serif;color:#64748B">Registo arquivado (saída há mais de 2 meses) — só de consulta</span>' : '<button type="button" class="cpp-bt p" data-acao="atu">Atualizar dados</button>' +
+        (internado ? '<button type="button" class="cpp-bt s" data-acao="sai">Registar saída</button>' : '')) + '</div></div>';
     ov.querySelector('[data-pdf]').addEventListener('click', function () { pdfProcesso(p.n); });
     // Internamentos deste processo noutros serviços (lidos no servidor só para este NUP; sem os eliminados).
     if (p.nup && typeof window.zeloCpInternamentosNUP === 'function') {

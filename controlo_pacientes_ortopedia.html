@@ -775,7 +775,7 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 <body>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get, update, onValue, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, update, onValue, query, orderByKey, orderByChild, startAt, endAt, limitToFirst } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
@@ -786,6 +786,7 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
     window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
     // Leitura só de um intervalo de chaves (ex.: os internamentos de um NUP noutro serviço).
     window.__fbGetRange = (path,de,ate)=>get(query(ref(db,path), orderByKey(), startAt(de), endAt(ate))).then(snap=>snap.exists()?snap.val():null);
+    window.__fbGetPorCampo = (path,campo,de,ate,n)=>get(query(ref(db,path), orderByChild(campo), startAt(de), endAt(ate), limitToFirst(n||20))).then(snap=>snap.exists()?snap.val():null);
     window.__fbReady = true;
   }catch(e){
     console.warn('Firebase indisponível — o registo local continua a funcionar normalmente.', e);
@@ -1841,14 +1842,16 @@ async function loadData() {
 
 async function saveData(opts) {
   opts = opts || {};
-  localStorage.setItem(LS_KEY, JSON.stringify(data));
+  // Registos do arquivo de saídas antigas (lidos só para consulta) não se guardam aqui.
+  const _dadosGuardar = (data.patients || []).some(p => p && p._arquivo) ? Object.assign({}, data, { patients: data.patients.filter(p => p && !p._arquivo) }) : data;
+  localStorage.setItem(LS_KEY, JSON.stringify(_dadosGuardar));
   if (!opts.semSync) {
     try { localStorage.setItem(LS_KEY + '_savedAt', String(Date.now())); } catch (e) {}
     _fbSyncPacientes();
   }
   
   try {
-    await saveToIndexedDB(data);
+    await saveToIndexedDB(_dadosGuardar);
   } catch (e) {
     console.warn('Erro ao salvar em IndexedDB:', e);
   }
@@ -1923,7 +1926,7 @@ function _normalizarDados(d) {
   lista = (lista || []).filter(Boolean).map(p => Object.assign(
     { dataSaida: null, tipoSaida: null, subtipo: null, proveniencia: '', diagnostico: '' }, p));
   const maiorN = lista.reduce((m, p) => Math.max(m, Number(p.n) || 0), 0);
-  return { patients: lista, nextN: Math.max(Number(d.nextN) || 1, maiorN + 1) };
+  return { patients: lista, nextN: Math.max(Number(d.nextN) || 1, maiorN + 1), arquivoAte: d.arquivoAte || null, arquivados: d.arquivados || {} };
 }
 
 function _fbSyncPacientes() { _cpSync().guardou(); }
@@ -1939,10 +1942,13 @@ function _cpSync() {
   window.__cpSync = ZeloSyncObjeto.criar({
     caminho: FB_PACIENTES_PATH,
     chaveLocal: 'cp_' + FB_PACIENTES_PATH,
+    // Valores de doentes arquivados (arquivados|<chave>): saem do bloco sincronizado.
+    esquecer: function (k, plano) { const m = /^pacientes\|([^|]+)\|/.exec(k); return !!(m && plano && plano['arquivados|' + m[1]]); },
     obter: function () {
       const pac = {};
-      (data.patients || []).forEach(p => { if (p) pac[_cpChave(p)] = p; });
-      return { pacientes: pac, nextN: data.nextN };
+      (data.patients || []).forEach(p => { if (p && !p._arquivo) pac[_cpChave(p)] = p; });
+      // arquivoAte / arquivados: doentes com saída antiga guardados à parte (zelo_cp_arquivo.js).
+      return { pacientes: pac, nextN: data.nextN, arquivoAte: data.arquivoAte || null, arquivados: data.arquivados || {} };
     },
     // Um paciente conta como um registo (proteção contra apagar em massa).
     grupo: function (k) { return k.split('|').slice(0, 2).join('|'); },
@@ -1968,11 +1974,15 @@ function _cpSync() {
         g.slice(1).forEach(p => { p.n = ++max; });
       });
       obj.nextN = Math.max(Number(obj.nextN) || 1, max + 1);
+      // Doente já arquivado que outro computador (desatualizado) voltou a enviar: fica só no arquivo.
+      Object.keys(obj.arquivados || {}).forEach(k => { if (obj.pacientes && obj.pacientes[k]) delete obj.pacientes[k]; });
       return obj;
     },
     aplicar: function (obj) {
       const lista = Object.keys(obj.pacientes || {}).map(k => obj.pacientes[k]);
-      data = _normalizarDados({ patients: lista, nextN: obj.nextN });
+      const _arq = (data && data.patients || []).filter(p => p && p._arquivo);
+      data = _normalizarDados({ patients: lista, nextN: obj.nextN, arquivoAte: obj.arquivoAte, arquivados: obj.arquivados });
+      _arq.forEach(p => { if (!data.patients.some(q => _cpChave(q) === _cpChave(p))) data.patients.push(p); });
       data.patients.sort((a, b) => (Number(a.n) || 0) - (Number(b.n) || 0));
       saveData({ semSync: true });
       try { updateStats(); renderInternados(); updateStorageStatus(); } catch (e) { console.warn(e); }
@@ -3291,10 +3301,11 @@ function exportRelatorioPDF() {
 <script src="zelo_cid_busca.js?v=3"></script>
 <script src="zelo_cp_relatorio.js?v=9"></script>
 <script src="zelo_cp_listas.js?v=9"></script>
-<script src="zelo_cp_processo.js?v=7"></script>
-<script src="zelo_cp_nup.js?v=9"></script>
+<script src="zelo_cp_processo.js?v=8"></script>
+<script src="zelo_cp_nup.js?v=10"></script>
 <script src="zelo_cp_alergias.js?v=2"></script>
-<script src="zelo_cp_dados_pessoais.js?v=2"></script>
+<script src="zelo_cp_dados_pessoais.js?v=3"></script>
+<script src="zelo_cp_arquivo.js?v=1"></script>
 <script src="zelo_cp_fora.js?v=8"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>

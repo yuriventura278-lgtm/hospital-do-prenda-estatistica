@@ -59,8 +59,12 @@
   function saiu(p) { return p.status !== 'internado' && p.dataSaida; }
 
   // Há doentes do Controlo de Pacientes neste mês?
+  // Meses anteriores ao arquivo de saídas antigas do Controlo de Pacientes
+  // (ps.arquivoAte = 1º dia a partir do qual o Controlo tem todos os doentes)
+  // já não se recalculam: ficam com os números que o Movimento já tem.
   function ativoNoMes(ps, ym) {
     var ini = isoDia(ym, 1), fim = isoDia(ym, diasNoMes(ym));
+    if (ps && ps.arquivoAte && ini < ps.arquivoAte) return false;
     return ps.some(function (p) { var e = dia(p.dataEntrada); return e <= fim && (!saiu(p) || dia(p.dataSaida) >= ini); });
   }
   // { campos: {campo: [dia1..diaN]}, existencia, ate }  — dias até hoje
@@ -124,9 +128,14 @@
   }
   function lerPacientes(item) {
     var fs = fontes(item); if (!fs.length || typeof window.__fbGet !== 'function') return Promise.resolve(null);
+    var ate = '';
     return Promise.all(fs.map(function (f) {
-      return window.__fbGet('registos_sistemas_locais/controlo_pacientes/' + f[0] + '/snapshot/pacientes').then(function (v) { return v ? doServico(v, item, f[1]) : []; });
-    })).then(function (ls) { return [].concat.apply([], ls); }).catch(function () { return null; });
+      var base = 'registos_sistemas_locais/controlo_pacientes/' + f[0] + '/snapshot/';
+      return Promise.all([window.__fbGet(base + 'pacientes'), window.__fbGet(base + 'arquivoAte').catch(function () { return null; })]).then(function (r) {
+        if (r[1] && String(r[1]) > ate) ate = String(r[1]);
+        return r[0] ? doServico(r[0], item, f[1]) : [];
+      });
+    })).then(function (ls) { var l = [].concat.apply([], ls); if (ate) l.arquivoAte = ate; return l; }).catch(function () { return null; });
   }
 
   // Meses em que há camas emprestadas a doentes de outros serviços.

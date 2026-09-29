@@ -39,6 +39,17 @@
   function norm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
   function mesmoNome(a, b) { a = norm(a); b = norm(b); if (!a || !b || a === b) return true; var x = a.split(' '), y = b.split(' '); return x[0] === y[0] && x[x.length - 1] === y[y.length - 1]; }
   function chaveEp(nup, ep) { return 'nup_' + nup + (Number(ep) > 1 ? '_e' + Number(ep) : ''); }
+  // Internamento arquivado: atualiza o registo no arquivo e o índice de nomes.
+  function escreverArquivo(ep, campos, nupNovo) {
+    if (typeof window.zeloCpArquivoCaminho !== 'function') return [];
+    var l = [window.zeloQueueWrite(window.zeloCpArquivoCaminho(ep), JSON.parse(JSON.stringify(campos)), 'update')];
+    var ix = window.zeloCpArquivoIndices(ep, nupNovo), nn = norm(campos.nome || ep.nome), ps = nn.split(' ');
+    l.push(window.zeloQueueWrite(ix.nomes, { nome: campos.nome || ep.nome, nomeNorm: nn, apelidoNorm: ps[ps.length - 1] || '', nup: nupNovo || ep.nup, genero: campos.genero || ep.genero || '', idade: campos.idade != null ? campos.idade : ep.idade }, 'update'));
+    if (nupNovo) l.push(window.zeloQueueWrite(ix.nup, ix.mes));
+    // Cópia já carregada nesta página (só consulta): mostra logo o valor novo.
+    pacientes().forEach(function (p) { if (p._arquivo && (p.servico || '') === (ep.servico || '') && String(p.dataEntrada) === String(ep.dataEntrada) && nupN(p.nup) === nupN(ep.nup)) Object.assign(p, JSON.parse(JSON.stringify(campos))); });
+    return l;
+  }
   function pessoais(p) { return { nome: p.nome || '', idade: p.idade == null ? '' : p.idade, genero: p.genero || '', alergias: p.alergias || null }; }
 
   var css = document.createElement('style');
@@ -79,9 +90,10 @@
   // Todos os internamentos deste NUP: deste serviço (dados locais) + outros (servidor, dados frescos).
   function internamentos(nup) {
     var S = slug();
-    var locais = pacientes().filter(function (p) { return nupN(p.nup) === nup && !p.anulado; });
+    var locais = pacientes().filter(function (p) { return nupN(p.nup) === nup && !p.anulado && !p._arquivo; });
     var ler = typeof window.zeloCpInternamentosNUP === 'function' ? window.zeloCpInternamentosNUP(nup, true) : Promise.resolve([]);
-    return ler.then(function (eps) { return { S: S, locais: locais, remotos: (eps || []).filter(function (q) { return q.servico !== S && q._chave; }) }; });
+    // Remotos: os dos outros serviços e os arquivados (saídas antigas, de qualquer serviço).
+    return ler.then(function (eps) { return { S: S, locais: locais, remotos: (eps || []).filter(function (q) { return q._chave && (q._arquivo || q.servico !== S); }) }; });
   }
 
   function abrir(nup) {
@@ -139,7 +151,8 @@
 
     // 2) Internamentos dos outros serviços: só estes campos, com a hora de cada campo.
     var porServ = {};
-    r.remotos.forEach(function (ep) { (porServ[ep.servico] = porServ[ep.servico] || []).push(ep); });
+    var extra = [];
+    r.remotos.forEach(function (ep) { if (ep._arquivo) extra = extra.concat(escreverArquivo(ep, Object.assign({}, novos, marca))); else (porServ[ep.servico] = porServ[ep.servico] || []).push(ep); });
     var envios = Object.keys(porServ).map(function (serv) {
       var patch = { savedAt: agora };
       porServ[serv].forEach(function (ep) {
@@ -156,6 +169,7 @@
       });
       return window.zeloQueueWrite(BASE + serv, patch, 'update');
     });
+    envios = envios.concat(extra);
 
     // 3) Histórico do processo (nunca se apaga): antes e depois.
     var nk = chaveSegura(atualNup), id = agora + '_' + Math.random().toString(36).slice(2, 7);
@@ -214,7 +228,10 @@
       // 3) Outros serviços: o registo passa para a chave nova (com hora em
       //    todos os campos) e sai da antiga (com hora, para não voltar).
       var porServ = {};
-      movidos.filter(function (m) { return !m.local; }).forEach(function (m) { (porServ[m.servico] = porServ[m.servico] || []).push(m); });
+      movidos.filter(function (m) { return !m.local; }).forEach(function (m) {
+        if (m.ep._arquivo) envios = envios.concat(escreverArquivo(m.ep, Object.assign({}, novos, marca, { nup: nupNovo, episodio: m.novoEp }), nupNovo));
+        else (porServ[m.servico] = porServ[m.servico] || []).push(m);
+      });
       Object.keys(porServ).forEach(function (serv) {
         var patch = { savedAt: agora };
         porServ[serv].forEach(function (m) {

@@ -168,7 +168,12 @@
   function calcularSoma() {
     var p = periodo();
     $('cpuOut').innerHTML = '<div class="cpu-card">A carregar as duas unidades…</div>';
-    return Promise.all(ORDEM.map(pacientesDe)).then(function (listas) {
+    // Períodos antigos: junta os doentes do arquivo de saídas antigas (zelo_cp_arquivo.js).
+    var comArquivo = function (u) {
+      if (u === AT.u) return (window.zeloCpCarregarArquivo ? window.zeloCpCarregarArquivo(p.de).catch(function () { return 0; }) : Promise.resolve(0)).then(function () { return pacientesDe(u); });
+      return Promise.all([pacientesDe(u), window.zeloCpArquivoServico ? window.zeloCpArquivoServico(U[u].slug, p.de) : Promise.resolve([])]).then(function (r) { return r[0].concat(r[1]); });
+    };
+    return Promise.all(ORDEM.map(comArquivo)).then(function (listas) {
       var r = {}; ORDEM.forEach(function (u, i) { r[u] = calcular(listas[i], u, p.de, p.ate); });
       r.total = totalDe(r.intensivo, r.intermedio);
       ultimo = { p: p, r: r };
