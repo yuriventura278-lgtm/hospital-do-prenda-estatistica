@@ -26,7 +26,7 @@
   }
   // Menu da página (Guardar, Exportar, Backup… saem do cabeçalho).
   if (!document.querySelector('script[src*="zelo_menu_pagina.js"]')) {
-    var mp = document.createElement('script'); mp.src = url('zelo_menu_pagina.js?v=1'); mp.defer = true;
+    var mp = document.createElement('script'); mp.src = url('zelo_menu_pagina.js?v=3'); mp.defer = true;
     (document.head || document.documentElement).appendChild(mp);
   }
   // Ecrã de espera por inatividade (logótipo em puzzle) em todas as páginas.

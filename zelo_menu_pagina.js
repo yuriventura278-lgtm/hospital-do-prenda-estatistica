@@ -4,7 +4,8 @@
 // da própria página:
 //   • páginas com menu lateral: secção "Ações da página" no fim desse menu;
 //   • páginas sem menu lateral (ou no telemóvel, quando o menu lateral está
-//     escondido): botão "Menu da página" no cabeçalho, que abre a lista.
+//     escondido): secção "Ações desta página" no menu redondo do canto.
+//   Nunca no cabeçalho.
 // O botão original da página continua a existir (escondido) e é ele que
 // trabalha: o item do menu só o "carrega", por isso nada muda no que a página
 // faz ao guardar/exportar. Botões que só aparecem a administradores continuam
@@ -54,19 +55,10 @@
     '.zmp-sec-t{padding:12px 14px 4px;font:800 .58rem Inter,"Segoe UI",Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#64748B}' +
     '.zmp-item-base{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;border:1px solid transparent;border-radius:8px;background:none;cursor:pointer;text-align:left;font:600 .8rem Inter,"Segoe UI",Arial,sans-serif;color:inherit}' +
     '.zmp-item-base:hover{background:rgba(62,92,135,.1)}' +
-    '.zmp-destaque{font-weight:800!important}' +
-    '#zmp-btn{display:none}#zmp-btn.on{display:inline-flex!important;align-items:center;gap:7px;flex-shrink:0;white-space:nowrap;cursor:pointer;' +
-    'padding:7px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;font:700 .8rem Inter,"Segoe UI",Arial,sans-serif;line-height:1.2;margin:0 2px}' +
-    '#zmp-btn.on:hover{background:rgba(255,255,255,.2)}' +
-    '@media(max-width:760px){#zmp-btn.on span{display:none}#zmp-btn.on{padding:7px 9px}}' +
-    '#zmp-pain{position:fixed;z-index:2147482000;min-width:240px;max-width:min(92vw,320px);max-height:70vh;overflow:auto;background:#fff;border:1px solid #DCE3EE;border-radius:12px;box-shadow:0 18px 44px rgba(15,23,42,.25);padding:8px;display:none;color:#0F172A}' +
-    '#zmp-pain.on{display:block}' +
-    '#zmp-pain .zmp-cab{padding:6px 10px 8px;font:800 .62rem Inter,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#64748B;border-bottom:1px solid #EEF2F7;margin-bottom:4px}' +
-    '#zmp-pain button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:none;border-radius:8px;background:none;cursor:pointer;text-align:left;font:600 .88rem Inter,"Segoe UI",Arial,sans-serif;color:#1E293B}' +
-    '#zmp-pain button:hover{background:#EFF6FF;color:#1D4ED8}';
+    '.zmp-destaque{font-weight:800!important}';
 
   var itens = [];          // {id, rotulo, icone, ordem, acao(), visivel(), destaque}
-  var lateral = null, secLateral = null, botao = null, painel = null;
+  var lateral = null, secLateral = null;
 
   function visivelProprio(el) {
     // Escondido pela própria página (não por nós nem por um menu fechado)?
@@ -123,54 +115,27 @@
     });
     secLateral.style.display = vis.length ? '' : 'none';
   }
-  function garantirBotao() {
-    if (botao) return true;
-    var cab = document.querySelector('.zc-cab'); if (!cab) return false;
-    // Fica logo a seguir ao último de Início / Instruções (no mesmo grupo de botões).
-    var refs = Array.prototype.filter.call(cab.querySelectorAll('button,a'), function (e) {
-      return /^(início|inicio|instruções|tema)$/i.test((e.textContent || '').trim()) && e.getClientRects().length && !e.closest('#zmp-pain');
-    });
-    var ref = refs[refs.length - 1];
-    botao = document.createElement('button'); botao.type = 'button'; botao.id = 'zmp-btn';
-    botao.innerHTML = svg('menu') + '<span>Menu da página</span>';
-    botao.setAttribute('aria-haspopup', 'true');
-    if (ref && ref.parentNode) ref.parentNode.insertBefore(botao, ref.nextSibling);
-    else (cab.querySelector('.zc-acoes') || cab).appendChild(botao);
-    posicionar();
-    painel = document.createElement('div'); painel.id = 'zmp-pain'; document.body.appendChild(painel);
-    botao.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (painel.classList.contains('on')) { painel.classList.remove('on'); return; }
-      desenharPainel();
-      var r = botao.getBoundingClientRect();
-      painel.classList.add('on');
-      var w = painel.offsetWidth;
-      painel.style.top = Math.round(r.bottom + 6) + 'px';
-      painel.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, Math.round(r.right - w))) + 'px';
-    });
-    document.addEventListener('click', function (e) { if (painel && !painel.contains(e.target) && e.target !== botao) painel.classList.remove('on'); });
-    return true;
-  }
-  // Outros módulos do cabeçalho mudam botões de sítio depois de a página abrir:
-  // o botão fica sempre logo a seguir ao último botão da fila (antes de Terminar sessão).
-  function posicionar() {
-    var cab = document.querySelector('.zc-cab'); if (!cab || !botao) return;
-    var bs = Array.prototype.filter.call(cab.querySelectorAll('button,a'), function (e) {
-      return e !== botao && !botao.contains(e) && e.getClientRects().length && !e.closest('.zc-id,#last-saved-status,.b2-menu,#zmp-pain') &&
-        !/terminar sess/i.test(e.textContent || '') && !/zeloLogout/.test(e.getAttribute('onclick') || '');
-    });
-    var ult = bs[bs.length - 1];
-    if (ult && ult.parentNode && ult.nextElementSibling !== botao) ult.parentNode.insertBefore(botao, ult.nextSibling);
-  }
-  function desenharPainel() {
+  // Páginas sem menu lateral (ou no telemóvel, com o menu lateral escondido):
+  // as ações ficam no menu redondo do canto (zelo_menu_flutuante.js), numa
+  // secção própria no topo — nunca no cabeçalho.
+  var grupoFlut = null;
+  function desenharFlutuante(mostrar) {
+    var nav = document.querySelector('#zmf-panel .zmf-nav');
+    if (!nav) { if (mostrar) setTimeout(agendar, 800); return; }
+    if (!grupoFlut || !grupoFlut.isConnected) {
+      grupoFlut = document.createElement('div'); grupoFlut.id = 'zmp-flut';
+      nav.insertBefore(grupoFlut, nav.firstChild);
+    }
     var vis = itens.filter(function (it) { return !it.visivel || it.visivel(); }).sort(function (a, b) { return a.ordem - b.ordem; });
-    painel.innerHTML = '<div class="zmp-cab">Menu da página</div>';
+    grupoFlut.style.display = mostrar && vis.length ? '' : 'none';
+    grupoFlut.innerHTML = '<div class="zmf-section-label">Ações desta página</div><div class="zmf-group"></div>';
+    var g = grupoFlut.querySelector('.zmf-group');
     vis.forEach(function (it) {
-      var b = document.createElement('button'); b.type = 'button';
-      b.innerHTML = svg(it.icone) + '<span>' + it.rotulo + '</span>';
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'zmf-link';
+      b.innerHTML = '<span class="zmf-ic">' + svg(it.icone) + '</span>' + it.rotulo;
       if (it.destaque) b.style.fontWeight = '800';
-      b.addEventListener('click', function () { painel.classList.remove('on'); it.acao(); });
-      painel.appendChild(b);
+      b.addEventListener('click', function () { var f = document.getElementById('zmf-close'); if (f) f.click(); setTimeout(it.acao, 60); });
+      g.appendChild(b);
     });
   }
   function atualizar() {
@@ -178,10 +143,7 @@
     if (!lateral || !lateral.isConnected) { lateral = acharLateral(); secLateral = null; }
     var algum = itens.some(function (it) { return !it.visivel || it.visivel(); });
     if (lateral) desenharLateral();
-    var precisaBotao = algum && !lateralVisivel();
-    if (precisaBotao) garantirBotao();
-    if (botao) botao.classList.toggle('on', precisaBotao);
-    if (precisaBotao) posicionar();
+    desenharFlutuante(algum && !lateralVisivel());
   }
   var tAtual = null;
   function agendar() { clearTimeout(tAtual); tAtual = setTimeout(atualizar, 120); }
@@ -213,6 +175,8 @@
       var rotulo = a[1];
       var duplicado = jaTem(rotulo, el) || (a[2] === 'historico' && jaTem('Histórico', el)) || (a[2] === 'backup' && jaTem('Backup', el));
       el.classList.add('zmp-oculto');
+      // Dois botões iguais no cabeçalho (ex.: dois "Backup"): um só item no menu.
+      if (!duplicado && itens.some(function (x) { return x.rotulo === rotulo && /^cab-/.test(x.id) && (!x.visivel || x.visivel()); })) duplicado = true;
       if (duplicado) return;
       var id = 'cab-' + rotulo + '-' + Math.random().toString(36).slice(2, 6);
       adicionar({
