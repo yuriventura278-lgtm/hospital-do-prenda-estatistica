@@ -177,7 +177,7 @@
   }
   function linha(p, op) {
     var novo = op.dia && dia(p.dataEntrada) === op.dia ? '<span class="cpg-tag">Entrou ' + (op.dia === hojeISO() ? 'hoje' : 'neste dia') + '</span>' : '';
-    var c = '<td>' + p.n + '</td><td class="cpg-nome"><b>' + esc(p.nome) + '</b>' + novo + '<small>NUP ' + esc(p.nup || '—') + '</small></td>' +
+    var c = '<td>' + p.n + '</td><td class="cpg-nome"><b class="cpp-link" data-proc="' + p.n + '" title="Ver o processo completo">' + esc(p.nome) + '</b>' + novo + '<small>NUP ' + esc(p.nup || '—') + '</small></td>' +
       '<td>' + esc(p.idade) + '</td><td><span class="cpg-fxc">' + (faixa(p) || '—') + '</span></td><td>' + esc(p.cama || '—') + '</td><td>' + fmt(p.dataEntrada) + '</td>';
     if (op.saida) c += '<td>' + fmt(p.dataSaida) + '</td><td>' + tipoSaida(p) + '</td><td>' + diasDe(p) + '</td><td>' + esc(p.diagnosticoFinal || p.diagnostico || '—') + '</td>';
     else c += '<td>' + diasDe(p, op.ate) + '</td><td>' + esc(p.diagnostico || '—') + '</td><td>' + esc(p.proveniencia || '—') + '</td>';
@@ -188,7 +188,7 @@
     var l2 = [esc(p.cama || 'Sem cama'), esc(p.idade) + ' anos', faixa(p) || '—'];
     if (op.saida) l2.push('Entrada ' + fmt(p.dataEntrada), 'Saída ' + fmt(p.dataSaida));
     var extra = op.saida ? tipoSaida(p) + diasDe(p) : diasDe(p, op.ate);
-    return '<div class="cpg-lin"><div class="t"><b>' + esc(p.nome) + '</b>' + novo + '<div class="l2">' + l2.join(' · ') + ' ' + extra + '</div></div>' +
+    return '<div class="cpg-lin"><div class="t"><b class="cpp-link" data-proc="' + p.n + '">' + esc(p.nome) + '</b>' + novo + '<div class="l2">' + l2.join(' · ') + ' ' + extra + '</div></div>' +
       '<button type="button" class="cpg-mais" data-n="' + p.n + '" data-saida="' + (op.saida ? 1 : 0) + '" data-rem="' + (op.remover ? 1 : 0) + '" aria-label="Ações">⋯</button></div>';
   }
   function grupos(lista, op, vazio) {
@@ -264,7 +264,8 @@
       '<button type="button" data-modo="mes" class="' + (modoSaidos === 'mes' ? 'on' : '') + '">No mês de ' + mesTxt + ' (' + sMes.length + ')</button>';
     document.getElementById('cpg-fxs').innerHTML = barraFaixas(base);
     var vis = filtrar(base);
-    document.getElementById('cpg-corpo').innerHTML = extra +
+    var achados = window.ZeloCpProcesso && busca.trim().length >= 2 ? window.ZeloCpProcesso.resultados(busca) : '';
+    document.getElementById('cpg-corpo').innerHTML = achados + extra +
       grupos(vis, op, base.length ? 'Nenhum paciente com este filtro.' : vazio) +
       (sep !== 'saidos' && vis.length ? '<div class="cpg-legenda">Dias internado: <span class="cpg-dias">até 7</span><span class="cpg-dias a">8 a 14</span><span class="cpg-dias v">mais de 14</span></div>' : '');
   }

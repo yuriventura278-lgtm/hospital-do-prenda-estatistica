@@ -221,12 +221,7 @@
     abrir.addEventListener('click', function () { side.classList.add('aberto'); fundo.classList.add('aberto'); });
     cont.insertBefore(abrir, cont.firstChild);
 
-    // Saudação na faixa do topo.
-    var dp = document.querySelector('.date-panel-clock');
-    if (dp && !dp.querySelector('.cpx-saud')) {
-      var s = document.createElement('div'); s.className = 'cpx-saud'; s.textContent = saudacao();
-      dp.insertBefore(s, dp.firstChild);
-    }
+    // (Sem saudação de boas-vindas na faixa do topo — pedido do serviço.)
     // Secções numeradas.
     var h2 = document.querySelector('.internados-header h2');
     if (h2 && !h2.querySelector('.cpx-n')) h2.insertAdjacentHTML('afterbegin', '<span class="cpx-n">1</span>');
