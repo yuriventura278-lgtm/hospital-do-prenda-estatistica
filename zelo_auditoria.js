@@ -15,7 +15,7 @@
   window.__zeloAuditoria = true;
 
   var ficheiro = decodeURIComponent((location.pathname.split('/').pop() || 'index.html'));
-  var SEM_HIST = /^(index|servicos|sistemas_independentes|bancos_index|informacoes_zelo|Dashboard|procedimentos_enfermagem_index|perfil|fluxograma_relatorio|relatorios_anuais)\.html$/i;
+  var SEM_HIST = /^(index|servicos|sistemas_independentes|bancos_index|informacoes_zelo|Dashboard|procedimentos_enfermagem_index|perfil|fluxograma_relatorio|relatorios_anuais|testagem_vih_estatistica)\.html$/i;
   var RAIZ = 'auditoria_registos';
   // Caminhos que não são registos de dados (sessões, presenças, etiquetas…).
   var IGNORAR = /^(auditoria_registos|registos_sistemas_locais\/ultimas_alteracoes|users\/[^/]+\/(ultimo|last|online|sess|presen)|presenca|sessoes|logs|audit\/|avisos_lidos|zelo_presenca)/i;

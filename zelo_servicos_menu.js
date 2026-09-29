@@ -104,12 +104,12 @@ const SERVICOS_MENU = [
     relatorios: [
       // oculto a pedido: { label: 'Relatório Diário', file: 'Laboratório_Clínico.html', modulo: 'servicos', item: 'laboratorio_clinico' } — sistema antigo do "banco", descomentar para restaurar
       { label: 'Exames Realizados', file: 'laboratorio_geral.html', modulo: 'sistemas_independentes', item: 'laboratorio_geral' },
-      { label: 'Registo de VIH', file: 'registo_vih_laboratorio.html', modulo: 'sistemas_independentes', item: 'registo_vih_laboratorio' },
+      { label: 'Testagem de VIH', file: 'registo_vih_laboratorio.html', modulo: 'sistemas_independentes', item: 'registo_vih_laboratorio' },
     ] },
   { nome: 'Hemoterapia', categoria: 'hemoterapia', icon: 'droplet', cor: '#BE123C',
     relatorios: [
       { label: 'Saúde Pública', file: 'hemoterapia.html', modulo: 'sistemas_independentes', item: 'hemoterapia' },
-      { label: 'Registo de VIH', file: 'registo_vih_hemoterapia.html', modulo: 'sistemas_independentes', item: 'registo_vih_hemoterapia' },
+      { label: 'Testagem de VIH', file: 'registo_vih_hemoterapia.html', modulo: 'sistemas_independentes', item: 'registo_vih_hemoterapia' },
     ] },
   { nome: 'Fisioterapia', categoria: 'fisioterapia', icon: 'users', cor: '#059669',
     relatorios: [{ label: 'Relatório Diário', file: 'banco_fisioterapia_v1-1-1.html', modulo: 'servicos', item: 'fisioterapia' }] },
@@ -203,6 +203,8 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Procedimentos de Enfermagem · Geral', file: 'procedimentos_enfermagem_geral.html', modulo: 'procedimentos_enfermagem', item: 'geral' },
   { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
   { nome: 'Registo VIH · Geral', file: 'registo_hiv.html', modulo: 'sistemas_independentes', item: 'registo_hiv' },
+  // Monitorização (só leitura): Testagem de VIH do Laboratório + Hemoterapia, cada um e a soma.
+  { nome: 'Testagem de VIH', file: 'testagem_vih_estatistica.html', modulo: 'sistemas_independentes', item: 'testagem_vih' },
   { nome: 'Movimento Hospitalar Geral', file: 'movimento_hospitalar_geral.html', modulo: 'sistemas_independentes', item: 'movimento_hospitalar_geral' },
   { nome: 'Fluxograma do Relatório', file: 'fluxograma_relatorio.html', modulo: 'sistemas_independentes', item: 'fluxograma_relatorio' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),

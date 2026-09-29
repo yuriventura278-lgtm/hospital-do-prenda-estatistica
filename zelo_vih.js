@@ -1,4 +1,4 @@
-// ── ZELO — Registo de VIH (Laboratório e Hemoterapia) ──
+// ── ZELO — Testagem de VIH (Laboratório e Hemoterapia) ──
 // Motor comum às páginas registo_vih_laboratorio.html e
 // registo_vih_hemoterapia.html. Os campos são os do "Registo VIH · Geral"
 // (Serviço de Estatística): Formação Sanitária, Fonte, Testados / Positivos /

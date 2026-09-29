@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt" data-theme="light">
+<head>
+<style id="zelo-sem-setas">/* ZELO: nenhuma caixa de preenchimento com setas (em todo o sistema) */
+input[type=number]{-moz-appearance:textfield !important;appearance:textfield !important}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none !important;appearance:none !important;margin:0 !important;display:none !important}</style>
+<script id="zelo-sem-setas-js">/* A roda do rato e as setas do teclado não mudam números sem querer
+   (as páginas que usam as setas para andar entre células continuam a funcionar). */
+(function(){if(window.__zeloSemSetas)return;window.__zeloSemSetas=1;
+function num(e){return e&&e.tagName==='INPUT'&&e.type==='number';}
+document.addEventListener('wheel',function(e){var t=e.target;if(num(t)&&document.activeElement===t)t.blur();},{passive:true});
+document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='ArrowUp'||e.key==='ArrowDown')&&!e.defaultPrevented)e.preventDefault();});})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
+    window.__fbGetRange = (path,de,ate)=>get(query(ref(db,path), orderByKey(), startAt(de), endAt(ate))).then(snap=>snap.exists()?snap.val():null);
+    // Só os últimos dias ficam "a ouvir" (poucos dados; o resto já está neste computador).
+    window.__fbListenDesde = (path,de,cb)=>onValue(query(ref(db,path), orderByKey(), startAt(de)), snap=>cb(snap.exists()?snap.val():null));
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — o registo fica guardado neste computador.', e);
+    window.__fbReady = false;
+  }
+</script>
+<script src="zelo_espera.js?v=5"></script>
+<script defer src="zelo_cabecalho.js"></script>
+<script>document.documentElement.style.visibility='hidden';</script>
+<script>window.ZELO_MODULE='sistemas_independentes';</script>
+<script>window.ZELO_SO_ADMIN=true; // Serviço de Estatística — só administradores</script>
+<script>window.ZELO_ITEM='testagem_vih';</script>
+<script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_pagegate_watchdog.js"></script>
+<script src="zelo_indexeddb.js"></script>
+<script src="zelo_sync.js"></script>
+<script src="zelo_pdf.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<title>Zelo — Testagem de VIH — Serviço de Estatística</title>
+<link rel="stylesheet" href="zelo_vih.css?v=2">
+<style>
+.mon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.mon-col{background:var(--surface);border:1px solid var(--border);border-top:4px solid var(--k);border-radius:var(--radius-md);padding:14px 16px;box-shadow:var(--shadow-sm)}
+.mon-col-t{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--k);margin-bottom:10px}
+.mon-col-t small{display:block;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:600;margin-top:2px}
+.mon-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mon-kpis div{background:var(--surface3);border-radius:8px;padding:8px 10px}
+.mon-kpis span{display:block;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.mon-kpis b{display:block;font:500 1.6rem var(--mono);color:#0e7490;line-height:1.2}
+.mon-kpis em{font-style:normal;font-size:11.5px;color:var(--muted)}
+.mon-fontes{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.mon-fontes button{padding:7px 14px;border-radius:999px;border:1.5px solid var(--border);background:var(--surface);font:700 11.5px Inter,sans-serif;cursor:pointer;color:var(--muted)}
+.mon-fontes button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.mon-fontes button[data-f="lab"].on{background:#3E5C87;border-color:#3E5C87}.mon-fontes button[data-f="hemo"].on{background:#9F1239;border-color:#9F1239}.mon-fontes button[data-f="soma"].on{background:#0F766E;border-color:#0F766E}
+tr.mon-dia{cursor:pointer}
+.mon-lados{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.mon-lado{min-width:190px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;gap:1px;font-size:11.5px}
+.mon-lado.vazio{opacity:.6}.mon-lado.soma{background:#F0FDFA;border-color:#99F6E4}
+.mon-lado span{font-family:var(--mono)}.mon-lado small{color:var(--muted)}
+.hist-item.mon-dia{align-items:flex-start;flex-wrap:wrap}
+.sync-bar{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);margin-bottom:14px}
+.ponto-vivo{display:inline-block;width:8px;height:8px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.2);animation:pv 2s infinite}
+@keyframes pv{50%{box-shadow:0 0 0 6px rgba(22,163,74,.05)}}
+.nota-mon{font-size:11.5px;color:var(--muted);background:var(--surface);border:1px dashed var(--border);border-radius:8px;padding:8px 12px;margin-bottom:14px}
+#ovDia .mdl{max-width:1000px;max-height:90vh;overflow:auto}
+@media(max-width:1000px){.mon-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-area">
+    <div class="logo-img"><img src="icons/logo.png" alt=""></div>
+    <div class="logo-text"><h1>Zelo</h1><p>Serviço de Estatística · Testagem de VIH</p></div>
+  </div>
+  <div class="hdr-mid"><span class="clock-b" id="clock">--:--:--</span></div>
+  <div class="hdr-right">
+    <a class="btn-h btn-out" href="index.html">Início</a>
+  </div>
+</header>
+<div class="app-shell">
+  <nav class="sidebar">
+    <div class="sb-hdr"><span>Testagem de VIH · Estatística</span></div>
+    <div class="nav-list">
+      <button class="nav-item active" data-sec="sec-painel">Painel</button>
+      <button class="nav-item" data-sec="sec-relatorio">Relatório por período</button>
+      <button class="nav-item" data-sec="sec-registos">Registos individuais</button>
+      <hr class="sb-divider">
+      <button class="nav-item" id="btnPdf">Exportar PDF</button>
+    </div>
+  </nav>
+  <main class="main-content">
+    <div class="sync-bar" id="syncEstado">A sincronizar…</div>
+    <div class="nota-mon">Só monitorização: esta página lê a <b>Testagem de VIH do Laboratório</b> e a <b>Testagem de VIH da Hemoterapia</b>, mostra cada uma e a soma das duas. Os registos fazem-se nas páginas de cada serviço.</div>
+    <div class="section active" id="sec-painel">
+      <div class="pg-hdr"><div><h2>Painel</h2><p>Laboratório · Hemoterapia · Soma</p></div>
+        <div class="pg-extra period-row" style="margin:0;padding:8px 12px"><div class="fld"><label for="dashMes">Mês</label><input type="month" id="dashMes"></div></div></div>
+      <div class="mon-grid" id="dashCols"></div>
+      <div class="card"><div class="card-label">Testados por mês · <span id="dashAno"></span> (Laboratório + Hemoterapia)</div><div id="dashGraf"></div></div>
+    </div>
+    <div class="section" id="sec-relatorio">
+      <div class="pg-hdr"><div><h2>Relatório por período</h2><p id="monTit"></p></div></div>
+      <div class="period-row">
+        <div class="fld"><label for="perTipo">Período</label><select id="perTipo"><option value="dia">Diário</option><option value="semana">Semanal</option><option value="mes">Mensal</option><option value="tri">Trimestral</option><option value="sem">Semestral</option><option value="ano">Anual</option></select></div>
+        <div class="fld" id="wDia"><label for="perDia">Dia</label><input type="date" id="perDia"></div>
+        <div class="fld" id="wMes"><label for="perMes">Mês</label><input type="month" id="perMes"></div>
+        <div class="fld" id="wAno"><label for="perAno">Ano</label><input type="number" id="perAno" min="2020" max="2100"></div>
+        <div class="fld" id="wParte"><label for="perParte">Parte</label><select id="perParte"></select></div>
+      </div>
+      <div class="mon-grid" id="monKpis"></div>
+      <div class="card"><div class="card-label">Por faixa etária e sexo<div class="mon-fontes" id="monFontes"><button type="button" data-f="soma" class="on">Soma</button><button type="button" data-f="lab">Laboratório</button><button type="button" data-f="hemo">Hemoterapia</button></div></div><div id="monFaixas"></div></div>
+      <div class="card"><div class="card-label" id="monLinhasTit"></div><div id="monLinhas"></div></div>
+    </div>
+    <div class="section" id="sec-registos">
+      <div class="pg-hdr"><div><h2>Registos individuais</h2><p>Cada dia: o registo do Laboratório, o da Hemoterapia e a soma · clique para ver o detalhe</p></div></div>
+      <div class="period-row"><div class="fld"><label for="regMes">Mês</label><input type="month" id="regMes"></div></div>
+      <div class="card" style="padding:0;overflow:hidden" id="regLista"></div>
+    </div>
+  </main>
+</div>
+<div class="ov" id="ovDia"><div class="mdl"><div class="mdl-h" style="display:flex;align-items:center;gap:10px"><div><b>Registos do dia</b><small id="mdlDiaTit"></small></div><button type="button" id="mdlDiaFechar" style="margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:700">Fechar</button></div><div class="mdl-b" id="mdlDiaCorpo" style="display:block"></div></div></div>
+<div class="toast" id="toast"></div>
+<script src="zelo_vih_monitor.js?v=1"></script>
+<script src="zelo_servicos_menu.js"></script>
+<script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script src="zelo_assistente.js"></script>
+</body>
+</html>
