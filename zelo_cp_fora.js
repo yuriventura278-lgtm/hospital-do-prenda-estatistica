@@ -77,16 +77,16 @@
   //   Medicina Interna: as camas do Movimento da Medicina Interna (homens e mulheres juntos);
   //   UCI e Cuidados Intermédios: um só Movimento (16 camas), 8 camas cada.
   var PARTES_UCI = { uci_intensivo: 8, uci_intermedio: 8 };
+  var PREDEF = { medicina_interna: 60, cirurgia_geral: 38, maxilo_facial: 12, nefrologia: 20, neurocirurgia: 14, ortopedia: 54 };
   function itemDe(s) { return PARTES_UCI[s] ? 'uci' : s; }
   function itemMov() { return slug(); }
   function capDe(s) {
     var get = function (c) { return window.__fbGet(c).catch(function () { return null; }); };
     if (PARTES_UCI[s]) return get('registos_movimento/uci/snapshot/__capacidadePartes/' + s).then(function (v) { return Number(v) > 0 ? Number(v) : PARTES_UCI[s]; });
-    return get('registos_movimento/' + s + '/snapshot/__capacity').then(function (v) {
-      if (Number(v) > 0) return Number(v);
-      if (s !== 'medicina_interna') return 50;
-      // Movimento da Medicina Interna ainda não aberto: soma das páginas antigas (Homem + Mulher)
-      return Promise.all([get('registos_movimento/medicina_homem/snapshot/__capacity'), get('registos_movimento/medicina_mulher/snapshot/__capacity')]).then(function (c) { return Number(c[0]) > 0 && Number(c[1]) > 0 ? Number(c[0]) + Number(c[1]) : 50; });
+    return Promise.all([get('registos_movimento/' + s + '/snapshot/__capacity'), get('registos_movimento/' + s + '/snapshot/__camasPredef')]).then(function (v) {
+      // Camas predefinidas enquanto a página do Movimento não as aplicou
+      if (PREDEF[s] && !v[1]) return PREDEF[s];
+      return Number(v[0]) > 0 ? Number(v[0]) : (PREDEF[s] || 50);
     });
   }
   var camas = {};

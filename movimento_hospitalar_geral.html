@@ -174,7 +174,7 @@ tr.novo td{animation:realce 2.4s ease-out}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="zelo_servicos_menu.js"></script>
-<script src="zelo_mov_auto.js?v=8"></script>
+<script src="zelo_mov_auto.js?v=9"></script>
 <script>
 /* Movimento Hospitalar Geral — supervisão e estatística (só leitura).
    Cada serviço guarda em registos_movimento/<serviço>:
@@ -481,7 +481,11 @@ tr.novo td{animation:realce 2.4s ease-out}
     return Promise.all([A.lerPacientes(item),
       window.__fbGet('registos_movimento/' + item + '/snapshot/__capacity').catch(function(){ return null; }), A.lerExternos(item),
       window.__fbGet('registos_movimento/' + item + '/snapshot/__baselines').catch(function(){ return null; }),
-      window.__fbGet('registos_movimento/' + item + '/snapshot/__camasForaUso').catch(function(){ return null; })]).then(function(r){
+      window.__fbGet('registos_movimento/' + item + '/snapshot/__camasForaUso').catch(function(){ return null; }),
+      window.__fbGet('registos_movimento/' + item + '/snapshot/__camasPredef').catch(function(){ return null; })]).then(function(r){
+        // Camas predefinidas enquanto a página do serviço não as aplicou
+        var pd = A.PREDEF && A.PREDEF[item];
+        if (pd && !r[5]) r[1] = pd;
         cpLido[item] = true; cpPac[item] = r[0] || []; capacidade[item] = Number(r[1]) > 0 ? Number(r[1]) : 50; cpExt[item] = r[2] || [];
         cpBase[item] = r[3] || {}; cpForaUso[item] = r[4] || {};
         // Movimento junto ainda não aberto: camas e existência das páginas antigas.

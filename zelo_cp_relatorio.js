@@ -178,7 +178,7 @@
     dica.textContent = 'Não encontra o diagnóstico na lista? Escreva-o como quiser: fica guardado e passa a aparecer na lista, e conta na estatística.';
     linha.parentNode.insertBefore(dica, linha.nextSibling);
     var bloco = document.createElement('div'); bloco.className = 'cp-dx-bloco';
-    bloco.innerHTML = '<label>Outros diagnósticos (opcional) · o CID também é opcional</label><div class="cp-dx-lista" id="' + k + 'DiagExtraLista"></div>' +
+    bloco.innerHTML = '<label>Mais diagnósticos — pode juntar vários (opcional) · o CID também é opcional</label><div class="cp-dx-lista" id="' + k + 'DiagExtraLista"></div>' +
       '<div class="cp-dx-add"><input type="text" id="' + k + 'DiagExtra" list="diagnosticosList" placeholder="Outro diagnóstico" autocomplete="off">' +
       '<input type="text" id="' + k + 'CidExtra" list="cpCidList" placeholder="CID (opcional)" maxlength="8" autocomplete="off" class="cp-dx-cid" title="Opcional — pode deixar em branco">' +
       '<button type="button" class="btn btn-secondary" data-add="' + k + '">+ Adicionar</button></div>';
@@ -218,7 +218,9 @@
     var novo = function () { var ctx = antes ? antes() : null; var r = f.apply(this, arguments); try { if (depois) depois(ctx); } catch (e) { console.warn(e); } return r; };
     novo.__cpRel = true; window[nome] = novo;
   }
-  function gravar() { try { saveData(); } catch (e) {} preencherListas(); }
+  // Grava e volta a desenhar as listas (os outros diagnósticos são juntos
+  // depois de a página já ter desenhado o doente novo/atualizado).
+  function gravar() { try { saveData(); } catch (e) {} try { if (typeof renderInternados === 'function') renderInternados(); } catch (e) {} preencherListas(); }
   function ligarFuncoes() {
     envolver('addPaciente', function () {
       juntarExtra('f'); // um diagnóstico escrito mas não adicionado também conta

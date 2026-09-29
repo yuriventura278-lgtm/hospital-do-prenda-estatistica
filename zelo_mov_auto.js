@@ -39,7 +39,10 @@
   var FUSAO = { medicina_interna: ['medicina_homem', 'medicina_mulher'], uci: ['uci_intensivo', 'uci_intermedio'] };
   // Camas de cada Controlo de Pacientes dentro de um Movimento junto
   var PARTES = { uci: { uci_intensivo: 8, uci_intermedio: 8 } };
-  var CAP_INICIAL = { uci: 16 };
+  // Camas predefinidas de cada serviço (podem ser alteradas na página do
+  // Movimento). Aplicadas uma vez (__camasPredef); depois vale o que lá se escrever.
+  var PREDEF = { medicina_interna: 60, cirurgia_geral: 38, uci: 16, maxilo_facial: 12, nefrologia: 20, neurocirurgia: 14, ortopedia: 54 };
+  var CAP_INICIAL = PREDEF;
   var CAMPOS = ['diretos', 'transferidos_adm', 'altas', 'menos_48', 'mais_48', 'transferidos_sai', 'dia_cama', 'dia_doente'];
 
   function dia(iso) { return String(iso || '').slice(0, 10); }
@@ -160,7 +163,7 @@
     });
     return algum ? out : null;
   }
-  window.ZeloMovAuto = { MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
+  window.ZeloMovAuto = { PREDEF: PREDEF, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
     CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, lerExternos: lerExternos };
 
   // ─────────────── Na página de Movimento de um serviço ───────────────
@@ -290,10 +293,20 @@
       }
       if (PARTES[it] && !data.__capacidadePartes) data.__capacidadePartes = Object.assign({}, PARTES[it]);
       data.__fundido = { em: new Date().toISOString(), de: velhos };
+      if (PREDEF[it]) { data.__capacity = PREDEF[it]; data.__camasPredef = 1; }
       aplicando = true;
       try { persistData(); } finally { aplicando = false; }
       try { renderTable(); updateStats(); } catch (e) {}
     });
+  }
+  function predefinir() {
+    var it = item();
+    if (!PREDEF[it] || data.__camasPredef) return;
+    data.__capacity = PREDEF[it]; data.__camasPredef = 1;
+    if (PARTES[it] && !data.__capacidadePartes) data.__capacidadePartes = Object.assign({}, PARTES[it]);
+    aplicando = true;
+    try { persistData(); } finally { aplicando = false; }
+    try { renderTable(); updateStats(); } catch (e) {}
   }
   function ler() {
     var it = item(); if (!MAPA[it]) return;
@@ -302,7 +315,7 @@
   var t = 0, iv = setInterval(function () {
     t++;
     if (window.__fbReady && typeof window.__fbGet === 'function' && typeof data !== 'undefined' && typeof currentMonth !== 'undefined' && currentMonth && envolver()) {
-      clearInterval(iv); fundir().then(ler, ler);
+      clearInterval(iv); fundir().then(predefinir, predefinir).then(ler, ler);
       // Ao vivo: quando o Controlo de Pacientes grava, volta a calcular.
       if (typeof window.__fbListen === 'function') fontes(item()).forEach(function (m) {
         var primeira = true;
