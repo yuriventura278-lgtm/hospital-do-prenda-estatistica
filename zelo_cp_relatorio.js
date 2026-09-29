@@ -159,7 +159,7 @@
   function juntarExtra(k) {
     var d = document.getElementById(k + 'DiagExtra'), c = document.getElementById(k + 'CidExtra');
     var nome = String(d && d.value || '').trim(); if (!nome) return false;
-    var cid = normCid(c && c.value) || cidDe(nome) || '';
+    var cid = normCid(c && c.value); // CID opcional: fica o que estiver na caixa (pode ficar vazio)
     var principal = String((document.getElementById(k + 'Diagnostico') || {}).value || '').trim();
     var repetido = norm(nome) === norm(principal) || extras[k].some(function (x) { return norm(x.nome) === norm(nome); });
     if (!repetido) extras[k].push({ nome: nome, cid: cid });
@@ -173,9 +173,9 @@
     dica.textContent = 'Não encontra o diagnóstico na lista? Escreva-o como quiser: fica guardado e passa a aparecer na lista, e conta na estatística.';
     linha.parentNode.insertBefore(dica, linha.nextSibling);
     var bloco = document.createElement('div'); bloco.className = 'cp-dx-bloco';
-    bloco.innerHTML = '<label>Outros diagnósticos (opcional)</label><div class="cp-dx-lista" id="' + k + 'DiagExtraLista"></div>' +
+    bloco.innerHTML = '<label>Outros diagnósticos (opcional) · o CID também é opcional</label><div class="cp-dx-lista" id="' + k + 'DiagExtraLista"></div>' +
       '<div class="cp-dx-add"><input type="text" id="' + k + 'DiagExtra" list="diagnosticosList" placeholder="Outro diagnóstico" autocomplete="off">' +
-      '<input type="text" id="' + k + 'CidExtra" list="cpCidList" placeholder="CID-10" maxlength="8" autocomplete="off" class="cp-dx-cid">' +
+      '<input type="text" id="' + k + 'CidExtra" list="cpCidList" placeholder="CID (opcional)" maxlength="8" autocomplete="off" class="cp-dx-cid" title="Opcional — pode deixar em branco">' +
       '<button type="button" class="btn btn-secondary" data-add="' + k + '">+ Adicionar</button></div>';
     dica.parentNode.insertBefore(bloco, dica.nextSibling);
     ligarPar(k + 'DiagExtra', k + 'CidExtra');
