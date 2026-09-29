@@ -201,6 +201,24 @@
         '<button type="button" class="cpx-item" data-modal="backupModal">' + ic('copia') + 'Cópia de Segurança</button>' +
       '</div>';
 
+    // Movimento Hospitalar deste serviço (Medicina Interna: Homem e Mulher).
+    // O acesso continua a ser verificado (só chefes e administradores).
+    var MOV = {
+      medicina_interna: [['medicina_homem', 'Medicina Homem'], ['medicina_mulher', 'Medicina Mulher']],
+      cirurgia_geral: [['cirurgia_geral']], ortopedia: [['ortopedia']], neurocirurgia: [['neurocirurgia']], maxilo_facial: [['maxilo_facial']],
+      nefrologia: [['nefrologia']], uci_intensivo: [['uci_intensivo']], uci_intermedio: [['uci_intermedio']]
+    };
+    var mm = /controlo_pacientes_([a-z_]+)\.html/.exec(decodeURIComponent(location.pathname)), mov = mm && MOV[mm[1]];
+    if (mov) {
+      side.insertAdjacentHTML('beforeend', '<hr class="cpx-div"><div class="cpx-sec">Movimento Hospitalar</div><div class="cpx-lista">' + mov.map(function (m) {
+        return '<a class="cpx-item" href="' + m[0] + '_movimento.html" data-modulo="movimento_mensal" data-item="' + m[0] + '" title="Abrir o Movimento Hospitalar' + (m[1] ? ' — ' + m[1] : '') + '">' + ic('grafico') + (m[1] ? 'Movimento — ' + m[1] : 'Movimento do serviço') + '</a>';
+      }).join('') + '</div>');
+      side.addEventListener('click', function (e) {
+        var a = e.target.closest('a.cpx-item[data-modulo]');
+        if (a && typeof window.zeloTentarAbrirLink === 'function' && !window.zeloTentarAbrirLink(a)) e.preventDefault();
+      });
+    }
+
     function fecharMenu() { side.classList.remove('aberto'); fundo.classList.remove('aberto'); }
     fundo.addEventListener('click', fecharMenu);
     side.addEventListener('click', function (e) {
