@@ -180,16 +180,44 @@
       gravarLS(K_ANT, anterior);
     }
 
+    // Envia só o que mudou em relação ao que o servidor já tem (um paciente,
+    // um campo…), numa só escrita parcial — poupa o limite de downloads do
+    // Firebase: os outros computadores recebem só essa diferença, não o bloco
+    // inteiro. Envia o bloco completo só se ainda não se conhece o servidor
+    // (primeira gravação) ou se a diferença não puder ser escrita por partes.
+    var servidor = null; // último estado conhecido do servidor
+    function caminhoDe(k) { return k.split(SEP).map(descodificar).join('/'); }
+    function diferenca(valor) {
+      if (!servidor || !servidor.snapshot || typeof window.__fbUpdate !== 'function') return null;
+      var sP = achatar(servidor.snapshot), nP = achatar(valor.snapshot), sT = servidor.camposTs || {}, nT = valor.camposTs || {};
+      var patch = {}, n = 0, chaves = {};
+      Object.keys(sP).forEach(function (k) { chaves[k] = 1; }); Object.keys(nP).forEach(function (k) { chaves[k] = 1; });
+      Object.keys(chaves).forEach(function (k) {
+        var a = vazio(sP[k]) ? null : sP[k], b = vazio(nP[k]) ? null : nP[k];
+        if (JSON.stringify(a) !== JSON.stringify(b)) { patch['snapshot/' + caminhoDe(k)] = b; n++; }
+      });
+      Object.keys(nT).forEach(function (k) { if (sT[k] !== nT[k] && (nT[k] || sT[k])) { patch['camposTs/' + k] = nT[k]; n++; } });
+      if (!n) return {};
+      // Um caminho dentro de outro (ex.: valor que passou a lista) não se pode
+      // escrever por partes — envia o bloco completo.
+      var cs = Object.keys(patch).sort();
+      for (var i = 1; i < cs.length; i++) if (cs[i].indexOf(cs[i - 1] + '/') === 0) return null;
+      patch.savedAt = valor.savedAt;
+      return patch;
+    }
     function escrever(obj) {
       if (typeof window.zeloQueueWrite !== 'function') return Promise.resolve();
-      var savedAt = Date.now(); ultimoEnvio = savedAt;
+      var savedAt = Date.now();
       // Só valores com conteúdo (ou apagados de propósito) seguem com hora.
       var tsEnv = {};
       Object.keys(meusTs).forEach(function (k) { tsEnv[k] = meusTs[k]; });
       var valor = { savedAt: savedAt, snapshot: obj, camposTs: tsParaServidor(tsEnv) };
-      ultimoRemoto = JSON.parse(JSON.stringify(valor));
-      return window.zeloQueueWrite(cfg.caminho, valor)
-        .catch(function (e) { console.warn('ZELO: falha ao sincronizar', cfg.caminho, e); });
+      var patch = diferenca(valor);
+      if (patch && !Object.keys(patch).length) return Promise.resolve(); // o servidor já tem tudo
+      ultimoEnvio = savedAt;
+      ultimoRemoto = JSON.parse(JSON.stringify(valor)); servidor = ultimoRemoto;
+      var p = patch ? window.zeloQueueWrite(cfg.caminho, patch, 'update') : window.zeloQueueWrite(cfg.caminho, valor);
+      return p.catch(function (e) { console.warn('ZELO: falha ao sincronizar', cfg.caminho, e); });
     }
 
     function pronto() { return window.__fbReady && typeof window.__fbGet === 'function'; }
@@ -204,7 +232,7 @@
         try {
           var remoto = null;
           if (ouvindo) remoto = ultimoRemoto;
-          else if (pronto()) { try { remoto = await window.__fbGet(cfg.caminho); } catch (e) { remoto = null; } }
+          else if (pronto()) { try { remoto = await window.__fbGet(cfg.caminho); servidor = remoto; } catch (e) { remoto = null; } }
           var res = juntar(remoto);
           aplicarLocal(res);
           if (res.mudouRemoto || !remoto) await escrever(cfg.obter());
@@ -232,7 +260,7 @@
       // início e depois só as alterações.
       var primeira = true;
       window.__fbListen(cfg.caminho, function (remoto) {
-        ultimoRemoto = remoto; ouvindo = true;
+        ultimoRemoto = remoto; servidor = remoto; ouvindo = true;
         if (primeira) { primeira = false; sincronizar(); return; }
         if (!remoto || Number(remoto.savedAt) === ultimoEnvio) return;
         var res = juntar(remoto);
