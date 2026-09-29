@@ -188,6 +188,7 @@
     };
   }
 
+  window.ZeloCpAlergiasComponente = Componente;
   var novo = null, edicao = null;
   function inserir(modalId, comp) {
     var m = document.getElementById(modalId), corpo = m && m.querySelector('.modal-body'); if (!corpo) return false;

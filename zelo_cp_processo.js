@@ -256,7 +256,7 @@
       '<div class="cpp-top"><div class="av">' + esc(iniciais) + '</div><div><h3>' + esc(p.nome) + '</h3><div class="sub">Processo nº ' + p.n + ' · NUP ' + esc(p.nup || '—') + '</div>' +
         '<span class="cpp-estado ' + (internado ? 'int' : 'sai') + '">' + (internado ? 'Internado' : 'Saiu do serviço') + '</span></div><button type="button" class="x" data-fechar aria-label="Fechar">×</button></div>' +
       '<div class="cpp-body">' +
-        '<div class="cpp-sec"><h4>Identificação</h4><div class="cpp-grid">' +
+        '<div class="cpp-sec"><h4 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Identificação — dados pessoais' + (p.nup ? ' <button type="button" class="cpp-bt" data-dp-nup="' + esc(p.nup) + '" style="padding:4px 10px;margin-left:auto;text-transform:none;letter-spacing:0">Editar dados pessoais</button>' : '') + '</h4><div class="cpp-grid">' +
           campo('Nome', esc(p.nome), true) + campo('NUP', esc(p.nup)) + campo('Idade', p.idade != null && p.idade !== '' ? esc(p.idade) + ' anos' : '') + campo('Faixa etária', faixa(p.idade)) + campo('Género', esc(p.genero)) +
           campo('Alergias', window.zeloCpAlergiasHTML ? window.zeloCpAlergiasHTML(p) : '', true) +
         '</div></div>' +

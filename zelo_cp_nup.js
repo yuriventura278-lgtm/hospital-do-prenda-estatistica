@@ -110,8 +110,8 @@
     if (typeof window.__fbGet !== 'function') return Promise.resolve([]);
     var pr = Promise.all(SERVICOS.map(function (s) {
       return ler(s[0]).then(function (v) {
-        return Object.keys(v || {}).map(function (kk) { return v[kk]; }).filter(function (p) { return p && typeof p === 'object' && nupN(p.nup) === nup && !p.anulado; })
-          .map(function (p) { return Object.assign({}, p, { servico: s[0] }); });
+        return Object.keys(v || {}).filter(function (kk) { var p = v[kk]; return p && typeof p === 'object' && nupN(p.nup) === nup && !p.anulado; })
+          .map(function (kk) { return Object.assign({}, v[kk], { servico: s[0], _chave: kk }); });
       });
     })).then(function (ls) { var eps = [].concat.apply([], ls); porNUP[nup] = { ts: Date.now(), eps: eps }; return eps; })
       .catch(function () { porNUP[nup] = { ts: Date.now(), eps: [] }; return []; });
@@ -337,6 +337,7 @@
     });
     var aqui = x.eps.filter(function (p) { return p.servico === slug() && !p.anulado && p.status === 'internado'; })[0];
     h += '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px"><button type="button" class="cpn-bt" data-cpn="voltar">‹ Voltar à lista</button>' +
+      (x.nup ? '<button type="button" class="cpn-bt" data-dp-nup="' + esc(x.nup) + '">Editar dados pessoais</button>' : '') +
       (!aqui ? '<button type="button" class="cpn-bt p" data-cpn="regresso" data-k="' + i + '">＋ Novo internamento neste serviço (regresso)</button>' : '') + '</div></div>';
     ov.innerHTML = '<div class="cpn-card" role="dialog" aria-label="Processo clínico">' + h + '</div>';
   }
