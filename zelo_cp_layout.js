@@ -206,7 +206,7 @@
     var MOV = {
       medicina_interna: [['medicina_interna']],
       cirurgia_geral: [['cirurgia_geral']], ortopedia: [['ortopedia']], neurocirurgia: [['neurocirurgia']], maxilo_facial: [['maxilo_facial']],
-      nefrologia: [['nefrologia']], uci_intensivo: [['uci', 'UCI / Cuidados Intermédios']], uci_intermedio: [['uci', 'UCI / Cuidados Intermédios']]
+      nefrologia: [['nefrologia']], uci: [['uci', 'UCI / Cuidados Intermédios']], uci_intensivo: [['uci', 'UCI / Cuidados Intermédios']], uci_intermedio: [['uci', 'UCI / Cuidados Intermédios']]
     };
     var mm = /controlo_pacientes_([a-z_]+)\.html/.exec(decodeURIComponent(location.pathname)), mov = mm && MOV[mm[1]];
     if (mov) {

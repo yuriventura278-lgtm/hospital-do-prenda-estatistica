@@ -394,8 +394,9 @@ function hasModuleAccess(role, permissoes, mod, itemSlug) {
     let explicito = permissoes && permissoes._paginas ? permissoes._paginas[mod + '|' + (itemSlug || '')] : undefined;
     // Movimentos juntos (Medicina Interna; UCI / Cuidados Intermédios): valem
     // as permissões dadas antes às páginas antigas que foram juntas.
-    const JUNTOS = { medicina_interna: ['medicina_homem', 'medicina_mulher'], uci: ['uci_intensivo', 'uci_intermedio'] };
-    if (explicito === undefined && mod === 'movimento_mensal' && JUNTOS[itemSlug] && permissoes && permissoes._paginas) {
+    const JUNTOS = { medicina_interna: ['medicina_homem', 'medicina_mulher'], uci: ['uci_intensivo', 'uci_intermedio'],
+      controlo_pacientes_uci: ['controlo_pacientes_uci_intensivo', 'controlo_pacientes_uci_intermedio'] };
+    if (explicito === undefined && JUNTOS[itemSlug] && permissoes && permissoes._paginas) {
       const v = JUNTOS[itemSlug].map(x => permissoes._paginas[mod + '|' + x]);
       if (v.some(x => x === true)) explicito = true; else if (v.every(x => x === false)) explicito = false;
     }

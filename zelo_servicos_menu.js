@@ -50,8 +50,8 @@ const SERVICOS_MENU = [
     movimento: [{ label: 'Movimento Hospitalar', file: 'nefrologia_movimento.html', modulo: 'movimento_mensal', item: 'nefrologia' }] },
   { nome: 'UC Intermédio', categoria: 'internamento', icon: 'activity', cor: '#7C3AED',
     relatorios: [
-      { label: 'Controlo de Pacientes — UCI', file: 'controlo_pacientes_uci_intensivo.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_uci_intensivo' },
-      { label: 'Controlo de Pacientes — Cuidados Intermédios', file: 'controlo_pacientes_uci_intermedio.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_uci_intermedio' },
+      // UCI e Cuidados Intermédios numa só página (cada unidade com os seus registos, e a soma das duas).
+      { label: 'Controlo de Pacientes — UCI / Cuidados Intermédios', file: 'controlo_pacientes_uci.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_uci' },
     ], // oculto a pedido: { label: 'Relatório Diário', file: 'banco_uci_v1-3-1-1.html', modulo: 'servicos', item: 'uci_cuidados_intermedios' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_uci_cuidados_intermedios.html', modulo: 'procedimentos_enfermagem', item: 'uci_cuidados_intermedios' }],
     // Um só Movimento Hospitalar (a pedido): junta os dois Controlos de

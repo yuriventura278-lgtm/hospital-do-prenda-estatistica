@@ -37,8 +37,10 @@
     'controlo_faltas_gepedema.html': /falt|feria/i
   };
   // Caminho já permitido pelas regras do Firebase (registos_sistemas_locais/$modulo/$data).
-  var CHAVE = 'registos_sistemas_locais/ultimas_alteracoes/' + ficheiro.replace(/\.html$/, '').replace(/[.#$\[\]\/]/g, '_');
-  var LS = (proc ? 'zeloUltAlt2_' : 'zeloUltAlt_') + ficheiro;
+  // UCI e Cuidados Intermédios (uma só página): cada unidade mantém a sua etiqueta de sempre.
+  var pag = window.CP_UCI ? 'controlo_pacientes_' + window.CP_UCI.slug + '.html' : ficheiro;
+  var CHAVE = 'registos_sistemas_locais/ultimas_alteracoes/' + pag.replace(/\.html$/, '').replace(/[.#$\[\]\/]/g, '_');
+  var LS = (proc ? 'zeloUltAlt2_' : 'zeloUltAlt_') + pag;
   var IGNORAR = /^(registos_sistemas_locais\/ultimas_alteracoes|users|presenca|auditoria|audit|logs|sessoes|avisos)/;
 
   function doisNomes(n) {
