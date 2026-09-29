@@ -2251,19 +2251,26 @@ function _mesclarDadosDia(local, remoto) {
 let _specConcluido = new Set();
 let _specUnlocked = new Set();
 
-function _calcularConcluidos(data) {
+// "Concluído" só por decisão explícita: o clique em Guardar marca (neste
+// computador) os serviços com dados deste dia; ter dados, reabrir o dia ou
+// receber dados doutro computador nunca conclui nem bloqueia nada.
+// "Editar" desbloqueia; o Guardar seguinte volta a concluir.
+function _conclKey(date) { return 'zeloProcConcl_' + FB_SLUG + '_' + (date || currentLoadedDate); }
+function _lerConcluidosGuardados(date) { try { const l = JSON.parse(localStorage.getItem(_conclKey(date)) || '[]'); return Array.isArray(l) ? l : []; } catch(e) { return []; } }
+function _calcularConcluidos(data, marcar) {
+  const guardados = new Set(_lerConcluidosGuardados());
   _specConcluido = new Set();
   SPECIALTIES.forEach(sp => {
     if (sp.id === 'medicina' || sp.id === 'bloco_op') return;
-    if (_servicoTemDados(data?.specs?.[sp.id])) _specConcluido.add(sp.id);
+    if (!_servicoTemDados(data?.specs?.[sp.id])) return;
+    if (marcar) guardados.add(sp.id);
+    if (guardados.has(sp.id)) _specConcluido.add(sp.id);
   });
+  if (marcar) { try { localStorage.setItem(_conclKey(), JSON.stringify([...guardados])); } catch(e) {} }
 }
 
 function _aplicarBloqueio(specId) {
-  // Nunca bloqueia as caixas por "Concluído" (a pedido): o serviço pode
-  // continuar a preencher/corrigir a qualquer momento; o visto verde só indica
-  // que já há dados.
-  const locked = false;
+  const locked = _specConcluido.has(specId) && !_specUnlocked.has(specId);
   const badge = document.getElementById('lock-badge-' + specId);
   const editBtn = document.getElementById('btn-edit-' + specId);
   const doneIcon = document.getElementById('done-' + specId);
@@ -2356,7 +2363,7 @@ function saveAll() {
   _specUnlocked = new Set();
   try {
     const raw = _storageGet(storageKey(currentLoadedDate));
-    _calcularConcluidos(raw ? JSON.parse(raw) : null);
+    _calcularConcluidos(raw ? JSON.parse(raw) : null, true);
   } catch(e) { _calcularConcluidos(null); }
   _aplicarBloqueiosTodos();
   showToast(mudou ? '✅ Registo guardado com sucesso!' : 'Sem alterações para guardar.');
