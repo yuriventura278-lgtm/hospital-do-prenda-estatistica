@@ -38,6 +38,18 @@
     var ua = document.createElement('script'); ua.src = url('zelo_ultima_alteracao.js?v=5'); ua.defer = true;
     (document.head || document.documentElement).appendChild(ua);
   }
+  // Funcionar sem internet: o service worker (sw.js) guarda as páginas, os
+  // scripts e as bibliotecas neste computador. Registado em todas as páginas.
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !window.__zeloSwRegistado) {
+    window.__zeloSwRegistado = true;
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register(url('sw.js')).then(function (reg) {
+        if (navigator.onLine && reg && reg.update) reg.update().catch(function () {});
+        var sw = reg && (reg.active || reg.waiting || reg.installing);
+        if (sw && navigator.onLine) try { sw.postMessage('zelo-precarregar'); } catch (e) {}
+      }).catch(function () {});
+    });
+  }
   if (window.__zeloIcones || document.querySelector('script[src$="zelo_icones.js"]')) return;
   var sc = document.createElement('script');
   sc.src = url('zelo_icones.js');

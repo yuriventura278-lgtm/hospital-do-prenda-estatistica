@@ -348,7 +348,12 @@ onAuthStateChanged(auth, async function (user) {
   }
   var perfil;
   var offline = false;
-  try {
+  // Sem internet e já com o perfil guardado neste aparelho: entra logo (sem
+  // ficar à espera das tentativas de rede) — a página funciona normalmente e
+  // o perfil é confirmado sozinho quando a ligação voltar.
+  var cacheJa = !navigator.onLine ? _lerPerfilCache(user.uid) : null;
+  if (cacheJa) { perfil = cacheJa; offline = true; }
+  else try {
     perfil = await _obterPerfilComRetentativa(user.uid, 2);
   } catch (e) {
     if (resolvido) return;
