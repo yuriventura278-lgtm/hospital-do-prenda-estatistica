@@ -65,7 +65,12 @@
   .m2-semcab span{text-align:center;font:800 .7rem Inter,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#64748B}
   .m2-dias .m2-d{min-height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:1.3rem;border-radius:14px}
   .m2-dias .m2-d small{font-size:.66rem}
-  .m2-g2.m2-g2d{grid-template-columns:1.1fr 1fr}
+  .m2-g2.m2-g2d{grid-template-columns:1fr}
+  .m2-g2d .m2-cal-card{order:-1}
+  .m2-grps{display:grid;grid-template-columns:1fr 1.6fr 1.3fr;gap:12px;align-items:start}.m2-grps .m2-grp{margin-bottom:0}
+  .m2-guard{margin-top:12px}
+  @media (min-width:1100px){.m2-semcab{display:none}.m2-dias{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}.m2-dias>span{display:none}.m2-dias .m2-d{min-height:62px;font-size:1.15rem;border-radius:12px}}
+  @media (max-width:1099px){.m2-grps{grid-template-columns:1fr}.m2-grps .m2-grp{margin-bottom:0}}
   #m2Resumo{margin:16px 0}
   #m2Resumo .m2-ind{grid-template-columns:repeat(4,1fr)}
   @media (max-width:980px){.m2-g2.m2-g2d{grid-template-columns:1fr}#m2Resumo .m2-ind{grid-template-columns:repeat(2,1fr)}.m2-g2 .m2-cal-card{order:-1}}
@@ -262,7 +267,7 @@
     var h = '<div class="m2-diah"><b>' + SEM_LONGO[w] + ', ' + (d + 1) + ' de ' + MESES[+p[1] - 1].toLowerCase() + '</b>' +
       (base ? '<span>· 1º dia: escreva quantos doentes estavam internados (existência anterior)</span>' : '') + '</div>' +
       (au ? '<div class="m2-autonota">⟳ Calculado automaticamente a partir do Controlo de Pacientes — para corrigir, corrija o registo do doente lá.</div>' : '');
-    h += '<div class="m2-flux" id="m2Flux"></div>';
+    h += '<div class="m2-flux" id="m2Flux"></div><div class="m2-grps">';
     GRUPOS.forEach(function (g) {
       h += '<div class="m2-grp ' + g[0] + '"><h4>' + (g[0] === 'e' ? '↘ ' : g[0] === 's' ? '↗ ' : '') + g[1] + '</h4><div class="m2-campos">';
       g[2].forEach(function (c) {
@@ -272,6 +277,7 @@
       });
       h += '</div>' + (g[0] === 'c' ? (au ? foraUsoHtml(m, d) : '') + '<div class="m2-dica" id="m2Dica"></div><div id="m2AvisoC"></div>' : '') + '</div>';
     });
+    h += '</div>';
     var n = getDaysInMonth(m);
     h += '<div class="m2-guard"><span class="m2-ok" id="m2Ok">✓ Guardado</span>' +
       '<button type="button" class="m2-b o" data-m2="diaAnt"' + (d === 0 ? ' disabled' : '') + '>‹ Dia ' + (d === 0 ? '' : d) + '</button>' +
@@ -331,8 +337,8 @@
     var N = numeros();
     raiz.innerHTML = faixa(N) + acoes() +
       (mensal ? '<div class="m2-g2 m2-g2d">' +
-        '<div class="m2-card"><div class="m2-ch"><i>1</i>Registo do dia<small>escolha o dia no calendário</small></div><div class="m2-cb">' + formDia() + '</div></div>' +
-        '<div class="m2-card m2-cal-card"><div class="m2-ch"><i>2</i>Dias do mês<small>toque num dia para o abrir</small></div><div class="m2-cb">' + fita() + '</div></div></div>' : '') +
+        '<div class="m2-card m2-cal-card"><div class="m2-ch"><i>1</i>Dias do mês<small>toque num dia para o abrir</small></div><div class="m2-cb">' + fita() + '</div></div>' +
+        '<div class="m2-card"><div class="m2-ch"><i>2</i>Registo do dia<small>escolha o dia acima</small></div><div class="m2-cb">' + formDia() + '</div></div></div>' : '') +
       '<div class="m2-mapa-h"><i>' + (mensal ? 3 : 1) + '</i>' + (mensal ? 'Mapa do mês' : 'Somatório do período') + '<small>' + (mensal ? 'igual ao PDF · clique no número de um dia para o abrir' : 'por mês') + '</small><button type="button" data-m2="tabela">' + (document.body.classList.contains('m2-sem-tabela') ? 'Ver tabela completa' : 'Ver lista de dias') + '</button></div>' + listaDias();
     desenharResumo(N);
     vivo();
