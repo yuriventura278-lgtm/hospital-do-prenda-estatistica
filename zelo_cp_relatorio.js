@@ -328,6 +328,13 @@
     '.cprel-gen span{font:700 .64rem Inter,Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#64748B}',
     'html[data-zelo-theme="dark"] .cprel th{background:#1B2638;color:#BFD3EE}html[data-zelo-theme="dark"] .cprel td{color:#E6ECF5;border-color:#1F2A3D}',
     'html[data-zelo-theme="dark"] .cprel tr.tot td,html[data-zelo-theme="dark"] .cprel-gen div{background:#0F1828;border-color:#1F2A3D}',
+    '.cprel-graf{padding:14px 16px}',
+    '.cprel-bar{display:grid;grid-template-columns:92px 1fr 40px;align-items:center;gap:10px;margin:9px 0;font:600 .8rem Inter,Arial,sans-serif;color:#334155}',
+    '.cprel-bb{display:flex;height:18px;border-radius:5px;overflow:hidden;background:#F1F5F9}.cprel-bb i{display:block;height:100%}',
+    '.cprel-bar b{font-family:ui-monospace,Consolas,monospace;text-align:right}',
+    '.cprel-lg{display:flex;gap:14px;font:600 .72rem Inter,Arial,sans-serif;color:#64748B;margin-top:10px}',
+    '.cprel-lg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--c)}',
+    'html[data-zelo-theme="dark"] .cprel-bar{color:#E6ECF5}html[data-zelo-theme="dark"] .cprel-bb{background:#0F1828}',
     '@media(max-width:560px){.cprel{grid-template-columns:1fr}}'
   ].join('\n');
 
@@ -352,6 +359,15 @@
       return '<tr' + (classe ? ' class="' + classe + '"' : '') + '><td>' + nome + '</td><td class="num">' + v.M + '</td><td class="num">' + v.F + '</td>' + (tot.N ? '<td class="num">' + v.N + '</td>' : '') + '<td class="num"><b>' + v.total + '</b></td>' + (obitos ? '<td class="num">' + v.a48 + '</td><td class="num">' + v.d48 + '</td>' : '') + '</tr>';
     };
     return '<table><thead>' + cab + '</thead><tbody>' + linhas.map(function (f) { return lin(f, t[f]); }).join('') + lin('TOTAL', tot, 'tot') + '</tbody></table>';
+  }
+  // Gráfico de barras mulheres / homens por faixa etária.
+  function graficoFaixa(t) {
+    var fx = FAIXAS.concat(['Não especificado']).filter(function (f) { return f !== 'Não especificado' || t[f].total; });
+    var max = Math.max.apply(null, fx.map(function (f) { return t[f].total; }).concat([1]));
+    return '<div class="cprel-graf">' + fx.map(function (f) {
+      var v = t[f];
+      return '<div class="cprel-bar"><span>' + f + '</span><div class="cprel-bb"><i style="width:' + (v.F / max * 100) + '%;background:#DB2777" title="Mulheres: ' + v.F + '"></i><i style="width:' + (v.M / max * 100) + '%;background:#2563EB" title="Homens: ' + v.M + '"></i></div><b>' + v.total + '</b></div>';
+    }).join('') + '<div class="cprel-lg"><span style="--c:#DB2777">Mulheres</span><span style="--c:#2563EB">Homens</span></div></div>';
   }
   function renderAnalise() {
     var a = periodo(); if (!a) return;
@@ -378,7 +394,8 @@
     var prov = a.proveniencia.length ? '<table><thead><tr><th>Proveniência</th><th class="num">Nº</th></tr></thead><tbody>' +
       a.proveniencia.map(function (p) { return '<tr><td>' + esc(p[0]) + '</td><td class="num"><b>' + p[1] + '</b></td></tr>'; }).join('') + '</tbody></table>' : '<div class="vazio">Sem entradas neste período.</div>';
     alvo.innerHTML =
-      sec(1, 'Resumo por género', gen, { largo: true, nota: 'Mulheres e homens' }) +
+      sec(1, 'Resumo por género', gen, { nota: 'Mulheres e homens' }) +
+      sec('▮', 'Entradas por faixa etária e género', a.entradas.length ? graficoFaixa(a.faixaEntradas) : '<div class="vazio">Sem entradas neste período.</div>', { nota: a.entradas.length + ' entrada(s)' }) +
       sec(2, 'Diagnósticos das entradas — por frequência', tabelaDiag(a.diagEntradas), { largo: true, nota: a.entradas.length + ' entrada(s)' }) +
       sec(3, 'Óbitos por diagnóstico — por frequência', tabelaDiag(dObitos), { largo: true, vermelho: true, nota: a.obitos.length + ' óbito(s)' }) +
       sec(4, 'Entradas por faixa etária e género', tabelaFaixa(a.faixaEntradas)) +
@@ -390,12 +407,37 @@
 
   // ── PDF (estrutura da Consulta Externa) ──
   function servico() { var t = document.title.split('—'); return t[t.length - 1].trim(); }
+  // Barras mulheres (rosa) / homens (azul) por faixa etária, desenhadas no PDF.
+  function graficoPDF(y, t) {
+    var fx = FAIXAS.concat(['Não especificado']).filter(function (f) { return f !== 'Não especificado' || t[f].total; });
+    var d = pdf_.d, M = pdf_.M, CW = pdf_.CW;
+    y = pdf_.quebra(y, fx.length * 7 + 14);
+    var max = Math.max.apply(null, fx.map(function (f) { return t[f].total; }).concat([1]));
+    var x0 = M + 26, w = CW - 40;
+    d.setFontSize(8);
+    fx.forEach(function (f) {
+      var v = t[f];
+      d.setTextColor(51, 65, 85); d.setFont('helvetica', 'normal'); d.text(f.replace(/–/g, '-'), M, y + 3.6);
+      d.setFillColor(241, 245, 249); d.rect(x0, y, w, 5, 'F');
+      var wf = v.F / max * w, wm = v.M / max * w;
+      if (wf) { d.setFillColor(219, 39, 119); d.rect(x0, y, wf, 5, 'F'); }
+      if (wm) { d.setFillColor(37, 99, 235); d.rect(x0 + wf, y, wm, 5, 'F'); }
+      d.setFont('helvetica', 'bold'); d.text(String(v.total), M + CW, y + 3.6, { align: 'right' });
+      y += 7;
+    });
+    d.setFont('helvetica', 'normal'); d.setFontSize(7.5);
+    d.setFillColor(219, 39, 119); d.rect(x0, y + 1, 3, 3, 'F'); d.setTextColor(71, 85, 105); d.text('Mulheres', x0 + 4.5, y + 3.6);
+    d.setFillColor(37, 99, 235); d.rect(x0 + 24, y + 1, 3, 3, 'F'); d.text('Homens', x0 + 28.5, y + 3.6);
+    d.setTextColor(0, 0, 0);
+    return y + 10;
+  }
+  var pdf_;
   function exportarPDF() {
     var a = periodo(); if (!a) return;
     if (!window.ZeloPDF || !window.jspdf) { if (typeof showFeedback === 'function') showFeedback('Não foi possível carregar o gerador de PDF', 'error'); return; }
     var TIPOS = { diario: 'Diário', semanal: 'Semanal', mensal: 'Mensal', trimestral: 'Trimestral', semestral: 'Semestral', anual: 'Anual' };
     var tipo = TIPOS[(document.getElementById('relatorioTipo') || {}).value] || '';
-    var pdf = ZeloPDF.criar(), CW = pdf.CW, y;
+    var pdf = ZeloPDF.criar(), CW = pdf.CW, y; pdf_ = pdf;
     var fd = function (v) { return typeof formatDate === 'function' ? formatDate(v) : String(v || '').slice(0, 10); };
     var dias = function (p) { return typeof daysBetween === 'function' ? daysBetween(p.dataEntrada, p.dataSaida) + ' d' : ''; };
     y = pdf.cab('Controlo de Pacientes — ' + servico(), 'Relatório ' + tipo + ' · Período: ' + a.r.display);
@@ -444,6 +486,7 @@
     };
     y = pdf.secT(y, '6. Entradas por Faixa Etária e Género');
     y = a.entradas.length ? tabFaixa(y, a.faixaEntradas) : pdf.txt(y, ' ', 'Sem entradas neste período.');
+    if (a.entradas.length) y = graficoPDF(y, a.faixaEntradas);
     y = pdf.secT(y, '7. Óbitos por Faixa Etária e Género');
     y = a.obitos.length ? tabFaixa(y, a.faixaObitos, true) : pdf.txt(y, ' ', 'Sem óbitos neste período.');
 
