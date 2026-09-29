@@ -140,12 +140,23 @@
   }
   function guardar() { try { saveData(); updateStats(); renderInternados(); } catch (e) {} desenhar(); }
   function porN(n) { return pacientes().filter(function (x) { return x.n === n; })[0]; }
+  // Mover para o serviço: o doente volta a estar internado no seu serviço
+  // como se sempre lá tivesse estado — mesmo registo, mesmo NUP e a data de
+  // entrada real (não é uma nova entrada). Só fecha o período fora do serviço
+  // (a cama emprestada fica livre); o serviço que emprestou é avisado.
   function regressou(n) {
     var p = porN(n); if (!p) return;
     var u = ativo(p); if (!u) return;
-    if (!confirm(p.nome + ' regressou ao serviço (' + nomeServ(slug()) + ')? A cama em ' + nomeServ(u.servico) + ' fica livre a partir de agora.')) return;
-    var l = lista(p), f = l[l.length - 1], q = quem(); f.ate = agoraLocal(); f.regressoPor = q.nome; f.regressoEm = new Date().toISOString();
-    p.foraServico = JSON.stringify(l); guardar();
+    var fazer = function () {
+      var l = lista(p), f = l[l.length - 1], q = quem(); f.ate = agoraLocal(); f.regressoPor = q.nome; f.regressoFuncao = q.funcao; f.regressoEm = new Date().toISOString();
+      p.foraServico = JSON.stringify(l); guardar();
+      if (typeof showFeedback === 'function') showFeedback(p.nome + ' movido para ' + nomeServ(slug()) + ' — a cama em ' + nomeServ(u.servico) + ' ficou livre', 'success');
+    };
+    var cap = camas[itemMov()], oc = ocupacao();
+    var texto = 'Mover ' + p.nome + ' (NUP ' + (p.nup || '—') + ') de ' + nomeServ(u.servico) + ' para ' + nomeServ(slug()) + '? ' +
+      'O doente continua com o mesmo registo e a data de entrada real (' + fmtDH(p.dataEntrada) + ') — não conta como nova entrada. A cama em ' + nomeServ(u.servico) + ' fica livre a partir de agora.' +
+      (cap && oc >= cap ? ' Atenção: o serviço já tem ' + oc + ' doentes para ' + cap + ' camas (fica com cama extra).' : '');
+    aviso('Mover para o serviço', texto, [{ texto: 'Mover para o serviço', principal: true, acao: fazer }, { texto: 'Cancelar' }]);
   }
   function cancelar(n) {
     var p = porN(n); if (!p) return;
@@ -381,7 +392,7 @@
     h += '<div class="cpf-q"><div class="cpf-qh"><b>Doentes do serviço internados noutros serviços</b><span class="cpf-n' + (meus.length ? ' on' : '') + '">' + meus.length + '</span></div>';
     h += meus.length ? '<table class="cpf-t"><thead><tr><th>Doente</th><th>Serviço</th><th>Situação</th><th>Registado por</th><th></th></tr></thead><tbody>' + meus.map(function (p) {
       var f = ultimo(p), sit, bt;
-      if (ativo(p)) { sit = 'Internado desde ' + fmtDH(f.desde) + (f.autorizadoPor ? '<small>Autorizado por ' + esc(f.autorizadoPor) + '</small>' : ''); bt = '<button type="button" class="cpf-bt" data-regresso="' + p.n + '">Regressou ao serviço</button>'; }
+      if (ativo(p)) { sit = 'Internado desde ' + fmtDH(f.desde) + (f.autorizadoPor ? '<small>Autorizado por ' + esc(f.autorizadoPor) + '</small>' : ''); bt = '<button type="button" class="cpf-bt p" data-regresso="' + p.n + '" title="O doente volta para este serviço com a data de entrada real">Mover para o serviço</button>'; }
       else if (pendente(p)) { sit = '<span class="cpf-est e">A aguardar autorização</span><small>Pedido ' + fmtEm(f.pedidoEm) + ' · ' + fmtRest(restante(f.pedidoEm)) + '</small>'; bt = '<button type="button" class="cpf-bt" data-cancelar="' + p.n + '">Cancelar pedido</button>'; }
       else { sit = '<span class="cpf-est r">' + (f.estado === 'recusado' ? 'Recusado' : 'Sem resposta em 24 h') + '</span><small>' + (f.estado === 'recusado' ? 'por ' + esc(f.recusadoPor || '—') + ' · ' + fmtEm(f.recusadoEm) : 'pedido ' + fmtEm(f.pedidoEm)) + '</small>'; bt = '<button type="button" class="cpf-bt p" data-outro="' + p.n + '">Pedir a outro serviço</button><button type="button" class="cpf-bt" data-fica="' + p.n + '">Fica aqui</button>'; }
       return '<tr><td><b class="cpp-link" data-proc="' + p.n + '">' + esc(p.nome) + '</b><small>NUP ' + esc(p.nup || '—') + '</small></td><td><span class="cpf-tag">' + esc(nomeServ(f.servico)) + '</span></td><td>' + sit + '</td><td>' + esc(f.por || '—') + (f.funcao ? ' <small>' + esc(f.funcao) + '</small>' : '') + '<small>' + fmtEm(f.em) + '</small></td>' +
@@ -421,6 +432,14 @@
         { texto: 'Autorizar', principal: true, acao: function () { decidir(r._k, 'autorizado'); setTimeout(notificar, 400); } },
         { texto: 'Recusar', acao: function () { decidir(r._k, 'recusado'); setTimeout(notificar, 400); } },
         { texto: 'Mais tarde', acao: function () { var vv = vistos(); vv['p:' + r._k] = Date.now(); try { localStorage.setItem('cpfora_visto_' + slug(), JSON.stringify(vv)); } catch (e) {} } }]);
+      return;
+    }
+    // Doente que estava aqui voltou para o seu serviço (a cama ficou livre)
+    var volt = todosR().filter(function (x) { return x.ate && x.regressoEm && Date.now() - Date.parse(x.regressoEm) < 3 * 86400000 && !v['r:' + x._k]; });
+    if (volt.length) {
+      var y = volt[0];
+      var marcarR = function () { var vv = vistos(); volt.forEach(function (z) { vv['r:' + z._k] = Date.now(); }); try { localStorage.setItem('cpfora_visto_' + slug(), JSON.stringify(vv)); } catch (e) {} setTimeout(notificar, 400); };
+      aviso('Cama livre', y.nome + ' (NUP ' + (y.nup || '—') + ') voltou para o serviço de ' + (y.deNome || nomeServ(y.de)) + ' em ' + fmtEm(y.regressoEm) + (y.regressoPor ? ' (movido por ' + y.regressoPor + ')' : '') + '. A cama no seu serviço ficou livre.' + (volt.length > 1 ? ' E mais ' + (volt.length - 1) + '.' : ''), [{ texto: 'OK', principal: true, acao: marcarR }], 'ok');
       return;
     }
     // Registos antigos (sem pedido): só aviso

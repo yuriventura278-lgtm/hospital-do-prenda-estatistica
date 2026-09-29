@@ -96,6 +96,7 @@
     '.cpg-lin{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #EEF2F7;box-shadow:inset 3px 0 0 var(--g)}',
     '.cpg-lin .t{flex:1;min-width:0}.cpg-lin .t b{font-size:.92rem}',
     '.cpg-lin .l2{font-size:.74rem;color:#64748B;margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}',
+    '.cpg-ac.mov{color:#92400E;border-color:#FDE68A;background:#FFFBEB}',
     '.cpg-mais{width:36px;height:36px;border-radius:10px;border:1px solid var(--cpx-br,#E3E8F0);background:#fff;color:var(--cpx-accent,#1E3A5F);font:900 1rem Inter,Arial,sans-serif;cursor:pointer;flex-shrink:0}',
     '.cpg-menu{position:fixed;z-index:9999;background:#fff;border:1px solid #E3E8F0;border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.18);padding:6px;min-width:190px;display:none}',
     '.cpg-menu.on{display:block}',
@@ -137,6 +138,7 @@
   var SVG = {
     atu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
     sai: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>',
+    mov: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
     rem: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
   };
 
@@ -172,6 +174,8 @@
   }
   function acoes(p, op) {
     var h = '<button type="button" class="cpg-ac atu" title="Atualizar os dados deste paciente" onclick="editPaciente(' + p.n + ')">' + SVG.atu + 'Atualizar</button>';
+    // Doente internado noutro serviço: volta para este serviço (mesmo registo e data de entrada)
+    if (window.zeloCpForaAtivo && window.zeloCpForaAtivo(p)) h += '<button type="button" class="cpg-ac mov" data-regresso="' + p.n + '" title="Mover o doente de volta para este serviço (mantém a data de entrada real)">' + SVG.mov + 'Mover para o serviço</button>';
     if (p.status === 'internado' && !op.saida) h += '<button type="button" class="cpg-ac sai" title="Registar a saída deste paciente" onclick="cpRegistarSaidaDe(' + p.n + ')">' + SVG.sai + 'Saída</button>';
     if (op.remover) h += '<button type="button" class="cpg-ac rem" title="Remover este registo (pede confirmação)" onclick="deletePaciente(' + p.n + ')">' + SVG.rem + '</button>';
     return h;
@@ -288,6 +292,7 @@
     }
     var n = btn.dataset.n, p = pacientes().filter(function (x) { return String(x.n) === String(n); })[0]; if (!p) return;
     var h = '<button type="button" onclick="editPaciente(' + n + ')">' + SVG.atu + 'Atualizar</button>';
+    if (window.zeloCpForaAtivo && window.zeloCpForaAtivo(p)) h += '<button type="button" data-regresso="' + n + '">' + SVG.mov + 'Mover para o serviço</button>';
     if (p.status === 'internado' && btn.dataset.saida !== '1') h += '<button type="button" class="sai" onclick="cpRegistarSaidaDe(' + n + ')">' + SVG.sai + 'Registar saída</button>';
     if (btn.dataset.rem === '1') h += '<button type="button" class="rem" onclick="deletePaciente(' + n + ')">' + SVG.rem + 'Remover</button>';
     menu.innerHTML = h;
