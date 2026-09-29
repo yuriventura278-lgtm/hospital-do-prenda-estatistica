@@ -34,7 +34,7 @@
   };
   // Caminho já permitido pelas regras do Firebase (registos_sistemas_locais/$modulo/$data).
   var CHAVE = 'registos_sistemas_locais/ultimas_alteracoes/' + ficheiro.replace(/\.html$/, '').replace(/[.#$\[\]\/]/g, '_');
-  var LS = 'zeloUltAlt_' + ficheiro;
+  var LS = (proc ? 'zeloUltAlt2_' : 'zeloUltAlt_') + ficheiro;
   var IGNORAR = /^(registos_sistemas_locais\/ultimas_alteracoes|users|presenca|auditoria|audit|logs|sessoes|avisos)/;
 
   function doisNomes(n) {
@@ -43,7 +43,7 @@
     return p.length > 1 ? p[0] + ' ' + p[p.length - 1] : (p[0] || '');
   }
   function gesto() {
-    return !window.ZeloEspera || !window.ZeloEspera.gestoRecente || window.ZeloEspera.gestoRecente(15000);
+    return !window.ZeloEspera || !window.ZeloEspera.gestoRecente || window.ZeloEspera.gestoRecente(proc ? 120000 : 15000);
   }
 
   var el, nomeEl, horaEl, atual = null;
@@ -55,6 +55,9 @@
   }
   function mostrar(info) {
     if (!info || !info.ts || !el) return;
+    // Procedimentos: só vale o registo novo (v2), feito por uma alteração
+    // real NESTA página; registos antigos podiam trazer o autor doutra.
+    if (proc && info.v !== 2) return;
     if (atual && atual.ts >= info.ts && el.dataset.zeloUlt === '1') return;
     atual = info;
     // Etiqueta da própria página já preenchida por ela: não mexe.
@@ -130,7 +133,7 @@
   function registar() {
     if (!gesto()) return;
     var info = { nome: doisNomes(sessionStorage.getItem('zeloNome') || '') || 'Utilizador', ts: Date.now() };
-    if (proc) { try { if (typeof currentLoadedDate !== 'undefined' && currentLoadedDate) info.dia = currentLoadedDate; } catch (e) {} }
+    if (proc) { info.v = 2; try { if (typeof currentLoadedDate !== 'undefined' && currentLoadedDate) info.dia = currentLoadedDate; } catch (e) {} }
     mostrar(info);
     clearTimeout(tRegisto);
     tRegisto = setTimeout(function () {
@@ -144,7 +147,9 @@
     if (typeof f !== 'function' || f.__zeloUlt) return;
     var novo = function (path) {
       var r = f.apply(this, arguments);
-      try { if (!IGNORAR.test(String(path || ''))) registar(); } catch (e) {}
+      // Procedimentos: só conta a gravação real da página (persist →
+      // _mostrarHoraGuardado()), nunca envios automáticos/sincronização.
+      try { if (!proc && !IGNORAR.test(String(path || ''))) registar(); } catch (e) {}
       return r;
     };
     novo.__zeloUlt = true;
@@ -163,20 +168,25 @@
     } catch (e) {}
   }
 
-  // Ainda sem registo por página: procura nos registos DESTE serviço dos
-  // últimos 7 dias quem gravou por último (7 leituras pequenas, uma vez).
+  // Ainda sem registo por página: procura no histórico de alterações DESTE
+  // serviço (registos_enf/<serviço>/<dia>/historico — só é escrito pela
+  // própria página quando alguém altera dados nela) dos últimos 7 dias.
+  // Não usa o autor guardado no dia (criadoPor), que pode vir doutra página.
   var semeado = false;
   function semear() {
     if (semeado || atual || typeof window.__fbGet !== 'function') return; semeado = true;
     var slug; try { slug = FB_SLUG; } catch (e) { return; }
     var dias = []; for (var i = 0; i < 7; i++) { var d = new Date(Date.now() - i * 86400000); dias.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')); }
-    Promise.all(dias.map(function (d) { return window.__fbGet('registos_enf/' + slug + '/' + d).then(function (v) { return v ? { d: d, v: v } : null; }).catch(function () { return null; }); }))
+    Promise.all(dias.map(function (d) { return window.__fbGet('registos_enf/' + slug + '/' + d + '/historico').then(function (v) { return v ? { d: d, v: v } : null; }).catch(function () { return null; }); }))
       .then(function (l) {
         var melhor = null;
         l.forEach(function (x) {
-          if (!x) return; var raw = x.v.snapshot && x.v.snapshot.raw, nome = raw && raw.criadoPor && raw.criadoPor.nome;
-          var ts = raw && raw._ts || (x.v.savedAt ? Date.parse(x.v.savedAt) : 0);
-          if (nome && ts && (!melhor || ts > melhor.ts)) melhor = { nome: doisNomes(nome), ts: ts, dia: x.d };
+          if (!x || typeof x.v !== 'object') return;
+          Object.keys(x.v).forEach(function (k) {
+            var h = x.v[k]; if (!h || !h.nome) return;
+            var ts = Date.parse(h.ts || '') || 0;
+            if (ts && (!melhor || ts > melhor.ts)) melhor = { nome: doisNomes(h.nome), ts: ts, dia: x.d, v: 2 };
+          });
         });
         if (melhor && !atual) mostrar(melhor);
       });
@@ -188,7 +198,7 @@
     if (!escutando && window.__fbReady) {
       escutando = true;
       try {
-        if (typeof window.__fbListen === 'function') window.__fbListen(CHAVE, function (v) { v = v && typeof v.val === 'function' ? v.val() : v; if (v) mostrar(v); else if (proc) semear(); });
+        if (typeof window.__fbListen === 'function') window.__fbListen(CHAVE, function (v) { v = v && typeof v.val === 'function' ? v.val() : v; if (v && (!proc || v.v === 2)) mostrar(v); else if (proc) semear(); });
         else if (typeof window.__fbGet === 'function') window.__fbGet(CHAVE).then(mostrar).catch(function () {});
       } catch (e) {}
     }
