@@ -1681,7 +1681,7 @@ function generateReportPDF() {
   const viewLabel = currentView.charAt(0).toUpperCase() + currentView.slice(1);
 
   // Resumo (mesmos totais dos cartões do ecrã)
-  let admitidos = 0, saidos = 0, totalDays = 0, doentesDia = 0, diasCama = 0, diasDoente = 0;
+  let admitidos = 0, saidos = 0, totalDays = 0, doentesDia = 0, diasCama = 0, diasDoente = 0, obitos = 0, obitos48 = 0, diasComDC = 0;
   months.forEach(month => {
     const days = getDaysInMonth(month);
     totalDays += days;
@@ -1691,6 +1691,10 @@ function generateReportPDF() {
       doentesDia += resolveValue('existindo', day, month);
       diasCama += resolveValue('dia_cama', day, month);
       diasDoente += resolveValue('dia_doente', day, month);
+      obitos += resolveValue('menos_48', day, month) + resolveValue('mais_48', day, month);
+      obitos48 += resolveValue('menos_48', day, month);
+      const vdc = data[month] && data[month].dia_cama ? data[month].dia_cama[day] : null;
+      if (vdc !== null && vdc !== undefined && vdc !== '' && !isNaN(parseInt(vdc, 10))) diasComDC++;
     }
   });
   const firstMonth = months[0];
@@ -1719,6 +1723,14 @@ function generateReportPDF() {
     ['Ficam Existindo', existindo],
     ['Taxa de Ocupação', taxaOcupacao + '%']
   ]);
+  // Outros indicadores (mesmas fórmulas do ecrã e do Movimento Geral — zelo_mov_auto.js)
+  if (window.ZeloMovAuto && ZeloMovAuto.indicadores) {
+    const IND = ZeloMovAuto.indicadores({ dc: denominador, dd: numerador, dias: diasComDC || totalDays, saidos: saidos, obitos: obitos, ob48: obitos48 });
+    const txt = x => ZeloMovAuto.fmtInd(IND[x[0]], x[2]) + (x[2] === ' dias' && IND[x[0]] != null ? ' dias' : '');
+    y = ZeloPDF.secao(doc, y, 'Outros indicadores');
+    y = ZeloPDF.indicadores(doc, y, ZeloMovAuto.INDICADORES.slice(0, 4).map(x => [x[1], txt(x)]));
+    y = ZeloPDF.indicadores(doc, y, ZeloMovAuto.INDICADORES.slice(4).map(x => [x[1], txt(x)]));
+  }
 
   y = ZeloPDF.secao(doc, y, '2. Movimento do Período');
   const head = ['Código do Serviço'];
@@ -1863,7 +1875,7 @@ document.addEventListener('wheel', function(e) {
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_assistente.js"></script>
 <script src="zelo_movimento_grelha.js"></script>
-<script src="zelo_mov_auto.js?v=9"></script>
-<script src="zelo_mov_v2.js?v=4"></script>
+<script src="zelo_mov_auto.js?v=10"></script>
+<script src="zelo_mov_v2.js?v=5"></script>
 </body>
 </html>

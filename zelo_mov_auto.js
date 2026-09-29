@@ -163,7 +163,35 @@
     });
     return algum ? out : null;
   }
-  window.ZeloMovAuto = { PREDEF: PREDEF, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
+  // ── Outros indicadores hospitalares (mesmas fórmulas em todas as páginas) ──
+  // t: { dc: dias-cama, dd: dias-doente, dias: dias do período com dias-cama,
+  //      saidos: saídos (altas + óbitos + transferidos), obitos: todos os óbitos,
+  //      ob48: óbitos com menos de 48 h }
+  //   Média de camas reais    = dias-cama ÷ dias do período
+  //   Taxa de ocupação        = dias-doente ÷ dias-cama × 100
+  //   Média de estadia        = dias-doente ÷ saídos
+  //   Índice de rotação       = saídos ÷ média de camas reais (doentes por cama)
+  //   Intervalo de substituição = (dias-cama − dias-doente) ÷ saídos (dias que a cama fica vazia entre dois doentes)
+  //   Mortalidade bruta       = óbitos ÷ saídos × 100
+  //   Mortalidade líquida     = óbitos ≥ 48 h ÷ (saídos − óbitos < 48 h) × 100
+  function indicadores(t) {
+    var dc = Number(t.dc) || 0, dd = Number(t.dd) || 0, sai = Number(t.saidos) || 0, ob = Number(t.obitos) || 0, ob48 = Number(t.ob48) || 0, dias = Number(t.dias) || 0;
+    var cr = dias > 0 && dc > 0 ? dc / dias : null;
+    return {
+      camasReais: cr,
+      taxa: dc > 0 ? dd / dc * 100 : null,
+      estadia: sai > 0 ? dd / sai : null,
+      rotacao: sai > 0 && cr ? sai / cr : null,
+      intervalo: sai > 0 && dc > 0 ? Math.max(0, dc - dd) / sai : null,
+      mortLiquida: sai - ob48 > 0 ? Math.max(0, ob - ob48) / (sai - ob48) * 100 : null,
+      mortBruta: sai > 0 ? ob / sai * 100 : null
+    };
+  }
+  var INDICADORES = [['camasReais', 'Média de camas reais', '', 'dias-cama ÷ dias'], ['taxa', 'Taxa de ocupação', '%', 'dias-doente ÷ dias-cama'], ['estadia', 'Média de estadia', ' dias', 'dias-doente ÷ saídos'],
+    ['rotacao', 'Índice de rotação', '', 'saídos ÷ camas reais'], ['intervalo', 'Intervalo de substituição', ' dias', '(dias-cama − dias-doente) ÷ saídos'],
+    ['mortLiquida', 'Mortalidade líquida', '%', 'óbitos ≥48 h ÷ (saídos − óbitos <48 h)'], ['mortBruta', 'Mortalidade bruta', '%', 'óbitos ÷ saídos']];
+  function fmtInd(v, suf) { return v == null || !isFinite(v) ? '—' : v.toLocaleString('pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + (suf === '%' ? '%' : ''); }
+  window.ZeloMovAuto = { PREDEF: PREDEF, indicadores: indicadores, INDICADORES: INDICADORES, fmtInd: fmtInd, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
     CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, lerExternos: lerExternos };
 
   // ─────────────── Na página de Movimento de um serviço ───────────────

@@ -102,6 +102,7 @@
   .m2-k{background:#F4F7FB;border-radius:12px;padding:10px 12px}
   .m2-k span{font:700 .66rem Inter,Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#64748B}
   .m2-k b{display:block;font:800 1.3rem ui-monospace,Consolas,monospace;margin-top:3px}.m2-k small{font:600 .74rem Inter,Arial,sans-serif;color:#64748B}
+  .m2-ind{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:12px}.m2-ind b i{font:600 .75rem Inter,Arial,sans-serif;color:#64748B;font-style:normal}
   .m2-tt{font:700 .8rem Inter,Arial,sans-serif;color:#334155;margin:10px 0 6px}
   .m2-sai{display:flex;height:16px;border-radius:8px;overflow:hidden;background:#F1F5F9}
   .m2 svg text{font-family:Inter,Arial,sans-serif}
@@ -161,12 +162,13 @@
 
   // ── Números do período (mesma conta de updateStats da página) ──
   function numeros() {
-    var months = getPeriodMonths(), adm = 0, sai = 0, ob = 0, altas = 0, tra = 0, dc = 0, dd = 0, exist = 0, dias = 0;
+    var months = getPeriodMonths(), adm = 0, sai = 0, ob = 0, altas = 0, tra = 0, dc = 0, dd = 0, exist = 0, dias = 0, m48 = 0, diasDC = 0;
     months.forEach(function (m) {
       var n = getDaysInMonth(m); dias += n;
       for (var d = 0; d < n; d++) {
         adm += resolveValue('admitidos', d, m); sai += resolveValue('saidos', d, m);
-        ob += resolveValue('menos_48', d, m) + resolveValue('mais_48', d, m);
+        ob += resolveValue('menos_48', d, m) + resolveValue('mais_48', d, m); m48 += resolveValue('menos_48', d, m);
+        var vdc = raw(m, 'dia_cama', d); if (vdc != null && !isNaN(vdc)) diasDC++;
         altas += resolveValue('altas', d, m); tra += resolveValue('transferidos_sai', d, m);
         dc += resolveValue('dia_cama', d, m); dd += resolveValue('dia_doente', d, m); exist += resolveValue('existindo', d, m);
       }
@@ -175,7 +177,8 @@
     var den = dc > 0 ? dc : dias * getCapacity(), num = dd > 0 ? dd : exist;
     return { months: months, ini: ini, adm: adm, sai: sai, ob: ob, altas: altas, tra: tra, dc: dc, dd: dd,
       ficam: Math.max(0, ini + adm - sai), ocup: den > 0 ? Math.min(100, Math.round(num / den * 100)) : 0,
-      demora: sai ? (num / sai) : null, mort: sai ? ob / sai * 100 : null };
+      demora: sai ? (num / sai) : null, mort: sai ? ob / sai * 100 : null, m48: m48,
+      ind: window.ZeloMovAuto && window.ZeloMovAuto.indicadores ? window.ZeloMovAuto.indicadores({ dc: den, dd: num, dias: diasDC || dias, saidos: sai, obitos: ob, ob48: m48 }) : null };
   }
   function f1(v) { return v == null ? '—' : v.toLocaleString('pt-PT', { maximumFractionDigits: 1 }); }
 
@@ -288,6 +291,11 @@
     var h = '<div class="m2-k3"><div class="m2-k"><span>Ocupação</span><b>' + N.ocup + '%</b><small>' + (N.dd || 0) + ' DD ÷ ' + (N.dc || 0) + ' DC</small></div>' +
       '<div class="m2-k"><span>Altas</span><b>' + N.altas + '</b><small>' + (N.sai ? Math.round(N.altas / N.sai * 100) + '% das saídas' : '—') + '</small></div>' +
       '<div class="m2-k"><span>Mortalidade</span><b>' + (N.mort == null ? '—' : f1(N.mort) + '%') + '</b><small>' + N.ob + (N.ob === 1 ? ' óbito' : ' óbitos') + '</small></div></div>';
+    // Outros indicadores (zelo_mov_auto.js — as mesmas fórmulas do Movimento Geral)
+    var A = window.ZeloMovAuto;
+    if (N.ind && A.INDICADORES) h += '<div class="m2-tt">Outros indicadores</div><div class="m2-ind">' + A.INDICADORES.map(function (x) {
+      return '<div class="m2-k"><span>' + x[1] + '</span><b>' + A.fmtInd(N.ind[x[0]], x[2]) + (x[2] === ' dias' && N.ind[x[0]] != null ? '<i> dias</i>' : '') + '</b><small>' + x[3] + '</small></div>';
+    }).join('') + '</div>';
     if (currentView === 'mensal') {
       var m = currentMonth, n = getDaysInMonth(m), ex = exigidos(m), vals = [], ultimo = -1;
       for (var d = 0; d < n; d++) { vals.push(getExistindo(d, m)); if (diaPreenchido(m, d)) ultimo = d; }

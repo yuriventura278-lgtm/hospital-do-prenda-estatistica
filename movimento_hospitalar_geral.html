@@ -157,6 +157,10 @@ tr.novo td{animation:realce 2.4s ease-out}
     <div class="ch"><h2>Estatística por serviço</h2><small id="mhgResumoInfo"></small></div>
     <div class="rolar"><table id="mhgResumo"></table></div>
   </div>
+  <div class="card">
+    <div class="ch"><h2>Outros indicadores</h2><small>Camas reais = DC ÷ dias · Estadia = DD ÷ saídos · Rotação = saídos ÷ camas reais · Intervalo de substituição = (DC − DD) ÷ saídos · Mortalidade bruta = óbitos ÷ saídos · líquida = óbitos ≥48 h ÷ (saídos − óbitos &lt;48 h)</small></div>
+    <div class="rolar"><table id="mhgInd"></table></div>
+  </div>
 
   <div class="mhg-dois" id="mhgGraficos"></div>
 
@@ -174,7 +178,7 @@ tr.novo td{animation:realce 2.4s ease-out}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="zelo_servicos_menu.js"></script>
-<script src="zelo_mov_auto.js?v=9"></script>
+<script src="zelo_mov_auto.js?v=10"></script>
 <script>
 /* Movimento Hospitalar Geral — supervisão e estatística (só leitura).
    Cada serviço guarda em registos_movimento/<serviço>:
@@ -267,7 +271,7 @@ tr.novo td{animation:realce 2.4s ease-out}
 
   // Estatística + supervisão de um serviço num conjunto de meses.
   function calcular(item, lista){
-    var r = { adm: null, sai: null, altas: null, fal: null, dc: null, dd: null, exig: 0, feitos: 0, falta: [], ddGtDc: 0, semDcDd: 0, porMes: {}, dcDia: null, ddDia: null };
+    var r = { m48: 0, diasDC: 0, adm: null, sai: null, altas: null, fal: null, dc: null, dd: null, exig: 0, feitos: 0, falta: [], ddGtDc: 0, semDcDd: 0, porMes: {}, dcDia: null, ddDia: null };
     lista.forEach(function(ym){
       var m = (cache[item] || {})[ym] || null, n = diasNoMes(ym), ex = diasExigidos(ym);
       var pm = { adm: null, sai: null, altas: null, fal: null, dc: null, dd: null };
@@ -276,11 +280,13 @@ tr.novo td{animation:realce 2.4s ease-out}
       pm.altas = soma(m, 'altas', n);
       pm.sai = mais(mais(pm.altas, pm.fal), soma(m, 'transferidos_sai', n));
       pm.dc = soma(m, 'dia_cama', n); pm.dd = soma(m, 'dia_doente', n);
+      r.m48 += soma(m, 'menos_48', n) || 0;
       r.porMes[ym] = pm;
       ['adm', 'sai', 'altas', 'fal', 'dc', 'dd'].forEach(function(k){ r[k] = mais(r[k], pm[k]); });
       for (var i = 0; i < n; i++){
         var algum = EDITAVEIS.some(function(c){ return val(m, c, i) != null; });
         var dc = val(m, 'dia_cama', i), dd = val(m, 'dia_doente', i);
+        if (dc != null) r.diasDC++;
         if (i < ex){
           r.exig++;
           if (algum) r.feitos++; else r.falta.push({ ym: ym, d: i + 1 });
@@ -293,8 +299,15 @@ tr.novo td{animation:realce 2.4s ease-out}
     r.perm = r.sai ? (r.dd || 0) / r.sai : null;
     r.mort = r.sai ? pct(r.fal || 0, r.sai) : null;
     r.comDados = r.adm != null || r.dc != null || r.dd != null || r.sai != null;
+    r.ind = indicadoresDe(r);
     return r;
   }
+  // Outros indicadores (fórmulas partilhadas em zelo_mov_auto.js)
+  function indicadoresDe(r){
+    var A = window.ZeloMovAuto; if (!A || !A.indicadores) return {};
+    return A.indicadores({ dc: r.dc, dd: r.dd, dias: r.diasDC, saidos: r.sai, obitos: r.fal, ob48: r.m48 });
+  }
+  function linhaInd(ind){ var A = window.ZeloMovAuto; return (A && A.INDICADORES || []).map(function(x){ var v = ind ? ind[x[0]] : null; return A.fmtInd(v, x[2]); }); }
   function estado(r){
     if (!r.comDados && r.exig) return ['er', 'Sem dados'];
     if (!r.exig && !r.comDados) return ['nd', 'Sem dias a preencher'];
@@ -311,6 +324,15 @@ tr.novo td{animation:realce 2.4s ease-out}
     tot.taxa = tot.dc ? pct(tot.dd || 0, tot.dc) : null;
     tot.perm = tot.sai ? (tot.dd || 0) / tot.sai : null;
     tot.mort = tot.sai ? pct(tot.fal || 0, tot.sai) : null;
+    (function(){
+      var A = window.ZeloMovAuto, m48 = 0, cr = 0, temCr = false;
+      linhas.forEach(function(l){ m48 += l.r.m48 || 0; if (l.r.ind && l.r.ind.camasReais != null){ cr += l.r.ind.camasReais; temCr = true; } });
+      tot.m48 = m48;
+      tot.ind = A && A.indicadores ? A.indicadores({ dc: tot.dc, dd: tot.dd, dias: 1, saidos: tot.sai, obitos: tot.fal, ob48: m48 }) : {};
+      // Total do hospital: camas reais = soma das camas reais dos serviços
+      tot.ind.camasReais = temCr ? cr : null;
+      tot.ind.rotacao = temCr && cr > 0 && tot.sai ? tot.sai / cr : null;
+    })();
     var emDia = linhas.filter(function(l){ return estado(l.r)[0] === 'ok'; }).length;
     var periodo = nomePeriodo();
 
@@ -363,6 +385,13 @@ tr.novo td{animation:realce 2.4s ease-out}
     h += '<tr class="total"><td>TOTAL DO HOSPITAL</td>' + [tot.adm, tot.sai, tot.altas, tot.fal].map(function(v){ return '<td>' + fmt(v) + '</td>'; }).join('') + '<td>' + fmtPct(tot.mort) + '</td>' +
       [tot.dc, tot.dd].map(function(v){ return '<td>' + fmt(v) + '</td>'; }).join('') + '<td>' + fmtPct(tot.taxa) + '</td><td>' + fmtDec(tot.perm) + '</td></tr></tbody>';
     $('mhgResumo').innerHTML = h;
+
+    // Outros indicadores por serviço
+    var A = window.ZeloMovAuto, IND = A && A.INDICADORES || [];
+    h = '<thead><tr><th>Serviço</th>' + IND.map(function(x){ return '<th title="' + esc(x[3]) + '">' + esc(x[1]) + (x[2] === ' dias' ? ' (dias)' : '') + '</th>'; }).join('') + '</tr></thead><tbody>';
+    linhas.forEach(function(l){ h += '<tr><td>' + esc(l.s.nome) + '</td>' + linhaInd(l.r.ind).map(function(v){ return '<td class="' + (v === '—' ? 'sem' : '') + '">' + v + '</td>'; }).join('') + '</tr>'; });
+    h += '<tr class="total"><td>TOTAL DO HOSPITAL</td>' + linhaInd(tot.ind).map(function(v){ return '<td>' + v + '</td>'; }).join('') + '</tr></tbody>';
+    $('mhgInd').innerHTML = h;
 
     // Evolução mês a mês (trimestral, semestral, anual)
     var evo = lista.map(function(ym){
@@ -590,6 +619,14 @@ tr.novo td{animation:realce 2.4s ease-out}
     var corpo = atual.linhas.map(function(l){ var r = l.r; return [l.s.nome, fmt(r.adm), fmt(r.sai), fmt(r.altas), fmt(r.fal), fmtPct(r.mort), fmt(r.dc), fmt(r.dd), fmtPct(r.taxa), fmtDec(r.perm)]; });
     corpo.push(['TOTAL DO HOSPITAL', fmt(t.adm), fmt(t.sai), fmt(t.altas), fmt(t.fal), fmtPct(t.mort), fmt(t.dc), fmt(t.dd), fmtPct(t.taxa), fmtDec(t.perm)]);
     y = Z.autoTable(doc, { startY: y, head: [['Serviço', 'Admitidos', 'Saídos', 'Altas', 'Falecidos', 'Mortalidade', 'Dias-cama', 'Dias-doente', 'Taxa ocupação', 'Perm. média']], body: corpo, styles: { fontSize: 9.5 }, columnStyles: dir });
+    var INDP = window.ZeloMovAuto && window.ZeloMovAuto.INDICADORES || [];
+    if (INDP.length){
+      var dir2 = {}; for (var c2 = 1; c2 <= INDP.length; c2++) dir2[c2] = { halign: 'right' };
+      y = Z.secao(doc, y, 'Outros indicadores');
+      var corpoI = atual.linhas.map(function(l){ return [l.s.nome].concat(linhaInd(l.r.ind)); });
+      corpoI.push(['TOTAL DO HOSPITAL'].concat(linhaInd(t.ind)));
+      y = Z.autoTable(doc, { startY: y, head: [['Serviço'].concat(INDP.map(function(x){ return x[1] + (x[2] === ' dias' ? ' (dias)' : ''); }))], body: corpoI, styles: { fontSize: 9.5 }, columnStyles: dir2 });
+    }
     if (atual.lista.length > 1){
       y = Z.secao(doc, y, '2. Evolução mês a mês (total do hospital)');
       y = Z.autoTable(doc, { startY: y, head: [['Mês', 'Admitidos', 'Saídos', 'Falecidos', 'Dias-cama', 'Dias-doente', 'Taxa ocupação', 'Perm. média']],
