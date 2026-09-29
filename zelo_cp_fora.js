@@ -1,8 +1,8 @@
 // ── ZELO — Controlo de Pacientes: doentes internados fora do serviço ──
 // Partilhado pelas 8 páginas de Controlo de Pacientes.
-// • Novo Paciente: escolher "Internamento: neste serviço / noutro serviço".
-//   Se o serviço já estiver cheio (doentes internados ≥ camas do Movimento),
-//   pergunta em que serviço o doente fica internado.
+// • Novo Paciente: nunca por decisão própria — só quando o serviço está cheio
+//   (doentes internados ≥ camas do Movimento) o sistema pergunta em que
+//   serviço o doente fica internado (ou cama extra).
 // • O doente continua a ser do seu serviço (conta nos seus admitidos,
 //   saídos e dias-doente); o serviço que empresta a cama perde 1 dia de cama
 //   por cada dia (zelo_mov_auto.js) e o serviço de origem ganha essa cama.
@@ -85,12 +85,7 @@
     try { saveData(); updateStats(); renderInternados(); } catch (e) {}
     desenhar();
   }
-  function passarPara(n, servico) {
-    var p = pacientes().filter(function (x) { return x.n === n; })[0]; if (!p || !servico) return;
-    marcarFora(p, servico, agoraLocal());
-    try { saveData(); updateStats(); renderInternados(); } catch (e) {}
-    desenhar();
-  }
+
 
   // ── Novo Paciente: onde fica internado ──
   var confirmouAqui = false;
@@ -98,18 +93,12 @@
     var m = document.getElementById('novoModal'), corpo = m && m.querySelector('.modal-body');
     if (!corpo || document.getElementById('cpf-novo')) return !!corpo;
     var b = document.createElement('div'); b.id = 'cpf-novo'; b.className = 'cpf-novo';
-    b.innerHTML = '<label>Internamento</label><div class="cpf-op"><label><input type="radio" name="cpf-onde" data-onde="aqui" value="aqui" checked> Neste serviço</label>' +
-      '<label><input type="radio" name="cpf-onde" data-onde="fora" value="fora"> Noutro serviço (sem cama livre aqui)</label>' +
-      '<select id="cpf-serv" disabled><option value="">— Escolher o serviço onde fica internado —</option>' + SERV.filter(function (s) { return s[0] !== slug(); }).map(function (s) { return '<option value="' + s[0] + '">' + esc(s[1]) + '</option>'; }).join('') + '</select></div>' +
-      '<div class="cpf-lot" id="cpf-lot"></div>';
+    // Sem escolha manual: internar fora só quando o serviço não tem camas livres
+    // (o sistema pergunta no momento do registo).
+    b.innerHTML = '<label>Camas do serviço</label><div class="cpf-lot" id="cpf-lot"></div>';
     var ref = corpo.querySelector('.cp-dx-dica') || null;
     var diag = document.getElementById('fDiagnostico'), lin = diag && diag.closest('.form-row');
     if (lin && lin.parentNode === corpo) corpo.insertBefore(b, lin); else corpo.appendChild(b);
-    b.addEventListener('change', function () {
-      var fora = !!b.querySelector('input[data-onde="fora"]:checked');
-      var s = document.getElementById('cpf-serv'); s.disabled = !fora; if (!fora) s.value = '';
-      lotacao();
-    });
     var g = document.getElementById('fGenero'); if (g) g.addEventListener('change', lotacao);
     return true;
   }
@@ -121,7 +110,8 @@
     el.className = 'cpf-lot' + (livres <= 0 ? ' cheio' : '');
     el.textContent = (slug() === 'medicina_interna' ? (g === 'Feminino' ? 'Medicina Mulher' : 'Medicina Homem') + ': ' : '') + camas[it] + ' camas · ' + oc + ' internados no serviço · ' + (livres > 0 ? livres + ' livre(s)' : 'sem camas livres');
   }
-  function escolhido() { var s = document.getElementById('cpf-serv'), r = document.querySelector('input[data-onde="fora"]'); return r && r.checked && s ? s.value : ''; }
+  var hostEscolhido = '';   // escolhido na pergunta "Sem camas livres"
+  function escolhido() { return hostEscolhido; }
   function perguntar(g, oc, cap, continuar) {
     var livres = {};
     var html = '<div style="text-align:left">O serviço tem <b>' + cap + ' camas</b> e já estão <b>' + oc + ' doentes</b> internados. Em que serviço o doente vai ficar internado?</div>' +
@@ -133,7 +123,7 @@
     ov.addEventListener('click', function (e) {
       if (e.target === ov || e.target.closest('[data-x]')) { ov.remove(); return; }
       var b = e.target.closest('[data-s]');
-      if (b) { ov.remove(); var r = document.querySelector('input[data-onde="fora"]'); if (r) { r.checked = true; } var s = document.getElementById('cpf-serv'); s.disabled = false; s.value = b.dataset.s; continuar(); return; }
+      if (b) { ov.remove(); hostEscolhido = b.dataset.s; continuar(); return; }
       if (e.target.closest('[data-aqui]')) { ov.remove(); confirmouAqui = true; continuar(); }
     });
   }
@@ -146,9 +136,6 @@
         var g = (document.getElementById('fGenero') || {}).value || '', it = itemMov(g), cap = it && camas[it];
         if (cap) { var oc = ocupacao(g); if (oc >= cap) { perguntar(g, oc, cap, function () { window.addPaciente(); }); return; } }
       }
-      if (document.getElementById('cpf-novo') && !host && document.querySelector('input[data-onde="fora"]:checked')) {
-        if (typeof showFeedback === 'function') showFeedback('Escolha o serviço onde o doente fica internado', 'error'); return;
-      }
       var n = data.nextN;
       var r = f.apply(self, args);
       var p = pacientes().filter(function (x) { return x.n === n; })[0];
@@ -157,7 +144,7 @@
         try { saveData(); renderInternados(); } catch (e) {}
         if (typeof showFeedback === 'function') showFeedback(p.nome + ' registado — internado em ' + nomeServ(host) + ' (fora do serviço)', 'success');
       }
-      if (p) { confirmouAqui = false; var rr = document.querySelector('input[data-onde="aqui"]'); if (rr) rr.checked = true; var s = document.getElementById('cpf-serv'); if (s) { s.value = ''; s.disabled = true; } }
+      if (p) { confirmouAqui = false; hostEscolhido = ''; }
       desenhar();
       return r;
     };
@@ -170,7 +157,7 @@
   }
   function envolverAbrir() {
     var f = window.openModal; if (typeof f !== 'function' || f.__cpf) return !!(f && f.__cpf);
-    var novo = function (id) { var r = f.apply(this, arguments); if (id === 'novoModal') { blocoNovo(); confirmouAqui = false; lerCamas().then(lotacao); } return r; };
+    var novo = function (id) { var r = f.apply(this, arguments); if (id === 'novoModal') { blocoNovo(); confirmouAqui = false; hostEscolhido = ''; lerCamas().then(lotacao); } return r; };
     novo.__cpf = true; novo.__cpn = f.__cpn; novo.__cpProc = f.__cpProc; window.openModal = novo; return true;
   }
 
@@ -188,24 +175,18 @@
       var f = ativo(p);
       return '<tr><td><b class="cpp-link" data-proc="' + p.n + '">' + esc(p.nome) + '</b><small>NUP ' + esc(p.nup || '—') + '</small></td><td><span class="cpf-tag">' + esc(nomeServ(f.servico)) + '</span></td><td>' + fmtDH(f.desde) + '</td><td>' + esc(f.por || '—') + (f.funcao ? ' <small>' + esc(f.funcao) + '</small>' : '') + '<small>' + (f.em ? new Date(f.em).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '') + '</small></td>' +
         '<td><button type="button" class="cpf-bt" data-regresso="' + p.n + '">Regressou ao serviço</button></td></tr>';
+    // (A cama conta para este serviço — dia de cama e dia-doente — até ao regresso ou à saída do doente.)
     }).join('') + '</tbody></table>' : '<div class="cpf-vz">Nenhum doente deste serviço está internado noutro serviço.</div>';
-    h += '<div class="cpf-passar"><select id="cpf-pn"><option value="">Passar um doente internado para outro serviço…</option>' + internados.map(function (p) { return '<option value="' + p.n + '">' + esc(p.nome) + ' (NUP ' + esc(p.nup || '—') + ')</option>'; }).join('') + '</select>' +
-      '<select id="cpf-ps"><option value="">Serviço…</option>' + SERV.filter(function (s) { return s[0] !== slug(); }).map(function (s) { return '<option value="' + s[0] + '">' + esc(s[1]) + '</option>'; }).join('') + '</select><button type="button" class="cpf-bt p" id="cpf-passar">Internar fora</button></div></div>';
+    h += '</div>';
     h += '<div class="cpf-q"><div class="cpf-qh"><b>Doentes de outros serviços internados aqui</b><span class="cpf-n' + (aqui.length ? ' on' : '') + '">' + aqui.length + '</span></div>';
     h += aqui.length ? '<table class="cpf-t"><thead><tr><th>Doente</th><th>Serviço do doente</th><th>Desde</th><th>Registado por</th></tr></thead><tbody>' + aqui.map(function (r) {
       return '<tr id="cpf-r-' + esc(r._k) + '"><td><b>' + esc(r.nome) + '</b><small>NUP ' + esc(r.nup || '—') + (r.genero ? ' · ' + esc(r.genero) : '') + (r.idade !== '' ? ' · ' + esc(r.idade) + ' anos' : '') + '</small>' + (r.diagnostico ? '<small>' + esc(r.diagnostico) + '</small>' : '') + '</td><td><span class="cpf-tag o">' + esc(r.deNome || nomeServ(r.de)) + '</span></td><td>' + fmtDH(r.desde) + '</td>' +
         '<td>' + esc(r.por || '—') + (r.funcao ? ' <small>' + esc(r.funcao) + '</small>' : '') + '<small>' + (r.em ? new Date(r.em).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '') + '</small></td></tr>';
-    }).join('') + '</tbody></table><div class="cpf-nota">Estas camas contam como emprestadas: no Movimento deste serviço os dias de cama descem 1 por cada doente e por cada dia.</div>' : '<div class="cpf-vz">Nenhum doente de outro serviço está internado aqui.</div>';
+    }).join('') + '</tbody></table><div class="cpf-nota">Camas emprestadas: no Movimento deste serviço os dias de cama descem 1 por cada doente e por cada dia, até à saída ou regresso do doente.</div>' : '<div class="cpf-vz">Nenhum doente de outro serviço está internado aqui.</div>';
     box.innerHTML = h + '</div>';
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-regresso]'); if (b) { regressou(+b.dataset.regresso); return; }
-    if (e.target.closest && e.target.closest('#cpf-passar')) {
-      var n = +document.getElementById('cpf-pn').value, s = document.getElementById('cpf-ps').value;
-      if (!n || !s) { if (typeof showFeedback === 'function') showFeedback('Escolha o doente e o serviço', 'error'); return; }
-      var p = pacientes().filter(function (x) { return x.n === n; })[0];
-      if (p && confirm('Internar ' + p.nome + ' em ' + nomeServ(s) + ' (fora do serviço)? O serviço ' + nomeServ(s) + ' será notificado.')) passarPara(n, s);
-    }
     var pr = e.target.closest && e.target.closest('#cpf-quadros [data-proc]'); if (pr && window.ZeloCpProcesso) window.ZeloCpProcesso.abrir(+pr.dataset.proc);
   });
 

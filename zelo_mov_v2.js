@@ -88,6 +88,9 @@
   .m2-st input{flex:1;min-width:0;width:100%;border:0;text-align:center;font:800 1.08rem ui-monospace,Consolas,monospace;color:#0F172A;background:transparent;outline:none}
   .m2-st input::placeholder{color:#CBD5E1;font-weight:600}
   .m2-st.auto{background:#F1F5F9;border-style:dashed}.m2-st.auto input{color:#1E3A5F}
+  .m2-fu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed #E3E8F0}
+  .m2-sel{width:100%;height:44px;border:1.5px solid #E3E8F0;border-radius:12px;padding:0 10px;font:600 .9rem Inter,Arial,sans-serif;background:#fff}
+  .m2-funota{font:600 .74rem Inter,Arial,sans-serif;color:#64748B;margin-top:5px}
   .m2-autonota{background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;border-radius:10px;padding:8px 10px;font:600 .8rem Inter,Arial,sans-serif;margin-bottom:10px}
   .m2-st.x{border-color:#FCA5A5;background:#FEF2F2}.m2-st.x input{color:#B91C1C}
   .m2-dica{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
@@ -218,6 +221,25 @@
     }
     return '<div class="m2-dias" id="m2Dias">' + h + '</div><div class="m2-leg"><span><i style="background:#A7F3D0"></i>Registado</span><span><i style="background:#FDE68A"></i>Em falta</span><span><i style="background:#1E3A5F"></i>Aberto</span></div>';
   }
+  // Camas fora de uso num dia (avaria, obras, isolamento…): os dias de cama
+  // automáticos descem esse número nesse dia.
+  var MOTIVOS = ['Avaria', 'Obras / manutenção', 'Isolamento', 'Limpeza / desinfeção', 'Outro'];
+  function foraUsoHtml(m, d) {
+    var fu = ((data.__camasForaUso || {})[m] || {})[d + 1] || 0, mo = ((data.__camasForaUsoMotivo || {})[m] || {})[d + 1] || '';
+    return '<div class="m2-fu"><div class="m2-cp"><label>Camas fora de uso neste dia</label><div class="m2-st" data-st="fu"><button type="button" data-m2fu="-1" aria-label="Menos">−</button>' +
+      '<input type="text" inputmode="numeric" data-m2fuv value="' + (fu || '') + '" placeholder="0" aria-label="Camas fora de uso"><button type="button" data-m2fu="1" aria-label="Mais">+</button></div></div>' +
+      '<div class="m2-cp"><label>Motivo</label><select data-m2fum class="m2-sel"><option value="">—</option>' + MOTIVOS.map(function (x) { return '<option' + (x === mo ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></div></div>' +
+      '<div class="m2-funota">Estas camas não contam nos dias de cama deste dia.</div>';
+  }
+  function guardarForaUso(n, motivo) {
+    var m = currentMonth, k = String(dia + 1);
+    data.__camasForaUso = data.__camasForaUso || {}; data.__camasForaUso[m] = data.__camasForaUso[m] || {};
+    if (n != null) data.__camasForaUso[m][k] = Math.max(0, Math.min(getCapacity(), parseInt(n, 10) || 0));
+    if (motivo != null) { data.__camasForaUsoMotivo = data.__camasForaUsoMotivo || {}; data.__camasForaUsoMotivo[m] = data.__camasForaUsoMotivo[m] || {}; data.__camasForaUsoMotivo[m][k] = motivo; }
+    persistData();
+    if (window.ZeloMovAuto && window.ZeloMovAuto.recalcular) window.ZeloMovAuto.recalcular();
+    var ok = $('m2Ok'); if (ok) { ok.classList.add('on'); clearTimeout(tOk); tOk = setTimeout(function () { ok.classList.remove('on'); }, 1500); }
+  }
   // Mês preenchido automaticamente a partir do Controlo de Pacientes (zelo_mov_auto.js)
   function autoMes() { return !!(window.ZeloMovAuto && window.ZeloMovAuto.mesAuto && window.ZeloMovAuto.mesAuto(currentMonth)); }
   function formDia() {
@@ -225,7 +247,7 @@
     var w = new Date(+p[0], +p[1] - 1, d + 1).getDay();
     var base = isBaselineCell(d, m);
     var h = '<div class="m2-diah"><b>' + SEM_LONGO[w] + ', ' + (d + 1) + ' de ' + MESES[+p[1] - 1].toLowerCase() + '</b>' +
-      (base && !au ? '<span>· primeiro dia com registo: indique quantos doentes estavam internados (existência anterior)</span>' : '') + '</div>' +
+      (base ? '<span>· 1º dia: escreva quantos doentes estavam internados (existência anterior)</span>' : '') + '</div>' +
       (au ? '<div class="m2-autonota">⟳ Calculado automaticamente a partir do Controlo de Pacientes — para corrigir, corrija o registo do doente lá.</div>' : '');
     h += '<div class="m2-flux" id="m2Flux"></div>';
     GRUPOS.forEach(function (g) {
@@ -235,7 +257,7 @@
         h += '<div class="m2-cp"><label title="' + esc(c[1]) + '">' + esc(c[1]) + '</label><div class="m2-st' + (au ? ' auto' : '') + '" data-st="' + c[0] + '">' + (au ? '' : '<button type="button" data-m2menos="' + c[0] + '" aria-label="Menos">−</button>') +
           '<input type="text" inputmode="numeric" autocomplete="off" data-m2c="' + c[0] + '" value="' + (v == null || isNaN(v) ? '' : v) + '" placeholder="0" aria-label="' + esc(c[1]) + '"' + (au ? ' readonly tabindex="-1"' : '') + '>' + (au ? '' : '<button type="button" data-m2mais="' + c[0] + '" aria-label="Mais">+</button>') + '</div></div>';
       });
-      h += '</div>' + (g[0] === 'c' ? '<div class="m2-dica" id="m2Dica"></div><div id="m2AvisoC"></div>' : '') + '</div>';
+      h += '</div>' + (g[0] === 'c' ? (au ? foraUsoHtml(m, d) : '') + '<div class="m2-dica" id="m2Dica"></div><div id="m2AvisoC"></div>' : '') + '</div>';
     });
     var n = getDaysInMonth(m);
     h += '<div class="m2-guard"><span class="m2-ok" id="m2Ok">✓ Guardado</span>' +
@@ -248,7 +270,7 @@
     if (!raiz || currentView !== 'mensal') return;
     var m = currentMonth, d = dia, fl = $('m2Flux'); if (!fl) return;
     var ex = getExistencia(d, m), en = resolveValue('admitidos', d, m), sa = resolveValue('saidos', d, m), fi = getExistindo(d, m);
-    var base = isBaselineCell(d, m) && !autoMes();
+    var base = isBaselineCell(d, m); // existência anterior: sempre escrita à mão
     fl.innerHTML = '<div class="m2-fx">' + (base ? '<input type="text" inputmode="numeric" id="m2Base" value="' + ex + '" title="Existência anterior (doentes internados no início)">' : '<b>' + ex + '</b>') + '<span>Existência</span></div><span class="m2-op">+</span>' +
       '<div class="m2-fx e"><b>' + en + '</b><span>Entradas</span></div><span class="m2-op">−</span>' +
       '<div class="m2-fx s"><b>' + sa + '</b><span>Saídas</span></div><span class="m2-op">=</span>' +
@@ -407,6 +429,8 @@
     var el = e.target;
     if (el.dataset && el.dataset.m2c) { clearTimeout(tEsc); guardarValor(el.dataset.m2c, el.value); }
     else if (el.id === 'm2Base') { setBaseline(currentMonth, el.value); vivoTudo(); }
+    else if (el.dataset && el.dataset.m2fuv != null) { guardarForaUso(el.value.replace(/\D/g, ''), null); }
+    else if (el.dataset && el.dataset.m2fum != null) { guardarForaUso(null, el.value); }
     else if (el.id === 'm2Camas') { updateCapacity(el.value); var ci = $('capacityInput'); if (ci) ci.value = getCapacity(); }
   }
   function irPara(d) {
@@ -417,6 +441,7 @@
   }
   function clique(e) {
     var t = e.target.closest('button, [data-m2d]'); if (!t) return;
+    if (t.dataset.m2fu) { var fi = raiz.querySelector('[data-m2fuv]'); var nv = Math.max(0, (parseInt(fi.value, 10) || 0) + (+t.dataset.m2fu)); fi.value = nv || ''; guardarForaUso(nv, null); return; }
     if (t.dataset.m2menos) { passo(t.dataset.m2menos, -1); return; }
     if (t.dataset.m2mais) { passo(t.dataset.m2mais, 1); return; }
     if (t.dataset.m2fill) { var inp = raiz.querySelector('[data-m2c="' + t.dataset.m2fill + '"]'); if (inp) inp.value = t.dataset.v; guardarValor(t.dataset.m2fill, t.dataset.v); return; }

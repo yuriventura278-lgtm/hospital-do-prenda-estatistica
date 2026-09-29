@@ -51,8 +51,12 @@
   //   Serviço que empresta: −1 dia de cama por cada doente de outro serviço.
   function periodosFora(p) { try { var l = JSON.parse(p.foraServico || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
   function cobre(desde, ate, dd) { return dia(desde) <= dd && (!ate || dia(ate) > dd); }
-  function calcular(ps, ym, capacidade, externos) {
-    externos = externos || [];
+  // opts.foraUso: { dia: nº de camas fora de uso nesse dia } (avaria, obras…)
+  // opts.existencia: existência anterior do mês (escrita à mão no 1º mês ou
+  //   vinda do mês anterior) — os dias-doente seguem existência + entradas − saídas.
+  function calcular(ps, ym, capacidade, externos, opts) {
+    externos = externos || []; opts = opts || {};
+    var fu = opts.foraUso || {}, corrente = opts.existencia != null && !isNaN(opts.existencia) ? Number(opts.existencia) : null;
     var n = diasNoMes(ym), h = hoje(), ate = ym < h.slice(0, 7) ? n : ym === h.slice(0, 7) ? +h.slice(8, 10) : 0;
     var c = {}; CAMPOS.forEach(function (k) { c[k] = new Array(n).fill(null); });
     for (var d = 1; d <= ate; d++) {
@@ -76,7 +80,13 @@
         var fim = [r.ate, r.dataSaida].filter(Boolean).map(dia).sort()[0] || null;
         if (dia(r.desde) <= dd && (!fim || fim > dd)) c.dia_cama[i]--;
       });
+      c.dia_cama[i] -= Number(fu[d] || fu[String(d)] || 0);
       if (c.dia_cama[i] < 0) c.dia_cama[i] = 0;
+      if (corrente != null) {
+        corrente += c.diretos[i] + c.transferidos_adm[i] - c.altas[i] - c.menos_48[i] - c.mais_48[i] - c.transferidos_sai[i];
+        if (corrente < 0) corrente = 0;
+        c.dia_doente[i] = corrente;
+      }
     }
     var ini = isoDia(ym, 1);
     var existencia = ps.filter(function (p) { var e = dia(p.dataEntrada); return e < ini && (!saiu(p) || dia(p.dataSaida) >= ini); }).length;
@@ -121,15 +131,21 @@
 
   var ps = null, ext = [], auto = {}, aplicando = false;
   window.ZeloMovAuto.mesAuto = function (m) { return !!auto[m]; };
+  window.ZeloMovAuto.recalcular = function () { aplicar(); };
 
   function desligado() { try { return !!(data && data.__autoDesligado); } catch (e) { return false; } }
   function aplicar() {
     if (!ps || desligado() || typeof data === 'undefined' || typeof loadMonth !== 'function') return;
     var cap = getCapacity(), mudou = false, lm = meses(ps);
     auto = {}; lm.forEach(function (m) { auto[m] = true; });
-    lm.forEach(function (m) {
-      var r = calcular(ps, m, cap, ext);
+    var fuTodos = data.__camasForaUso || {};
+    lm.forEach(function (m, idx) {
       loadMonth(m);
+      // Existência anterior: no 1º mês é escrita à mão; nos seguintes vem do
+      // mês anterior (limpa a que o sistema tinha posto automaticamente).
+      var ant = typeof getPrevMonthKey === 'function' ? getPrevMonthKey(m) : null;
+      if (idx > 0 && data.__baselines && data.__baselines[m] !== undefined && ant && data[ant]) { delete data.__baselines[m]; mudou = true; }
+      var r = calcular(ps, m, cap, ext, { foraUso: fuTodos[m], existencia: getExistencia(0, m) });
       // Cópia do que estava escrito à mão, antes da 1ª substituição (nunca apagar).
       data.__manual = data.__manual || {};
       if (!data.__manual[m] && !(data.__auto && data.__auto[m])) {
@@ -142,8 +158,6 @@
           if (velho === null || velho === undefined || velho === '' || parseInt(velho, 10) !== novo) { data[m][k][i] = novo; mudou = true; }
         }
       });
-      data.__baselines = data.__baselines || {};
-      if (data.__baselines[m] !== r.existencia) { data.__baselines[m] = r.existencia; mudou = true; }
       data.__auto = data.__auto || {};
       if (!data.__auto[m]) { data.__auto[m] = true; mudou = true; }
     });
@@ -152,7 +166,8 @@
     // cama são acertados (camas − camas emprestadas); o resto fica como está.
     mesesExt(ext).forEach(function (m) {
       if (auto[m]) return;
-      var r = calcular([], m, cap, ext);
+      if (!(ext || []).length) return;
+      var r = calcular([], m, cap, ext, { foraUso: (data.__camasForaUso || {})[m] });
       loadMonth(m);
       for (var i = 0; i < r.ate; i++) {
         var novo = r.campos.dia_cama[i], velho = data[m].dia_cama[i];
@@ -172,7 +187,7 @@
   function soLeitura() {
     var t = document.getElementById('dataTable'); if (!t || typeof currentView === 'undefined' || currentView !== 'mensal' || !auto[currentMonth]) return;
     Array.prototype.forEach.call(t.querySelectorAll('input'), function (inp) {
-      if (inp.readOnly) return; inp.readOnly = true; inp.tabIndex = -1; inp.title = 'Preenchido automaticamente a partir do Controlo de Pacientes';
+      if (inp.readOnly || inp.classList.contains('baseline-input')) return; // existência anterior: escrita à mão inp.readOnly = true; inp.tabIndex = -1; inp.title = 'Preenchido automaticamente a partir do Controlo de Pacientes';
       inp.style.background = '#F1F5F9'; inp.style.color = '#334155';
     });
   }
@@ -195,6 +210,9 @@
     var r = window.renderTable; if (typeof r !== 'function' || r.__mva) return false;
     var novo = function () { var x = r.apply(this, arguments); try { soLeitura(); } catch (e) {} return x; };
     novo.__mva = true; window.renderTable = novo;
+    // Existência anterior escrita à mão: dias-doente recalculados.
+    var sb = window.setBaseline;
+    if (typeof sb === 'function' && !sb.__mva) { var nb = function () { var x = sb.apply(this, arguments); aplicar(); return x; }; nb.__mva = true; window.setBaseline = nb; }
     // Camas alteradas: dias de cama recalculados.
     var u = window.updateCapacity;
     if (typeof u === 'function' && !u.__mva) { var nu = function () { var x = u.apply(this, arguments); aplicar(); return x; }; nu.__mva = true; window.updateCapacity = nu; }

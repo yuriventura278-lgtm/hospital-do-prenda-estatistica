@@ -174,7 +174,7 @@ tr.novo td{animation:realce 2.4s ease-out}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="zelo_servicos_menu.js"></script>
-<script src="zelo_mov_auto.js?v=4"></script>
+<script src="zelo_mov_auto.js?v=5"></script>
 <script>
 /* Movimento Hospitalar Geral — supervisão e estatística (só leitura).
    Cada serviço guarda em registos_movimento/<serviço>:
@@ -469,13 +469,16 @@ tr.novo td{animation:realce 2.4s ease-out}
   // ── Controlo de Pacientes: os meses com doentes lá registados usam os
   //    números calculados a partir deles (zelo_mov_auto.js) — o mesmo que a
   //    página de Movimento de cada serviço preenche sozinha.
-  var cpPac = {}, capacidade = {}, cpLido = {}, cpExt = {};
+  var cpPac = {}, capacidade = {}, cpLido = {}, cpExt = {}, cpBase = {}, cpForaUso = {};
   function lerCP(item, forcar){
     var A = window.ZeloMovAuto; if (!A || !A.MAPA[item]) return Promise.resolve();
     if (cpLido[item] && !forcar) return Promise.resolve();
     return Promise.all([A.lerPacientes(item),
-      window.__fbGet('registos_movimento/' + item + '/snapshot/__capacity').catch(function(){ return null; }), A.lerExternos(item)]).then(function(r){
+      window.__fbGet('registos_movimento/' + item + '/snapshot/__capacity').catch(function(){ return null; }), A.lerExternos(item),
+      window.__fbGet('registos_movimento/' + item + '/snapshot/__baselines').catch(function(){ return null; }),
+      window.__fbGet('registos_movimento/' + item + '/snapshot/__camasForaUso').catch(function(){ return null; })]).then(function(r){
         cpLido[item] = true; cpPac[item] = r[0] || []; capacidade[item] = Number(r[1]) > 0 ? Number(r[1]) : 50; cpExt[item] = r[2] || [];
+        cpBase[item] = r[3] || {}; cpForaUso[item] = r[4] || {};
       });
   }
   function aplicarCP(item, lista){
@@ -485,15 +488,21 @@ tr.novo td{animation:realce 2.4s ease-out}
     var ext = cpExt[item] || [], comExt = A.mesesExt(ext);
     lista.forEach(function(ym){
       if (comExt.indexOf(ym) < 0 || (ps.length && A.ativoNoMes(ps, ym))) return;
-      var r = A.calcular([], ym, capacidade[item], ext), m = Object.assign({}, cache[item][ym] || {});
+      var r = A.calcular([], ym, capacidade[item], ext, { foraUso: (cpForaUso[item] || {})[ym] }), m = Object.assign({}, cache[item][ym] || {});
       var dc = (m.dia_cama ? (Array.isArray(m.dia_cama) ? m.dia_cama.slice() : Object.keys(m.dia_cama).reduce(function(a, k){ a[k] = m.dia_cama[k]; return a; }, [])) : []);
       for (var i = 0; i < r.ate; i++) dc[i] = r.campos.dia_cama[i];
       m.dia_cama = dc; cache[item][ym] = m;
     });
     if (!ps.length) return;
+    // Existência anterior: a escrita à mão no Movimento (1º mês) ou a do fim
+    // do mês anterior; dias-doente = existência + entradas − saídas.
+    var ficamAnt = null;
     lista.forEach(function(ym){
-      if (!A.ativoNoMes(ps, ym)) return;
-      var r = A.calcular(ps, ym, capacidade[item], cpExt[item]), m = {};
+      if (!A.ativoNoMes(ps, ym)) { ficamAnt = null; return; }
+      var fu = (cpForaUso[item] || {})[ym], bl = (cpBase[item] || {})[ym];
+      var ex = bl != null ? Number(bl) : ficamAnt != null ? ficamAnt : A.calcular(ps, ym, capacidade[item], cpExt[item], { foraUso: fu }).existencia;
+      var r = A.calcular(ps, ym, capacidade[item], cpExt[item], { foraUso: fu, existencia: ex }), m = {};
+      ficamAnt = r.ate ? r.campos.dia_doente[r.ate - 1] : ex;
       A.CAMPOS.forEach(function(k){ m[k] = r.campos[k]; });
       m.__auto = true; cache[item][ym] = m;
     });
