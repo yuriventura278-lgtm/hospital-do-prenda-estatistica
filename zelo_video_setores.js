@@ -1,6 +1,6 @@
 // ── ZELO — Vídeos de instruções dos setores ──
 // Procedimentos de Enfermagem · Bloco Operatório · Imagiologia · Hemoterapia ·
-// Laboratório. Usa o leitor de zelo_video_movimento.js (carregado antes):
+// Laboratório · Consulta Externa. Usa o leitor de zelo_video_movimento.js (carregado antes):
 // botão "Instruções" no cabeçalho, cenas animadas, narração em português com a
 // voz do aparelho e legendas. Não usa o Firebase nem descarrega ficheiros.
 (function () {
@@ -135,6 +135,54 @@
         svg: regras(['Registe no fim de cada turno', 'com a data e o turno certos'], ['Quantidades de sangue em cc', 'colhido, consumido e perdido'], ['Confira os totais antes de sair', 'transfusões e reagentes']) }
     ] },
 
+    // ── Consulta Externa ──
+    consulta: { titulo: 'Como registar na Consulta Externa', cenas: [
+      { dur: 11, cor: '#1E3A5F', titulo: 'Abertura', falas: ['Olá! Neste vídeo vamos ver como registar as consultas da Consulta Externa: cada especialidade, cada dia, médico a médico.'],
+        svg: abertura('Consulta', 'Externa', 'Registo diário por especialidade e por médico', '<g transform="translate(30,24)"><rect x="6" y="10" width="78" height="104" rx="8" fill="#DCFCE7" stroke="#059669" stroke-width="4"/><rect x="30" y="0" width="30" height="18" rx="5" fill="#059669"/><circle cx="45" cy="52" r="15" fill="#059669"/><path d="M38 52h14M45 45v14" stroke="#fff" stroke-width="4" stroke-linecap="round"/><rect x="22" y="80" width="46" height="7" rx="3.5" fill="#86EFAC"/><rect x="22" y="94" width="34" height="7" rx="3.5" fill="#86EFAC"/></g>') },
+      { dur: 18, cor: '#059669', titulo: 'Identificação da consulta', falas: ['Abra o Registo e comece pela identificação da consulta: a especialidade, a data e o turno.', 'Se foi atendimento à tarde ou em horas extra, marque essa opção. Os campos com asterisco vermelho são obrigatórios.'],
+        svg: function () { return svg('#F8FAFC', titulo('1. Identificação da consulta', '#059669') +
+          campo(24, 72, 220, 'ESPECIALIDADE', 'Cardiologia', 0.8, 1) + campo(262, 72, 234, 'DATA', '29/09/2026', 1.6, 1) +
+          campo(24, 138, 220, 'TURNO', 'Manhã', 3, 0) +
+          a(8, '<rect x="262" y="138" width="234" height="36" rx="8" fill="#FFFBEB" stroke="#FDE68A" stroke-width="1.5"/><rect x="274" y="148" width="16" height="16" rx="4" fill="#D97706"/><path d="M277 156l4 4 6-8" stroke="#fff" stroke-width="2.5" fill="none"/>' + t(298, 161, 'Tarde / Horas extra', { s: 12.5, w: 700, c: '#92400E' })) +
+          campo(24, 206, 472, 'OBSERVAÇÕES', 'Opcional', 5, 0) +
+          a(10, t(412, 272, '* obrigatório', { s: 11, w: 700, c: '#DC2626' }))); } },
+      { dur: 22, cor: '#0891B2', titulo: 'O médico e a equipa', falas: ['Depois preencha o formulário do médico: o nome, o consultório ou sala, as consultas agendadas e as consultas realizadas.', 'Os ausentes são calculados sozinhos: agendadas menos realizadas.', 'Junte também as enfermeiras deste turno. Na Estomatologia, a equipa de apoio chama-se técnico.'],
+        svg: function () { return svg('#F8FAFC', titulo('2. Médico 1 — dados das consultas', '#0891B2') +
+          campo(24, 72, 300, 'MÉDICO(A)', 'Dra. Maria Santos', 0.8, 1) + campo(340, 72, 156, 'CONSULTÓRIO / SALA', '3', 1.6, 0) +
+          cartao(24, 128, 150, 60, '#EFF6FF', '#BFDBFE', 'Agendadas', '20', 3, '#1E40AF') +
+          cartao(186, 128, 150, 60, '#ECFDF5', '#A7F3D0', 'Realizadas', '17', 4, '#065F46') +
+          a(7, '<rect x="348" y="128" width="148" height="60" rx="12" fill="#FEF2F2" stroke="#FECACA"/>' + t(362, 152, 'Ausentes', { s: 13, w: 800, c: '#991B1B' }) + t(362, 172, '3  · automático', { s: 11, c: '#475569' })) +
+          a(7.6, t(260, 208, '20 agendadas − 17 realizadas = 3 ausentes', { s: 12.5, w: 700, c: '#334155', m: 1 })) +
+          a(12, '<rect x="24" y="224" width="472" height="42" rx="12" fill="#fff" stroke="#E3E8F0"/>' + t(38, 250, 'Enfermeiras do turno:', { s: 12, w: 700, c: '#475569' }) +
+            '<rect x="186" y="233" width="116" height="24" rx="12" fill="#E0F2FE"/>' + t(244, 250, 'Enf. Joana', { s: 11.5, w: 700, c: '#0369A1', m: 1 }) +
+            '<rect x="310" y="233" width="116" height="24" rx="12" fill="#E0F2FE"/>' + t(368, 250, 'Enf. Paula', { s: 11.5, w: 700, c: '#0369A1', m: 1 }))); } },
+      { dur: 26, cor: '#7C3AED', titulo: 'Doentes, proveniência e diagnóstico', falas: ['Registe os doentes observados por faixa etária e género, a proveniência, isto é, o município de onde vêm, e os diagnósticos com as quantidades.', 'Atenção: a soma da proveniência e a soma dos diagnósticos têm de ser iguais às consultas realizadas. Se não forem, o sistema avisa e não deixa gravar.'],
+        svg: function () { return svg('#F8FAFC', titulo('3. Doentes, proveniência e diagnóstico', '#7C3AED') +
+          a(0.8, '<rect x="24" y="56" width="150" height="150" rx="12" fill="#fff" stroke="#E3E8F0"/>' + t(99, 78, 'Faixa etária', { s: 12, w: 800, c: '#6D28D9', m: 1 }) +
+            [['0–14', 3], ['15–24', 4], ['25–44', 6], ['45–64', 3], ['65+', 1]].map(function (x, i) { return t(40, 102 + i * 20, x[0], { s: 11.5, c: '#475569' }) + t(146, 102 + i * 20, String(x[1]), { s: 12, w: 800 }); }).join('')) +
+          a(2.4, '<rect x="186" y="56" width="150" height="150" rx="12" fill="#fff" stroke="#E3E8F0"/>' + t(261, 78, 'Proveniência', { s: 12, w: 800, c: '#6D28D9', m: 1 }) +
+            [['Lubango', 10], ['Humpata', 4], ['Chibia', 3]].map(function (x, i) { return t(200, 106 + i * 24, x[0], { s: 11.5, c: '#475569' }) + t(308, 106 + i * 24, String(x[1]), { s: 12, w: 800 }); }).join('') + t(261, 190, 'Soma = 17', { s: 12.5, w: 800, c: '#059669', m: 1 })) +
+          a(4.2, '<rect x="348" y="56" width="148" height="150" rx="12" fill="#fff" stroke="#E3E8F0"/>' + t(422, 78, 'Diagnóstico', { s: 12, w: 800, c: '#6D28D9', m: 1 }) +
+            [['HTA', 9], ['Insuf. cardíaca', 5], ['Arritmia', 3]].map(function (x, i) { return t(360, 106 + i * 24, x[0], { s: 11.5, c: '#475569' }) + t(470, 106 + i * 24, String(x[1]), { s: 12, w: 800 }); }).join('') + t(422, 190, 'Soma = 17', { s: 12.5, w: 800, c: '#059669', m: 1 })) +
+          a(12, '<rect x="24" y="220" width="472" height="46" rx="12" fill="#ECFDF5" stroke="#6EE7B7"/>' + t(260, 249, 'Proveniência 17 = Diagnóstico 17 = Realizadas 17  ✓', { s: 13.5, w: 800, c: '#065F46', m: 1 }))); } },
+      { dur: 14, cor: '#D97706', titulo: 'Procedimentos e material', falas: ['Se houve procedimentos ou material gasto, junte-os com o botão Adicionar e escreva a quantidade.'],
+        svg: function () { return svg('#F8FAFC', titulo('4. Procedimentos e material', '#D97706') +
+          cartao(24, 64, 230, 96, '#FFFBEB', '#FDE68A', 'Procedimentos', 'ECG · 4    Pensos · 6', 0.8, '#92400E') +
+          cartao(266, 64, 230, 96, '#FFF7ED', '#FED7AA', 'Material', 'Luvas · 30    Seringas · 12', 2, '#9A3412') +
+          a(4, '<rect x="24" y="180" width="170" height="40" rx="10" fill="#D97706"/>' + t(109, 205, '+ Adicionar', { s: 13, w: 800, c: '#fff', m: 1 })) +
+          a(5, t(210, 205, 'escolha o item e escreva a quantidade', { s: 12.5, c: '#475569' }))); } },
+      { dur: 20, cor: '#1E3A5F', titulo: 'Vários médicos no mesmo dia', falas: ['Se na mesma especialidade trabalharam vários médicos, carregue em Adicionar Médico: o formulário atual é guardado e abre-se o seguinte.', 'No fim, Ver Resumo da Especialidade do Dia mostra os totais de todos os médicos somados. Cada médico tem também o seu próprio PDF.'],
+        svg: function () { return svg('#F8FAFC', titulo('5. Vários médicos no mesmo dia', '#1E3A5F') +
+          [['Médico 1', '17'], ['Médico 2', '12'], ['Médico 3', '9']].map(function (x, i) { return a(0.8 + i * 1.6, '<rect x="' + (24 + i * 124) + '" y="64" width="112" height="70" rx="12" fill="#fff" stroke="#CBD5E1"/>' + t(80 + i * 124, 90, x[0], { s: 12, w: 700, c: '#475569', m: 1 }) + t(80 + i * 124, 118, x[1], { s: 20, w: 800, c: '#1E3A5F', m: 1 })); }).join('') +
+          a(1.2, '<rect x="396" y="64" width="100" height="70" rx="12" fill="#1E3A5F"/>' + t(446, 94, '+ Adicionar', { s: 11.5, w: 800, c: '#fff', m: 1 }) + t(446, 112, 'Médico', { s: 11.5, w: 800, c: '#fff', m: 1 })) +
+          a(10, '<rect x="24" y="156" width="472" height="56" rx="12" fill="#ECFDF5" stroke="#6EE7B7"/>' + t(40, 180, 'Resumo da Especialidade do Dia', { s: 13, w: 800, c: '#065F46' }) + t(40, 200, 'Realizadas: 17 + 12 + 9 = 38', { s: 12.5, c: '#065F46' })) +
+          a(14, '<rect x="24" y="226" width="160" height="40" rx="10" fill="#FEF2F2" stroke="#FECACA"/>' + t(104, 251, 'PDF deste Médico', { s: 12, w: 800, c: '#B91C1C', m: 1 }))); } },
+      { dur: 18, cor: '#0F766E', titulo: 'Dashboard, histórico e relatórios', falas: ['O Dashboard mostra as especialidades atendidas hoje, a produtividade do mês e as patologias mais frequentes.', 'No Histórico encontra as sessões registadas. Nos Relatórios escolhe o período, diário, semanal, mensal, trimestral, semestral ou anual, e exporta em PDF.'],
+        svg: relatorios('6. Dashboard, histórico e relatórios', '#0F766E', ['Diário', 'Semanal', 'Mensal', 'Trimestral', 'Semestral', 'Anual'], ['Exportar PDF', 'por período']) },
+      { dur: 15, cor: '#64748B', titulo: 'Regras de ouro', falas: ['Três regras de ouro. Registe no próprio dia, especialidade a especialidade. Confirme que as somas batem certo com as consultas realizadas. E um formulário por cada médico. Obrigado!'],
+        svg: regras(['Registe no próprio dia', 'especialidade a especialidade'], ['As somas batem com as realizadas', 'proveniência e diagnóstico'], ['Um formulário por cada médico', 'o resumo soma todos']) }
+    ] },
+
     // ── Laboratório ──
     laboratorio: { titulo: 'Como registar no Laboratório', cenas: [
       { dur: 11, cor: '#1E3A5F', titulo: 'Abertura', falas: ['Olá! Neste vídeo vamos ver como registar os exames do Laboratório, todos os dias.'],
@@ -155,6 +203,7 @@
     /bloco_operatorio_registo/.test(pagina) ? DEFS.bloco :
     /imagiologia/.test(pagina) ? DEFS.imagiologia :
     /hemoterapia/.test(pagina) ? DEFS.hemoterapia :
+    /^consulta_externa_geral/.test(pagina) ? DEFS.consulta :
     /laborat/.test(pagina) ? DEFS.laboratorio : null;
   if (def) window.ZELO_VIDEO_DEF = def;
 })();
