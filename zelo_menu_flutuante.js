@@ -175,7 +175,7 @@
       @media(max-width:480px){
         #zmf-btn{left:12px;bottom:12px;width:46px;height:46px;}
         #zub-sair-btn.zub-flutuante{right:10px;padding:9px;}
-        #zub-sair-btn span{display:none;}
+        #zub-sair-btn span,#zub-inicio-btn span{display:none;}
         #zub-sair-btn.zub-inline,#zub-sair-btn.zub-cabecalho{padding:6px 8px !important;margin-left:4px !important;min-width:0;}
       }
     `;
@@ -478,6 +478,7 @@
       var topo = el.getBoundingClientRect().top;
       if (nota > melhorNota || (nota === melhorNota && topo < melhorTopo)){ melhor = el; melhorNota = nota; melhorTopo = topo; }
     }
+    if (melhor) melhor.__zeloNotaInicio = melhorNota;
     return melhor;
   }
 
@@ -546,7 +547,12 @@
 
       var inicio = encontrarBotaoInicio();
       var cabecalho = inicio ? null : encontrarCabecalho();
-      var ultima = tentativas >= 6;
+      // Já está no cabeçalho: só volta a mexer se aparecer o botão Início.
+      if (atual && atual.classList.contains('zub-cabecalho') && !inicio) return false;
+      // Espera até 20 s pelo cabeçalho (a verificação da sessão pode demorar);
+      // só depois usa o botão flutuante — e continua a tentar pô-lo no
+      // cabeçalho, para nunca ficar por cima da informação.
+      var ultima = tentativas >= 40;
       if (!inicio && !cabecalho && !ultima && !atual) return false; // espera que o cabeçalho apareça
 
       if (inicio || cabecalho || !atual){
@@ -570,6 +576,16 @@
           if (!(inicio.innerText || '').trim()){ el.style.width = 'auto'; el.style.paddingLeft = '10px'; el.style.paddingRight = '10px'; }
           el.style.marginLeft = '6px';
           inicio.insertAdjacentElement('afterend', el);
+          // Botão de voltar só com ícone ("Voltar à Central"): junta um
+          // "Início" com texto no cabeçalho, ao lado do Terminar sessão.
+          if (inicio.__zeloNotaInicio < 3 && !document.getElementById('zub-inicio-btn')){
+            var ini = document.createElement('a');
+            ini.id = 'zub-inicio-btn'; ini.href = 'index.html'; ini.title = 'Página inicial';
+            ini.className = el.className; var est = el.getAttribute('style'); if (est) ini.setAttribute('style', est);
+            ini.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><span>Início</span>';
+            el.insertAdjacentElement('beforebegin', ini);
+            setTimeout(function(){ try { copiarAspeto(el, ini); ini.style.gap = '6px'; ini.style.display = 'inline-flex'; ini.style.alignItems = 'center'; ini.style.marginLeft = '6px'; } catch (e) {} }, 60);
+          }
           if (!inicio.className && inicio.id) copiarAspeto(inicio, el);
         } else if (cabecalho){
           el.className = 'zub-cabecalho';
@@ -590,7 +606,7 @@
     }
 
     if (colocar()) return;
-    var t = setInterval(function(){ if (colocar() || tentativas >= 8) clearInterval(t); }, 500);
+    var t = setInterval(function(){ if (colocar() || tentativas >= 120) clearInterval(t); }, 500);
   }
 
   // "· Última alteração:" → "Última alteração:" (a etiqueta já separa do resto).
