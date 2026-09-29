@@ -108,10 +108,24 @@
     if (!w) return;
     if (rec && rec.criadoPor && rec.criadoPor.nome) {
       var d = new Date(rec.savedAt);
-      $('last-saved-name').textContent = rec.criadoPor.nome;
+      $('last-saved-name').textContent = doisNomes(rec.criadoPor.nome);
       $('last-saved-time').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + (iso(d) !== hoje() ? ' de ' + fmtD(iso(d)) : '');
       w.style.display = 'inline';
-    } else w.style.display = 'none';
+    } else {
+      // Dia ainda sem registo: mostra a última alteração feita nesta página (noutro dia).
+      var t = dias(), ult = null;
+      Object.keys(t).forEach(function (k) { var r = t[k]; if (r && r.savedAt && r.criadoPor && r.criadoPor.nome && (!ult || r.savedAt > ult.savedAt)) ult = r; });
+      if (ult && ult !== rec) {
+        var u = new Date(ult.savedAt);
+        $('last-saved-name').textContent = doisNomes(ult.criadoPor.nome);
+        $('last-saved-time').textContent = pad(u.getHours()) + ':' + pad(u.getMinutes()) + ' de ' + fmtD(iso(u));
+        w.style.display = 'inline';
+      } else w.style.display = 'none';
+    }
+  }
+  function doisNomes(n) {
+    if (typeof window.zeloDoisNomes === 'function') return window.zeloDoisNomes(n);
+    var p = String(n || '').trim().split(/\s+/); return p.length > 1 ? p[0] + ' ' + p[p.length - 1] : (p[0] || '');
   }
   function estadoGravacao() {
     var e = $('saveStatus'); if (!e) return;
@@ -127,10 +141,18 @@
     $('vihDiaTxt').textContent = fmtDL(data);
     var html = '';
     IND.forEach(function (I) {
-      html += '<div class="card vih-card" style="--k:' + I.cor + '"><div class="card-label">' + I.nome + '<span class="bdg" id="bdg-' + I.id + '">0</span></div>' +
+      html += '<div class="card vih-card" id="card-' + I.id + '" style="--k:' + I.cor + '"><div class="card-label">' + I.nome + '<span class="bdg" id="bdg-' + I.id + '">0</span></div>' +
+        '<div class="sel-toolbar"><button type="button" class="btn-sel" data-sel="modo" data-ind="' + I.id + '">Selecionar</button>' +
+        '<label class="sel-all sel-mode-only"><input type="checkbox" class="sel-all-chk" data-ind="' + I.id + '"> <span class="sel-count" id="selc-' + I.id + '">0 selecionados</span></label>' +
+        '<button type="button" class="btn-sel sel-mode-only" data-sel="todos" data-ind="' + I.id + '">Selecionar tudo</button>' +
+        '<button type="button" class="btn-sel sel-mode-only" data-sel="preenchidos" data-ind="' + I.id + '">Selecionar preenchidos</button>' +
+        '<button type="button" class="btn-sel sel-mode-only" data-sel="copiar" data-ind="' + I.id + '" disabled>Copiar</button>' +
+        '<button type="button" class="btn-sel sel-mode-only" data-sel="colar" data-ind="' + I.id + '" disabled>Colar</button>' +
+        '<button type="button" class="btn-sel sel-mode-only" data-sel="pdf" data-ind="' + I.id + '" disabled>Exportar PDF</button>' +
+        '<button type="button" class="btn-sel danger sel-mode-only" data-sel="limpar" data-ind="' + I.id + '" disabled>Limpar</button></div>' +
         '<div class="v-thead"><span>Faixa etária</span><span class="f">Fem</span><span class="m">Masc</span><span>Total</span></div>';
       FAIXAS.forEach(function (nome, i) {
-        html += '<div class="v-row" id="row-' + I.id + '-' + i + '"><div class="v-name">' + esc(nome) + '</div>' +
+        html += '<div class="v-row" id="row-' + I.id + '-' + i + '"><div class="v-name"><input type="checkbox" class="v-chk" data-ind="' + I.id + '" data-i="' + i + '" aria-label="Selecionar ' + esc(nome) + '">' + esc(nome) + '</div>' +
           ['f', 'm'].map(function (sx) { return '<div class="v-cell"><input class="' + sx + '" type="number" min="0" inputmode="numeric" placeholder="0" data-ind="' + I.id + '" data-i="' + i + '" data-sx="' + sx + '" aria-label="' + I.nome + ' ' + esc(nome) + ' ' + (sx === 'f' ? 'feminino' : 'masculino') + '"></div>'; }).join('') +
           '<div class="v-tot" id="tot-' + I.id + '-' + i + '">—</div></div>';
       });
@@ -490,9 +512,154 @@
     $('mdlSim').addEventListener('click', gravar);
     $('ovGuardar').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
     setInterval(function () { var n = new Date(); $('clock').textContent = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds()); }, 1000);
+    ligarTeclado();
     abrirDia(data);
     sincronizar();
   }
+
+  // ── Selecionar (como nos Procedimentos): marcar linhas, copiar, colar, PDF, limpar ──
+  function chks(ind) { return Array.prototype.slice.call(document.querySelectorAll('#card-' + ind + ' .v-chk')); }
+  function inputDe(ind, i, sx) { return document.querySelector('#vihCards input[data-ind="' + ind + '"][data-i="' + i + '"][data-sx="' + sx + '"]'); }
+  function escreverCaixa(el, v) { el.value = v === '' || v == null ? '' : String(v); el.dispatchEvent(new Event('input', { bubbles: true })); }
+  function contarSel(ind) {
+    var l = chks(ind), n = l.filter(function (c) { return c.checked; }).length;
+    var e = $('selc-' + ind); if (e) e.textContent = n + (n === 1 ? ' selecionado' : ' selecionados');
+    document.querySelectorAll('#card-' + ind + ' [data-sel="copiar"],#card-' + ind + ' [data-sel="colar"],#card-' + ind + ' [data-sel="pdf"],#card-' + ind + ' [data-sel="limpar"]').forEach(function (b) { b.disabled = n === 0; });
+    var all = document.querySelector('#card-' + ind + ' .sel-all-chk'); if (all) { all.checked = l.length > 0 && n === l.length; all.indeterminate = n > 0 && n < l.length; }
+  }
+  function acaoSel(tipo, ind) {
+    var card = $('card-' + ind), nomeInd = (IND.filter(function (x) { return x.id === ind; })[0] || {}).nome || ind;
+    var marcados = chks(ind).filter(function (c) { return c.checked; });
+    if (tipo === 'modo') {
+      var on = card.classList.toggle('sel-mode');
+      card.querySelector('[data-sel="modo"]').textContent = on ? 'Cancelar seleção' : 'Selecionar';
+      if (!on) chks(ind).forEach(function (c) { c.checked = false; });
+    } else if (tipo === 'todos') {
+      chks(ind).forEach(function (c) { c.checked = true; }); toast(FAIXAS.length + ' faixas etárias selecionadas');
+    } else if (tipo === 'preenchidos') {
+      var n = 0; chks(ind).forEach(function (c) { var i = +c.dataset.i; c.checked = !!(val(cur, ind, i, 'f') || val(cur, ind, i, 'm')); if (c.checked) n++; });
+      toast(n ? n + (n === 1 ? ' faixa preenchida selecionada' : ' faixas preenchidas selecionadas') : 'Nenhuma faixa preenchida para selecionar');
+    } else if (tipo === 'copiar') {
+      var itens = marcados.map(function (c) { var i = +c.dataset.i; return { i: i, f: val(cur, ind, i, 'f'), m: val(cur, ind, i, 'm') }; });
+      try { sessionStorage.setItem('zeloVihClip', JSON.stringify({ ind: nomeInd, dia: data, itens: itens })); } catch (e) {}
+      var txt = nomeInd + ' — ' + fmtD(data) + '\n' + itens.map(function (x) { return FAIXAS[x.i] + '\t' + x.f + '\t' + x.m; }).join('\n');
+      try { navigator.clipboard.writeText(txt); } catch (e) {}
+      toast('Copiadas ' + itens.length + (itens.length === 1 ? ' faixa' : ' faixas') + ' — pronto para colar noutro quadro ou dia');
+    } else if (tipo === 'colar') {
+      var clip = null; try { clip = JSON.parse(sessionStorage.getItem('zeloVihClip') || 'null'); } catch (e) {}
+      if (!clip || !clip.itens || !clip.itens.length) { toast('Nada copiado ainda — use «Copiar» primeiro'); return; }
+      var por = {}; clip.itens.forEach(function (x) { por[x.i] = x; }); var k = 0;
+      marcados.forEach(function (c) { var x = por[+c.dataset.i]; if (!x) return; escreverCaixa(inputDe(ind, x.i, 'f'), x.f || ''); escreverCaixa(inputDe(ind, x.i, 'm'), x.m || ''); k++; });
+      toast(k ? 'Coladas ' + k + (k === 1 ? ' faixa' : ' faixas') + ' (de ' + clip.ind + ', ' + fmtD(clip.dia) + ')' : 'As faixas selecionadas não correspondem às copiadas');
+    } else if (tipo === 'limpar') {
+      if (!confirm('Limpar os valores de ' + marcados.length + (marcados.length === 1 ? ' faixa selecionada' : ' faixas selecionadas') + ' em ' + nomeInd + '? (Só fica gravado quando carregar em Guardar.)')) return;
+      marcados.forEach(function (c) { var i = +c.dataset.i; escreverCaixa(inputDe(ind, i, 'f'), ''); escreverCaixa(inputDe(ind, i, 'm'), ''); c.checked = false; });
+      toast('Valores limpos — carregue em Guardar para gravar');
+    } else if (tipo === 'pdf') {
+      if (!(window.jspdf && window.jspdf.jsPDF) || !window.ZeloPDF) { toast('O gerador de PDF ainda está a carregar — tente de novo'); return; }
+      var Z = ZeloPDF.criar(), y = Z.cab(C.titulo + ' · ' + nomeInd + ' (selecionados)', fmtDL(data)), tf = 0, tm = 0;
+      var body = marcados.map(function (c) { var i = +c.dataset.i, f = val(cur, ind, i, 'f'), m = val(cur, ind, i, 'm'); tf += f; tm += m; return [FAIXAS[i], f, m, f + m]; });
+      body.push(['TOTAL SELECIONADO', tf, tm, tf + tm]);
+      ZeloPDF.autoTable(Z.d, { startY: y, head: [['Faixa etária', 'Feminino', 'Masculino', 'Total']], body: body, styles: { fontSize: 11.5, halign: 'center' }, columnStyles: { 0: { halign: 'left' } } });
+      Z.rodape(); Z.d.save('VIH_' + C.curto + '_' + nomeInd + '_selecionados_' + data + '.pdf');
+    }
+    contarSel(ind);
+  }
+
+  // ── Teclado (como nos Procedimentos): setas, Tab, Enter, Home/End, Shift+seta, colar/copiar blocos ──
+  var ancora = null, foco = null, arrastar = false;
+  function matriz() {
+    // 15 linhas (faixas) × 6 colunas: Testados F/M, Positivos F/M, Indeterminados F/M
+    return FAIXAS.map(function (_, i) { var l = []; IND.forEach(function (I) { l.push(inputDe(I.id, i, 'f'), inputDe(I.id, i, 'm')); }); return l; });
+  }
+  function posDe(M, el) { for (var r = 0; r < M.length; r++) { var c = M[r].indexOf(el); if (c >= 0) return { r: r, c: c }; } return null; }
+  function limparRealce() { document.querySelectorAll('#vihCards input.cell-sel').forEach(function (e) { e.classList.remove('cell-sel'); }); }
+  function realcar(M, a, f) {
+    limparRealce(); ancora = a; foco = f; if (!a || !f) return;
+    for (var r = Math.min(a.r, f.r); r <= Math.max(a.r, f.r); r++) for (var c = Math.min(a.c, f.c); c <= Math.max(a.c, f.c); c++) if (M[r] && M[r][c]) M[r][c].classList.add('cell-sel');
+  }
+  function ligarTeclado() {
+    var cards = $('vihCards');
+    document.addEventListener('keydown', function (e) {
+      var el = document.activeElement;
+      if (!el || !el.dataset || !el.dataset.ind || !cards.contains(el)) return;
+      var M = matriz(), p = posDe(M, el); if (!p) return;
+      function ir(r, c, estender) {
+        r = Math.max(0, Math.min(M.length - 1, r)); c = Math.max(0, Math.min(M[r].length - 1, c));
+        var t = M[r][c]; if (!t) return;
+        e.preventDefault();
+        if (estender && ancora) { realcar(M, ancora, { r: r, c: c }); t.focus(); }
+        else { realcar(M, { r: r, c: c }, { r: r, c: c }); t.focus(); t.select(); }
+      }
+      if (e.key === 'Tab') {
+        // Ordem de leitura de cada quadro: F, M, faixa seguinte… e depois o quadro seguinte.
+        var ordem = []; IND.forEach(function (I) { FAIXAS.forEach(function (_, i) { ordem.push(inputDe(I.id, i, 'f'), inputDe(I.id, i, 'm')); }); });
+        var k = ordem.indexOf(el); if (k < 0) return;
+        e.preventDefault();
+        var n = ordem[(k + (e.shiftKey ? -1 : 1) + ordem.length) % ordem.length], np = posDe(M, n);
+        realcar(M, np, np); n.focus(); n.select(); return;
+      }
+      var ext = e.shiftKey, ult = M.length - 1;
+      switch (e.key) {
+        case 'ArrowUp': ir(p.r - 1, p.c, ext); return;
+        case 'ArrowDown': ir(p.r + 1, p.c, ext); return;
+        case 'ArrowLeft': ir(p.r, p.c - 1, ext); return;
+        case 'ArrowRight': ir(p.r, p.c + 1, ext); return;
+        case 'Enter': ir(p.r + (e.shiftKey ? -1 : 1), p.c); return;
+        case 'Home': if (e.ctrlKey) ir(0, 0); else ir(p.r, 0, ext); return;
+        case 'End': if (e.ctrlKey) ir(ult, M[ult].length - 1); else ir(p.r, M[p.r].length - 1, ext); return;
+        case 'PageUp': ir(Math.max(0, p.r - 10), p.c, ext); return;
+        case 'PageDown': ir(Math.min(ult, p.r + 10), p.c, ext); return;
+        case 'Escape': realcar(M, p, p); return;
+      }
+    });
+    // Rato: clicar e arrastar seleciona um bloco de caixas.
+    document.addEventListener('mousedown', function (e) {
+      var el = e.target.closest && e.target.closest('#vihCards input[data-ind]');
+      if (!el) { if (!(e.target.closest && e.target.closest('#vihCards'))) { limparRealce(); ancora = foco = null; } return; }
+      var M = matriz(), p = posDe(M, el); if (!p) return;
+      if (e.shiftKey && ancora) realcar(M, ancora, p); else { realcar(M, p, p); arrastar = true; }
+    });
+    document.addEventListener('mouseover', function (e) {
+      if (!arrastar || !ancora) return;
+      var el = e.target.closest && e.target.closest('#vihCards input[data-ind]'); if (!el) return;
+      var M = matriz(), p = posDe(M, el); if (p) realcar(M, ancora, p);
+    });
+    document.addEventListener('mouseup', function () { arrastar = false; });
+    // Colar um bloco (ex.: copiado do Excel): distribui pelas caixas a partir da seleção.
+    document.addEventListener('paste', function (e) {
+      var el = document.activeElement; if (!el || !el.dataset || !el.dataset.ind || !cards.contains(el)) return;
+      var txt = (e.clipboardData || window.clipboardData).getData('text'); if (!txt) return;
+      var linhas = txt.replace(/\r/g, '').split('\n'); while (linhas.length && linhas[linhas.length - 1] === '') linhas.pop();
+      var grelha = linhas.map(function (l) { return l.split('\t'); });
+      if (grelha.length === 1 && grelha[0].length === 1) return; // um só número: colar normal
+      e.preventDefault();
+      var M = matriz(), p = posDe(M, el), ini = p;
+      if (ancora && foco) ini = { r: Math.min(ancora.r, foco.r), c: Math.min(ancora.c, foco.c) };
+      var fim = ini;
+      grelha.forEach(function (l, i) { l.forEach(function (v, j) { var t = M[ini.r + i] && M[ini.r + i][ini.c + j]; if (!t) return; escreverCaixa(t, v.trim().replace(/[^\d]/g, '')); fim = { r: ini.r + i, c: ini.c + j }; }); });
+      realcar(M, ini, fim);
+    });
+    // Copiar um bloco selecionado (mais do que uma caixa) como tabela.
+    document.addEventListener('copy', function (e) {
+      var el = document.activeElement; if (!el || !el.dataset || !el.dataset.ind || !cards.contains(el)) return;
+      if (!ancora || !foco || (ancora.r === foco.r && ancora.c === foco.c)) return;
+      var M = matriz(), out = [];
+      for (var r = Math.min(ancora.r, foco.r); r <= Math.max(ancora.r, foco.r); r++) {
+        var l = []; for (var c = Math.min(ancora.c, foco.c); c <= Math.max(ancora.c, foco.c); c++) l.push(M[r][c] ? M[r][c].value : '');
+        out.push(l.join('\t'));
+      }
+      e.preventDefault(); (e.clipboardData || window.clipboardData).setData('text/plain', out.join('\n'));
+      toast('Copiado um bloco de ' + out.length + ' × ' + out[0].split('\t').length + ' caixas');
+    });
+    // Botões de seleção e caixas das linhas.
+    cards.addEventListener('click', function (e) { var b = e.target.closest('[data-sel]'); if (b) acaoSel(b.dataset.sel, b.dataset.ind); });
+    cards.addEventListener('change', function (e) {
+      if (e.target.classList.contains('v-chk')) contarSel(e.target.dataset.ind);
+      if (e.target.classList.contains('sel-all-chk')) { var ind = e.target.dataset.ind, on = e.target.checked; chks(ind).forEach(function (c) { c.checked = on; }); contarSel(ind); }
+    });
+  }
+
   window.ZeloVIH = { abrirDia: abrirDia, mostrar: mostrar, relatorio: relatorio, pdf: pdf, sincronizar: sincronizar, _estado: function () { return { data: data, cur: cur, base: base, sujo: sujo }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montar); else montar();
 })();
