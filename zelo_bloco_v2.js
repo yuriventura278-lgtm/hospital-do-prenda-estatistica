@@ -376,8 +376,16 @@
     l.forEach(function (d) { if (!d.nome) return; var k = normT(d.nome); if (k in ix) { if (d.cid) u[ix[k]].cid = d.cid; } else { ix[k] = u.length; u.push({ nome: d.nome, cid: d.cid || '' }); } });
     try { localStorage.setItem(LS_DIAG, JSON.stringify(u.slice(-400))); } catch (e) {}
   }
-  function cidDe(nome) { var k = normT(nome); var e = catalogo().filter(function (x) { return normT(x.nome) === k; })[0]; return e ? e.cid : ''; }
-  function nomeDe(cid) { cid = normCid(cid); if (!cid) return ''; var e = catalogo().filter(function (x) { return normCid(x.cid) === cid; })[0]; return e ? e.nome : ''; }
+  function cidDe(nome) {
+    var k = normT(nome); var e = catalogo().filter(function (x) { return normT(x.nome) === k; })[0];
+    if (e && e.cid) return e.cid;
+    var z = window.ZeloCID && window.ZeloCID.porNome(nome); return z ? z[0] : (e ? e.cid : '');
+  }
+  function nomeDe(cid) {
+    cid = normCid(cid); if (!cid) return ''; var e = catalogo().filter(function (x) { return normCid(x.cid) === cid; })[0];
+    if (e) return e.nome;
+    var z = window.ZeloCID && window.ZeloCID.porCodigo(cid); return z ? z[1] : '';
+  }
   function diagsDeTexto(t) {
     t = String(t || '').trim(); if (!t || t === '—') return [{ nome: '', cid: '' }];
     return t.split(/;\s*/).filter(Boolean).map(function (p) {
@@ -400,7 +408,7 @@
       '<datalist id="b2-dl-cid">' + (window.ZELO_CID || []).map(function (c) { return '<option value="' + esc(c[0]) + '">' + esc(c[1]) + '</option>'; }).join('') + '</datalist>';
     return dl + F.diags.map(function (d, i) {
       return '<div class="b2-dg">' +
-        '<div class="b2-inp b2-dgn"><input type="text" list="b2-dl-diag" data-dn="' + i + '" value="' + esc(d.nome) + '" placeholder="' + (i ? 'Outro diagnóstico' : 'Diagnóstico principal') + '" autocomplete="off"></div>' +
+        '<div class="b2-inp b2-dgn"><input type="text" list="b2-dl-diag" data-dn="' + i + '" value="' + esc(d.nome) + '" placeholder="' + (i ? 'Outro diagnóstico' : 'Diagnóstico principal — nome ou CID') + '" autocomplete="off"></div>' +
         '<div class="b2-inp b2-dgc"><input type="text" list="b2-dl-cid" data-dc="' + i + '" value="' + esc(d.cid) + '" placeholder="CID" autocomplete="off"></div>' +
         (i ? '<button type="button" class="b2-dgx" data-dx="' + i + '" title="Retirar este diagnóstico" aria-label="Retirar este diagnóstico">×</button>' :'<span></span>') +
         '</div>';

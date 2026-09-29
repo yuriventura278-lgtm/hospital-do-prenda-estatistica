@@ -115,12 +115,17 @@
   function cidDe(nome) {
     var k = norm(nome); if (!k) return '';
     var e = conhecidos().filter(function (x) { return norm(x.nome) === k; })[0];
-    return e ? e.cid || '' : '';
+    if (e && e.cid) return e.cid;
+    // Catálogo CID-10 completo (zelo_cid10.js)
+    var z = window.ZeloCID && window.ZeloCID.porNome(nome);
+    return z ? z[0] : (e ? e.cid || '' : '');
   }
   function nomeDe(cid) {
     cid = normCid(cid); if (!cid) return '';
     var e = conhecidos().filter(function (x) { return normCid(x.cid) === cid; })[0];
-    return e ? e.nome : '';
+    if (e) return e.nome;
+    var z = window.ZeloCID && window.ZeloCID.porCodigo(cid);
+    return z ? z[1] : '';
   }
 
   // ── Campos CID nos formulários ──
@@ -145,7 +150,7 @@
   }
   function campoCid(id, rotulo) {
     var f = document.createElement('div'); f.className = 'field cp-cid-field';
-    f.innerHTML = '<label>' + rotulo + '</label><input type="text" id="' + id + '" list="cpCidList" placeholder="Ex.: S72.0" autocomplete="off" maxlength="8">';
+    f.innerHTML = '<label>' + rotulo + '</label><input type="text" id="' + id + '" list="cpCidList" placeholder="Código ou nome, ex.: S72.0" autocomplete="off" maxlength="8">';
     return f;
   }
   // ── Outros diagnósticos (formulários Novo e Atualizar) ──

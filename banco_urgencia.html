@@ -399,7 +399,7 @@ select{padding-right:36px;cursor:pointer;
 
 /* ===== CID DROPDOWN ===== */
 .cid-wrap{position:relative}
-.cid-dd{position:absolute;top:100%;left:0;right:0;margin-top:4px;background:#fff;border:1px solid var(--line);
+.cid-dd{max-height:320px;overflow:auto;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:#fff;border:1px solid var(--line);
   border-radius:10px;box-shadow:0 8px 24px rgba(11,31,58,.18);max-height:230px;overflow:auto;z-index:60;display:none}
 .cid-dd.on{display:block}
 .cid-dd div{padding:12px 14px;font-size:13.5px;line-height:1.4;cursor:pointer;border-bottom:1px solid #F1F5F9;transition:background-color .1s}
@@ -487,6 +487,7 @@ hr.sep{border:none;border-top:1px dashed var(--line);margin:14px 0}
 .btn-edit:hover{background:var(--accent-tint);color:var(--cyan-d);border-color:var(--accent-ring)}
 .btn-del .svc-icon,.btn-edit .svc-icon{width:13px;height:13px}
 </style>
+<script src="zelo_cid10.js?v=1"></script>
 </head>
 <body>
 <script type="module">
@@ -1269,9 +1270,15 @@ BU.cidBind = function(pref, base){
     var q=inp.value.trim().toLowerCase();
     BU.$(pref+'code').value=''; BU.$(pref+'desc').value='';
     if(q.length<2){ dd.classList.remove('on'); return; }
+    // Primeiro os do serviço (lista própria), depois o CID-10 completo
+    // (zelo_cid10.js), por código ou palavras e sem acentos.
+    var N = window.ZeloCID ? window.ZeloCID.normalizar : function(t){ return String(t||'').toLowerCase(); };
+    var qn = N(q), vistos = {};
     var hits = base.filter(function(c){
-      return c[0].toLowerCase().indexOf(q)>-1 || c[1].toLowerCase().indexOf(q)>-1;
-    }).slice(0,12);
+      return c[0].toLowerCase().indexOf(q)===0 || N(c[1]).indexOf(qn)>-1;
+    }).slice(0,6);
+    hits.forEach(function(c){ vistos[c[0]] = 1; });
+    if (window.ZeloCID) window.ZeloCID.buscar(q, 30).forEach(function(c){ if (!vistos[c[0]] && hits.length < 30){ vistos[c[0]] = 1; hits.push(c); } });
     if(!hits.length){ dd.classList.remove('on'); return; }
     dd.innerHTML = hits.map(function(c){
       return '<div data-c="'+BU.esc(c[0])+'" data-d="'+BU.esc(c[1])+'"><b>'+BU.esc(c[0])+'</b>'+BU.esc(c[1])+'</div>';
