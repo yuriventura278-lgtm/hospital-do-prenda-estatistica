@@ -42,6 +42,15 @@ p{color:var(--tx3);font-size:.88rem;line-height:1.6;margin-bottom:22px;}
   font-size:.84rem;font-weight:700;padding:11px 20px;border-radius:10px;}
 footer{text-align:center;padding:16px;color:var(--tx3);font-size:.68rem;font-family:'DM Mono',monospace;}
 </style>
+<style id="zelo-sem-setas">/* ZELO: nenhuma caixa de preenchimento com setas (em todo o sistema) */
+input[type=number]{-moz-appearance:textfield !important;appearance:textfield !important}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none !important;appearance:none !important;margin:0 !important;display:none !important}</style>
+<script id="zelo-sem-setas-js">/* A roda do rato e as setas do teclado não mudam números sem querer
+   (as páginas que usam as setas para andar entre células continuam a funcionar). */
+(function(){if(window.__zeloSemSetas)return;window.__zeloSemSetas=1;
+function num(e){return e&&e.tagName==='INPUT'&&e.type==='number';}
+document.addEventListener('wheel',function(e){var t=e.target;if(num(t)&&document.activeElement===t)t.blur();},{passive:true});
+document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='ArrowUp'||e.key==='ArrowDown')&&!e.defaultPrevented)e.preventDefault();});})();</script>
 </head>
 <body>
 <div class="top">

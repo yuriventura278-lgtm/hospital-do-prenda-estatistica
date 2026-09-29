@@ -482,6 +482,15 @@ html.dark .period-row input,.period-row select{background:var(--surface);}
 html.dark #theme-toggle{color:var(--accent);border-color:var(--accent-ring)!important;}
 </style>
 <script>/* tema carregado após init */</script>
+<style id="zelo-sem-setas">/* ZELO: nenhuma caixa de preenchimento com setas (em todo o sistema) */
+input[type=number]{-moz-appearance:textfield !important;appearance:textfield !important}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none !important;appearance:none !important;margin:0 !important;display:none !important}</style>
+<script id="zelo-sem-setas-js">/* A roda do rato e as setas do teclado não mudam números sem querer
+   (as páginas que usam as setas para andar entre células continuam a funcionar). */
+(function(){if(window.__zeloSemSetas)return;window.__zeloSemSetas=1;
+function num(e){return e&&e.tagName==='INPUT'&&e.type==='number';}
+document.addEventListener('wheel',function(e){var t=e.target;if(num(t)&&document.activeElement===t)t.blur();},{passive:true});
+document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='ArrowUp'||e.key==='ArrowDown')&&!e.defaultPrevented)e.preventDefault();});})();</script>
 </head>
 <body>
 <svg id="svg-sprite" xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
