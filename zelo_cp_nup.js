@@ -137,7 +137,8 @@
 
   // ── Validação do NUP ──
   // Devolve { ok, msg, episodio, processo } — episodio > 1 = regresso.
-  window.zeloCpValidarNUP = function (nup, nome, excluirN) {
+  window.zeloCpValidarNUP = function (nup, nome, excluirN, soVerificar) {
+    // soVerificar: chamada pelo aviso enquanto se escreve — nunca regista sozinha.
     nup = nupN(nup); if (!nup) return { ok: false, msg: 'Indique o NUP do doente.' };
     var mesmos = pacientes().filter(function (p) { return nupN(p.nup) === nup && (excluirN == null || p.n !== excluirN); });
     var outroNome = mesmos.filter(function (p) { return !mesmoNome(p.nome, nome); })[0];
@@ -145,7 +146,7 @@
     // Os outros serviços ainda estão a ser lidos: espera e volta a tentar
     // sozinho (não deixa passar um NUP de outro doente por falta de dados).
     if (!indice && aCarregar && excluirN == null && !mesmos.length) {
-      repetirDepois(aCarregar, nup);
+      if (!soVerificar) repetirDepois(aCarregar, nup);
       return { ok: false, msg: 'A verificar o NUP ' + nup + ' nos outros serviços… o registo continua sozinho dentro de instantes.' };
     }
     var internado = mesmos.filter(function (p) { return p.status === 'internado'; })[0];
@@ -154,7 +155,8 @@
     if (excluirN == null) {
       var c = porNUP[nup];
       if (!c || c.p || Date.now() - c.ts > 60000) {
-        repetirDepois(c && c.p ? c.p : internamentosNUP(nup, true), nup);
+        if (!soVerificar) repetirDepois(c && c.p ? c.p : internamentosNUP(nup, true), nup);
+        else if (!(c && c.p)) internamentosNUP(nup, true);
         return { ok: false, msg: 'A verificar o NUP ' + nup + ' em todos os serviços… o registo continua sozinho dentro de instantes.' };
       }
       var noutro = c.eps.filter(function (p) { return p.servico !== slug() && p.status === 'internado'; })[0];
@@ -416,7 +418,7 @@
       info.innerHTML = esc(noutro.nome) + ' está internado em <b>' + esc(nomeServ(noutro.servico)) + '</b> desde ' + fmt(noutro.dataEntrada) + '. Não pode ser internado em dois serviços — ' + esc(nomeServ(noutro.servico)) + ' tem de registar primeiro a saída (transferência).';
       return;
     }
-    var r = window.zeloCpValidarNUP(v, nome ? nome.value : '', null);
+    var r = window.zeloCpValidarNUP(v, nome ? nome.value : '', null, true);
     var dono = procurar(v, true).filter(function (x) { return x.nup === v; })[0];
     info.style.display = 'block';
     if (!r.ok) { info.className = 'cpn-nupinfo er'; info.textContent = r.msg; }
