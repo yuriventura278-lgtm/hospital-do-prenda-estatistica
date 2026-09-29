@@ -13,106 +13,161 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@500&display=swap"></noscript>
 <style>
-:root{
-  --nv:#0D1B3E;--nv2:#122754;--nv3:#0a3a66;--bl:#1A56DB;--bl2:#2563EB;--cy:#0EA5E9;--cyl:#22D3EE;
-  --blt:#DBEAFE;--blxt:#EFF6FF;
-  --gr:#059669;--rd:#DC2626;--am:#D97706;--pu:#7C3AED;
-  --sf:#F4F7FF;--br:#E2E8F0;--br2:#CBD5E1;
-  --tx:#0F172A;--tx2:#334155;--tx3:#64748B;
-  --r:10px;--r2:16px;--r3:22px;
-  --s1:0 2px 10px rgba(13,27,62,.08);--s2:0 10px 32px rgba(13,27,62,.16);
+:root{--nv:#0B1730;--nv2:#12254A;--nv3:#0A3A66;--bl:#1A56DB;--cy:#0EA5E9;--cyl:#22D3EE;--gr:#059669;--rd:#DC2626;--am:#D97706;--pu:#7C3AED;
+  --tx:#0F172A;--tx2:#334155;--tx3:#64748B;--br:#E2E8F0;--bg:#E9EEF6}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:radial-gradient(circle at 20% 0%,#1B2C52 0%,#0A1428 60%);color:var(--tx);-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;height:100dvh;display:flex;flex-direction:column}
+body > *{flex-shrink:0}
+/* Apresentação ocupa o ecrã todo: o rodapé geral do sistema não aparece nesta página */
+html body .zr-rodape{display:none !important}
+.topbar{height:52px;background:rgba(6,12,26,.9);color:#fff;padding:0 18px;display:flex;align-items:center;gap:10px;position:relative;z-index:40;border-bottom:1px solid rgba(255,255,255,.08)}
+.topbar .dot{width:7px;height:7px;border-radius:50%;background:var(--cyl);box-shadow:0 0 8px var(--cyl)}
+.topbar img{width:24px;height:24px;border-radius:6px}
+.topbar span{font:600 .76rem 'DM Mono',monospace;letter-spacing:.06em}
+.topbar .titulo{color:#9FB3D9;font:600 .8rem Inter,Arial,sans-serif;margin-left:6px}
+.topbar .back{margin-left:auto;color:#C7D2E8;text-decoration:none;font-size:.78rem;border:1px solid rgba(255,255,255,.18);padding:7px 12px;border-radius:100px;display:flex;align-items:center;gap:6px}
+.topbar .back:hover{background:rgba(255,255,255,.1)}
+
+/* ── Palco 16:9 (como um PowerPoint) ── */
+.palco-wrap{position:relative;flex:1 1 auto !important;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.palco{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:center center}
+.slide{position:absolute;inset:0;border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 40px 90px rgba(0,0,0,.45);opacity:0;visibility:hidden;transform:translateX(40px) scale(.985);transition:opacity .45s ease,transform .45s ease,visibility 0s .45s}
+.slide.on{opacity:1;visibility:visible;transform:none;transition:opacity .45s ease,transform .45s ease}
+.slide.antes{transform:translateX(-40px) scale(.985)}
+.slide .in{position:absolute;inset:0;padding:64px 76px 56px;display:flex;flex-direction:column}
+.slide .rodape{position:absolute;left:76px;right:76px;bottom:22px;display:flex;align-items:center;gap:10px;font:600 .8rem Inter,Arial,sans-serif;color:var(--tx3)}
+.slide .rodape img{width:20px;height:20px;border-radius:5px}
+.slide .rodape .n{margin-left:auto;font-family:'DM Mono',monospace}
+.slide.escuro .rodape{color:#8CA0C6}
+.eyebrow{font:700 .9rem 'DM Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--bl);margin-bottom:12px}
+.titulo-s{font-size:3rem;font-weight:800;letter-spacing:-.025em;line-height:1.05;color:var(--tx)}
+.sub-s{margin-top:16px;font-size:1.22rem;line-height:1.55;color:var(--tx2);max-width:980px}
+.barra-acento{width:72px;height:6px;border-radius:4px;background:linear-gradient(90deg,var(--bl),var(--cyl));margin:18px 0 0}
+.escuro{background:linear-gradient(150deg,var(--nv) 0%,var(--nv2) 55%,var(--nv3) 100%) !important;color:#fff}
+.escuro .titulo-s{color:#fff}.escuro .sub-s{color:#C7D2E8}.escuro .eyebrow{color:var(--cyl)}
+.escuro::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 12% 12%,rgba(34,211,238,.18),transparent 42%),radial-gradient(circle at 92% -4%,rgba(26,86,219,.35),transparent 45%);pointer-events:none}
+
+/* Capa */
+.capa .in{align-items:center;justify-content:center;text-align:center}
+.capa .logo{width:128px;height:128px;border-radius:30px;background:#fff;padding:10px;box-shadow:0 18px 44px rgba(0,0,0,.4);margin-bottom:28px}
+.capa .logo img{width:100%;height:100%;object-fit:contain;border-radius:22px}
+.capa h1{font-size:6rem;font-weight:900;letter-spacing:-.04em;line-height:1;background:linear-gradient(120deg,#fff 10%,#9FD8FF 55%,#22D3EE 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.capa .tag{margin-top:18px;font:700 1rem 'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:#9FB3D9}
+.capa .pitch{margin-top:26px;font-size:1.35rem;line-height:1.6;color:#C7D2E8;max-width:860px}
+.capa .hospital{margin-top:34px;display:inline-flex;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);border-radius:999px;padding:10px 20px;font-weight:700;color:#E2E8F0}
+
+/* Cartões */
+.grelha{display:grid;gap:22px;margin-top:38px}
+.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.cartao{background:#F8FAFD;border:1px solid var(--br);border-radius:20px;padding:26px 24px;position:relative;overflow:hidden}
+.cartao::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c,var(--bl))}
+.cartao .ic{width:54px;height:54px;border-radius:15px;background:color-mix(in srgb,var(--c,var(--bl)) 12%,#fff);color:var(--c,var(--bl));display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+.cartao .ic svg{width:26px;height:26px}
+.cartao h3{font-size:1.25rem;font-weight:800;margin-bottom:10px;color:var(--tx)}
+.cartao p{font-size:1.02rem;line-height:1.55;color:var(--tx2)}
+.g3 .cartao{padding:22px 22px}.g3 .cartao h3{font-size:1.12rem}.g3 .cartao p{font-size:.96rem}.g3 .cartao .ic{width:46px;height:46px;margin-bottom:12px}
+
+/* Objetivo */
+.objetivo .in{justify-content:center}
+.objetivo blockquote{margin-top:30px;font-size:2.15rem;font-weight:700;line-height:1.4;letter-spacing:-.01em;color:#fff;max-width:1040px;border-left:6px solid var(--cyl);padding-left:30px}
+.objetivo blockquote b{color:var(--cyl)}
+
+/* Visão e Missão */
+.vm{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:40px;flex:1;max-height:430px}
+.vm > div{border-radius:24px;padding:38px 36px;border:1.5px solid var(--br)}
+.vm .visao{background:linear-gradient(145deg,#EFF6FF,#fff)}.vm .missao{background:linear-gradient(145deg,#ECFDF5,#fff)}
+.vm .ic{width:64px;height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.vm .visao .ic{background:#DBEAFE;color:var(--bl)}.vm .missao .ic{background:#D1FAE5;color:var(--gr)}
+.vm h3{font-size:1.9rem;font-weight:800;margin-bottom:14px}.vm p{font-size:1.22rem;line-height:1.65;color:var(--tx2)}
+
+/* Números */
+.numeros{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:auto;margin-bottom:auto}
+.numero{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:24px;padding:36px 26px;text-align:center}
+.numero b{display:block;font:800 4.4rem 'DM Mono',monospace;line-height:1;background:linear-gradient(120deg,#fff,#22D3EE);-webkit-background-clip:text;background-clip:text;color:transparent}
+.numero span{display:block;margin-top:16px;font-size:1.08rem;line-height:1.45;color:#C7D2E8}
+
+/* Antes e depois */
+.cmp{width:100%;border-collapse:separate;border-spacing:0;margin-top:36px;border-radius:18px;overflow:hidden;border:1px solid var(--br)}
+.cmp th{background:var(--nv);color:#fff;font:700 .9rem Inter,Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:18px 22px}
+.cmp td{padding:20px 22px;font-size:1.12rem;color:var(--tx2);border-top:1px solid var(--br);background:#fff}
+.cmp tr:nth-child(even) td{background:#F8FAFD}
+.cmp td:first-child{font-weight:800;color:var(--tx)}
+.cmp td.antes{color:#B91C1C}.cmp td.depois{color:#047857;font-weight:700}
+.pill{display:inline-block;font-size:.9rem;font-weight:800;padding:6px 14px;border-radius:100px;background:#D1FAE5;color:#047857}
+
+/* Passos */
+.passos{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-top:44px;position:relative}
+.passos::before{content:'';position:absolute;top:34px;left:10%;right:10%;height:4px;background:linear-gradient(90deg,var(--bl),var(--cyl));border-radius:4px}
+.passo{position:relative;text-align:center}
+.passo .num{width:68px;height:68px;border-radius:50%;margin:0 auto 20px;background:#fff;border:4px solid var(--bl);color:var(--bl);display:flex;align-items:center;justify-content:center;font:800 1.6rem 'DM Mono',monospace;position:relative;z-index:1;box-shadow:0 8px 20px rgba(26,86,219,.2)}
+.passo h4{font-size:1.18rem;font-weight:800;margin-bottom:10px;line-height:1.3}
+.passo p{font-size:.98rem;line-height:1.55;color:var(--tx2)}
+
+/* Roteiro */
+.roteiro{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:48px}
+.fase{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:22px;padding:30px 26px;position:relative}
+.fase .rn{font:800 3.2rem 'DM Mono',monospace;color:rgba(34,211,238,.9);line-height:1;margin-bottom:18px}
+.fase h4{font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:12px}
+.fase p{font-size:1.08rem;line-height:1.55;color:#C7D2E8}
+.fase:not(:last-child)::after{content:'→';position:absolute;right:-18px;top:50%;transform:translateY(-50%);color:var(--cyl);font-size:1.4rem;font-weight:800}
+
+/* Criador */
+.criador .in{flex-direction:row;align-items:center;gap:64px;padding:0 90px 0 0}
+.criador .foto{width:470px;height:100%;flex-shrink:0;position:relative;overflow:hidden}
+.criador .foto img{width:100%;height:100%;object-fit:cover;object-position:center 20%}
+.criador .foto::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 60%,#0B1730 100%)}
+.criador .nome{font-size:4rem;font-weight:900;letter-spacing:-.03em;line-height:1.02;margin-top:6px;background:linear-gradient(120deg,#fff 20%,#9FD8FF 70%,#22D3EE 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.criador .papel{margin-top:14px;font:700 1rem 'DM Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#9FB3D9}
+.criador .texto{margin-top:26px;font-size:1.25rem;line-height:1.65;color:#C7D2E8;max-width:620px}
+.criador .assin{margin-top:28px;display:inline-flex;gap:12px;align-items:center;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);border-radius:999px;padding:10px 18px 10px 10px;color:#E2E8F0;font-weight:700}
+.criador .rodape{left:560px}
+.criador .assin img{width:34px;height:34px;border-radius:9px;background:#fff;padding:3px}
+
+/* Final */
+.final .in{align-items:center;justify-content:center;text-align:center}
+.final .cta{margin-top:34px;display:inline-flex;align-items:center;gap:10px;background:linear-gradient(120deg,var(--cy),var(--cyl));color:var(--nv);font-weight:800;font-size:1.15rem;padding:16px 32px;border-radius:100px;text-decoration:none;box-shadow:0 14px 34px rgba(34,211,238,.3)}
+
+/* Animação de entrada dos elementos */
+.slide.on .an{animation:entra .6s ease-out both}
+.slide.on .an:nth-child(2){animation-delay:.08s}.slide.on .an:nth-child(3){animation-delay:.16s}.slide.on .an:nth-child(4){animation-delay:.24s}.slide.on .an:nth-child(5){animation-delay:.32s}.slide.on .an:nth-child(6){animation-delay:.4s}
+@keyframes entra{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* ── Barra de controlo ── */
+.ctl{height:64px;display:flex;align-items:center;justify-content:center;gap:14px;color:#C7D2E8;padding:0 16px}
+.ctl button{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.ctl button:hover{background:rgba(255,255,255,.16)}
+.ctl button:disabled{opacity:.35;cursor:default}
+.pontos{display:flex;gap:8px;align-items:center}
+.pontos i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;transition:all .25s}
+.pontos i.on{width:28px;border-radius:6px;background:var(--cyl)}
+.cont{font:600 .82rem 'DM Mono',monospace;min-width:56px;text-align:center}
+.ctl .ecra{margin-left:8px}
+
+/* ── Telemóvel: cada diapositivo ocupa o ecrã, com o conteúdo a correr ── */
+@media (max-width:820px){
+  body{overflow:hidden}
+  .topbar .titulo{display:none}
+  .palco-wrap{display:block}
+  .palco{position:relative;left:0;top:0;width:100%;height:100%;transform:none !important}
+  .slide{border-radius:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .slide .in{position:relative;inset:auto;min-height:100%;padding:34px 20px 70px}
+  .slide .rodape,.criador .rodape{position:static;margin:0 20px 18px}
+  .slide .in{padding-bottom:24px}
+  .titulo-s{font-size:1.9rem}.sub-s{font-size:1rem}
+  .capa h1{font-size:3.6rem}.capa .logo{width:92px;height:92px}.capa .pitch{font-size:1.05rem}
+  .g4,.g3,.g2,.vm,.numeros,.roteiro{grid-template-columns:1fr}
+  .grelha{margin-top:22px;gap:12px}.cartao{padding:18px}.cartao h3{font-size:1.08rem}.cartao p{font-size:.94rem}
+  .objetivo blockquote{font-size:1.3rem;padding-left:18px}
+  .vm{max-height:none;gap:14px}.vm > div{padding:22px}.vm h3{font-size:1.4rem}.vm p{font-size:1rem}
+  .numero{padding:22px}.numero b{font-size:3rem}
+  .cmp{display:block;overflow-x:auto}.cmp th,.cmp td{padding:12px;font-size:.9rem}
+  .passos{grid-template-columns:1fr;gap:14px}.passos::before{display:none}.passo{display:flex;gap:14px;text-align:left}.passo .num{margin:0;width:48px;height:48px;font-size:1.2rem;flex-shrink:0}
+  .fase:not(:last-child)::after{display:none}
+  .criador .in{flex-direction:column;padding:0 0 24px;gap:0}.criador .foto{width:100%;height:380px}.criador .foto::after{background:linear-gradient(180deg,transparent 55%,#0B1730 100%)}
+  .criador .info{padding:0 20px}.criador .nome{font-size:2.6rem}.criador .texto{font-size:1rem}
+  .ctl{height:64px;gap:8px;padding:0 74px}.ctl button{width:40px;height:40px}.pontos{gap:5px}.pontos i{width:8px;height:8px}.pontos i.on{width:20px}.ctl .ecra{display:none}
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html{scroll-behavior:smooth;}
-body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased;}
-
-.topbar{background:var(--nv);color:#fff;padding:11px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:40;}
-.topbar .dot{width:7px;height:7px;border-radius:50%;background:var(--cyl);flex-shrink:0;box-shadow:0 0 8px var(--cyl);}
-.topbar img{width:22px;height:22px;border-radius:6px;flex-shrink:0;}
-.topbar span{font-family:'DM Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.04em;}
-.topbar .back{margin-left:auto;color:#C7D2E8;text-decoration:none;font-size:.76rem;border:1px solid rgba(255,255,255,.18);padding:7px 12px;border-radius:100px;display:flex;align-items:center;gap:6px;transition:background .15s;}
-.topbar .back:hover{background:rgba(255,255,255,.1);}
-
-.hero{position:relative;background:linear-gradient(155deg,var(--nv) 0%,var(--nv2) 55%,var(--nv3) 100%);color:#fff;padding:44px 20px 46px;overflow:hidden;}
-.hero::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 12% 12%, rgba(34,211,238,.18), transparent 40%),radial-gradient(circle at 92% -4%, rgba(26,86,219,.32), transparent 42%);pointer-events:none;}
-.hero-in{position:relative;max-width:900px;margin:0 auto;text-align:center;}
-.hero-logo{width:88px;height:88px;border-radius:22px;background:#fff;box-shadow:0 12px 32px rgba(0,0,0,.32);padding:7px;margin:0 auto 20px;overflow:hidden;}
-.hero-logo img{width:100%;height:100%;object-fit:contain;border-radius:16px;}
-.hero h1{font-size:clamp(2.2rem,6vw,3.2rem);font-weight:800;letter-spacing:-.03em;line-height:1;font-family:'Inter',sans-serif;background:linear-gradient(120deg,#ffffff 10%,#9FD8FF 55%,#22D3EE 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
-.hero .tag{font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9FB3D9;font-family:'DM Mono',monospace;margin-top:14px;line-height:1.8;}
-.hero p.pitch{margin-top:20px;color:#C7D2E8;font-size:1.02rem;max-width:620px;margin-left:auto;margin-right:auto;line-height:1.65;}
-
-main{max-width:1040px;margin:0 auto;padding:44px 20px 60px;}
-.section{margin-bottom:52px;}
-.section-head{margin-bottom:22px;}
-.section-eyebrow{font-family:'DM Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--bl);margin-bottom:8px;}
-.section-title{font-size:clamp(1.3rem,3vw,1.7rem);font-weight:800;letter-spacing:-.015em;color:var(--tx);}
-.section-sub{margin-top:8px;color:var(--tx3);font-size:.92rem;max-width:640px;line-height:1.6;}
-
-.grid{display:grid;gap:16px;}
-.grid-2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));}
-.grid-4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
-
-.card{background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:22px;box-shadow:var(--s1);}
-.card h3{font-size:1rem;font-weight:700;color:var(--tx);margin-bottom:8px;}
-.card p{font-size:.86rem;color:var(--tx2);line-height:1.6;}
-.card .ic{width:42px;height:42px;border-radius:11px;background:var(--blxt);color:var(--bl);display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
-
-.obj-card{background:linear-gradient(135deg,var(--nv) 0%,var(--nv2) 100%);color:#fff;border-radius:var(--r3);padding:28px 26px;box-shadow:var(--s2);}
-.obj-card .lbl{font-family:'DM Mono',monospace;font-size:.66rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cyl);margin-bottom:12px;}
-.obj-card p{font-size:1.08rem;font-weight:700;line-height:1.5;letter-spacing:-.005em;}
-
-.vm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;}
-.vm-card{border-radius:var(--r2);padding:26px;border:1.5px solid var(--br);}
-.vm-card.visao{background:linear-gradient(135deg,var(--blxt) 0%,#fff 100%);}
-.vm-card.missao{background:linear-gradient(135deg,#ECFDF5 0%,#fff 100%);}
-.vm-card .vm-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
-.vm-card.visao .vm-ic{background:var(--blt);color:var(--bl);}
-.vm-card.missao .vm-ic{background:#D1FAE5;color:var(--gr);}
-.vm-card h3{font-size:1.05rem;font-weight:800;margin-bottom:10px;}
-.vm-card p{font-size:.9rem;color:var(--tx2);line-height:1.7;}
-
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:22px;}
-.stat-card{background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:20px;text-align:center;box-shadow:var(--s1);}
-.stat-card .n{font-family:'DM Mono',monospace;font-size:2rem;font-weight:600;color:var(--bl);line-height:1;}
-.stat-card .l{margin-top:8px;font-size:.72rem;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;line-height:1.5;}
-
-.tbl-wrap{overflow-x:auto;border:1px solid var(--br);border-radius:var(--r2);background:#fff;box-shadow:var(--s1);}
-table.cmp{width:100%;border-collapse:collapse;min-width:640px;}
-table.cmp th{background:var(--nv);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:13px 16px;}
-table.cmp td{padding:13px 16px;font-size:.86rem;color:var(--tx2);border-top:1px solid var(--br);}
-table.cmp tr td:first-child{font-weight:700;color:var(--tx);}
-.pill{display:inline-block;font-size:.7rem;font-weight:700;padding:4px 11px;border-radius:100px;background:#D1FAE5;color:#047857;}
-
-.steps{counter-reset:step;display:flex;flex-direction:column;gap:14px;}
-.step{display:flex;gap:16px;background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:18px 20px;box-shadow:var(--s1);align-items:flex-start;}
-.step .num{counter-increment:step;flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--bl);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;font-family:'DM Mono',monospace;}
-.step h4{font-size:.94rem;font-weight:700;margin-bottom:4px;}
-.step p{font-size:.84rem;color:var(--tx2);line-height:1.55;}
-
-.roadmap{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;position:relative;}
-.rm-card{background:#fff;border:1px solid var(--br);border-radius:var(--r2);padding:20px;box-shadow:var(--s1);}
-.rm-card .rn{width:30px;height:30px;border-radius:50%;border:2px solid var(--bl);color:var(--bl);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;font-family:'DM Mono',monospace;margin-bottom:12px;}
-.rm-card h4{font-size:.92rem;font-weight:700;margin-bottom:6px;}
-.rm-card p{font-size:.8rem;color:var(--tx3);line-height:1.55;}
-
-.cta-wrap{background:linear-gradient(135deg,var(--nv) 0%,var(--nv2) 100%);border-radius:var(--r3);padding:40px 28px;text-align:center;color:#fff;box-shadow:var(--s2);}
-.cta-wrap h2{font-size:1.4rem;font-weight:800;margin-bottom:10px;}
-.cta-wrap p{color:#C7D2E8;font-size:.92rem;max-width:480px;margin:0 auto 22px;line-height:1.6;}
-.cta-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(120deg,var(--cy),var(--cyl));color:var(--nv);font-weight:800;font-size:.9rem;padding:13px 26px;border-radius:100px;text-decoration:none;box-shadow:0 10px 26px rgba(34,211,238,.28);transition:transform .15s;}
-.cta-btn:hover{transform:translateY(-2px);}
-
-footer{background:var(--nv);color:#8CA0C6;padding:22px 20px;text-align:center;font-size:.76rem;}
-footer b{color:#fff;}
-
-@media(max-width:640px){
-  .hero{padding:34px 16px 36px;}
-  main{padding:32px 16px 48px;}
-  table.cmp{min-width:560px;}
-}
-</style>
-<style id="zelo-largura">/* Formulários e informação a toda a largura da página (de um lado ao outro). */
-main,.hero-in{max-width:none !important;width:100%;box-sizing:border-box;}
 </style>
 <style id="zelo-sem-setas">/* ZELO: nenhuma caixa de preenchimento com setas (em todo o sistema) */
 input[type=number]{-moz-appearance:textfield !important;appearance:textfield !important}
@@ -125,215 +180,194 @@ document.addEventListener('wheel',function(e){var t=e.target;if(num(t)&&document
 document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='ArrowUp'||e.key==='ArrowDown')&&!e.defaultPrevented)e.preventDefault();});})();</script>
 </head>
 <body>
-
 <div class="topbar">
   <span class="dot"></span>
   <img src="icons/logo.png" alt="ZELO"/>
-  <span>ZELO</span>
+  <span>ZELO</span><span class="titulo">Apresentação do sistema</span>
   <a class="back" href="index.html">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     Início
   </a>
 </div>
 
-<div class="hero">
-  <div class="hero-in">
-    <div class="hero-logo"><img src="icons/logo.png" alt="ZELO"/></div>
-    <h1>ZELO</h1>
-    <div class="tag">Sistema Estatístico<br>e Gestão de Ocorrências</div>
-    <p class="pitch">Apresentação do sistema inteligente de recolha de dados para o aumento imediato da produtividade dos serviços de saúde do Hospital do Prenda.</p>
-  </div>
+<div class="palco-wrap" id="palcoWrap"><div class="palco" id="palco">
+
+  <!-- 1 · Capa -->
+  <section class="slide escuro capa"><div class="in">
+    <div class="logo an"><img src="icons/logo.png" alt="ZELO"/></div>
+    <h1 class="an">ZELO</h1>
+    <div class="tag an">Sistema Estatístico e Gestão de Ocorrências</div>
+    <p class="pitch an">Apresentação do sistema inteligente de recolha de dados para o aumento imediato da produtividade dos serviços de saúde do Hospital do Prenda.</p>
+    <div class="hospital an">Hospital do Prenda · Luanda, Angola</div>
+  </div></section>
+
+  <!-- 2 · O que é -->
+  <section class="slide"><div class="in">
+    <div class="eyebrow an">Sobre o sistema</div>
+    <div class="titulo-s an">O que é o ZELO?</div>
+    <div class="barra-acento an"></div>
+    <p class="sub-s an">A plataforma digital que substitui, de forma definitiva, os relatórios em papel e as folhas de Excel dispersas por cada serviço — toda a recolha de dados do hospital num único ecossistema, em qualquer computador ou telemóvel.</p>
+    <div class="grelha g4">
+      <div class="cartao an" style="--c:#1A56DB"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div><h3>Plataforma Unificada</h3><p>Centraliza a recolha de dados de todos os serviços essenciais num único ecossistema digital.</p></div>
+      <div class="cartao an" style="--c:#0EA5E9"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div><h3>Multiplataforma</h3><p>Aceda instantaneamente a partir de qualquer computador ou telemóvel.</p></div>
+      <div class="cartao an" style="--c:#059669"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div><h3>Adeus ao papel</h3><p>Substitui permanentemente relatórios manuais em papel e planilhas dispersas.</p></div>
+      <div class="cartao an" style="--c:#7C3AED"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-6"/></svg></div><h3>Cálculo Inteligente</h3><p>Cálculos, balanços e validações executados de forma totalmente automática.</p></div>
+    </div>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">02</span></div></section>
+
+  <!-- 3 · Objetivo -->
+  <section class="slide escuro objetivo"><div class="in">
+    <div class="eyebrow an">Objetivo principal</div>
+    <blockquote class="an">Integrar múltiplos serviços numa plataforma inteligente, unificar o fluxo de trabalho e garantir dados fiáveis — para que o utilizador <b>apenas registe as ocorrências do turno</b>, enquanto <b>a matemática fica a cargo do ZELO</b>.</blockquote>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">03</span></div></section>
+
+  <!-- 4 · Visão e Missão -->
+  <section class="slide"><div class="in">
+    <div class="eyebrow an">Rumo</div>
+    <div class="titulo-s an">Visão e Missão</div>
+    <div class="barra-acento an"></div>
+    <div class="vm">
+      <div class="visao an"><div class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div><h3>Visão</h3><p>Ser a espinha dorsal digital do Hospital do Prenda — um hospital sem papel na recolha de dados clínicos e estatísticos — e um modelo replicável para outras unidades do Ministério da Saúde.</p></div>
+      <div class="missao an"><div class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div><h3>Missão</h3><p>Registar cada ocorrência do turno com rapidez e rigor, devolvendo aos profissionais o tempo antes perdido em burocracia, e dar à direção dados fiáveis e imediatos para decidir melhor.</p></div>
+    </div>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">04</span></div></section>
+
+  <!-- 5 · Vantagens -->
+  <section class="slide"><div class="in">
+    <div class="eyebrow an">Benefícios</div>
+    <div class="titulo-s an">Vantagens do ZELO</div>
+    <div class="barra-acento an"></div>
+    <div class="grelha g3">
+      <div class="cartao an" style="--c:#1A56DB"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><h3>Economia de Tempo</h3><p>Totais diários e mensais calculados sozinhos, poupando dezenas de horas de digitação.</p></div>
+      <div class="cartao an" style="--c:#7C3AED"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div><h3>Decisões Estratégicas</h3><p>Relatórios consolidados e gráficos de desempenho imediatos para a direção.</p></div>
+      <div class="cartao an" style="--c:#059669"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><h3>Confiabilidade</h3><p>Fim dos registos rasurados e perdidos. Base de dados segura e auditável.</p></div>
+      <div class="cartao an" style="--c:#0EA5E9"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div><h3>Exportação Ágil</h3><p>Relatórios oficiais para o Ministério da Saúde com um só clique.</p></div>
+      <div class="cartao an" style="--c:#D97706"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><h3>Interface Amigável</h3><p>Desenhado com médicos e enfermeiros para um preenchimento rápido.</p></div>
+      <div class="cartao an" style="--c:#DC2626"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg></div><h3>Monitorização do Internamento</h3><p>Camas, altas, transferências e taxas de ocupação por especialidade.</p></div>
+    </div>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">05</span></div></section>
+
+  <!-- 6 · Resultados -->
+  <section class="slide escuro"><div class="in">
+    <div class="eyebrow an">Resultados</div>
+    <div class="titulo-s an">O impacto em números</div>
+    <div class="numeros">
+      <div class="numero an"><b>95%</b><span>Redução nos erros de lançamento estatístico</span></div>
+      <div class="numero an"><b>90%</b><span>Mais rápido no fecho de turno</span></div>
+      <div class="numero an"><b>85%</b><span>Aprovação das equipas de enfermagem</span></div>
+      <div class="numero an"><b>100%</b><span>Consistência das estatísticas finais</span></div>
+    </div>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">06</span></div></section>
+
+  <!-- 7 · Antes e depois -->
+  <section class="slide"><div class="in">
+    <div class="eyebrow an">Antes e depois</div>
+    <div class="titulo-s an">Processo tradicional vs. ZELO</div>
+    <table class="cmp an">
+      <thead><tr><th>Atividade</th><th>Papel / Excel</th><th>Com o ZELO</th><th>Impacto</th></tr></thead>
+      <tbody>
+        <tr><td>Tempo de registo</td><td class="antes">~15 minutos por turno</td><td class="depois">&lt; 3 minutos</td><td><span class="pill">−80% tempo</span></td></tr>
+        <tr><td>Consolidação estatística</td><td class="antes">Até 5 dias úteis</td><td class="depois">Instantânea (automática)</td><td><span class="pill">Imediato</span></td></tr>
+        <tr><td>Risco de perda de dados</td><td class="antes">Alto (papéis soltos, rasuras)</td><td class="depois">Inexistente (base de dados segura)</td><td><span class="pill">Segurança</span></td></tr>
+        <tr><td>Integração entre serviços</td><td class="antes">Inexistente (setores isolados)</td><td class="depois">Fluxo único unificado</td><td><span class="pill">Unificado</span></td></tr>
+      </tbody>
+    </table>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">07</span></div></section>
+
+  <!-- 8 · Como usar -->
+  <section class="slide"><div class="in">
+    <div class="eyebrow an">Guia rápido</div>
+    <div class="titulo-s an">Como usar o ZELO</div>
+    <div class="barra-acento an"></div>
+    <div class="passos">
+      <div class="passo an"><div class="num">1</div><div><h4>Entre no seu serviço</h4><p>Na Página Inicial ou no menu, abra o Controlo de Pacientes, os Procedimentos ou o registo do seu serviço.</p></div></div>
+      <div class="passo an"><div class="num">2</div><div><h4>Registe o turno</h4><p>Introduza as ocorrências e os números reais do dia — rápido, mesmo em rotinas críticas.</p></div></div>
+      <div class="passo an"><div class="num">3</div><div><h4>O ZELO calcula</h4><p>Totais, taxas de ocupação e validações são feitos sozinhos, sem contas à mão.</p></div></div>
+      <div class="passo an"><div class="num">4</div><div><h4>Consulte</h4><p>Relatórios diários, mensais e anuais já organizados para a direção e o Ministério.</p></div></div>
+      <div class="passo an"><div class="num">5</div><div><h4>Exporte e partilhe</h4><p>PDF, WhatsApp, Email e cópias de segurança quando precisar.</p></div></div>
+    </div>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">08</span></div></section>
+
+  <!-- 9 · Roteiro -->
+  <section class="slide escuro"><div class="in">
+    <div class="eyebrow an">Evolução</div>
+    <div class="titulo-s an">Roteiro de implementação</div>
+    <div class="roteiro">
+      <div class="fase an"><div class="rn">01</div><h4>Fase inicial</h4><p>Lançamento piloto e formação das equipas essenciais.</p></div>
+      <div class="fase an"><div class="rn">02</div><h4>Ajustes e feedback</h4><p>Melhoria dos formulários com a experiência real dos utilizadores.</p></div>
+      <div class="fase an"><div class="rn">03</div><h4>Expansão total</h4><p>Todas as enfermarias, bloco operatório, laboratório e imagiologia.</p></div>
+      <div class="fase an"><div class="rn">04</div><h4>Consolidação</h4><p>Auditoria final dos dados e relatórios estatísticos automáticos.</p></div>
+    </div>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">09</span></div></section>
+
+  <!-- 10 · Criador -->
+  <section class="slide escuro criador"><div class="in">
+    <div class="foto"><img src="icons/yuri_matias.jpg" alt="Yuri Matias, criador do ZELO"/></div>
+    <div class="info">
+      <div class="eyebrow an">Quem criou o ZELO</div>
+      <div class="nome an">Yuri Matias</div>
+      <div class="papel an">Criador do ZELO</div>
+      <p class="texto an">O ZELO nasceu da vontade de devolver tempo aos profissionais de saúde e de dar ao Hospital do Prenda dados fiáveis, organizados e sempre disponíveis — do registo do turno à estatística do hospital.</p>
+      <div class="assin an"><img src="icons/logo.png" alt=""/>ZELO · Sistema Estatístico e Gestão de Ocorrências</div>
+    </div>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">10</span></div></section>
+
+  <!-- 11 · Final -->
+  <section class="slide escuro final"><div class="in">
+    <div class="eyebrow an">Obrigado</div>
+    <div class="titulo-s an" style="font-size:3.6rem">Tem alguma dúvida?</div>
+    <p class="sub-s an" style="max-width:760px">Estamos prontos para otimizar os fluxos do Hospital do Prenda. Volte à Página Inicial e entre no ecossistema ZELO.</p>
+    <a class="cta an" href="index.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Aceder ao Portal ZELO</a>
+  </div><div class="rodape"><img src="icons/logo.png" alt=""><span>ZELO · Hospital do Prenda</span><span class="n">11</span></div></section>
+
+</div></div>
+
+<div class="ctl">
+  <button type="button" id="ant" aria-label="Diapositivo anterior" title="Anterior (←)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <div class="pontos" id="pontos"></div>
+  <span class="cont" id="cont"></span>
+  <button type="button" id="seg" aria-label="Diapositivo seguinte" title="Seguinte (→)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+  <button type="button" class="ecra" id="ecra" aria-label="Ecrã inteiro" title="Ecrã inteiro (F)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
 </div>
 
-<main>
-
-  <!-- O QUE É -->
-  <section class="section">
-    <div class="section-head">
-      <div class="section-eyebrow">Sobre o Sistema</div>
-      <div class="section-title">O que é o ZELO?</div>
-      <div class="section-sub">O ZELO é a plataforma digital que substitui, de forma definitiva, os relatórios em papel e as folhas de Excel dispersas por cada serviço — centralizando a recolha de dados de todo o hospital num único ecossistema, acessível a partir de qualquer computador ou telemóvel ligado à rede local.</div>
-    </div>
-    <div class="grid grid-4">
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
-        <h3>Plataforma Unificada</h3>
-        <p>Centraliza a recolha de dados de todos os serviços essenciais num único ecossistema digital.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
-        <h3>Multiplataforma Nativo</h3>
-        <p>Aceda instantaneamente a partir de qualquer computador ou telemóvel na rede local.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
-        <h3>Eliminação de Resíduos</h3>
-        <p>Substitui permanentemente relatórios manuais em papel e planilhas dispersas.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-6"/></svg></div>
-        <h3>Computação Inteligente</h3>
-        <p>Cálculos, balanços e validações executados de forma totalmente automatizada.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- OBJETIVO -->
-  <section class="section">
-    <div class="obj-card">
-      <div class="lbl">Objetivo Principal</div>
-      <p>Integrar múltiplos serviços numa plataforma inteligente, unificar o fluxo de trabalho e garantir a confiabilidade dos dados — para que o utilizador apenas registe as ocorrências do turno, enquanto a matemática analítica fica a cargo do ZELO.</p>
-    </div>
-  </section>
-
-  <!-- VISÃO E MISSÃO -->
-  <section class="section">
-    <div class="section-head">
-      <div class="section-eyebrow">Rumo</div>
-      <div class="section-title">Visão e Missão</div>
-    </div>
-    <div class="vm-grid">
-      <div class="vm-card visao">
-        <div class="vm-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
-        <h3>Visão</h3>
-        <p>Ser a espinha dorsal digital do Hospital do Prenda — um hospital sem papel na recolha de dados clínicos e estatísticos — e servir de modelo replicável para outras unidades do Ministério da Saúde.</p>
-      </div>
-      <div class="vm-card missao">
-        <div class="vm-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
-        <h3>Missão</h3>
-        <p>Registar cada ocorrência do turno com rapidez e rigor, devolvendo aos profissionais de saúde o tempo antes perdido em burocracia, e fornecer à direção hospitalar dados fiáveis e imediatos para decisões mais informadas.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- VANTAGENS -->
-  <section class="section">
-    <div class="section-head">
-      <div class="section-eyebrow">Benefícios</div>
-      <div class="section-title">Vantagens do ZELO</div>
-      <div class="section-sub">O impacto sente-se no dia a dia de cada serviço e nas decisões estratégicas da direção hospitalar.</div>
-    </div>
-    <div class="grid grid-2">
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-        <h3>Economia de Tempo</h3>
-        <p>Totais diários e mensais calculados de forma automática, poupando dezenas de horas em digitação e burocracia.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
-        <h3>Decisões Estratégicas</h3>
-        <p>Acesso imediato a relatórios consolidados e gráficos de desempenho para a direção hospitalar.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-        <h3>Confiabilidade Absoluta</h3>
-        <p>Fim dos registos rasurados e relatórios perdidos. Uma base de dados segura e auditável a qualquer momento.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
-        <h3>Exportação Ágil</h3>
-        <p>Gera relatórios oficiais prontos para o Ministério da Saúde com apenas um clique.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg></div>
-        <h3>Interface Amigável</h3>
-        <p>Desenhado em conjunto com médicos e enfermeiros para garantir um preenchimento rápido em rotinas críticas.</p>
-      </div>
-      <div class="card">
-        <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 9h1M9 13h6M9 17h6"/></svg></div>
-        <h3>Monitorização do Internamento</h3>
-        <p>Controlo absoluto das vagas, altas, transferências e taxas de ocupação por especialidade.</p>
-      </div>
-    </div>
-
-    <div class="stats-row">
-      <div class="stat-card"><div class="n">95%</div><div class="l">Redução nos erros de lançamento estatístico</div></div>
-      <div class="stat-card"><div class="n">90%</div><div class="l">Mais rápido no fecho de turno</div></div>
-      <div class="stat-card"><div class="n">85%</div><div class="l">Aprovação das equipas de enfermagem</div></div>
-      <div class="stat-card"><div class="n">100%</div><div class="l">Consistência das estatísticas finais</div></div>
-    </div>
-  </section>
-
-  <!-- COMPARAÇÃO -->
-  <section class="section">
-    <div class="section-head">
-      <div class="section-eyebrow">Antes e Depois</div>
-      <div class="section-title">Processo Tradicional vs. Sistema ZELO</div>
-    </div>
-    <div class="tbl-wrap">
-      <table class="cmp">
-        <thead><tr><th>Atividade / Recurso</th><th>Formato Antigo (Papel/Excel)</th><th>Com Sistema ZELO</th><th>Impacto</th></tr></thead>
-        <tbody>
-          <tr><td>Tempo de Registo Clínico</td><td>~15 minutos por turno</td><td>&lt; 3 minutos de preenchimento</td><td><span class="pill">-80% Tempo</span></td></tr>
-          <tr><td>Consolidação Estatística</td><td>Até 5 dias úteis de compilação</td><td>Instantâneo (automático)</td><td><span class="pill">Imediato</span></td></tr>
-          <tr><td>Risco de Perda de Dados</td><td>Alto (papéis soltos/rasuras)</td><td>Inexistente (base de dados segura)</td><td><span class="pill">Segurança</span></td></tr>
-          <tr><td>Integração Multissectorial</td><td>Inexistente (setores isolados)</td><td>Fluxo único unificado</td><td><span class="pill">Unificado</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- COMO USAR -->
-  <section class="section">
-    <div class="section-head">
-      <div class="section-eyebrow">Guia Rápido</div>
-      <div class="section-title">Como Usar o ZELO</div>
-    </div>
-    <div class="steps">
-      <div class="step">
-        <div class="num">1</div>
-        <div><h4>Aceda ao sistema do seu serviço</h4><p>A partir do Índice Geral, escolha o Relatório Diário, os Procedimentos de Enfermagem ou o Sistema Independente do seu serviço.</p></div>
-      </div>
-      <div class="step">
-        <div class="num">2</div>
-        <div><h4>Preencha o registo do turno</h4><p>Introduza as ocorrências e números reais do dia — o formulário foi desenhado para ser rápido de preencher mesmo em rotinas críticas.</p></div>
-      </div>
-      <div class="step">
-        <div class="num">3</div>
-        <div><h4>Guarde — o ZELO calcula por si</h4><p>Totais, taxas de ocupação e validações são calculados automaticamente ao guardar, sem necessidade de cálculos manuais.</p></div>
-      </div>
-      <div class="step">
-        <div class="num">4</div>
-        <div><h4>Consulte o Dashboard e a Estatística</h4><p>Veja relatórios diários, semanais e mensais já organizados, prontos para a direção hospitalar e o Ministério da Saúde.</p></div>
-      </div>
-      <div class="step">
-        <div class="num">5</div>
-        <div><h4>Exporte ou partilhe quando precisar</h4><p>Gere o PDF do registo e envie por WhatsApp ou Email, ou guarde localmente com as opções de backup Diário, Mensal ou Geral.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ROTEIRO -->
-  <section class="section">
-    <div class="section-head">
-      <div class="section-eyebrow">Evolução</div>
-      <div class="section-title">Roteiro de Implementação</div>
-    </div>
-    <div class="roadmap">
-      <div class="rm-card"><div class="rn">1</div><h4>Fase Inicial</h4><p>Lançamento piloto e treino das equipas essenciais do Banco Diário.</p></div>
-      <div class="rm-card"><div class="rn">2</div><h4>Ajustes &amp; Feedback</h4><p>Aprimoramento dos formulários com base na experiência real dos utilizadores.</p></div>
-      <div class="rm-card"><div class="rn">3</div><h4>Expansão Total</h4><p>Integração de todas as enfermarias, bloco operatório e imagiologia.</p></div>
-      <div class="rm-card"><div class="rn">4</div><h4>Consolidação</h4><p>Auditoria final de dados e geração automatizada de relatórios estatísticos.</p></div>
-    </div>
-  </section>
-
-  <!-- CTA -->
-  <section class="section" style="margin-bottom:0;">
-    <div class="cta-wrap">
-      <h2>Tem alguma dúvida?</h2>
-      <p>Estamos prontos para otimizar os fluxos do Hospital do Prenda. Clique abaixo para voltar ao índice geral e aceder ao ecossistema ZELO.</p>
-      <a class="cta-btn" href="index.html">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        Aceder ao Portal ZELO
-      </a>
-    </div>
-  </section>
-
-</main>
-
-<footer>
-  <b>ZELO</b> · Sistema Estatístico e Gestão de Ocorrências · Hospital do Prenda, Luanda, Angola
-</footer>
+<script>
+/* Apresentação: um diapositivo de cada vez, como no PowerPoint.
+   Setas ←/→ (e espaço, Page Up/Down), pontos, deslizar no telemóvel, F = ecrã inteiro. */
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('.slide')), atual=0;
+  var pontos=document.getElementById('pontos'), cont=document.getElementById('cont'), palco=document.getElementById('palco'), wrap=document.getElementById('palcoWrap');
+  slides.forEach(function(_,i){ var p=document.createElement('i'); p.title='Diapositivo '+(i+1); p.onclick=function(){ ir(i); }; pontos.appendChild(p); });
+  function ir(i){
+    i=Math.max(0,Math.min(slides.length-1,i));
+    slides.forEach(function(s,k){ s.classList.toggle('on',k===i); s.classList.toggle('antes',k<i); if(k===i) s.scrollTop=0; });
+    [].forEach.call(pontos.children,function(p,k){ p.classList.toggle('on',k===i); });
+    cont.textContent=(i+1)+' / '+slides.length;
+    document.getElementById('ant').disabled=i===0; document.getElementById('seg').disabled=i===slides.length-1;
+    atual=i; try{ history.replaceState(null,'','#'+(i+1)); }catch(e){}
+  }
+  function escala(){
+    if (window.innerWidth<=820){ palco.style.transform=''; return; }
+    var w=wrap.clientWidth-48, h=wrap.clientHeight-28, k=Math.min(w/1280,h/720);
+    palco.style.transform='translate(-50%,-50%) scale('+k+')';
+  }
+  document.getElementById('ant').onclick=function(){ ir(atual-1); };
+  document.getElementById('seg').onclick=function(){ ir(atual+1); };
+  function ecra(){ try{ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }catch(e){} }
+  document.getElementById('ecra').onclick=ecra;
+  document.addEventListener('keydown',function(e){
+    if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    if (e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){ e.preventDefault(); ir(atual+1); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); ir(atual-1); }
+    else if (e.key==='Home'){ ir(0); } else if (e.key==='End'){ ir(slides.length-1); }
+    else if (e.key==='f'||e.key==='F'){ ecra(); }
+  });
+  var x0=null,y0=null;
+  wrap.addEventListener('touchstart',function(e){ x0=e.touches[0].clientX; y0=e.touches[0].clientY; },{passive:true});
+  wrap.addEventListener('touchend',function(e){ if(x0==null) return; var dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.4) ir(atual+(dx<0?1:-1)); x0=null; },{passive:true});
+  window.addEventListener('resize',escala); document.addEventListener('fullscreenchange',function(){ setTimeout(escala,60); });
+  var h=parseInt((location.hash||'').slice(1),10); ir(h>0?h-1:0); escala(); setTimeout(escala,300);
+})();
+</script>
 
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
