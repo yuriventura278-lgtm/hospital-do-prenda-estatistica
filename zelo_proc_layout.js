@@ -32,6 +32,15 @@
     'html.dark .zp-data .date-disp{color:#BFD3EE !important}',
     // Rodapé por cima do menu fixo e acima da barra de Guardar
     '.zr-rodape{position:relative !important;z-index:120 !important;margin-bottom:44px !important}',
+    // No computador o rodapé começa ao lado do menu lateral (não o tapa)
+    '@media(min-width:769px){.zr-rodape{margin-left:var(--nav-w,220px) !important;z-index:60 !important;padding-left:88px !important;padding-right:88px !important}#zmf-btn{left:calc(var(--nav-w,220px) + 16px) !important}}',
+    '@media(max-width:768px){.zr-rodape{padding-bottom:74px !important}}',
+    // Botões flutuantes (menu e assistente) acima da barra de Guardar
+    '#zmf-btn,#zas-btn{bottom:58px !important}',
+    '.save-bar{padding-left:18px !important;padding-right:18px !important}',
+    '@media(max-width:768px){.save-bar{padding-left:70px !important;padding-right:70px !important}#zmf-btn,#zas-btn{bottom:54px !important}}',
+    // Telemóvel: o cabeçalho cabe na largura do ecrã (Início só com ícone)
+    '@media(max-width:560px){.logo-area{max-width:100%;min-width:0}.logo-area .zc-id{min-width:0;flex:1 1 auto;overflow:hidden}.logo-area .zc-pag{min-width:0}.logo-area .zc-pag b,.logo-area .zc-pag small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.logo-area a.btn-h{font-size:0 !important;gap:0 !important;padding:0 11px !important}.logo-area .btn-h{flex-shrink:0}}',
     '@media(max-width:768px){.zp-data{padding:10px 12px}.zp-data input[type=date]{font-size:.9rem !important}}'
   ].join('\n');
 
