@@ -25,6 +25,10 @@
   // serviço, ex.: Maxilo Facial ao abrir Ortopedia).
   var proc = /^procedimentos_enfermagem_(?!index)[a-z_]+\.html$/.test(ficheiro);
   if (!PAGINAS.test(ficheiro) && !reutilizar && !proc) return;
+  // Controlo de Pacientes e Movimento Hospitalar: só conta quando os dados
+  // desta página mudam de facto neste aparelho (zelo_sync_objeto.js avisa
+  // com 'zelo:alteracao-local'); reenvios da sincronização não contam.
+  var sinc = /^([a-z_]+_movimento|controlo_pacientes_[a-z_]+)\.html$/.test(ficheiro);
   window.__zeloUltAlt = true;
 
   // Páginas que só guardam neste aparelho: conta a gravação destas chaves.
@@ -149,7 +153,7 @@
       var r = f.apply(this, arguments);
       // Procedimentos: só conta a gravação real da página (persist →
       // _mostrarHoraGuardado()), nunca envios automáticos/sincronização.
-      try { if (!proc && !IGNORAR.test(String(path || ''))) registar(); } catch (e) {}
+      try { if (!proc && !sinc && !IGNORAR.test(String(path || ''))) registar(); } catch (e) {}
       return r;
     };
     novo.__zeloUlt = true;
@@ -157,6 +161,7 @@
     if (nome === 'zeloQueueWrite' && !escrever) escrever = function (p, v) { return Promise.resolve(f(p, v)); };
     if (nome === '__fbSet' && !escrever) escrever = function (p, v) { return Promise.resolve(f(p, v)); };
   }
+  if (sinc) window.addEventListener('zelo:alteracao-local', function () { registar(); });
   var regexLocal = LOCAL[ficheiro];
   if (regexLocal) {
     try {

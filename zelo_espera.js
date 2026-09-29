@@ -19,7 +19,7 @@
     else { var g = document.createElement('script'); g.src = url('zelo_graficos.js'); document.head.appendChild(g); }
   }
   if (!document.querySelector('script[src*="zelo_ultima_alteracao.js"]')) {
-    var ua = document.createElement('script'); ua.src = url('zelo_ultima_alteracao.js?v=3'); ua.defer = true;
+    var ua = document.createElement('script'); ua.src = url('zelo_ultima_alteracao.js?v=4'); ua.defer = true;
     (document.head || document.documentElement).appendChild(ua);
   }
   if (window.__zeloIcones || document.querySelector('script[src$="zelo_icones.js"]')) return;

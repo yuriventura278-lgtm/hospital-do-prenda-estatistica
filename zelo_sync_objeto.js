@@ -122,6 +122,10 @@
         var emMassa = nV > (cfg.maxApagar || 1);
         if (emMassa) console.warn('ZELO: ' + esvaziados.length + ' valores esvaziados de uma vez — não enviados (proteção contra perda de dados).');
         else esvaziados.forEach(function (k) { meusTs[k] = agora; });
+        // Houve alteração de dados feita NESTE aparelho (não a junção com o
+        // que veio de outro computador): avisa a etiqueta "Última alteração".
+        var mudouAqui = Object.keys(meusTs).some(function (k) { return meusTs[k] === agora; });
+        if (mudouAqui) { try { window.dispatchEvent(new CustomEvent('zelo:alteracao-local', { detail: { caminho: cfg.caminho } })); } catch (e) {} }
       }
       anterior = atual;
       gravarLS(K_TS, meusTs); gravarLS(K_ANT, anterior);
