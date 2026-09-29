@@ -394,6 +394,36 @@
     b1.addEventListener('click', function () { s = TOTAL; mostrar(); tentarLigar(true); });
     b2.addEventListener('click', function () { if (caixaOff) caixaOff.fechar(faixaSemInternet); });
   }
+  // Página que demora a abrir (ligação lenta): o mesmo modelo do "Sem internet"
+  // — logótipo, círculo com contagem para a nova tentativa, "Tentar agora" e
+  // "Voltar ao Início". Ao chegar a 0 recarrega a página (nova tentativa).
+  var caixaLenta = null;
+  function ligacaoLenta(opcoes) {
+    opcoes = opcoes || {};
+    if (caixaLenta) return caixaLenta;
+    var camada = el('div', 'ze-camada ze-escura');
+    camada.setAttribute('role', 'alertdialog'); camada.style.pointerEvents = 'auto';
+    var caixa = el('div', 'ze-caixa');
+    caixa.appendChild(logoZelo());
+    var anel = criarAnel('NOVA TENTATIVA');
+    anel.cor('lenta');
+    var msg = el('div', 'ze-msg'); msg.textContent = 'Ligação lenta';
+    var det = el('div', 'ze-det'); det.textContent = 'A página está a demorar a abrir. Continua a tentar em segundo plano e abre sozinha assim que a ligação responder.';
+    var bt = el('div', 'ze-botoes');
+    var b1 = el('button', 'ze-btn pri'); b1.type = 'button'; b1.textContent = 'Tentar agora';
+    var b2 = el('a', 'ze-btn sec'); b2.href = opcoes.inicio || 'index.html'; b2.textContent = 'Problemas a entrar? Voltar ao Início'; b2.style.display = 'block'; b2.style.textDecoration = 'underline';
+    bt.appendChild(b1); bt.appendChild(b2);
+    caixa.appendChild(anel.el); caixa.appendChild(msg); caixa.appendChild(det); caixa.appendChild(bt);
+    camada.appendChild(caixa);
+    raiz().appendChild(camada);
+    var TOTAL = opcoes.segundos || 30, s = TOTAL;
+    function mostrar() { anel.texto(s + ' s'); anel.valor(100 * s / TOTAL); }
+    mostrar();
+    var iv = setInterval(function () { s--; if (s <= 0) { clearInterval(iv); location.reload(); return; } mostrar(); }, 1000);
+    b1.addEventListener('click', function () { clearInterval(iv); anel.texto('…'); location.reload(); });
+    caixaLenta = { fechar: function () { clearInterval(iv); caixaLenta = null; sair(camada); }, camada: camada };
+    return caixaLenta;
+  }
   function tentarLigar(manual) {
     if (navigator.onLine) { ligacaoVoltou(); return true; }
     if (manual && typeof window.zeloFlushQueue === 'function') window.zeloFlushQueue();
@@ -610,6 +640,7 @@
     faixa: faixa,
     fecharFaixa: fecharFaixa,
     semInternet: semInternet,
+    ligacaoLenta: ligacaoLenta,
     avisarLenta: avisarLenta,
     gestoRecente: function (ms) { return Date.now() - ultimoGesto < (ms || 4000); }
   };

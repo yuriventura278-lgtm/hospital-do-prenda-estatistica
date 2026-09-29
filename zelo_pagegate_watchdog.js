@@ -8,7 +8,9 @@
 (function () {
   var overlayEl = null;
 
+  var caixa = null;
   function remover() {
+    if (caixa) { try { caixa.fechar(); } catch (e) {} caixa = null; }
     if (overlayEl && overlayEl.parentNode) overlayEl.parentNode.removeChild(overlayEl);
     overlayEl = null;
   }
@@ -28,6 +30,10 @@
       if (!document.body) { document.addEventListener('DOMContentLoaded', mostrar, { once: true }); return; }
       if (getComputedStyle(document.documentElement).visibility !== 'hidden') return;
       document.documentElement.style.visibility = 'visible';
+      // Modelo novo (zelo_espera.js): igual ao ecrã "Sem internet".
+      if (window.ZeloEspera && typeof window.ZeloEspera.ligacaoLenta === 'function') {
+        try { caixa = window.ZeloEspera.ligacaoLenta({ inicio: 'index.html' }); return; } catch (e) {}
+      }
       overlayEl = document.createElement('div');
       overlayEl.style.cssText = 'position:fixed;inset:0;z-index:999999;background:linear-gradient(145deg,#0E141C 0%,#16222F 45%,#2B415E 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:Arial,sans-serif;';
       overlayEl.innerHTML =
