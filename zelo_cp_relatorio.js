@@ -74,6 +74,19 @@
   // Memória: diagnósticos já usados (neste serviço e nos outros Controlos de
   // Pacientes deste computador) + catálogo. { chave: { nome, cid, usos } }
   var MEM_LS = 'zelo_cp_diag_memoria';
+  // Outros diagnósticos do paciente: guardados num só campo de texto (JSON),
+  // para a sincronização tratar a lista como um valor só.
+  function outros(p) {
+    try { var a = JSON.parse(p && p.outrosDiagnosticos || '[]'); return Array.isArray(a) ? a.filter(function (x) { return x && String(x.nome || '').trim(); }) : []; } catch (e) { return []; }
+  }
+  // Todos os diagnósticos de entrada: o principal e os outros.
+  function diagnosticos(p) {
+    var l = [];
+    if (p && String(p.diagnostico || '').trim()) l.push({ nome: String(p.diagnostico).trim(), cid: p.cid || '', principal: true });
+    outros(p).forEach(function (x) { l.push({ nome: String(x.nome).trim(), cid: normCid(x.cid) || '', principal: false }); });
+    return l;
+  }
+  window.zeloCpDiagnosticos = diagnosticos;
   function lerMemoria() { try { return JSON.parse(localStorage.getItem(MEM_LS) || '{}') || {}; } catch (e) { return {}; } }
   function lembrar(nome, cid) {
     nome = String(nome || '').trim(); cid = normCid(cid);
@@ -90,7 +103,7 @@
     var m = lerMemoria();
     Object.keys(m).forEach(function (k) { porChave[k] = Object.assign({}, porChave[k] || {}, m[k], { usos: (m[k].usos || 0) + 1000 }); });
     lista().forEach(function (p) {
-      [[p.diagnostico, p.cid], [p.diagnosticoFinal, p.cidFinal]].forEach(function (par) {
+      [[p.diagnostico, p.cid], [p.diagnosticoFinal, p.cidFinal]].concat(outros(p).map(function (x) { return [x.nome, x.cid]; })).forEach(function (par) {
         if (!par[0]) return;
         var k = norm(par[0]), e = porChave[k] || { nome: String(par[0]).trim(), cid: '', usos: 0 };
         if (par[1]) e.cid = normCid(par[1]);
@@ -135,6 +148,44 @@
     f.innerHTML = '<label>' + rotulo + '</label><input type="text" id="' + id + '" list="cpCidList" placeholder="Ex.: S72.0" autocomplete="off" maxlength="8">';
     return f;
   }
+  // ── Outros diagnósticos (formulários Novo e Atualizar) ──
+  var extras = { f: [], e: [] };
+  function desenharExtras(k) {
+    var box = document.getElementById(k + 'DiagExtraLista'); if (!box) return;
+    box.innerHTML = extras[k].length ? extras[k].map(function (x, i) {
+      return '<span class="cp-dx">' + esc(x.nome) + (x.cid ? ' <code>' + esc(x.cid) + '</code>' : '') + '<button type="button" data-k="' + k + '" data-i="' + i + '" title="Retirar este diagnóstico">×</button></span>';
+    }).join('') : '<span class="cp-dx-vazio">Sem outros diagnósticos.</span>';
+  }
+  function juntarExtra(k) {
+    var d = document.getElementById(k + 'DiagExtra'), c = document.getElementById(k + 'CidExtra');
+    var nome = String(d && d.value || '').trim(); if (!nome) return false;
+    var cid = normCid(c && c.value) || cidDe(nome) || '';
+    var principal = String((document.getElementById(k + 'Diagnostico') || {}).value || '').trim();
+    var repetido = norm(nome) === norm(principal) || extras[k].some(function (x) { return norm(x.nome) === norm(nome); });
+    if (!repetido) extras[k].push({ nome: nome, cid: cid });
+    d.value = ''; if (c) { c.value = ''; c.dataset.manual = ''; }
+    desenharExtras(k); return true;
+  }
+  function blocoExtras(k) {
+    var inp = document.getElementById(k + 'Diagnostico'); if (!inp || document.getElementById(k + 'DiagExtra')) return;
+    var linha = inp.closest('.form-row'); if (!linha) return;
+    var dica = document.createElement('div'); dica.className = 'cp-dx-dica';
+    dica.textContent = 'Não encontra o diagnóstico na lista? Escreva-o como quiser: fica guardado e passa a aparecer na lista, e conta na estatística.';
+    linha.parentNode.insertBefore(dica, linha.nextSibling);
+    var bloco = document.createElement('div'); bloco.className = 'cp-dx-bloco';
+    bloco.innerHTML = '<label>Outros diagnósticos (opcional)</label><div class="cp-dx-lista" id="' + k + 'DiagExtraLista"></div>' +
+      '<div class="cp-dx-add"><input type="text" id="' + k + 'DiagExtra" list="diagnosticosList" placeholder="Outro diagnóstico" autocomplete="off">' +
+      '<input type="text" id="' + k + 'CidExtra" list="cpCidList" placeholder="CID-10" maxlength="8" autocomplete="off" class="cp-dx-cid">' +
+      '<button type="button" class="btn btn-secondary" data-add="' + k + '">+ Adicionar</button></div>';
+    dica.parentNode.insertBefore(bloco, dica.nextSibling);
+    ligarPar(k + 'DiagExtra', k + 'CidExtra');
+    bloco.addEventListener('click', function (e) {
+      var a = e.target.closest('[data-add]'); if (a) { juntarExtra(k); return; }
+      var r = e.target.closest('button[data-i]'); if (r) { extras[k].splice(+r.dataset.i, 1); desenharExtras(k); }
+    });
+    document.getElementById(k + 'DiagExtra').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); juntarExtra(k); } });
+    desenharExtras(k);
+  }
   function inserirCampos() {
     if (document.getElementById('fCid')) return;
     var dl = document.createElement('datalist'); dl.id = 'cpCidList'; document.body.appendChild(dl);
@@ -148,8 +199,9 @@
       if (/Final/.test(t[0])) { inp.setAttribute('list', 'cpDiagFinalList'); inp.placeholder = 'Causa / diagnóstico final'; }
       ligarPar(t[0], t[1]);
     });
+    blocoExtras('f'); blocoExtras('e');
     var st = document.createElement('style');
-    st.textContent = '.modal-body .form-row.cp-linha-diag{grid-template-columns:3fr 1fr !important}@media(max-width:560px){.modal-body .form-row.cp-linha-diag{grid-template-columns:1fr !important}}.cp-cid-field input{text-transform:uppercase;font-family:ui-monospace,Consolas,monospace !important;letter-spacing:.04em}';
+    st.textContent = '.cp-dx-dica{font-size:.76rem;color:#64748B;margin:-6px 0 10px}.cp-dx-bloco{margin:0 0 14px;padding:10px 12px;border:1px dashed #CBD5E1;border-radius:12px;background:#F8FAFC}.cp-dx-bloco>label{display:block;font:700 .7rem Inter,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#64748B;margin-bottom:6px}.cp-dx-lista{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.cp-dx{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #CBD5E1;border-radius:999px;padding:4px 6px 4px 11px;font:600 .8rem Inter,Arial,sans-serif;color:#1E293B}.cp-dx code{background:#E9EEF4;color:#3E5C87;border-radius:5px;padding:0 5px;font-size:.72rem}.cp-dx button{border:0;background:#FEE2E2;color:#B91C1C;width:20px;height:20px;border-radius:50%;cursor:pointer;font-weight:800;line-height:1}.cp-dx-vazio{font-size:.78rem;color:#94A3B8}.cp-dx-add{display:grid;grid-template-columns:1fr 110px auto;gap:8px}.cp-dx-add input{height:44px;border:1.5px solid #D5DEEA !important;border-radius:10px !important;background:#fff !important;padding:0 12px !important;font:500 .9rem Inter,Arial,sans-serif !important;box-sizing:border-box;width:100%}.cp-dx-add input:focus{outline:none;border-color:#3E5C87 !important;box-shadow:0 0 0 3px rgba(62,92,135,.15)}.cp-dx-add .btn{height:44px}.cp-dx-add .btn{white-space:nowrap}.cp-dx-cid{text-transform:uppercase;font-family:ui-monospace,Consolas,monospace !important}@media(max-width:560px){.cp-dx-add{grid-template-columns:1fr 90px}.cp-dx-add .btn{grid-column:1/-1}}' + '.modal-body .form-row.cp-linha-diag{grid-template-columns:3fr 1fr !important}@media(max-width:560px){.modal-body .form-row.cp-linha-diag{grid-template-columns:1fr !important}}.cp-cid-field input{text-transform:uppercase;font-family:ui-monospace,Consolas,monospace !important;letter-spacing:.04em}';
     document.head.appendChild(st);
     preencherListas();
   }
@@ -164,20 +216,30 @@
   function gravar() { try { saveData(); } catch (e) {} preencherListas(); }
   function ligarFuncoes() {
     envolver('addPaciente', function () {
-      return { nup: (document.getElementById('fNUP') || {}).value, cid: normCid((document.getElementById('fCid') || {}).value), diag: (document.getElementById('fDiagnostico') || {}).value, n: lista().length };
+      juntarExtra('f'); // um diagnóstico escrito mas não adicionado também conta
+      return { nup: (document.getElementById('fNUP') || {}).value, cid: normCid((document.getElementById('fCid') || {}).value), diag: (document.getElementById('fDiagnostico') || {}).value, n: lista().length, extras: extras.f.slice() };
     }, function (c) {
       if (lista().length <= c.n) return; // não foi registado (faltava algo)
       var p = lista().filter(function (x) { return String(x.nup).trim() === String(c.nup).trim(); })[0];
-      if (p) { p.cid = c.cid || cidDe(p.diagnostico) || ''; lembrar(p.diagnostico, p.cid); gravar(); }
+      if (p) {
+        p.cid = c.cid || cidDe(p.diagnostico) || ''; lembrar(p.diagnostico, p.cid);
+        if (c.extras.length) p.outrosDiagnosticos = JSON.stringify(c.extras);
+        c.extras.forEach(function (x) { lembrar(x.nome, x.cid); });
+        gravar();
+      }
+      extras.f = []; desenharExtras('f');
       var ci = document.getElementById('fCid'); if (ci) { ci.value = ''; ci.dataset.manual = ''; }
     });
     envolver('editPaciente', null, function () {
       var p = lista().filter(function (x) { return x.n === editingPacienteN; })[0];
       var ci = document.getElementById('eCid'); if (ci) { ci.value = p ? (p.cid || '') : ''; ci.dataset.manual = p && p.cid ? '1' : ''; }
       var cf = document.getElementById('eCidFinal'); if (cf) { cf.value = p ? (p.cidFinal || '') : ''; cf.closest('.field').style.display = p && p.tipoSaida === 'Óbito' ? '' : 'none'; }
+      extras.e = p ? outros(p).map(function (x) { return { nome: x.nome, cid: normCid(x.cid) }; }) : []; desenharExtras('e');
+      var de = document.getElementById('eDiagExtra'); if (de) de.value = '';
     });
     envolver('updatePaciente', function () {
-      return { n: editingPacienteN, cid: normCid((document.getElementById('eCid') || {}).value), cidF: normCid((document.getElementById('eCidFinal') || {}).value) };
+      juntarExtra('e');
+      return { n: editingPacienteN, cid: normCid((document.getElementById('eCid') || {}).value), cidF: normCid((document.getElementById('eCidFinal') || {}).value), extras: extras.e.slice() };
     }, function (c) {
       if (editingPacienteN !== null) return; // não gravou
       var p = lista().filter(function (x) { return x.n === c.n; })[0];
@@ -185,6 +247,9 @@
       p.cid = c.cid || cidDe(p.diagnostico) || '';
       if (p.tipoSaida === 'Óbito') p.cidFinal = c.cidF || cidDe(p.diagnosticoFinal) || '';
       lembrar(p.diagnostico, p.cid); if (p.diagnosticoFinal) lembrar(p.diagnosticoFinal, p.cidFinal);
+      var novo = c.extras.length ? JSON.stringify(c.extras) : '';
+      if (novo || p.outrosDiagnosticos) p.outrosDiagnosticos = novo;
+      c.extras.forEach(function (x) { lembrar(x.nome, x.cid); });
       gravar();
     });
     envolver('addSaida', function () {
@@ -283,7 +348,8 @@
       obitosMais48: obitos.filter(function (p) { return p.subtipo === 'Óbito >48h'; }).length,
       tiposSaida: Object.keys(tiposSaida).map(function (k) { var a = k.split('|'); return { tipo: a[0], det: a[1], n: tiposSaida[k] }; })
         .sort(function (a, b) { return a.tipo.localeCompare(b.tipo) || b.n - a.n; }),
-      diagEntradas: frequencia(entradas, 'diagnostico', 'cid'),
+      diagEntradas: frequencia([].concat.apply([], entradas.map(function (p) { return diagnosticos(p).map(function (x) { return Object.assign({}, p, { diagnostico: x.nome, cid: x.cid }); }); })), 'diagnostico', 'cid'),
+      nDiagEntradas: entradas.reduce(function (s, p) { return s + diagnosticos(p).length; }, 0),
       diagObitos: frequencia(obitos, 'diagnosticoFinal', 'cidFinal').map(function (x, i, arr) { return x; }),
       faixaEntradas: faixaGenero(entradas), faixaObitos: faixaGenero(obitos, true),
       proveniencia: Object.keys(prov).map(function (k) { return [k, prov[k]]; }).sort(function (a, b) { return b[1] - a[1]; }),
@@ -396,7 +462,7 @@
     alvo.innerHTML =
       sec(1, 'Resumo por género', gen, { nota: 'Mulheres e homens' }) +
       sec('▮', 'Entradas por faixa etária e género', a.entradas.length ? graficoFaixa(a.faixaEntradas) : '<div class="vazio">Sem entradas neste período.</div>', { nota: a.entradas.length + ' entrada(s)' }) +
-      sec(2, 'Diagnósticos das entradas — por frequência', tabelaDiag(a.diagEntradas), { largo: true, nota: a.entradas.length + ' entrada(s)' }) +
+      sec(2, 'Diagnósticos das entradas — por frequência', tabelaDiag(a.diagEntradas), { largo: true, nota: a.entradas.length + ' entrada(s) · ' + a.nDiagEntradas + ' diagnóstico(s), incluindo os secundários' }) +
       sec(3, 'Óbitos por diagnóstico — por frequência', tabelaDiag(dObitos), { largo: true, vermelho: true, nota: a.obitos.length + ' óbito(s)' }) +
       sec(4, 'Entradas por faixa etária e género', tabelaFaixa(a.faixaEntradas)) +
       sec(5, 'Óbitos por faixa etária e género', a.obitos.length ? tabelaFaixa(a.faixaObitos, true) : '<div class="vazio">Sem óbitos neste período.</div>', { vermelho: true }) +
@@ -505,7 +571,7 @@
     y = pdf.secT(y, '10. Entradas no Período (' + a.entradas.length + ')');
     if (a.entradas.length) y = pdf.tabela(y, ['Nº', 'Nome', 'Idade', 'Género', 'Entrada', 'Diagnóstico', 'CID-10'], [10, 45, 14, 20, 24, CW - 135, 22],
       a.entradas.slice().sort(function (x, z) { return String(x.dataEntrada).localeCompare(String(z.dataEntrada)); })
-        .map(function (p) { return [String(p.n), p.nome, String(p.idade), p.genero || '—', fd(p.dataEntrada), p.diagnostico || '—', p.cid || '—']; }));
+        .map(function (p) { var ds = diagnosticos(p); return [String(p.n), p.nome, String(p.idade), p.genero || '—', fd(p.dataEntrada), ds.length ? ds.map(function (x) { return x.nome; }).join('; ') : '—', ds.filter(function (x) { return x.cid; }).map(function (x) { return x.cid; }).join('; ') || '—']; }));
     else y = pdf.txt(y, ' ', 'Sem entradas neste período.');
 
     y = pdf.secT(y, '11. Saídas no Período (' + a.saidas.length + ')');

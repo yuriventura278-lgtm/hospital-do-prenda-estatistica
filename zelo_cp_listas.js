@@ -75,6 +75,7 @@
     '.cpg-tw tbody tr:hover td{background:#EEF4FB}',
     '.cpg-tw tbody tr td:first-child{box-shadow:inset 3px 0 0 var(--g)}',
     '.cpg-tw td.cpg-nome{white-space:normal;min-width:170px}',
+    '.cpg-tw td.cpg-diag{white-space:normal;min-width:150px}.cpg-mais-diag{display:block;color:#64748B;font-size:.74rem;margin-top:1px}',
     '.cpg-nome b{font-weight:700}.cpg-nome small{display:block;color:#64748B;font-size:.74rem;margin-top:1px}',
     '.cpg-tag{display:inline-block;border-radius:5px;padding:1px 6px;font:700 .6rem Inter,Arial,sans-serif;letter-spacing:.05em;text-transform:uppercase;margin-left:6px;vertical-align:middle;background:#ECFDF5;color:#047857}',
     '.cpg-fxc{display:inline-block;border-radius:6px;padding:2px 7px;background:#F0FDFA;color:#0F766E;font:700 .72rem Inter,Arial,sans-serif;white-space:nowrap}',
@@ -180,8 +181,14 @@
     var c = '<td>' + p.n + '</td><td class="cpg-nome"><b class="cpp-link" data-proc="' + p.n + '" title="Ver o processo completo">' + esc(p.nome) + '</b>' + novo + '<small>NUP ' + esc(p.nup || '—') + '</small></td>' +
       '<td>' + esc(p.idade) + '</td><td><span class="cpg-fxc">' + (faixa(p) || '—') + '</span></td><td>' + esc(p.cama || '—') + '</td><td>' + fmt(p.dataEntrada) + '</td>';
     if (op.saida) c += '<td>' + fmt(p.dataSaida) + '</td><td>' + tipoSaida(p) + '</td><td>' + diasDe(p) + '</td><td>' + esc(p.diagnosticoFinal || p.diagnostico || '—') + '</td>';
-    else c += '<td>' + diasDe(p, op.ate) + '</td><td>' + esc(p.diagnostico || '—') + '</td><td>' + esc(p.proveniencia || '—') + '</td>';
+    else c += '<td>' + diasDe(p, op.ate) + '</td><td class="cpg-diag">' + diagTxt(p) + '</td><td>' + esc(p.proveniencia || '—') + '</td>';
     return '<tr>' + c + '<td><div class="cpg-acoes">' + acoes(p, op) + '</div></td></tr>';
+  }
+  // Diagnóstico principal + outros (se houver).
+  function diagTxt(p) {
+    var l = window.zeloCpDiagnosticos ? window.zeloCpDiagnosticos(p) : [{ nome: p.diagnostico }];
+    if (!l.length) return '—';
+    return esc(l[0].nome) + (l.length > 1 ? '<small class="cpg-mais-diag" title="' + esc(l.slice(1).map(function (x) { return x.nome; }).join('; ')) + '">+ ' + esc(l.slice(1).map(function (x) { return x.nome; }).join('; ')) + '</small>' : '');
   }
   function linhaMob(p, op) {
     var novo = op.dia && dia(p.dataEntrada) === op.dia ? '<span class="cpg-tag">' + (op.dia === hojeISO() ? 'Hoje' : 'Entrou') + '</span>' : '';
@@ -221,7 +228,7 @@
     return lista.filter(function (p) {
       if (filtroFaixa && (faixa(p) || '?') !== filtroFaixa) return false;
       if (!q) return true;
-      return [p.n, p.nome, p.nup, p.idade, p.cama, p.diagnostico, p.diagnosticoFinal].join(' ').toLowerCase().indexOf(q) >= 0;
+      return [p.n, p.nome, p.nup, p.idade, p.cama, p.diagnostico, p.outrosDiagnosticos, p.diagnosticoFinal].join(' ').toLowerCase().indexOf(q) >= 0;
     });
   }
 

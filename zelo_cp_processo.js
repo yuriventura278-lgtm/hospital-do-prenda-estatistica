@@ -30,6 +30,12 @@
   function hojeISO() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function agoraISO() { var d = new Date(); return hojeISO() + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
   function faixa(idade) { var i = parseInt(idade, 10); if (isNaN(i)) return '—'; return i <= 14 ? '0–14' : i <= 24 ? '15–24' : i <= 44 ? '25–44' : i <= 64 ? '45–64' : '65 ou mais'; }
+  function diags(p) { return window.zeloCpDiagnosticos ? window.zeloCpDiagnosticos(p) : (p.diagnostico ? [{ nome: p.diagnostico, cid: p.cid, principal: true }] : []); }
+  function diagsHTML(p) {
+    var l = diags(p); if (!l.length) return '—';
+    return l.map(function (x, i) { return (i ? '<br>' : '') + esc(x.nome) + (x.cid ? ' <small style="display:inline">(' + esc(x.cid) + ')</small>' : '') + (l.length > 1 ? ' <small style="display:inline">· ' + (x.principal ? 'principal' : 'secundário') + '</small>' : ''); }).join('');
+  }
+  function diagsTxt(p) { var l = diags(p); return l.length ? l.map(function (x) { return x.nome + (x.cid ? ' (' + x.cid + ')' : ''); }).join('; ') : '—'; }
   function norm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 
   // ── Quem está a registar ──
@@ -104,6 +110,8 @@
     '.cpp-acoes{display:flex;gap:8px;justify-content:flex-end;padding:12px 20px 18px;flex-wrap:wrap;border-top:1px solid #EEF2F7}',
     '.cpp-bt{border:1px solid #CBD5E1;background:#fff;color:#1E3A5F;border-radius:10px;padding:9px 16px;font:700 .85rem Inter,Arial;cursor:pointer}',
     '.cpp-bt.p{background:#1E3A5F;border-color:#1E3A5F;color:#fff}.cpp-bt.s{background:#D97706;border-color:#D97706;color:#fff}',
+    '.cpp-eliminar{margin-right:auto !important;text-transform:none !important;letter-spacing:0 !important;background:#fff !important;color:#B91C1C !important;border:1.5px solid #FCA5A5 !important}',
+    '.cpp-eliminar:hover{background:#FEF2F2 !important}',
     '.cpp-tag{display:inline-block;border-radius:7px;padding:3px 9px;font:700 .72rem Inter,Arial;color:#fff;background:var(--t)}',
     // Resultados da pesquisa na lista
     '.cpp-res{margin:0 16px 12px;border:1px solid #BFDBFE;background:#F5F9FF;border-radius:12px;overflow:hidden}',
@@ -179,7 +187,7 @@
         '</div></div>' +
         '<div class="cpp-sec"><h4>Internamento</h4><div class="cpp-grid">' +
           campo('Data e hora de entrada', fmtDH(p.dataEntrada)) + campo('Cama / Sala', esc(p.cama)) + campo('Proveniência', esc(p.proveniencia)) + campo('Dias internado', nDias == null ? '' : nDias + ' dia(s)') +
-          campo('Diagnóstico de entrada', esc(p.diagnostico) + (p.cid ? ' <small>CID-10: ' + esc(p.cid) + '</small>' : ''), true) +
+          campo(diags(p).length > 1 ? 'Diagnósticos de entrada (' + diags(p).length + ')' : 'Diagnóstico de entrada', diagsHTML(p), true) +
           campo('Registado por', autorTxt(p.registadoPor, p.registadoFuncao, p.registadoEm), true) +
         '</div></div>' +
         (!internado ? '<div class="cpp-sec"><h4>Saída</h4><div class="cpp-grid">' +
@@ -190,8 +198,10 @@
         '<div class="cpp-sec"><h4>Percurso</h4><div class="cpp-tl">' + tl + '</div></div>' +
       '</div>' +
       '<div class="cpp-acoes"><button type="button" class="cpp-bt" data-fechar>Fechar</button>' +
+        '<button type="button" class="cpp-bt" data-pdf>Guardar em PDF</button>' +
         '<button type="button" class="cpp-bt p" data-acao="atu">Atualizar dados</button>' +
         (internado ? '<button type="button" class="cpp-bt s" data-acao="sai">Registar saída</button>' : '') + '</div></div>';
+    ov.querySelector('[data-pdf]').addEventListener('click', function () { pdfProcesso(p.n); });
     ov.querySelectorAll('[data-acao]').forEach(function (b) {
       b.addEventListener('click', function () {
         fechar();
@@ -202,6 +212,56 @@
     ov.classList.add('on');
   }
   function fechar() { if (ov) ov.classList.remove('on'); }
+
+  // ── Processo em PDF (modelo geral dos PDF do ZELO) ──
+  function servico() { var t = document.title.split('—'); return t[t.length - 1].trim(); }
+  function quemTxt(nome, funcao, quando) { return nome ? nome + (funcao ? ' (' + funcao + ')' : '') + (quando ? ' — ' + fmtDH(quando) : '') : 'Não registado (registo anterior)'; }
+  function pdfProcesso(n) {
+    var p = porN(n); if (!p) return;
+    if (!window.ZeloPDF || !window.jspdf) { if (typeof showFeedback === 'function') showFeedback('Não foi possível carregar o gerador de PDF', 'error'); return; }
+    var internado = p.status === 'internado';
+    var nD = internado ? dias(p.dataEntrada, hojeISO()) : dias(p.dataEntrada, p.dataSaida);
+    var pdf = ZeloPDF.criar(), CW = pdf.CW, y;
+    y = pdf.cab('Processo do Paciente — ' + servico(), p.nome + ' · NUP ' + (p.nup || '—') + ' · ' + (internado ? 'Internado' : 'Saiu do serviço'));
+    var tab = function (y, linhas) { return pdf.tabela(y, ['Campo', 'Informação'], [55, CW - 55], linhas.map(function (l) { return [l[0], String(l[1] == null || l[1] === '' ? '—' : l[1])]; })); };
+    y = pdf.secT(y, '1. Identificação');
+    y = tab(y, [['Nome', p.nome], ['NUP', p.nup], ['Nº do processo', p.n], ['Idade', p.idade !== '' && p.idade != null ? p.idade + ' anos' : ''], ['Faixa etária', faixa(p.idade)], ['Género', p.genero]]);
+    y = pdf.secT(y, '2. Internamento');
+    var ds = diags(p);
+    y = tab(y, [['Data e hora de entrada', fmtDH(p.dataEntrada)], ['Cama / Sala', p.cama], ['Proveniência', p.proveniencia], ['Dias internado', nD == null ? '' : nD + ' dia(s)' + (internado ? ' (até hoje)' : '')]]
+      .concat(ds.length ? ds.map(function (x, i) { return [ds.length > 1 ? (x.principal ? 'Diagnóstico principal' : 'Diagnóstico secundário ' + i) : 'Diagnóstico de entrada', x.nome + (x.cid ? '  ·  CID-10 ' + x.cid : '')]; }) : [['Diagnóstico de entrada', '']])
+      .concat([['Registado por', quemTxt(p.registadoPor, p.registadoFuncao, p.registadoEm)]]));
+    y = pdf.secT(y, '3. Saída');
+    y = internado ? pdf.txt(y, ' ', 'O paciente continua internado.')
+      : tab(y, [['Data e hora de saída', fmtDH(p.dataSaida)], ['Tipo de saída', (p.tipoSaida === 'Alta Vivo' ? 'Alta' : p.tipoSaida || '') + (p.subtipo && p.subtipo !== '—' ? ' · ' + p.subtipo : '')]]
+          .concat(p.diagnosticoFinal ? [['Diagnóstico final', p.diagnosticoFinal + (p.cidFinal ? '  ·  CID-10 ' + p.cidFinal : '')]] : [])
+          .concat([['Saída registada por', quemTxt(p.saidaRegistadaPor, p.saidaRegistadaFuncao, p.saidaRegistadaEm)]]));
+    y = pdf.secT(y, '4. Percurso');
+    var perc = [['Entrada', fmtDH(p.dataEntrada), quemTxt(p.registadoPor, p.registadoFuncao, p.registadoEm)]];
+    if (p.atualizadoPor) perc.push(['Última atualização', fmtDH(p.atualizadoEm), quemTxt(p.atualizadoPor, p.atualizadoFuncao)]);
+    if (!internado) perc.push(['Saída', fmtDH(p.dataSaida), quemTxt(p.saidaRegistadaPor, p.saidaRegistadaFuncao, p.saidaRegistadaEm)]);
+    y = pdf.tabela(y, ['Passo', 'Data e hora', 'Profissional'], [38, 42, CW - 80], perc);
+    pdf.rodape();
+    pdf.d.save(('Processo_' + p.nome + '_NUP_' + (p.nup || p.n)).replace(/[^\wÀ-ÿ]+/g, '_') + '.pdf');
+    if (typeof showFeedback === 'function') showFeedback('PDF do processo gerado', 'success');
+  }
+
+  // ── Atualizar: botão para eliminar o registo (pede confirmação) ──
+  function eliminarNaEdicao() {
+    var modal = document.getElementById('editModal'); if (!modal || document.getElementById('cpp-eliminar')) return;
+    var foot = modal.querySelector('.modal-footer'); if (!foot) return;
+    var b = document.createElement('button'); b.type = 'button'; b.id = 'cpp-eliminar'; b.className = 'btn cpp-eliminar';
+    b.innerHTML = '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Eliminar registo';
+    foot.insertBefore(b, foot.firstChild);
+    b.addEventListener('click', function () {
+      var n; try { n = editingPacienteN; } catch (e) { n = null; }
+      var p = porN(n); if (!p) return;
+      if (!confirm('Eliminar o registo de ' + p.nome + ' (NUP ' + (p.nup || '—') + ')?\n\nO registo sai deste serviço em todos os computadores. Esta ação não pode ser desfeita.')) return;
+      var orig = window.confirm; window.confirm = function () { return true; };   // já confirmou acima
+      try { deletePaciente(p.n); } finally { window.confirm = orig; }
+      if (!porN(p.n)) { try { closeModal('editModal'); } catch (e) {} try { editingPacienteN = null; } catch (e) {} }
+    });
+  }
 
   // ── Pesquisa em todos os processos (nome, NUP ou nº) ──
   function procurar(q) {
@@ -237,7 +297,7 @@
                 '<div><span>NUP</span><b>' + esc(p.nup || '—') + '</b></div><div><span>Idade · Género</span><b>' + esc(p.idade) + ' anos · ' + esc(p.genero || '—') + '</b></div>' +
                 '<div><span>Cama / Sala</span><b>' + esc(p.cama || '—') + '</b></div><div><span>Entrada</span><b>' + fmtDH(p.dataEntrada) + '</b></div>' +
                 '<div><span>Dias internado</span><b>' + (nD == null ? '—' : nD) + '</b></div><div><span>Proveniência</span><b>' + esc(p.proveniencia || '—') + '</b></div>' +
-                '<div style="grid-column:1/-1"><span>Diagnóstico</span><b>' + esc(p.diagnostico || '—') + (p.cid ? ' (' + esc(p.cid) + ')' : '') + '</b></div>' +
+                '<div style="grid-column:1/-1"><span>Diagnóstico' + (diags(p).length > 1 ? 's' : '') + '</span><b>' + esc(diagsTxt(p)) + '</b></div>' +
                 '<div style="grid-column:1/-1"><span>Registado por</span><b>' + (p.registadoPor ? esc(p.registadoPor) + (p.registadoFuncao ? ' · ' + esc(p.registadoFuncao) : '') + (p.registadoEm ? ' — ' + fmtDH(p.registadoEm) : '') : '<span class="cpp-nd">Não registado (registo anterior)</span>') + '</b></div>' +
               '</div>';
           }
@@ -289,7 +349,7 @@
     var nE = ev.filter(function (e) { return e.t === 'e'; }).length, nS = ev.length - nE;
     var nOb = ev.filter(function (e) { return e.t === 's' && e.p.tipoSaida === 'Óbito'; }).length;
     var q = norm(qHist).trim();
-    if (q) ev = ev.filter(function (e) { return norm([e.p.nome, e.p.nup, e.p.n, e.p.diagnostico, e.p.cama, e.p.registadoPor, e.p.saidaRegistadaPor].join(' ')).indexOf(q) >= 0; });
+    if (q) ev = ev.filter(function (e) { return norm([e.p.nome, e.p.nup, e.p.n, e.p.diagnostico, e.p.outrosDiagnosticos, e.p.cama, e.p.registadoPor, e.p.saidaRegistadaPor].join(' ')).indexOf(q) >= 0; });
     ev.sort(function (a, b) { return String(b.quando).localeCompare(String(a.quando)); });
     var porDia = {}; ev.forEach(function (e) { (porDia[dia(e.quando)] = porDia[dia(e.quando)] || []).push(e); });
     var html = '<div class="cph-res"><div><b>' + nE + '</b><span>Entradas no mês</span></div><div><b>' + nS + '</b><span>Saídas no mês</span></div><div><b>' + nOb + '</b><span>Óbitos</span></div><div><b>' + Object.keys(porDia).length + '</b><span>Dias com registos' + (q ? ' (pesquisa)' : '') + '</span></div></div>';
@@ -307,7 +367,7 @@
           return '<div class="cph-l" data-proc="' + p.n + '"><span class="cph-h">' + (hora(x.quando) || '—') + '</span>' +
             (ent ? '<span class="cph-t e">Entrada</span>' : '<span class="cph-t s" style="--t:' + (TIPO_COR[t] || '#D97706') + '">' + esc(t === 'Alta Vivo' ? 'Alta' : t) + '</span>') +
             '<div class="n"><b>' + esc(p.nome) + '</b><div class="l2">NUP ' + esc(p.nup || '—') + ' · ' + esc(p.idade) + ' anos · ' + esc(p.genero || '—') + ' · ' + esc(p.cama || 'sem cama') +
-              (ent ? ' · ' + esc(p.diagnostico || '—') : ' · Entrou ' + fmtDH(p.dataEntrada) + ' · ' + (dias(p.dataEntrada, p.dataSaida) == null ? '' : dias(p.dataEntrada, p.dataSaida) + ' dia(s)') + (p.subtipo && p.subtipo !== '—' ? ' · ' + esc(p.subtipo) : '')) +
+              (ent ? ' · ' + esc(diagsTxt(p)) : ' · Entrou ' + fmtDH(p.dataEntrada) + ' · ' + (dias(p.dataEntrada, p.dataSaida) == null ? '' : dias(p.dataEntrada, p.dataSaida) + ' dia(s)') + (p.subtipo && p.subtipo !== '—' ? ' · ' + esc(p.subtipo) : '')) +
               '</div><div class="l3">' + quem + '</div></div><span class="ver">Ver processo ›</span></div>';
         }).join('') + '</div>';
     });
@@ -336,7 +396,7 @@
   function montar() {
     if (document.getElementById('cpp-estilos')) return;
     var st = document.createElement('style'); st.id = 'cpp-estilos'; st.textContent = css; document.head.appendChild(st);
-    ligarAutoria(); melhorarSaida(); melhorarHistorico();
+    ligarAutoria(); melhorarSaida(); melhorarHistorico(); eliminarNaEdicao();
     // Qualquer elemento com data-proc abre o processo desse paciente.
     document.addEventListener('click', function (e) {
       var el = e.target.closest('[data-proc]'); if (!el) return;
