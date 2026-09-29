@@ -81,6 +81,19 @@
       }
     },
 
+    "auditoria_registos": {
+      ".read": "auth != null",
+
+      "$pagina": {
+        "$dia": {
+          "$id": {
+            ".write": "auth != null && !data.exists() && newData.exists()",
+            ".validate": "newData.hasChildren(['ts', 'nome', 'acao'])"
+          }
+        }
+      }
+    },
+
     "audit_log": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
 

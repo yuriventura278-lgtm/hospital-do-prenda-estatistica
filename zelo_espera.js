@@ -18,6 +18,17 @@
     if (document.readyState === 'loading') document.write('<script src="' + url('zelo_graficos.js') + '"><\/script>');
     else { var g = document.createElement('script'); g.src = url('zelo_graficos.js'); document.head.appendChild(g); }
   }
+  // Histórico de registos (quem registou/editou o quê): carregado já, antes
+  // das leituras da página, para saber o "antes" de cada alteração.
+  if (!window.__zeloAuditoria && !document.querySelector('script[src*="zelo_auditoria.js"]')) {
+    if (document.readyState === 'loading') document.write('<script src="' + url('zelo_auditoria.js?v=1') + '"><\/script>');
+    else { var au = document.createElement('script'); au.src = url('zelo_auditoria.js?v=1'); document.head.appendChild(au); }
+  }
+  // Menu da página (Guardar, Exportar, Backup… saem do cabeçalho).
+  if (!document.querySelector('script[src*="zelo_menu_pagina.js"]')) {
+    var mp = document.createElement('script'); mp.src = url('zelo_menu_pagina.js?v=1'); mp.defer = true;
+    (document.head || document.documentElement).appendChild(mp);
+  }
   // Ecrã de espera por inatividade (logótipo em puzzle) em todas as páginas.
   if (!document.querySelector('script[src*="zelo_protecao_ecra.js"]')) {
     var pe = document.createElement('script'); pe.src = url('zelo_protecao_ecra.js?v=1'); pe.defer = true;
