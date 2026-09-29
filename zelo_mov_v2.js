@@ -72,6 +72,8 @@
   @media (min-width:1100px){.m2-semcab{display:none}.m2-dias{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}.m2-dias>span{display:none}.m2-dias .m2-d{min-height:62px;font-size:1.15rem;border-radius:12px}}
   @media (max-width:1099px){.m2-grps{grid-template-columns:1fr}.m2-grps .m2-grp{margin-bottom:0}}
   #m2Resumo{margin:16px 0}
+  .m2-grafs{display:grid;grid-template-columns:1.3fr 1.3fr 1fr;gap:16px;align-items:start}
+  @media (max-width:980px){.m2-grafs{grid-template-columns:1fr}}
   #m2Resumo .m2-ind{grid-template-columns:repeat(4,1fr)}
   @media (max-width:980px){.m2-g2.m2-g2d{grid-template-columns:1fr}#m2Resumo .m2-ind{grid-template-columns:repeat(2,1fr)}.m2-g2 .m2-cal-card{order:-1}}
   .m2-d{border-radius:9px;text-align:center;padding:5px 0 4px;font:800 .84rem ui-monospace,Consolas,monospace;border:1.5px solid #E3E8F0;background:#fff;color:#0F172A;cursor:pointer}
@@ -312,6 +314,53 @@
     }).join('');
     return h + '</div>';
   }
+  function linha(vals, n, cap) {
+    var W = 520, H = 150, x0 = 30, y0 = 128, max = Math.max(cap, 1, Math.max.apply(null, vals.concat([0])));
+    var X = function (i) { return x0 + (W - x0 - 10) * (n > 1 ? i / (n - 1) : 0); }, Y = function (v) { return y0 - (y0 - 16) * v / max; };
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Doentes internados por dia">';
+    [0, 0.5, 1].forEach(function (f) { var y = Y(max * f); s += '<line x1="' + x0 + '" y1="' + y + '" x2="' + (W - 6) + '" y2="' + y + '" stroke="#EEF2F7"/><text x="' + (x0 - 5) + '" y="' + (y + 4) + '" font-size="10" fill="#94A3B8" text-anchor="end">' + Math.round(max * f) + '</text>'; });
+    s += '<line x1="' + x0 + '" y1="' + Y(cap) + '" x2="' + (W - 6) + '" y2="' + Y(cap) + '" stroke="#DC2626" stroke-dasharray="4 4"/><text x="' + (W - 8) + '" y="' + (Y(cap) - 4) + '" font-size="10" fill="#DC2626" text-anchor="end">lotação ' + cap + '</text>';
+    if (vals.length) {
+      var pts = vals.map(function (v, i) { return X(i) + ' ' + Y(v); });
+      s += '<path d="M' + pts.join(' L') + ' L' + X(vals.length - 1) + ' ' + y0 + ' L' + x0 + ' ' + y0 + 'Z" fill="#1E3A5F" opacity=".08"/>' +
+        '<path d="M' + pts.join(' L') + '" fill="none" stroke="#1E3A5F" stroke-width="2.4" stroke-linejoin="round"/>' +
+        '<circle cx="' + X(vals.length - 1) + '" cy="' + Y(vals[vals.length - 1]) + '" r="4" fill="#1E3A5F"><title>Dia ' + vals.length + ': ' + vals[vals.length - 1] + '</title></circle>';
+    }
+    [1, Math.ceil(n / 3), Math.ceil(2 * n / 3), n].forEach(function (d) { s += '<text x="' + X(d - 1) + '" y="' + (H - 4) + '" font-size="10" fill="#94A3B8" text-anchor="middle">' + d + '</text>'; });
+    return s + '</svg>';
+  }
+  function barras(cats, v) {
+    var W = 520, H = 130, y0 = 104, max = 1; v.forEach(function (p) { max = Math.max(max, p[0], p[1]); });
+    var passo = (W - 20) / cats.length, bl = Math.min(30, passo / 3);
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%"><line x1="10" y1="' + y0 + '" x2="' + (W - 10) + '" y2="' + y0 + '" stroke="#CBD5E1"/>';
+    cats.forEach(function (c, i) {
+      var xc = 10 + passo * i + passo / 2;
+      [0, 1].forEach(function (k) { var hh = 86 * v[i][k] / max; s += '<rect x="' + (xc - bl + k * bl + 1) + '" y="' + (y0 - hh) + '" width="' + (bl - 2) + '" height="' + hh + '" rx="4" fill="' + (k ? '#7C3AED' : '#0891B2') + '"><title>' + (k ? 'Saídas' : 'Entradas') + ': ' + v[i][k] + '</title></rect>'; if (v[i][k]) s += '<text x="' + (xc - bl / 2 + k * bl) + '" y="' + (y0 - hh - 3) + '" font-size="9.5" fill="#64748B" text-anchor="middle">' + v[i][k] + '</text>'; });
+      s += '<text x="' + xc + '" y="' + (H - 8) + '" font-size="10" fill="#64748B" text-anchor="middle">' + c + '</text>';
+    });
+    return s + '</svg><div class="m2-leg"><span><i style="background:#0891B2"></i>Entradas</span><span><i style="background:#7C3AED"></i>Saídas</span></div>';
+  }
+  // ── Gráficos (no fim da página, de lado a lado) ──
+  function graficos(N) {
+    var h = '';
+    if (currentView === 'mensal') {
+      var m = currentMonth, n = getDaysInMonth(m), ex = exigidos(m), vals = [], ultimo = -1;
+      for (var d = 0; d < n; d++) { vals.push(getExistindo(d, m)); if (diaPreenchido(m, d)) ultimo = d; }
+      h += '<div class="m2-card"><div class="m2-cb"><div class="m2-tt">Doentes internados por dia</div>' + linha(vals.slice(0, Math.max(ultimo + 1, Math.min(ex, n), 1)), n, getCapacity()) + '</div></div>';
+      var sem = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0]];
+      for (var e = 0; e < n; e++) { var k = Math.min(4, Math.floor(e / 7)); sem[k][0] += resolveValue('admitidos', e, m); sem[k][1] += resolveValue('saidos', e, m); }
+      if (n <= 28) sem.pop();
+      h += '<div class="m2-card"><div class="m2-cb"><div class="m2-tt">Entradas e saídas por semana</div>' + barras(sem.map(function (s, i) { return 'Sem. ' + (i + 1); }), sem) + '</div></div>';
+    } else {
+      var cats = N.months.map(function (x) { return MES3[+x.split('-')[1] - 1]; });
+      var v = N.months.map(function (x) { return [sumCategoryInMonth('admitidos', x), sumCategoryInMonth('saidos', x)]; });
+      h += '<div class="m2-card"><div class="m2-cb"><div class="m2-tt">Entradas e saídas por mês</div>' + barras(cats, v) + '</div></div>';
+    }
+    var t = N.altas + N.tra + N.ob || 1;
+    h += '<div class="m2-card"><div class="m2-cb"><div class="m2-tt">Como saíram</div><div class="m2-sai"><div style="width:' + (N.altas / t * 100) + '%;background:#059669"></div><div style="width:' + (N.tra / t * 100) + '%;background:#7C3AED"></div><div style="width:' + (N.ob / t * 100) + '%;background:#0F172A"></div></div>' +
+      '<div class="m2-leg"><span><i style="background:#059669"></i>Altas ' + N.altas + '</span><span><i style="background:#7C3AED"></i>Transferidos ' + N.tra + '</span><span><i style="background:#0F172A"></i>Óbitos ' + N.ob + '</span></div></div></div>';
+    return '<div class="m2-grafs">' + h + '</div>';
+  }
   // Telemóvel: lista de dias em vez da tabela a deslizar para o lado.
   function listaDias() {
     if (currentView !== 'mensal') return '';
@@ -352,7 +401,8 @@
     if (!el) { el = document.createElement('div'); el.id = 'm2Resumo'; ts.parentNode.insertBefore(el, ts.nextSibling); }
     var mensal = currentView === 'mensal';
     el.innerHTML = '<div class="m2-mapa-h"><i>' + (mensal ? 4 : 2) + '</i>Resumo ' + (mensal ? 'do mês' : 'do período') + '<small>' + esc(mensal ? MESES[+currentMonth.split('-')[1] - 1] + ' ' + currentMonth.split('-')[0] : getPeriodLabel()) + '</small></div>' +
-      '<div class="m2-card"><div class="m2-cb">' + resumo(N || numeros()) + '</div></div>';
+      '<div class="m2-card"><div class="m2-cb">' + resumo(N || numeros()) + '</div></div>' +
+      '<div class="m2-mapa-h"><i>' + (mensal ? 5 : 3) + '</i>Gráficos<small>' + esc(mensal ? 'do mês' : 'do período') + '</small></div>' + graficos(N || numeros());
   }
   function marcarColuna() {
     var t = $('dataTable'); if (!t) return;
