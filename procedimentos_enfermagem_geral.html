@@ -2338,19 +2338,31 @@ function _avisoServicosEmFalta() {
   const nome = (typeof window.zeloDoisNomes === 'function' ? window.zeloDoisNomes(nomeCompleto) : nomeCompleto.split(' ')[0]) || '';
   const t = new Date(), hojeStr = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
   const hoje = e.data === hojeStr;
-  const quando = hoje ? 'Hoje' : 'No dia ' + fmtDate(e.data);
-  const n = e.faltam.length;
+  const quando = hoje ? 'hoje' : 'no dia ' + fmtDate(e.data);
+  const n = e.faltam.length, feitos = e.preenchidos.length, pct = e.total ? Math.round(feitos / e.total * 100) : 0;
+  // Texto dito pelo assistente = o que o cartão mostra.
   const texto = n
-    ? (nome ? 'Olá, ' + nome + '. ' : '') + quando + ', ' + (n === 1 ? 'ainda falta 1 serviço' : 'ainda faltam ' + n + ' serviços') + ' preencher os procedimentos de enfermagem: ' + _juntarE(e.faltam) + '. ' +
-      'Já preencheram ' + e.preenchidos.length + ' de ' + e.total + ' serviços. Dúvidas, ligue para a extensão 1403, Serviço de Estatística.'
-    : (nome ? 'Muito bem, ' + nome + '. ' : '') + quando + ', todos os ' + e.total + ' serviços já preencheram os procedimentos de enfermagem.';
+    ? (nome ? 'Olá, ' + nome + '. ' : '') + 'Procedimentos de enfermagem de ' + quando + ': ' + feitos + ' de ' + e.total + ' serviços já preencheram. ' +
+      (n === 1 ? 'Falta 1 serviço: ' : 'Faltam ' + n + ' serviços: ') + _juntarE(e.faltam) + '. Dúvidas, ligue para a extensão 1403, Serviço de Estatística.'
+    : (nome ? 'Muito bem, ' + nome + '. ' : '') + 'Procedimentos de enfermagem de ' + quando + ': todos os ' + e.total + ' serviços já preencheram.';
+  const chip = (txt, cor, fundo, marca) => '<span style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:10px;background:' + fundo + ';border:1px solid rgba(255,255,255,.12);font:600 .8rem Inter,Arial,sans-serif;color:#F1F5F9;text-align:left;line-height:1.2">' +
+    '<i style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:' + cor + ';display:inline-flex;align-items:center;justify-content:center;font:800 .62rem Inter,Arial;color:#0B1B2B;font-style:normal">' + marca + '</i>' + _escHtml(txt) + '</span>';
+  const titulo = (t2) => '<div style="font:800 .62rem Inter,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#94A3B8;margin:14px 0 8px;text-align:left">' + t2 + '</div>';
+  const grelha = (itens) => '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px">' + itens + '</div>';
+  const html = '<div style="width:min(680px,88vw);position:relative;left:50%;transform:translateX(-50%);margin:4px 0 0;text-align:left">' +
+    '<div style="display:flex;justify-content:space-between;font:700 .8rem Inter,Arial,sans-serif;color:#E2E8F0;margin-bottom:6px"><span>' + (hoje ? 'Hoje' : 'Dia ' + fmtDate(e.data)) + '</span><span>' + feitos + ' de ' + e.total + ' serviços preencheram</span></div>' +
+    '<div style="height:10px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden"><div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#34D399,#10B981);border-radius:6px"></div></div>' +
+    (n ? titulo('Em falta (' + n + ')') + '<div style="max-height:38vh;overflow:auto">' + grelha(e.faltam.map(x => chip(x, '#FBBF24', 'rgba(251,191,36,.10)', '!')).join('')) + '</div>' : '') +
+    (feitos ? titulo('Já preencheram (' + feitos + ')') + grelha(e.preenchidos.map(x => chip(x, '#34D399', 'rgba(52,211,153,.10)', '✓')).join('')) : '') +
+    (n ? '<div style="margin-top:14px;font-size:.78rem;color:#CBD5E1;text-align:center">Dúvidas? Extensão 1403 · Serviço de Estatística</div>' : '') +
+    '</div>';
   window.ZeloEspera.mensagem({
     icone: n ? 'calendario' : 'ok',
     etiqueta: n ? (n === 1 ? 'Falta 1 serviço' : 'Faltam ' + n + ' serviços') : 'Tudo em dia',
+    nome: nome ? 'Olá, ' + nome : '',
     titulo: 'Procedimentos de Enfermagem',
-    texto: texto,
-    botoes: n ? [{ texto: 'Vou verificar', principal: true }, { texto: 'Ver a lista dos serviços', acao: _abrirStatusServicosModal }]
-              : [{ texto: 'Continuar', principal: true }]
+    html: html,
+    botoes: [{ texto: n ? 'Vou verificar' : 'Continuar', principal: true }]
   });
   if (typeof window.zeloFalar === 'function') window.zeloFalar(texto);
 }

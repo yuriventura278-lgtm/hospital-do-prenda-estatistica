@@ -869,9 +869,31 @@
     });
     return texto.replace(/\s+/g, ' ').trim();
   }
+  // ── Leitura de relatórios em voz: retirada de todas as páginas ──
+  // Os botões "🔊 Ler em voz" (e a narração de secções/relatórios) deixam de
+  // aparecer. Os lembretes falados (dias ou serviços em falta) mantêm-se.
+  var VOZ_ONCLICK = /zeloLerElemento|narrar|Narrar|Voz\s*\(|lerEmVoz|zeloNarrar/;
+  var VOZ_TEXTO = /ler (os dados |dados |de hoje )?(em voz|.*em voz)|^\s*🔊/i;
+  function retirarBotoesVoz(raiz) {
+    (raiz || document).querySelectorAll('button,a,[role="button"]').forEach(function (b) {
+      if (b.closest('#zas-panel,#zas-btn,.ze-camada')) return;
+      var oc = b.getAttribute('onclick') || '', t = (b.textContent || '') + ' ' + (b.getAttribute('aria-label') || '') + ' ' + (b.getAttribute('title') || '');
+      if (VOZ_ONCLICK.test(oc) || VOZ_TEXTO.test(t) || b.classList.contains('svc-voz-btn')) b.style.setProperty('display', 'none', 'important');
+    });
+  }
+  function vigiarBotoesVoz() {
+    retirarBotoesVoz();
+    if (window.MutationObserver && document.body) {
+      var pend = false;
+      new MutationObserver(function () { if (pend) return; pend = true; setTimeout(function () { pend = false; retirarBotoesVoz(); }, 150); })
+        .observe(document.body, { childList: true, subtree: true });
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', vigiarBotoesVoz); else vigiarBotoesVoz();
   // Exposto para as páginas ligarem um botão "🔊 Ler em voz" a qualquer
   // contentor já carregado no ecrã (dia, mês, trimestre, semestre, ano).
-  window.zeloLerElemento = function (seletor, titulo) {
+  window.zeloLerElemento = function () { /* leitura de relatórios em voz retirada */ };
+  window.__zeloLerElementoAntigo = function (seletor, titulo) {
     var el = typeof seletor === 'string' ? document.querySelector(seletor) : seletor;
     var corpo = textoDeElemento(el);
     if (!corpo) { falar('Ainda não há dados carregados para ler aqui.'); return; }

@@ -16,7 +16,7 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
@@ -24,6 +24,7 @@
     window.__fbSet = (path,val)=>set(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
     window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
+    window.__fbGetRange = (path,de,ate)=>get(query(ref(db,path), orderByKey(), startAt(de), endAt(ate))).then(snap=>snap.exists()?snap.val():null);
     window.__fbReady = true;
   }catch(e){
     console.warn('Firebase indisponível — a sincronização entre dispositivos fica desactivada, mas o registo local continua a funcionar normalmente.', e);
@@ -2841,6 +2842,49 @@ function _construirCamposTsLaboratorio(prevCamposTs, prevData, novoData, ts){
   if(antigoTechs !== novoTechs) out['techs'] = ts;
   return out;
 }
+// ── Todos os dias guardados no Firebase passam a aparecer neste computador ──
+// O Histórico, o Painel e os relatórios lêem os dias guardados localmente;
+// um dia registado noutro computador só chegava cá quando alguém abria essa
+// data. Agora, ao abrir a página, os dias do Firebase juntam-se aos locais
+// (campo a campo, com a mesma mesclagem da sincronização) — nada é apagado.
+async function _labPuxarTodosDias(){
+  const pronto = await _fbEsperarPronto();
+  if (!pronto) return 0;
+  let todos = null;
+  try{
+    todos = typeof window.zeloLerHistorico === 'function'
+      ? await window.zeloLerHistorico('registos_sistemas_locais/laboratorio')
+      : await window.__fbGet('registos_sistemas_locais/laboratorio');
+  }catch(e){ console.warn('ZELO: não foi possível ler os dias do Laboratório no Firebase', e); return 0; }
+  if (!todos || typeof todos !== 'object') return 0;
+  let novos = 0;
+  Object.keys(todos).forEach(function(date){
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    const remoto = todos[date];
+    if (!remoto || !remoto.snapshot || typeof remoto.snapshot !== 'object') return;
+    try{
+      let localRaw = null;
+      try{ const r = LS.getItem(sk(date)); localRaw = r ? JSON.parse(r) : null; }catch(e){}
+      let localSavedAt = null;
+      try{ localSavedAt = localStorage.getItem(_FB_LAB_SAVEDAT_PREFIX + date); }catch(e){}
+      if (localRaw && localSavedAt && remoto.savedAt && localSavedAt >= remoto.savedAt) { addSavedDay(date); return; }
+      const mesclado = localRaw ? _mesclarDadosLaboratorio(localRaw, remoto.snapshot) : remoto.snapshot;
+      LS.setItem(sk(date), JSON.stringify(mesclado));
+      if (remoto.savedAt) { try{ localStorage.setItem(_FB_LAB_SAVEDAT_PREFIX + date, remoto.savedAt); }catch(e){} }
+      if (!localRaw) novos++;
+      addSavedDay(date);
+    }catch(e){ console.warn('ZELO: falha ao juntar o dia ' + date + ' do Laboratório', e); }
+  });
+  // Atualiza o que estiver aberto.
+  try{
+    const ativo = document.querySelector('.section.active');
+    if (ativo && ativo.id === 'sec-historico') renderHistory();
+    if (ativo && ativo.id === 'sec-dashboard') loadDashboard();
+  }catch(e){}
+  return novos;
+}
+window._labPuxarTodosDias = _labPuxarTodosDias;
+
 async function _fbEscutarDia(date){
   if (typeof _fbCancelarEscuta === 'function'){ _fbCancelarEscuta(); _fbCancelarEscuta = null; }
   const el = document.getElementById('fb-novos-dados-banner');
@@ -4354,6 +4398,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       renderForm();
       _fbEscutarDia(currentDate);
       _fbCarregarExtras();
+      _labPuxarTodosDias();
       // Lembrete de cópia de segurança (>7 dias sem backup)
       setTimeout(function(){
         try{
