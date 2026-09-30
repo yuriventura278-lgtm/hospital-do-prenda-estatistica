@@ -1236,7 +1236,12 @@ async function carregarFarmacia(){
   const pronto = await esperarFirebase();
   if (!pronto || !window.__fbGet){ renderSecaoVazia('farm'); _secaoDados.farm=null; return; }
   let dados;
-  try{ dados = await window.__fbGet('registos_sistemas_locais/farmacia_central'); }catch(e){ dados = null; }
+  // Só os produtos e a hora de gravação — o histórico de movimentos (que cresce
+  // sempre) não é preciso aqui e não se descarrega.
+  try{
+    const r = await Promise.all([window.__fbGet('registos_sistemas_locais/farmacia_central/snapshot/produtos'), window.__fbGet('registos_sistemas_locais/farmacia_central/savedAt').catch(function(){ return null; })]);
+    dados = r[0] ? { snapshot:{ produtos: Array.isArray(r[0]) ? r[0] : Object.keys(r[0]).map(function(k){ return r[0][k]; }) }, savedAt: r[1] } : null;
+  }catch(e){ dados = null; }
   const produtos = (dados && dados.snapshot && dados.snapshot.produtos) || [];
   if (!produtos.length){ renderSecaoVazia('farm', 'Ainda não há dados de stock guardados.'); _secaoDados.farm=null; return; }
   const esgotados = produtos.filter(function(p){ return (p.stock||0) <= 0; });
