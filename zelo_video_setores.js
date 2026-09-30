@@ -45,7 +45,7 @@
       var r = function (y, n, cor, x, d) { return a(d, '<circle cx="50" cy="' + y + '" r="18" fill="' + cor + '"/>' + t(50, y + 6, n, { s: 16, w: 800, c: '#fff', m: 1 }) + t(80, y - 4, x[0], { s: 14, w: 700, c: '#fff' }) + t(80, y + 14, x[1], { s: 12, c: '#94A3B8' })); };
       return svg('#0E1A2B', a(0.1, t(260, 44, '3 regras de ouro', { s: 18, w: 800, c: '#fff', m: 1 })) +
         r(96, '1', '#16A34A', r1, 1.0) + r(156, '2', '#0891B2', r2, 4.5) + r(216, '3', '#D97706', r3, 8.0) +
-        a(11, t(260, 272, 'ZELO — Serviço de Admissão e Arquivo Médico e Estatístico', { s: 12, c: '#7DD3FC', m: 1 })));
+        a(11, t(260, 272, 'ZELO', { s: 14, w: 800, c: '#7DD3FC', m: 1 })));
     };
   }
   var ICO_PRANCHETA = '<rect x="30" y="26" width="90" height="120" rx="10" fill="#E9EEF4"/><rect x="52" y="16" width="46" height="20" rx="6" fill="#94A3B8"/><rect x="44" y="56" width="62" height="8" rx="4" fill="#CBD5E1"/><rect x="44" y="76" width="50" height="8" rx="4" fill="#CBD5E1"/><rect x="44" y="96" width="58" height="8" rx="4" fill="#CBD5E1"/><path d="M48 124 l10 10 20 -22" stroke="#16A34A" stroke-width="6" fill="none" stroke-linecap="round"/>';

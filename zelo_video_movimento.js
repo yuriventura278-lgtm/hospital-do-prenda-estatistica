@@ -181,7 +181,7 @@
           r(92, '1', '#16A34A', 'Registe todos os dias no Controlo de Pacientes', 'entradas e saídas com a data e hora certas', 0.8) +
           r(152, '2', '#0891B2', 'Para corrigir um número, corrija o doente', 'o Movimento recalcula sozinho', 4.5) +
           r(212, '3', '#D97706', 'Marque as camas fora de uso e confirme as camas', 'no topo da página do Movimento', 8.0) +
-          a(11, t(260, 272, 'ZELO — Serviço de Admissão e Arquivo Médico e Estatístico', { s: 12, c: '#7DD3FC', m: 1 })));
+          a(11, t(260, 272, 'ZELO', { s: 14, w: 800, c: '#7DD3FC', m: 1 })));
       } }
   ];
   // O mesmo leitor serve outros vídeos (ex.: Controlo de Pacientes — zelo_video_cp.js):
