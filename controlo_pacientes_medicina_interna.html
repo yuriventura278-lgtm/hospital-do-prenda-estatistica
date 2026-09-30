@@ -3222,7 +3222,7 @@ function exportRelatorioPDF() {
   const todosPacientes = entradas.length > 0 || saidas.length > 0 ? [...entradas, ...saidas.filter(s => !entradas.some(e => e.n === s.n))] : [];
   const diagnosticoCount = {};
   todosPacientes.forEach(p => { const diag = p.diagnostico || '—'; diagnosticoCount[diag] = (diagnosticoCount[diag] || 0) + 1; });
-  const diagnosticosSorted = Object.entries(diagnosticoCount).sort((a, b) => b[1] - a[1]).slice(0, 20);
+  const diagnosticosSorted = Object.entries(diagnosticoCount).sort((a, b) => b[1] - a[1]); // todos os diagnósticos
   y = ZeloPDF.secao(doc, y, '6. Análise de Diagnósticos — Frequência');
   if (diagnosticosSorted.length > 0) {
     y = ZeloPDF.autoTable(doc, {

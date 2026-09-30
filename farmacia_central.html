@@ -2588,7 +2588,7 @@ function fillProdSelect(q){
   var arr=state.produtos.filter(function(p){
     if(p.estado==="Inativo")return false;
     return!q||(p.descricao+" "+p.codigo+" "+(p.codBarras||"")).toLowerCase().indexOf(q)>=0;
-  }).slice(0,60);
+  }); // todos os produtos (antes só os 60 primeiros)
   $("fmProd").innerHTML=arr.map(function(p){
     return'<option value="'+p.id+'">'+esc(p.descricao)+" · "+esc(p.codigo)+" · Stock "+fmt(p.stock)+"</option>";
   }).join("");

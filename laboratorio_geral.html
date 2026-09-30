@@ -1597,7 +1597,10 @@ function saveExtras() {
 // "os dados não partilham". Aqui sincroniza-se só a LISTA de nomes (não os
 // valores do dia, que continuam a ir por _fbSyncLaboratorio) — sempre a
 // somar o que falta de um lado para o outro, nunca a substituir.
-const FB_LAB_CONFIG_PATH = 'registos_sistemas_locais/laboratorio_config';
+// Um nível abaixo do módulo: as regras do Firebase recusavam gravar em
+// registos_sistemas_locais/laboratorio_config (a ordem dos exames nunca sincronizava).
+const FB_LAB_CONFIG_PATH = 'registos_sistemas_locais/laboratorio_config/dados';
+const FB_LAB_CONFIG_PATH_ANTIGO = 'registos_sistemas_locais/laboratorio_config';
 function _fbSyncLabExtras(examOrder){
   if (typeof zeloQueueWrite !== 'function') return;
   zeloQueueWrite(FB_LAB_CONFIG_PATH, { examOrder: examOrder, posOrder: POSITIVOS, savedAt: new Date().toISOString() })
@@ -1610,7 +1613,7 @@ function _fbSyncLabExtras(examOrder){
 async function _fbCarregarExtras(){
   if (typeof window.__fbGet !== 'function') return;
   let remoto;
-  try{ remoto = await window.__fbGet(FB_LAB_CONFIG_PATH); }catch(e){ return; }
+  try{ remoto = await window.__fbGet(FB_LAB_CONFIG_PATH); if (!remoto) { remoto = await window.__fbGet(FB_LAB_CONFIG_PATH_ANTIGO); if (remoto && remoto.dados) remoto = remoto.dados; } }catch(e){ return; }
   if (!remoto) return;
   let mudou = false;
   EXAM_SECTIONS.forEach(function(sec){
