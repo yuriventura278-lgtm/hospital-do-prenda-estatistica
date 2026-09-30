@@ -109,16 +109,59 @@
   var LINHAS_IND = [['taxa', 'Taxa de ocupação (%)'], ['estadia', 'Média de estadia (dias)'], ['mortBruta', 'Mortalidade bruta (%)']];
 
   // ── Fechar (entregar ou automático): cópia fixa dos números do Movimento ──
+  // As fórmulas do Movimento (zelo_mov_auto.js) — carregadas se a página não as tiver.
+  function movAuto() {
+    if (window.ZeloMovAuto) return Promise.resolve(window.ZeloMovAuto);
+    return new Promise(function (res) {
+      var sc = document.createElement('script'); sc.src = 'zelo_mov_auto.js?v=16';
+      sc.onload = function () { res(window.ZeloMovAuto || null); }; sc.onerror = function () { res(null); };
+      document.head.appendChild(sc);
+    });
+  }
+  // Números do mês a partir dos doentes do Controlo de Pacientes, contando SÓ o
+  // que estava registado até 'ate' (ex.: o prazo): doentes registados depois não
+  // entram, e saídas registadas depois contam como ainda internados.
+  // Assim, o fecho automático tem sempre os números do prazo — seja quem for
+  // que abra o ZELO, e mesmo que só abra dias depois.
+  // Movimento escrito à mão (preenchimento automático desligado) ou sem doentes
+  // no Controlo de Pacientes nesse mês: usa os números do Movimento.
+  function numerosDoMes(it, m, ate) {
+    var base = 'registos_movimento/' + it + '/snapshot/';
+    var get = function (c) { return window.__fbGet(c).catch(function () { return null; }); };
+    return Promise.all([movAuto(), get(base + m), get(base + '__autoDesligado'), get(base + '__capacity'), get(base + '__camasForaUso/' + m)]).then(function (r) {
+      var A = r[0], md = r[1], manual = !!r[2], cap = Number(r[3]) || 0, fu = r[4] || {};
+      var doMovimento = function (motivo) { return { campos: totais(md, m).campos, fonte: 'movimento', motivo: motivo }; };
+      if (!A || manual) return doMovimento(manual ? 'Movimento preenchido à mão' : 'fórmulas indisponíveis');
+      return Promise.all([A.lerPacientes(it), A.lerExternos(it)]).then(function (x) {
+        var ps = (x[0] || []).filter(function (p) { return !(p.registadoEm && String(p.registadoEm) > ate) && !p.anulado; }).map(function (p) {
+          if (p.status !== 'internado' && p.saidaRegistadaEm && String(p.saidaRegistadaEm) > ate) return Object.assign({}, p, { status: 'internado', dataSaida: null, tipoSaida: null, subtipo: null });
+          return p;
+        });
+        if (!A.ativoNoMes(ps, m)) return doMovimento('sem doentes no Controlo de Pacientes');
+        if (!cap && md && md.dia_cama) cap = Math.max.apply(null, arr(md.dia_cama, diasNoMes(m)).map(function (v) { return v || 0; }));
+        var ex = A.calcular(ps, m, cap, x[1] || [], { foraUso: fu }).existencia;
+        var rr = A.calcular(ps, m, cap, x[1] || [], { foraUso: fu, existencia: ex });
+        var campos = {}; CAMPOS.forEach(function (k) { campos[k] = rr.campos[k]; });
+        return { campos: campos, existencia: ex, fonte: 'controlo_pacientes', ate: ate };
+      });
+    });
+  }
   function fechar(it, m, tipo, extra) {
     if (!podeGravar()) return Promise.reject(new Error('sem ligação'));
     return lerFecho(it, m, true).then(function (ja) {
       if (ja) return ja;
-      return window.__fbGet('registos_movimento/' + it + '/snapshot/' + m).then(function (md) {
-        var q = quem(), t = totais(md, m);
-        var rec = { mes: m, movimento: it, estado: tipo, em: agoraLocal(), prazo: prazoEntrega(m), fechoAutomatico: prazo(m), campos: t.campos, totais: t.totais, indicadores: t.indicadores };
+      // Automático: conta o registado até ao fecho automático (dia 8 às 23:59).
+      // Entregue pelo chefe: conta o registado até agora.
+      var ate = tipo === 'automatico' ? prazo(m) : agoraLocal();
+      return numerosDoMes(it, m, ate).then(function (nm) {
+        var q = quem(), t = totais(nm.campos, m);
+        var rec = { mes: m, movimento: it, estado: tipo, em: agoraLocal(), prazo: prazoEntrega(m), fechoAutomatico: prazo(m), campos: t.campos, totais: t.totais, indicadores: t.indicadores,
+          numerosAte: ate, fonte: nm.fonte };
+        if (nm.existencia != null) rec.existencia = nm.existencia;
+        if (nm.motivo) rec.fonteMotivo = nm.motivo;
         if (tipo === 'entregue') { rec.por = q.nome; rec.funcao = q.funcao; }
-        else rec.nota = 'Fechado automaticamente: não foi entregue no prazo (' + fmtData(prazoEntrega(m)) + '). Números do Movimento nessa altura.';
-        if (extra && extra.existencia != null) rec.existencia = extra.existencia;
+        else rec.nota = 'Fechado automaticamente: não foi entregue no prazo (' + fmtData(prazoEntrega(m)) + '). Números com o que estava registado até ao fecho automático.';
+        if (extra && extra.existencia != null && rec.existencia == null) rec.existencia = extra.existencia;
         return window.__fbSet(BASE + 'fecho_mes/' + it + '/' + m, rec).then(function () {
           cache[it + '/' + m] = { ts: Date.now(), v: rec }; return rec;
         }, function () { return lerFecho(it, m, true); }); // outro computador fechou primeiro: fica a dele
