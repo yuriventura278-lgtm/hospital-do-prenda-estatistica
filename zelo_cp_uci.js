@@ -143,6 +143,34 @@
     ['Internados no fim do período', 'fim'], ['Dias de internamento', 'diasInt'],
     ['Taxa de ocupação', 'ocup', 0, '%'], ['Permanência média (dias)', 'perm', 0, 'd']
   ];
+  // Passagens entre a UCI e os Cuidados Intermédios (mesmo NUP: sai
+  // «Transferência» de uma unidade e entra transferido na outra no mesmo dia
+  // ou no dia seguinte). Praticamente é o mesmo serviço: na soma não contam
+  // como saída nem como entrada — a mesma regra do Movimento (zelo_mov_auto.js).
+  function passagens(listas, de, ate) {
+    var todos = [];
+    ORDEM.forEach(function (u, i) { (listas[i] || []).forEach(function (p) { if (p) todos.push({ u: u, p: p }); }); });
+    var porNup = {};
+    todos.forEach(function (x) { var k = String(x.p.nup || '').trim(); if (k) (porNup[k] = porNup[k] || []).push(x); });
+    var usadas = new Set(), r = { sai: 0, ent: 0, entF: 0, entM: 0 };
+    Object.keys(porNup).forEach(function (k) {
+      var l = porNup[k]; if (l.length < 2) return;
+      l.forEach(function (a) {
+        if (a.p.status !== 'saido' || !a.p.dataSaida || a.p.tipoSaida !== 'Transferência') return;
+        var sa = dia(a.p.dataSaida);
+        var b = l.filter(function (x) {
+          var e = dia(x.p.dataEntrada);
+          return x.u !== a.u && !usadas.has(x) && /^\s*transfer/i.test(String(x.p.proveniencia || '')) && e >= sa && (new Date(e) - new Date(sa)) / 86400000 <= 1;
+        }).sort(function (x, y) { return dia(x.p.dataEntrada) < dia(y.p.dataEntrada) ? -1 : 1; })[0];
+        if (!b) return;
+        usadas.add(b);
+        if (sa >= de && sa <= ate) r.sai++;
+        var e = dia(b.p.dataEntrada);
+        if (e >= de && e <= ate) { r.ent++; var g = genero(b.p); if (g === 'F') r.entF++; else if (g === 'M') r.entM++; }
+      });
+    });
+    return r;
+  }
   function totalDe(a, b) {
     var t = {};
     Object.keys(a).forEach(function (k) { if (typeof a[k] === 'number') t[k] = a[k] + (b[k] || 0); });
@@ -176,6 +204,13 @@
     return Promise.all(ORDEM.map(comArquivo)).then(function (listas) {
       var r = {}; ORDEM.forEach(function (u, i) { r[u] = calcular(listas[i], u, p.de, p.ate); });
       r.total = totalDe(r.intensivo, r.intermedio);
+      // Na soma, as passagens UCI ↔ Cuidados Intermédios não são entradas nem saídas.
+      var ps = passagens(listas, p.de, p.ate), T = r.total;
+      T.passagens = ps.ent;
+      T.entradas = Math.max(0, T.entradas - ps.ent); T.entF = Math.max(0, T.entF - ps.entF); T.entM = Math.max(0, T.entM - ps.entM);
+      T.daOutra = Math.max(0, T.daOutra - ps.ent);
+      T.saidas = Math.max(0, T.saidas - ps.sai); T.transf = Math.max(0, T.transf - ps.sai);
+      T.passagensSai = ps.sai;
       ultimo = { p: p, r: r };
       desenharSoma();
     });
@@ -192,7 +227,7 @@
       LINHAS.map(function (l) {
         return '<tr' + (l[2] ? ' class="sub"' : '') + '><td class="l"' + (l[2] === 2 ? ' style="padding-left:44px"' : '') + '>' + l[0] + '</td><td>' + valor(r.intensivo, l) + '</td><td>' + valor(r.intermedio, l) + '</td><td class="tot">' + valor(T, l) + '</td></tr>';
       }).join('') + '</tbody></table>' +
-      '<div class="cpu-nota">A soma junta as duas unidades; as transferências entre a UCI e os Cuidados Intermédios aparecem em «Vindos da outra unidade».</div></div>';
+      '<div class="cpu-nota">A soma junta as duas unidades como um só serviço (igual ao Movimento Hospitalar): as passagens entre a UCI e os Cuidados Intermédios não contam como entrada nem como saída' + (T.passagens || T.passagensSai ? ' (' + Math.max(T.passagens, T.passagensSai) + ' neste período)' : '') + '. Nas colunas de cada unidade continuam a aparecer.</div></div>';
     var lista = [];
     ORDEM.forEach(function (u) { r[u].internados.forEach(function (x) { lista.push({ u: u, p: x }); }); });
     lista.sort(function (a, b) { return String(a.p.dataEntrada || '').localeCompare(String(b.p.dataEntrada || '')); });
