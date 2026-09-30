@@ -8,8 +8,26 @@
 <script>window.ZELO_MODULE='sistemas_independentes';</script>
 <script>window.ZELO_SO_ADMIN=true; // Serviço de Estatística — só administradores</script>
 <script>window.ZELO_ITEM='registo_hiv';</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path), snap=>cb(snap.exists()?snap.val():null));
+    window.__fbReady = true;
+  }catch(e){
+    console.warn('Firebase indisponível — o registo fica guardado neste computador.', e);
+    window.__fbReady = false;
+  }
+</script>
 <script type="module" src="zelo_pagegate.js"></script>
 <script src="zelo_pagegate_watchdog.js"></script>
+<script src="zelo_indexeddb.js"></script>
+<script src="zelo_sync.js?v=4"></script>
 <script src="zelo_auto_backup.js"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
@@ -577,8 +595,7 @@ function zeloMostrarGuardadoAs(){
 }
 function ss(){try{localStorage.setItem('hiv_reg_v1',JSON.stringify(buildSnapshot()));}catch(e){}zeloMostrarGuardadoAs();}
 // ── Autoria (quem gravou, quando) ────────────────────────────────
-// Sem sincronização entre dispositivos (este módulo é só local) -- a
-// autoria vem do histórico já guardado no próprio dispositivo.
+// A autoria vem do histórico (sincronizado com os outros computadores).
 function _mostrarHoraGuardado(nome,quando){
   const now=quando?new Date(quando):new Date();
   const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -674,10 +691,13 @@ function confirmarSave(){
     const key=snap.dataInicio+'_'+snap.dataFim;
     const idx=hist.findIndex(h=>h.key===key);
     const autor={nome:sessionStorage.getItem('zeloNome')||null,email:sessionStorage.getItem('zeloEmail')||null};
-    const _savedAtAgora=new Date().toISOString();
-    if(idx>=0){hist[idx]={key,savedAt:_savedAtAgora,snapshot:snap,criadoPor:autor};const u=hist.splice(idx,1)[0];hist.unshift(u);toast('Registo actualizado!');}
-    else{hist.unshift({key,savedAt:_savedAtAgora,snapshot:snap,criadoPor:autor});toast('Registo guardado!');}
+    const _agora=Date.now(), _savedAtAgora=new Date(_agora).toISOString();
+    const rec={key,savedAt:_savedAtAgora,snapshot:snap,criadoPor:autor,deleted:false};
+    const camposTs=hivCamposTs(idx>=0?hist[idx]:null,snap,_agora); if(camposTs)rec.camposTs=camposTs;
+    if(idx>=0){hist[idx]=rec;const u=hist.splice(idx,1)[0];hist.unshift(u);toast('Registo actualizado!');}
+    else{hist.unshift(rec);toast('Registo guardado!');}
     localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));
+    hivEnviar(rec);
     _mostrarHoraGuardado(autor.nome,_savedAtAgora);
   }catch(e){toast('Registo guardado!');}
   document.getElementById('mo3-per').textContent=fmtPer();
@@ -725,8 +745,9 @@ function apagarHistorico(i){
     const hist=JSON.parse(localStorage.getItem('hiv_reg_v1_hist')||'[]');
     const h=hist[i];
     if(!h)return;
-    h.deleted=true;h.deletedAt=new Date().toISOString();h.deletedBy=sessionStorage.getItem('zeloEmail')||'desconhecido';
+    h.deleted=true;h.deletedAt=new Date().toISOString();h.savedAt=h.deletedAt;h.deletedBy=sessionStorage.getItem('zeloEmail')||'desconhecido';
     localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));
+    hivEnviar(h); // elimina também nos outros computadores (o registo fica marcado, não se perde)
     historico();toast('Apagado.');
   }catch(e){}
 }
@@ -806,7 +827,7 @@ function zeloRestoreFromFile(input){
       });
       localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));
       toast('✓ '+registos.length+' registo(s) restaurado(s).');
-      setTimeout(()=>location.reload(), 900);
+      Promise.resolve(hivSincronizar()).catch(()=>{}).then(()=>setTimeout(()=>location.reload(), 900));
     }catch(err){
       toast('Erro ao ler o ficheiro de backup.');
     }
@@ -866,6 +887,63 @@ async function gerarPDF(){
   }catch(err){console.error(err);toast('Erro ao gerar PDF.');}
 }
 
+// ── SINCRONIZAÇÃO ENTRE COMPUTADORES ─────────────────────────────
+// Cada período guardado vai para registos_sistemas_locais/registo_hiv/<início_fim>
+// = { key, savedAt, snapshot, criadoPor, camposTs, deleted… }. Ganha a versão
+// mais recente; dois computadores a gravar o mesmo período (ou um sem
+// internet) juntam-se campo a campo (camposTs, zelo_sync.js). Eliminar só
+// marca o registo (deleted) — desaparece em todos os computadores, mas não
+// se perde. Os registos antigos só deste computador são enviados na 1.ª vez.
+const FB_HIV='registos_sistemas_locais/registo_hiv';
+function hivChave(k){return String(k).replace(/[.#$\[\]\/]/g,'_');}
+function hivHora(h){return Math.max(Date.parse(h&&h.savedAt)||0,Date.parse(h&&h.deletedAt)||0);}
+function hivCamposTs(ant,snap,agora){
+  const J=window.zeloJuntarCampos; if(!J)return null;
+  const bT=ant&&ant.camposTs?J.tsDe(ant.camposTs):{}, bH=ant?(Date.parse(ant.savedAt)||0):0;
+  const bP=J.achatar(ant&&ant.snapshot||{}), nP=J.achatar(snap), t={}, ks={};
+  Object.keys(bP).concat(Object.keys(nP)).forEach(k=>{ks[k]=1;});
+  Object.keys(ks).forEach(k=>{const a=bP[k]==null?null:bP[k], b=nP[k]==null?null:nP[k];t[k]=JSON.stringify(a)!==JSON.stringify(b)?agora:(bT[k]||bH||agora);});
+  return J.tsPara(t);
+}
+function hivEnviar(h){
+  if(!h||!h.key||typeof window.zeloQueueWrite!=='function')return;
+  const rec=JSON.parse(JSON.stringify(h)); rec.deleted=!!h.deleted;
+  if(!rec.deleted){rec.deletedAt=null;rec.deletedBy=null;}
+  window.zeloQueueWrite(FB_HIV+'/'+hivChave(h.key),rec)
+    .then(r=>{if(r&&r.dados)hivAplicarRemoto({x:r.dados});})
+    .catch(e=>console.warn('VIH: fica na fila para enviar mais tarde',e));
+}
+function hivAplicarRemoto(v){
+  if(!v)return false;
+  const hist=zeloGetHist(); let mudou=false;
+  Object.keys(v).forEach(k=>{
+    const r=v[k]; if(!r||!r.key||(!r.snapshot&&!r.deleted))return;
+    const i=hist.findIndex(h=>h.key===r.key);
+    if(i<0){hist.push(r);mudou=true;return;}
+    if(hivHora(r)>hivHora(hist[i])||(hivHora(r)===hivHora(hist[i])&&JSON.stringify(r)!==JSON.stringify(hist[i])&&r.camposTs)){hist[i]=r;mudou=true;}
+  });
+  if(!mudou)return false;
+  hist.sort((a,b)=>hivHora(b)-hivHora(a));
+  try{localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));}catch(e){}
+  _mostrarAutoriaDoPeriodo();
+  // Histórico aberto: mostra já as alterações.
+  if(document.getElementById('ov').classList.contains('open')&&document.getElementById('m-periodo').textContent==='Historico de Registos')historico();
+  return true;
+}
+let hivEscuta=false;
+async function hivSincronizar(){
+  for(let i=0;i<60&&!(window.__fbReady&&window.__fbGet);i++)await new Promise(r=>setTimeout(r,250));
+  if(!(window.__fbReady&&window.__fbGet))return;
+  let v=null; try{v=await window.__fbGet(FB_HIV);}catch(e){return;}
+  v=v||{};
+  hivAplicarRemoto(v);
+  // Registos deste computador que o servidor não tem (ou tem mais antigos): envia.
+  const porKey={}; Object.keys(v).forEach(k=>{const r=v[k];if(r&&r.key)porKey[r.key]=r;});
+  zeloGetHist().forEach(h=>{const r=porKey[h.key];if(!r||hivHora(h)>hivHora(r))hivEnviar(h);});
+  if(!hivEscuta&&typeof window.__fbListen==='function'){hivEscuta=true;let primeira=true;window.__fbListen(FB_HIV,val=>{if(primeira){primeira=false;return;}hivAplicarRemoto(val||{});});}
+}
+window.addEventListener('online',()=>{if(window.zeloFlushQueue)window.zeloFlushQueue();});
+
 // ── INIT ───────────────────────────────────────────────────────
 INDICADORES.forEach(({id})=>renderLista(id));
 // Período padrão: semana actual
@@ -882,6 +960,7 @@ INDICADORES.forEach(({id})=>renderLista(id));
 ls();
 updateKPIs();
 _mostrarAutoriaDoPeriodo();
+hivSincronizar();
 </script>
 <footer id="app-footer">
   <div class="footer-inner">
@@ -907,9 +986,8 @@ window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 <script>
 // ── Backup automático em pasta local (ver zelo_auto_backup.js) ──────────
-// Este módulo não sincroniza com o Firebase (é só local — ver comentário
-// "Sem sincronização entre dispositivos" mais acima), por isso os
-// períodos vêm directamente do histórico local (hiv_reg_v1_hist), em vez
+// Os períodos vêm do histórico deste computador (hiv_reg_v1_hist, que já
+// inclui os registos sincronizados dos outros computadores), em vez
 // de ZeloAutoBackup.criarBackupFirebase(), que pressupõe dados no Firebase.
 // Cada registo do histórico cobre um intervalo escolhido pelo utilizador
 // (dataInicio_dataFim, guardado em "key") — agrupa-se aqui pela data de

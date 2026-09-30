@@ -264,7 +264,18 @@
         if (remoto && remoto.snapshot && remoto.savedAt !== baseSavedAt) cur = mesclar(base, cur, remoto.snapshot);
       } catch (e) {}
     }
-    var rec = { savedAt: new Date().toISOString(), snapshot: clone(cur), criadoPor: { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null } };
+    var agora = Date.now();
+    var rec = { savedAt: new Date(agora).toISOString(), snapshot: clone(cur), criadoPor: { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null } };
+    // Hora de cada campo: um registo gravado sem internet junta-se campo a
+    // campo com o que outro computador gravou entretanto (zelo_sync.js).
+    var J = window.zeloJuntarCampos;
+    if (J) {
+      var ant = dias()[d], bT = ant && ant.camposTs ? J.tsDe(ant.camposTs) : {}, bH = ant ? (Date.parse(ant.savedAt) || 0) : 0;
+      var bP = J.achatar(base || {}), nP = J.achatar(cur), t = {}, ks = {};
+      Object.keys(bP).concat(Object.keys(nP)).forEach(function (k) { ks[k] = 1; });
+      Object.keys(ks).forEach(function (k) { t[k] = JSON.stringify(bP[k] == null ? null : bP[k]) !== JSON.stringify(nP[k] == null ? null : nP[k]) ? agora : (bT[k] || bH || agora); });
+      rec.camposTs = J.tsPara(t);
+    }
     guardarCache(d, rec);
     lsDel(LS_RASC + d);
     base = clone(cur); baseSavedAt = rec.savedAt; sujo = false;
@@ -272,6 +283,11 @@
     try {
       if (typeof window.zeloQueueWrite === 'function') {
         var r = await window.zeloQueueWrite(FB + '/' + d, rec);
+        // Junto com o que outro computador gravou entretanto: mostra o resultado.
+        if (r && r.dados && r.dados.snapshot && d === data) {
+          guardarCache(d, r.dados);
+          if (!sujo) { cur = clone(r.dados.snapshot); base = clone(cur); baseSavedAt = r.dados.savedAt; preencherValores(); }
+        }
         toast(r && r.queued ? 'Guardado neste computador — será enviado quando houver ligação' : 'Registo guardado!');
       } else if (typeof window.__fbSet === 'function') { await window.__fbSet(FB + '/' + d, rec); toast('Registo guardado!'); }
       else toast('Guardado neste computador');

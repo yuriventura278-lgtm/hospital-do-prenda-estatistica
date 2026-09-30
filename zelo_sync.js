@@ -55,17 +55,24 @@
     try { await QUEUE_DB.put('pending', item); naFila = true; }
     catch (e) { console.error('ZELO sync: não foi possível gravar a fila local de sincronização.', e); }
     var fbFn = op === 'update' ? window.__fbUpdate : window.__fbSet;
+    // Objetos com hora por campo: antes de gravar, junta com o que está no
+    // servidor (nunca substitui o que outro computador mudou depois).
+    var juntavel = op === 'set' && ehObjetoJuntavel(data);
     if (window.__fbReady && fbFn && navigator.onLine !== false) {
       var t0 = Date.now();
       try {
+        if (juntavel && typeof window.__fbGet === 'function') {
+          var rem = await comLimite(window.__fbGet(path), ESPERA_MS);
+          if (rem && typeof rem === 'object' && rem.snapshot && typeof rem.snapshot === 'object') data = juntarComServidor(data, rem);
+        }
         await comLimite(fbFn(path, data), ESPERA_MS);
         avisarSeLento(t0);
         if (naFila) { try { await QUEUE_DB.delete('pending', item.id); } catch (e) {} }
-        return { ok: true, queued: false };
+        return { ok: true, queued: false, dados: data };
       } catch (e) {
         if (String(e && e.message) !== 'sem-resposta') console.warn('ZELO sync: falha ao enviar para o Firebase — fica na fila para reenvio automático.', e);
       }
-    } else if (window.__fbReady && fbFn) {
+    } else if (window.__fbReady && fbFn && !juntavel) {
       // Sem internet: entrega também ao Firebase (envia sozinho se a página
       // ficar aberta até a rede voltar); a fila garante o envio se não ficar.
       try { fbFn(path, data).then(function () { if (naFila) QUEUE_DB.delete('pending', item.id).catch(function () {}); }, function () {}); } catch (e) {}
@@ -118,13 +125,21 @@
   function ehObjetoJuntavel(d) { return d && typeof d === 'object' && d.snapshot && d.camposTs && typeof d.camposTs === 'object'; }
   function juntarComServidor(local, remoto) {
     var lS = achatar(local.snapshot), lT = tsDe(local.camposTs), rS = achatar(remoto.snapshot || {}), rT = tsDe(remoto.camposTs), ch = {}, plano = {}, ts = {};
+    // Versão do servidor ainda sem hora por campo (gravada antes): cada campo
+    // conta com a hora em que essa versão foi gravada.
+    if (!remoto.camposTs) { var hr = horaRegisto(remoto); Object.keys(rS).forEach(function (k) { rT[k] = hr; }); }
     [lS, lT, rS, rT].forEach(function (o) { Object.keys(o).forEach(function (k) { ch[k] = 1; }); });
     Object.keys(ch).forEach(function (k) {
       var lv = k in lS ? lS[k] : null, rv = k in rS ? rS[k] : null, lt = lT[k] || 0, rt = rT[k] || 0;
       var v = rt > lt ? rv : lt > rt ? lv : (vazio(lv) ? rv : lv);
       if (!vazio(v)) plano[k] = v; ts[k] = Math.max(lt, rt);
     });
-    return { savedAt: Math.max(Number(remoto.savedAt) || 0, Number(local.savedAt) || 0, Date.now()), snapshot: reconstruir(plano), camposTs: tsPara(ts) };
+    // Os outros campos (autor, eliminado…) vêm da versão gravada mais recentemente.
+    var hl = horaRegisto(local), hr2 = horaRegisto(remoto), quando = Math.max(hl, hr2, Date.now());
+    var r = hl >= hr2 ? Object.assign({}, remoto, local) : Object.assign({}, local, remoto);
+    r.savedAt = typeof local.savedAt === 'string' ? new Date(quando).toISOString() : quando;
+    r.snapshot = reconstruir(plano); r.camposTs = tsPara(ts);
+    return r;
   }
   function horaRegisto(d) {
     if (!d || typeof d !== 'object') return 0;
@@ -157,7 +172,7 @@
             let remoto = null, lido = false;
             try { remoto = await comLimite(window.__fbGet(item.path), ESPERA_MS); lido = true; } catch (e) { lido = false; }
             if (!lido) continue; // sem resposta: fica para a próxima
-            if (ehObjetoJuntavel(dados) && ehObjetoJuntavel(remoto)) dados = juntarComServidor(dados, remoto);
+            if (ehObjetoJuntavel(dados) && remoto && typeof remoto === 'object' && remoto.snapshot && typeof remoto.snapshot === 'object') dados = juntarComServidor(dados, remoto);
             else if (remoto && horaRegisto(remoto) > Math.max(horaRegisto(dados), item.ts || 0)) {
               // O servidor já tem uma versão mais recente (de outro computador): não a
               // substitui — e esta cópia também não se perde: fica guardada à parte.
@@ -196,6 +211,7 @@
     return enviados;
   }
 
+  window.zeloJuntarCampos = { achatar: achatar, juntar: juntarComServidor, tsPara: tsPara, tsDe: tsDe };
   window.zeloQueueWrite = zeloQueueWrite;
 
   // Leitura incremental de um histórico por datas (<caminho>/<AAAA-MM-DD>):
