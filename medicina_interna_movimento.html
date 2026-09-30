@@ -1736,21 +1736,36 @@ function generateReportPDF() {
   // Modelo geral de PDF do ZELO (zelo_pdf.js)
   let y = ZeloPDF.cabecalho(doc, 'Movimento Hospitalar — Medicina Interna', `Relatório ${viewLabel} · Período: ${periodLabel} · ${dateRange}`);
 
-  y = ZeloPDF.secao(doc, y, '1. Resumo do Período');
-  y = ZeloPDF.indicadores(doc, y, [
+  const resumo = [
     ['Existência Anterior', existenciaInicial],
     ['Total Admitidos', admitidos],
     ['Total Saídos', saidos],
     ['Ficam Existindo', existindo],
     ['Taxa de Ocupação', taxaOcupacao + '%']
-  ]);
+  ];
+  let outros = [];
   // Outros indicadores (mesmas fórmulas do ecrã e do Movimento Geral — zelo_mov_auto.js)
   if (window.ZeloMovAuto && ZeloMovAuto.indicadores) {
     const IND = ZeloMovAuto.indicadores({ dc: denominador, dd: numerador, dias: diasComDC || totalDays, saidos: saidos, obitos: obitos, ob48: obitos48 });
     const txt = x => ZeloMovAuto.fmtInd(IND[x[0]], x[2]) + (x[2] === ' dias' && IND[x[0]] != null ? ' dias' : '');
-    y = ZeloPDF.secao(doc, y, 'Outros indicadores');
-    y = ZeloPDF.indicadores(doc, y, ZeloMovAuto.INDICADORES.slice(0, 4).map(x => [x[1], txt(x)]));
-    y = ZeloPDF.indicadores(doc, y, ZeloMovAuto.INDICADORES.slice(4).map(x => [x[1], txt(x)]));
+    outros = ZeloMovAuto.INDICADORES.filter(x => x[0] !== 'taxa').map(x => [x[1], txt(x)]);
+  }
+  y = ZeloPDF.secao(doc, y, '1. Resumo e indicadores do Período');
+  if (!multiMonth) {
+    y = ZeloPDF.indicadores(doc, y, resumo);
+    if (outros.length) {
+      y = ZeloPDF.indicadores(doc, y, outros.slice(0, 3));
+      y = ZeloPDF.indicadores(doc, y, outros.slice(3));
+    }
+  } else {
+    // Vários meses (folha deitada): tudo numa tabela de duas linhas, para caber numa só folha.
+    const todos = resumo.concat(outros);
+    y = ZeloPDF.autoTable(doc, {
+      head: [todos.map(x => x[0])], body: [todos.map(x => String(x[1]))], startY: y, tamanhoExato: true,
+      styles: { fontSize: 8, cellPadding: 1.2, halign: 'center' },
+      headStyles: { fontSize: 7, cellPadding: 1.2, halign: 'center' },
+      bodyStyles: { fontStyle: 'bold', fontSize: 9 }
+    });
   }
 
   y = ZeloPDF.secao(doc, y, '2. Movimento do Período');
@@ -1772,31 +1787,24 @@ function generateReportPDF() {
   });
   y = ZeloPDF.autoTable(doc, {
     head: [head], body: body, startY: y,
-    styles: { fontSize: multiMonth ? 9 : 11 },
-    headStyles: { fontSize: multiMonth ? 9 : 11 },
+    // Compacta (uma só folha, com a assinatura)
+    tamanhoExato: multiMonth,
+    styles: { fontSize: multiMonth ? 9 : 10, cellPadding: multiMonth ? 1 : 1.6 },
+    headStyles: { fontSize: multiMonth ? 9 : 10, cellPadding: multiMonth ? 1.2 : 1.8 },
     columnStyles: { 0: { cellWidth: multiMonth ? 55 : 85 } },
     didParseCell: (data) => {
       if (data.column.index === head.length - 1) data.cell.styles.fontStyle = 'bold';
     }
   });
 
-  // Gráfico do período (Admitidos vs Saídos)
-  const barCanvas = document.getElementById('barChart');
-  if (barChartInstance && barCanvas) {
-    // título e gráfico ficam sempre juntos (sem título sozinho no fim da página)
-    if (pageHeight - 21 - y - 13 - 34 < 40) { doc.addPage(); y = ZeloPDF.TOPO_CONTINUACAO; }
-    y = ZeloPDF.secao(doc, y, '3. Gráfico do Período — Admitidos vs Saídos');
-    const chartH = Math.max(40, Math.min(multiMonth ? 60 : 80, pageHeight - 21 - y - 34));
-    drawChartFitted(doc, barCanvas, M, y, CW, chartH);
-    y += chartH + 6;
-  }
+  // Sem gráfico: o relatório cabe numa só página.
 
   // Assinatura do Chefe de Enfermagem do Serviço (feita à mão, em papel) e data
-  y = ZeloPDF.quebra(doc, y, 30);
+  y = ZeloPDF.quebra(doc, y, multiMonth ? 20 : 30);
   const sigColW = CW / 2;
   doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
   doc.line(M, y, M + CW, y);
-  const lineY = y + 16;
+  const lineY = y + (multiMonth ? 10 : 16);
   doc.setDrawColor(60, 60, 60);
   doc.line(M, lineY, M + sigColW - 10, lineY);
   doc.line(M + sigColW + 10, lineY, M + CW, lineY);

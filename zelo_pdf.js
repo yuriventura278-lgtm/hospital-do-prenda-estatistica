@@ -321,7 +321,8 @@
       // Tabelas normais sobem para 10–12; folhas muito densas (letra < 7,
       // pensadas para caber numa página) só sobem meio ponto.
       var denso = tamPedido < 7;
-      var tam = denso ? tamPedido + 0.5 : Math.max(tamPedido, 11.5);
+      // tamanhoExato: a tabela precisa daquele tamanho para caber numa só folha.
+      var tam = opts.tamanhoExato ? tamPedido : denso ? tamPedido + 0.5 : Math.max(tamPedido, 11.5);
       o.styles = juntar(opts.styles, { font: 'helvetica', fontSize: tam, textColor: PRETO, lineColor: LINHA, lineWidth: 0.2 });
       if (!opts.styles || opts.styles.cellPadding == null) o.styles.cellPadding = 2;
       o.headStyles = juntar(opts.headStyles, { fillColor: NAVY, textColor: '#FFFFFF', fontStyle: 'bold', fontSize: tam });
