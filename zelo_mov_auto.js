@@ -230,7 +230,11 @@
     ['rotacao', 'Índice de rotação', '', 'saídos ÷ camas reais'], ['intervalo', 'Intervalo de substituição', ' dias', '(dias-cama − dias-doente) ÷ saídos'],
     ['mortLiquida', 'Mortalidade líquida', '%', 'óbitos ≥48 h ÷ (saídos − óbitos <48 h)'], ['mortBruta', 'Mortalidade bruta', '%', 'óbitos ÷ saídos']];
   function fmtInd(v, suf) { return v == null || !isFinite(v) ? '—' : v.toLocaleString('pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + (suf === '%' ? '%' : ''); }
-  window.ZeloMovAuto = { PREDEF: PREDEF, indicadores: indicadores, INDICADORES: INDICADORES, fmtInd: fmtInd, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
+  // Preenchimento automático: por omissão DESLIGADO (o Movimento é escrito à
+  // mão); só fica ligado num serviço quando o administrador o ativa
+  // (__autoLigado = true). __autoDesligado === false = ativado com a versão antiga.
+  function ligadoDe(lig, desl) { return lig === true || desl === false; }
+  window.ZeloMovAuto = { PREDEF: PREDEF, ligadoDe: ligadoDe, indicadores: indicadores, INDICADORES: INDICADORES, fmtInd: fmtInd, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
     CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, pacientesVivos: pacientesVivos, lerExternos: lerExternos };
 
   // ─────────────── Na página de Movimento de um serviço ───────────────
@@ -241,7 +245,7 @@
   window.ZeloMovAuto.mesAuto = function (m) { return !!auto[m]; };
   window.ZeloMovAuto.recalcular = function () { aplicar(); };
 
-  function desligado() { try { return !!(data && data.__autoDesligado); } catch (e) { return false; } }
+  function desligado() { try { return !(data && ligadoDe(data.__autoLigado, data.__autoDesligado)); } catch (e) { return true; } }
   // Pedidos do Controlo de Pacientes (registos tardios em meses já fixos).
   var pedidos = {}, aRecalcular = false;
   function pendentes() {
@@ -340,8 +344,8 @@
     var sec = document.querySelector('.table-section'); if (!sec) return;
     if (!el) { el = document.createElement('div'); el.id = 'mva-faixa'; sec.parentNode.insertBefore(el, document.getElementById('m2') || sec); }
     var on = !desligado(), noMes = typeof currentMonth !== 'undefined' && auto[currentMonth];
-    // Só os administradores veem esta faixa e podem desligar/ligar o
-    // preenchimento automático (por omissão fica ligado). Os outros
+    // Só os administradores veem esta faixa e podem ativar/desligar o
+    // preenchimento automático (por omissão fica desligado). Os outros
     // utilizadores veem apenas o Movimento.
     if (!eAdmin()) { el.style.cssText = 'display:none'; el.innerHTML = ''; return; }
     el.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:12px;padding:10px 14px;margin-bottom:12px;font:600 .86rem Inter,"Segoe UI",Arial,sans-serif;' +
@@ -349,10 +353,10 @@
     el.innerHTML = on
       ? '<span style="font-size:1.1rem">⟳</span><span style="flex:1 1 300px;min-width:0">' + (noMes ? '<b>Preenchido automaticamente</b> a partir do Controlo de Pacientes (entradas, saídas, óbitos, dias-doente e dias de cama = camas × dias). Para corrigir um número, corrija o registo do doente no Controlo de Pacientes.' : '<b>Preenchimento automático ligado.</b> Este mês ainda não tem doentes no Controlo de Pacientes; os números aparecem sozinhos quando forem registados.') + '</span>' +
         '<button type="button" id="mva-off" style="margin-left:auto;flex-shrink:0;border:1px solid #A7F3D0;background:#fff;color:#065F46;border-radius:9px;padding:6px 10px;font:700 .78rem Inter,Arial,sans-serif;cursor:pointer">Desligar automático (preencher à mão)</button>'
-      : '<span><b>Preenchimento automático desligado</b> neste serviço — os números do Movimento são escritos à mão. (Só administradores veem esta faixa.)</span><button type="button" id="mva-on" style="margin-left:auto;border:1px solid #CBD5E1;background:#fff;color:#1E3A5F;border-radius:9px;padding:6px 10px;font:700 .78rem Inter,Arial,sans-serif;cursor:pointer">Ligar preenchimento automático</button>';
+      : '<span><b>Preenchimento manual</b> neste serviço — os números do Movimento são escritos à mão. Pode ativar o preenchimento automático a partir do Controlo de Pacientes. (Só administradores veem esta faixa.)</span><button type="button" id="mva-on" style="margin-left:auto;border:1px solid #CBD5E1;background:#fff;color:#1E3A5F;border-radius:9px;padding:6px 10px;font:700 .78rem Inter,Arial,sans-serif;cursor:pointer">Ativar preenchimento automático</button>';
     var off = document.getElementById('mva-off'), onb = document.getElementById('mva-on');
-    if (off) off.onclick = function () { if (!eAdmin()) return; if (!confirm('Desligar o preenchimento automático neste serviço? Os números ficam como estão e passam a ser escritos à mão.')) return; data.__autoDesligado = true; auto = {}; persistData(); renderTable(); updateStats(); faixa(); };
-    if (onb) onb.onclick = function () { if (!eAdmin()) return; data.__autoDesligado = false; persistData(); aplicar(); };
+    if (off) off.onclick = function () { if (!eAdmin()) return; if (!confirm('Desligar o preenchimento automático neste serviço? Os números ficam como estão e passam a ser escritos à mão.')) return; data.__autoLigado = false; data.__autoDesligado = true; auto = {}; persistData(); renderTable(); updateStats(); faixa(); };
+    if (onb) onb.onclick = function () { if (!eAdmin()) return; if (!confirm('Ativar o preenchimento automático neste serviço? O Movimento passa a ser calculado a partir do Controlo de Pacientes (os números escritos à mão são guardados numa cópia antes de serem substituídos).')) return; data.__autoLigado = true; data.__autoDesligado = false; persistData(); aplicar(); faixa(); };
   }
   function envolver() {
     var r = window.renderTable; if (typeof r !== 'function' || r.__mva) return false;

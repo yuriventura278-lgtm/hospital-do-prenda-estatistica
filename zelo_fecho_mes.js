@@ -128,8 +128,8 @@
   function numerosDoMes(it, m, ate) {
     var base = 'registos_movimento/' + it + '/snapshot/';
     var get = function (c) { return window.__fbGet(c).catch(function () { return null; }); };
-    return Promise.all([movAuto(), get(base + m), get(base + '__autoDesligado'), get(base + '__capacity'), get(base + '__camasForaUso/' + m)]).then(function (r) {
-      var A = r[0], md = r[1], manual = !!r[2], cap = Number(r[3]) || 0, fu = r[4] || {};
+    return Promise.all([movAuto(), get(base + m), get(base + '__autoDesligado'), get(base + '__capacity'), get(base + '__camasForaUso/' + m), get(base + '__autoLigado')]).then(function (r) {
+      var A = r[0], md = r[1], manual = !(r[5] === true || r[2] === false), cap = Number(r[3]) || 0, fu = r[4] || {};
       var doMovimento = function (motivo) { return { campos: totais(md, m).campos, fonte: 'movimento', motivo: motivo }; };
       if (!A || manual) return doMovimento(manual ? 'Movimento preenchido à mão' : 'fórmulas indisponíveis');
       return Promise.all([A.lerPacientes(it), A.lerExternos(it)]).then(function (x) {

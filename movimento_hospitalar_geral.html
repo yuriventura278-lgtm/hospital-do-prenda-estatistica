@@ -188,8 +188,8 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="zelo_pdf_guardar.js?v=2"></script>
 <script src="zelo_servicos_menu.js"></script>
-<script src="zelo_mov_auto.js?v=16"></script>
-<script src="zelo_fecho_mes.js?v=7"></script>
+<script src="zelo_mov_auto.js?v=17"></script>
+<script src="zelo_fecho_mes.js?v=8"></script>
 <script>
 /* Movimento Hospitalar Geral — supervisão e estatística (só leitura).
    Cada serviço guarda em registos_movimento/<serviço>:
@@ -522,7 +522,11 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
       window.__fbGet('registos_movimento/' + item + '/snapshot/__capacity').catch(function(){ return null; }), A.lerExternos(item),
       window.__fbGet('registos_movimento/' + item + '/snapshot/__baselines').catch(function(){ return null; }),
       window.__fbGet('registos_movimento/' + item + '/snapshot/__camasForaUso').catch(function(){ return null; }),
-      window.__fbGet('registos_movimento/' + item + '/snapshot/__camasPredef').catch(function(){ return null; })]).then(function(r){
+      window.__fbGet('registos_movimento/' + item + '/snapshot/__camasPredef').catch(function(){ return null; }),
+      window.__fbGet('registos_movimento/' + item + '/snapshot/__autoLigado').catch(function(){ return null; }),
+      window.__fbGet('registos_movimento/' + item + '/snapshot/__autoDesligado').catch(function(){ return null; })]).then(function(r){
+        // Preenchimento automático não ativado neste serviço: vale o Movimento escrito à mão.
+        if (!(A.ligadoDe ? A.ligadoDe(r[6], r[7]) : r[7] !== true)) r[0] = [];
         // Camas predefinidas enquanto a página do serviço não as aplicou
         var pd = A.PREDEF && A.PREDEF[item];
         if (pd && !r[5]) r[1] = pd;
