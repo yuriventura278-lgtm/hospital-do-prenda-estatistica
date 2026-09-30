@@ -720,7 +720,7 @@
   var VELOCIDADE_FALA = 0.97;
   var MESES_FALA = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
   // Siglas ditas letra a letra (senão a voz tenta lê-las como palavras).
-  var SIGLAS_FALA = { UCI: 'U C I', PDF: 'P D F', NUP: 'N U P', VIH: 'V I H', HIV: 'H I V', HP: 'H P', RH: 'R H', TAC: 'T A C', RX: 'R X', ECG: 'E C G', GEPE: 'G E P E', DEMA: 'D E M A', ID: 'I D' };
+  var SIGLAS_FALA = { UCI: 'U C I', PDF: 'P D F', NUP: 'nup', VIH: 'V I H', HIV: 'H I V', HP: 'H P', RH: 'R H', TAC: 'T A C', RX: 'R X', ECG: 'E C G', GEPE: 'G E P E', DEMA: 'D E M A', ID: 'I D' };
   function _horaFalada(h, m){
     h = parseInt(h, 10); m = parseInt(m, 10);
     var hs = h === 1 ? 'uma hora' : (h === 0 ? 'zero horas' : h + ' horas');

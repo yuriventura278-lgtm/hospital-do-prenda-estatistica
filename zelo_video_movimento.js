@@ -209,6 +209,9 @@
     atualizarBarra();
   }
   function pararVoz() { falaAtiva = false; try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {} }
+  // Texto para a voz (a legenda fica igual): o NUP lê-se como palavra («nup»),
+  // não letra a letra; ZELO também.
+  function paraVoz(txt) { return String(txt).replace(/\bNUPs\b/g, 'nups').replace(/\bNUP\b/g, 'nup').replace(/\bZELO\b/g, 'Zelo'); }
   // Diz as falas da cena uma a uma; sem voz, a legenda muda ao ritmo da leitura.
   function falar() {
     var c = CENAS[cena]; if (fala >= c.falas.length) { $('.vm-leg').textContent = ''; return; }
@@ -216,7 +219,7 @@
     var seguinte = function () { if (!tocar || !falaAtiva) return; falaAtiva = false; fala++; setTimeout(function () { if (tocar) falar(); }, 250); };
     falaAtiva = true;
     if (comVoz && 'speechSynthesis' in window && window.SpeechSynthesisUtterance) {
-      var u = new SpeechSynthesisUtterance(txt); u.lang = voz ? voz.lang : 'pt-PT'; if (voz) u.voice = voz; u.rate = 1; u.pitch = 1;
+      var u = new SpeechSynthesisUtterance(paraVoz(txt)); u.lang = voz ? voz.lang : 'pt-PT'; if (voz) u.voice = voz; u.rate = 1; u.pitch = 1;
       u.onend = seguinte; u.onerror = function () { falaFim = performance.now() + txt.length * 60; };
       try { speechSynthesis.speak(u); } catch (e) { falaFim = performance.now() + txt.length * 60; }
     } else falaFim = performance.now() + txt.length * 62; // leitura ≈ 16 carateres/s
