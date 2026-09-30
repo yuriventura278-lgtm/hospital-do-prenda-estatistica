@@ -1,6 +1,6 @@
 // ── ZELO — Vídeo de instruções: "Como funciona o Controlo de Pacientes" ──
 // Usa o leitor de zelo_video_movimento.js (carregado antes). O botão de ajuda
-// do cabeçalho passa a "Instruções" e abre este vídeo (9 cenas, cerca de 3 minutos,
+// do cabeçalho passa a "Instruções" e abre este vídeo (9 cenas, cerca de 4 minutos — cada cena dura o tempo da narração,
 // narração em português com a voz do aparelho e legendas).
 // Não usa o Firebase nem descarrega ficheiros.
 (function () {
@@ -14,7 +14,7 @@
   function botao(x, y, w, txt, fundo, cor, d) { return a(d, '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="32" rx="9" fill="' + fundo + '"/>' + t(x + w / 2, y + 21, txt, { s: 12, w: 700, c: cor, m: 1 })); }
 
   var CENAS = [
-    { dur: 12, cor: '#1E3A5F', titulo: 'Abertura',
+    { dur: 17, cor: '#1E3A5F', titulo: 'Abertura',
       falas: ['Olá! Neste vídeo vamos ver como funciona o Controlo de Pacientes: o registo de cada doente internado no serviço, da entrada até à saída.', 'É daqui que sai, sozinho, o Movimento Hospitalar.'],
       svg: function () {
         return svg('#12243B',
@@ -26,7 +26,7 @@
           a(1.8, t(250, 150, 'Controlo de', { s: 30, w: 800, c: '#fff' }) + t(250, 184, 'Pacientes', { s: 30, w: 800, c: '#fff' })) +
           a(2.4, t(250, 214, 'Do registo de entrada à saída do doente', { s: 14, c: '#CBD5E1' })));
       } },
-    { dur: 22, cor: '#0891B2', titulo: 'Registar um doente novo',
+    { dur: 30, cor: '#0891B2', titulo: 'Registar um doente novo',
       falas: ['Para registar um doente, carregue em Novo Paciente.', 'Preencha o nome, o NUP, a idade, o género, a data e hora de entrada e o diagnóstico. Os campos com asterisco são obrigatórios.', 'O CID é opcional, e pode juntar vários diagnósticos. Indique também a proveniência: Banco de Urgência ou transferência de outro serviço.', 'No fim, carregue em Criar.'],
       svg: function () {
         return svg('#F8FAFC',
@@ -38,7 +38,7 @@
           a(13, '<rect x="274" y="236" width="140" height="26" rx="8" fill="#fff" stroke="#CBD5E1"/>' + t(284, 253, 'Banco de Urgência', { s: 11.5, c: '#0F172A' })) +
           botao(424, 234, 72, '✓ Criar', '#059669', '#fff', 18));
       } },
-    { dur: 18, cor: '#7C3AED', titulo: 'Processo clínico e NUP',
+    { dur: 27, cor: '#7C3AED', titulo: 'Processo clínico e NUP',
       falas: ['Cada doente tem um só NUP, e o sistema não deixa repetir o mesmo número em doentes diferentes.', 'No Processo clínico pode procurar por nome ou por NUP, em todos os serviços.', 'Se o doente voltar, fica registado como novo internamento do mesmo processo. E nada é apagado: um registo anulado vai para o arquivo.'],
       svg: function () {
         return svg('#F8FAFC',
@@ -52,7 +52,7 @@
           a(11, '<rect x="250" y="166" width="246" height="46" rx="12" fill="#fff" stroke="#E3E8F0"/>' + t(264, 194, 'Voltou? Novo internamento', { s: 13, w: 700, c: '#0F172A' })) +
           a(14, '<rect x="250" y="222" width="246" height="46" rx="12" fill="#FEF2F2" stroke="#FECACA"/>' + t(264, 250, 'Anular = arquivar, nunca apagar', { s: 13, w: 700, c: '#991B1B' })));
       } },
-    { dur: 16, cor: '#059669', titulo: 'Doentes no serviço',
+    { dur: 21, cor: '#059669', titulo: 'Doentes no serviço',
       falas: ['A lista Internados mostra os doentes no serviço, com a cama, os dias de internamento e o diagnóstico.', 'Em cada doente pode Atualizar os dados ou Registar a saída.', 'Use os filtros por idade e a pesquisa para encontrar alguém depressa.'],
       svg: function () {
         var linha = function (y, nome, cama, dias, d) {
@@ -66,7 +66,7 @@
           a(6, '<rect x="344" y="94" width="152" height="86" rx="12" fill="none" stroke="#F59E0B" stroke-width="3" stroke-dasharray="6 5"/>') +
           a(10, t(24, 262, 'Pesquisa por nome, NUP, cama ou diagnóstico', { s: 12, w: 700, c: '#059669' })));
       } },
-    { dur: 20, cor: '#D97706', titulo: 'Registar a saída',
+    { dur: 24, cor: '#D97706', titulo: 'Registar a saída',
       falas: ['Quando o doente sai, carregue em Saída e escolha o tipo.', 'Alta, para os doentes que saem vivos. Óbito, com a causa, e o sistema separa os de menos de 48 horas e de 48 horas ou mais. Ou transferência, para outro serviço.', 'Registe sempre a data e a hora reais da saída.'],
       svg: function () {
         var op = function (x, fundo, cor, tit, sub, d) { return a(d, '<rect x="' + x + '" y="70" width="148" height="150" rx="16" fill="' + fundo + '"/>' + t(x + 74, 118, tit, { s: 19, w: 800, c: cor, m: 1 }) + sub.map(function (l, i) { return t(x + 74, 146 + i * 20, l, { s: 11.5, c: '#475569', m: 1 }); }).join('')); };
@@ -77,8 +77,8 @@
           op(348, '#F5F3FF', '#7C3AED', 'Transferência', ['para outro serviço', 'do hospital'], 11) +
           a(14, '<rect x="24" y="236" width="472" height="36" rx="10" fill="#1E3A5F"/>' + t(260, 259, 'Data e hora de saída = as reais', { s: 13, w: 700, c: '#fff', m: 1 })));
       } },
-    { dur: 24, cor: '#DC2626', titulo: 'Sem camas: internar noutro serviço',
-      falas: ['Se o serviço não tiver camas livres, o sistema pergunta em que serviço o doente vai ficar, e mostra quantas camas livres tem cada um.', 'O doente fica internado nesse serviço, mas continua a ser do seu serviço de origem.', 'Quando voltar, carregue em Mover para o serviço: fica com a data de entrada real.'],
+    { dur: 33, cor: '#DC2626', titulo: 'Sem camas: internar noutro serviço',
+      falas: ['Se o serviço não tiver camas livres, o sistema pergunta em que serviço o doente vai ficar, e mostra quantas camas livres tem cada um.', 'O doente fica internado nesse serviço, mas continua a ser do seu serviço de origem: conta nos dias-doente, e nesses dias a cama também conta na origem, mais uma cama nos dias-cama.', 'Quando voltar, carregue em Mover para o serviço: fica com a data de entrada real.'],
       svg: function () {
         var serv = function (x, nome, cor, lot, d) { return a(d, '<rect x="' + x + '" y="60" width="190" height="130" rx="16" fill="#fff" stroke="' + cor + '" stroke-width="2"/>' + t(x + 95, 86, nome, { s: 14, w: 800, c: cor, m: 1 }) + t(x + 95, 176, lot, { s: 11.5, w: 700, c: '#475569', m: 1 })); };
         return svg('#F8FAFC',
@@ -89,7 +89,7 @@
           a(9, '<rect x="24" y="204" width="226" height="64" rx="12" fill="#FFFBEB" stroke="#FDE68A"/>' + t(36, 228, 'Pedido de autorização', { s: 12.5, w: 800, c: '#92400E' }) + t(36, 248, 'lembrado até autorizar · 24 h', { s: 11, c: '#92400E' })) +
           a(18, '<rect x="270" y="204" width="226" height="64" rx="12" fill="#ECFDF5" stroke="#A7F3D0"/>' + t(282, 228, '↩ Mover para o serviço', { s: 12.5, w: 800, c: '#065F46' }) + t(282, 248, 'mantém a data de entrada real', { s: 11, c: '#065F46' })));
       } },
-    { dur: 30, cor: '#B45309', titulo: 'Doente fora do serviço: o outro serviço autoriza',
+    { dur: 45, cor: '#B45309', titulo: 'Doente fora do serviço: o outro serviço autoriza',
       falas: ['Atenção: quando um doente do seu serviço fica internado noutro serviço, esse serviço tem de autorizar no sistema.', 'O pedido aparece logo no outro serviço, com dois botões: Autorizar ou Recusar. Enquanto não responder, o pedido fica pendente e o serviço é lembrado.', 'Se autorizar, a cama passa a contar nesse serviço, e o doente continua a ser do serviço de origem.', 'Se recusar, o serviço de origem é avisado: pode pedir a outro serviço, ou o doente fica no seu serviço. E se passarem 24 horas sem resposta, o serviço de origem também é avisado.'],
       svg: function () {
         var caixa = function (x, y, w, h, fundo, borda, d, c) { return a(d, '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="12" fill="' + fundo + '" stroke="' + borda + '" stroke-width="1.5"/>' + c); };
@@ -106,7 +106,7 @@
           caixa(185, 164, 150, 104, '#FEF2F2', '#FECACA', 20, t(260, 188, '✕ Recusado', { s: 13, w: 800, c: '#991B1B', m: 1 }) + t(260, 210, 'origem é avisada', { s: 11, c: '#991B1B', m: 1 }) + t(260, 226, 'pede a outro serviço', { s: 11, c: '#991B1B', m: 1 }) + t(260, 250, 'ou o doente fica', { s: 10, c: '#991B1B', m: 1 })) +
           caixa(346, 164, 150, 104, '#FFF7ED', '#FED7AA', 25, t(421, 188, '⏱ Sem resposta', { s: 13, w: 800, c: '#9A3412', m: 1 }) + t(421, 210, 'passadas 24 horas', { s: 11, c: '#9A3412', m: 1 }) + t(421, 226, 'a origem também', { s: 11, c: '#9A3412', m: 1 }) + t(421, 250, 'é avisada', { s: 10, c: '#9A3412', m: 1 })));
       } },
-    { dur: 18, cor: '#2B5A8A', titulo: 'Ligação ao Movimento Hospitalar',
+    { dur: 25, cor: '#2B5A8A', titulo: 'Ligação ao Movimento Hospitalar',
       falas: ['Tudo o que regista aqui preenche sozinho o Movimento Hospitalar do serviço.', 'As entradas, as saídas, os óbitos, os dias-doente e os dias-cama são calculados a partir dos doentes.', 'Por isso, para corrigir um número do Movimento, corrija o registo do doente no Controlo de Pacientes.'],
       svg: function () {
         return svg('#F8FAFC',
@@ -118,7 +118,7 @@
           ['Entradas', 'Saídas e óbitos', 'Dias-doente', 'Dias-cama'].map(function (x, i) { return a(4 + i * 0.7, '<rect x="318" y="' + (110 + i * 32) + '" width="160" height="24" rx="7" fill="rgba(255,255,255,.12)"/>' + t(330, 127 + i * 32, '✓ ' + x, { s: 12, w: 700, c: '#E2E8F0' })); }).join('') +
           a(12, t(260, 272, 'Corrigir um número = corrigir o registo do doente', { s: 12.5, w: 700, c: '#2B5A8A', m: 1 })));
       } },
-    { dur: 20, cor: '#64748B', titulo: 'Relatórios e regras de ouro',
+    { dur: 24, cor: '#64748B', titulo: 'Relatórios e regras de ouro',
       falas: ['No menu tem ainda o Relatório mensal, com gráficos e PDF, o Histórico diário e a Cópia de segurança.', 'Três regras de ouro: registe cada entrada e saída no próprio dia, com a hora real; confirme o NUP antes de criar; e nunca deixe um doente sem saída registada. Obrigado!'],
       svg: function () {
         var r = function (y, n, cor, t1, t2, d) { return a(d, '<circle cx="46" cy="' + y + '" r="16" fill="' + cor + '"/>' + t(46, y + 5, n, { s: 14, w: 800, c: '#fff', m: 1 }) + t(72, y - 3, t1, { s: 13, w: 700, c: '#fff' }) + t(72, y + 14, t2, { s: 11, c: '#94A3B8' })); };

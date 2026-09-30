@@ -1,8 +1,8 @@
 // ── ZELO — Vídeo de instruções: "Como se calcula o Movimento Hospitalar" ──
 // Botão "▶ Instruções" no cabeçalho das páginas de Movimento (substitui o
-// botão de ajuda) e do Movimento Hospitalar Geral. Abre um leitor com 11 cenas
+// botão de ajuda) e do Movimento Hospitalar Geral. Abre um leitor com 12 cenas
 // animadas (desenhos SVG), narração em português (voz do próprio aparelho) e
-// legendas. Cerca de 4 min (inclui o fecho do mês e as retificações).
+// legendas. Cerca de 5 min (inclui a cama emprestada, o fecho do mês e as retificações); cada cena dura o tempo da narração.
 // Não usa o Firebase nem descarrega nada: tudo é desenhado e narrado aqui
 // (não gasta a quota gratuita nem dados móveis).
 (function () {
@@ -23,8 +23,8 @@
   }
 
   var CENAS_MOV = [
-    { dur: 12, cor: '#1E3A5F', titulo: 'Abertura',
-      falas: ['Olá! Neste vídeo vamos ver, passo a passo, como se calcula o Movimento Hospitalar de um serviço.', 'Que dados registar, o que são os dias-cama e os dias-doente, e porque são tão importantes.'],
+    { dur: 13, cor: '#1E3A5F', titulo: 'Abertura',
+      falas: ['Olá! Neste vídeo vamos ver como se calcula o Movimento Hospitalar de um serviço.', 'Que dados registar, e porque são tão importantes.'],
       svg: function () {
         return svg('#12243B',
           a(0.2, '<g transform="translate(60,70)"><rect x="0" y="40" width="150" height="120" rx="6" fill="#E9EEF4"/><rect x="45" y="0" width="60" height="160" rx="6" fill="#F8FAFC"/><rect x="66" y="14" width="18" height="44" rx="3" fill="#DC2626"/><rect x="53" y="27" width="44" height="18" rx="3" fill="#DC2626"/><rect x="62" y="122" width="26" height="38" rx="3" fill="#1E3A5F"/></g>') +
@@ -33,7 +33,7 @@
           a(2.0, t(250, 150, 'Movimento', { s: 30, w: 800, c: '#fff' }) + t(250, 184, 'Hospitalar', { s: 30, w: 800, c: '#fff' })) +
           a(2.6, t(250, 214, 'Como se calcula, em 2 minutos', { s: 14, c: '#CBD5E1' })));
       } },
-    { dur: 22, cor: '#0891B2', titulo: 'Como achar o "Ficam existindo"',
+    { dur: 25, cor: '#0891B2', titulo: 'Como achar o "Ficam existindo"',
       falas: ['Todos os dias o serviço faz uma conta simples.', 'Existência anterior, que são os doentes que já estavam, mais as entradas, menos as saídas, é igual a ficam existindo.', 'Por exemplo: 20 mais 3, menos 2, ficam existindo 21.', 'E os 21 que ficam hoje são a existência anterior de amanhã.'],
       svg: function () {
         var cx = function (x, w, fundo, num, cor, rot, sub, d) { return a(d, '<rect x="' + x + '" y="72" width="' + w + '" height="104" rx="14" fill="' + fundo + '"/>' + t(x + w / 2, 122, num, { s: 34, w: 800, c: cor, m: 1 }) + t(x + w / 2, 148, rot, { s: 10.5, w: 800, c: cor === '#fff' ? '#CBD5E1' : cor, m: 1 }) + (sub ? t(x + w / 2, 163, sub, { s: 9.5, c: '#64748B', m: 1 }) : '')); };
@@ -47,8 +47,8 @@
           a(3.0, '<g fill="#7C3AED"><circle cx="331" cy="204" r="7"/><circle cx="353" cy="204" r="7"/></g>', 'vm-sai') +
           a(5.0, '<rect x="60" y="232" width="400" height="36" rx="10" fill="#1E3A5F"/>' + t(260, 255, 'Ficam existindo = Existência + Entradas − Saídas', { s: 13, w: 700, c: '#fff', m: 1 })));
       } },
-    { dur: 20, cor: '#7C3AED', titulo: 'Os dados a registar',
-      falas: ['As entradas dividem-se em diretos, que chegam do Banco de Urgência ou da consulta, e transferidos de outro serviço.', 'As saídas são as altas, os óbitos, separados em menos de 48 horas e 48 horas ou mais, e as transferências.', 'No ZELO, tudo isto é preenchido sozinho a partir do Controlo de Pacientes.'],
+    { dur: 25, cor: '#7C3AED', titulo: 'Os dados a registar',
+      falas: ['As entradas dividem-se em diretos, que chegam do Banco de Urgência ou da consulta, e transferidos de outro serviço.', 'As saídas são as altas, os óbitos, com menos ou mais de 48 horas, e as transferências.', 'No ZELO, tudo isto é preenchido sozinho a partir do Controlo de Pacientes.'],
       svg: function () {
         var c = function (x, y, w, h, t1, t2, d, c2) { return a(d, '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="10" fill="#fff"/>' + t(x + 12, y + 22, t1, { s: 12.5, w: 700 }) + (t2 ? t(x + 12, y + 38, t2, { s: 10.5, c: c2 || '#64748B' }) : '')); };
         return svg('#F8FAFC',
@@ -59,8 +59,8 @@
           c(286, 98, 198, 34, 'Altas (vivos)', '', 6.2) + c(286, 140, 96, 48, 'Óbito', '< 48 horas', 7.2, '#DC2626') + c(388, 140, 96, 48, 'Óbito', '≥ 48 horas', 7.6, '#DC2626') +
           c(286, 196, 198, 34, 'Transferidos', '', 8.4) + a(12, t(286, 254, 'Tudo vem do Controlo de Pacientes.', { s: 11, w: 700, c: '#059669' })));
       } },
-    { dur: 22, cor: '#059669', titulo: 'Dias-cama',
-      falas: ['Os dias-cama são as camas disponíveis e prontas a usar, em cada dia.', 'Se o serviço tem 12 camas e 2 estão avariadas, nesse dia há 10 dias-cama.', 'No mês somam-se todos os dias: 12 camas vezes 30 dias dá 360 dias-cama.', 'As camas fora de uso não contam. E se o serviço empresta uma cama a outro serviço, perde esse dia-cama, e o outro ganha-o.'],
+    { dur: 23, cor: '#059669', titulo: 'Dias-cama',
+      falas: ['Os dias-cama são as camas disponíveis e prontas a usar, em cada dia.', 'Se o serviço tem 12 camas e 2 estão avariadas, nesse dia há 10 dias-cama.', 'No mês somam-se todos os dias: 12 camas vezes 30 dias dá 360 dias-cama.', 'As camas fora de uso não contam.'],
       svg: function () {
         var l = []; for (var i = 0; i < 6; i++) l.push([24 + i * 56, 72, 'c']); for (i = 0; i < 6; i++) l.push([24 + i * 56, 128, i >= 4 ? 'x' : 'c', i >= 4 ? 5.2 + (i - 4) * 0.4 : null]);
         return svg('#F8FAFC',
@@ -69,8 +69,8 @@
           a(6.4, t(372, 152, '= 10 DC', { s: 24, w: 800, c: '#059669' }) + t(372, 170, 'neste dia', { s: 11, c: '#64748B' })) +
           a(10, '<rect x="24" y="200" width="472" height="70" rx="12" fill="#ECFDF5"/>' + t(40, 228, 'No mês: soma de todos os dias', { s: 14, w: 800, c: '#065F46' }) + t(40, 254, '12 camas × 30 dias = 360 DC  (menos as camas fora de uso)', { s: 13, c: '#065F46' })));
       } },
-    { dur: 21, cor: '#D97706', titulo: 'Dias-doente',
-      falas: ['Os dias-doente são os doentes internados em cada dia. É o ficam existindo da conta de cada dia.', 'Se hoje ficaram 9 doentes, são 9 dias-doente.', 'No mês somam-se os de todos os dias: por exemplo, 270 dias-doente.', 'Normalmente, os dias-doente não podem ser maiores do que os dias-cama: não pode haver mais doentes do que camas disponíveis. Se isso acontecer, verifique os números ou as camas extra.'],
+    { dur: 26, cor: '#D97706', titulo: 'Dias-doente',
+      falas: ['Os dias-doente são os doentes internados em cada dia. É o ficam existindo da conta de cada dia.', 'Se hoje ficaram 9 doentes, são 9 dias-doente.', 'No mês somam-se os de todos os dias: por exemplo, 270 dias-doente.', 'Os dias-doente não podem passar os dias-cama. Se passarem, verifique os números.'],
       svg: function () {
         var l = []; for (var i = 0; i < 6; i++) l.push([24 + i * 56, 72, i === 4 ? 'c' : 'd', 0.5 + i * 0.35]); for (i = 0; i < 4; i++) l.push([24 + i * 56, 128, 'd', 2.6 + i * 0.35]);
         return svg('#F8FAFC',
@@ -79,7 +79,20 @@
           a(9, '<rect x="24" y="200" width="472" height="70" rx="12" fill="#FFFBEB"/>' + t(40, 228, 'No mês: soma dos doentes de cada dia', { s: 14, w: 800, c: '#92400E' }) + t(40, 254, 'Ex.: 9 + 10 + 8 + … (30 dias) = 270 DD', { s: 13, c: '#92400E' })) +
           a(15, '<rect x="360" y="176" width="136" height="30" rx="15" fill="#FEF2F2" stroke="#FECACA"/>' + t(428, 196, 'DD ≤ DC', { s: 14, w: 800, c: '#DC2626', m: 1 })));
       } },
-    { dur: 21, cor: '#DC2626', titulo: 'Taxa de ocupação',
+    { dur: 34, cor: '#B45309', titulo: 'Doente internado noutro serviço: a cama conta na origem',
+      falas: ['Quando um doente fica internado noutro serviço, continua a ser do seu serviço: conta nos dias-doente da origem.', 'E a cama também conta: nesses dias, o serviço de origem soma mais uma cama nos dias-cama, e o serviço que emprestou a cama conta menos uma.', 'Por exemplo: a Maxilo-Facial tem 12 camas e um doente 5 dias na Cirurgia Geral. Nesses 5 dias conta 13 camas, e a Cirurgia Geral conta menos uma.'],
+      svg: function () {
+        var cx = function (x, nome, cor, l1, l2, l3, d) { return a(d, '<rect x="' + x + '" y="54" width="196" height="150" rx="14" fill="#fff" stroke="' + cor + '" stroke-width="2"/>' + t(x + 98, 80, nome, { s: 13, w: 800, c: cor, m: 1 }) + t(x + 98, 112, l1, { s: 12, w: 800, c: '#0F172A', m: 1 }) + t(x + 98, 138, l2, { s: 11.5, c: '#475569', m: 1 }) + t(x + 98, 158, l3, { s: 11.5, c: '#475569', m: 1 })); };
+        return svg('#FFFBEB',
+          a(0.1, t(24, 34, 'Cama emprestada: conta no serviço de origem', { s: 16, w: 800, c: '#B45309' })) +
+          cx(24, 'Maxilo-Facial (origem)', '#DC2626', '12 camas + 1 = 13', 'o doente conta nos', 'dias-doente daqui', 6) +
+          cx(300, 'Cirurgia Geral', '#059669', '20 camas − 1 = 19', 'a cama está cá,', 'mas foi emprestada', 12) +
+          a(2, t(260, 96, 'doente da', { s: 10.5, w: 700, c: '#B45309', m: 1 }) + t(260, 110, 'Maxilo-Facial', { s: 10.5, w: 700, c: '#B45309', m: 1 })) +
+          camas([[237, 122, 'd', 2]]) +
+          a(3, '<path d="M222 176 C236 190 250 190 258 170" stroke="#F59E0B" stroke-width="3" fill="none" stroke-dasharray="5 4"/>') +
+          a(24, '<rect x="24" y="218" width="472" height="54" rx="12" fill="#1E3A5F"/>' + t(260, 240, 'Ex.: 5 dias fora → Maxilo-Facial 13 camas nesses dias', { s: 13, w: 800, c: '#fff', m: 1 }) + t(260, 260, 'Cirurgia Geral 19 camas nesses dias', { s: 12, c: '#BFDBFE', m: 1 })));
+      } },
+    { dur: 23, cor: '#DC2626', titulo: 'Taxa de ocupação',
       falas: ['Com estes dois números sabemos se o serviço está bem aproveitado.', 'Dias-doente a dividir por dias-cama, vezes 100, dá a taxa de ocupação: 270 a dividir por 360 são 75 por cento.', 'Abaixo de 85 por cento há folga. Acima, o serviço está sobrelotado e é preciso agir.'],
       svg: function () {
         return svg('#F8FAFC',
@@ -90,8 +103,8 @@
             '<g class="vm-ponteiro"><line x1="0" y1="0" x2="34" y2="-78" stroke="#0F172A" stroke-width="5" stroke-linecap="round"/></g><circle r="9" fill="#0F172A"/>' +
             t(-112, 26, '0%', { s: 11, c: '#64748B', m: 1 }) + t(84, -92, '85%', { s: 11, c: '#DC2626' }) + t(112, 26, '100%', { s: 11, c: '#64748B', m: 1 }) + t(0, 46, 'acima de 85%: sobrelotado', { s: 12, c: '#475569', m: 1 }) + '</g>'));
       } },
-    { dur: 16, cor: '#2B5A8A', titulo: 'Outros indicadores',
-      falas: ['A partir daqui, o ZELO calcula sozinho os outros indicadores.', 'A média de estadia: quantos dias cada doente fica. A média de camas reais. O índice de rotação: quantos doentes passam por cada cama.', 'O intervalo de substituição: quantos dias a cama fica vazia entre dois doentes. E a mortalidade bruta e líquida.'],
+    { dur: 18, cor: '#2B5A8A', titulo: 'Outros indicadores',
+      falas: ['A partir daqui, o ZELO calcula sozinho os outros indicadores:', 'a média de estadia, a média de camas reais, o índice de rotação, o intervalo de substituição, e a mortalidade bruta e líquida.'],
       svg: function () {
         var k = function (x, y, w, t1, t2, d, f, cor) { return a(d, '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="62" rx="12" fill="' + (f || '#fff') + '" stroke="#E3E8F0"/>' + t(x + 14, y + 24, t1, { s: 13, w: 800, c: cor || '#1E3A5F' }) + t(x + 14, y + 46, t2, { s: 11.5, c: '#475569' })); };
         return svg('#F8FAFC',
@@ -100,8 +113,8 @@
           k(20, 128, 232, 'Índice de rotação', 'saídos ÷ camas reais → 30 ÷ 12 = 2,5', 7.0) + k(268, 128, 232, 'Intervalo de substituição', '(DC − DD) ÷ saídos → 90 ÷ 30 = 3', 10.0) +
           k(20, 202, 480, 'Mortalidade bruta · líquida', 'óbitos ÷ saídos × 100  ·  óbitos ≥48 h ÷ (saídos − óbitos <48 h) × 100', 13.5, '#FEF2F2', '#991B1B'));
       } },
-    { dur: 27, cor: '#0F766E', titulo: 'Registar a tempo: porque é tão importante',
-      falas: ['O Movimento de cada mês é entregue à Estatística, e é com ele que se decide: camas, pessoal, medicamentos e o financiamento do hospital.', 'Por isso tem de mostrar a realidade: cada doente que entrou e saiu, no dia e na hora reais.', 'O que não foi registado não entra na contagem. Um doente esquecido faz o serviço parecer mais vazio do que esteve.', 'Registe no próprio dia, e confira sempre com o livro de registo.'],
+    { dur: 31, cor: '#0F766E', titulo: 'Registar a tempo: porque é tão importante',
+      falas: ['O Movimento é entregue à Estatística e serve para decidir camas, pessoal, medicamentos e financiamento.', 'Por isso tem de mostrar a realidade: cada doente que entrou e saiu, no dia e na hora reais.', 'O que não foi registado não entra na contagem: o serviço parece mais vazio do que esteve.', 'Registe no próprio dia, e confira sempre com o livro de registo.'],
       svg: function () {
         var cx = function (x, txt, cor, d) { return a(d, '<rect x="' + x + '" y="150" width="110" height="46" rx="10" fill="#fff" stroke="' + cor + '" stroke-width="1.5"/>' + t(x + 55, 178, txt, { s: 12.5, w: 700, c: cor, m: 1 })); };
         return svg('#F0FDFA',
@@ -114,7 +127,7 @@
           a(14, '<rect x="24" y="214" width="472" height="58" rx="12" fill="#FEF2F2" stroke="#FECACA"/>' + t(260, 238, 'O que não foi registado não entra na contagem', { s: 14, w: 800, c: '#991B1B', m: 1 }) + t(260, 258, 'registe no próprio dia e confira com o livro de registo', { s: 12, c: '#991B1B', m: 1 })));
       } },
     { dur: 32, cor: '#1E3A5F', titulo: 'Os passos do fecho do mês',
-      falas: ['Cinco dias antes do fim do mês, o ZELO avisa: reveja as entradas e as saídas.', 'Até ao dia 2 do mês seguinte, reveja e corrija o que faltar. O sistema mostra uma lista do que parece errado, como internados há muitos dias ou saídas sem hora.', 'No dia 3 é o prazo de entrega. O chefe de serviço carrega em Fechar e entregar, baixa o PDF do Movimento, imprime e leva à Estatística.', 'Se ninguém entregar a tempo, o sistema fecha o mês sozinho, com o que estava registado.'],
+      falas: ['Cinco dias antes do fim do mês, o ZELO avisa: reveja as entradas e as saídas.', 'Até ao dia 2 do mês seguinte, reveja e corrija o que faltar, com a lista do que parece errado.', 'No dia 3, o chefe de serviço fecha e entrega no ZELO, baixa o PDF do Movimento, imprime e leva à Estatística.', 'Se ninguém entregar a tempo, o sistema fecha o mês sozinho, com o que estava registado.'],
       svg: function () {
         var p = function (x, cor, n, t1, t2, d) { return a(d, '<circle cx="' + x + '" cy="112" r="20" fill="' + cor + '"/>' + t(x, 118, n, { s: 16, w: 800, c: '#fff', m: 1 }) + t(x, 158, t1, { s: 13, w: 800, c: cor, m: 1 }) + t(x, 178, t2, { s: 11.5, c: '#475569', m: 1 })); };
         return svg('#F8FAFC',
@@ -126,8 +139,8 @@
           p(440, '#1E3A5F', '4', 'PDF', 'imprimir → Estatística', 16) +
           a(24, '<rect x="24" y="206" width="472" height="62" rx="12" fill="#FFFBEB" stroke="#FDE68A"/>' + t(260, 230, 'Sem entrega a tempo: o mês fecha sozinho', { s: 14, w: 800, c: '#92400E', m: 1 }) + t(260, 250, 'com o que estava registado — o resto fica de fora', { s: 12, c: '#92400E', m: 1 })));
       } },
-    { dur: 30, cor: '#6D28D9', titulo: 'Depois do fecho: retificação',
-      falas: ['Quando o mês fecha, fica guardada uma cópia fixa do que foi entregue. Essa cópia nunca muda.', 'Registar ou corrigir um doente desse mês passa a ser uma retificação: só o chefe de serviço, o enfermeiro chefe ou o administrador, e com motivo obrigatório.', 'Os números corrigem-se, mas ficam diferentes do que foi entregue, e a diferença aparece na Nota de retificação, com quem corrigiu e porquê.', 'Por isso, o melhor é sempre registar tudo antes de o mês fechar.'],
+    { dur: 31, cor: '#6D28D9', titulo: 'Depois do fecho: retificação',
+      falas: ['Quando o mês fecha, fica guardada uma cópia fixa do que foi entregue. Essa cópia nunca muda.', 'Registar ou corrigir um doente desse mês passa a ser uma retificação: só chefes ou o administrador, com motivo obrigatório.', 'Os números corrigem-se, e a diferença aparece na Nota de retificação.', 'Por isso, o melhor é sempre registar tudo antes de o mês fechar.'],
       svg: function () {
         var col = function (x, fundo, borda, cor, tit, l, d) { return a(d, '<rect x="' + x + '" y="56" width="226" height="196" rx="14" fill="' + fundo + '" stroke="' + borda + '" stroke-width="1.5"/>' + t(x + 113, 84, tit, { s: 15, w: 800, c: cor, m: 1 }) + l.map(function (s2, i) { return t(x + 16, 116 + i * 30, s2, { s: 12.5, c: cor }); }).join('')); };
         return svg('#FAF5FF',
@@ -136,7 +149,7 @@
           col(270, '#FEF2F2', '#FECACA', '#991B1B', '✕ Depois do fecho', ['retificação com motivo', 'só chefes ou administrador', 'entregue ≠ atual', 'diferença na Nota de retificação'], 8) +
           a(24, '<rect x="24" y="262" width="472" height="24" rx="8" fill="#6D28D9"/>' + t(260, 279, 'Registe tudo antes de o mês fechar', { s: 13, w: 800, c: '#fff', m: 1 })));
       } },
-    { dur: 16, cor: '#64748B', titulo: 'Regras de ouro',
+    { dur: 19, cor: '#64748B', titulo: 'Regras de ouro',
       falas: ['Três regras de ouro. Registe todos os dias no Controlo de Pacientes.', 'Para corrigir um número, corrija o registo do doente.', 'E marque as camas fora de uso. Assim o Movimento fica sempre certo. Obrigado!'],
       svg: function () {
         var r = function (y, n, cor, t1, t2, d) { return a(d, '<circle cx="50" cy="' + y + '" r="18" fill="' + cor + '"/>' + t(50, y + 6, n, { s: 16, w: 800, c: '#fff', m: 1 }) + t(80, y - 4, t1, { s: 14, w: 700, c: '#fff' }) + t(80, y + 14, t2, { s: 12, c: '#94A3B8' })); };
