@@ -242,10 +242,44 @@
   window.ZeloMovAuto.recalcular = function () { aplicar(); };
 
   function desligado() { try { return !!(data && data.__autoDesligado); } catch (e) { return false; } }
+  // Pedidos do Controlo de Pacientes (registos tardios em meses já fixos).
+  var pedidos = {}, aRecalcular = false;
+  function pendentes() {
+    var feito = Number(data.__recalcAte) || 0, l = [];
+    Object.keys(pedidos).forEach(function (i) { var v = pedidos[i] || {}; Object.keys(v).forEach(function (ts) { if (Number(ts) > feito && v[ts] && v[ts].mes) l.push({ ts: Number(ts), mes: String(v[ts].mes) }); }); });
+    return l;
+  }
+  // Volta a calcular desde 'desde' com os doentes da página + os do arquivo.
+  function recalcularComArquivo(lista) {
+    if (aRecalcular || !ps || typeof window.__fbGet !== 'function') return;
+    var ate = ps.arquivoAte ? ps.arquivoAte.slice(0, 7) : null, it = item(), maxTs = Math.max.apply(null, lista.map(function (x) { return x.ts; }));
+    var desde = lista.map(function (x) { return x.mes; }).sort()[0];
+    if (!ate || desde >= ate) { data.__recalcAte = maxTs; aplicando = true; try { persistData(); } finally { aplicando = false; } return; }
+    aRecalcular = true;
+    var ms = [], y = +desde.slice(0, 4), m = +desde.slice(5, 7);
+    while (true) { var k = y + '-' + String(m).padStart(2, '0'); if (k >= ate) break; ms.push(k); m++; if (m > 12) { m = 1; y++; } if (ms.length > 120) break; }
+    // Lista de doentes lida agora (o pedido pode chegar antes da escuta ao vivo trazer o doente novo).
+    Promise.all([lerPacientes(it)].concat(fontes(it).map(function (f) {
+      return Promise.all(ms.map(function (mes) { return window.__fbGet('registos_sistemas_locais/controlo_pacientes_saidas/' + f[0] + '/' + mes).catch(function () { return null; }); }))
+        .then(function (vs) { return [].concat.apply([], vs.map(function (v) { return v ? doServico(v, it, f[1]) : []; })); });
+    }))).then(function (ls) {
+      var agora = ls.shift() || ps, arq = [].concat.apply([], ls), tem = {}, lista2 = [];
+      agora.forEach(function (p) { tem[String(p.nup || p.n) + '|' + dia(p.dataEntrada)] = 1; lista2.push(p); });
+      arq.forEach(function (p) { var k = String(p.nup || p.n) + '|' + dia(p.dataEntrada); if (!tem[k] && !p.anulado) { tem[k] = 1; lista2.push(p); } });
+      aplicarCom(lista2, desde, maxTs);
+    }).catch(function () {}).then(function () { aRecalcular = false; });
+  }
   function aplicar() {
     if (!ps || desligado() || typeof data === 'undefined' || typeof loadMonth !== 'function') return;
-    var cap = getCapacity(), mudou = false, lm = meses(ps);
-    auto = {}; lm.forEach(function (m) { auto[m] = true; });
+    var pd = pendentes(); if (pd.length) recalcularComArquivo(pd);
+    aplicarCom(ps, null, null);
+  }
+  function aplicarCom(lista, desde, marcarTs) {
+    if (!lista || desligado() || typeof data === 'undefined' || typeof loadMonth !== 'function') return;
+    var cap = getCapacity(), mudou = false, lm = desde ? meses(lista).filter(function (m) { return m >= desde; }) : meses(lista);
+    if (!desde) auto = {};
+    lm.forEach(function (m) { auto[m] = true; });
+    if (marcarTs) { data.__recalcAte = marcarTs; mudou = true; }
     var fuTodos = data.__camasForaUso || {};
     lm.forEach(function (m, idx) {
       loadMonth(m);
@@ -253,7 +287,7 @@
       // mês anterior (limpa a que o sistema tinha posto automaticamente).
       var ant = typeof getPrevMonthKey === 'function' ? getPrevMonthKey(m) : null;
       if (idx > 0 && data.__baselines && data.__baselines[m] !== undefined && ant && data[ant]) { delete data.__baselines[m]; mudou = true; }
-      var r = calcular(ps, m, cap, ext, { foraUso: fuTodos[m], existencia: getExistencia(0, m) });
+      var r = calcular(lista, m, cap, ext, { foraUso: fuTodos[m], existencia: getExistencia(0, m) });
       // Cópia do que estava escrito à mão, antes da 1ª substituição (nunca apagar).
       data.__manual = data.__manual || {};
       if (!data.__manual[m] && !(data.__auto && data.__auto[m])) {
@@ -387,6 +421,12 @@
     // Primeira vez: começa a escuta ao vivo; depois, cada alteração do Controlo
     // de Pacientes chega sozinha (só a diferença) e volta a calcular.
     var cb = ler.__cb ? null : (ler.__cb = true, function (l) { ps = l; clearTimeout(tLer); tLer = setTimeout(function () { lerExternos(it).then(function (e) { ext = e || []; aplicar(); }); }, 400); });
+    if (!ler.__ped && typeof window.__fbListen === 'function') {
+      ler.__ped = true;
+      fontes(it).forEach(function (f, i) {
+        window.__fbListen('registos_sistemas_locais/controlo_pacientes_recalcular/' + f[0], function (v) { pedidos[i] = v || {}; if (ps && pendentes().length) aplicar(); });
+      });
+    }
     pacientesVivos(it, cb)
       .then(function (l) { return lerExternos(it).then(function (e) { if (l) { ps = l; ext = e || []; aplicar(); } }); });
   }

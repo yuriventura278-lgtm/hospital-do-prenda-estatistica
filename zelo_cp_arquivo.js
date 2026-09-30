@@ -205,9 +205,46 @@
     return soLeitura('editPaciente', m) & soLeitura('deletePaciente', m) & soLeitura('cpRegistarSaidaDe', m);
   }
 
+  // ── 5) Registos tardios em meses já fixos: pede ao Movimento que volte a calcular ──
+  // Quando alguém regista (ou corrige a data de entrada/saída de) um doente com
+  // datas num mês anterior a arquivoAte, o Movimento desse mês já não se
+  // recalculava sozinho. Aqui fica um pedido pequeno
+  // (controlo_pacientes_recalcular/<serviço>/<hora> = { mes }) que as páginas de
+  // Movimento leem: voltam a calcular desde esse mês com os doentes da página e
+  // os do arquivo — sem interruptor manual.
+  var K_DATAS = function () { return 'zeloCpDatasVistas_' + slug(); };
+  function datasVistas() { try { return JSON.parse(localStorage.getItem(K_DATAS()) || 'null'); } catch (e) { return null; } }
+  function verTardios(silencioso) {
+    var ate = arquivoAte(), atual = {};
+    pacientes().forEach(function (p) { if (p && !p._arquivo) atual[chave(p)] = dia(p.dataEntrada) + '|' + (p.status !== 'internado' && p.dataSaida ? dia(p.dataSaida) : ''); });
+    var antes = datasVistas();
+    try { localStorage.setItem(K_DATAS(), JSON.stringify(atual)); } catch (e) {}
+    if (silencioso || !antes || !ate) return; // alterações vindas de outro computador (já avisaram) ou primeira vez: só memoriza
+    var meses = [];
+    Object.keys(atual).forEach(function (k) {
+      if (antes[k] === atual[k]) return;
+      var velho = (antes[k] || '|').split('|'), novo = atual[k].split('|');
+      [velho[0], velho[1], novo[0], novo[1]].forEach(function (d) { if (d && d < ate) meses.push(d.slice(0, 7)); });
+    });
+    if (!meses.length || typeof window.zeloQueueWrite !== 'function') return;
+    var mes = meses.sort()[0];
+    window.zeloQueueWrite(BASE + 'controlo_pacientes_recalcular/' + slug() + '/' + Date.now(), { mes: mes, por: quem(), em: new Date().toISOString() });
+  }
+  function ligarTardios() {
+    var f = window.saveData; if (typeof f !== 'function' || f.__cpTard) return !!(f && f.__cpTard);
+    var w = function (opts) {
+      var r = f.apply(this, arguments);
+      try { verTardios(!!(opts && opts.semSync)); } catch (e) {}
+      return r;
+    };
+    Object.keys(f).forEach(function (k) { w[k] = f[k]; }); w.__cpTard = true; window.saveData = w;
+    try { if (!datasVistas()) verTardios(); } catch (e) {}
+    return true;
+  }
+
   var n = 0, iv = setInterval(function () {
     n++;
-    var ok = ligar() & ligarRO();
+    var ok = ligar() & ligarRO() & ligarTardios();
     if (ok || n > 80) clearInterval(iv);
   }, 250);
   // Arquiva pouco depois de abrir (dá tempo à primeira sincronização) e quando a rede volta.
