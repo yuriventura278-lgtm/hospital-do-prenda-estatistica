@@ -825,6 +825,18 @@
     });
     return out;
   }
+  // Chrome no computador corta a voz a meio quando fala mais de ~15 s seguidos:
+  // enquanto houver fala, pausa e retoma a cada 10 s (não se ouve) — assim
+  // nenhuma palavra fica por dizer. (No Android isto não é preciso.)
+  var _manterVivo = null;
+  function _manterVozViva(){
+    if (_manterVivo || !/Chrome/.test(navigator.userAgent) || /Android/.test(navigator.userAgent)) return;
+    _manterVivo = setInterval(function () {
+      var ss = window.speechSynthesis;
+      if (!ss.speaking) { clearInterval(_manterVivo); _manterVivo = null; return; }
+      if (!ss.paused) { try { ss.pause(); ss.resume(); } catch (e) {} }
+    }, 10000);
+  }
   function _dizer(texto, imediato){
     window.speechSynthesis.cancel();
     var idioma = idiomaVoz();
@@ -840,9 +852,26 @@
       u.pitch = 1;
       u.volume = 1;
       window.speechSynthesis.speak(u);
-    }); };
+    }); _manterVozViva(); };
     if (imediato) falarTudo(); else setTimeout(falarTudo, 120);
   }
+  // Avisos automáticos (lembretes, fecho do mês…): esperam que a fala anterior
+  // termine — nunca a cortam a meio. Os pedidos da pessoa (botões «ler em
+  // voz») usam falar() e substituem o que estiver a ser dito.
+  function falarEmFila(texto){
+    if (!window.speechSynthesis) return;
+    if ((localStorage.getItem('zeloVoz') || 'on') === 'off') return;
+    // Espera: nada a ser dito durante ~1 s seguido (entre frases há pausas
+    // curtas) e nenhum vídeo de instruções aberto. Desiste ao fim de ~5 min.
+    var n = 0, livre = 0, tentar = function () {
+      var ss = window.speechSynthesis, ocupado = ss.speaking || ss.pending || window.__zeloVideoAberto;
+      livre = ocupado ? 0 : livre + 1;
+      if (livre < 3) { if (n++ < 750) setTimeout(tentar, 400); return; }
+      vozesProntas(function () { try { _dizer(texto); } catch (e) {} });
+    };
+    tentar();
+  }
+  window.zeloFalarEmFila = falarEmFila;
   function falar(texto){
     if (!window.speechSynthesis) return;
     if ((localStorage.getItem('zeloVoz') || 'on') === 'off') return;
@@ -1461,7 +1490,7 @@
         var eu = estadoUtilizador();
         if (!temAcessoModulo(eu.role, eu.permissoes, window.ZELO_MODULE, window.ZELO_ITEM || null)) return;
       }
-      falar(texto);
+      falarEmFila(texto);
       // No ecrã: só o nome e uma frase curta em letras grandes.
       if (window.ZeloEspera && window.ZeloEspera.mensagem) {
         window.ZeloEspera.mensagem({

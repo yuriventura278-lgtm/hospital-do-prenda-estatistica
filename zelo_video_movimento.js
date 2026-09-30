@@ -208,21 +208,53 @@
     if (!tocar) $('.vm-palco').classList.add('pausa'); else { $('.vm-palco').classList.remove('pausa'); falar(); }
     atualizarBarra();
   }
-  function pararVoz() { falaAtiva = false; try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {} }
+  function pararVoz() { falaAtiva = false; geracao++; try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (e) {} }
   // Texto para a voz (a legenda fica igual): o NUP lê-se como palavra («nup»),
   // não letra a letra; ZELO também.
   function paraVoz(txt) { return String(txt).replace(/\bNUPs\b/g, 'nups').replace(/\bNUP\b/g, 'nup').replace(/\bZELO\b/g, 'Zelo'); }
-  // Diz as falas da cena uma a uma; sem voz, a legenda muda ao ritmo da leitura.
+  // Divide uma fala em frases curtas (a voz do Chrome corta falas longas a meio):
+  // parte nos pontos e, se preciso, nas vírgulas — nunca a meio de uma palavra.
+  function pedacos(txt) {
+    var out = [];
+    String(txt).split(/(?<=[.!?:;])\s+/).forEach(function (f) {
+      f = f.trim();
+      while (f.length > 120) {
+        var c = f.lastIndexOf(',', 120); if (c < 40) c = f.lastIndexOf(' ', 120); if (c < 40) break;
+        out.push(f.slice(0, c + 1).trim()); f = f.slice(c + 1).trim();
+      }
+      if (f) out.push(f);
+    });
+    return out.length ? out : [String(txt)];
+  }
+  // Chrome no computador: pausa e retoma a cada 10 s enquanto fala (evita o corte dos ~15 s).
+  var vivo = null;
+  function manterViva() {
+    if (vivo || !/Chrome/.test(navigator.userAgent) || /Android/.test(navigator.userAgent)) return;
+    vivo = setInterval(function () { try { if (!speechSynthesis.speaking) { clearInterval(vivo); vivo = null; return; } if (!speechSynthesis.paused) { speechSynthesis.pause(); speechSynthesis.resume(); } } catch (e) {} }, 10000);
+  }
+  // Diz as falas da cena uma a uma (cada fala em frases curtas, uma de cada
+  // vez); a fala seguinte só começa quando a voz acaba a anterior — nunca se
+  // corta uma palavra. Sem voz, a legenda muda ao ritmo da leitura.
+  var geracao = 0;
   function falar() {
     var c = CENAS[cena]; if (fala >= c.falas.length) { $('.vm-leg').textContent = ''; return; }
     var txt = c.falas[fala], leg = $('.vm-leg'); if (leg) leg.textContent = txt;
-    var seguinte = function () { if (!tocar || !falaAtiva) return; falaAtiva = false; fala++; setTimeout(function () { if (tocar) falar(); }, 250); };
-    falaAtiva = true;
-    if (comVoz && 'speechSynthesis' in window && window.SpeechSynthesisUtterance) {
-      var u = new SpeechSynthesisUtterance(paraVoz(txt)); u.lang = voz ? voz.lang : 'pt-PT'; if (voz) u.voice = voz; u.rate = 1; u.pitch = 1;
-      u.onend = seguinte; u.onerror = function () { falaFim = performance.now() + txt.length * 60; };
-      try { speechSynthesis.speak(u); } catch (e) { falaFim = performance.now() + txt.length * 60; }
-    } else falaFim = performance.now() + txt.length * 62; // leitura ≈ 16 carateres/s
+    falaAtiva = true; falaFim = 0;
+    var minha = ++geracao;
+    var seguinte = function () { if (!tocar || !falaAtiva || minha !== geracao) return; falaAtiva = false; falaFim = 0; fala++; setTimeout(function () { if (tocar) falar(); }, 300); };
+    if (!(comVoz && 'speechSynthesis' in window && window.SpeechSynthesisUtterance)) { falaFim = performance.now() + txt.length * 62; return; } // leitura ≈ 16 carateres/s
+    var ps = pedacos(paraVoz(txt)), i = 0;
+    var dizer = function () {
+      if (!tocar || minha !== geracao) return;
+      if (i >= ps.length) { seguinte(); return; }
+      var p = ps[i++], u = new SpeechSynthesisUtterance(p); u.lang = voz ? voz.lang : 'pt-PT'; if (voz) u.voice = voz; u.rate = 1; u.pitch = 1;
+      var feito = false, fim = function () { if (feito) return; feito = true; clearTimeout(seg); dizer(); };
+      u.onend = fim; u.onerror = fim;
+      // Segurança: se a voz nunca avisar o fim, segue depois do tempo de leitura + margem (só com a voz calada).
+      var seg = setTimeout(function vigia() { if (feito) return; if (aFalar()) { seg = setTimeout(vigia, 1000); return; } fim(); }, p.length * 95 + 3000);
+      try { speechSynthesis.speak(u); manterViva(); } catch (e) { fim(); }
+    };
+    dizer();
   }
   function ciclo(agora) {
     if (!ov) return;
@@ -230,13 +262,11 @@
       decorrido = (agora - t0) / 1000;
       // sem voz (ou erro): avança a legenda pelo tempo de leitura
       if (falaAtiva && falaFim && agora >= falaFim) { falaFim = 0; falaAtiva = false; fala++; falar(); }
-      // Voz do aparelho que termina sem avisar (acontece em alguns navegadores):
-      // calada há mais de 1,5 s → passa à frase seguinte (nunca corta uma frase).
-      if (falaAtiva && !falaFim && comVoz && !aFalar()) { if (!calada) calada = agora; else if (agora - calada > 1500) { calada = 0; falaAtiva = false; fala++; falar(); } } else calada = 0;
+      // (Voz que termina sem avisar: tratado em falar(), frase a frase, sem cortar.)
       var c = CENAS[cena], acabouFala = fala >= c.falas.length;
       // A cena só muda depois de dita a última frase; o limite extra só vale
       // se a voz estiver parada (nunca corta a narração).
-      if (decorrido >= c.dur && acabouFala || decorrido >= c.dur + 20 && !aFalar() && !falaFim) {
+      if (decorrido >= c.dur && acabouFala && !aFalar() || decorrido >= c.dur + 40 && !falaAtiva && !aFalar() && !falaFim) {
         if (cena < CENAS.length - 1) mostrarCena(cena + 1);
         else { tocar = false; pararVoz(); botaoPlay(); $('.vm-palco').insertAdjacentHTML('beforeend', '<div class="vm-inicio" data-vm="rever"><span><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.4" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></span></div>'); }
       }
@@ -259,7 +289,7 @@
     if (fala < CENAS[cena].falas.length) { pararVoz(); falar(); }
   }
   function pausa() { tocar = false; pararVoz(); $('.vm-palco').classList.add('pausa'); botaoPlay(); }
-  function fechar() { tocar = false; pararVoz(); cancelAnimationFrame(raf); if (ov) ov.remove(); ov = null; document.removeEventListener('keydown', teclas, true); }
+  function fechar() { window.__zeloVideoAberto = false; tocar = false; pararVoz(); cancelAnimationFrame(raf); if (ov) ov.remove(); ov = null; document.removeEventListener('keydown', teclas, true); }
   function teclas(e) {
     if (!ov) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fechar(); }
@@ -268,6 +298,7 @@
     else if (e.key === 'ArrowLeft') { e.preventDefault(); mostrarCena(cena - 1); }
   }
   function abrir(def) {
+    window.__zeloVideoAberto = true; // avisos automáticos do assistente esperam que o vídeo feche
     if (ov) return; css();
     DEF = (def && def.cenas) ? def : (window.ZELO_VIDEO_DEF || DEF_MOV); CENAS = DEF.cenas; TOTAL = total();
     ov = document.createElement('div'); ov.className = 'vm-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Vídeo de instruções: ' + DEF.titulo);

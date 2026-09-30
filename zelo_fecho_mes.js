@@ -400,7 +400,7 @@
     else if (a.fase === 'entrega') txt = 'Hoje é o prazo de entrega de ' + nomeMesCurto(a.m) + '. Feche o mês, baixe o PDF do Movimento, imprima e leve à Estatística.';
     if (!txt) return;
     var k = 'zeloFechoVoz_' + h; try { if (localStorage.getItem(k)) return; localStorage.setItem(k, '1'); } catch (e) { return; }
-    if (typeof window.zeloFalar === 'function') setTimeout(function () { try { window.zeloFalar(txt); } catch (e) {} }, 6000);
+    var fl = window.zeloFalarEmFila || window.zeloFalar; if (typeof fl === 'function') setTimeout(function () { try { fl(txt); } catch (e) {} }, 6000);
   }
 
   // ── Baixar o PDF do Movimento mensal ──
