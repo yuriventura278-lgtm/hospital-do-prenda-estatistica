@@ -2,13 +2,15 @@
 // Carregado no Controlo de Pacientes, no Movimento de cada serviço e no
 // Movimento Hospitalar Geral.
 //
-// • Últimos 2 dias do mês: aviso para rever entradas e saídas (lista automática
+// • Últimos 5 dias do mês: aviso para rever entradas e saídas (lista automática
 //   do que parece errado + lembrete do livro de registo físico).
-// • Dia 1 a 5 do mês seguinte: período de revisão (corrige-se livremente).
-//   O chefe de serviço / enfermeiro(a) chefe / administrador carrega em
-//   «Fechar e entregar»: fica guardada uma CÓPIA FIXA dos números do mês.
-// • Dia 5 às 23:59 sem entrega: o primeiro computador que abrir o ZELO fecha
-//   sozinho (fechado automaticamente), com os números que o Movimento tinha.
+// • Prazos mostrados aos serviços: rever até dia 2, entregar até dia 3 do mês
+//   seguinte. No dia 3 (e depois, se atrasado) o ZELO pede ao chefe: fechar e
+//   entregar, baixar o PDF do Movimento mensal, imprimir e levar à Estatística.
+//   «Fechar e entregar» (chefe de serviço / enfermeiro(a) chefe / administrador)
+//   guarda uma CÓPIA FIXA dos números do mês.
+// • Fecho automático real: dia 8 às 23:59 (margem não mostrada aos serviços) —
+//   o primeiro computador que abrir o ZELO depois fecha sozinho.
 // • Depois do fecho: registar/alterar/anular doentes com datas nesse mês é
 //   uma RETIFICAÇÃO — só chefe de serviço, enfermeiro(a) chefe ou
 //   administrador, com motivo obrigatório. Fica registada (quem, quando,
@@ -21,7 +23,9 @@
   if (window.__zeloFechoMes) return;
   window.__zeloFechoMes = true;
 
-  var PRAZO_DIA = 5;
+  // Prazos: o que os chefes veem (rever até dia 2, entregar até dia 3) e o fecho
+  // automático real (dia 8 — margem que não é mostrada aos serviços).
+  var REVER_DIA = 2, ENTREGA_DIA = 3, PRAZO_DIA = 8, AVISO_DIAS = 5;
   var BASE = 'registos_sistemas_locais/';
   var PODE = { admin: 1, chefe_servico: 1, enfermeiro_chefe: 1 };
   var FUNCOES = { admin: 'Administrador', chefe_servico: 'Chefe de Serviço', enfermeiro_chefe: 'Enfermeiro(a) Chefe', enfermeiro: 'Enfermeiro(a)', secretario: 'Secretário(a)', medico: 'Médico(a)' };
@@ -38,7 +42,10 @@
   function mesAnterior(m) { var y = +m.slice(0, 4), mm = +m.slice(5, 7) - 1; if (!mm) { mm = 12; y--; } return y + '-' + pad(mm); }
   function nomeMes(m) { return MESES[+m.slice(5, 7) - 1] + ' de ' + m.slice(0, 4); }
   function nomeMesCurto(m) { return MESES[+m.slice(5, 7) - 1]; }
-  function prazo(m) { return mesSeguinte(m) + '-' + pad(PRAZO_DIA) + 'T23:59:59'; }
+  function prazo(m) { return mesSeguinte(m) + '-' + pad(PRAZO_DIA) + 'T23:59:59'; }            // fecho automático (real)
+  function prazoEntrega(m) { return mesSeguinte(m) + '-' + pad(ENTREGA_DIA) + 'T23:59:59'; }   // prazo mostrado
+  function prazoRever(m) { return mesSeguinte(m) + '-' + pad(REVER_DIA); }
+  function fmtDia(iso) { var s = String(iso || ''); return s.slice(8, 10) + '/' + s.slice(5, 7); }
   function fmtData(iso) { var s = String(iso || ''); return s.length >= 10 ? s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4) + (s.length >= 16 ? ' às ' + s.slice(11, 16) : '') : '—'; }
   function diasNoMes(m) { return new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate(); }
   function quem() {
@@ -108,9 +115,9 @@
       if (ja) return ja;
       return window.__fbGet('registos_movimento/' + it + '/snapshot/' + m).then(function (md) {
         var q = quem(), t = totais(md, m);
-        var rec = { mes: m, movimento: it, estado: tipo, em: agoraLocal(), prazo: prazo(m), campos: t.campos, totais: t.totais, indicadores: t.indicadores };
+        var rec = { mes: m, movimento: it, estado: tipo, em: agoraLocal(), prazo: prazoEntrega(m), fechoAutomatico: prazo(m), campos: t.campos, totais: t.totais, indicadores: t.indicadores };
         if (tipo === 'entregue') { rec.por = q.nome; rec.funcao = q.funcao; }
-        else rec.nota = 'Fechado automaticamente: ninguém entregou até ' + fmtData(prazo(m)) + '. Números do Movimento nessa altura.';
+        else rec.nota = 'Fechado automaticamente: não foi entregue no prazo (' + fmtData(prazoEntrega(m)) + '). Números do Movimento nessa altura.';
         if (extra && extra.existencia != null) rec.existencia = extra.existencia;
         return window.__fbSet(BASE + 'fecho_mes/' + it + '/' + m, rec).then(function () {
           cache[it + '/' + m] = { ts: Date.now(), v: rec }; return rec;
@@ -221,7 +228,7 @@
       h += '<h4>Livro de registo físico</h4><div class="zfm-it"><div class="d"><b>Confirme com o livro de registo que todas as entradas e saídas do mês estão no ZELO.</b> O sistema não consegue ver os doentes que não foram registados.</div></div>';
       var q = quem(), f = cache[it + '/' + m] && cache[it + '/' + m].v;
       var ac = '<button type="button" class="zfm-bt" data-zfm-fechar>Fechar</button>' + (q.pode && !f && agoraLocal() > m + '-' + pad(diasNoMes(m)) + 'T23:59:59' ? '<button type="button" class="zfm-bt p" data-zfm-entregar="' + m + '">Fechar e entregar ' + nomeMesCurto(m) + '</button>' : '');
-      var ov = janela('Revisão do mês — ' + nomeMes(m), (NOMES[it] || it) + ' · prazo de entrega: ' + fmtData(prazo(m)), h, ac);
+      var ov = janela('Revisão do mês — ' + nomeMes(m), (NOMES[it] || it) + ' · rever até ' + fmtDia(prazoRever(m)) + ' · entregar até ' + fmtDia(prazoEntrega(m)), h, ac);
       ov.addEventListener('click', function (e) {
         var b = e.target.closest('[data-zfm-abrir]'); if (b) { ov.remove(); try { window.ZeloCpProcesso.abrir(+b.dataset.zfmAbrir); } catch (x) {} }
       });
@@ -231,14 +238,14 @@
   function confirmarEntrega(m) {
     var it = item(), q = quem();
     if (!q.pode) { if (typeof showFeedback === 'function') showFeedback('Só o chefe de serviço, o(a) enfermeiro(a) chefe ou o administrador podem fechar e entregar o mês.', 'error'); return; }
-    var h = '<p>Vai <b>fechar e entregar o Movimento de ' + nomeMes(m) + '</b> (' + esc(NOMES[it] || it) + ') à Estatística.</p><p>Fica guardada uma cópia fixa dos números, com o seu nome (' + esc(q.nome) + ') e a hora. Depois disto, qualquer registo com datas de ' + nomeMesCurto(m) + ' passa a ser uma <b>retificação</b> (com motivo) e fica documentado.</p><p>Já reviu as entradas e saídas com o livro de registo?</p>';
+    var h = '<p>Vai <b>fechar e entregar o Movimento de ' + nomeMes(m) + '</b> (' + esc(NOMES[it] || it) + ') à Estatística. A seguir, baixe o PDF, imprima e leve à Estatística.</p><p>Fica guardada uma cópia fixa dos números, com o seu nome (' + esc(q.nome) + ') e a hora. Depois disto, qualquer registo com datas de ' + nomeMesCurto(m) + ' passa a ser uma <b>retificação</b> (com motivo) e fica documentado.</p><p>Já reviu as entradas e saídas com o livro de registo?</p>';
     var ov = janela('Fechar e entregar ' + nomeMes(m), NOMES[it] || it, h, '<button type="button" class="zfm-bt" data-zfm-fechar>Ainda não</button><button type="button" class="zfm-bt p" data-zfm-sim>Sim, fechar e entregar</button>');
     ov.querySelector('[data-zfm-sim]').addEventListener('click', function () {
       var extra = {}; try { if (pagina() === 'mov' && typeof getExistencia === 'function') extra.existencia = getExistencia(0, m); } catch (e) {}
       fechar(it, m, 'entregue', extra).then(function (rec) {
         ov.remove();
-        if (typeof showFeedback === 'function') showFeedback(rec && rec.estado === 'entregue' ? 'Movimento de ' + nomeMes(m) + ' entregue à Estatística' : 'O mês já tinha sido fechado', 'success');
-        mostrarFaixa();
+        if (typeof showFeedback === 'function') showFeedback(rec && rec.estado === 'entregue' ? 'Movimento de ' + nomeMes(m) + ' fechado e entregue no ZELO' : 'O mês já tinha sido fechado', 'success');
+        mostrarFaixa(); passos(m, rec);
       }, function () { if (typeof showFeedback === 'function') showFeedback('Sem ligação ao servidor — tente de novo com internet.', 'error'); });
     });
   }
@@ -289,9 +296,11 @@
   }
   function mesAlvo() {
     var h = hojeISO(), m = mesDe(h), d = +h.slice(8, 10), ult = diasNoMes(m);
-    if (d >= ult - 1) return { m: m, fase: 'aviso' };
+    if (d > ult - AVISO_DIAS) return { m: m, fase: 'aviso', faltam: ult - d };
     var ant = mesAnterior(m);
-    if (d <= PRAZO_DIA) return { m: ant, fase: 'revisao' };
+    if (d <= REVER_DIA) return { m: ant, fase: 'revisao' };
+    if (d === ENTREGA_DIA) return { m: ant, fase: 'entrega' };
+    if (d <= PRAZO_DIA) return { m: ant, fase: 'atraso' };
     return { m: ant, fase: 'depois' };
   }
   function mostrarFaixa() {
@@ -300,22 +309,31 @@
     var it = item(), a = mesAlvo(), q = quem();
     Promise.all([lerFecho(it, a.m), a.fase === 'depois' ? lerRetificacoes(it, a.m) : Promise.resolve([])]).then(function (r) {
       var f = r[0], rets = r[1], h = '', cls = '';
-      var dRest = Math.max(0, Math.ceil((new Date(prazo(a.m)) - new Date()) / 86400000));
+      var Mes = nomeMes(a.m).replace(/^./, function (x) { return x.toUpperCase(); });
+      var baixar = '<button type="button" class="zfm-bt" data-zfm-pdf-mov="' + a.m + '">Baixar PDF do Movimento</button>';
+      var entregar = q.pode ? '<button type="button" class="zfm-bt p" data-zfm-entregar="' + a.m + '">Fechar e entregar</button>' : '';
+      var rever = t === 'cp' ? '<button type="button" class="zfm-bt" data-zfm-rever="' + a.m + '">Rever</button>' : '';
       if (a.fase === 'aviso') {
         cls = 'av';
-        h = '<div class="t"><b>O mês de ' + nomeMesCurto(a.m) + ' fecha em breve.</b> Reveja as entradas e saídas com o livro de registo antes de entregar à Estatística.<small>Prazo de entrega: ' + fmtData(prazo(a.m)) + '.</small></div>' +
-          (t === 'cp' ? '<button type="button" class="zfm-bt" data-zfm-rever="' + a.m + '">Rever agora</button>' : '');
+        h = '<div class="t"><b>O mês de ' + nomeMesCurto(a.m) + ' ' + (a.faltam ? 'termina em ' + (a.faltam + 1) + ' dias' : 'termina hoje') + '.</b> Reveja as entradas e saídas com o livro de registo.' +
+          '<small>Rever até ' + fmtDia(prazoRever(a.m)) + ' · entregar o Movimento à Estatística até ' + fmtDia(prazoEntrega(a.m)) + '.</small></div>' + (t === 'cp' ? rever.replace('>Rever<', '>Rever agora<') : '');
       } else if (a.fase === 'revisao' && !f) {
         cls = 'rev';
-        h = '<div class="t"><b>' + nomeMes(a.m).replace(/^./, function (x) { return x.toUpperCase(); }) + ' por fechar</b> — ' + (dRest <= 1 ? 'último dia' : 'faltam ' + dRest + ' dias') + ' (prazo ' + fmtData(prazo(a.m)) + '). Corrija o que faltar; depois do prazo o mês fecha sozinho.</div>' +
-          (t === 'cp' ? '<button type="button" class="zfm-bt" data-zfm-rever="' + a.m + '">Rever</button>' : '') +
-          (q.pode ? '<button type="button" class="zfm-bt p" data-zfm-entregar="' + a.m + '">Fechar e entregar</button>' : '');
+        var ultimoRev = hojeISO() === prazoRever(a.m);
+        h = '<div class="t"><b>' + Mes + ': ' + (ultimoRev ? 'hoje é o último dia para rever' : 'período de revisão') + '.</b> Corrija o que faltar até ' + fmtDia(prazoRever(a.m)) + '.' +
+          '<small>Entrega à Estatística até ' + fmtDia(prazoEntrega(a.m)) + ': feche, baixe o PDF do Movimento, imprima e leve à Estatística.</small></div>' + rever + entregar;
+      } else if (a.fase === 'entrega' && !f) {
+        cls = 'auto';
+        h = '<div class="t"><b>Hoje (' + fmtDia(prazoEntrega(a.m)) + ') é o prazo de entrega de ' + nomeMesCurto(a.m) + '.</b> Feche e entregue, baixe o PDF do Movimento mensal, imprima e leve à Estatística.</div>' + rever + entregar + baixar;
+      } else if (a.fase === 'atraso' && !f) {
+        cls = 'auto';
+        h = '<div class="t"><b>O prazo de entrega de ' + nomeMesCurto(a.m) + ' terminou a ' + fmtDia(prazoEntrega(a.m)) + '.</b> Feche e entregue hoje, baixe o PDF do Movimento, imprima e leve à Estatística.</div>' + rever + entregar + baixar;
       } else if (f) {
         cls = rets.length ? 'ret' : (f.estado === 'automatico' ? 'auto' : 'ok');
         if (a.fase !== 'revisao' && !rets.length && Date.now() - new Date(f.em).getTime() > 7 * 86400000) { if (faixaEl) faixaEl.remove(); faixaEl = null; return; }
         h = '<div class="t"><b>' + nomeMes(a.m).replace(/^./, function (x) { return x.toUpperCase(); }) + (f.estado === 'entregue' ? ' entregue' : ' fechado automaticamente') + '</b>' +
-          (f.estado === 'entregue' ? ' por ' + esc(f.por || '—') + ' em ' + fmtData(f.em) : ' em ' + fmtData(f.em) + ' (ninguém entregou até ao prazo)') + '.' +
-          (rets.length ? '<small>Desde então: ' + rets.length + ' retificação(ões).</small>' : '') + '</div>' +
+          (f.estado === 'entregue' ? ' por ' + esc(f.por || '—') + ' em ' + fmtData(f.em) : ' em ' + fmtData(f.em) + ' (não foi entregue no prazo)') + '.' +
+          (rets.length ? '<small>Desde então: ' + rets.length + ' retificação(ões).</small>' : '<small>Leve o Movimento impresso à Estatística, se ainda não levou.</small>') + '</div>' + baixar +
           '<button type="button" class="zfm-bt" data-zfm-ret="' + a.m + '">' + (rets.length ? 'Nota de retificação' : 'Ver números entregues') + '</button>';
       } else { if (faixaEl) faixaEl.remove(); faixaEl = null; return; }
       if (!faixaEl) { faixaEl = document.createElement('div'); c.insertBefore(faixaEl, c.firstChild); }
@@ -327,13 +345,51 @@
     if ((b = e.target.closest('[data-zfm-rever]'))) abrirRevisao(b.dataset.zfmRever);
     else if ((b = e.target.closest('[data-zfm-entregar]'))) { var ov = b.closest('.zfm-ov'); if (ov) ov.remove(); confirmarEntrega(b.dataset.zfmEntregar); }
     else if ((b = e.target.closest('[data-zfm-ret]'))) abrirRetificacoes(item(), b.dataset.zfmRet);
+    else if ((b = e.target.closest('[data-zfm-pdf-mov]'))) { var o2 = b.closest('.zfm-ov'); if (o2) o2.remove(); baixarMovimento(b.dataset.zfmPdfMov); }
   });
 
-  // Aviso em voz no último dia do mês (uma vez por dia neste computador).
+  // Avisos em voz (uma vez por dia neste computador): último dia do mês,
+  // último dia de revisão e dia da entrega.
   function avisoVoz() {
-    var a = mesAlvo(); if (a.fase !== 'aviso' || +hojeISO().slice(8, 10) !== diasNoMes(a.m)) return;
-    var k = 'zeloFechoVoz_' + hojeISO(); try { if (localStorage.getItem(k)) return; localStorage.setItem(k, '1'); } catch (e) { return; }
-    if (typeof window.zeloFalar === 'function') setTimeout(function () { try { window.zeloFalar('Hoje é o último dia de ' + nomeMesCurto(a.m) + '. Reveja as entradas e as saídas do mês com o livro de registo, antes de entregar o Movimento à Estatística.'); } catch (e) {} }, 6000);
+    var a = mesAlvo(), h = hojeISO(), txt = '';
+    if (a.fase === 'aviso' && !a.faltam) txt = 'Hoje é o último dia de ' + nomeMesCurto(a.m) + '. Reveja as entradas e as saídas do mês com o livro de registo.';
+    else if (a.fase === 'revisao' && h === prazoRever(a.m)) txt = 'Hoje é o último dia para rever as entradas e saídas de ' + nomeMesCurto(a.m) + '. Amanhã é o prazo de entrega do Movimento à Estatística.';
+    else if (a.fase === 'entrega') txt = 'Hoje é o prazo de entrega de ' + nomeMesCurto(a.m) + '. Feche o mês, baixe o PDF do Movimento, imprima e leve à Estatística.';
+    if (!txt) return;
+    var k = 'zeloFechoVoz_' + h; try { if (localStorage.getItem(k)) return; localStorage.setItem(k, '1'); } catch (e) { return; }
+    if (typeof window.zeloFalar === 'function') setTimeout(function () { try { window.zeloFalar(txt); } catch (e) {} }, 6000);
+  }
+
+  // ── Baixar o PDF do Movimento mensal ──
+  function pdfNoMovimento(m) {
+    try { if (typeof currentView !== 'undefined' && currentView !== 'mensal' && typeof switchView === 'function') switchView('mensal'); } catch (e) {}
+    try { currentMonth = m; } catch (e) {}
+    try { loadMonth(m); updatePeriodDisplay(); renderTable(); updateStats(); } catch (e) {}
+    setTimeout(function () {
+      try { generateReportPDF(); if (typeof showFeedback === 'function') showFeedback('PDF do Movimento de ' + nomeMes(m) + ' gerado — imprima e leve à Estatística', 'success'); }
+      catch (e) { if (typeof showFeedback === 'function') showFeedback('Não foi possível gerar o PDF agora', 'error'); }
+    }, 500);
+  }
+  function baixarMovimento(m) {
+    if (pagina() === 'mov') { pdfNoMovimento(m); return; }
+    // No Controlo de Pacientes: abre o Movimento do serviço, que gera o PDF sozinho.
+    window.open(item() + '_movimento.html?pdf=' + encodeURIComponent(m), '_blank');
+  }
+  window.zeloBaixarMovimento = baixarMovimento;
+
+  // ── Prazo de entrega: pede ao chefe para fechar, baixar o PDF, imprimir e levar ──
+  function passos(m, f) {
+    var feito = function (ok) { return '<span style="display:inline-block;width:22px;height:22px;border-radius:50%;text-align:center;line-height:22px;margin-right:8px;font-weight:800;' + (ok ? 'background:#10B981;color:#fff">✓' : 'background:#E2E8F0;color:#475569">•') + '</span>'; };
+    var h = '<p>' + (f ? 'O Movimento de <b>' + nomeMes(m) + '</b> está fechado. Falta levá-lo à Estatística:' : 'Chegou o prazo de entrega do Movimento de <b>' + nomeMes(m) + '</b> (' + fmtDia(prazoEntrega(m)) + '). Siga os passos:') + '</p>' +
+      '<div class="zfm-it' + (f ? ' okk' : '') + '"><div class="d">' + feito(!!f) + '<b>1. Fechar e entregar no ZELO</b>' + (f ? ' — ' + (f.estado === 'entregue' ? 'feito por ' + esc(f.por || '') + ' em ' + fmtData(f.em) : 'fechado automaticamente') : '') + '</div>' + (f ? '' : '<button type="button" class="zfm-bt p" data-zfm-entregar="' + m + '">Fechar e entregar</button>') + '</div>' +
+      '<div class="zfm-it"><div class="d">' + feito(false) + '<b>2. Baixar o PDF do Movimento mensal</b></div><button type="button" class="zfm-bt p" data-zfm-pdf-mov="' + m + '">Baixar PDF</button></div>' +
+      '<div class="zfm-it"><div class="d">' + feito(false) + '<b>3. Imprimir o relatório do mês e levar à Estatística</b>, assinado, a tempo.</div></div>';
+    janela('Entrega do Movimento — ' + nomeMes(m), NOMES[item()] || item(), h, '<button type="button" class="zfm-bt" data-zfm-fechar>Fechar</button>');
+  }
+  function pedidoDoPrazo() {
+    var a = mesAlvo(), q = quem(); if (!q.pode || (a.fase !== 'entrega' && a.fase !== 'atraso')) return;
+    var k = 'zeloFechoPassos_' + item() + '_' + hojeISO(); try { if (localStorage.getItem(k)) return; localStorage.setItem(k, '1'); } catch (e) { return; }
+    lerFecho(item(), a.m).then(function (f) { setTimeout(function () { passos(a.m, f); }, 2500); });
   }
 
   // ── Retificações no Controlo de Pacientes (antes de gravar) ──
@@ -447,9 +503,9 @@
     var m = mesAnterior(mesDe(hojeISO()));
     var desenhar = function () {
       Promise.all(SERV_MHG.map(function (it) { return Promise.all([lerFecho(it, m, true), lerRetificacoes(it, m)]); })).then(function (rs) {
-        box.innerHTML = '<div class="zfm rev" style="display:block"><b>Entrega do Movimento de ' + nomeMes(m) + '</b> <small style="display:inline">· prazo ' + fmtData(prazo(m)) + '</small><div class="zfm-q" style="margin-top:10px">' + SERV_MHG.map(function (it, i) {
+        box.innerHTML = '<div class="zfm rev" style="display:block"><b>Entrega do Movimento de ' + nomeMes(m) + '</b> <small style="display:inline">· entrega até ' + fmtDia(prazoEntrega(m)) + '</small><div class="zfm-q" style="margin-top:10px">' + SERV_MHG.map(function (it, i) {
           var f = rs[i][0], n = rs[i][1].length, est, cor;
-          if (!f) { est = agoraLocal() > prazo(m) ? 'A fechar automaticamente' : 'Em revisão · faltam ' + Math.max(0, Math.ceil((new Date(prazo(m)) - new Date()) / 86400000)) + ' dia(s)'; cor = '#B45309'; }
+          if (!f) { var ag = agoraLocal(); est = ag > prazo(m) ? 'A fechar automaticamente' : ag > prazoEntrega(m) ? 'Atrasado (prazo ' + fmtDia(prazoEntrega(m)) + ')' : 'Em revisão · entrega até ' + fmtDia(prazoEntrega(m)); cor = ag > prazoEntrega(m) ? '#B91C1C' : '#B45309'; }
           else if (n) { est = n + ' retificação(ões)'; cor = '#6D28D9'; }
           else if (f.estado === 'entregue') { est = 'Entregue · ' + esc(f.por || '') + ' · ' + fmtData(f.em); cor = '#047857'; }
           else { est = 'Fechado automaticamente · ' + fmtData(f.em); cor = '#B91C1C'; }
@@ -470,7 +526,10 @@
     var its = t === 'mhg' ? SERV_MHG : [item()];
     // O Movimento fecha primeiro (antes de recalcular com alterações feitas depois do prazo).
     fechosAutomaticos(its).then(function () {
-      if (t === 'mhg') quadroMHG(); else { mostrarFaixa(); avisoVoz(); }
+      if (t === 'mhg') quadroMHG(); else { mostrarFaixa(); avisoVoz(); pedidoDoPrazo(); }
+      // Aberto a partir do Controlo de Pacientes com ?pdf=AAAA-MM: gera o PDF do Movimento desse mês.
+      var pm = (location.search.match(/[?&]pdf=(\d{4}-\d{2})/) || [])[1];
+      if (t === 'mov' && pm) setTimeout(function () { pdfNoMovimento(pm); }, 2500);
       // meses fechados em cache para as verificações das retificações
       var h = mesDe(hojeISO()); [mesAnterior(h), mesAnterior(mesAnterior(h))].forEach(function (m) { its.forEach(function (it) { lerFecho(it, m); }); });
     });
