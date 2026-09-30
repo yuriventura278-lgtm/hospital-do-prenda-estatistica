@@ -1270,7 +1270,8 @@ async function accaoRegisto(acto, id){
     if(!confirm(`Eliminar definitivamente o registo de ${quem}?\n\nSerá removido também dos outros dispositivos.`)) return;
     await dbDelete(id);
     if(rec.uid && typeof window.zeloQueueWrite === 'function'){
-      window.zeloQueueWrite(`${FB_BASE}/${rec.dataOperacao||'sem_data'}/${rec.uid}`, null);
+      // Marca de eliminado (em vez de apagar o nó): os outros computadores eliminam-no também.
+      window.zeloQueueWrite(`${FB_BASE}/${rec.dataOperacao||'sem_data'}/${rec.uid}`, { uid: rec.uid, apagado: true, updatedAt: new Date().toISOString() });
     }
     if(currentRecord && currentRecord.id === id) currentRecord = null;
     toast("Registo eliminado"); renderDashboard(); return;
@@ -1470,6 +1471,8 @@ async function puxarDaNuvem(){
       if(!rem || typeof rem !== 'object') continue;
       const loc = porUid[uid];
       if(loc && !((rem.updatedAt||'') > (loc.updatedAt||''))) continue; // local já está igual ou mais recente
+      // Eliminado noutro computador: elimina também aqui.
+      if(rem.apagado){ if(loc){ await dbDelete(loc.id); novos++; } continue; }
       const fundido = Object.assign({}, rem, {uid: uid});
       if(loc) fundido.id = loc.id;  // preserva a chave local para substituir em vez de duplicar
       else delete fundido.id;

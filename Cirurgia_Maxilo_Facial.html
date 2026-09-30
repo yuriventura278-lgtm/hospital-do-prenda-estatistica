@@ -3490,13 +3490,12 @@ async function apagarHistorico(i){
     if(!h){toast('Registo não encontrado.');return;}
     const autor=sessionStorage.getItem('zeloEmail')||'desconhecido';
     const quando=new Date().toISOString();
-    h.deleted=true;h.deletedAt=quando;h.deletedBy=autor;
+    h.deleted=true;h.deletedAt=quando;h.deletedBy=autor;h.savedAt=quando;
     localStorage.setItem('mxf_v1_hist',JSON.stringify(hist));
     const d=h.snapshot&&h.snapshot.data;
-    if(d&&window.__fbReady&&window.__fbSet){
+    if(d&&window.ZeloSyncBanco){
       try{
-        const remoto=window.__fbGet?await window.__fbGet('registos/cirurgia_maxilo_facial/'+d):null;
-        await window.__fbSet('registos/cirurgia_maxilo_facial/'+d,Object.assign({},remoto,{deleted:true,deletedAt:quando,deletedBy:autor}));
+        await window.ZeloSyncBanco.marcarApagado('registos/cirurgia_maxilo_facial/'+d, quando, autor);
       }catch(e){console.warn('Firebase: falha ao marcar eliminação remota.',e);}
       zeloAuditarEliminacao('cirurgia_maxilo_facial',d,autor);
     }

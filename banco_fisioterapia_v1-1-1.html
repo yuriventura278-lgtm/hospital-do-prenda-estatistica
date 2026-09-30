@@ -1074,6 +1074,10 @@ async function carregarRegisto(dataKey){
 async function apagRegisto(dataKey,btn){
   if(!confirm('Apagar este registo?'))return;
   await idbDeleteDia(dataKey);
+  // Apaga também nos outros computadores.
+  var quando=new Date().toISOString();
+  try{ localStorage.setItem('fisio_v1_savedAt_'+dataKey, quando); }catch(e){}
+  if(window.ZeloSyncBanco) window.ZeloSyncBanco.marcarApagado(FB_PATH+'/'+dataKey, quando, sessionStorage.getItem('zeloEmail')||null);
   if(typeof _fisioRefreshCache==='function')_fisioRefreshCache();
   btn.closest('.rc').remove();
   toast('Registo apagado.');
@@ -1434,7 +1438,7 @@ window.ZBK_getBackupJSON = function (cadencia, fimISO) {
 </script>
 <script>
 // Dias gravados noutros computadores também ficam neste aparelho (histórico e relatórios completos).
-window.addEventListener('load', function () { if (window.ZeloSyncBanco) ZeloSyncBanco.sincronizarDias({ caminho: 'registos/fisioterapia', prefixo: 'fisio_v1_', prefixoSavedAt: 'fisio_v1_savedAt_', temLocal: function (d) { return !!localStorage.getItem('fisio_v1_savedAt_' + d); }, gravar: function (d, snap) { idbSaveDia(d, snap); }, depois: function () { if (typeof _fisioRefreshCache === 'function') _fisioRefreshCache(); } }); });
+window.addEventListener('load', function () { if (window.ZeloSyncBanco) ZeloSyncBanco.sincronizarDias({ caminho: 'registos/fisioterapia', prefixo: 'fisio_v1_', prefixoSavedAt: 'fisio_v1_savedAt_', temLocal: function (d) { return !!localStorage.getItem('fisio_v1_savedAt_' + d); }, gravar: function (d, snap) { idbSaveDia(d, snap); }, apagar: function (d) { idbDeleteDia(d); }, depois: function () { if (typeof _fisioRefreshCache === 'function') _fisioRefreshCache(); } }); });
 </script>
 </body>
 </html>

@@ -1227,15 +1227,14 @@ function apagarHistorico(dataKey){
     req.onsuccess=()=>{
       const snap=req.result;
       if(snap){
-        snap.deleted=true;snap.deletedAt=quando;snap.deletedBy=autor;
+        snap.deleted=true;snap.deletedAt=quando;snap.deletedBy=autor;try{localStorage.setItem('bloco_bu_v2_savedAt_'+dataKey,quando);}catch(e){}
         store.put(snap);
       }
     };
     tx.oncomplete=async ()=>{
-      if(window.__fbReady && window.__fbSet){
+      if(window.ZeloSyncBanco){
         try{
-          const remoto=window.__fbGet?await window.__fbGet(FB_PATH+'/'+dataKey):null;
-          await window.__fbSet(FB_PATH+'/'+dataKey,Object.assign({},remoto,{deleted:true,deletedAt:quando,deletedBy:autor}));
+          await window.ZeloSyncBanco.marcarApagado(FB_PATH+'/'+dataKey, quando, autor);
         }catch(e){console.warn('Firebase: falha ao marcar eliminação remota.',e);}
         zeloAuditarEliminacao('bloco_operatorio',dataKey,autor);
       }
@@ -1831,7 +1830,10 @@ if (typeof ZeloAutoBackup !== 'undefined') {
 <script src="zelo_protecao_ecra.js?v=1" defer></script>
 <script>
 // Dias gravados noutros computadores também ficam neste aparelho (histórico e relatórios completos).
-window.addEventListener('load', function () { if (window.ZeloSyncBanco) ZeloSyncBanco.sincronizarDias({ caminho: 'registos/bloco_operatorio', prefixo: 'bloco_bu_v2_', prefixoSavedAt: 'bloco_bu_v2_savedAt_' }); });
+window.addEventListener('load', function () { if (window.ZeloSyncBanco) ZeloSyncBanco.sincronizarDias({ caminho: 'registos/bloco_operatorio', prefixo: 'bloco_bu_v2_', prefixoSavedAt: 'bloco_bu_v2_savedAt_',
+  temLocal: function (d) { return !!localStorage.getItem('bloco_bu_v2_savedAt_' + d); },
+  gravar: function (d, snap) { try { localStorage.setItem('bloco_bu_v2_' + d, JSON.stringify(snap)); } catch (e) {} openDB().then(function (db) { db.transaction(STORE, 'readwrite').objectStore(STORE).put(Object.assign({}, snap, { data: d })); }).catch(function () {}); },
+  apagar: function (d, r) { try { localStorage.removeItem('bloco_bu_v2_' + d); } catch (e) {} openDB().then(function (db) { db.transaction(STORE, 'readwrite').objectStore(STORE).put(Object.assign({}, r.snapshot || {}, { data: d, deleted: true, deletedAt: r.deletedAt || null, deletedBy: r.deletedBy || null })); }).catch(function () {}); } }); });
 </script>
 </body>
 </html>

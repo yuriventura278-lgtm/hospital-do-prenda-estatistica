@@ -41,24 +41,24 @@
       var copia = {}; for (var k in reg) if (k !== '_zeloSavedAt') copia[k] = reg[k];
       escrever(reg.id, { id: String(reg.id), savedAt: ts, json: JSON.stringify(copia) });
     }
-    // Chamado depois de eliminar um registo neste aparelho.
-    // Proteção contra perda de dados: as eliminações esperam 4 s antes de
-    // seguir para o servidor. Eliminar um ou dois registos (corrigir um
-    // engano) é normal; mais do que isso de seguida (um erro, uma limpeza)
-    // não passa para os outros computadores — e os registos voltam do
-    // servidor na próxima abertura/sincronização.
+    // Chamado depois de eliminar um registo neste aparelho: a eliminação segue
+    // para o servidor e os outros computadores eliminam-no também.
+    // Espera 4 s e, antes de enviar, confirma que o registo continua
+    // eliminado aqui — um «limpar e restaurar» (backup, importação) apaga e
+    // volta a criar os mesmos registos, e isso não pode apagar nada nos
+    // outros computadores.
     var filaApagar = [], tApagar = null;
     function apagar(id) {
       if (aplicando || id == null) return;
       filaApagar.push({ id: String(id), ts: Date.now() });
       clearTimeout(tApagar);
-      tApagar = setTimeout(function () {
+      tApagar = setTimeout(async function () {
         var fila = filaApagar; filaApagar = [];
-        if (fila.length > 2) {
-          console.warn('ZELO: ' + fila.length + ' eliminações seguidas — não enviadas (proteção contra perda de dados).');
-          return;
-        }
+        var existem = {};
+        try { (await cfg.listarLocais()).forEach(function (r) { if (r && r.id != null) existem[String(r.id)] = 1; }); }
+        catch (e) { return; } // sem conseguir confirmar: não envia (nada se perde)
         fila.forEach(function (e) {
+          if (existem[e.id]) return; // voltou a existir (restauro/importação)
           marcarApagado(e.id, e.ts);
           escrever(e.id, { id: e.id, savedAt: e.ts, apagado: true });
         });

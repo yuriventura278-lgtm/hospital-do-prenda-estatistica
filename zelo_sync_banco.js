@@ -69,6 +69,8 @@
       var upd = {};
       Object.keys(dados).forEach(function (k) { if (k !== 'snapshot' && k !== 'camposTs') upd[k] = dados[k]; });
       if (!upd.savedAt) upd.savedAt = new Date(agora).toISOString();
+      // Gravar um dia que tinha sido eliminado volta a ativá-lo (a ação mais recente vale).
+      if (!dados.deleted) { upd.deleted = null; upd.deletedAt = null; upd.deletedBy = null; }
       var mudou = [], apagar = [];
       Object.keys(plano).forEach(function (k) {
         if (vazio(plano[k])) { if (!vazio(antes[k])) apagar.push(k); return; }
@@ -106,8 +108,19 @@
     try { tudo = await (window.zeloLerHistorico ? window.zeloLerHistorico(opts.caminho) : window.__fbGet(opts.caminho)); } catch (e) { return 0; }
     var n = 0;
     Object.keys(tudo || {}).forEach(function (d) {
-      var r = tudo[d]; if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !r || !r.snapshot || r.deleted) return;
+      var r = tudo[d]; if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !r || (!r.snapshot && !r.deleted)) return;
       var localSA = null; try { localSA = localStorage.getItem(opts.prefixoSavedAt + d); } catch (e) {}
+      // Eliminado noutro computador: elimina também aqui (se a eliminação for mais recente).
+      if (r.deleted) {
+        var quando = r.deletedAt || r.savedAt;
+        if (localSA && quando && new Date(localSA) > new Date(quando)) return; // regravado aqui depois
+        try {
+          if (typeof opts.apagar === 'function') opts.apagar(d, r); else localStorage.removeItem(opts.prefixo + d);
+          if (quando) localStorage.setItem(opts.prefixoSavedAt + d, quando);
+          n++;
+        } catch (e) {}
+        return;
+      }
       var temLocal = false;
       try { temLocal = typeof opts.temLocal === 'function' ? !!opts.temLocal(d) : !!localStorage.getItem(opts.prefixo + d); } catch (e) {}
       if (temLocal && localSA && r.savedAt && new Date(localSA) >= new Date(r.savedAt)) return;
@@ -123,5 +136,16 @@
     return n;
   }
 
-  window.ZeloSyncBanco = { sincronizarDias: sincronizarDias, _achatar: achatar };
+  // Eliminar um dia: marca-o como eliminado no servidor (em fila — também sem
+  // internet) com a hora da eliminação como hora de gravação, para os outros
+  // computadores perceberem que é mais recente e o eliminarem também.
+  function marcarApagado(caminho, quando, autor) {
+    quando = quando || new Date().toISOString();
+    var dados = { deleted: true, deletedAt: quando, deletedBy: autor || null, savedAt: quando };
+    try { localStorage.removeItem(chaveBase(caminho)); } catch (e) {}
+    if (typeof window.zeloQueueUpdate === 'function') return window.zeloQueueUpdate(caminho, dados);
+    if (typeof window.__fbUpdate === 'function') return window.__fbUpdate(caminho, dados);
+    return Promise.resolve();
+  }
+  window.ZeloSyncBanco = { sincronizarDias: sincronizarDias, marcarApagado: marcarApagado, _achatar: achatar };
 })();

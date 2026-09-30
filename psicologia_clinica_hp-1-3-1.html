@@ -1160,13 +1160,12 @@ async function apagarHistorico(i){
     if(!h){toast('Registo não encontrado.');return;}
     const autor=sessionStorage.getItem('zeloEmail')||'desconhecido';
     const quando=new Date().toISOString();
-    h.deleted=true;h.deletedAt=quando;h.deletedBy=autor;
+    h.deleted=true;h.deletedAt=quando;h.deletedBy=autor;h.savedAt=quando;
     localStorage.setItem(HIST_KEY,JSON.stringify(hist));
     const d=h.data||(h.snapshot&&h.snapshot.data);
-    if(d&&window.__fbReady&&window.__fbSet){
+    if(d&&window.ZeloSyncBanco){
       try{
-        const remoto=window.__fbGet?await window.__fbGet(FB_PATH+'/'+d):null;
-        await window.__fbSet(FB_PATH+'/'+d,Object.assign({},remoto,{deleted:true,deletedAt:quando,deletedBy:autor}));
+        await window.ZeloSyncBanco.marcarApagado(FB_PATH+'/'+d, quando, autor);
       }catch(e){console.warn('Firebase: falha ao marcar eliminação remota.',e);}
       zeloAuditarEliminacao('psicologia_clinica',d,autor);
     }

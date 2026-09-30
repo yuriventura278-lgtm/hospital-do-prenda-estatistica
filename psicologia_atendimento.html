@@ -490,20 +490,25 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 const FB_BASE='registos_sistemas_locais/psicologia_atendimento';
 function fbKey(s){return String(s).replace(/[.#$/\[\]]/g,'_');}
 function fbSalvarAtendimento(a){if(window.zeloQueueWrite)window.zeloQueueWrite(FB_BASE+'/atendimentos/'+a.id,a);}
-function fbRemoverAtendimento(id){if(window.__fbSet)window.__fbSet(FB_BASE+'/atendimentos/'+id,null).catch(()=>{});}
+// Eliminar deixa uma marca (em vez de apagar o nó): os outros computadores
+// que ainda tenham o registo eliminam-no também.
+function fbMarcaApagado(caminho,id){var m={id:id,apagado:true,apagadoEm:Date.now()};if(window.zeloQueueWrite)window.zeloQueueWrite(caminho,m);else if(window.__fbSet)window.__fbSet(caminho,m).catch(()=>{});}
+function fbRemoverAtendimento(id){fbMarcaApagado(FB_BASE+'/atendimentos/'+id,id);}
 function fbSalvarMedico(m){if(window.zeloQueueWrite)window.zeloQueueWrite(FB_BASE+'/medicos/'+m.id,m);}
-function fbRemoverMedico(id){if(window.__fbSet)window.__fbSet(FB_BASE+'/medicos/'+id,null).catch(()=>{});}
+function fbRemoverMedico(id){fbMarcaApagado(FB_BASE+'/medicos/'+id,id);}
 function fbSalvarProveniencia(p){if(window.zeloQueueWrite)window.zeloQueueWrite(FB_BASE+'/proveniencias/'+fbKey(p),p);}
 
 let _syncPronto=false;
-function iniciarSincronizacao(){
-  if(!window.__fbListen)return;
+function iniciarSincronizacao(tent){
+  // O Firebase liga-se depois deste script: espera por ele (antes desistia e
+  // esta página nunca recebia os atendimentos dos outros computadores).
+  if(!window.__fbListen){ tent=(tent||0)+1; if(tent<240) setTimeout(function(){ iniciarSincronizacao(tent); },250); return; }
   // onValue chama o callback de imediato com o estado actual (mistura o que
   // já lá estava de outros dispositivos com o que temos localmente) e depois
   // sempre que outro dispositivo grava — por isso não precisamos de sondagem.
   window.__fbListen(FB_BASE+'/atendimentos',function(remoto){
     const mapa={};atendimentos.forEach(a=>mapa[a.id]=a);
-    Object.keys(remoto||{}).forEach(id=>{mapa[id]=remoto[id];});
+    Object.keys(remoto||{}).forEach(id=>{const r=remoto[id];if(r&&r.apagado)delete mapa[id];else mapa[id]=r;});
     atendimentos=Object.values(mapa);
     save();
     if(_syncPronto){renderDia();renderMenu();
@@ -512,7 +517,7 @@ function iniciarSincronizacao(){
   });
   window.__fbListen(FB_BASE+'/medicos',function(remoto){
     const mapa={};medicos.forEach(m=>mapa[m.id]=m);
-    Object.keys(remoto||{}).forEach(id=>{mapa[id]=remoto[id];});
+    Object.keys(remoto||{}).forEach(id=>{const r=remoto[id];if(r&&r.apagado)delete mapa[id];else mapa[id]=r;});
     medicos=Object.values(mapa);
     save();
     if(_syncPronto){renderMedicos();fillMedicoSelect();}
@@ -1051,6 +1056,7 @@ function seedDemo(){
       try {
         const dados = window.__fbGet ? await window.__fbGet(FB_BASE_PSICO + '/atendimentos') : null;
         cacheAt = dados || {};
+        Object.keys(cacheAt).forEach(function (k) { if (cacheAt[k] && cacheAt[k].apagado) delete cacheAt[k]; });
       } catch (e) {
         console.warn('[BackupAuto] falha ao ler atendimentos', e);
         cacheAt = cacheAt || {};

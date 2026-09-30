@@ -448,11 +448,15 @@
     if (autoMes() || !raiz) return;
     clearTimeout(tEsc);
     var m = currentMonth; loadMonth(m);
+    // Campo a campo (cada alteração é uma gravação): esvaziar vários campos do
+    // dia também chega aos outros computadores (a proteção contra apagar em
+    // massa só trava vários valores esvaziados numa MESMA gravação).
     Array.prototype.forEach.call(raiz.querySelectorAll('[data-m2c]'), function (inp) {
       var id = inp.dataset.m2c, v = inp.value; if (!data[m][id]) return;
-      data[m][id][dia] = v === '' || v == null ? null : Math.max(0, parseInt(v, 10) || 0);
+      var novo = v === '' || v == null ? null : Math.max(0, parseInt(v, 10) || 0), velho = data[m][id][dia];
+      if ((velho == null || velho === '' ? null : Number(velho)) === novo) return;
+      data[m][id][dia] = novo; persistData();
     });
-    persistData();
     emCurso = true; try { renderTable(); updateStats(); } finally { emCurso = false; }
     vivoTudo();
     var ok = $('m2Ok'); if (ok) { ok.textContent = '✓ Dia ' + (dia + 1) + ' guardado'; ok.classList.add('on'); clearTimeout(tOk); tOk = setTimeout(function () { ok.classList.remove('on'); ok.textContent = '✓ Guardado'; }, 2500); }
