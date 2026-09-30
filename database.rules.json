@@ -47,6 +47,12 @@
 
     "registos_sistemas_locais": {
       ".read": "auth != null",
+      "fecho_mes": {
+        "$movimento": { "$mes": { ".write": "auth != null && !data.exists() && newData.exists()" } }
+      },
+      "fecho_mes_retificacoes": {
+        "$movimento": { "$mes": { "$id": { ".write": "auth != null && !data.exists() && newData.exists()" } } }
+      },
       "controlo_pacientes_saidas_nomes": {
         ".indexOn": ["nomeNorm", "apelidoNorm"],
         "$id": { ".write": "auth != null" }
