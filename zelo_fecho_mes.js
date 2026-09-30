@@ -409,7 +409,7 @@
     try { currentMonth = m; } catch (e) {}
     try { loadMonth(m); updatePeriodDisplay(); renderTable(); updateStats(); } catch (e) {}
     setTimeout(function () {
-      try { generateReportPDF(); if (typeof showFeedback === 'function') showFeedback('PDF do Movimento de ' + nomeMes(m) + ' gerado — imprima e leve à Estatística', 'success'); }
+      try { if (generateReportPDF() === false) return; if (typeof showFeedback === 'function') showFeedback('PDF do Movimento de ' + nomeMes(m) + ' gerado — imprima e leve à Estatística', 'success'); }
       catch (e) { if (typeof showFeedback === 'function') showFeedback('Não foi possível gerar o PDF agora', 'error'); }
     }, 500);
   }

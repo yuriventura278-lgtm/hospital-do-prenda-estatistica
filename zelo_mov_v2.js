@@ -512,20 +512,53 @@
     };
     novo.__m2 = true; window.updateStats = novo; return true;
   }
-  // PDF do mês sempre disponível, mesmo com dias por preencher: o relatório
-  // sai com os dias registados e indica no fundo quais faltam.
+  // PDF do Movimento: o administrador pode baixá-lo com dias por preencher
+  // (sai com a indicação dos dias em falta); os outros utilizadores só com
+  // todos os dias do período preenchidos (no mês corrente: até ontem).
+  function ehAdmin() { try { return sessionStorage.getItem('zeloRole') === 'admin'; } catch (e) { return false; } }
+  function diasEmFalta() {
+    var meses = [currentMonth];
+    try { if (typeof getPeriodMonths === 'function') meses = getPeriodMonths(); } catch (e) {}
+    var r = [];
+    meses.forEach(function (m) { var ex = exigidos(m), f = []; for (var d = 0; d < ex; d++) if (!diaPreenchido(m, d)) f.push(d + 1); if (f.length) r.push({ m: m, dias: f }); });
+    return r;
+  }
+  function nomeMesM(m) { var p = m.split('-'); return new Date(+p[0], +p[1] - 1, 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }); }
+  function avisoBloqueio(falta) {
+    var velho = document.getElementById('m2PdfBloq'); if (velho) velho.remove();
+    var total = falta.reduce(function (s, x) { return s + x.dias.length; }, 0);
+    var ov = document.createElement('div'); ov.id = 'm2PdfBloq';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML = '<div role="alertdialog" aria-labelledby="m2PdfBloqT" style="background:#fff;border-radius:16px;max-width:460px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.3);font:500 14px Inter,Segoe UI,Arial,sans-serif;color:#0F172A;overflow:hidden">' +
+      '<div style="background:#FFFBEB;border-bottom:1px solid #FDE68A;padding:14px 18px;display:flex;gap:10px;align-items:center"><span style="font-size:22px">⚠</span><b id="m2PdfBloqT" style="font-size:16px;color:#92400E">Ainda não é possível baixar o PDF</b></div>' +
+      '<div style="padding:14px 18px;line-height:1.5">Para baixar o PDF do Movimento, <b>todos os dias têm de estar preenchidos</b>. ' +
+      (total === 1 ? 'Falta 1 dia:' : 'Faltam ' + total + ' dias:') +
+      '<ul style="margin:8px 0 0;padding-left:20px">' + falta.map(function (x) { return '<li><b>' + esc(nomeMesM(x.m)) + '</b>: ' + esc(intervalos(x.dias)) + '</li>'; }).join('') + '</ul>' +
+      '<p style="margin:10px 0 0;color:#475569;font-size:13px">Preencha os dias em falta com o livro de registo. Se houver um motivo para baixar o PDF assim, peça ao administrador.</p></div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid #E2E8F0">' +
+      '<button type="button" data-x style="height:40px;padding:0 16px;border:1px solid #CBD5E1;border-radius:10px;background:#fff;font:700 14px inherit;cursor:pointer">Fechar</button>' +
+      (falta[0].m === currentMonth ? '<button type="button" data-ir style="height:40px;padding:0 16px;border:0;border-radius:10px;background:#1E3A5F;color:#fff;font:700 14px inherit;cursor:pointer">Preencher o dia ' + falta[0].dias[0] + '</button>' : '') + '</div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov || e.target.closest('[data-x]')) ov.remove();
+      else if (e.target.closest('[data-ir]')) { ov.remove(); try { if (currentView !== 'mensal') switchView('mensal'); irPara(falta[0].dias[0] - 1); if (raiz) raiz.scrollIntoView({ behavior: 'smooth' }); } catch (er) {} }
+    });
+    var f = ov.querySelector('[data-ir]') || ov.querySelector('[data-x]'); if (f) f.focus();
+  }
   function envolverPdf() {
     var orig = window.generateReportPDF;
     if (typeof orig !== 'function' || orig.__m2) return;
     var novo = function () {
+      var falta = [];
+      try { falta = diasEmFalta(); } catch (e) {}
+      if (falta.length && !ehAdmin()) { avisoBloqueio(falta); return false; }
       var aviso = '';
-      try {
-        if (currentView === 'mensal') {
-          var m = currentMonth, ex = exigidos(m), falta = [];
-          for (var d = 0; d < ex; d++) if (!diaPreenchido(m, d)) falta.push(d + 1);
-          if (falta.length) aviso = 'Mês ainda incompleto - ' + (falta.length === 1 ? 'dia sem registo: ' : falta.length + ' dias sem registo: ') + intervalos(falta).replace(/–/g, '-') + '.';
-        }
-      } catch (e) {}
+      if (falta.length) {
+        var total = falta.reduce(function (s, x) { return s + x.dias.length; }, 0);
+        aviso = 'Período ainda incompleto - ' + (total === 1 ? '1 dia sem registo: ' : total + ' dias sem registo: ') +
+          falta.map(function (x) { return (falta.length > 1 || currentView !== 'mensal' ? nomeMesM(x.m) + ' ' : '') + intervalos(x.dias).replace(/–/g, '-'); }).join('; ') + '.';
+        if (aviso.length > 150) aviso = aviso.slice(0, 147) + '...';
+      }
       window.__zeloPdfAvisoFalta = aviso;
       try { return orig.apply(this, arguments); } finally { window.__zeloPdfAvisoFalta = ''; }
     };
