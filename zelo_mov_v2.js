@@ -513,7 +513,7 @@
     novo.__m2 = true; window.updateStats = novo; return true;
   }
   // PDF do Movimento: o administrador pode baixá-lo com dias por preencher
-  // (sai com a indicação dos dias em falta); os outros utilizadores só com
+  // (sai como um relatório normal, sem indicação de dias em falta); os outros utilizadores só com
   // todos os dias do período preenchidos (no mês corrente: até ontem).
   function ehAdmin() { try { return sessionStorage.getItem('zeloRole') === 'admin'; } catch (e) { return false; } }
   function diasEmFalta() {
@@ -552,15 +552,7 @@
       var falta = [];
       try { falta = diasEmFalta(); } catch (e) {}
       if (falta.length && !ehAdmin()) { avisoBloqueio(falta); return false; }
-      var aviso = '';
-      if (falta.length) {
-        var total = falta.reduce(function (s, x) { return s + x.dias.length; }, 0);
-        aviso = 'Período ainda incompleto - ' + (total === 1 ? '1 dia sem registo: ' : total + ' dias sem registo: ') +
-          falta.map(function (x) { return (falta.length > 1 || currentView !== 'mensal' ? nomeMesM(x.m) + ' ' : '') + intervalos(x.dias).replace(/–/g, '-'); }).join('; ') + '.';
-        if (aviso.length > 150) aviso = aviso.slice(0, 147) + '...';
-      }
-      window.__zeloPdfAvisoFalta = aviso;
-      try { return orig.apply(this, arguments); } finally { window.__zeloPdfAvisoFalta = ''; }
+      return orig.apply(this, arguments);
     };
     novo.__m2 = true; window.generateReportPDF = novo;
   }

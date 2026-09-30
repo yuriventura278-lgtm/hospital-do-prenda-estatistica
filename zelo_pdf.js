@@ -122,11 +122,6 @@
       if (autorTxt) d.text(limpar(autorTxt), W - M, H - 5, { align: 'right' });
       d.setFont('helvetica', 'bold'); d.setFontSize(9); d.setTextColor(NAVY3);
       d.text('Pág. ' + i + '/' + n, W - M, H - 9.5, { align: 'right' });
-      // Mês ainda incompleto (ex.: Movimento): o PDF sai na mesma, com a indicação.
-      if (i === 1 && window.__zeloPdfAvisoFalta){
-        d.setFont('helvetica', 'bold'); d.setFontSize(8.5); d.setTextColor('#B45309');
-        d.text(limpar(window.__zeloPdfAvisoFalta), M, H - 17);
-      }
     }
   }
   // Rodapé baixo para folhas de posição fixa (acompanha o cabeçalho compacto).
