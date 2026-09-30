@@ -283,6 +283,7 @@
     var n = getDaysInMonth(m);
     h += '<div class="m2-guard"><span class="m2-ok" id="m2Ok">✓ Guardado</span>' +
       '<button type="button" class="m2-b o" data-m2="diaAnt"' + (d === 0 ? ' disabled' : '') + '>‹ Dia ' + (d === 0 ? '' : d) + '</button>' +
+      (au ? '' : d < n - 1 ? '<button type="button" class="m2-b o m2-gd" data-m2="guardar">✓ Guardar</button>' : '') +
       (au ? (d < n - 1 ? '<button type="button" class="m2-b p" data-m2="diaSeg">Dia ' + (d + 2) + ' ›</button>' : '') : d < n - 1 ? '<button type="button" class="m2-b p" data-m2="diaSeg">✓ Guardar e ir para o dia ' + (d + 2) + '</button>' : '<button type="button" class="m2-b p" data-m2="fim">✓ Guardar — último dia do mês</button>') + '</div>';
     return h;
   }
@@ -442,6 +443,20 @@
     vivoTudo();
     var ok = $('m2Ok'); if (ok) { ok.classList.add('on'); clearTimeout(tOk); tOk = setTimeout(function () { ok.classList.remove('on'); }, 1500); }
   }
+  // «Guardar»: grava todos os campos do dia à vista e fica no mesmo dia.
+  function guardarDia() {
+    if (autoMes() || !raiz) return;
+    clearTimeout(tEsc);
+    var m = currentMonth; loadMonth(m);
+    Array.prototype.forEach.call(raiz.querySelectorAll('[data-m2c]'), function (inp) {
+      var id = inp.dataset.m2c, v = inp.value; if (!data[m][id]) return;
+      data[m][id][dia] = v === '' || v == null ? null : Math.max(0, parseInt(v, 10) || 0);
+    });
+    persistData();
+    emCurso = true; try { renderTable(); updateStats(); } finally { emCurso = false; }
+    vivoTudo();
+    var ok = $('m2Ok'); if (ok) { ok.textContent = '✓ Dia ' + (dia + 1) + ' guardado'; ok.classList.add('on'); clearTimeout(tOk); tOk = setTimeout(function () { ok.classList.remove('on'); ok.textContent = '✓ Guardado'; }, 2500); }
+  }
   // Atualiza faixa, fita, resumo e lista sem mexer nos campos em edição.
   function vivoTudo() {
     var N = numeros(), tmp = document.createElement('div');
@@ -494,6 +509,7 @@
       case 'csv': exportCSV(); break;
       case 'diaAnt': irPara(dia - 1); break;
       case 'diaSeg': irPara(dia + 1); break;
+      case 'guardar': guardarDia(); break;
       case 'fim': { var a = document.activeElement; if (a && a.dataset && a.dataset.m2c) guardarValor(a.dataset.m2c, a.value); break; }
       case 'tabela': document.body.classList.toggle('m2-sem-tabela'); t.textContent = document.body.classList.contains('m2-sem-tabela') ? 'Ver tabela completa' : 'Ver lista de dias'; break;
     }

@@ -55,6 +55,8 @@
     var g = arguments.length > 2 ? genero : m[1];
     return lista(pac).filter(function (p) { return !g || p.genero === g; });
   }
+  // Doentes de um Movimento junto (UCI + Cuidados Intermédios): marca a unidade de origem.
+  function marcar(l, f, varias) { return varias ? l.map(function (p) { return Object.assign({}, p, { __fonte: f[0] }); }) : l; }
   function transferido(p) { return /^\s*transfer/i.test(String(p.proveniencia || '')); }
   function saiu(p) { return p.status !== 'internado' && p.dataSaida; }
 
@@ -80,8 +82,32 @@
   // opts.foraUso: { dia: nº de camas fora de uso nesse dia } (avaria, obras…)
   // opts.existencia: existência anterior do mês (escrita à mão no 1º mês ou
   //   vinda do mês anterior) — os dias-doente seguem existência + entradas − saídas.
+  // Passagens dentro de um Movimento junto (ex. UCI → Cuidados Intermédios):
+  // a saída por transferência numa unidade e a entrada «Transferência - …» na
+  // outra (mesmo NUP, no mesmo dia ou no seguinte) não são saída nem entrada do
+  // serviço — o doente continua lá (conta nos dias-doente e na existência).
+  function passagensInternas(ps) {
+    var fontesV = {}, adm = new Set(), sai = new Set();
+    ps.forEach(function (p) { if (p.__fonte) fontesV[p.__fonte] = 1; });
+    if (Object.keys(fontesV).length < 2) return { adm: adm, sai: sai };
+    var porNup = {};
+    ps.forEach(function (p) { var k = String(p.nup || '').trim(); if (k) (porNup[k] = porNup[k] || []).push(p); });
+    var um = function (a, b) { return (Date.parse(b) - Date.parse(a)) / 864e5; };
+    Object.keys(porNup).forEach(function (k) {
+      var l = porNup[k]; if (l.length < 2) return;
+      l.forEach(function (a) {
+        if (!saiu(a) || a.tipoSaida !== 'Transferência' || sai.has(a)) return;
+        var sa = dia(a.dataSaida);
+        var b = l.filter(function (x) { var e = dia(x.dataEntrada); return x !== a && x.__fonte && x.__fonte !== a.__fonte && transferido(x) && !adm.has(x) && e >= sa && um(sa, e) <= 1; })
+          .sort(function (x, y) { return dia(x.dataEntrada) < dia(y.dataEntrada) ? -1 : 1; })[0];
+        if (b) { sai.add(a); adm.add(b); }
+      });
+    });
+    return { adm: adm, sai: sai };
+  }
   function calcular(ps, ym, capacidade, externos, opts) {
     externos = externos || []; opts = opts || {};
+    var inter = passagensInternas(ps);
     var fu = opts.foraUso || {}, corrente = opts.existencia != null && !isNaN(opts.existencia) ? Number(opts.existencia) : null;
     var n = diasNoMes(ym), h = hoje(), ate = ym < h.slice(0, 7) ? n : ym === h.slice(0, 7) ? +h.slice(8, 10) : 0;
     var c = {}; CAMPOS.forEach(function (k) { c[k] = new Array(n).fill(null); });
@@ -91,8 +117,8 @@
       c.dia_cama[i] = capacidade || 0;
       ps.forEach(function (p) {
         var e = dia(p.dataEntrada), s = saiu(p) ? dia(p.dataSaida) : null;
-        if (e === dd) { if (transferido(p)) c.transferidos_adm[i]++; else c.diretos[i]++; }
-        if (s === dd) {
+        if (e === dd && !inter.adm.has(p)) { if (transferido(p)) c.transferidos_adm[i]++; else c.diretos[i]++; }
+        if (s === dd && !inter.sai.has(p)) {
           if (p.tipoSaida === 'Óbito') { if (/<\s*48/.test(String(p.subtipo || ''))) c.menos_48[i]++; else c.mais_48[i]++; }
           else if (p.tipoSaida === 'Transferência') c.transferidos_sai[i]++;
           else c.altas[i]++;
@@ -133,7 +159,7 @@
       var base = 'registos_sistemas_locais/controlo_pacientes/' + f[0] + '/snapshot/';
       return Promise.all([window.__fbGet(base + 'pacientes'), window.__fbGet(base + 'arquivoAte').catch(function () { return null; })]).then(function (r) {
         if (r[1] && String(r[1]) > ate) ate = String(r[1]);
-        return r[0] ? doServico(r[0], item, f[1]) : [];
+        return r[0] ? marcar(doServico(r[0], item, f[1]), f, fs.length > 1) : [];
       });
     })).then(function (ls) { var l = [].concat.apply([], ls); if (ate) l.arquivoAte = ate; return l; }).catch(function () { return null; });
   }
@@ -161,7 +187,7 @@
       fs.forEach(function (f, i) {
         var base = 'registos_sistemas_locais/controlo_pacientes/' + f[0] + '/snapshot/';
         window.__fbListen(base + 'arquivoAte', function (a) { v.ate[i] = a ? String(a) : ''; montar(); });
-        window.__fbListen(base + 'pacientes', function (val) { v.por[i] = val ? doServico(val, item, f[1]) : []; montar(); });
+        window.__fbListen(base + 'pacientes', function (val) { v.por[i] = val ? marcar(doServico(val, item, f[1]), f, fs.length > 1) : []; montar(); });
       });
     }
     if (aoMudar) v.cbs.push(aoMudar);
@@ -202,6 +228,34 @@
     });
     return algum ? out : null;
   }
+  // Existência anterior de um mês numa página de Movimento antiga (as mesmas
+  // regras de getExistencia da página): a escrita à mão nesse mês, senão o
+  // «ficam existindo» do último dia do mês anterior, senão 0.
+  function mesAnt(ym) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1; if (m < 1) { m = 12; y--; } return y + '-' + String(m).padStart(2, '0'); }
+  function existenciaDe(sn, ym, memo) {
+    memo = memo || {}; if (ym in memo) return memo[ym];
+    memo[ym] = 0; // proteção contra ciclos
+    var b = sn.__baselines ? parseInt(sn.__baselines[ym], 10) : NaN, r;
+    if (b) r = Math.max(0, b);
+    else if (sn.__baseline && sn.__baseline.month === ym) r = Math.max(0, parseInt(sn.__baseline.value, 10) || 0);
+    else { var ant = mesAnt(ym); r = sn[ant] ? ficamFimDe(sn, ant, memo) : 0; }
+    memo[ym] = r; return r;
+  }
+  function ficamFimDe(sn, ym, memo) {
+    var e = existenciaDe(sn, ym, memo), m = sn[ym] || {}, n = diasNoMes(ym);
+    var v = function (k, i) { var x = m[k] ? m[k][i] : null; return parseInt(x, 10) || 0; };
+    for (var i = 0; i < n; i++) e = Math.max(0, e + v('diretos', i) + v('transferidos_adm', i) - v('altas', i) - v('menos_48', i) - v('mais_48', i) - v('transferidos_sai', i));
+    return e;
+  }
+  // Existência de um Movimento junto = soma das existências das páginas antigas
+  // (antes somavam-se só as escritas à mão nesse mês: a outra unidade contava 0).
+  function baselinesJuntas(snaps) {
+    var ms = {}, bl = {}, antigo = {};
+    snaps.forEach(function (sn) { Object.keys(sn.__baselines || {}).forEach(function (ym) { ms[ym] = 1; var x = parseInt(sn.__baselines[ym], 10); if (!isNaN(x)) antigo[ym] = (antigo[ym] || 0) + x; }); if (sn.__baseline && sn.__baseline.month) ms[sn.__baseline.month] = 1; });
+    Object.keys(ms).forEach(function (ym) { bl[ym] = snaps.reduce(function (a, sn) { return a + existenciaDe(sn, ym, sn.__memo = sn.__memo || {}); }, 0); });
+    snaps.forEach(function (sn) { delete sn.__memo; });
+    return { certo: bl, antigo: antigo };
+  }
   // ── Outros indicadores hospitalares (mesmas fórmulas em todas as páginas) ──
   // t: { dc: dias-cama, dd: dias-doente, dias: dias do período com dias-cama,
   //      saidos: saídos (altas + óbitos + transferidos), obitos: todos os óbitos,
@@ -234,7 +288,7 @@
   // mão); só fica ligado num serviço quando o administrador o ativa
   // (__autoLigado = true). __autoDesligado === false = ativado com a versão antiga.
   function ligadoDe(lig, desl) { return lig === true || desl === false; }
-  window.ZeloMovAuto = { PREDEF: PREDEF, ligadoDe: ligadoDe, indicadores: indicadores, INDICADORES: INDICADORES, fmtInd: fmtInd, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
+  window.ZeloMovAuto = { PREDEF: PREDEF, ligadoDe: ligadoDe, baselinesJuntas: baselinesJuntas, existenciaDe: existenciaDe, indicadores: indicadores, INDICADORES: INDICADORES, fmtInd: fmtInd, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
     CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, pacientesVivos: pacientesVivos, lerExternos: lerExternos };
 
   // ─────────────── Na página de Movimento de um serviço ───────────────
@@ -265,7 +319,7 @@
     // Lista de doentes lida agora (o pedido pode chegar antes da escuta ao vivo trazer o doente novo).
     Promise.all([lerPacientes(it)].concat(fontes(it).map(function (f) {
       return Promise.all(ms.map(function (mes) { return window.__fbGet('registos_sistemas_locais/controlo_pacientes_saidas/' + f[0] + '/' + mes).catch(function () { return null; }); }))
-        .then(function (vs) { return [].concat.apply([], vs.map(function (v) { return v ? doServico(v, it, f[1]) : []; })); });
+        .then(function (vs) { return [].concat.apply([], vs.map(function (v) { return v ? marcar(doServico(v, it, f[1]), f, fontes(it).length > 1) : []; })); });
     }))).then(function (ls) {
       var agora = ls.shift() || ps, arq = [].concat.apply([], ls), tem = {}, lista2 = [];
       agora.forEach(function (p) { tem[String(p.nup || p.n) + '|' + dia(p.dataEntrada)] = 1; lista2.push(p); });
@@ -374,8 +428,33 @@
   }
   // Movimento junto: na 1.ª abertura soma os meses escritos à mão nas
   // páginas antigas (que ficam intactas no Firebase) e acerta as camas.
+  // Movimentos já juntos com a regra antiga: acerta a existência dos meses em
+  // que ficou só a soma das escritas à mão (guarda o valor antigo em
+  // __baselinesAntes — nada é apagado). Valores mudados depois à mão ficam.
+  function corrigirExistenciaJunta(velhos) {
+    if (data.__fundidoExist === 2) return Promise.resolve();
+    return Promise.all(velhos.map(function (v) { return window.__fbGet('registos_movimento/' + v + '/snapshot').catch(function () { return undefined; }); })).then(function (snaps) {
+      if (snaps.some(function (x) { return x === undefined; }) || data.__fundidoExist === 2) return;
+      var r = baselinesJuntas(snaps.map(function (x) { return x || {}; })), mudou = false;
+      data.__baselines = data.__baselines || {};
+      Object.keys(r.certo).forEach(function (ym) {
+        var atual = data.__baselines[ym];
+        if (atual === undefined || atual === null) return;
+        if (parseInt(atual, 10) === r.antigo[ym] && r.certo[ym] !== r.antigo[ym]) {
+          data.__baselinesAntes = data.__baselinesAntes || {};
+          if (data.__baselinesAntes[ym] === undefined) data.__baselinesAntes[ym] = atual;
+          data.__baselines[ym] = r.certo[ym]; mudou = true;
+        }
+      });
+      data.__fundidoExist = 2;
+      aplicando = true;
+      try { persistData(); } finally { aplicando = false; }
+      if (mudou) { try { renderTable(); updateStats(); } catch (e) {} }
+    });
+  }
   function fundir() {
     var it = item(), velhos = FUSAO[it];
+    if (velhos && data.__fundido) return corrigirExistenciaJunta(velhos);
     if (!velhos || data.__fundido) return Promise.resolve();
     return Promise.all(velhos.map(function (v) { return window.__fbGet('registos_movimento/' + v + '/snapshot').catch(function () { return undefined; }); })).then(function (snaps) {
       if (snaps.some(function (x) { return x === undefined; })) return; // sem ligação: tenta noutra abertura
@@ -389,9 +468,8 @@
         if (!soma) return;
         loadMonth(ym); CAMPOS.forEach(function (k) { data[ym][k] = soma[k]; });
       });
-      var bl = {}, fu = {}, fum = {};
+      var bl = baselinesJuntas(snaps).certo, fu = {}, fum = {};
       snaps.forEach(function (sn) {
-        Object.keys(sn.__baselines || {}).forEach(function (ym) { var x = parseInt(sn.__baselines[ym], 10); if (!isNaN(x)) bl[ym] = (bl[ym] || 0) + x; });
         Object.keys(sn.__camasForaUso || {}).forEach(function (ym) { var d = sn.__camasForaUso[ym] || {}; fu[ym] = fu[ym] || {}; Object.keys(d).forEach(function (dd) { var x = Number(d[dd]) || 0; if (x) fu[ym][dd] = (fu[ym][dd] || 0) + x; }); });
         Object.keys(sn.__camasForaUsoMotivo || {}).forEach(function (ym) { var d = sn.__camasForaUsoMotivo[ym] || {}; fum[ym] = fum[ym] || {}; Object.keys(d).forEach(function (dd) { if (d[dd]) fum[ym][dd] = fum[ym][dd] ? fum[ym][dd] + ' / ' + d[dd] : d[dd]; }); });
       });
@@ -406,6 +484,7 @@
       }
       if (PARTES[it] && !data.__capacidadePartes) data.__capacidadePartes = Object.assign({}, PARTES[it]);
       data.__fundido = { em: new Date().toISOString(), de: velhos };
+      data.__fundidoExist = 2;
       if (PREDEF[it]) { data.__capacity = PREDEF[it]; data.__camasPredef = 1; }
       aplicando = true;
       try { persistData(); } finally { aplicando = false; }
