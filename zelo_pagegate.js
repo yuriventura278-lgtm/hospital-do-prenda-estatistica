@@ -1,5 +1,5 @@
 // ZELO — proteção de página com sessão Firebase real (verifica módulo + item específico)
-import { auth, fetchUserProfileOuFalhar, onAuthStateChanged, hasModuleAccess, getModuleAccessLevel, startInactivityWatch, signOut, eMovimentoHospitalar, eControloPacientes } from './zelo_auth.js';
+import { auth, fetchUserProfileOuFalhar, prazoTentativa, onAuthStateChanged, hasModuleAccess, getModuleAccessLevel, startInactivityWatch, signOut, eMovimentoHospitalar, eControloPacientes } from './zelo_auth.js';
 
 var moduleKey = window.ZELO_MODULE || null;
 var itemKey = window.ZELO_ITEM || null;
@@ -169,15 +169,6 @@ if (embedded) {
 // pelo processador enquanto o Firebase responde) nunca deve ser tratada
 // como "conta inexistente"; só uma leitura que TERMINE com sucesso e
 // confirme perfil ausente/inactivo é motivo para reencaminhar ao login.
-async function _obterPerfilComRetentativa(uid, tentativas){
-  var ultimoErro;
-  for (var i = 0; i < tentativas; i++) {
-    try { return await fetchUserProfileOuFalhar(uid); }
-    catch (e) { ultimoErro = e; console.warn('ZELO: falha momentânea ao ler o perfil (tentativa ' + (i + 1) + '/' + tentativas + ')', e); }
-  }
-  throw ultimoErro;
-}
-
 // ── Acesso sem internet (perfil em cache) ──
 // Sem isto, qualquer falha de rede ao confirmar as permissões (mesmo já
 // tendo entrado antes neste aparelho) bloqueava a página inteira atrás do
@@ -223,9 +214,23 @@ window.addEventListener('online', function(){
   _zeloEmpurrarCabecalhoDaPagina(); // recalcula (e restaura) a posição do cabeçalho
 });
 
-function showSlowConnectionScreen(){
+function showSlowConnectionScreen(semRecarregar){
   document.documentElement.style.visibility = 'visible';
-  if (document.getElementById('zelo-gate-slow')) return;
+  if (document.getElementById('zelo-gate-slow')) return null;
+  if (semRecarregar && window.ZeloEspera && window.ZeloEspera.mensagem){
+    // A ler o perfil com a rede lenta: mostra o estado e continua a tentar
+    // sozinho na mesma página (fecha-se quando o perfil chegar).
+    var marcaL = document.createElement('span'); marcaL.id = 'zelo-gate-slow'; marcaL.hidden = true; document.body.appendChild(marcaL);
+    var ml = window.ZeloEspera.mensagem({
+      icone: 'aviso',
+      titulo: navigator.onLine ? 'Ligação lenta' : 'Sem internet',
+      texto: 'A confirmar a sua conta. A sua sessão e os seus dados continuam intactos — a página abre sozinha assim que a resposta chegar.',
+      detalhe: 'A tentar de novo…',
+      fechavel: false,
+      botoes: [{ texto: 'Voltar ao Início', href: 'index.html' }]
+    });
+    return { detalhe: ml.detalhe, fechar: function () { try { ml.fechar(); } catch (e) {} marcaL.remove(); } };
+  }
   if (window.ZeloEspera && window.ZeloEspera.mensagem){
     var marca = document.createElement('span'); marca.id = 'zelo-gate-slow'; marca.hidden = true; document.body.appendChild(marca);
     var m = window.ZeloEspera.mensagem({
@@ -335,6 +340,27 @@ function showBlockedScreen(role, permissoes, soAdmin){
   document.body.appendChild(overlay);
 }
 
+// Confirmação da conta em segundo plano (quando se entrou com o perfil guardado).
+function _confirmarEmFundo(uid, antigo) {
+  (async function () {
+    for (var i = 0; ; i++) {
+      if (!navigator.onLine) await new Promise(function (r) { window.addEventListener('online', r, { once: true }); });
+      try {
+        var p = await fetchUserProfileOuFalhar(uid, prazoTentativa(i));
+        if (!p || p.ativo === false) {
+          try { await signOut(auth); } catch (e) {}
+          if (embedded) window.top.location.href = 'index.html'; else window.location.replace('index.html');
+          return;
+        }
+        _guardarPerfilCache(uid, p);
+        var mudou = (p.role || '') !== (antigo.role || '') || JSON.stringify(p.permissoes || {}) !== JSON.stringify(antigo.permissoes || {});
+        if (mudou) window.location.reload();
+        return;
+      } catch (e) { await new Promise(function (r) { setTimeout(r, 15000); }); }
+    }
+  })();
+}
+
 onAuthStateChanged(auth, async function (user) {
   if (resolvido) return;
   if (!user) {
@@ -348,25 +374,29 @@ onAuthStateChanged(auth, async function (user) {
   }
   var perfil;
   var offline = false;
-  // Sem internet e já com o perfil guardado neste aparelho: entra logo (sem
-  // ficar à espera das tentativas de rede) — a página funciona normalmente e
-  // o perfil é confirmado sozinho quando a ligação voltar.
-  var cacheJa = !navigator.onLine ? _lerPerfilCache(user.uid) : null;
-  if (cacheJa) { perfil = cacheJa; offline = true; }
-  else try {
-    perfil = await _obterPerfilComRetentativa(user.uid, 2);
-  } catch (e) {
-    if (resolvido) return;
-    var cache = _lerPerfilCache(user.uid);
-    if (cache) {
-      console.warn('ZELO: sem ligação para confirmar o perfil — a usar o último guardado neste aparelho.', e);
-      perfil = cache;
-      offline = true;
-    } else {
-      console.error('ZELO: não foi possível ler o perfil do utilizador após várias tentativas — a sessão não foi terminada.', e);
-      showSlowConnectionScreen();
-      return;
+  // Perfil já guardado neste aparelho: entra LOGO com ele (rede lenta ou sem
+  // internet não impedem de abrir a página) e confirma a conta em segundo
+  // plano — se a conta foi desativada, a sessão termina; se o papel ou as
+  // permissões mudaram, a página recarrega com os novos.
+  var cacheJa = _lerPerfilCache(user.uid);
+  if (cacheJa) {
+    perfil = cacheJa; offline = !navigator.onLine;
+    _confirmarEmFundo(user.uid, cacheJa);
+  } else {
+    // Primeira vez neste aparelho: tenta com prazos cada vez maiores, SEM
+    // recarregar a página (recarregar numa rede lenta recomeçava tudo).
+    var aviso = null;
+    for (var i = 0; ; i++) {
+      try { perfil = await fetchUserProfileOuFalhar(user.uid, prazoTentativa(i)); break; }
+      catch (e) {
+        if (resolvido) return;
+        console.warn('ZELO: ligação lenta ao ler o perfil (tentativa ' + (i + 1) + ')', e);
+        if (!aviso) aviso = showSlowConnectionScreen(true);
+        if (aviso && aviso.detalhe) aviso.detalhe(navigator.onLine ? 'Ligação lenta — a tentar de novo (tentativa ' + (i + 2) + '). Não feche a página.' : 'À espera da internet — a página continua sozinha quando a ligação voltar.');
+        if (!navigator.onLine) await new Promise(function (r) { window.addEventListener('online', r, { once: true }); });
+      }
     }
+    if (aviso && aviso.fechar) aviso.fechar();
   }
   if (resolvido) return;
   if (!perfil || perfil.ativo === false) {

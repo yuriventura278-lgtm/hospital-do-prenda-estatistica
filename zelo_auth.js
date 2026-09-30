@@ -52,10 +52,18 @@ async function fetchUserProfile(uid) {
 // tratar as duas situações da mesma forma terminava a sessão de um
 // profissional a meio de escrever só porque a ligação teve uma falha
 // momentânea ao reconfirmar — não porque a conta foi realmente desativada.
-async function fetchUserProfileOuFalhar(uid) {
+// Pedido ao perfil ainda a caminho: uma nova tentativa reaproveita-o (numa
+// rede lenta, a resposta chega assim que o servidor responde, em vez de cada
+// tentativa recomeçar o pedido do zero).
+const _perfilACaminho = {};
+async function fetchUserProfileOuFalhar(uid, prazoMs) {
+  if (!_perfilACaminho[uid]) {
+    _perfilACaminho[uid] = get(ref(db, 'users/' + uid));
+    _perfilACaminho[uid].then(() => { delete _perfilACaminho[uid]; }, () => { delete _perfilACaminho[uid]; });
+  }
   const snap = await Promise.race([
-    get(ref(db, 'users/' + uid)),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FETCH_PERFIL_TIMEOUT_MS))
+    _perfilACaminho[uid],
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), prazoMs || FETCH_PERFIL_TIMEOUT_MS))
   ]);
   return snap.exists() ? snap.val() : null;
 }
@@ -279,7 +287,12 @@ function emailKey(email) {
 
 async function checkLoginLockout(email) {
   try {
-    const snap = await get(ref(db, 'login_attempts/' + emailKey(email)));
+    // Rede muito lenta: não ficar preso aqui antes de entrar (o Firebase
+    // Authentication continua a travar tentativas em excesso sozinho).
+    const snap = await Promise.race([
+      get(ref(db, 'login_attempts/' + emailKey(email))),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+    ]);
     if (!snap.exists()) return { blocked: false };
     const data = snap.val();
     const dentroDaJanela = (Date.now() - (data.firstAttempt || 0)) < LOCKOUT_WINDOW_MS;
@@ -428,11 +441,20 @@ function getModuleAccessLevel(role, permissoes, mod) {
   return 'editar';
 }
 
+// ── Perfil guardado neste aparelho (o mesmo que zelo_pagegate.js usa) ──
+// Permite entrar com a rede muito lenta: o último perfil confirmado vale até
+// a confirmação em segundo plano chegar.
+function chavePerfilCache(uid) { return 'zeloPerfilCache_' + uid; }
+function guardarPerfilCache(uid, perfil) { try { localStorage.setItem(chavePerfilCache(uid), JSON.stringify({ perfil: perfil, ts: Date.now() })); } catch (e) {} }
+function lerPerfilCache(uid) { try { const o = JSON.parse(localStorage.getItem(chavePerfilCache(uid)) || 'null'); return o && o.perfil ? o.perfil : null; } catch (e) { return null; } }
+// Prazos crescentes para ler o perfil numa rede lenta: 10 s, 20 s, 30 s, 45 s, 60 s…
+function prazoTentativa(i) { return [10000, 20000, 30000, 45000][i] || 60000; }
+
 export {
   app, auth, db, ref, get, set, update, remove, onValue, query, orderByChild, orderByKey, limitToLast,
   signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
-  fetchUserProfile, fetchUserProfileOuFalhar, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
+  fetchUserProfile, fetchUserProfileOuFalhar, guardarPerfilCache, lerPerfilCache, prazoTentativa, isFirstAdminNeeded, startInactivityWatch, logAuditEvent,
   checkLoginLockout, registerFailedLogin, clearLoginAttempts, touchLastAccess, escapeHtml,
   hasModuleAccess, getModuleAccessLevel, ROLE_DEFAULT_PERMISSOES, eMovimentoHospitalar,
   eControloPacientes, papeisDaPagina, ROLES_MOVIMENTO, ROLES_CONTROLO_PACIENTES

@@ -743,7 +743,8 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 <script type="module">
 import {
   auth, db, ref, get, onValue, query, orderByChild, orderByKey, limitToLast,
-  fetchUserProfile, signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
+  fetchUserProfile, fetchUserProfileOuFalhar, guardarPerfilCache, lerPerfilCache, prazoTentativa,
+  signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
   onAuthStateChanged, setPersistence, browserLocalPersistence, browserSessionPersistence,
   startInactivityWatch, logAuditEvent, checkLoginLockout, registerFailedLogin, clearLoginAttempts,
   touchLastAccess, escapeHtml, hasModuleAccess
@@ -1032,7 +1033,24 @@ window.__zeloEscapeHtml = escapeHtml;
   // a página, quer venha do submit do formulário — e arranca o sistema.
   async function completarLogin(user){
     if(loadingCtrl) loadingCtrl.fase('A carregar as permissões…');
-    var perfil = await fetchUserProfile(user.uid);
+    // Rede muito lenta: nunca terminar a sessão só porque o perfil demorou.
+    // • Com o perfil guardado neste aparelho: tenta uma vez (15 s) e, se não
+    //   chegar, entra com o guardado — a confirmação segue em segundo plano.
+    // • Sem perfil guardado (1.ª vez aqui): continua a tentar, com prazos
+    //   cada vez maiores, a mostrar que a ligação está lenta.
+    // Só uma resposta real do servidor («conta inexistente/desativada») recusa.
+    var perfil = null, guardado = lerPerfilCache(user.uid), confirmado = false;
+    for (var tent = 0; ; tent++) {
+      try { perfil = await fetchUserProfileOuFalhar(user.uid, guardado ? 15000 : prazoTentativa(tent)); confirmado = true; break; }
+      catch (eP) {
+        if (guardado) { perfil = guardado; break; }
+        var txtLento = navigator.onLine ? 'Ligação lenta — a tentar de novo (tentativa ' + (tent + 2) + ')…' : 'Sem internet — a continuar quando a ligação voltar…';
+        if(loadingCtrl) loadingCtrl.fase(txtLento);
+        if(btn && btn.disabled) btnLabel.innerHTML='<span class="zaf-spin"></span> ' + txtLento;
+        if (!navigator.onLine) await new Promise(function(r){ window.addEventListener('online', r, { once: true }); });
+      }
+    }
+    if (confirmado && perfil && perfil.ativo !== false) guardarPerfilCache(user.uid, perfil);
     if(loadingCtrl && perfil && perfil.ativo !== false) loadingCtrl.fase('A preparar o ambiente…');
     if(!perfil || perfil.ativo === false){
       showAuthForm();
