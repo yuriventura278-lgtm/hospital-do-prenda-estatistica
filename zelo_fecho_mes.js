@@ -353,7 +353,8 @@
     Promise.all([lerFecho(it, a.m), a.fase === 'depois' ? lerRetificacoes(it, a.m) : Promise.resolve([])]).then(function (r) {
       var f = r[0], rets = r[1], h = '', cls = '';
       var Mes = nomeMes(a.m).replace(/^./, function (x) { return x.toUpperCase(); });
-      var baixar = '<button type="button" class="zfm-bt" data-zfm-pdf-mov="' + a.m + '">Baixar PDF do Movimento</button>';
+      // Só quem pode abrir o Movimento (administrador e chefes) vê este botão.
+      var baixar = q.pode ? '<button type="button" class="zfm-bt" data-zfm-pdf-mov="' + a.m + '">Baixar PDF do Movimento</button>' : '';
       var entregar = q.pode ? '<button type="button" class="zfm-bt p" data-zfm-entregar="' + a.m + '">Fechar e entregar</button>' : '';
       var rever = t === 'cp' ? '<button type="button" class="zfm-bt" data-zfm-rever="' + a.m + '">Rever</button>' : '';
       if (a.fase === 'aviso') {
