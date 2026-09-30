@@ -274,6 +274,8 @@
     }).catch(function () {}).then(function () { aRecalcular = false; });
   }
   function aplicar() {
+    // Ativado agora (aqui ou noutro computador): começa a ler o Controlo de Pacientes.
+    if (!ps && !desligado() && typeof data !== 'undefined') { ler(); return; }
     if (!ps || desligado() || typeof data === 'undefined' || typeof loadMonth !== 'function') return;
     var pd = pendentes(); if (pd.length) recalcularComArquivo(pd);
     aplicarCom(ps, null, null);
@@ -422,6 +424,17 @@
   var tLer = null;
   function ler() {
     var it = item(); if (!MAPA[it]) return;
+    // Preenchimento automático desligado: o Controlo de Pacientes não entra
+    // nos cálculos do Movimento — nem sequer é lido (menos downloads).
+    if (desligado()) return;
+    // Ao vivo: camas emprestadas (cp_fora) também recalculam (só com o automático ativado).
+    if (!ler.__fora && typeof window.__fbListen === 'function') {
+      ler.__fora = true;
+      fontes(it).forEach(function (m) {
+        var primeiraF = true;
+        window.__fbListen('registos_sistemas_locais/cp_fora/' + m[0], function () { if (primeiraF) { primeiraF = false; return; } ler(); });
+      });
+    }
     // Primeira vez: começa a escuta ao vivo; depois, cada alteração do Controlo
     // de Pacientes chega sozinha (só a diferença) e volta a calcular.
     var cb = ler.__cb ? null : (ler.__cb = true, function (l) { ps = l; clearTimeout(tLer); tLer = setTimeout(function () { lerExternos(it).then(function (e) { ext = e || []; aplicar(); }); }, 400); });
@@ -438,12 +451,6 @@
     t++;
     if (window.__fbReady && typeof window.__fbGet === 'function' && typeof data !== 'undefined' && typeof currentMonth !== 'undefined' && currentMonth && envolver()) {
       clearInterval(iv); fundir().then(predefinir, predefinir).then(ler, ler);
-      // Ao vivo: as alterações do Controlo de Pacientes chegam pela escuta de
-      // pacientesVivos (ver ler()); camas emprestadas (cp_fora) também recalculam.
-      if (typeof window.__fbListen === 'function') fontes(item()).forEach(function (m) {
-        var primeiraF = true;
-        window.__fbListen('registos_sistemas_locais/cp_fora/' + m[0], function () { if (primeiraF) { primeiraF = false; return; } ler(); });
-      });
     } else if (t > 160) clearInterval(iv);
   }, 250);
 })();
