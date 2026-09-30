@@ -11,10 +11,10 @@
 //   paciente encontrado; se já saiu, avisa).
 // • Histórico Diário: mais claro, por dia, com hora, dados do paciente e
 //   quem registou; pesquisa dentro do mês; cada linha abre o processo.
-// • Evolução clínica: cada internamento tem notas datadas (quem, função,
-//   data/hora). Só se acrescentam — nunca se alteram nem se apagam.
+// • Evolução clínica: retirada a pedido (as notas já escritas continuam
+//   guardadas nos registos, não se apagam — só deixam de aparecer).
 // • Processo clínico partilhado: a ficha mostra todos os internamentos
-//   anteriores do mesmo NUP, deste e dos outros serviços, com as evoluções.
+//   anteriores do mesmo NUP, deste e dos outros serviços.
 //   Os dos outros serviços são só de leitura (cada serviço só altera os seus).
 // Nunca apaga dados: só acrescenta os campos de autoria aos registos.
 (function () {
@@ -153,13 +153,10 @@
     '.cph-l .n b{font-size:.9rem}.cph-l .n .l2{font-size:.76rem;color:#64748B;margin-top:2px}.cph-l .n .l3{font-size:.74rem;color:#334155;margin-top:3px}',
     '.cph-l .ver{font:700 .76rem Inter,Arial;color:#1D4ED8;white-space:nowrap}',
     '@media(max-width:640px){.cph-l{grid-template-columns:52px 1fr;}.cph-l .cph-t{grid-column:2;justify-self:start}.cph-l .n{grid-column:1/-1}.cph-l .ver{display:none}}',
-    '.cpp-evo{border-left:3px solid #2B5A8A;background:#F8FAFC;border-radius:8px;padding:8px 11px;margin:6px 0;font-size:.88rem}.cpp-evo .h{font-size:.78rem;color:#475569;margin-bottom:3px}.cpp-evo .x{color:#0F172A;line-height:1.45;white-space:normal}',
-    '.cpp-evo-nova{margin-top:8px}.cpp-evo-nova textarea{width:100%;box-sizing:border-box;border:1.5px solid #D6E0EC;border-radius:10px;padding:9px 11px;font:500 .9rem Inter,Arial,sans-serif;resize:vertical}',
-    '.cpp-evo-nova .r{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:6px}.cpp-evo-nova small{color:#64748B;font-size:.76rem;flex:1;min-width:200px}',
     '.cpp-ant{border:1px solid #E3E8F0;border-left:4px solid #2B5A8A;border-radius:10px;padding:9px 12px;margin:6px 0;font-size:.86rem}.cpp-ant.ro{border-left-color:#94A3B8;background:#FAFBFD}',
     '.cpp-ant .d{color:#475569;font-size:.82rem;margin-top:3px}.cpp-ant summary{cursor:pointer;font-weight:700;color:#1E3A5F;font-size:.8rem;margin-top:5px}',
     '.cpp-ro{display:inline-block;font:700 .7rem Inter,Arial,sans-serif;color:#475569;background:#EEF2F7;border-radius:999px;padding:2px 8px;margin-left:6px}',
-    'html[data-zelo-theme="dark"] .cpp-evo,html[data-zelo-theme="dark"] .cpp-ant{background:#0F1828;border-color:#1F2A3D}html[data-zelo-theme="dark"] .cpp-evo .x{color:#E6ECF5}',
+    'html[data-zelo-theme="dark"] .cpp-ant{background:#0F1828;border-color:#1F2A3D}',
     'html[data-zelo-theme="dark"] .cpp-card,html.dark .cpp-card{background:#111A2B;color:#E6ECF5}',
     'html[data-zelo-theme="dark"] .cpp-f,html[data-zelo-theme="dark"] .cpp-ev,html[data-zelo-theme="dark"] .cph-dia-h,html[data-zelo-theme="dark"] .cph-res div,html[data-zelo-theme="dark"] .cpp-item{background:#0F1828;border-color:#1F2A3D;color:#E6ECF5}',
     'html[data-zelo-theme="dark"] .cpp-f b,html[data-zelo-theme="dark"] .cpp-ev .p,html[data-zelo-theme="dark"] .cpp-ev .d{color:#E6ECF5}'
@@ -171,38 +168,6 @@
   function tipoTag(p) {
     var t = p.tipoSaida || 'Saída';
     return '<span class="cpp-tag" style="--t:' + (TIPO_COR[t] || '#D97706') + '">' + esc(t === 'Alta Vivo' ? 'Alta' : t) + (p.subtipo && p.subtipo !== '—' ? ' · ' + esc(p.subtipo) : '') + '</span>';
-  }
-  // ── Evolução clínica (notas datadas de cada internamento) ──
-  // Só se acrescentam: nunca se alteram nem se apagam (para corrigir, escreve-se
-  // uma nova). Cada nota fica com a data/hora, o nome e a função de quem a fez.
-  function evolucoes(p) {
-    var o = (p && p.evolucoes) || {};
-    return Object.keys(o).map(function (k) { return Object.assign({ id: k }, o[k]); }).filter(function (e) { return e && e.texto; })
-      .sort(function (a, b) { return String(a.em || '').localeCompare(String(b.em || '')); });
-  }
-  function evoListaHTML(l) {
-    if (!l.length) return '<div class="cpp-nd" style="padding:4px 2px">Sem evoluções registadas.</div>';
-    return l.map(function (e) {
-      return '<div class="cpp-evo"><div class="h"><b>' + fmtDH(e.em) + '</b> · ' + esc(e.por || '—') + (e.funcao ? ' <span class="cpp-fun">' + esc(e.funcao) + '</span>' : '') + '</div><div class="x">' + esc(e.texto).replace(/\n/g, '<br>') + '</div></div>';
-    }).join('');
-  }
-  function evolucaoHTML(p) {
-    var l = evolucoes(p);
-    return '<h4>Evolução clínica deste internamento (' + l.length + ')</h4>' + evoListaHTML(l) +
-      '<div class="cpp-evo-nova"><textarea id="cpp-evo-txt" rows="3" placeholder="Escreva a evolução do doente (estado, sinais vitais, tratamento, plano…)"></textarea>' +
-      '<div class="r"><small>As evoluções não se alteram nem se apagam — para corrigir, acrescente uma nova. Ficam visíveis no processo em todos os serviços.</small>' +
-      '<button type="button" class="cpp-bt p" data-evo="' + p.n + '">Acrescentar evolução</button></div></div>';
-  }
-  function cliqueEvolucao(e) {
-    var b = e.target.closest('[data-evo]'); if (!b) return;
-    var p = porN(b.dataset.evo), t = ov.querySelector('#cpp-evo-txt'); if (!p || !t) return;
-    var txt = t.value.trim(); if (!txt) { t.focus(); return; }
-    var a = autor(), id = 'ev' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    p.evolucoes = p.evolucoes || {};
-    p.evolucoes[id] = { em: agoraISO(), texto: txt, por: a.nome, funcao: a.funcao };
-    gravar();
-    var box = ov.querySelector('#cpp-evolucao'); if (box) box.innerHTML = evolucaoHTML(p);
-    if (typeof showFeedback === 'function') showFeedback('Evolução registada', 'success');
   }
   var NOMES_SERV = { medicina_interna: 'Medicina Interna', cirurgia_geral: 'Cirurgia Geral', ortopedia: 'Ortopedia', neurocirurgia: 'Neurocirurgia', maxilo_facial: 'Maxilo-Facial', nefrologia: 'Nefrologia', uci_intensivo: 'UCI — Intensivos', uci_intermedio: 'Cuidados Intermédios' };
   function servAtual() { try { return window.CP_UCI ? window.CP_UCI.slug : String(FB_PACIENTES_PATH).split('/').pop(); } catch (e) { return ''; } }
@@ -225,12 +190,12 @@
     var h = '<h4>Processo clínico — internamentos anteriores' + (l.length ? ' (' + l.length + ')' : '') + '</h4>';
     if (!l.length) return h + '<div class="cpp-nd" style="padding:4px 2px">' + (p.nup && remotos === null ? 'A procurar internamentos deste NUP em todos os serviços…' : 'Primeiro internamento deste doente no hospital.') + '</div>';
     return h + l.map(function (q) {
-      var meu = q.servico === S && q._local, evs = evolucoes(q);
+      var meu = q.servico === S && q._local;
       return '<div class="cpp-ant' + (meu ? '' : ' ro') + '"><div class="c"><b>' + esc(NOMES_SERV[q.servico] || q.servico || '') + '</b> · ' + fmtDH(q.dataEntrada) +
         (q.status === 'internado' ? ' · <b style="color:#047857">internado</b>' : ' → ' + fmtDH(q.dataSaida) + (q.tipoSaida ? ' · ' + esc(q.tipoSaida === 'Alta Vivo' ? 'Alta' : q.tipoSaida) + (q.subtipo && q.subtipo !== '—' ? ' (' + esc(q.subtipo) + ')' : '') : '')) +
         (meu ? ' <button type="button" class="cpp-bt" data-outro="' + q.n + '" style="padding:3px 9px;margin-left:6px">Abrir</button>' : ' <span class="cpp-ro">Só leitura · pertence a ' + esc(NOMES_SERV[q.servico] || q.servico) + '</span>') + '</div>' +
         '<div class="d">Diagnóstico: ' + esc(diagsTxt(q)) + (q.diagnosticoFinal ? ' · Final: ' + esc(q.diagnosticoFinal) + (q.cidFinal ? ' (' + esc(q.cidFinal) + ')' : '') : '') + (q.proveniencia ? ' · Proveniência: ' + esc(q.proveniencia) : '') + '</div>' +
-        (evs.length ? '<details><summary>Evolução clínica (' + evs.length + ')</summary>' + evoListaHTML(evs) + '</details>' : '') + '</div>';
+        '</div>';
     }).join('');
   }
 
@@ -239,7 +204,7 @@
     if (!ov) {
       ov = document.createElement('div'); ov.className = 'cpp-ov'; ov.id = 'cpp-processo';
       document.body.appendChild(ov);
-      ov.addEventListener('click', function (e) { if (e.target === ov || e.target.closest('[data-fechar]')) { fechar(); return; } var o = e.target.closest('[data-outro]'); if (o) abrir(+o.dataset.outro); else cliqueEvolucao(e); });
+      ov.addEventListener('click', function (e) { if (e.target === ov || e.target.closest('[data-fechar]')) { fechar(); return; } var o = e.target.closest('[data-outro]'); if (o) abrir(+o.dataset.outro); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ov.classList.contains('on')) fechar(); });
     }
     var internado = p.status === 'internado';
@@ -261,7 +226,7 @@
           campo('Alergias', window.zeloCpAlergiasHTML ? window.zeloCpAlergiasHTML(p) : '', true) +
         '</div></div>' +
         // Processo clínico partilhado: todos os internamentos anteriores deste doente
-        // (este serviço e os outros), com as evoluções — os dos outros serviços só para ver.
+        // (este serviço e os outros) — os dos outros serviços só para ver.
         '<div class="cpp-sec" id="cpp-historico-proc">' + historicoProcesso(p, null) + '</div>' +
         '<div class="cpp-sec"><h4>Internamento' + (Number(p.episodio) > 1 ? ' (' + p.episodio + 'º do processo)' : '') + '</h4><div class="cpp-grid">' +
           campo('Data e hora de entrada', fmtDH(p.dataEntrada)) + campo('Cama / Sala', esc(p.cama)) + campo('Proveniência', esc(p.proveniencia)) + campo('Dias internado', nDias == null ? '' : nDias + ' dia(s)') +
@@ -273,7 +238,6 @@
           (p.diagnosticoFinal ? campo('Diagnóstico final', esc(p.diagnosticoFinal) + (p.cidFinal ? ' <small>CID-10: ' + esc(p.cidFinal) + '</small>' : ''), true) : '') +
           campo('Saída registada por', autorTxt(p.saidaRegistadaPor, p.saidaRegistadaFuncao, p.saidaRegistadaEm), true) +
         '</div></div>' : '') +
-        '<div class="cpp-sec" id="cpp-evolucao">' + (p._arquivo ? '<h4>Evolução clínica deste internamento (' + evolucoes(p).length + ')</h4>' + evoListaHTML(evolucoes(p)) : evolucaoHTML(p)) + '</div>' +
         '<div class="cpp-sec"><h4>Percurso</h4><div class="cpp-tl">' + tl + '</div></div>' +
       '</div>' +
       '<div class="cpp-acoes"><button type="button" class="cpp-bt" data-fechar>Fechar</button>' +
@@ -331,20 +295,13 @@
     if (p.atualizadoPor) perc.push(['Última atualização', fmtDH(p.atualizadoEm), quemTxt(p.atualizadoPor, p.atualizadoFuncao)]);
     if (!internado) perc.push(['Saída', fmtDH(p.dataSaida), quemTxt(p.saidaRegistadaPor, p.saidaRegistadaFuncao, p.saidaRegistadaEm)]);
     y = pdf.tabela(y, ['Passo', 'Data e hora', 'Profissional'], [38, 42, CW - 80], perc);
-    var evs = evolucoes(p);
-    y = pdf.secT(y, '5. Evolução clínica deste internamento');
-    y = evs.length ? pdf.tabela(y, ['Data e hora', 'Profissional', 'Evolução'], [30, 40, CW - 70], evs.map(function (e) { return [fmtDH(e.em), (e.por || '') + (e.funcao ? ' (' + e.funcao + ')' : ''), e.texto]; }))
-      : pdf.txt(y, ' ', 'Sem evoluções registadas.');
     var ant = outrosInternamentos(p, remotos || []);
-    y = pdf.secT(y, '6. Processo clínico — internamentos anteriores (todos os serviços)');
+    y = pdf.secT(y, '5. Processo clínico — internamentos anteriores (todos os serviços)');
     if (!ant.length) y = pdf.txt(y, ' ', 'Primeiro internamento deste doente no hospital.');
     else {
       y = pdf.tabela(y, ['Serviço', 'Entrada', 'Saída', 'Diagnóstico'], [36, 30, 42, CW - 108], ant.map(function (q) {
         return [NOMES_SERV[q.servico] || q.servico || '', fmtDH(q.dataEntrada), q.status === 'internado' ? 'Internado' : fmtDH(q.dataSaida) + (q.tipoSaida ? ' · ' + (q.tipoSaida === 'Alta Vivo' ? 'Alta' : q.tipoSaida) : ''), diagsTxt(q)];
       }));
-      var evAnt = [];
-      ant.forEach(function (q) { evolucoes(q).forEach(function (e) { evAnt.push([NOMES_SERV[q.servico] || q.servico || '', fmtDH(e.em), (e.por || '') + (e.funcao ? ' (' + e.funcao + ')' : ''), e.texto]); }); });
-      if (evAnt.length) y = pdf.tabela(y, ['Serviço', 'Data e hora', 'Profissional', 'Evolução'], [30, 28, 36, CW - 94], evAnt);
     }
     pdf.rodape();
     pdf.d.save(('Processo_' + p.nome + '_NUP_' + (p.nup || p.n)).replace(/[^\wÀ-ÿ]+/g, '_') + '.pdf');

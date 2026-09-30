@@ -504,7 +504,7 @@
       var nm = dono ? dono.nome : (todosEps[0] && todosEps[0].nome);
       info.className = 'cpn-nupinfo reg';
       var l = resumoEps(todosEps);
-      info.innerHTML = 'Processo existente: <b>' + esc(nm) + '</b> — será registado como novo internamento do mesmo processo clínico. Os dados do doente, os internamentos anteriores e as evoluções de todos os serviços ficam visíveis na ficha (só leitura); este serviço acrescenta os seus.' +
+      info.innerHTML = 'Processo existente: <b>' + esc(nm) + '</b> — será registado como novo internamento do mesmo processo clínico. Os dados do doente e os internamentos anteriores de todos os serviços ficam visíveis na ficha (só leitura).' +
         (l.length ? '<div style="margin-top:6px;font-weight:600">Internamentos anteriores (' + l.length + '):<br>' + l.map(esc).join('<br>') + '</div>' : '');
       if (nome && !nome.value.trim() && nm) { nome.value = nm; }
     }
