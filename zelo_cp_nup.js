@@ -438,6 +438,8 @@
     var q = box.querySelector('input'), res = box.querySelector('#cpn-res'), achados = [];
     q.addEventListener('input', function () {
       var t = q.value.trim(); if (t.length < 2) { res.innerHTML = ''; return; }
+      // Os outros serviços só são lidos quando alguém pesquisa (não ao abrir a janela).
+      if (!indice || Date.now() - indiceTs > 10 * 60000) { var qq = q; lerIndice().then(function () { if (indice && qq.value.trim() === t) qq.dispatchEvent(new Event('input')); }); }
       achados = procurar(t, true).slice(0, 8);
       res.innerHTML = achados.length ? achados.map(function (x, i) {
         return '<button type="button" data-i="' + i + '"><span class="cpn-nup">' + esc(x.nup || '—') + '</span><span><b>' + esc(x.nome) + '</b><small>' + esc(x.genero || '') + (x.idade ? ' · ' + esc(x.idade) + ' anos' : '') + ' · ' + x.eps.filter(function (p) { return !p.anulado; }).length + ' internamento(s) · ' + (x.internado ? 'internado em ' + esc(nomeServ(x.internado.servico)) : 'última entrada ' + fmt(x.ult.dataEntrada)) + '</small></span></button>';
@@ -549,7 +551,7 @@
     var f = window.openModal; if (typeof f !== 'function' || f.__cpn) return !!(f && f.__cpn);
     var novo = function (id) {
       var r = f.apply(this, arguments);
-      if (id === 'novoModal') { novoModal(); var i = document.getElementById('cpn-nupinfo'); if (i) i.style.display = 'none'; lerIndice(); }
+      if (id === 'novoModal') { novoModal(); var i = document.getElementById('cpn-nupinfo'); if (i) i.style.display = 'none'; }
       return r;
     };
     novo.__cpn = true; novo.__cpProc = f.__cpProc; window.openModal = novo; return true;

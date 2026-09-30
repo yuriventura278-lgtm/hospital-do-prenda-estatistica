@@ -138,6 +138,36 @@
     })).then(function (ls) { var l = [].concat.apply([], ls); if (ate) l.arquivoAte = ate; return l; }).catch(function () { return null; });
   }
 
+  // Doentes do Controlo de Pacientes ao vivo: uma escuta por serviço — o
+  // Firebase envia a lista uma vez e depois só o que muda (em vez de voltar a
+  // descarregar a lista inteira sempre que alguém grava). Só entrega a lista
+  // quando também já sabe o arquivoAte de cada serviço (meses que não se recalculam).
+  var vivos = {};
+  function pacientesVivos(item, aoMudar) {
+    var fs = fontes(item);
+    if (!fs.length || typeof window.__fbListen !== 'function') return lerPacientes(item);
+    var v = vivos[item];
+    if (!v) {
+      v = vivos[item] = { ps: null, espera: [], cbs: [], por: {}, ate: {} };
+      var montar = function () {
+        for (var i = 0; i < fs.length; i++) if (!(i in v.por) || !(i in v.ate)) return;
+        var l = [].concat.apply([], fs.map(function (f, i) { return v.por[i]; }));
+        var a = Object.keys(v.ate).map(function (k) { return v.ate[k]; }).filter(Boolean).sort().pop();
+        if (a) l.arquivoAte = String(a);
+        var primeira = !v.ps; v.ps = l;
+        v.espera.splice(0).forEach(function (r) { r(l); });
+        if (!primeira) v.cbs.forEach(function (cb) { try { cb(l); } catch (e) {} });
+      };
+      fs.forEach(function (f, i) {
+        var base = 'registos_sistemas_locais/controlo_pacientes/' + f[0] + '/snapshot/';
+        window.__fbListen(base + 'arquivoAte', function (a) { v.ate[i] = a ? String(a) : ''; montar(); });
+        window.__fbListen(base + 'pacientes', function (val) { v.por[i] = val ? doServico(val, item, f[1]) : []; montar(); });
+      });
+    }
+    if (aoMudar) v.cbs.push(aoMudar);
+    return v.ps ? Promise.resolve(v.ps) : new Promise(function (r) { v.espera.push(r); });
+  }
+
   // Meses em que há camas emprestadas a doentes de outros serviços.
   function mesesExt(ext) {
     var h = hoje().slice(0, 7), set = {};
@@ -201,7 +231,7 @@
     ['mortLiquida', 'Mortalidade líquida', '%', 'óbitos ≥48 h ÷ (saídos − óbitos <48 h)'], ['mortBruta', 'Mortalidade bruta', '%', 'óbitos ÷ saídos']];
   function fmtInd(v, suf) { return v == null || !isFinite(v) ? '—' : v.toLocaleString('pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + (suf === '%' ? '%' : ''); }
   window.ZeloMovAuto = { PREDEF: PREDEF, indicadores: indicadores, INDICADORES: INDICADORES, fmtInd: fmtInd, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
-    CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, lerExternos: lerExternos };
+    CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, pacientesVivos: pacientesVivos, lerExternos: lerExternos };
 
   // ─────────────── Na página de Movimento de um serviço ───────────────
   function item() { try { return String(FB_MOVIMENTO_PATH).split('/').pop(); } catch (e) { return null; } }
@@ -351,18 +381,22 @@
     try { persistData(); } finally { aplicando = false; }
     try { renderTable(); updateStats(); } catch (e) {}
   }
+  var tLer = null;
   function ler() {
     var it = item(); if (!MAPA[it]) return;
-    Promise.all([lerPacientes(it), lerExternos(it)]).then(function (r) { if (r[0]) { ps = r[0]; ext = r[1] || []; aplicar(); } });
+    // Primeira vez: começa a escuta ao vivo; depois, cada alteração do Controlo
+    // de Pacientes chega sozinha (só a diferença) e volta a calcular.
+    var cb = ler.__cb ? null : (ler.__cb = true, function (l) { ps = l; clearTimeout(tLer); tLer = setTimeout(function () { lerExternos(it).then(function (e) { ext = e || []; aplicar(); }); }, 400); });
+    pacientesVivos(it, cb)
+      .then(function (l) { return lerExternos(it).then(function (e) { if (l) { ps = l; ext = e || []; aplicar(); } }); });
   }
   var t = 0, iv = setInterval(function () {
     t++;
     if (window.__fbReady && typeof window.__fbGet === 'function' && typeof data !== 'undefined' && typeof currentMonth !== 'undefined' && currentMonth && envolver()) {
       clearInterval(iv); fundir().then(predefinir, predefinir).then(ler, ler);
-      // Ao vivo: quando o Controlo de Pacientes grava, volta a calcular.
+      // Ao vivo: as alterações do Controlo de Pacientes chegam pela escuta de
+      // pacientesVivos (ver ler()); camas emprestadas (cp_fora) também recalculam.
       if (typeof window.__fbListen === 'function') fontes(item()).forEach(function (m) {
-        var primeira = true;
-        window.__fbListen('registos_sistemas_locais/controlo_pacientes/' + m[0] + '/savedAt', function () { if (primeira) { primeira = false; return; } ler(); });
         var primeiraF = true;
         window.__fbListen('registos_sistemas_locais/cp_fora/' + m[0], function () { if (primeiraF) { primeiraF = false; return; } ler(); });
       });

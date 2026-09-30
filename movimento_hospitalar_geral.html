@@ -187,7 +187,7 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="zelo_servicos_menu.js"></script>
-<script src="zelo_mov_auto.js?v=13"></script>
+<script src="zelo_mov_auto.js?v=14"></script>
 <script>
 /* Movimento Hospitalar Geral — supervisão e estatística (só leitura).
    Cada serviço guarda em registos_movimento/<serviço>:
@@ -516,7 +516,7 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
   function lerCP(item, forcar){
     var A = window.ZeloMovAuto; if (!A || !A.MAPA[item]) return Promise.resolve();
     if (cpLido[item] && !forcar) return Promise.resolve();
-    return Promise.all([A.lerPacientes(item),
+    return Promise.all([A.pacientesVivos ? A.pacientesVivos(item) : A.lerPacientes(item),
       window.__fbGet('registos_movimento/' + item + '/snapshot/__capacity').catch(function(){ return null; }), A.lerExternos(item),
       window.__fbGet('registos_movimento/' + item + '/snapshot/__baselines').catch(function(){ return null; }),
       window.__fbGet('registos_movimento/' + item + '/snapshot/__camasForaUso').catch(function(){ return null; }),
@@ -594,7 +594,8 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
       });
       // Controlo de Pacientes gravou: volta a calcular este serviço.
       var A = window.ZeloMovAuto;
-      (A && A.fontes ? A.fontes(s.item) : []).forEach(function(cpm){ var pr = true; window.__fbListen('registos_sistemas_locais/controlo_pacientes/' + cpm[0] + '/savedAt', function(){ if (pr){ pr = false; return; } lerCP(s.item, true).then(function(){ aplicarCP(s.item, meses()); recentes[s.item] = true; clearTimeout(tRe); tRe = setTimeout(desenhar, 300); $('mhgEstado').textContent = s.nome + ' (Controlo de Pacientes) atualizou às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }); }); }); });
+      // Doentes ao vivo (só as diferenças chegam): recalcula quando o Controlo de Pacientes muda.
+      if (A && A.pacientesVivos && A.MAPA[s.item]) A.pacientesVivos(s.item, function(){ lerCP(s.item, true).then(function(){ aplicarCP(s.item, meses()); recentes[s.item] = true; clearTimeout(tRe); tRe = setTimeout(desenhar, 300); $('mhgEstado').textContent = s.nome + ' (Controlo de Pacientes) atualizou às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }); }); });
       var chave = String(s.file || '').replace(/\.html$/, '').replace(/[.#$\[\]\/]/g, '_');
       if (chave) window.__fbListen('registos_sistemas_locais/ultimas_alteracoes/' + chave, function(v){ if (v && v.ts){ ultAlt[s.item] = v; clearTimeout(tRe); tRe = setTimeout(desenhar, 300); } });
     });
