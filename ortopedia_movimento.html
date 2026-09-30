@@ -1800,6 +1800,8 @@ function generateReportPDF() {
 
   // Assinatura do Chefe de Enfermagem do Serviço (feita à mão, em papel) e data
   y = ZeloPDF.quebra(doc, y, multiMonth ? 20 : 30);
+  // Assinatura e data sempre no fim da folha (logo acima do rodapé).
+  y = Math.max(y, pageHeight - 21 - (multiMonth ? 17 : 23));
   const sigColW = CW / 2;
   doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.3);
   doc.line(M, y, M + CW, y);
