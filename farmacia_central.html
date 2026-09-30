@@ -1210,6 +1210,10 @@ function dbClear(store,cb){
    Só quem tem acesso de edição ao módulo pode enviar dados; qualquer
    dispositivo com acesso lê sempre a versão mais recente ao abrir a página. */
 var ZELO_FB_PATH="registos_sistemas_locais/farmacia_central";
+// Estado do inventário: as regras do Firebase só deixam gravar um nível abaixo
+// do módulo (registos_sistemas_locais/<módulo>/<chave>) — gravar no próprio
+// módulo era recusado e o inventário nunca chegava aos outros computadores.
+var ZELO_FB_ESTADO=ZELO_FB_PATH+"/estado";
 function zeloTemAcessoEdicao(){
   try{
     if(!window.ZeloAuth||!window.ZELO_MODULE)return true;
@@ -1225,19 +1229,115 @@ function zeloFbAgendarEnvio(){
   clearTimeout(zeloFbEnvioTimer);
   zeloFbEnvioTimer=setTimeout(zeloFbEnviar,1200);
 }
+// ── Juntar sem perder dados (vários computadores) ──
+// Antes, cada envio substituía o inventário inteiro no servidor e cada
+// receção apagava a base local: um movimento registado num computador podia
+// desaparecer se outro gravasse ao mesmo tempo. Agora junta-se em três vias
+// com a «base» (a última versão comum, guardada neste aparelho):
+//   • movimentos: os do servidor + os novos deste aparelho − os desfeitos aqui;
+//   • produtos: os campos editados aqui vencem, o resto vem do servidor;
+//     um produto novo com o mesmo id de outro recebe um id novo;
+//   • stock: o do servidor + o que este aparelho movimentou desde a base.
+// Sem ligação não envia (não substitui nada): junta quando a rede voltar.
+var FARM_BASE_KEY='zelo_farm_base_v1', FARM_PEND_KEY='zelo_farm_pendente';
+function farmLista(x){ return Array.isArray(x)?x.filter(Boolean):(x&&typeof x==='object')?Object.keys(x).map(function(k){return x[k];}).filter(Boolean):[]; }
+function farmLerBase(){ try{ return JSON.parse(localStorage.getItem(FARM_BASE_KEY)||'null'); }catch(e){ return null; } }
+function farmGravarBase(sn){ try{ localStorage.setItem(FARM_BASE_KEY, JSON.stringify(sn)); }catch(e){} }
+function farmChaveMov(m){ return [m.registado||'', m.produtoId, m.tipo, m.qtd, m.lote||'', m.data||''].join('|'); }
+function farmSemStock(p){ var c=Object.assign({},p); delete c.stock; return c; }
+function farmOrdenar(sn){
+  return { produtos: farmLista(sn.produtos).slice().sort(function(a,b){return (a.id||0)-(b.id||0);}),
+           movimentos: farmLista(sn.movimentos).slice().sort(function(a,b){ return String(a.registado||'').localeCompare(String(b.registado||'')) || ((a.id||0)-(b.id||0)); }) };
+}
+// Eliminações feitas de propósito (desfazer um movimento, eliminar/anular um
+// produto) ficam registadas em «removidos» — só isso tira algo da lista; a
+// simples falta de um item no servidor (ex. dois computadores a gravar ao
+// mesmo tempo) nunca apaga nada.
+var FARM_REM_KEY='zelo_farm_removidos_v1';
+function farmLerRemovidos(){ try{ var o=JSON.parse(localStorage.getItem(FARM_REM_KEY)||'null'); return o&&o.m&&o.p?o:{m:{},p:{}}; }catch(e){ return {m:{},p:{}}; } }
+function farmRegistarRemovido(tipo,chave){ var o=farmLerRemovidos(); o[tipo][chave]=Date.now(); try{ localStorage.setItem(FARM_REM_KEY, JSON.stringify(o)); }catch(e){} }
+function farmJuntarRemovidos(a,b){ var o={m:{},p:{}}; [a,b].forEach(function(x){ if(!x) return; ['m','p'].forEach(function(t){ Object.keys(x[t]||{}).forEach(function(k){ var v=+x[t][k]||0; if(!o[t][k]||v>o[t][k]) o[t][k]=v; }); }); }); return o; }
+function farmDelta(m){ return (m.tipo==='entrada'?1:-1)*(+m.qtd||0); }
+// Stock inicial = stock − movimentos (calculado uma vez, com o estado coerente deste aparelho).
+function farmFixarInicial(sn){
+  var soma={}; farmLista(sn.movimentos).forEach(function(m){ soma[m.produtoId]=(soma[m.produtoId]||0)+farmDelta(m); });
+  farmLista(sn.produtos).forEach(function(p){ if(p.stockInicial==null) p.stockInicial=(+p.stock||0)-(soma[p.id]||0); });
+}
+function farmJuntar(local, remoto, base){
+  var L=farmOrdenar(local||{}), R=farmOrdenar(remoto||{}), B=base?farmOrdenar(base):null;
+  farmFixarInicial(L); farmFixarInicial(R);
+  var rem=farmJuntarRemovidos(farmJuntarRemovidos(local&&local.removidos, remoto&&remoto.removidos), farmLerRemovidos());
+  var porId=function(l){ var o={}; l.forEach(function(p){ o[p.id]=p; }); return o; };
+  var Lp=porId(L.produtos), Bp=B?porId(B.produtos):{};
+  var produtos={}, remap={};
+  // Produtos do servidor, com os campos editados neste aparelho.
+  R.produtos.forEach(function(r){
+    var p=Object.assign({}, r), l=Lp[r.id], b=Bp[r.id];
+    if(l && l.codigo===r.codigo && b){ Object.keys(farmSemStock(Object.assign({}, l, r))).forEach(function(k){ if(k!=='stockInicial' && JSON.stringify(l[k])!==JSON.stringify(b[k])) p[k]=l[k]; }); }
+    produtos[p.id]=p;
+  });
+  // Produtos só deste aparelho — nunca se perdem (id repetido → id novo).
+  var maxId=Math.max.apply(null,[0].concat(R.produtos.map(function(p){return +p.id||0;})).concat(L.produtos.map(function(p){return +p.id||0;})));
+  L.produtos.forEach(function(l){
+    if(produtos[l.id] && produtos[l.id].codigo===l.codigo) return;
+    var p=Object.assign({}, l);
+    if(produtos[p.id]){ maxId++; remap[p.id]=maxId; p.id=maxId; }
+    produtos[p.id]=p;
+  });
+  // Produtos eliminados de propósito (e não recuperados depois).
+  Object.keys(produtos).forEach(function(id){ var p=produtos[id], t=rem.p[p.codigo]; if(t && t>(+p.restauradoEm||0)) delete produtos[id]; });
+  // Movimentos: união (servidor + este aparelho) − desfeitos de propósito.
+  var mov={};
+  R.movimentos.forEach(function(m){ mov[farmChaveMov(m)]=Object.assign({}, m); });
+  L.movimentos.forEach(function(m){ var c=Object.assign({}, m); if(remap[c.produtoId]) c.produtoId=remap[c.produtoId]; var k=farmChaveMov(m); if(!mov[k]) mov[k]=c; });
+  Object.keys(mov).forEach(function(k){ if(rem.m[k]) delete mov[k]; });
+  var usados={}, maxM=0, lista=Object.keys(mov).map(function(k){ return mov[k]; });
+  lista.forEach(function(m){ maxM=Math.max(maxM, +m.id||0); });
+  lista.forEach(function(m){ if(!m.id || usados[m.id]){ maxM++; m.id=maxM; } usados[m.id]=1; });
+  // Stock = stock inicial + todos os movimentos juntos.
+  var soma={}; lista.forEach(function(m){ soma[m.produtoId]=(soma[m.produtoId]||0)+farmDelta(m); });
+  Object.keys(produtos).forEach(function(id){ var p=produtos[id]; p.stock=(+p.stockInicial||0)+(soma[p.id]||0); });
+  var out=farmOrdenar({ produtos: Object.keys(produtos).map(function(k){ return produtos[k]; }), movimentos: lista });
+  out.removidos=rem;
+  return out;
+}
+function farmIgual(a,b){ return JSON.stringify(farmOrdenar(a||{}))===JSON.stringify(farmOrdenar(b||{})); }
 async function zeloFbEnviar(){
   if(!zeloTemAcessoEdicao())return;
+  var local={produtos:state.produtos,movimentos:state.movimentos};
+  var remoto=null, lido=false;
+  if(window.__fbReady&&window.__fbGet&&navigator.onLine!==false){
+    try{ remoto=await Promise.race([window.__fbGet(ZELO_FB_ESTADO), new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('timeout')); },15000); })]); lido=true; }catch(e){}
+  }
+  if(!lido){ try{ localStorage.setItem(FARM_PEND_KEY,'1'); }catch(e){} return; } // sem ligação: junta e envia quando a rede voltar
+  var juntado = farmJuntar(local, (remoto&&remoto.snapshot)||{}, farmLerBase());
   var savedAt=new Date().toISOString();
   var criadoPor={nome:sessionStorage.getItem('zeloNome')||null,email:sessionStorage.getItem('zeloEmail')||null};
-  var corpo={savedAt:savedAt,snapshot:{produtos:state.produtos,movimentos:state.movimentos},criadoPor:criadoPor};
+  var corpo={savedAt:savedAt,snapshot:juntado,criadoPor:criadoPor};
   try{
     zeloUltimoEnvioSavedAt=savedAt; // marca este envio para nos ignorarmos a nós próprios quando o listener ecoar
-    if(typeof zeloQueueWrite==="function")await zeloQueueWrite(ZELO_FB_PATH,corpo);
-    else if(window.__fbReady&&window.__fbSet)await window.__fbSet(ZELO_FB_PATH,corpo);
+    if(!farmIgual(juntado, local)) zeloFbAplicarSnapshot(juntado, function(){ try{ render(); }catch(e){} });
+    if(typeof zeloQueueWrite==="function")await zeloQueueWrite(ZELO_FB_ESTADO,corpo);
+    else if(window.__fbReady&&window.__fbSet)await window.__fbSet(ZELO_FB_ESTADO,corpo);
+    farmGravarBase(juntado);
+    try{ localStorage.removeItem(FARM_PEND_KEY); }catch(e){}
+    // Dois computadores a gravar ao mesmo tempo: o último pode ter ficado sem o
+    // do outro — confirma pouco depois e, se faltar algo daqui, junta e envia outra vez.
+    clearTimeout(window.__farmVerif);
+    window.__farmVerif=setTimeout(function(){
+      if(!window.__fbGet) return;
+      window.__fbGet(ZELO_FB_ESTADO).then(function(r){
+        if(!r||!r.snapshot) return;
+        var j=farmJuntar({produtos:state.produtos,movimentos:state.movimentos}, r.snapshot, farmLerBase());
+        if(!farmIgual(j, r.snapshot)) zeloFbAgendarEnvio();
+      }).catch(function(){});
+    },5000);
     _mostrarHoraGuardado(criadoPor.nome,savedAt);
     _registarHistoricoAlteracao(savedAt);
-  }catch(e){console.warn('ZELO: falha ao sincronizar a farmácia com o Firebase.',e);}
+  }catch(e){console.warn('ZELO: falha ao sincronizar a farmácia com o Firebase.',e); try{ localStorage.setItem(FARM_PEND_KEY,'1'); }catch(e2){} }
 }
+window.addEventListener('online', function(){ try{ if(localStorage.getItem(FARM_PEND_KEY)) zeloFbAgendarEnvio(); }catch(e){} });
+window.__zeloFarm={ enviar: function(){ return zeloFbEnviar(); }, juntar: farmJuntar, get state(){ return state; }, get db(){ return db; } };
 
 // ── Autoria e histórico de alterações (quem gravou, quando) ────────────────
 // Inventário contínuo, sem noção de "dia" -- o histórico regista as
@@ -1363,12 +1463,19 @@ async function zeloFbIniciarEscutaTempoReal(cbPrimeira,aoAtualizar){
   function resolverPrimeira(){ if(!resolvido){resolvido=true; if(cbPrimeira)cbPrimeira();} }
   var pronto=await zeloFbEsperarPronto();
   if(!pronto||!window.__fbListen){ resolverPrimeira(); return; }
-  window.__fbListen(ZELO_FB_PATH,function(remoto){
+  window.__fbListen(ZELO_FB_ESTADO,function(remoto){
     if(!remoto||!remoto.snapshot){ resolverPrimeira(); return; }
     if(remoto.criadoPor) _mostrarHoraGuardado(remoto.criadoPor.nome, remoto.savedAt);
     if(remoto.savedAt===zeloUltimoEnvioSavedAt){ resolverPrimeira(); return; } // eco do nosso próprio envio
-    zeloFbAplicarSnapshot(remoto.snapshot,function(){
+    // Junta com o que este aparelho tem (nada do que foi registado aqui se perde).
+    var local={produtos:state.produtos,movimentos:state.movimentos};
+    var base=farmLerBase(), pend=false; try{ pend=!!localStorage.getItem(FARM_PEND_KEY); }catch(e){}
+    var juntado=farmJuntar(local, remoto.snapshot, base);
+    var faltaEnviar=!farmIgual(juntado, remoto.snapshot) || JSON.stringify(juntado.removidos)!==JSON.stringify(farmJuntarRemovidos(remoto.snapshot.removidos,null));
+    zeloFbAplicarSnapshot(juntado,function(){
       zeloUltimoEnvioSavedAt=remoto.savedAt;
+      if(!faltaEnviar) farmGravarBase(juntado);
+      else zeloFbAgendarEnvio(); // este aparelho tinha registos por enviar: junta e envia
       if(!resolvido){ resolverPrimeira(); }
       else if(aoAtualizar){ aoAtualizar(); }
     });
@@ -2385,6 +2492,7 @@ function pedirEliminarProduto(p){
   $("confMsg").textContent="Eliminar o produto “"+p.descricao+"” ("+p.codigo+")? Os movimentos associados serão mantidos no histórico. Pode desfazer com Ctrl+Z.";
   $("confYes").textContent="Eliminar";
   $("confYes").onclick=function(){
+    farmRegistarRemovido('p', p.codigo);
     dbDel("produtos",p.id,function(){
       state.produtos=state.produtos.filter(function(x){return x.id!==p.id;});
       state.undo.push({t:"delProd",p:p});
@@ -2539,6 +2647,7 @@ $("fmSave").addEventListener("click",function(){
   tx.objectStore("produtos").put(p);
   tx.oncomplete=function(){
     state.movimentos.push(m);
+    zeloFbAgendarEnvio(); // o movimento segue logo para os outros computadores
     state.undo.push({t:"mov",m:m,pid:pid,delta:delta});
     bumpAlt();
     closeOvl("ovlMov");
@@ -2558,6 +2667,7 @@ function desfazer(){
   var u=state.undo.pop();
   if(!u){toast("Nada para desfazer.");return;}
   if(u.t==="novoProd"){
+    var pNovo=state.produtos.find(function(x){return x.id===u.id;}); if(pNovo) farmRegistarRemovido('p', pNovo.codigo);
     dbDel("produtos",u.id,function(){
       state.produtos=state.produtos.filter(function(x){return x.id!==u.id;});
       if(state.selId===u.id)state.selId=null;
@@ -2570,6 +2680,7 @@ function desfazer(){
       toast("Edição de produto anulada.","ok");render();
     });
   }else if(u.t==="delProd"){
+    u.p.restauradoEm=Date.now(); // recuperado depois de eliminado: volta também nos outros computadores
     dbPut("produtos",u.p,function(){
       state.produtos.push(u.p);
       toast("Produto “"+u.p.descricao+"” recuperado.","ok");render();
@@ -2579,7 +2690,9 @@ function desfazer(){
     var tx=db.transaction(["movimentos","produtos"],"readwrite");
     tx.objectStore("movimentos").delete(u.m.id);
     if(p){p.stock-=u.delta;tx.objectStore("produtos").put(p);}
+    farmRegistarRemovido('m', farmChaveMov(u.m)); // também sai nos outros computadores
     tx.oncomplete=function(){
+      zeloFbAgendarEnvio();
       state.movimentos=state.movimentos.filter(function(x){return x.id!==u.m.id;});
       toast("Movimento anulado e stock reposto.","ok");render();
     };
@@ -2987,7 +3100,7 @@ window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
     if (cachePromessa) return cachePromessa;
     cachePromessa = (async () => {
       try {
-        cacheRemoto = (window.__fbGet ? await window.__fbGet(FB_PATH_FARMACIA) : null) || {};
+        cacheRemoto = (window.__fbGet ? (await window.__fbGet(FB_PATH_FARMACIA + '/estado')) || (await window.__fbGet(FB_PATH_FARMACIA)) : null) || {};
       } catch (e) {
         console.warn('[BackupAuto] falha ao ler ' + FB_PATH_FARMACIA, e);
         cacheRemoto = cacheRemoto || {};

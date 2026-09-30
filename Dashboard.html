@@ -1227,7 +1227,7 @@ function narrarHemoterapia(){
 }
 
 /* ── 7. Farmácia ──
-   registos_sistemas_locais/farmacia_central = { snapshot:{produtos:[{descricao,classe,stock,stockMin,estado}], movimentos:[...]} }
+   registos_sistemas_locais/farmacia_central/estado = { snapshot:{produtos:[{descricao,classe,stock,stockMin,estado}], movimentos:[...]} }
    Ao contrário dos outros serviços, isto é o ESTADO ACTUAL de stock, não um
    histórico por dia — por isso não depende do período seleccionado, mostra
    sempre a situação de agora (tal como a leitura de voz zeloResumoStockVoz,
@@ -1239,7 +1239,9 @@ async function carregarFarmacia(){
   // Só os produtos e a hora de gravação — o histórico de movimentos (que cresce
   // sempre) não é preciso aqui e não se descarrega.
   try{
-    const r = await Promise.all([window.__fbGet('registos_sistemas_locais/farmacia_central/snapshot/produtos'), window.__fbGet('registos_sistemas_locais/farmacia_central/savedAt').catch(function(){ return null; })]);
+    let r = await Promise.all([window.__fbGet('registos_sistemas_locais/farmacia_central/estado/snapshot/produtos'), window.__fbGet('registos_sistemas_locais/farmacia_central/estado/savedAt').catch(function(){ return null; })]);
+    // Caminho antigo (antes de a farmácia gravar em …/estado).
+    if (!r[0]) r = await Promise.all([window.__fbGet('registos_sistemas_locais/farmacia_central/snapshot/produtos'), window.__fbGet('registos_sistemas_locais/farmacia_central/savedAt').catch(function(){ return null; })]);
     dados = r[0] ? { snapshot:{ produtos: Array.isArray(r[0]) ? r[0] : Object.keys(r[0]).map(function(k){ return r[0][k]; }) }, savedAt: r[1] } : null;
   }catch(e){ dados = null; }
   const produtos = (dados && dados.snapshot && dados.snapshot.produtos) || [];
