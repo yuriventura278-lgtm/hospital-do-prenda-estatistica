@@ -1155,21 +1155,35 @@ function resolveValue(id, day, month) {
 function getExistencia(day, month) {
   if (day > 0) return getExistindo(day - 1, month);
   
-  // Tentar baseline guardado deste mês
-  if (data.__baselines && data.__baselines[month]) {
-    return Math.max(0, data.__baselines[month]);
-  }
-  // Fallback: __baseline antigo (compatibilidade)
-  if (data.__baseline && data.__baseline.month === month) {
-    return Math.max(0, parseInt(data.__baseline.value) || 0);
-  }
-  
+  // Existência anterior escrita à mão neste mês (corrige o transporte)
+  const b = baselineDoMes(month);
+  if (b !== null) return b;
+
   const prevMonth = getPrevMonthKey(month);
   if (data[prevMonth]) {
     const prevDays = getDaysInMonth(prevMonth);
     return getExistindo(prevDays - 1, prevMonth);
   }
   return 0;
+}
+
+// Existência anterior escrita à mão num mês (null = vem do mês anterior).
+// Um 0 só conta se foi escrito à mão (__baselinesManual): os 0 antigos
+// guardados sem essa marca continuam a significar «vem do mês anterior».
+function baselineDoMes(month) {
+  const b = data.__baselines ? data.__baselines[month] : undefined;
+  if (b !== undefined && b !== null && b !== '') {
+    const n = parseInt(b, 10) || 0;
+    if (n || (data.__baselinesManual && data.__baselinesManual[month])) return Math.max(0, n);
+  }
+  if (data.__baseline && data.__baseline.month === month) return Math.max(0, parseInt(data.__baseline.value, 10) || 0);
+  return null;
+}
+// Existência anterior que viria do mês anterior (sem a escrita à mão).
+function existenciaTransportada(month) {
+  const prevMonth = getPrevMonthKey(month);
+  if (!data[prevMonth]) return null;
+  return getExistindo(getDaysInMonth(prevMonth) - 1, prevMonth);
 }
 
 function getExistindo(day, month) {
@@ -1179,22 +1193,34 @@ function getExistindo(day, month) {
   return Math.max(0, existencia + admitidos - saidos);
 }
 
-// Mostra se este é o dia/mês onde a Existência Anterior ainda é editável
-// manualmente (não há mês anterior carregado, ou já existe uma base definida
-// para este mês).
+// A Existência Anterior do 1.º dia de QUALQUER mês pode ser escrita à mão:
+// por omissão vem do mês anterior, mas se estiver errada (dias em falta,
+// mês junto de duas páginas antigas…) corrige-se aqui e o erro não passa
+// para os meses seguintes.
 function isBaselineCell(day, month) {
-  if (day !== 0) return false;
-  // Baseline é editável se já existe neste mês OU se não há mês anterior
-  if (data.__baselines && data.__baselines[month]) return true;
-  // Fallback para __baseline antigo
-  if (data.__baseline && data.__baseline.month === month) return true;
-  const prevMonth = getPrevMonthKey(month);
-  return !data[prevMonth];
+  return day === 0;
 }
 
+// Caixa vazia (ou igual ao que vem do mês anterior) = volta a vir do mês
+// anterior. O valor antigo fica em __baselinesAntes (nada é perdido).
 function setBaseline(month, value) {
   if (!data.__baselines) data.__baselines = {};
-  data.__baselines[month] = Math.max(0, parseInt(value) || 0);
+  if (!data.__baselinesManual) data.__baselinesManual = {};
+  const txt = String(value === null || value === undefined ? '' : value).replace(/[^0-9]/g, '');
+  const transp = existenciaTransportada(month);
+  const antes = data.__baselines[month];
+  if (txt === '' || (transp !== null && parseInt(txt, 10) === transp)) {
+    if (antes !== undefined && antes !== null) {
+      data.__baselinesAntes = data.__baselinesAntes || {};
+      data.__baselinesAntes[month] = antes;
+    }
+    data.__baselines[month] = null;
+    data.__baselinesManual[month] = null;
+    if (data.__baseline && data.__baseline.month === month && transp !== null) data.__baseline = null;
+  } else {
+    data.__baselines[month] = Math.max(0, parseInt(txt, 10) || 0);
+    data.__baselinesManual[month] = true;
+  }
   persistData();
   renderTable();
   updateStats();
@@ -1322,9 +1348,12 @@ function renderMonthlyGrid(table, months) {
         input.className = 'cell-input baseline-input';
         input.dataset.id = '__baseline';
         input.dataset.day = day;
-        input.title = 'Valor de partida — não há mês anterior registado';
-        const current = (data.__baselines && data.__baselines[month]) || 
-                (data.__baseline && data.__baseline.month === month ? data.__baseline.value : 0) || 0;
+        const manual = baselineDoMes(month), transp = existenciaTransportada(month);
+        input.title = transp === null ? 'Existência anterior (início do histórico)'
+          : manual === null ? 'Vem do mês anterior (' + transp + '). Escreva outro valor só se estiver errado.'
+          : 'Escrito à mão — o mês anterior dá ' + transp + '. Apague para voltar a usar o mês anterior.';
+        if (manual !== null && transp !== null && manual !== transp) input.classList.add('baseline-manual');
+        const current = getExistencia(0, month);
         // Idem: 0 é um valor de partida válido e deve aparecer como "0".
         input.value = (current !== undefined && current !== null) ? current : '';
         attachSmartSelect(input);
@@ -1454,7 +1483,9 @@ function updateStats() {
   // + soma de todos os Admitidos do período − soma de todos os Saídos do período.
   const firstMonth = months[0];
   const existenciaInicial = getExistencia(0, firstMonth);
-  const existindo = Math.max(0, existenciaInicial + admitidos - saidos);
+  // Igual à tabela: «Ficam existindo» no último dia do período (respeita a
+  // existência escrita à mão em cada mês).
+  const existindo = getFieldPeriodValue({ id: 'existindo' }, months);
 
   // Taxa de Ocupação = Total de Dias-Doente ÷ Total de Dias-Cama × 100
   // (fórmula documentada na ajuda). Usa a capacidade fixa do topo do ecrã
@@ -1719,7 +1750,9 @@ function generateReportPDF() {
   });
   const firstMonth = months[0];
   const existenciaInicial = getExistencia(0, firstMonth);
-  const existindo = Math.max(0, existenciaInicial + admitidos - saidos);
+  // Igual à tabela: «Ficam existindo» no último dia do período (respeita a
+  // existência escrita à mão em cada mês).
+  const existindo = getFieldPeriodValue({ id: 'existindo' }, months);
   // Taxa de Ocupação = Total de Dias-Doente ÷ Total de Dias-Cama × 100,
   // com o mesmo fallback de updateStats() para períodos antigos sem esses
   // campos preenchidos.
@@ -1904,10 +1937,10 @@ document.addEventListener('wheel', function(e) {
 <script src="zelo_servicos_menu.js"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_assistente.js?v=5"></script>
-<script src="zelo_movimento_grelha.js"></script>
-<script src="zelo_mov_auto.js?v=20"></script>
+<script src="zelo_movimento_grelha.js?v=2"></script>
+<script src="zelo_mov_auto.js?v=21"></script>
 <script src="zelo_fecho_mes.js?v=9"></script>
-<script src="zelo_mov_v2.js?v=16"></script>
+<script src="zelo_mov_v2.js?v=17"></script>
 <script src="zelo_video_movimento.js?v=18"></script>
 </body>
 </html>

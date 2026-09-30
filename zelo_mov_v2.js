@@ -189,9 +189,11 @@
       }
     });
     var ini = getExistencia(0, months[0]);
+    // «Ficam» = o mesmo valor da tabela (último dia do período).
+    var ultimo = months[months.length - 1], fimP = getExistindo(getDaysInMonth(ultimo) - 1, ultimo);
     var den = dc > 0 ? dc : dias * getCapacity(), num = dd > 0 ? dd : exist;
     return { months: months, ini: ini, adm: adm, sai: sai, ob: ob, altas: altas, tra: tra, dc: dc, dd: dd,
-      ficam: Math.max(0, ini + adm - sai), ocup: den > 0 ? Math.min(100, Math.round(num / den * 100)) : 0,
+      ficam: fimP, ocup: den > 0 ? Math.min(100, Math.round(num / den * 100)) : 0,
       demora: sai ? (num / sai) : null, mort: sai ? ob / sai * 100 : null, m48: m48,
       ind: window.ZeloMovAuto && window.ZeloMovAuto.indicadores ? window.ZeloMovAuto.indicadores({ dc: den, dd: num, dias: diasDC || dias, saidos: sai, obitos: ob, ob48: m48 }) : null };
   }
@@ -262,12 +264,20 @@
   }
   // Mês preenchido automaticamente a partir do Controlo de Pacientes (zelo_mov_auto.js)
   function autoMes() { return !!(window.ZeloMovAuto && window.ZeloMovAuto.mesAuto && window.ZeloMovAuto.mesAuto(currentMonth)); }
+  // Texto do 1.º dia do mês sobre a existência anterior.
+  function notaBase(m) {
+    var tr = typeof existenciaTransportada === 'function' ? existenciaTransportada(m) : null;
+    var ma = typeof baselineDoMes === 'function' ? baselineDoMes(m) : null;
+    if (tr === null) return '· 1º dia: escreva quantos doentes estavam internados (existência anterior)';
+    if (ma !== null && ma !== tr) return '· Existência anterior escrita à mão (o mês anterior dá ' + tr + ') — apague para voltar a usar o mês anterior';
+    return '· Existência anterior vem do fim do mês anterior — altere só se estiver errada';
+  }
   function formDia() {
     var m = currentMonth, d = dia, p = m.split('-'), au = autoMes();
     var w = new Date(+p[0], +p[1] - 1, d + 1).getDay();
     var base = isBaselineCell(d, m);
     var h = '<div class="m2-diah"><b>' + SEM_LONGO[w] + ', ' + (d + 1) + ' de ' + MESES[+p[1] - 1].toLowerCase() + '</b>' +
-      (base ? '<span>· 1º dia: escreva quantos doentes estavam internados (existência anterior)</span>' : '') + '</div>' +
+      (base ? '<span>' + esc(notaBase(m)) + '</span>' : '') + '</div>' +
       (au ? '<div class="m2-autonota">⟳ Calculado automaticamente a partir do Controlo de Pacientes — para corrigir, corrija o registo do doente lá.</div>' : '');
     h += '<div class="m2-flux" id="m2Flux"></div><div class="m2-grps">';
     GRUPOS.forEach(function (g) {
@@ -293,16 +303,31 @@
     var m = currentMonth, d = dia, fl = $('m2Flux'); if (!fl) return;
     var ex = getExistencia(d, m), en = resolveValue('admitidos', d, m), sa = resolveValue('saidos', d, m), fi = getExistindo(d, m);
     var base = isBaselineCell(d, m); // existência anterior: sempre escrita à mão
-    fl.innerHTML = '<div class="m2-fx">' + (base ? '<input type="text" inputmode="numeric" id="m2Base" value="' + ex + '" title="Existência anterior (doentes internados no início)">' : '<b>' + ex + '</b>') + '<span>Existência</span></div><span class="m2-op">+</span>' +
-      '<div class="m2-fx e"><b>' + en + '</b><span>Entradas</span></div><span class="m2-op">−</span>' +
-      '<div class="m2-fx s"><b>' + sa + '</b><span>Saídas</span></div><span class="m2-op">=</span>' +
-      '<div class="m2-fx f"><b>' + fi + '</b><span>Ficam</span></div>';
+    // Só os números mudam: a caixa da existência anterior não é recriada
+    // (senão perdia-se o clique/o que se está a escrever nela).
+    var chave = (base ? 'b' : 'n') + m + '|' + d, bi = $('m2Base');
+    if (fl.dataset.chave !== chave || (base && !bi)) {
+      fl.dataset.chave = chave;
+      fl.innerHTML = '<div class="m2-fx">' + (base ? '<input type="text" inputmode="numeric" id="m2Base" value="' + ex + '" title="' + esc(notaBase(m).replace(/^· /, '')) + '">' : '<b>' + ex + '</b>') + '<span>Existência</span></div><span class="m2-op">+</span>' +
+        '<div class="m2-fx e"><b>' + en + '</b><span>Entradas</span></div><span class="m2-op">−</span>' +
+        '<div class="m2-fx s"><b>' + sa + '</b><span>Saídas</span></div><span class="m2-op">=</span>' +
+        '<div class="m2-fx f"><b>' + fi + '</b><span>Ficam</span></div>';
+    } else {
+      if (bi) { if (document.activeElement !== bi) bi.value = ex; bi.title = notaBase(m).replace(/^· /, ''); }
+      else { var bx = fl.querySelector('.m2-fx:not(.e):not(.s):not(.f) b'); if (bx) bx.textContent = ex; }
+      var be = fl.querySelector('.m2-fx.e b'), bs = fl.querySelector('.m2-fx.s b'), bf = fl.querySelector('.m2-fx.f b');
+      if (be) be.textContent = en; if (bs) bs.textContent = sa; if (bf) bf.textContent = fi;
+    }
     var dc = raw(m, 'dia_cama', d), dd = raw(m, 'dia_doente', d), cap = getCapacity(), dica = $('m2Dica'), av = $('m2AvisoC');
     if (dica) dica.innerHTML = autoMes() ? '' : (dc == null ? '<button type="button" data-m2fill="dia_cama" data-v="' + cap + '">Dias de cama = ' + cap + ' camas</button>' : '') +
       (dd == null || dd !== fi ? '<button type="button" data-m2fill="dia_doente" data-v="' + fi + '">Dias-doente = ' + fi + ' (ficam)</button>' : '');
     var erro = dc != null && dd != null && dd > dc;
     var st = raiz.querySelector('[data-st="dia_doente"]'); if (st) st.classList.toggle('x', erro);
-    if (av) av.innerHTML = erro ? '<div class="m2-aviso">Dias-doente (' + dd + ') maior que dias de cama (' + dc + '): verifique os valores.</div>' : '';
+    // Saídas maiores que os doentes que havia: a conta não fecha (o «ficam»
+    // não pode ser negativo) — quase sempre a existência anterior está errada.
+    var negativo = ex + en - sa < 0;
+    if (av) av.innerHTML = (erro ? '<div class="m2-aviso">Dias-doente (' + dd + ') maior que dias de cama (' + dc + '): verifique os valores.</div>' : '') +
+      (negativo ? '<div class="m2-aviso">Saídas (' + sa + ') maiores que existência + entradas (' + (ex + en) + '): verifique os números deste dia ou a existência anterior do 1.º dia do mês.</div>' : '');
   }
 
   // ── Resumo do período (por baixo do mapa, de lado a lado; sem gráficos) ──

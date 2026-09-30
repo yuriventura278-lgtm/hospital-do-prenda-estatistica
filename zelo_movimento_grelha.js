@@ -136,6 +136,8 @@
   // Existência Anterior de partida (só no 1.º dia do histórico).
   function lerValor(id, day, month){
     if (id === '__baseline'){
+      // null = vem do mês anterior (sem escrita à mão)
+      if (typeof baselineDoMes === 'function') return baselineDoMes(month);
       if (data.__baselines && data.__baselines[month] != null) return data.__baselines[month];
       if (data.__baseline && data.__baseline.month === month) return parseInt(data.__baseline.value) || 0;
       return 0;
@@ -147,7 +149,15 @@
   function gravarValor(id, day, month, v){
     if (id === '__baseline'){
       if (!data.__baselines) data.__baselines = {};
-      data.__baselines[month] = Math.max(0, parseInt(v) || 0);
+      if (!data.__baselinesManual) data.__baselinesManual = {};
+      var transp = typeof existenciaTransportada === 'function' ? existenciaTransportada(month) : null;
+      var n = (v === null || v === '' || v === undefined) ? null : Math.max(0, parseInt(v) || 0);
+      // Vazio, ou igual ao que vem do mês anterior: volta a vir do mês anterior.
+      if (n === null || (transp !== null && n === transp)) {
+        if (data.__baselines[month] != null){ data.__baselinesAntes = data.__baselinesAntes || {}; data.__baselinesAntes[month] = data.__baselines[month]; }
+        data.__baselines[month] = null; data.__baselinesManual[month] = null;
+        if (transp === null && n !== null){ data.__baselines[month] = n; data.__baselinesManual[month] = true; }
+      } else { data.__baselines[month] = n; data.__baselinesManual[month] = true; }
       return;
     }
     loadMonth(month);

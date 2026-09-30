@@ -344,9 +344,10 @@
     lm.forEach(function (m, idx) {
       loadMonth(m);
       // Existência anterior: no 1º mês é escrita à mão; nos seguintes vem do
-      // mês anterior (limpa a que o sistema tinha posto automaticamente).
+      // mês anterior (limpa a que o sistema tinha posto automaticamente; a
+      // escrita à mão num mês — __baselinesManual — fica e corrige o transporte).
       var ant = typeof getPrevMonthKey === 'function' ? getPrevMonthKey(m) : null;
-      if (idx > 0 && data.__baselines && data.__baselines[m] !== undefined && ant && data[ant]) { delete data.__baselines[m]; mudou = true; }
+      if (idx > 0 && data.__baselines && data.__baselines[m] !== undefined && data.__baselines[m] !== null && ant && data[ant] && !(data.__baselinesManual && data.__baselinesManual[m])) { data.__baselinesAntes = data.__baselinesAntes || {}; if (data.__baselinesAntes[m] === undefined) data.__baselinesAntes[m] = data.__baselines[m]; data.__baselines[m] = null; mudou = true; }
       var r = calcular(lista, m, cap, ext, { foraUso: fuTodos[m], existencia: getExistencia(0, m) });
       // Cópia do que estava escrito à mão, antes da 1ª substituição (nunca apagar).
       data.__manual = data.__manual || {};
