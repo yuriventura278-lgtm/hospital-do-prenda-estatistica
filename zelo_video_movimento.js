@@ -409,4 +409,61 @@
   var tent = 0, iv = setInterval(function () { tent++; if (botao() || tent > 80) clearInterval(iv); }, 250);
 
   window.ZeloVideoMov = { abrir: abrir, CENAS: CENAS_MOV, TOTAL: TOTAL, h: { a: a, t: t, svg: svg, camas: camas } };
+
+  // ── Primeira entrada no Controlo de Pacientes / Movimento Hospitalar ──
+  // Pergunta (uma vez por utilizador e por tipo de página, neste aparelho) se
+  // quer ver o vídeo de instruções. «Mais tarde» volta a perguntar na próxima
+  // entrada; «Ver o vídeo» e «Não, obrigado» não voltam a perguntar.
+  (function convite() {
+    var pag = location.pathname.split('/').pop();
+    var tipo = /^controlo_pacientes_/.test(pag) ? 'cp' : (/_movimento\.html$/.test(pag) || pag === 'movimento_hospitalar_geral.html') ? 'mov' : null;
+    if (!tipo || window.top !== window) return;
+    function quem() { try { return sessionStorage.getItem('zeloEmail') || ''; } catch (e) { return ''; } }
+    function chave() { return 'zeloVideoConvite_' + tipo + '_' + quem(); }
+    function ja() { try { return !!localStorage.getItem(chave()); } catch (e) { return true; } }
+    function marcar(v) { try { localStorage.setItem(chave(), v); } catch (e) {} }
+    // Esperar que não haja outra janela aberta (boas-vindas do Zelo, fecho do mês, avisos) nem voz a falar.
+    function ocupado() {
+      return window.__zeloVideoAberto || window.__zeloAcessoBloqueado ||
+        document.querySelector('.ze-camada,.zfm-ov,.vm-ov,.modal-overlay.active,#zelo-gate-slow,#m2PdfBloq') ||
+        ('speechSynthesis' in window && speechSynthesis.speaking);
+    }
+    var espera = 0;
+    function tentar() {
+      if (!window.__zeloGatePronto || !quem()) { if (++espera < 240) setTimeout(tentar, 500); return; }
+      if (ja()) return;
+      if (ocupado()) { if (++espera < 240) setTimeout(tentar, 1000); return; }
+      setTimeout(function () { if (!ocupado() && !ja()) mostrar(); else if (++espera < 240) setTimeout(tentar, 1000); }, 1200);
+    }
+    function mostrar() {
+      var def = window.ZELO_VIDEO_DEF || DEF_MOV;
+      var min = Math.max(1, Math.round(def.cenas.reduce(function (s, c) { return s + c.dur; }, 0) / 60));
+      var nome = tipo === 'cp' ? 'o Controlo de Pacientes' : 'o Movimento Hospitalar';
+      var cv = document.createElement('div'); cv.id = 'vmConvite';
+      cv.setAttribute('role', 'dialog'); cv.setAttribute('aria-modal', 'true'); cv.setAttribute('aria-labelledby', 'vmConviteT');
+      cv.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:16px;font-family:Inter,"Segoe UI",Arial,sans-serif';
+      cv.innerHTML = '<div style="background:#fff;color:#0F172A;border-radius:18px;max-width:430px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.35);overflow:hidden">' +
+        '<div style="background:linear-gradient(135deg,#1E3A5F,#2B5A8A);color:#fff;padding:18px 20px;display:flex;gap:14px;align-items:center">' +
+          '<div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>' +
+          '<div><div style="font-size:.72rem;letter-spacing:1px;text-transform:uppercase;opacity:.8;font-weight:700">Primeira vez nesta página</div><b id="vmConviteT" style="font-size:1.08rem">Quer ver como se usa?</b></div></div>' +
+        '<div style="padding:16px 20px 6px;font-size:.93rem;line-height:1.55;color:#334155">Há um vídeo curto (cerca de ' + min + ' min, com voz) que explica passo a passo como usar ' + nome + '.<br><span style="color:#64748B;font-size:.84rem">Pode vê-lo mais tarde no botão «Instruções», no cabeçalho.</span></div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:14px 20px 18px">' +
+          '<button type="button" data-cv="nao" style="border:0;background:none;color:#64748B;font:700 .86rem inherit;padding:10px 8px;cursor:pointer">Não, obrigado</button>' +
+          '<button type="button" data-cv="depois" style="border:1px solid #CBD5E1;background:#fff;color:#1E3A5F;border-radius:10px;font:700 .86rem inherit;padding:10px 14px;cursor:pointer">Mais tarde</button>' +
+          '<button type="button" data-cv="ver" style="border:0;background:linear-gradient(135deg,#1E3A5F,#2B5A8A);color:#fff;border-radius:10px;font:700 .86rem inherit;padding:10px 16px;cursor:pointer;box-shadow:0 8px 18px rgba(30,58,95,.25)">▶ Ver o vídeo</button>' +
+        '</div></div>';
+      document.body.appendChild(cv);
+      var ver = cv.querySelector('[data-cv="ver"]'); try { ver.focus(); } catch (e) {}
+      function fecharCv() { cv.remove(); document.removeEventListener('keydown', tecla, true); }
+      function tecla(e) { if (e.key === 'Escape') { e.stopPropagation(); fecharCv(); } }
+      document.addEventListener('keydown', tecla, true);
+      cv.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-cv]'); if (!b) return;
+        var o = b.dataset.cv; fecharCv();
+        if (o === 'ver') { marcar('visto'); abrir(); }
+        else if (o === 'nao') marcar('recusado');
+      });
+    }
+    tentar();
+  })();
 })();

@@ -142,6 +142,7 @@ function aplicarAcesso(role, permissoes, uid, offline){
       window.location.reload();
     });
   }
+  window.__zeloGatePronto = true; // para scripts que carregam depois do evento
   window.dispatchEvent(new CustomEvent('zelo-gate-ready', {
     detail: { role: role, permissoes: permissoes || {} }
   }));
