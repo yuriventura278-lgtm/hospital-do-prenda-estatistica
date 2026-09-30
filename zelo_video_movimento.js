@@ -1,8 +1,8 @@
 // ── ZELO — Vídeo de instruções: "Como se calcula o Movimento Hospitalar" ──
 // Botão "▶ Instruções" no cabeçalho das páginas de Movimento (substitui o
-// botão de ajuda) e do Movimento Hospitalar Geral. Abre um leitor com 8 cenas
+// botão de ajuda) e do Movimento Hospitalar Geral. Abre um leitor com 11 cenas
 // animadas (desenhos SVG), narração em português (voz do próprio aparelho) e
-// legendas. Cerca de 2 min 30 s.
+// legendas. Cerca de 4 min (inclui o fecho do mês e as retificações).
 // Não usa o Firebase nem descarrega nada: tudo é desenhado e narrado aqui
 // (não gasta a quota gratuita nem dados móveis).
 (function () {
@@ -99,6 +99,42 @@
           k(20, 54, 232, 'Média de estadia', 'DD ÷ saídos → 270 ÷ 30 = 9 dias', 3.0) + k(268, 54, 232, 'Média de camas reais', 'DC ÷ dias → 360 ÷ 30 = 12', 5.2) +
           k(20, 128, 232, 'Índice de rotação', 'saídos ÷ camas reais → 30 ÷ 12 = 2,5', 7.0) + k(268, 128, 232, 'Intervalo de substituição', '(DC − DD) ÷ saídos → 90 ÷ 30 = 3', 10.0) +
           k(20, 202, 480, 'Mortalidade bruta · líquida', 'óbitos ÷ saídos × 100  ·  óbitos ≥48 h ÷ (saídos − óbitos <48 h) × 100', 13.5, '#FEF2F2', '#991B1B'));
+      } },
+    { dur: 27, cor: '#0F766E', titulo: 'Registar a tempo: porque é tão importante',
+      falas: ['O Movimento de cada mês é entregue à Estatística, e é com ele que se decide: camas, pessoal, medicamentos e o financiamento do hospital.', 'Por isso tem de mostrar a realidade: cada doente que entrou e saiu, no dia e na hora reais.', 'O que não foi registado não entra na contagem. Um doente esquecido faz o serviço parecer mais vazio do que esteve.', 'Registe no próprio dia, e confira sempre com o livro de registo.'],
+      svg: function () {
+        var cx = function (x, txt, cor, d) { return a(d, '<rect x="' + x + '" y="150" width="110" height="46" rx="10" fill="#fff" stroke="' + cor + '" stroke-width="1.5"/>' + t(x + 55, 178, txt, { s: 12.5, w: 700, c: cor, m: 1 })); };
+        return svg('#F0FDFA',
+          a(0.1, t(24, 34, 'Registar a tempo', { s: 18, w: 800, c: '#0F766E' })) +
+          a(0.6, '<rect x="24" y="56" width="140" height="56" rx="12" fill="#0F766E"/>' + t(94, 80, 'Movimento', { s: 14, w: 800, c: '#fff', m: 1 }) + t(94, 99, 'do mês', { s: 12, c: '#CCFBF1', m: 1 })) +
+          a(1.6, '<path d="M170 84 H212" stroke="#0F766E" stroke-width="3"/><path d="M210 76 l10 8 -10 8z" fill="#0F766E"/>') +
+          a(2, '<rect x="226" y="56" width="140" height="56" rx="12" fill="#1E3A5F"/>' + t(296, 80, 'Estatística', { s: 14, w: 800, c: '#fff', m: 1 }) + t(296, 99, 'do hospital', { s: 12, c: '#BFDBFE', m: 1 })) +
+          a(3, '<path d="M372 84 H414" stroke="#1E3A5F" stroke-width="3"/><path d="M412 76 l10 8 -10 8z" fill="#1E3A5F"/>' + t(470, 90, 'decisões', { s: 14, w: 800, c: '#1E3A5F', m: 1 })) +
+          cx(24, 'Camas', '#0891B2', 4) + cx(146, 'Pessoal', '#7C3AED', 4.6) + cx(268, 'Medicamentos', '#D97706', 5.2) + cx(390, 'Financiamento', '#16A34A', 5.8) +
+          a(14, '<rect x="24" y="214" width="472" height="58" rx="12" fill="#FEF2F2" stroke="#FECACA"/>' + t(260, 238, 'O que não foi registado não entra na contagem', { s: 14, w: 800, c: '#991B1B', m: 1 }) + t(260, 258, 'registe no próprio dia e confira com o livro de registo', { s: 12, c: '#991B1B', m: 1 })));
+      } },
+    { dur: 32, cor: '#1E3A5F', titulo: 'Os passos do fecho do mês',
+      falas: ['Cinco dias antes do fim do mês, o ZELO avisa: reveja as entradas e as saídas.', 'Até ao dia 2 do mês seguinte, reveja e corrija o que faltar. O sistema mostra uma lista do que parece errado, como internados há muitos dias ou saídas sem hora.', 'No dia 3 é o prazo de entrega. O chefe de serviço carrega em Fechar e entregar, baixa o PDF do Movimento, imprime e leva à Estatística.', 'Se ninguém entregar a tempo, o sistema fecha o mês sozinho, com o que estava registado.'],
+      svg: function () {
+        var p = function (x, cor, n, t1, t2, d) { return a(d, '<circle cx="' + x + '" cy="112" r="20" fill="' + cor + '"/>' + t(x, 118, n, { s: 16, w: 800, c: '#fff', m: 1 }) + t(x, 158, t1, { s: 13, w: 800, c: cor, m: 1 }) + t(x, 178, t2, { s: 11.5, c: '#475569', m: 1 })); };
+        return svg('#F8FAFC',
+          a(0.1, t(24, 34, 'Os passos do fecho do mês', { s: 18, w: 800, c: '#1E3A5F' })) +
+          a(0.4, '<rect x="60" y="108" width="400" height="8" rx="4" fill="#E2E8F0"/>') +
+          p(70, '#D97706', '1', '5 dias antes', 'aviso: rever', 0.8) +
+          p(193, '#0891B2', '2', 'Até dia 2', 'rever e corrigir', 5.5) +
+          p(316, '#16A34A', '3', 'Dia 3', 'fechar e entregar', 13) +
+          p(440, '#1E3A5F', '4', 'PDF', 'imprimir → Estatística', 16) +
+          a(24, '<rect x="24" y="206" width="472" height="62" rx="12" fill="#FFFBEB" stroke="#FDE68A"/>' + t(260, 230, 'Sem entrega a tempo: o mês fecha sozinho', { s: 14, w: 800, c: '#92400E', m: 1 }) + t(260, 250, 'com o que estava registado — o resto fica de fora', { s: 12, c: '#92400E', m: 1 })));
+      } },
+    { dur: 30, cor: '#6D28D9', titulo: 'Depois do fecho: retificação',
+      falas: ['Quando o mês fecha, fica guardada uma cópia fixa do que foi entregue. Essa cópia nunca muda.', 'Registar ou corrigir um doente desse mês passa a ser uma retificação: só o chefe de serviço, o enfermeiro chefe ou o administrador, e com motivo obrigatório.', 'Os números corrigem-se, mas ficam diferentes do que foi entregue, e a diferença aparece na Nota de retificação, com quem corrigiu e porquê.', 'Por isso, o melhor é sempre registar tudo antes de o mês fechar.'],
+      svg: function () {
+        var col = function (x, fundo, borda, cor, tit, l, d) { return a(d, '<rect x="' + x + '" y="56" width="226" height="196" rx="14" fill="' + fundo + '" stroke="' + borda + '" stroke-width="1.5"/>' + t(x + 113, 84, tit, { s: 15, w: 800, c: cor, m: 1 }) + l.map(function (s2, i) { return t(x + 16, 116 + i * 30, s2, { s: 12.5, c: cor }); }).join('')); };
+        return svg('#FAF5FF',
+          a(0.1, t(24, 34, 'Registar a tempo ou retificar depois', { s: 18, w: 800, c: '#6D28D9' })) +
+          col(24, '#ECFDF5', '#A7F3D0', '#065F46', '✓ Registado a tempo', ['números certos na entrega', 'qualquer utilizador regista', 'nada a explicar', 'o serviço cumpre o prazo'], 1) +
+          col(270, '#FEF2F2', '#FECACA', '#991B1B', '✕ Depois do fecho', ['retificação com motivo', 'só chefes ou administrador', 'entregue ≠ atual', 'diferença na Nota de retificação'], 8) +
+          a(24, '<rect x="24" y="262" width="472" height="24" rx="8" fill="#6D28D9"/>' + t(260, 279, 'Registe tudo antes de o mês fechar', { s: 13, w: 800, c: '#fff', m: 1 })));
       } },
     { dur: 16, cor: '#64748B', titulo: 'Regras de ouro',
       falas: ['Três regras de ouro. Registe todos os dias no Controlo de Pacientes.', 'Para corrigir um número, corrija o registo do doente.', 'E marque as camas fora de uso. Assim o Movimento fica sempre certo. Obrigado!'],
