@@ -2639,101 +2639,168 @@ CE.Registo = (function(){
     _gravarTombstonesCE(mapa);
   }
 
-  /* ---------- Sincronização com o Firebase (escrita + escuta em tempo real) ----------
-     Depois de gravar localmente, reenvia todas as sessões desse dia para o Firebase —
-     mantém o dia inteiro coerente lá, mesmo quando há várias especialidades/sessões
-     guardadas para a mesma data. Falha em silêncio (zeloQueueWrite já trata do reenvio
-     automático se estiver offline); nunca bloqueia nem desfaz a gravação local. */
-  async function _fbSyncConsultaExterna(data){
+  /* ---------- Sincronização com o Firebase — sem perder nenhum dado ----------
+     Dois sítios no Firebase:
+     • registos_sistemas_locais/consulta_externa/<data>  — o dia completo
+       { savedAt, snapshot:{ sessoes:[…], tombstones } } (lido pelo Painel e
+       pelos relatórios; formato mantido);
+     • registos_sistemas_locais/consulta_externa_esp/<data>/<especialidade> —
+       cada especialidade do dia à parte (ou { eliminadoEm } se foi apagada).
+     Gravar uma especialidade escreve só a sua própria entrada — nunca apaga a
+     de outro computador — e o dia completo é sempre refeito juntando o que
+     está no Firebase com o que está aqui. Entre duas cópias da mesma
+     especialidade+dia fica sempre a mais recente (createdAt = hora da última
+     gravação); uma eliminação só vence cópias mais antigas do que ela. */
+  var CE_FB_DIA = 'registos_sistemas_locais/consulta_externa';
+  var CE_FB_ESP = 'registos_sistemas_locais/consulta_externa_esp';
+  function _chaveEspCE(esp){
+    return String(esp || 'sem_especialidade').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[.#$\[\]\/]/g, '_').replace(/\s+/g, '_');
+  }
+  function _listaCE(x){ return Array.isArray(x) ? x.filter(Boolean) : (x && typeof x === 'object') ? Object.keys(x).map(function(k){ return x[k]; }).filter(Boolean) : []; }
+  function _semIdCE(s){ var c = Object.assign({}, s); delete c.id; return c; }
+  // Nó consulta_externa_esp/<data> → { sessoes, tombstones }
+  function _lerNoEspCE(no){
+    var r = { sessoes: [], tombstones: {} };
+    Object.keys(no || {}).forEach(function(k){
+      var v = no[k]; if (!v || !v.especialidade) return;
+      if (v.eliminadoEm) r.tombstones[v.especialidade] = Math.max(r.tombstones[v.especialidade] || 0, Number(v.eliminadoEm) || 0);
+      else r.sessoes.push(v);
+    });
+    return r;
+  }
+  function _juntarTombsCE(){
+    var t = {};
+    Array.prototype.forEach.call(arguments, function(m){ Object.keys(m || {}).forEach(function(esp){ var v = Number(m[esp]) || 0; if (t[esp] === undefined || v > t[esp]) t[esp] = v; }); });
+    return t;
+  }
+  // Junta listas de sessões: por especialidade fica a mais recente que não foi eliminada depois.
+  function _juntarSessoesCE(listas, tombs){
+    var m = {};
+    listas.forEach(function(l){ _listaCE(l).forEach(function(sx){
+      if (!sx || !sx.especialidade) return;
+      var t = tombs[sx.especialidade];
+      if (t !== undefined && t >= (sx.createdAt || 0)) return;
+      var a = m[sx.especialidade];
+      if (!a || (sx.createdAt || 0) > (a.createdAt || 0)) m[sx.especialidade] = sx;
+    }); });
+    return Object.keys(m).sort().map(function(k){ return _semIdCE(m[k]); });
+  }
+  function _comLimiteCE(p, ms){ return Promise.race([p, new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('timeout')); }, ms); })]); }
+  function _pendentesCE(){ try{ return JSON.parse(localStorage.getItem('ce_dias_por_juntar_v1') || '{}'); }catch(e){ return {}; } }
+  function _marcarPendenteCE(data, sim){
+    var p = _pendentesCE(); if (sim) p[data] = 1; else delete p[data];
+    try{ localStorage.setItem('ce_dias_por_juntar_v1', JSON.stringify(p)); }catch(e){}
+  }
+
+  /* Grava no Firebase depois de gravar/eliminar localmente.
+     opts.esp: especialidade acabada de gravar; opts.eliminadas: especialidades apagadas.
+     Nunca bloqueia nem desfaz a gravação local; sem internet fica em fila
+     (zeloQueueWrite) e o dia completo é refeito na próxima sincronização. */
+  async function _fbSyncConsultaExterna(data, opts){
     if (typeof zeloQueueWrite !== 'function') return;
+    opts = opts || {};
     try{
-      // Junta primeiro os tombstones que já estão no Firebase para este dia
-      // (com limite de 4s, para nunca atrasar uma gravação offline) — sem
-      // isto, um dispositivo com os dados do navegador limpos sobrescrevia-os
-      // com uma lista vazia e uma eliminação feita noutro lado perdia-se.
-      if (window.__fbGet){
-        try{
-          var atual = await Promise.race([
-            window.__fbGet('registos_sistemas_locais/consulta_externa/' + data),
-            new Promise(function(r){ setTimeout(function(){ r(null); }, 4000); })
-          ]);
-          if (atual && atual.snapshot && atual.snapshot.tombstones) _mesclarTombstonesCE(data, atual.snapshot.tombstones);
-        }catch(e){}
+      var locais = (await CE.Store.getAllSessoes()).filter(function(s){ return s.data === data; });
+      var tombsLocais = _lerTombstonesCE()[data] || {};
+      // 1. A entrada própria de cada especialidade gravada/apagada (sem tocar nas outras).
+      if (opts.esp){
+        var sx = locais.find(function(s){ return s.especialidade === opts.esp; });
+        if (sx) await zeloQueueWrite(CE_FB_ESP + '/' + data + '/' + _chaveEspCE(opts.esp), _semIdCE(sx));
       }
-      var tombstonesDoDia = _lerTombstonesCE()[data] || {};
-      var sessoes = (await CE.Store.getAllSessoes()).filter(function(s){
-        if (s.data !== data) return false;
-        var t = tombstonesDoDia[s.especialidade];
-        return !(t !== undefined && t >= (s.createdAt||0));
-      });
+      for (var e = 0; e < (opts.eliminadas || []).length; e++){
+        var espE = opts.eliminadas[e];
+        await zeloQueueWrite(CE_FB_ESP + '/' + data + '/' + _chaveEspCE(espE), { especialidade: espE, eliminadoEm: tombsLocais[espE] || Date.now() });
+      }
+      // 2. O dia completo: só refeito depois de ler o que já está no Firebase
+      //    (sem ligação fica marcado e é refeito na próxima sincronização).
+      var remoto, noEsp;
+      try{
+        var r = await _comLimiteCE(Promise.all([window.__fbGet(CE_FB_DIA + '/' + data), window.__fbGet(CE_FB_ESP + '/' + data)]), 20000);
+        remoto = r[0]; noEsp = r[1];
+      }catch(eL){ _marcarPendenteCE(data, true); return; }
+      await _juntarEGravarDiaCE(data, remoto, noEsp);
+    }catch(e){ console.warn('ZELO: falha ao sincronizar Consulta Externa com o Firebase', e); _marcarPendenteCE(data, true); }
+  }
+  // Junta Firebase (dia + especialidades) com este aparelho, aplica aqui o que
+  // faltar/for mais recente, envia o que só existe aqui e refaz o dia completo.
+  async function _juntarEGravarDiaCE(data, remoto, noEsp){
+    var snap = (remoto && remoto.snapshot) || {};
+    var esp = _lerNoEspCE(noEsp);
+    _mesclarTombstonesCE(data, _juntarTombsCE(snap.tombstones, esp.tombstones));
+    var tombs = _lerTombstonesCE()[data] || {};
+    var locais = (await CE.Store.getAllSessoes()).filter(function(s){ return s.data === data; });
+    var juntas = _juntarSessoesCE([snap.sessoes, esp.sessoes, locais], tombs);
+    // Este aparelho recebe o que lhe falta (ou está mais recente noutro lado).
+    await _fbAplicarSessoesRemotas(data, juntas, tombs);
+    // Especialidades que só existem aqui (ou mais recentes aqui) — envia a entrada própria.
+    var porEsp = {}; esp.sessoes.forEach(function(sx){ porEsp[sx.especialidade] = sx; });
+    for (var i = 0; i < juntas.length; i++){
+      var j = juntas[i], noFb = porEsp[j.especialidade];
+      if (!noFb || (noFb.createdAt || 0) < (j.createdAt || 0)) await zeloQueueWrite(CE_FB_ESP + '/' + data + '/' + _chaveEspCE(j.especialidade), j);
+    }
+    if (!juntas.length && !Object.keys(tombs).length && !remoto){ _marcarPendenteCE(data, false); return; }
+    // O dia completo só é regravado se mudou (poupa escritas e downloads).
+    var assinatura = function(l, t){ return JSON.stringify([_listaCE(l).map(function(sx){ return [sx.especialidade, sx.createdAt || 0]; }).sort(), Object.keys(t || {}).sort().map(function(k){ return [k, t[k]]; })]); };
+    if (!remoto || assinatura(snap.sessoes, snap.tombstones) !== assinatura(juntas, tombs)){
       var savedAt = new Date().toISOString();
-      await zeloQueueWrite('registos_sistemas_locais/consulta_externa/' + data, {
-        savedAt: savedAt,
-        snapshot: { sessoes: sessoes, tombstones: tombstonesDoDia }
-      });
-      _fbBaselineSavedAt[data] = savedAt; // é a nossa própria gravação — não avisar sobre ela
-    }catch(e){ console.warn('ZELO: falha ao sincronizar Consulta Externa com o Firebase', e); }
+      await zeloQueueWrite(CE_FB_DIA + '/' + data, { savedAt: savedAt, snapshot: { sessoes: juntas, tombstones: tombs } });
+      _fbBaselineSavedAt[data] = savedAt; // é a nossa própria gravação
+    }
+    _marcarPendenteCE(data, false);
   }
 
   /* ---------- Aplicar sessões remotas ----------
-     Cada especialidade só tem UMA sessão por dia (chave natural especialidade+data —
-     ver verificarSessaoExistente), por isso aplicar dados remotos é: para cada sessão
-     recebida, encontrar a sessão local da mesma especialidade+dia e substituí-la
-     (updateSessao mantendo o id local) — nunca criar uma cópia nova (o bulkImport
-     genérico, feito para restaurar backups completos, criaria duplicados aqui).
-     Uma especialidade com tombstone mais recente do que a versão remota nunca é
-     aplicada (foi eliminada depois); se já existir localmente, é eliminada também
-     aqui — assim a eliminação chega a este dispositivo mesmo que só tenha recebido
-     uma gravação não relacionada do mesmo dia, nunca a eliminação em si. */
+     Uma especialidade só tem UMA sessão por dia (chave natural especialidade+data).
+     Para cada sessão recebida: se aqui não existe, é criada; se existe e a
+     recebida é MAIS RECENTE, substitui-a (mantendo o id local). Uma cópia mais
+     antiga nunca substitui uma mais recente deste aparelho. Uma eliminação
+     (tombstone) mais recente do que a sessão local apaga-a também aqui. */
   async function _fbAplicarSessoesRemotas(data, sessoesRemotas, tombstonesRemotos){
     _mesclarTombstonesCE(data, tombstonesRemotos);
     var tombstonesDoDia = _lerTombstonesCE()[data] || {};
     var locais = await CE.Store.getAllSessoes();
-    if (sessoesRemotas && sessoesRemotas.length){
-      for (var i = 0; i < sessoesRemotas.length; i++){
-        var remota = Object.assign({}, sessoesRemotas[i]);
-        delete remota.id;
-        var tombTs = tombstonesDoDia[remota.especialidade];
-        if (tombTs !== undefined && tombTs >= (remota.createdAt||0)) continue;
-        var local = locais.find(function(s){ return s.especialidade === remota.especialidade && s.data === data; });
-        if (local){ remota.id = local.id; await CE.Store.updateSessao(remota); }
-        else { await CE.Store.addSessao(remota); }
-      }
+    var mudaram = {};
+    var lista = _listaCE(sessoesRemotas);
+    for (var i = 0; i < lista.length; i++){
+      var remota = _semIdCE(lista[i]);
+      var tombTs = tombstonesDoDia[remota.especialidade];
+      if (tombTs !== undefined && tombTs >= (remota.createdAt||0)) continue;
+      var local = locais.find(function(s){ return s.especialidade === remota.especialidade && s.data === data; });
+      if (local){
+        if ((remota.createdAt || 0) <= (local.createdAt || 0)) continue; // a daqui é igual ou mais recente
+        remota.id = local.id; await CE.Store.updateSessao(remota);
+      } else { await CE.Store.addSessao(remota); }
+      mudaram[remota.especialidade] = true;
     }
     locais = await CE.Store.getAllSessoes();
     for (var j = 0; j < locais.length; j++){
       var sLocal = locais[j];
       if (sLocal.data !== data) continue;
       var tTs = tombstonesDoDia[sLocal.especialidade];
-      if (tTs !== undefined && tTs >= (sLocal.createdAt||0)) await CE.Store.deleteSessao(sLocal.id);
+      if (tTs !== undefined && tTs >= (sLocal.createdAt||0)){ await CE.Store.deleteSessao(sLocal.id); mudaram[sLocal.especialidade] = true; }
     }
+    if (!Object.keys(mudaram).length) return;
     carregarCachePatologias();
     if (CE.atualizarIndicadoresEspecialidades) CE.atualizarIndicadoresEspecialidades();
-    // Se a especialidade+dia que está aberta no formulário agora mesmo foi uma das
-    // atualizadas, refresca o ecrã com o valor novo — sem isto, o profissional
-    // continuaria a ver a versão antiga até trocar de especialidade/dia manualmente.
+    // Se a especialidade+dia aberta no formulário foi atualizada, refresca o ecrã.
     var especialidadeAberta = document.getElementById('f-especialidade').value;
     var dataAberta = document.getElementById('f-data').value;
-    if (dataAberta === data && sessoesRemotas.some(function(s){ return s.especialidade === especialidadeAberta; })){
+    if (dataAberta === data && mudaram[especialidadeAberta] && !localStorage.getItem(DRAFT_KEY)){
       var recarregadas = await CE.Store.getAllSessoes();
       var sessaoLocal = recarregadas.find(function(s){ return s.especialidade === especialidadeAberta && s.data === data; });
       if (sessaoLocal){
         sessaoAtualId = sessaoLocal.id;
         carregarSessaoParaEdicao(sessaoLocal, []);
-        esconderGate(); // o "gate" pode ter ficado visível de uma verificação anterior, feita
-                         // antes destes dados remotos chegarem — sem isto, o ecrã continuava a
-                         // dizer "Ainda sem registo hoje" mesmo já tendo os dados carregados.
+        esconderGate();
       }
     }
   }
 
   /* ---------- Escuta em tempo real do dia aberto ----------
-     Ao abrir um dia, aplica em silêncio a versão mais recente vinda doutro
-     dispositivo (só se não houver rascunho local por guardar). Uma gravação
-     SEGUINTE de outro dispositivo, enquanto o dia continua aberto, já não é
-     aplicada sozinha — mostra um banner com botão "Atualizar página", que agora
-     aplica mesmo os dados novos (antes só recarregava a página, sem ir buscar
-     nada ao Firebase — o ecrã continuava com os dados antigos). */
+     Escuta o dia completo e as entradas por especialidade desse dia; junta as
+     duas e aplica sozinho o que for novo (só o que é mais recente). Com um
+     rascunho por guardar no formulário, não mexe no que está a ser escrito. */
   var _fbBaselineSavedAt = {};
   var _fbCancelarEscuta = null;
   function _fbEsperarPronto(timeoutMs){
@@ -2753,40 +2820,30 @@ CE.Registo = (function(){
     if (!data) return;
     var pronto = await _fbEsperarPronto();
     if (!pronto || !window.__fbListen) return;
-    if (data !== (document.getElementById('f-data') && document.getElementById('f-data').value)) return; // entretanto mudou de dia — a chamada mais recente trata da escuta
-    var primeira = true;
-    _fbCancelarEscuta = window.__fbListen('registos_sistemas_locais/consulta_externa/' + data, function(remoto){
-      var savedAt = remoto && remoto.savedAt;
-      // O Firebase não guarda listas vazias: quando a última sessão de um dia
-      // é eliminada, o snapshot chega sem "sessoes" (só com tombstones) — e
-      // tem de ser aplicado na mesma, senão a eliminação nunca chegava aqui.
-      var sessoesRemotas = (remoto && remoto.snapshot && remoto.snapshot.sessoes) || [];
-      if (!savedAt || !remoto.snapshot){ primeira = false; return; }
-      if (savedAt === _fbBaselineSavedAt[data]){ primeira = false; return; }
-      primeira = false;
-      if (data !== (document.getElementById('f-data') && document.getElementById('f-data').value)) return;
-      if (localStorage.getItem(DRAFT_KEY)) return; // rascunho por guardar — nunca sobrescrever em silêncio
-      _fbBaselineSavedAt[data] = savedAt;
-      // Cada especialidade tem sempre UMA sessão por dia (chave natural
-      // especialidade+data) — _fbAplicarSessoesRemotas já mescla ao nível da
-      // sessão, substituindo só a(s) especialidade(s) que mudaram e mantendo
-      // as restantes sessões do dia intactas. Aplica-se sempre de imediato,
-      // sem aviso (a pedido: sincronização automática entre utilizadores em
-      // simultâneo, sem notificações a interromper), tanto na primeira
-      // leitura do dia como em qualquer gravação seguinte enquanto o dia
-      // continua aberto.
-      _fbAplicarSessoesRemotas(data, sessoesRemotas, remoto.snapshot && remoto.snapshot.tombstones).catch(function(e){ console.warn('ZELO: falha ao aplicar dados remotos da Consulta Externa.', e); });
-    });
+    if (data !== (document.getElementById('f-data') && document.getElementById('f-data').value)) return;
+    var ultDia = null, ultEsp = null, tAplicar = null;
+    function aplicar(){
+      clearTimeout(tAplicar);
+      tAplicar = setTimeout(function(){
+        if (data !== (document.getElementById('f-data') && document.getElementById('f-data').value)) return;
+        var snap = (ultDia && ultDia.snapshot) || {}, esp = _lerNoEspCE(ultEsp);
+        var tombs = _juntarTombsCE(snap.tombstones, esp.tombstones);
+        var juntas = _juntarSessoesCE([snap.sessoes, esp.sessoes], tombs);
+        _fbAplicarSessoesRemotas(data, juntas, tombs).catch(function(e){ console.warn('ZELO: falha ao aplicar dados remotos da Consulta Externa.', e); });
+      }, 250);
+    }
+    var c1 = window.__fbListen(CE_FB_DIA + '/' + data, function(v){ ultDia = v; if (v && v.savedAt) _fbBaselineSavedAt[data] = v.savedAt; aplicar(); });
+    var c2 = window.__fbListen(CE_FB_ESP + '/' + data, function(v){ ultEsp = v; aplicar(); });
+    _fbCancelarEscuta = function(){ try{ if (typeof c1 === 'function') c1(); }catch(e){} try{ if (typeof c2 === 'function') c2(); }catch(e){} };
   }
 
   /* ---------- Sincronização completa (todas as datas) ----------
-     _fbEscutarDia() só traz dados doutros dispositivos para a data que está
-     aberta no formulário de registo. O resumo do dia e os relatórios/
-     histórico liam sempre do IndexedDB local, que nunca recebia essa
-     actualização — um dispositivo usado só para consultar relatórios ficava
-     sem ver o que fora gravado só noutro computador. Esta função lê de uma
-     vez TODO o histórico guardado no Firebase e funde-o no armazenamento
-     local antes de qualquer resumo/relatório ser calculado. */
+     Lê o histórico do Firebase (dia completo + entradas por especialidade) e
+     junta-o com este aparelho, dia a dia: aplica aqui o que falta ou está mais
+     recente noutro lado, envia o que só existe aqui e refaz o dia completo
+     quando lhe falta alguma especialidade. Na 1.ª vez neste aparelho (versão
+     com recuperação) lê todo o histórico, para recuperar registos que se
+     tenham perdido em gravações antigas. */
   var _fbSincTudoPromise = null;
   function _fbSincronizarTudo(){
     if (_fbSincTudoPromise) return _fbSincTudoPromise;
@@ -2794,29 +2851,26 @@ CE.Registo = (function(){
       try{
         var pronto = await _fbEsperarPronto();
         if (!pronto || !window.__fbGet) return;
-        var tudo = await (window.zeloLerHistorico ? window.zeloLerHistorico('registos_sistemas_locais/consulta_externa') : window.__fbGet('registos_sistemas_locais/consulta_externa'));
-        if (!tudo) return;
+        var recuperar = false; try{ recuperar = !localStorage.getItem('ce_recuperacao_v1'); }catch(e){}
+        var ler = function(c){ return recuperar ? window.__fbGet(c) : (window.zeloLerHistorico ? window.zeloLerHistorico(c) : window.__fbGet(c)); };
+        var r = await Promise.all([ler(CE_FB_DIA), ler(CE_FB_ESP)]);
+        var dias = r[0] || {}, esps = r[1] || {};
         var locais = await CE.Store.getAllSessoes();
-        for (var data in tudo){
-          var remoto = tudo[data];
-          var sessoesRemotas = (remoto && remoto.snapshot && remoto.snapshot.sessoes) || [];
-          var tombstonesRemotos = remoto && remoto.snapshot && remoto.snapshot.tombstones;
-          // Um dia só com tombstones (todas as sessões eliminadas) também tem
-          // de ser aplicado — é o que remove esse dia do Histórico aqui.
-          if (!sessoesRemotas.length && !tombstonesRemotos) continue;
-          if (remoto.savedAt === _fbBaselineSavedAt[data]) continue; // já é a nossa própria versão
-          // Só aplica se for de facto mais recente do que o que já está
-          // gravado localmente para este dia — evita apagar uma gravação
-          // feita neste mesmo aparelho que ainda não chegou ao Firebase
-          // (ex.: offline, à espera do zeloQueueWrite reenviar).
-          var maisRecenteLocal = locais.filter(function(s){ return s.data === data; })
-            .reduce(function(m, s){ return Math.max(m, s.createdAt||0); }, 0);
-          var remotoMs = Date.parse(remoto.savedAt);
-          if (isNaN(remotoMs) || remotoMs <= maisRecenteLocal) continue;
-          await _fbAplicarSessoesRemotas(data, sessoesRemotas, tombstonesRemotos);
-          _fbBaselineSavedAt[data] = remoto.savedAt;
-          locais = await CE.Store.getAllSessoes(); // refresca para a data seguinte comparar bem
+        var datas = {};
+        Object.keys(dias).forEach(function(d){ datas[d] = 1; });
+        Object.keys(esps).forEach(function(d){ datas[d] = 1; });
+        Object.keys(_pendentesCE()).forEach(function(d){ datas[d] = 1; });
+        // Dias com sessões só neste aparelho: na recuperação, todos; depois, os lidos agora e os pendentes.
+        if (recuperar) locais.forEach(function(s){ if (s.data) datas[s.data] = 1; });
+        var lista = Object.keys(datas).sort();
+        for (var i = 0; i < lista.length; i++){
+          var d = lista[i];
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+          var remoto = dias[d], noEsp = esps[d];
+          if (remoto === undefined && noEsp === undefined && !recuperar && !_pendentesCE()[d]) continue;
+          await _juntarEGravarDiaCE(d, remoto || null, noEsp || null);
         }
+        if (recuperar){ try{ localStorage.setItem('ce_recuperacao_v1', String(Date.now())); }catch(e){} }
       }catch(e){ console.warn('ZELO: falha ao sincronizar o histórico da Consulta Externa.', e); }
     })();
     _fbSincTudoPromise.finally(function(){ _fbSincTudoPromise = null; });
@@ -2895,7 +2949,7 @@ CE.Registo = (function(){
       carregarCachePatologias();
       if (window.zeloGuardarComFeedback) window.zeloGuardarComFeedback('#btn-guardar-especialidade', 'Especialidade do dia guardada com ' + totalDoentes + ' doente(s)');
       else toast('✓ Especialidade do dia guardada com ' + totalDoentes + ' doente(s).');
-      _fbSyncConsultaExterna(sessao.data);
+      _fbSyncConsultaExterna(sessao.data, { esp: sessao.especialidade });
       if (CE.atualizarIndicadoresEspecialidades) CE.atualizarIndicadoresEspecialidades();
       sessaoAtualId = null;
       carregandoSessaoExistente = true;
@@ -3087,7 +3141,7 @@ CE.Registo = (function(){
      registo, o formulário é limpo (sem isto, gravá-lo recriava-a). */
   async function eliminarSessoes(lista){
     var agora = Date.now();
-    var dias = {};
+    var dias = {}, apagadasPorDia = {};
     var especialidadeAberta = document.getElementById('f-especialidade').value;
     var dataAberta = document.getElementById('f-data').value;
     var abertaFoiApagada = false;
@@ -3096,6 +3150,7 @@ CE.Registo = (function(){
       _registarTombstoneCE(s.data, s.especialidade, agora);
       await CE.Store.deleteSessao(s.id);
       dias[s.data] = true;
+      (apagadasPorDia[s.data] = apagadasPorDia[s.data] || []).push(s.especialidade);
       if (s.id === sessaoAtualId || (s.especialidade === especialidadeAberta && s.data === dataAberta)) abertaFoiApagada = true;
     }
     if (abertaFoiApagada){
@@ -3107,7 +3162,7 @@ CE.Registo = (function(){
     }
     var falhas = 0;
     for (var d in dias){
-      try{ await _fbSyncConsultaExterna(d); }catch(e){ falhas++; console.warn('ZELO: falha ao propagar eliminação da Consulta Externa.', e); }
+      try{ await _fbSyncConsultaExterna(d, { eliminadas: apagadasPorDia[d] }); if (_pendentesCE()[d]) falhas++; }catch(e){ falhas++; console.warn('ZELO: falha ao propagar eliminação da Consulta Externa.', e); }
     }
     carregarCachePatologias();
     if (CE.atualizarIndicadoresEspecialidades) CE.atualizarIndicadoresEspecialidades();
@@ -3117,7 +3172,7 @@ CE.Registo = (function(){
   return {
     init: init, lockEspecialidade: lockEspecialidade, unlockEspecialidade: unlockEspecialidade,
     abrirSessaoPorId: abrirSessaoPorId, guardarEspecialidadeDia: guardarEspecialidadeDia,
-    sincronizarTudo: _fbSincronizarTudo, documentoExportadoPorTxtAtual: _documentoExportadoPorTxtAtual,
+    sincronizarTudo: _fbSincronizarTudo, sincronizarDia: _fbSyncConsultaExterna, documentoExportadoPorTxtAtual: _documentoExportadoPorTxtAtual,
     eliminarSessoes: eliminarSessoes
   };
 })();
@@ -3922,7 +3977,8 @@ CE.Relatorio = (function(){
       if (!doEsp.length) return;
       var totalEsp = doEsp.reduce(function(a,x){ return a + x.t.total; }, 0);
       if (!totalEsp) return;
-      var patologias = agregarMapasNormalizados(doEsp, function(x){ return x.t.diagnosticos; }).slice(0, 15);
+      // Todas as patologias registadas (nenhuma fica escondida no relatório).
+      var patologias = agregarMapasNormalizados(doEsp, function(x){ return x.t.diagnosticos; });
       porEspecialidadePatologias[e] = { total: totalEsp, patologias: patologias };
     });
 
@@ -3983,7 +4039,7 @@ CE.Relatorio = (function(){
       totalAgendados: totalAgendados, totalRealizadas: totalRealizadas, totalCanceladas: totalCanceladas,
       pctCumprimento: pctCumprimento, totalDoentesRegistados: totalDoentesGeral,
       patologiasGeral: agregarMapasNormalizados(tallysPorSessao, function(x){ return x.t.diagnosticos; }),
-      proveniencia: agregarMapasNormalizados(tallysPorSessao, function(x){ return x.t.proveniencia; }).slice(0, 15),
+      proveniencia: agregarMapasNormalizados(tallysPorSessao, function(x){ return x.t.proveniencia; }),
       genero: [['Masculino', totalM], ['Feminino', totalF]],
       faixaEtaria: faixasFixas,
       faixaEtariaGenero: faixaEtariaGenero,
