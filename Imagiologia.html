@@ -18,6 +18,7 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js?v=3"></script>
+<script src="zelo_sync_banco.js?v=1"></script>
 <script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
@@ -28,12 +29,13 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbUpdate = (path,val)=>update(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
     window.__fbReady = true;
   }catch(e){
@@ -2007,7 +2009,7 @@ async function sincronizarHistoricoFirebase(){
       const atual = porData[d];
       if(!atual || new Date(r.savedAt) > new Date(atual.savedAt)) porData[d]=r;
     });
-    const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt)).slice(0,30);
+    const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt));
     localStorage.setItem('img_v3_h', JSON.stringify(merged));
     // Re-verificar o aviso do dia aberto — a verificação inicial corre antes
     // desta sincronização terminar, por isso pode não ver ainda um registo
@@ -2031,7 +2033,7 @@ function confirmarSave(){
     const idx=d?hist.findIndex(h=>(h.snapshot||{}).data===d):-1;
     if(idx>=0){hist[idx]={savedAt:new Date().toISOString(),snapshot:snap};const u=hist.splice(idx,1)[0];hist.unshift(u);}
     else hist.unshift({savedAt:new Date().toISOString(),snapshot:snap});
-    while(hist.length>30)hist.pop();
+    // (sem limite de dias — nenhum registo fica escondido)
     localStorage.setItem('img_v3_h',JSON.stringify(hist));
     enviarParaFirebase(d, hist[0]);
     const _savedAtAgora = new Date().toISOString();

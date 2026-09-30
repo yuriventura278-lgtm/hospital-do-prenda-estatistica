@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js?v=3"></script>
+<script src="zelo_sync_banco.js?v=1"></script>
 <script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
@@ -20,12 +21,13 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbUpdate = (path,val)=>update(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
     window.__fbReady = true;
   }catch(e){
@@ -3624,7 +3626,7 @@ async function sincronizarHistoricoFirebase(){
     if(dataAberta && remoto[dataAberta] && remoto[dataAberta].criadoPor){
       _mostrarHoraGuardado(remoto[dataAberta].criadoPor.nome, remoto[dataAberta].savedAt);
     }
-    const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt)).slice(0,30);
+    const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt));
     localStorage.setItem('mxf_v1_hist', JSON.stringify(merged));
     // Se outro dispositivo guardou uma versão mais recente do dia atualmente
     // aberto, e não há edições locais por guardar, actualiza o ecrã já com
@@ -3666,7 +3668,7 @@ function confirmarSave(){
       // Nova data — adicionar no topo
       hist.unshift({savedAt:new Date().toISOString(),snapshot:snap});
     }
-    while(hist.length>30)hist.pop();
+    // (sem limite de dias — nenhum registo fica escondido)
     localStorage.setItem('mxf_v1_hist',JSON.stringify(hist));
     enviarParaFirebase(dataHoje, hist[0]);
     const _savedAtAgora = new Date().toISOString();

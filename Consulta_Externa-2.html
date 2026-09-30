@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js?v=3"></script>
+<script src="zelo_sync_banco.js?v=1"></script>
 <script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
@@ -1113,7 +1114,7 @@ async function sincronizarHistoricoFirebase(){
       const atual = porData[d];
       if(!atual || new Date(r.savedAt) > new Date(atual.savedAt)) porData[d]=r;
     });
-    const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt)).slice(0,30);
+    const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt));
     localStorage.setItem(HIST_KEY, JSON.stringify(merged));
     // Re-verificar o aviso do dia aberto — a verificação inicial corre antes
     // desta sincronização terminar, por isso pode não ver ainda um registo
@@ -1140,7 +1141,7 @@ function salvarRegisto(){
     const idx=snap.data?hist.findIndex(h=>(h.snapshot||{}).data===snap.data):-1;
     if(idx>=0){const up=hist.splice(idx,1)[0];up.snapshot=snap;up.savedAt=new Date().toISOString();hist.unshift(up);}
     else hist.unshift({savedAt:new Date().toISOString(),snapshot:snap});
-    while(hist.length>30)hist.pop();
+    // (sem limite de dias — nenhum registo fica escondido)
     localStorage.setItem(HIST_KEY,JSON.stringify(hist));
     enviarParaFirebase(snap.data, hist[0]);
     const _savedAtAgora = new Date().toISOString();
@@ -1605,7 +1606,7 @@ function guardarNoHistorico(){
     const idx=hist.findIndex(function(h){return(h.snapshot||h).data===d;});
     const entry={data:d,savedAt:new Date().toISOString(),snapshot:snap};
     if(idx>=0)hist[idx]=entry;else hist.unshift(entry);
-    if(hist.length>365)hist=hist.slice(0,365);
+    /* sem limite de dias */
     localStorage.setItem('ce_v2_hist',JSON.stringify(hist));
     localStorage.removeItem('ce_v2_draft_'+d);
   }catch(e){console.warn(e);}

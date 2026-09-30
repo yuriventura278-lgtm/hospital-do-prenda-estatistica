@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js?v=3"></script>
+<script src="zelo_sync_banco.js?v=1"></script>
 <script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
@@ -18,12 +19,13 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbUpdate = (path,val)=>update(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
     window.__fbReady = true;
   }catch(e){
@@ -913,10 +915,10 @@ document.getElementById('ov').addEventListener('click',e=>{if(e.target===documen
 
 // ── HISTÓRICO ─────────────────────────────────────────────────────
 function historicoRegisto(){
-  const keys=Object.keys(localStorage).filter(k=>k.startsWith('nefro_v1_')&&k!=='nefro_v1_last').sort().reverse();
+  const keys=Object.keys(localStorage).filter(k=>k.startsWith('nefro_v1_')&&k!=='nefro_v1_last'&&!k.startsWith('nefro_v1_savedAt_')).sort().reverse();
   if(!keys.length){toast('Nenhum registo guardado.');return;}
   document.getElementById('mo-title').textContent='Histórico de Registos';
-  document.getElementById('mo-body').innerHTML=keys.slice(0,30).map(k=>{
+  document.getElementById('mo-body').innerHTML=keys.map(k=>{
     try{
       const s=JSON.parse(localStorage.getItem(k));
       const nEnt=s.entradosData?.length||0;
@@ -1510,5 +1512,9 @@ if (typeof ZeloAutoBackup !== 'undefined') ZeloAutoBackup.iniciar('nefrologia');
   }
 </script>
 <script src="zelo_protecao_ecra.js?v=1" defer></script>
+<script>
+// Dias gravados noutros computadores também ficam neste aparelho (histórico e relatórios completos).
+window.addEventListener('load', function () { if (window.ZeloSyncBanco) ZeloSyncBanco.sincronizarDias({ caminho: 'registos/nefrologia', prefixo: 'nefro_v1_', prefixoSavedAt: 'nefro_v1_savedAt_' }); });
+</script>
 </body>
 </html>

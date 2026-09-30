@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js?v=3"></script>
+<script src="zelo_sync_banco.js?v=1"></script>
 <script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
@@ -1729,7 +1730,7 @@ function sincronizarHistoricoFirebase(){
     if(dataAberta && remoto[dataAberta] && remoto[dataAberta].criadoPor){
       _mostrarHoraGuardado(remoto[dataAberta].criadoPor.nome, remoto[dataAberta].savedAt);
     }
-    const merged = Object.values(porData).sort(function(a,b){return new Date(b.savedAt)-new Date(a.savedAt);}).slice(0,90);
+    const merged = Object.values(porData).sort(function(a,b){return new Date(b.savedAt)-new Date(a.savedAt);});
     localStorage.setItem('lab_banco_v1_hist', JSON.stringify(merged));
     // Se outro dispositivo guardou uma versão mais recente do dia atualmente
     // aberto, e não há rascunho local por guardar desse dia, actualiza o ecrã
@@ -1758,7 +1759,7 @@ function guardarNoHistorico(){
       const idx=hist.findIndex(function(h){return(h.snapshot||h).data===d;});
       if(idx>=0)hist[idx]={data:d,savedAt:entry.savedAt,snapshot:snap};
       else hist.unshift({data:d,savedAt:entry.savedAt,snapshot:snap});
-      if(hist.length>90)hist=hist.slice(0,90);
+      /* sem limite de dias */
       localStorage.setItem('lab_banco_v1_hist',JSON.stringify(hist));
       localStorage.removeItem('lab_banco_v1_draft_'+d);
       enviarParaFirebase(d, {savedAt:entry.savedAt, snapshot:snap});

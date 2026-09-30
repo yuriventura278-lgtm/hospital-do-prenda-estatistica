@@ -11,6 +11,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js?v=3"></script>
+<script src="zelo_sync_banco.js?v=1"></script>
 <script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
@@ -21,12 +22,13 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbUpdate = (path,val)=>update(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
     window.__fbReady = true;
   }catch(e){
@@ -1429,6 +1431,10 @@ window.ZBK_getBackupJSON = function (cadencia, fimISO) {
       }).catch(() => {});
     });
   }
+</script>
+<script>
+// Dias gravados noutros computadores também ficam neste aparelho (histórico e relatórios completos).
+window.addEventListener('load', function () { if (window.ZeloSyncBanco) ZeloSyncBanco.sincronizarDias({ caminho: 'registos/fisioterapia', prefixo: 'fisio_v1_', prefixoSavedAt: 'fisio_v1_savedAt_', temLocal: function (d) { return !!localStorage.getItem('fisio_v1_savedAt_' + d); }, gravar: function (d, snap) { idbSaveDia(d, snap); }, depois: function () { if (typeof _fisioRefreshCache === 'function') _fisioRefreshCache(); } }); });
 </script>
 </body>
 </html>

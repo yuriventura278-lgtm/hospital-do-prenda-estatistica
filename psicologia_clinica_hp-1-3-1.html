@@ -8,6 +8,7 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <script src="zelo_indexeddb.js"></script>
 <script src="zelo_sync.js?v=3"></script>
+<script src="zelo_sync_banco.js?v=1"></script>
 <script src="zelo_auto_backup.js"></script>
 <script>zeloRequestPersistentStorage();</script>
 <meta charset="UTF-8"/>
@@ -18,12 +19,13 @@
 <!-- Sincronização entre dispositivos (Firebase Realtime Database) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getDatabase, ref, set, get, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { getDatabase, ref, set, get, query, orderByKey, startAt, endAt, update } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
   import { firebaseConfig } from './zelo_firebase_config.js';
   try{
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbUpdate = (path,val)=>update(ref(db,path),val);
     window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
     window.__fbGetRange = (path, minKey, maxKey)=>get(query(ref(db,path), orderByKey(), startAt(minKey), endAt(maxKey))).then(snap=>snap.exists()?snap.val():null);
     window.__fbReady = true;
@@ -981,7 +983,7 @@ async function sincronizarHistoricoFirebase(){
         if(d===dataAberta) novoParaDataAberta=porData[d];
       }
     });
-    const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt)).slice(0,60);
+    const merged = Object.values(porData).sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt));
     localStorage.setItem(HIST_KEY, JSON.stringify(merged));
     // Se outro dispositivo guardou entretanto o dia atualmente aberto,
     // actualizar a cópia local usada por "Carregar" e mostrar o aviso — sem
@@ -1015,7 +1017,7 @@ function salvarRegisto(){
     const idx=hist.findIndex(h=>h.data===snap.data);
     const rec={data:snap.data,savedAt:new Date().toISOString(),snapshot:snap};
     if(idx>=0)hist[idx]=rec;else hist.unshift(rec);
-    localStorage.setItem(HIST_KEY,JSON.stringify(hist.slice(0,60)));
+    localStorage.setItem(HIST_KEY,JSON.stringify(hist));
     enviarParaFirebase(snap.data, rec);
     _mostrarHoraGuardado(sessionStorage.getItem('zeloNome'), rec.savedAt);
     _registarHistoricoAlteracao(snap.data, rec.savedAt);
