@@ -359,12 +359,12 @@
       if (a.fase === 'aviso') {
         cls = 'av';
         h = '<div class="t"><b>O mês de ' + nomeMesCurto(a.m) + ' ' + (a.faltam ? 'termina em ' + (a.faltam + 1) + ' dias' : 'termina hoje') + '.</b> Reveja as entradas e saídas com o livro de registo.' +
-          '<small>Rever até ' + fmtDia(prazoRever(a.m)) + ' · entregar o Movimento à Estatística até ' + fmtDia(prazoEntrega(a.m)) + '.</small></div>' + (t === 'cp' ? rever.replace('>Rever<', '>Rever agora<') : '');
+          '<small>Rever até ' + fmtDia(prazoRever(a.m)) + ' · entregar o Movimento à Estatística até ' + fmtDia(prazoEntrega(a.m)) + '.</small></div>' + (t === 'cp' ? rever.replace('>Rever<', '>Rever agora<') : '') + baixar;
       } else if (a.fase === 'revisao' && !f) {
         cls = 'rev';
         var ultimoRev = hojeISO() === prazoRever(a.m);
         h = '<div class="t"><b>' + Mes + ': ' + (ultimoRev ? 'hoje é o último dia para rever' : 'período de revisão') + '.</b> Corrija o que faltar até ' + fmtDia(prazoRever(a.m)) + '.' +
-          '<small>Entrega à Estatística até ' + fmtDia(prazoEntrega(a.m)) + ': feche, baixe o PDF do Movimento, imprima e leve à Estatística.</small></div>' + rever + entregar;
+          '<small>Entrega à Estatística até ' + fmtDia(prazoEntrega(a.m)) + ': feche, baixe o PDF do Movimento, imprima e leve à Estatística.</small></div>' + rever + entregar + baixar;
       } else if (a.fase === 'entrega' && !f) {
         cls = 'auto';
         h = '<div class="t"><b>Hoje (' + fmtDia(prazoEntrega(a.m)) + ') é o prazo de entrega de ' + nomeMesCurto(a.m) + '.</b> Feche e entregue, baixe o PDF do Movimento mensal, imprima e leve à Estatística.</div>' + rever + entregar + baixar;

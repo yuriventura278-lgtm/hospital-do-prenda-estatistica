@@ -74,7 +74,10 @@
   }
 
   function nomeLimpo(n) {
-    n = String(n || 'documento.pdf').replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '_').replace(/_+/g, '_');
+    // Só letras simples: acentos, travessões e parênteses fazem alguns
+    // navegadores trocar o nome por «download».
+    n = String(n || 'documento.pdf').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[–—]/g, '-').replace(/[^\w.\-]+/g, '_').replace(/_+/g, '_').replace(/_(\.pdf)$/i, '$1').replace(/^_+/, '');
     if (!/\.pdf$/i.test(n)) n += '.pdf';
     return n;
   }

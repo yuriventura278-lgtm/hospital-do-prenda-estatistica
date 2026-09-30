@@ -512,8 +512,28 @@
     };
     novo.__m2 = true; window.updateStats = novo; return true;
   }
+  // PDF do mês sempre disponível, mesmo com dias por preencher: o relatório
+  // sai com os dias registados e indica no fundo quais faltam.
+  function envolverPdf() {
+    var orig = window.generateReportPDF;
+    if (typeof orig !== 'function' || orig.__m2) return;
+    var novo = function () {
+      var aviso = '';
+      try {
+        if (currentView === 'mensal') {
+          var m = currentMonth, ex = exigidos(m), falta = [];
+          for (var d = 0; d < ex; d++) if (!diaPreenchido(m, d)) falta.push(d + 1);
+          if (falta.length) aviso = 'Mês ainda incompleto - ' + (falta.length === 1 ? 'dia sem registo: ' : falta.length + ' dias sem registo: ') + intervalos(falta).replace(/–/g, '-') + '.';
+        }
+      } catch (e) {}
+      window.__zeloPdfAvisoFalta = aviso;
+      try { return orig.apply(this, arguments); } finally { window.__zeloPdfAvisoFalta = ''; }
+    };
+    novo.__m2 = true; window.generateReportPDF = novo;
+  }
   var tent = 0, iv = setInterval(function () {
     tent++;
+    envolverPdf();
     if (pronto() && envolver()) { clearInterval(iv); desenhar(); }
     else if (tent > 120) clearInterval(iv);
   }, 250);
