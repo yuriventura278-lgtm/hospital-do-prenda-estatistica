@@ -264,20 +264,18 @@
   }
   // Mês preenchido automaticamente a partir do Controlo de Pacientes (zelo_mov_auto.js)
   function autoMes() { return !!(window.ZeloMovAuto && window.ZeloMovAuto.mesAuto && window.ZeloMovAuto.mesAuto(currentMonth)); }
-  // Texto do 1.º dia do mês sobre a existência anterior.
+  // Texto do 1.º dia do mês sobre a existência anterior: escreve-se uma só
+  // vez (início do histórico); depois é sempre automática.
   function notaBase(m) {
-    var tr = typeof existenciaTransportada === 'function' ? existenciaTransportada(m) : null;
-    var ma = typeof baselineDoMes === 'function' ? baselineDoMes(m) : null;
-    if (tr === null) return '· 1º dia: escreva quantos doentes estavam internados (existência anterior)';
-    if (ma !== null && ma !== tr) return '· Existência anterior escrita à mão (o mês anterior dá ' + tr + ') — apague para voltar a usar o mês anterior';
-    return '· Existência anterior vem do fim do mês anterior — altere só se estiver errada';
+    if (isBaselineCell(0, m)) return '· 1º dia: escreva quantos doentes estavam internados (existência anterior) — só esta vez; nos meses seguintes é automática';
+    return '· Existência anterior automática (ficam existindo do fim do mês anterior)';
   }
   function formDia() {
     var m = currentMonth, d = dia, p = m.split('-'), au = autoMes();
     var w = new Date(+p[0], +p[1] - 1, d + 1).getDay();
     var base = isBaselineCell(d, m);
     var h = '<div class="m2-diah"><b>' + SEM_LONGO[w] + ', ' + (d + 1) + ' de ' + MESES[+p[1] - 1].toLowerCase() + '</b>' +
-      (base ? '<span>' + esc(notaBase(m)) + '</span>' : '') + '</div>' +
+      (d === 0 ? '<span>' + esc(notaBase(m)) + '</span>' : '') + '</div>' +
       (au ? '<div class="m2-autonota">⟳ Calculado automaticamente a partir do Controlo de Pacientes — para corrigir, corrija o registo do doente lá.</div>' : '');
     h += '<div class="m2-flux" id="m2Flux"></div><div class="m2-grps">';
     GRUPOS.forEach(function (g) {
@@ -285,7 +283,7 @@
       g[2].forEach(function (c) {
         var v = raw(m, c[0], d);
         h += '<div class="m2-cp"><label title="' + esc(c[1]) + '">' + esc(c[1]) + '</label><div class="m2-st' + (au ? ' auto' : '') + '" data-st="' + c[0] + '">' + (au ? '' : '<button type="button" data-m2menos="' + c[0] + '" aria-label="Menos">−</button>') +
-          '<input type="text" inputmode="numeric" autocomplete="off" data-m2c="' + c[0] + '" value="' + (v == null || isNaN(v) ? '' : v) + '" placeholder="0" aria-label="' + esc(c[1]) + '"' + (au ? ' readonly tabindex="-1"' : '') + '>' + (au ? '' : '<button type="button" data-m2mais="' + c[0] + '" aria-label="Mais">+</button>') + '</div></div>';
+          '<input type="text" inputmode="numeric" autocomplete="off" data-m2c="' + c[0] + '" data-mes="' + m + '" data-dia="' + d + '" value="' + (v == null || isNaN(v) ? '' : v) + '" placeholder="0" aria-label="' + esc(c[1]) + '"' + (au ? ' readonly tabindex="-1"' : '') + '>' + (au ? '' : '<button type="button" data-m2mais="' + c[0] + '" aria-label="Mais">+</button>') + '</div></div>';
       });
       h += '</div>' + (g[0] === 'c' ? (au ? foraUsoHtml(m, d) : '') + '<div class="m2-dica" id="m2Dica"></div><div id="m2AvisoC"></div>' : '') + '</div>';
     });
@@ -458,8 +456,12 @@
       var n = parseInt(th.textContent, 10); if (n >= 1 && n <= getDaysInMonth(currentMonth)) { irPara(n - 1); raiz.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     });
   }
-  function guardarValor(id, v) {
+  // Caixa de outro mês/dia (ex. ficou selecionada ao mudar de mês): o valor
+  // dela NUNCA pode ser gravado no mês/dia que está agora à vista.
+  function doDiaAtual(el) { return !el || !el.dataset || el.dataset.mes == null || (el.dataset.mes === currentMonth && +el.dataset.dia === dia); }
+  function guardarValor(id, v, el) {
     if (autoMes()) return; // calculado a partir do Controlo de Pacientes
+    if (!doDiaAtual(el)) return;
     var m = currentMonth; loadMonth(m);
     data[m][id][dia] = v === '' || v == null ? null : Math.max(0, parseInt(v, 10) || 0);
     persistData();
@@ -477,7 +479,7 @@
     // dia também chega aos outros computadores (a proteção contra apagar em
     // massa só trava vários valores esvaziados numa MESMA gravação).
     Array.prototype.forEach.call(raiz.querySelectorAll('[data-m2c]'), function (inp) {
-      var id = inp.dataset.m2c, v = inp.value; if (!data[m][id]) return;
+      var id = inp.dataset.m2c, v = inp.value; if (!data[m][id] || !doDiaAtual(inp)) return;
       var novo = v === '' || v == null ? null : Math.max(0, parseInt(v, 10) || 0), velho = data[m][id][dia];
       if ((velho == null || velho === '' ? null : Number(velho)) === novo) return;
       data[m][id][dia] = novo; persistData();
@@ -498,19 +500,19 @@
   }
   function passo(id, k) {
     var inp = raiz.querySelector('[data-m2c="' + id + '"]'); if (!inp) return;
-    var v = Math.max(0, (parseInt(inp.value, 10) || 0) + k); inp.value = v; guardarValor(id, v);
+    var v = Math.max(0, (parseInt(inp.value, 10) || 0) + k); inp.value = v; guardarValor(id, v, inp);
   }
   var tEsc = null;
   function escrever(e) {
     var el = e.target;
     if (el.dataset && el.dataset.m2c) {
       var v = el.value.replace(/\D/g, '').slice(0, 4); if (v !== el.value) el.value = v;
-      clearTimeout(tEsc); var id = el.dataset.m2c; tEsc = setTimeout(function () { guardarValor(id, v); }, 350);
+      clearTimeout(tEsc); var id = el.dataset.m2c; tEsc = setTimeout(function () { guardarValor(id, v, el); }, 350);
     } else if (el.id === 'm2Base' || el.id === 'm2Camas') { var w = el.value.replace(/\D/g, '').slice(0, 4); if (w !== el.value) el.value = w; }
   }
   function mudar(e) {
     var el = e.target;
-    if (el.dataset && el.dataset.m2c) { clearTimeout(tEsc); guardarValor(el.dataset.m2c, el.value); }
+    if (el.dataset && el.dataset.m2c) { clearTimeout(tEsc); guardarValor(el.dataset.m2c, el.value, el); }
     else if (el.id === 'm2Base') { setBaseline(currentMonth, el.value); vivoTudo(); }
     else if (el.dataset && el.dataset.m2fuv != null) { guardarForaUso(el.value.replace(/\D/g, ''), null); }
     else if (el.dataset && el.dataset.m2fum != null) { guardarForaUso(null, el.value); }
@@ -518,8 +520,8 @@
   }
   function irPara(d) {
     var n = getDaysInMonth(currentMonth); if (d < 0 || d >= n) return;
-    var ativo = document.activeElement; if (ativo && ativo.dataset && ativo.dataset.m2c) { clearTimeout(tEsc); guardarValor(ativo.dataset.m2c, ativo.value); }
-    dia = d; desenhar();
+    var ativo = document.activeElement; if (ativo && ativo.dataset && ativo.dataset.m2c && raiz.contains(ativo)) { clearTimeout(tEsc); guardarValor(ativo.dataset.m2c, ativo.value, ativo); }
+    dia = d; if (raiz) raiz.dataset.mes = currentMonth; desenhar();
     var prim = raiz.querySelector('[data-m2c]'); if (prim && window.innerWidth > 700) prim.focus();
   }
   function clique(e) {
@@ -527,7 +529,7 @@
     if (t.dataset.m2fu) { var fi = raiz.querySelector('[data-m2fuv]'); var nv = Math.max(0, (parseInt(fi.value, 10) || 0) + (+t.dataset.m2fu)); fi.value = nv || ''; guardarForaUso(nv, null); return; }
     if (t.dataset.m2menos) { passo(t.dataset.m2menos, -1); return; }
     if (t.dataset.m2mais) { passo(t.dataset.m2mais, 1); return; }
-    if (t.dataset.m2fill) { var inp = raiz.querySelector('[data-m2c="' + t.dataset.m2fill + '"]'); if (inp) inp.value = t.dataset.v; guardarValor(t.dataset.m2fill, t.dataset.v); return; }
+    if (t.dataset.m2fill) { var inp = raiz.querySelector('[data-m2c="' + t.dataset.m2fill + '"]'); if (inp) inp.value = t.dataset.v; guardarValor(t.dataset.m2fill, t.dataset.v, inp); return; }
     if (t.dataset.m2d != null && t.dataset.m2d !== '') { if (currentView !== 'mensal') return; irPara(+t.dataset.m2d); if (!t.classList.contains('m2-d')) raiz.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (t.dataset.m2v) { switchView(t.dataset.m2v); return; }
     switch (t.dataset.m2) {
@@ -539,7 +541,7 @@
       case 'diaAnt': irPara(dia - 1); break;
       case 'diaSeg': irPara(dia + 1); break;
       case 'guardar': guardarDia(); break;
-      case 'fim': { var a = document.activeElement; if (a && a.dataset && a.dataset.m2c) guardarValor(a.dataset.m2c, a.value); break; }
+      case 'fim': { var a = document.activeElement; if (a && a.dataset && a.dataset.m2c) guardarValor(a.dataset.m2c, a.value, a); break; }
       case 'tabela': document.body.classList.toggle('m2-sem-tabela'); t.textContent = document.body.classList.contains('m2-sem-tabela') ? 'Ver tabela completa' : 'Ver lista de dias'; break;
     }
   }
@@ -552,7 +554,7 @@
     if (typeof orig !== 'function' || orig.__m2) return false;
     var novo = function () {
       var r = orig.apply(this, arguments);
-      if (!emCurso) { try { var a = document.activeElement; if (raiz && a && raiz.contains(a) && a.dataset && a.dataset.m2c) vivoTudo(); else desenhar(); } catch (e) { console.warn('ZELO m2', e); } }
+      if (!emCurso) { try { var a = document.activeElement; if (raiz && a && raiz.contains(a) && a.dataset && a.dataset.m2c && doDiaAtual(a) && currentView === 'mensal') vivoTudo(); else desenhar(); } catch (e) { console.warn('ZELO m2', e); } }
       return r;
     };
     novo.__m2 = true; window.updateStats = novo; return true;

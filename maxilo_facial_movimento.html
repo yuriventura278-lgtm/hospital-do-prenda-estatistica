@@ -1195,16 +1195,16 @@ function getExistindo(day, month) {
   return Math.max(0, existencia + admitidos - saidos);
 }
 
-// A Existência Anterior do 1.º dia de QUALQUER mês pode ser escrita à mão:
-// por omissão vem do mês anterior, mas se estiver errada (dias em falta,
-// mês junto de duas páginas antigas…) corrige-se aqui e o erro não passa
-// para os meses seguintes.
+// A Existência Anterior escreve-se UMA vez, no 1.º dia do 1.º mês do
+// histórico (quando não há mês anterior). Nos meses seguintes é sempre
+// automática: vem do «Ficam existindo» do último dia do mês anterior.
 function isBaselineCell(day, month) {
-  return day === 0;
+  if (day !== 0) return false;
+  return !data[getPrevMonthKey(month)];
 }
 
-// Caixa vazia (ou igual ao que vem do mês anterior) = volta a vir do mês
-// anterior. O valor antigo fica em __baselinesAntes (nada é perdido).
+// Valor de partida (1.º mês do histórico). Caixa vazia = sem valor de
+// partida; o valor antigo fica em __baselinesAntes (nada é perdido).
 function setBaseline(month, value) {
   if (!data.__baselines) data.__baselines = {};
   if (!data.__baselinesManual) data.__baselinesManual = {};
@@ -1350,11 +1350,7 @@ function renderMonthlyGrid(table, months) {
         input.className = 'cell-input baseline-input';
         input.dataset.id = '__baseline';
         input.dataset.day = day;
-        const manual = baselineDoMes(month), transp = existenciaTransportada(month);
-        input.title = transp === null ? 'Existência anterior (início do histórico)'
-          : manual === null ? 'Vem do mês anterior (' + transp + '). Escreva outro valor só se estiver errado.'
-          : 'Escrito à mão — o mês anterior dá ' + transp + '. Apague para voltar a usar o mês anterior.';
-        if (manual !== null && transp !== null && manual !== transp) input.classList.add('baseline-manual');
+        input.title = 'Existência anterior — escreve-se só uma vez (início do histórico); nos meses seguintes é automática';
         const current = getExistencia(0, month);
         // Idem: 0 é um valor de partida válido e deve aparecer como "0".
         input.value = (current !== undefined && current !== null) ? current : '';
@@ -1941,7 +1937,7 @@ document.addEventListener('wheel', function(e) {
 <script src="zelo_movimento_grelha.js?v=2"></script>
 <script src="zelo_mov_auto.js?v=21"></script>
 <script src="zelo_fecho_mes.js?v=9"></script>
-<script src="zelo_mov_v2.js?v=17"></script>
+<script src="zelo_mov_v2.js?v=20"></script>
 <script src="zelo_video_movimento.js?v=18"></script>
 </body>
 </html>
