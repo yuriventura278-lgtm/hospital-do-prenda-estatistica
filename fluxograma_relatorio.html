@@ -12,57 +12,177 @@
 <script src="zelo_pagegate_watchdog.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fluxograma do Relatório · Hospital do Prenda</title>
+<title>Protocolos e Fluxogramas · Hospital do Prenda</title>
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{--nv:#0B2545;--bg:#F2F5FA;--sf:#fff;--br:#E3E8F0;--tx:#132033;--tx2:#4B5B70;--tx3:#8B98AA;--ouro:#D4A017;--f:Inter,'Segoe UI',Arial,sans-serif}
+:root{--nv:#0B2545;--nv2:#13315C;--bg:#EEF2F8;--sf:#fff;--br:#DCE3EE;--tx:#132033;--tx2:#4B5B70;--tx3:#8B98AA;--ouro:#D4A017;--ok:#2F855A;--nao:#B3263E;--ciano:#0E9FB8;--f:Inter,'Segoe UI',Arial,sans-serif}
 html[data-zelo-theme="dark"]{--bg:#0B1220;--sf:#111A2B;--br:#1F2A3D;--tx:#E6ECF5;--tx2:#AAB6C8;--tx3:#7C8AA0}
 *{box-sizing:border-box}
 body{margin:0;font-family:var(--f);background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column}
 svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
-header.flx-top{display:flex;align-items:center;gap:14px;padding:14px 24px;background:var(--nv);color:#fff}
+header.flx-top{display:flex;align-items:center;gap:14px;padding:12px 22px;background:var(--nv);color:#fff;flex-wrap:wrap}
 header.flx-top img{width:34px;height:34px;border-radius:9px}
-header.flx-top h1{margin:0;font-size:1.05rem}
-header.flx-top .acoes{margin-left:auto;display:flex;gap:10px}
-header.flx-top a,header.flx-top button{display:inline-flex;gap:7px;align-items:center;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:8px 14px;font:700 .78rem var(--f);text-decoration:none;cursor:pointer}
-main{flex:1;width:100%;padding:28px 24px 40px}
-.titulo{text-align:center;margin-bottom:26px}
-.titulo h2{margin:0;font-size:clamp(1.3rem,3vw,1.9rem);font-weight:900;color:var(--nv);letter-spacing:.01em}
-html[data-zelo-theme="dark"] .titulo h2{color:#E6ECF5}
-.titulo p{margin:8px 0 0;color:#C0561C;font-weight:700;font-size:.98rem}
-.titulo hr{width:min(420px,70%);border:0;border-top:2px solid var(--ouro);margin:14px auto 0}
-.fluxo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,640px) minmax(0,1fr);row-gap:0}
-.col{grid-column:2;display:flex;flex-direction:column;align-items:center}
-.passo{width:100%;background:var(--sf);border:2px solid var(--c);border-radius:16px;padding:18px 20px;display:flex;gap:16px;align-items:flex-start;box-shadow:6px 6px 0 rgba(15,30,55,.08)}
-.num{width:42px;height:42px;border-radius:50%;background:var(--c);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem}
-.passo h3{margin:2px 0 6px;font-size:1.05rem;font-weight:800}
-.passo p{margin:0;color:var(--tx2);font-size:.9rem;line-height:1.5}
-.seta{width:2px;height:30px;background:var(--nv);position:relative;margin:0 auto}
-html[data-zelo-theme="dark"] .seta{background:#8FA6C8}
-.seta:after{content:"";position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);border:7px solid transparent;border-top:9px solid var(--nv);border-bottom:0}
-html[data-zelo-theme="dark"] .seta:after{border-top-color:#8FA6C8}
-.seta.sim{background:var(--ouro)}.seta.sim:after{border-top-color:var(--ouro)}
-.rot{font-size:.78rem;font-weight:800;color:var(--ouro);margin:4px 0 0 12px;align-self:center;transform:translateX(26px)}
-.decisao-linha{position:relative;width:100%;display:flex;justify-content:center;align-items:center;margin:28px 0 0}
-.losango{width:270px;height:120px;display:flex;align-items:center;justify-content:center;position:relative}
-.losango svg{position:absolute;inset:0;width:100%;height:100%}
-.losango span{position:relative;font-weight:800;font-size:.92rem;text-align:center;max-width:170px}
-.nao{position:absolute;left:calc(50% + 135px);top:50%;display:flex;align-items:center;transform:translateY(-50%)}
-.nao .linha{width:90px;height:2px;background:#B3263E;position:relative}
-.nao .linha b{position:absolute;top:-20px;left:14px;color:#B3263E;font-size:.78rem}
-.nao .caixa{background:var(--sf);border:2px solid #B3263E;border-radius:14px;padding:12px 14px;font-weight:700;font-size:.85rem;width:210px;display:flex;gap:8px;box-shadow:5px 5px 0 rgba(15,30,55,.08)}
-.nao .caixa i{width:12px;height:12px;border-radius:50%;background:#B3263E;flex-shrink:0;margin-top:3px}
-.pe{display:flex;justify-content:space-between;margin-top:34px;padding-top:12px;border-top:1px solid #B8C6DA;color:var(--tx2);font-size:.8rem}
-.pe em{font-style:italic}
-@media(max-width:900px){
-  .fluxo{grid-template-columns:1fr}.col{grid-column:1}
-  .nao{position:static;transform:none;flex-direction:column;margin-top:0}
-  .nao .linha{width:2px;height:22px}.nao .linha b{top:4px;left:8px}
-  .decisao-linha{flex-direction:column}
-  main{padding:18px 14px 30px}
-}
-@media print{header.flx-top,#zmf-btn,#zas-btn,.zr-rodape{display:none !important}body{background:#fff}main{padding:0}}
+header.flx-top h1{margin:0;font-size:1.02rem}
+header.flx-top .acoes{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.bt{display:inline-flex;gap:7px;align-items:center;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:8px 14px;font:700 .8rem var(--f);cursor:pointer;text-decoration:none}
+.bt:hover{background:rgba(255,255,255,.18)}
+main{flex:1;width:100%;padding:18px 18px 26px;display:flex;flex-direction:column;align-items:center;gap:12px}
+/* ── palco 16:9 (como uma apresentação) ── */
+.apr{width:100%;max-width:1280px;display:flex;flex-direction:column;gap:10px}
+.palco{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 18px 50px rgba(11,37,69,.22);outline:none}
+html[data-zelo-theme="dark"] .palco{background:#0F1828}
+.lamina{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;visibility:hidden;opacity:0;transition:opacity .45s ease}
+.lamina.on{visibility:visible;opacity:1}
+.barra{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.barra .nav{width:42px;height:42px;border-radius:12px;border:1px solid var(--br);background:var(--sf);color:var(--tx);font:800 1.2rem var(--f);cursor:pointer}
+.barra .nav:disabled{opacity:.4;cursor:default}
+.pontos{display:flex;gap:6px;flex:1;justify-content:center;flex-wrap:wrap}
+.pontos button{width:11px;height:11px;border-radius:50%;border:0;background:#C3CEDD;cursor:pointer;padding:0}
+.pontos button.on{background:var(--nv);width:28px;border-radius:6px}
+html[data-zelo-theme="dark"] .pontos button.on{background:#7FB3E6}
+.conta{font:800 .85rem var(--f);color:var(--tx2);min-width:62px;text-align:center}
+.prog{height:4px;border-radius:3px;background:#D6DEEA;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ciano),var(--ouro));transition:width .4s ease}
+.bt2{display:inline-flex;gap:7px;align-items:center;border:1px solid var(--br);background:var(--sf);color:var(--tx);border-radius:999px;padding:9px 14px;font:700 .8rem var(--f);cursor:pointer}
+.bt2.on{background:var(--nv);color:#fff;border-color:var(--nv)}
+.dica{font-size:.76rem;color:var(--tx3);text-align:center}
+/* índice (miniaturas) */
+.indice{display:none;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.indice.on{display:grid}
+.indice button{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--br);background:var(--sf);color:var(--tx);border-radius:12px;padding:10px 12px;cursor:pointer;font:600 .82rem var(--f)}
+.indice button b{width:28px;height:28px;border-radius:8px;background:var(--nv);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.indice button.on{border-color:var(--ciano);box-shadow:0 0 0 3px rgba(14,159,184,.18)}
+/* ecrã inteiro */
+.apr:fullscreen{max-width:none;background:#0B1220;justify-content:center;padding:18px 24px}
+.apr:fullscreen .palco{width:min(100%,calc((100vh - 110px) * 16 / 9));margin:0 auto}
+.apr:fullscreen .indice,.apr:fullscreen .dica{display:none}
+.apr:fullscreen .conta{color:#CBD5E1}
+/* ── conteúdo das lâminas (desenhado a 1280×720) ── */
+.lam{width:1280px;height:720px;display:flex;color:#132033;background:#fff;font-family:var(--f);position:relative}
+html[data-zelo-theme="dark"] .lam{background:#0F1828;color:#E6ECF5}
+.lado{width:330px;flex-shrink:0;background:linear-gradient(165deg,#0B2545,#13315C 60%,#1C4A73);color:#fff;padding:40px 30px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.lado:after{content:"";position:absolute;right:-90px;bottom:-90px;width:260px;height:260px;border-radius:50%;border:38px solid rgba(255,255,255,.05)}
+.lado .sec{font-size:15px;font-weight:800;letter-spacing:.14em;color:#7FD3E3}
+.lado .big{font-size:76px;font-weight:900;line-height:1;color:rgba(255,255,255,.14);margin-top:6px}
+.lado h2{margin:10px 0 0;font-size:30px;line-height:1.15;font-weight:900}
+.lado p{margin:14px 0 0;font-size:15px;line-height:1.5;color:#C8D6EA}
+.lado .leg{margin-top:auto;display:flex;flex-direction:column;gap:9px;font-size:13px;color:#C8D6EA}
+.lado .leg span{display:flex;align-items:center;gap:10px}
+.lado .leg i{display:inline-block;width:18px;height:14px;border-radius:4px;border:2px solid #fff}
+.lado .leg i.d{transform:rotate(45deg) scale(.8);border-radius:2px}
+.lado .marca{font-size:12px;color:#8FA6C8;margin-top:18px;border-top:1px solid rgba(255,255,255,.15);padding-top:12px}
+.area{flex:1;position:relative;padding:26px 34px 40px;display:flex;justify-content:center;align-items:flex-start;overflow:hidden}
+.area.centro{align-items:center}
+.corpo{transform-origin:top center;width:100%;display:flex;flex-direction:column;align-items:center}
+.rod{position:absolute;left:330px;right:0;bottom:0;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:12px;color:#5B6B80;border-top:1px solid #E3E8F0;background:#FAFCFE}
+html[data-zelo-theme="dark"] .rod{background:#0C1422;border-color:#1F2A3D;color:#94A3B8}
+.rod em{font-style:italic}
+/* fluxo */
+.col{width:640px;display:flex;flex-direction:column;align-items:center;position:relative}
+.passo{width:100%;background:#fff;border:2.5px solid var(--c);border-radius:16px;padding:12px 18px;display:flex;gap:14px;align-items:center;box-shadow:5px 5px 0 rgba(15,30,55,.08);position:relative}
+html[data-zelo-theme="dark"] .passo,html[data-zelo-theme="dark"] .lateral,html[data-zelo-theme="dark"] .prazo,html[data-zelo-theme="dark"] .pessoa,html[data-zelo-theme="dark"] .mv{background:#14203A}
+.passo .num{width:40px;height:40px;border-radius:50%;background:var(--c);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:17px}
+.passo h3{margin:0;font-size:18px;font-weight:800}
+.passo p{margin:3px 0 0;color:#4B5B70;font-size:14px;line-height:1.4}
+html[data-zelo-theme="dark"] .passo p,html[data-zelo-theme="dark"] .mv p{color:#AAB6C8}
+.passo .tag{position:absolute;right:-12px;top:-12px;background:var(--c);color:#fff;font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:999px;letter-spacing:.04em}
+.passo.alerta{--c:#B3263E;background:#FFF5F6}
+.seta{width:3px;height:22px;background:#0B2545;position:relative;transform-origin:top}
+.seta:after{content:"";position:absolute;left:50%;bottom:-3px;transform:translateX(-50%);border:7px solid transparent;border-top:9px solid #0B2545;border-bottom:0}
+.seta.sim{background:var(--ok)}.seta.sim:after{border-top-color:var(--ok)}
+.seta.nao{background:var(--nao)}.seta.nao:after{border-top-color:var(--nao)}
+html[data-zelo-theme="dark"] .seta:not(.sim):not(.nao){background:#8FA6C8}html[data-zelo-theme="dark"] .seta:not(.sim):not(.nao):after{border-top-color:#8FA6C8}
+.seta .r{position:absolute;left:12px;top:2px;font-size:12px;font-weight:900;white-space:nowrap}
+.seta.sim .r{color:var(--ok)}.seta.nao .r{color:var(--nao)}
+.dec{position:relative;width:100%;display:flex;justify-content:center}
+.los{width:300px;height:86px;position:relative;display:flex;align-items:center;justify-content:center}
+.los svg{position:absolute;inset:0;width:100%;height:100%}
+.los span{position:relative;font-weight:800;font-size:14.5px;text-align:center;max-width:200px;line-height:1.25}
+.ramo{position:absolute;left:calc(50% + 150px);top:50%;transform:translateY(-50%);display:flex;align-items:center}
+.ramo .ln{width:46px;height:3px;position:relative;transform-origin:left}
+.ramo .ln b{position:absolute;top:-19px;left:6px;font-size:12px;font-weight:900}
+.ramo .ln:after{content:"";position:absolute;right:-3px;top:50%;transform:translateY(-50%);border:6px solid transparent;border-left:8px solid currentColor;border-right:0}
+.lateral{width:250px;background:#fff;border:2.5px solid currentColor;border-radius:14px;padding:10px 13px;font-weight:700;font-size:13.5px;line-height:1.35;display:flex;gap:9px;box-shadow:4px 4px 0 rgba(15,30,55,.08);color:inherit}
+.lateral i{width:12px;height:12px;border-radius:50%;background:currentColor;flex-shrink:0;margin-top:3px}
+.lateral span{color:#132033}
+html[data-zelo-theme="dark"] .lateral span{color:#E6ECF5}
+.ramo.ok{color:var(--ok)}.ramo.ok .ln{background:var(--ok)}
+.ramo.mau{color:var(--nao)}.ramo.mau .ln{background:var(--nao)}
+.nota{width:640px;background:#F0F7FB;border:1.5px dashed #7FB8CC;color:#24506A;border-radius:12px;padding:10px 14px;font-size:14px;font-weight:600;margin-bottom:14px;text-align:center}
+.prazos{display:flex;gap:14px;width:860px;margin-bottom:16px}
+.prazo{flex:1;background:#fff;border:2px solid var(--c);border-radius:14px;padding:12px 14px;text-align:center;border-top-width:7px}
+.prazo b{display:block;font-size:13px;letter-spacing:.14em;color:var(--c)}
+.prazo span{display:block;font-size:16px;font-weight:800;margin-top:4px}
+.subt{font-size:15px;font-weight:900;letter-spacing:.06em;color:#C0561C;margin:0 0 12px;text-transform:uppercase}
+/* organograma */
+.org{width:100%;display:flex;flex-direction:column;align-items:center}
+.raiz{background:linear-gradient(135deg,#0B2545,#1C4A73);color:#fff;border-radius:16px;padding:16px 30px;text-align:center;font-weight:900;font-size:19px;letter-spacing:.03em;box-shadow:0 10px 24px rgba(11,37,69,.25)}
+.raiz small{display:block;font-size:12px;color:#7FD3E3;letter-spacing:.14em;margin-bottom:4px}
+.ramos-org{position:relative;width:100%;height:38px}
+.ramos-org .v{position:absolute;left:50%;top:0;width:3px;height:19px;background:#0B2545;transform-origin:top}
+.ramos-org .h{position:absolute;left:12.5%;right:12.5%;top:18px;height:3px;background:#0B2545;transform-origin:center}
+.ramos-org .p{position:absolute;top:18px;width:3px;height:20px;background:#0B2545;transform-origin:top}
+html[data-zelo-theme="dark"] .ramos-org .v,html[data-zelo-theme="dark"] .ramos-org .h,html[data-zelo-theme="dark"] .ramos-org .p{background:#8FA6C8}
+.pessoas{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;width:100%}
+.pessoa{background:#fff;border:2px solid var(--c);border-radius:16px;overflow:hidden;box-shadow:5px 5px 0 rgba(15,30,55,.07)}
+.pessoa .nm{background:var(--c);color:#fff;padding:12px 14px;font-weight:900;font-size:15.5px;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
+.pessoa .nm em{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:13px;flex-shrink:0}
+.pessoa ul{list-style:none;margin:0;padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.pessoa li{font-size:14px;font-weight:600;padding:8px 10px;border-radius:9px;background:color-mix(in srgb,var(--c) 9%,transparent);border-left:4px solid var(--c);line-height:1.3}
+/* movimento */
+.mvg{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%}
+.mv{background:#fff;border:2px solid var(--c);border-radius:16px;padding:13px 16px;position:relative;box-shadow:5px 5px 0 rgba(15,30,55,.07)}
+.mv.larga{grid-column:1 / -1}
+.mv .cab{display:flex;gap:12px;align-items:center}
+.mv .num{width:36px;height:36px;border-radius:50%;background:var(--c);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mv h3{margin:0;font-size:18px;font-weight:900}
+.mv p{margin:6px 0 0;font-size:14px;color:#4B5B70;line-height:1.4}
+.filhos{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.filho{flex:1;min-width:130px;border-radius:12px;padding:8px 11px;background:color-mix(in srgb,var(--c) 10%,transparent);border:1.5px solid color-mix(in srgb,var(--c) 45%,transparent)}
+.filho b{font-size:12.5px;letter-spacing:.08em;color:var(--c)}
+.filho span{display:block;font-size:12.5px;margin-top:2px;line-height:1.35}
+.neto{display:flex;gap:6px;margin-top:6px}
+.neto em{flex:1;font-style:normal;font-size:11.5px;font-weight:700;background:#fff;border-radius:8px;padding:5px 6px;border:1px solid color-mix(in srgb,var(--c) 40%,transparent);line-height:1.3}
+html[data-zelo-theme="dark"] .neto em{background:#0F1828}
+.formula{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.formula span{padding:8px 14px;border-radius:10px;font-weight:900;font-size:15px;color:#fff}
+.formula b{font-size:22px;color:#0B2545}
+html[data-zelo-theme="dark"] .formula b{color:#E6ECF5}
+/* capa */
+.capa{width:1280px;height:720px;background:radial-gradient(1200px 600px at 85% 10%,#1C4A73 0%,#0B2545 55%,#071A33 100%);color:#fff;display:flex;padding:56px 64px;gap:50px;position:relative;overflow:hidden}
+.capa:before{content:"";position:absolute;left:-120px;bottom:-160px;width:460px;height:460px;border-radius:50%;border:60px solid rgba(127,211,227,.06)}
+.capa .esq{width:520px;display:flex;flex-direction:column;position:relative}
+.capa img{width:76px;height:76px;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.capa .hp{margin-top:26px;font-size:15px;font-weight:800;letter-spacing:.22em;color:#7FD3E3}
+.capa h2{margin:10px 0 0;font-size:62px;line-height:1.02;font-weight:900}
+.capa h2 em{font-style:normal;color:var(--ouro)}
+.capa .sv{margin-top:18px;font-size:17px;color:#C8D6EA;line-height:1.5}
+.capa .ref{margin-top:auto;font-size:13px;color:#8FA6C8;border-top:1px solid rgba(255,255,255,.18);padding-top:14px}
+.capa .dir{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative}
+.capa .dir h4{margin:0 0 14px;font-size:13px;letter-spacing:.2em;color:#7FD3E3}
+.capa .itens{display:grid;grid-template-columns:1fr;gap:9px}
+.capa .itens button{display:flex;align-items:center;gap:14px;text-align:left;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;border-radius:12px;padding:11px 14px;font:700 15px var(--f);cursor:pointer;transition:background .2s,transform .2s}
+.capa .itens button:hover{background:rgba(127,211,227,.18);transform:translateX(4px)}
+.capa .itens b{width:30px;height:30px;border-radius:9px;background:rgba(127,211,227,.2);color:#7FD3E3;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px}
+/* ── animações (como numa apresentação) ── */
+.an{opacity:0}
+.lamina.on .an{animation:entra .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--d,0) * 170ms + 120ms)}
+.lamina.on .an.cresce{animation-name:cresceV;animation-duration:.35s}
+.lamina.on .an.cresceH{animation-name:cresceH;animation-duration:.4s}
+.lamina.on .an.pop{animation-name:pop;animation-duration:.5s}
+.lamina.on .an.lado-e{animation-name:daEsq}
+@keyframes entra{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes cresceV{from{opacity:1;transform:scaleY(0)}to{opacity:1;transform:scaleY(1)}}
+@keyframes cresceH{from{opacity:1;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes pop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.05)}100%{opacity:1;transform:scale(1)}}
+@keyframes daEsq{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+.ramo .an.cresceH{transform-origin:left}
+.lamina.on .an.pulsa{animation:entra .55s cubic-bezier(.2,.8,.2,1) both,pulsa 2.2s ease-in-out infinite;animation-delay:calc(var(--d,0) * 170ms + 120ms),calc(var(--d,0) * 170ms + 900ms)}
+@keyframes pulsa{0%,100%{box-shadow:5px 5px 0 rgba(15,30,55,.08)}50%{box-shadow:0 0 0 6px rgba(212,160,23,.25),5px 5px 0 rgba(15,30,55,.08)}}
+@media (prefers-reduced-motion:reduce){.an{opacity:1!important;animation:none!important}.lamina{transition:none}}
+@media(max-width:700px){main{padding:12px 8px 20px}.pontos{display:none}.barra{justify-content:center}header.flx-top{padding:10px 12px}.bt span{display:none}.barra .bt2 span{display:none}}
+@media print{header.flx-top,#zmf-btn,#zas-btn,.zr-rodape,.barra,.prog,.indice,.dica{display:none!important}body{background:#fff}}
 </style>
 <style id="zelo-sem-setas">/* ZELO: nenhuma caixa de preenchimento com setas (em todo o sistema) */
 input[type=number]{-moz-appearance:textfield !important;appearance:textfield !important}
@@ -77,93 +197,348 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 <body>
 <header class="flx-top">
   <img src="icons/logo.png" alt="ZELO">
-  <h1>Fluxograma do Relatório do Hospital</h1>
+  <h1>Protocolos e Fluxogramas</h1>
   <div class="acoes">
-    <button type="button" id="flxPdf"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>PDF</button>
-    <a href="index.html"><svg class="i" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</a>
+    <button type="button" class="bt" id="flxPdf"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg><span>PDF</span></button>
+    <a class="bt" href="index.html"><svg class="i" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Início</span></a>
   </div>
 </header>
 <main>
-  <div class="titulo">
-    <h2>COMO PREENCHER O RELATÓRIO DO HOSPITAL</h2>
-    <p>Todas as Fases — Serviço de Admissão e Arquivo Médico Estatístico</p>
-    <hr>
-  </div>
-  <div class="fluxo">
-    <div class="col">
-      <div class="passo" style="--c:#2C6E91"><div class="num">1</div><div><h3>Recolha de dados por serviço</h3><p>Cada área envia os dados dentro dos prazos: diário, semanal e mensal.</p></div></div>
-      <div class="seta"></div>
-      <div class="passo" style="--c:#3B7A4E"><div class="num">2</div><div><h3>Verificação e validação</h3><p>O responsável da área valida o conteúdo; o Chefe de Serviço dá a validação final.</p></div></div>
-      <div class="decisao-linha">
-        <div class="losango">
-          <svg viewBox="0 0 270 120" preserveAspectRatio="none"><polygon points="135,3 267,60 135,117 3,60" fill="var(--sf)" stroke="#3B7A4E" stroke-width="2.5"/></svg>
-          <span>Dados validados e completos?</span>
-        </div>
-        <div class="nao"><div class="linha"><b>NÃO</b></div><div class="caixa"><i></i>Devolve-se ao serviço de origem para correção</div></div>
-      </div>
-      <div class="seta sim"></div>
-      <div class="rot">SIM</div>
-      <div class="passo" style="--c:#C28A17;margin-top:6px"><div class="num">3</div><div><h3>Preenchimento do Movimento Hospitalar</h3><p>Existência Anterior, Admitidos, Saídos e Ficam Existindo, por serviço de internamento.</p></div></div>
-      <div class="seta"></div>
-      <div class="passo" style="--c:#0B2545"><div class="num">4</div><div><h3>Cálculo dos indicadores</h3><p>Dias Camas, Dias Doentes, taxa de ocupação, média de permanência e taxa de rotação.</p></div></div>
-      <div class="seta"></div>
-      <div class="passo" style="--c:#6A4C9C"><div class="num">5</div><div><h3>Consolidação do relatório</h3><p>Reúnem-se os mapas de todas as áreas num único relatório, com gráficos e anexos.</p></div></div>
-      <div class="seta"></div>
-      <div class="passo" style="--c:#B3263E"><div class="num">6</div><div><h3>Validação final e envio à Direção Clínica</h3><p>O Chefe de Serviço aprova; o relatório é arquivado e remetido à Direção do hospital.</p></div></div>
+  <div class="apr" id="apr">
+    <div class="palco" id="palco" tabindex="0" aria-roledescription="apresentação" aria-label="Protocolos e Fluxogramas"></div>
+    <div class="prog"><i id="prog"></i></div>
+    <div class="barra">
+      <button type="button" class="nav" id="ant" aria-label="Diapositivo anterior">‹</button>
+      <div class="conta" id="conta">1 / 1</div>
+      <div class="pontos" id="pontos"></div>
+      <button type="button" class="bt2" id="btIndice" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Índice</span></button>
+      <button type="button" class="bt2" id="btRepetir" title="Repetir a animação"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span>Repetir</span></button>
+      <button type="button" class="bt2" id="btAuto" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg><span>Reproduzir</span></button>
+      <button type="button" class="bt2" id="btEcra"><svg class="i" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span>Ecrã inteiro</span></button>
+      <button type="button" class="nav" id="seg" aria-label="Diapositivo seguinte">›</button>
     </div>
+    <div class="indice" id="indice"></div>
+    <div class="dica">Setas do teclado, espaço ou deslizar o dedo para mudar de diapositivo · Clique num tema da capa para ir diretamente</div>
   </div>
-  <div class="pe"><em>Hospital do Prenda — Serviço de Estatística</em><span>Fases de Elaboração do Relatório do Hospital</span></div>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-/* PDF do fluxograma: desenhado em vetor (fica nítido a qualquer tamanho). */
-document.getElementById('flxPdf').addEventListener('click', function(){
-  var Z = window.ZeloPDF;
-  if (!Z || !(window.jspdf && window.jspdf.jsPDF)){ alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return; }
-  var d = Z.novo(), W = d.internal.pageSize.getWidth();
-  var y = Z.cabecalho(d, 'Como preencher o relatório do hospital', 'Todas as fases — Serviço de Admissão e Arquivo Médico Estatístico');
-  var x = 35, w = W - 70, h = 20;
-  var PASSOS = [
-    ['#2C6E91', 'Recolha de dados por serviço', 'Cada área envia os dados dentro dos prazos: diário, semanal e mensal.'],
-    ['#3B7A4E', 'Verificação e validação', 'O responsável da área valida o conteúdo; o Chefe de Serviço dá a validação final.'],
-    null,
-    ['#C28A17', 'Preenchimento do Movimento Hospitalar', 'Existência Anterior, Admitidos, Saídos e Ficam Existindo, por serviço de internamento.'],
-    ['#0B2545', 'Cálculo dos indicadores', 'Dias Camas, Dias Doentes, taxa de ocupação, média de permanência e taxa de rotação.'],
-    ['#6A4C9C', 'Consolidação do relatório', 'Reúnem-se os mapas de todas as áreas num único relatório, com gráficos e anexos.'],
-    ['#B3263E', 'Validação final e envio à Direção Clínica', 'O Chefe de Serviço aprova; o relatório é arquivado e remetido à Direção do hospital.']
+/* ── Protocolos e Fluxogramas do Serviço de Admissão e Arquivo Médico
+   Estatístico (documento de referência interna, 2026) em forma de
+   apresentação: cada tema é um diapositivo 16:9 com o fluxograma animado
+   (os passos aparecem um a um). O PDF desenha os mesmos dados em vetor. ── */
+(function(){
+  'use strict';
+  var COR = ['#2C6E91','#3B7A4E','#C28A17','#0B2545','#6A4C9C','#B3263E','#0E7C86'];
+  function P(t, x, o){ return Object.assign({ k:'p', t:t, x:x }, o || {}); }
+  // D(pergunta, rótulo do ramo lateral, texto do ramo lateral, rótulo da seta que continua)
+  function D(q, lado, txt, segue){ return { k:'d', q:q, lado:lado, txt:txt, segue:segue }; }
+  var L = [
+    { tipo:'capa', tit:'Capa e conteúdos' },
+    { tipo:'org', tit:'Divisão de Tarefas e Supervisão dos Serviços', sub:'Serviço de Estatística — Hospital do Prenda', pe:'Quadro de Distribuição de Serviços',
+      raiz:'Serviço de Admissão e Arquivo Médico Estatístico',
+      pessoas:[['Yuri Matias',['Bloco Operatório','Consulta Externa','Fisioterapia','Cardiologia','Movimento Hospitalar']],
+               ['Helena Marcolino',['Laboratório','Hemoterapia','Imagiologia','Anatomia Patológica']],
+               ['Nicolau Lucas',['Procedimentos de Enfermagem','Centro de Hemodiálise','Diagnóstico e Causa de Óbito no Banco de Urgência']],
+               ['Deolinda Vitoriano',['Movimento Hospitalar','Dias Camas & Dias Doentes','Diagnósticos e Causas de Óbito no Internamento']]] },
+    { tipo:'fluxo', tit:'Como Supervisionar os Serviços', sub:'Fluxo de Supervisão — Serviço de Admissão e Arquivo Médico Estatístico', pe:'Fluxo de Supervisão dos Serviços',
+      nos:[P('Recolha diária de dados','Cada responsável de área recolhe os dados do seu serviço na origem.'),
+           P('Verificação de 1.ª linha','O responsável confere completude e coerência antes de submeter.'),
+           P('Consolidação pelo Chefe de Serviço','O Chefe de Serviço reúne e cruza os dados de todas as áreas.'),
+           D('Dados consistentes e completos?','NÃO','Devolve-se ao serviço para correção e reenvio','SIM'),
+           P('Elaboração do relatório estatístico','Mapas de movimento hospitalar, indicadores e formulários mensais.'),
+           P('Validação final','O Chefe de Serviço confere e aprova o relatório consolidado.'),
+           P('Envio à Direção Clínica','Relatório final arquivado e remetido à Direção do hospital.')] },
+    { tipo:'fluxo', tit:'Prazos de Recolha e Gestão de Atrasos', sub:'Serviço de Admissão e Arquivo Médico Estatístico — Hospital do Prenda', pe:'Gestão de Prazos e Atrasos na Recolha de Dados',
+      prazos:[['DIÁRIO','Até às 10h do dia seguinte'],['SEMANAL','Até sexta-feira da semana em curso'],['MENSAL','Até ao dia 2 do mês seguinte']],
+      subt:'O que fazer quando um serviço não envia os dados a tempo',
+      nos:[P('Verificação do prazo','Confirma-se se o serviço enviou os dados dentro do prazo (diário/semanal/mensal).'),
+           D('Dados recebidos dentro do prazo?','SIM','Integração normal — sem necessidade de ação','NÃO'),
+           P('Contacto informal ao serviço','No mesmo dia, por telefone ou mensagem, lembrando o responsável do prazo.'),
+           D('Recebido nas 24h seguintes?','SIM','Regista atraso leve e integra os dados','NÃO'),
+           P('Notificação formal por escrito','Envia-se memorando/e-mail ao responsável do serviço, com cópia à Direção Clínica.'),
+           D('Recebido após a notificação formal?','SIM','Integra os dados e regista a ocorrência','NÃO'),
+           P('Reporte à Direção Clínica','Incumprimento persistente é comunicado formalmente para decisão de medidas administrativas.',{ alerta:true })] },
+    { tipo:'fluxo', tit:'Receção e Validação de Dados de Outro Serviço', sub:'Serviço de Admissão e Arquivo Médico Estatístico — Hospital do Prenda', pe:'Receção e Validação de Dados',
+      nota:'Validação em duas camadas: o responsável da área valida o conteúdo — o Chefe de Serviço (supervisor) dá a validação final.',
+      nos:[P('Receção dos dados','Dados recebidos de um serviço clínico (papel, e-mail ou formulário).'),
+           D('Chegou ao responsável da área correta?','NÃO','Reencaminha-se de imediato ao responsável certo','SIM'),
+           P('Validação técnica pelo responsável da área','Confere-se completude, coerência e formato dos dados recebidos.',{ tag:'1.ª camada' }),
+           D('Dados completos e coerentes?','NÃO','Devolve-se ao serviço de origem para correção','SIM'),
+           P('Validação final pelo Chefe de Serviço','O supervisor confirma a consistência global antes da integração.',{ tag:'2.ª camada' }),
+           P('Registo e integração dos dados','Dados validados são arquivados e integrados nos mapas estatísticos.')] },
+    { tipo:'fluxo', tit:'Como Fazer Auditoria', sub:'Auditoria aos Dados Estatísticos — Serviço de Admissão e Arquivo Médico Estatístico', pe:'Fluxo de Auditoria aos Dados Estatísticos',
+      nos:[P('Planeamento da auditoria','Define-se o período, a área/serviço e a amostra de registos a verificar.'),
+           P('Verificação com os documentos de origem','Compara-se o reportado com os formulários e mapas originais do serviço.'),
+           D('Os dados conferem com a origem?','NÃO','Regista-se o desvio e solicita-se correção ao responsável','SIM'),
+           P('Verificação dos cálculos e indicadores','Confere-se fórmulas, somas e indicadores (taxas, médias) dos mapas estatísticos.'),
+           D('Cálculos e indicadores corretos?','NÃO','Corrige-se e notifica-se o responsável da área','SIM'),
+           P('Elaboração do relatório de auditoria','Regista achados, desvios encontrados e recomendações de melhoria.'),
+           P('Apresentação e acompanhamento','Relatório apresentado ao Chefe de Serviço/Direção; confirma-se o fecho das correções.')] },
+    { tipo:'fluxo', tit:'Serviço Sem Livro de Registo ou Fonte de Informação', sub:'Serviço de Admissão e Arquivo Médico Estatístico — Hospital do Prenda', pe:'Serviço Sem Fonte de Informação',
+      nos:[P('Deteção da ausência de registo','Verifica-se, na recolha ou em visita ao serviço, que não existe livro/fonte de dados.'),
+           D('Existe alguma fonte alternativa disponível?','SIM','Regista-se a situação e usa-se a fonte alternativa, de forma temporária','NÃO'),
+           P('Comunicação formal ao responsável do serviço','Solicita-se a criação de um livro de registo padronizado, com prazo definido.'),
+           D('Registo implementado dentro do prazo?','NÃO','Reporte à Direção Clínica para providências','SIM'),
+           P('Validação do novo livro de registo','Confirma-se que cumpre os requisitos mínimos: campos, periodicidade e responsável.'),
+           P('Integração no fluxo normal de recolha','O serviço passa a fornecer dados regularmente, conforme os prazos definidos.')] },
+    { tipo:'fluxo', tit:'Fonte de Informação Não Organizada', sub:'Serviço de Admissão e Arquivo Médico Estatístico — Hospital do Prenda', pe:'Fonte de Informação Não Organizada',
+      nos:[P('Deteção da desorganização','Verifica-se que o livro/fonte existe, mas está incompleto, disperso ou sem padrão.'),
+           D('É possível extrair os dados necessários mesmo assim?','SIM','Recolhem-se e organizam-se os dados manualmente, registando a situação','NÃO'),
+           P('Orientação técnica ao serviço','Fornece-se um modelo padrão de registo (campos, periodicidade) e define-se um prazo.'),
+           D('Registo reorganizado dentro do prazo?','NÃO','Reporte à Direção Clínica para providências','SIM'),
+           P('Validação da nova organização','Confirma-se estrutura, campos e periodicidade do registo reorganizado.'),
+           P('Acompanhamento periódico','Verifica-se, nas recolhas seguintes, se a organização do registo se mantém.')] },
+    { tipo:'mov', tit:'Como Preencher o Movimento Hospitalar', sub:'Guia para Apoiar os Serviços de Internamento — Hospital do Prenda', pe:'Guia de Preenchimento do Movimento Hospitalar' },
+    { tipo:'fluxo', tit:'Como Preencher o Relatório do Hospital', sub:'Todas as Fases — Serviço de Admissão e Arquivo Médico Estatístico', pe:'Fases de Elaboração do Relatório do Hospital',
+      nos:[P('Recolha de dados por serviço','Cada área envia os dados dentro dos prazos: diário, semanal e mensal.'),
+           P('Verificação e validação','O responsável da área valida o conteúdo; o Chefe de Serviço dá a validação final.'),
+           D('Dados validados e completos?','NÃO','Devolve-se ao serviço de origem para correção','SIM'),
+           P('Preenchimento do Movimento Hospitalar','Existência Anterior, Admitidos, Saídos e Ficam Existindo, por serviço de internamento.'),
+           P('Cálculo dos indicadores','Dias Camas, Dias Doentes, taxa de ocupação, média de permanência e taxa de rotação.'),
+           P('Consolidação do relatório','Reúnem-se os mapas de todas as áreas num único relatório, com gráficos e anexos.'),
+           P('Validação final e envio à Direção Clínica','O Chefe de Serviço aprova; o relatório é arquivado e remetido à Direção do hospital.')] }
   ];
-  function seta(y0, y1, cor){ d.setDrawColor(cor); d.setLineWidth(0.6); d.line(W / 2, y0, W / 2, y1 - 2); d.setFillColor(cor); d.triangle(W / 2 - 2, y1 - 2.5, W / 2 + 2, y1 - 2.5, W / 2, y1, 'F'); }
-  var n = 0;
-  PASSOS.forEach(function(p, i){
-    if (!p){
-      // Decisão
-      var cy = y + 11, lw = 36, lh = 11;
-      d.setDrawColor('#3B7A4E'); d.setLineWidth(0.7); d.setFillColor('#FFFFFF');
-      d.lines([[lw, lh], [-lw, lh], [-lw, -lh], [lw, -lh]], W / 2, cy - lh, [1, 1], 'FD', true);
-      d.setFont('helvetica', 'bold'); d.setFontSize(9); d.setTextColor('#132033');
-      d.text('Dados validados e completos?', W / 2, cy + 1, { align: 'center' });
-      d.setDrawColor('#B3263E'); d.line(W / 2 + lw, cy, W / 2 + lw + 14, cy);
-      d.setTextColor('#B3263E'); d.setFontSize(8); d.text('NÃO', W / 2 + lw + 3, cy - 2);
-      d.roundedRect(W / 2 + lw + 14, cy - 8, 42, 16, 2.5, 2.5, 'S');
-      d.setTextColor('#132033'); d.setFontSize(8.5);
-      d.text(d.splitTextToSize('Devolve-se ao serviço de origem para correção', 36), W / 2 + lw + 35, cy - 2, { align: 'center' });
-      seta(cy + lh, cy + lh + 9, '#D4A017');
-      d.setTextColor('#B8860B'); d.setFontSize(8); d.text('SIM', W / 2 + 3, cy + lh + 6);
-      y = cy + lh + 9; return;
+  window.ZELO_PROTOCOLOS = L;
+
+  function esc(t){ return String(t == null ? '' : t).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+  function an(d, cls){ return ' class="an' + (cls ? ' ' + cls : '') + '" style="--d:' + d + '"'; }
+  function ladoHTML(n, s, leg){
+    return '<div class="lado"><div class="sec an lado-e" style="--d:0">TEMA ' + n + ' DE ' + (L.length - 1) + '</div><div class="big an lado-e" style="--d:0">' + String(n).padStart(2,'0') + '</div>' +
+      '<h2 class="an lado-e" style="--d:1">' + esc(s.tit) + '</h2><p class="an lado-e" style="--d:2">' + esc(s.sub) + '</p>' +
+      (leg ? '<div class="leg an" style="--d:3"><span><i></i>Passo</span><span><i class="d"></i>Decisão</span><span><i style="background:#2F855A;border-color:#2F855A"></i>SIM</span><span><i style="background:#B3263E;border-color:#B3263E"></i>NÃO</span></div>' : '<div class="leg"></div>') +
+      '<div class="marca">Hospital do Prenda — Serviço de Estatística</div></div>';
+  }
+  function rodape(s){ return '<div class="rod"><em>Hospital do Prenda — Serviço de Estatística</em><span>' + esc(s.pe) + '</span></div>'; }
+
+  function fluxoHTML(s){
+    var h = '', d = 2, n = 0, cor = 0;
+    if (s.prazos) {
+      h += '<div class="prazos">' + s.prazos.map(function(p, i){ var c = ['#0E7C86','#2C6E91','#6A4C9C'][i]; return '<div class="prazo an pop" style="--d:' + (d++) + ';--c:' + c + '"><b>' + p[0] + '</b><span>' + esc(p[1]) + '</span></div>'; }).join('') + '</div>';
+      h += '<div class="subt an" style="--d:' + (d++) + '">' + esc(s.subt) + '</div>';
     }
-    n++;
-    d.setDrawColor(p[0]); d.setLineWidth(0.7); d.setFillColor('#FFFFFF'); d.roundedRect(x, y, w, h, 3, 3, 'FD');
-    d.setFillColor(p[0]); d.circle(x + 9, y + h / 2, 4.5, 'F');
-    d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(10); d.text(String(n), x + 9, y + h / 2 + 1.3, { align: 'center' });
-    d.setTextColor('#132033'); d.setFontSize(11); d.text(p[1], x + 18, y + 7);
-    d.setFont('helvetica', 'normal'); d.setFontSize(9); d.setTextColor('#4B5B70');
-    d.text(d.splitTextToSize(p[2], w - 24), x + 18, y + 12.5);
-    y += h;
-    if (i < PASSOS.length - 1 && PASSOS[i + 1]) { seta(y, y + 8, '#0B2545'); y += 8; }
-    else if (i < PASSOS.length - 1) { seta(y, y + 6, '#0B2545'); y += 6; }
+    if (s.nota) h += '<div class="nota an" style="--d:' + (d++) + '">' + esc(s.nota) + '</div>';
+    h += '<div class="col">';
+    var seguinte = null;
+    s.nos.forEach(function(no, i){
+      if (i > 0) {
+        var r = seguinte; seguinte = null;
+        h += '<div class="seta an cresce' + (r === 'SIM' ? ' sim' : r === 'NÃO' ? ' nao' : '') + '" style="--d:' + (d++) + '">' + (r ? '<span class="r">' + r + '</span>' : '') + '</div>';
+      }
+      if (no.k === 'p') {
+        n++;
+        var c = no.alerta ? '#B3263E' : COR[cor++ % COR.length];
+        h += '<div class="passo an' + (no.alerta ? ' alerta pulsa' : '') + '" style="--d:' + (d++) + ';--c:' + c + '"><div class="num">' + n + '</div><div><h3>' + esc(no.t) + '</h3><p>' + esc(no.x) + '</p></div>' + (no.tag ? '<span class="tag">' + esc(no.tag) + '</span>' : '') + '</div>';
+      } else {
+        var ok = no.lado === 'SIM' && !/Reporte/.test(no.txt), cl = ok ? 'ok' : 'mau';
+        h += '<div class="dec"><div class="los an pop" style="--d:' + (d++) + '"><svg viewBox="0 0 300 86" preserveAspectRatio="none"><polygon points="150,3 297,43 150,83 3,43" fill="#FFFBEB" stroke="#C28A17" stroke-width="3"/></svg><span>' + esc(no.q) + '</span></div>' +
+          '<div class="ramo ' + cl + '"><div class="ln an cresceH" style="--d:' + (d++) + '"><b>' + no.lado + '</b></div><div class="lateral an" style="--d:' + (d++) + '"><i></i><span>' + esc(no.txt) + '</span></div></div></div>';
+        seguinte = no.segue;
+      }
+    });
+    return h + '</div>';
+  }
+  function orgHTML(s){
+    var cores = ['#2C6E91','#3B7A4E','#6A4C9C','#C28A17'];
+    var h = '<div class="org"><div class="raiz an pop" style="--d:2"><small>CHEFIA</small>' + esc(s.raiz) + '</div>' +
+      '<div class="ramos-org"><div class="v an cresce" style="--d:3"></div><div class="h an cresceH" style="--d:4"></div>' +
+      [12.5, 37.5, 62.5, 87.5].map(function(x){ return '<div class="p an cresce" style="--d:5;left:calc(' + x + '% - 1.5px)"></div>'; }).join('') + '</div><div class="pessoas">';
+    s.pessoas.forEach(function(p, i){
+      var ini = p[0].split(' ').map(function(x){ return x[0]; }).join('');
+      h += '<div class="pessoa an" style="--d:' + (6 + i) + ';--c:' + cores[i] + '"><div class="nm"><em>' + ini + '</em>' + esc(p[0].toUpperCase()) + '</div><ul>' +
+        p[1].map(function(sv, j){ return '<li class="an" style="--d:' + (8 + i + j * 0.6).toFixed(1) + '">' + esc(sv) + '</li>'; }).join('') + '</ul></div>';
+    });
+    return h + '</div></div>';
+  }
+  function movHTML(){
+    var d = 2;
+    function bloco(n, c, t, x, extra, larga){ return '<div class="mv an' + (larga ? ' larga' : '') + '" style="--d:' + (d++) + ';--c:' + c + '"><div class="cab"><div class="num">' + n + '</div><h3>' + t + '</h3></div><p>' + x + '</p>' + (extra || '') + '</div>'; }
+    return '<div class="mvg">' +
+      bloco(1, '#2C6E91', 'Existência Anterior', 'N.º de doentes já internados no início do dia — igual ao «Ficam Existindo» do dia anterior.') +
+      bloco(2, '#3B7A4E', 'Admitidos (Entrados)', 'Total de doentes que deram entrada no serviço durante o dia.',
+        '<div class="filhos"><div class="filho"><b>DIRETOS</b><span>Admissão direta ao serviço (não vem de outro serviço interno).</span></div><div class="filho"><b>TRANSFERIDOS</b><span>Doente vindo de outro serviço de internamento do hospital.</span></div></div>') +
+      bloco(3, '#B3263E', 'Saídos', 'Total de doentes que saíram do serviço durante o dia (por alta, óbito ou transferência).',
+        '<div class="filhos"><div class="filho"><b>VIVOS</b><span>Alta clínica — saída com vida.</span></div>' +
+        '<div class="filho"><b>FALECIDOS</b><span>Óbitos ocorridos no serviço.</span><div class="neto"><em>−48H · óbito até 48h após a admissão</em><em>+48H · óbito após 48h da admissão</em></div></div>' +
+        '<div class="filho"><b>TRANSFERIDO</b><span>Doente enviado para outro serviço de internamento.</span></div></div>', true) +
+      bloco(4, '#C28A17', 'Ficam Existindo', 'Torna-se a Existência Anterior do dia seguinte.',
+        '<div class="formula"><span style="background:#2C6E91">Existência Anterior</span><b>+</b><span style="background:#3B7A4E">Admitidos</span><b>−</b><span style="background:#B3263E">Saídos</span><b>=</b><span style="background:#C28A17">Ficam Existindo</span></div>') +
+      bloco(5, '#6A4C9C', 'Dias Camas e Dias Doentes', '<b>Dias Camas</b> = n.º de camas disponíveis × dias do período. <b>Dias Doentes</b> = soma dos dias de internamento de cada doente — usados no cálculo da taxa de ocupação e da média de permanência.') +
+      '</div>';
+  }
+  function capaHTML(){
+    var temas = L.slice(1);
+    return '<div class="capa"><div class="esq"><img class="an pop" style="--d:0" src="icons/logo.png" alt=""><div class="hp an" style="--d:1">HOSPITAL DO PRENDA</div>' +
+      '<h2 class="an" style="--d:2">Protocolos<br>e <em>Fluxogramas</em></h2><div class="sv an" style="--d:3">Serviço de Admissão e Arquivo Médico Estatístico</div>' +
+      '<div class="ref an" style="--d:4">Documento de Referência Interna · Hospital do Prenda — 2026</div></div>' +
+      '<div class="dir"><h4 class="an" style="--d:3">CONTEÚDOS</h4><div class="itens">' +
+      temas.map(function(t, i){ return '<button type="button" class="an" style="--d:' + (4 + i * 0.5) + '" data-ir="' + (i + 1) + '"><b>' + String(i + 1).padStart(2, '0') + '</b>' + esc(t.tit) + '</button>'; }).join('') +
+      '</div></div></div>';
+  }
+  function laminaHTML(s, i){
+    if (s.tipo === 'capa') return capaHTML();
+    var corpo = s.tipo === 'org' ? orgHTML(s) : s.tipo === 'mov' ? movHTML() : fluxoHTML(s);
+    return '<div class="lam">' + ladoHTML(i, s, s.tipo === 'fluxo') + '<div class="area' + (s.tipo === 'org' ? ' centro' : '') + '"><div class="corpo">' + corpo + '</div></div>' + rodape(s) + '</div>';
+  }
+
+  // ── montagem e navegação ──
+  var palco = document.getElementById('palco'), atual = 0, lams = [], auto = null;
+  L.forEach(function(s, i){ var el = document.createElement('div'); el.className = 'lamina'; el.innerHTML = laminaHTML(s, i); palco.appendChild(el); lams.push(el); });
+  var pontos = document.getElementById('pontos'), indice = document.getElementById('indice');
+  pontos.innerHTML = L.map(function(s, i){ return '<button type="button" data-ir="' + i + '" aria-label="' + esc(s.tit) + '" title="' + esc(s.tit) + '"></button>'; }).join('');
+  indice.innerHTML = L.map(function(s, i){ return '<button type="button" data-ir="' + i + '"><b>' + i + '</b>' + esc(s.tit) + '</button>'; }).join('');
+  // Ajusta o desenho (1280×720) ao tamanho do palco e encolhe um fluxograma longo para caber.
+  function escala(){
+    var k = palco.clientWidth / 1280;
+    lams.forEach(function(l){ l.style.transform = 'scale(' + k + ')'; });
+  }
+  function caber(l){
+    var area = l.querySelector('.area'), corpo = l.querySelector('.corpo'); if (!area || !corpo) return;
+    corpo.style.transform = 'none';
+    var cs = getComputedStyle(area), disp = area.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - 6, alt = corpo.scrollHeight;
+    if (alt > disp) corpo.style.transform = 'scale(' + Math.max(0.55, disp / alt).toFixed(3) + ')';
+  }
+  function ir(i, semAnim){
+    if (i < 0 || i >= L.length) return;
+    lams[atual].classList.remove('on');
+    atual = i;
+    var l = lams[i];
+    caber(l);
+    // Reinicia as animações do diapositivo
+    l.classList.remove('on'); void l.offsetWidth; l.classList.add('on');
+    document.getElementById('conta').textContent = (i + 1) + ' / ' + L.length;
+    document.getElementById('prog').style.width = ((i + 1) * 100 / L.length) + '%';
+    document.getElementById('ant').disabled = i === 0; document.getElementById('seg').disabled = i === L.length - 1;
+    Array.prototype.forEach.call(pontos.children, function(b, j){ b.classList.toggle('on', j === i); });
+    Array.prototype.forEach.call(indice.children, function(b, j){ b.classList.toggle('on', j === i); });
+    try { history.replaceState(null, '', '#d' + (i + 1)); } catch (e) {}
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('[data-ir]'); if (b){ pararAuto(); ir(+b.dataset.ir); palco.focus({ preventScroll:true }); }
+  });
+  document.getElementById('ant').onclick = function(){ pararAuto(); ir(atual - 1); };
+  document.getElementById('seg').onclick = function(){ pararAuto(); ir(atual + 1); };
+  document.getElementById('btRepetir').onclick = function(){ ir(atual); };
+  document.getElementById('btIndice').onclick = function(){ var on = indice.classList.toggle('on'); this.classList.toggle('on', on); this.setAttribute('aria-pressed', on); };
+  function pararAuto(){ if (auto){ clearInterval(auto); auto = null; var b = document.getElementById('btAuto'); b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); b.querySelector('span').textContent = 'Reproduzir'; } }
+  document.getElementById('btAuto').onclick = function(){
+    if (auto){ pararAuto(); return; }
+    this.classList.add('on'); this.setAttribute('aria-pressed', 'true'); this.querySelector('span').textContent = 'Pausa';
+    if (atual === L.length - 1) ir(0);
+    auto = setInterval(function(){ if (atual >= L.length - 1){ pararAuto(); return; } ir(atual + 1); }, 9000);
+  };
+  var apr = document.getElementById('apr');
+  document.getElementById('btEcra').onclick = function(){
+    if (document.fullscreenElement) { document.exitFullscreen(); return; }
+    if (apr.requestFullscreen) apr.requestFullscreen().catch(function(){});
+  };
+  document.addEventListener('fullscreenchange', function(){ setTimeout(function(){ escala(); caber(lams[atual]); }, 60); });
+  document.addEventListener('keydown', function(e){
+    if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && document.activeElement === palco)) { e.preventDefault(); pararAuto(); ir(atual + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); pararAuto(); ir(atual - 1); }
+    else if (e.key === 'Home') { ir(0); } else if (e.key === 'End') { ir(L.length - 1); }
+    else if (e.key === 'f' || e.key === 'F') { document.getElementById('btEcra').click(); }
+  });
+  var x0 = null;
+  palco.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, { passive:true });
+  palco.addEventListener('touchend', function(e){ if (x0 == null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50){ pararAuto(); ir(atual + (dx < 0 ? 1 : -1)); } });
+  window.addEventListener('resize', escala);
+  escala();
+  var m = /#d(\d+)/.exec(location.hash), ini = m ? Math.min(L.length, Math.max(1, +m[1])) - 1 : 0;
+  ir(ini);
+  window.ZeloFluxo = { ir: ir, atual: function(){ return atual; }, total: L.length };
+})();
+
+/* ── PDF: todos os temas, desenhados em vetor (nítidos a qualquer tamanho) ── */
+document.getElementById('flxPdf').addEventListener('click', function(){
+  var Z = window.ZeloPDF, L = window.ZELO_PROTOCOLOS;
+  if (!Z || !(window.jspdf && window.jspdf.jsPDF)){ alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return; }
+  var d = Z.novo(), W = d.internal.pageSize.getWidth(), COR = ['#2C6E91','#3B7A4E','#C28A17','#0B2545','#6A4C9C','#B3263E','#0E7C86'];
+  function T(t){ return Z.limpar(String(t).replace(/\u2212/g, '-')); }
+  function seta(x, y0, y1, cor, rot){ d.setDrawColor(cor); d.setLineWidth(0.6); d.line(x, y0, x, y1 - 2); d.setFillColor(cor); d.triangle(x - 2, y1 - 2.5, x + 2, y1 - 2.5, x, y1, 'F');
+    if (rot){ d.setTextColor(cor); d.setFont('helvetica', 'bold'); d.setFontSize(7.5); d.text(rot, x + 2.5, y0 + 4); } }
+  // Capa / conteúdos
+  var y = Z.cabecalho(d, 'Protocolos e Fluxogramas', 'Serviço de Admissão e Arquivo Médico Estatístico · Documento de Referência Interna · 2026');
+  y = Z.secao(d, y, 'Conteúdos');
+  L.slice(1).forEach(function(s, i){ d.setFont('helvetica', 'bold'); d.setFontSize(11); d.setTextColor('#0B2545'); d.text(String(i + 1).padStart(2, '0'), 20, y + 5); d.setFont('helvetica', 'normal'); d.setTextColor('#132033'); d.text(T(s.tit), 32, y + 5); d.setDrawColor('#E2E8F0'); d.line(20, y + 8, W - 20, y + 8); y += 11; });
+  L.slice(1).forEach(function(s){
+    d.addPage();
+    var y = Z.cabecalho(d, s.tit, String(s.sub).replace(/\s*—\s*Hospital do Prenda$/, ''));
+    if (s.tipo === 'org') {
+      d.setFillColor('#0B2545'); d.roundedRect(W / 2 - 60, y, 120, 14, 3, 3, 'F');
+      d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(10.5); d.text(T(s.raiz), W / 2, y + 8.6, { align: 'center' });
+      var cw = (W - 28 - 9) / 4, top = y + 24;
+      d.setDrawColor('#0B2545'); d.setLineWidth(0.6); d.line(W / 2, y + 14, W / 2, y + 19); d.line(14 + cw / 2, y + 19, 14 + 3.5 * cw + 9, y + 19);
+      s.pessoas.forEach(function(p, i){
+        var x = 14 + i * (cw + 3), c = ['#2C6E91','#3B7A4E','#6A4C9C','#C28A17'][i];
+        d.setDrawColor('#0B2545'); d.line(x + cw / 2, y + 19, x + cw / 2, top);
+        d.setFillColor(c); d.roundedRect(x, top, cw, 11, 2, 2, 'F');
+        d.setTextColor('#FFFFFF'); d.setFontSize(8.5); d.text(T(p[0].toUpperCase()), x + cw / 2, top + 7, { align: 'center' });
+        var yy = top + 15;
+        p[1].forEach(function(sv){ var ln = d.splitTextToSize(T(sv), cw - 6); var hh = ln.length * 4 + 4; d.setFillColor('#F1F5F9'); d.rect(x, yy, cw, hh, 'F'); d.setFillColor(c); d.rect(x, yy, 1.4, hh, 'F'); d.setTextColor('#132033'); d.setFont('helvetica', 'normal'); d.setFontSize(8.5); d.text(ln, x + 3.5, yy + 4.6); d.setFont('helvetica', 'bold'); yy += hh + 2; });
+      });
+      return;
+    }
+    if (s.tipo === 'mov') {
+      var itens = [['1','Existência Anterior','N.º de doentes já internados no início do dia — igual ao "Ficam Existindo" do dia anterior.',[]],
+        ['2','Admitidos (Entrados)','Total de doentes que deram entrada no serviço durante o dia.',[['Diretos','Admissão direta ao serviço (não vem de outro serviço interno).'],['Transferidos','Doente vindo de outro serviço de internamento do hospital.']]],
+        ['3','Saídos','Total de doentes que saíram do serviço durante o dia (por alta, óbito ou transferência).',[['Vivos','Alta clínica — saída com vida.'],['Falecidos','Óbitos ocorridos no serviço. -48H: óbito até 48h após a admissão; +48H: óbito após 48h da admissão.'],['Transferido','Doente enviado para outro serviço de internamento.']]],
+        ['4','Ficam Existindo','Existência Anterior + Admitidos − Saídos. Torna-se a Existência Anterior do dia seguinte.',[]],
+        ['5','Dias Camas e Dias Doentes','Dias Camas = n.º de camas disponíveis × dias do período. Dias Doentes = soma dos dias de internamento de cada doente — usados no cálculo da taxa de ocupação e da média de permanência.',[]]];
+      itens.forEach(function(it, i){
+        var c = ['#2C6E91','#3B7A4E','#B3263E','#C28A17','#6A4C9C'][i];
+        d.setFont('helvetica', 'normal'); d.setFontSize(9.5);
+        var ln = d.splitTextToSize(T(it[2]), W - 60), fl = it[3].map(function(f){ d.setFontSize(9); return d.splitTextToSize(T(f[1]), W - 100); });
+        var hh = 18 + (ln.length - 1) * 4.4 + fl.reduce(function(a, x){ return a + x.length * 4 + 3; }, 0) + (fl.length ? 3 : 0);
+        d.setDrawColor(c); d.setLineWidth(0.7); d.roundedRect(20, y, W - 40, hh, 3, 3, 'S');
+        d.setFillColor(c); d.circle(28, y + 7, 4.2, 'F'); d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(10); d.text(it[0], 28, y + 8.3, { align: 'center' });
+        d.setTextColor('#132033'); d.setFontSize(11.5); d.text(T(it[1]), 36, y + 8.3);
+        d.setFont('helvetica', 'normal'); d.setFontSize(9.5); d.setTextColor('#4B5B70'); d.text(ln, 36, y + 14);
+        var yy = y + 14 + ln.length * 4.4;
+        yy += 2;
+        it[3].forEach(function(f, j){ d.setFont('helvetica', 'bold'); d.setTextColor(c); d.setFontSize(9); d.text(T(f[0].toUpperCase()) + ':', 40, yy + 3); d.setFont('helvetica', 'normal'); d.setTextColor('#132033'); d.text(fl[j], 70, yy + 3); yy += fl[j].length * 4 + 3; });
+        y += hh + 5;
+      });
+      return;
+    }
+    // Fluxo
+    var cx = 76, bx = 16, bw = 120, lx = 144, lw = W - 14 - lx;
+    if (s.prazos) {
+      var pw = (W - 28 - 8) / 3;
+      s.prazos.forEach(function(p, i){ var x = 14 + i * (pw + 4), c = ['#0E7C86','#2C6E91','#6A4C9C'][i]; d.setDrawColor(c); d.setLineWidth(0.7); d.roundedRect(x, y, pw, 16, 2.5, 2.5, 'S'); d.setFillColor(c); d.rect(x, y, pw, 3, 'F');
+        d.setTextColor(c); d.setFont('helvetica', 'bold'); d.setFontSize(9); d.text(p[0], x + pw / 2, y + 8, { align: 'center' }); d.setTextColor('#132033'); d.setFontSize(9); d.text(T(p[1]), x + pw / 2, y + 13, { align: 'center' }); });
+      y += 21; d.setTextColor('#C0561C'); d.setFontSize(10); d.text(T(s.subt.toUpperCase()), 14, y + 3); y += 7;
+    }
+    if (s.nota) { d.setFont('helvetica', 'italic'); d.setFontSize(9); d.setTextColor('#24506A'); var nl = d.splitTextToSize(T(s.nota), W - 28); d.text(nl, 14, y + 3); y += nl.length * 4.2 + 3; }
+    var n = 0, cor = 0, prox = null;
+    s.nos.forEach(function(no, i){
+      if (i > 0) { var r = prox; prox = null; seta(cx, y, y + 7, r === 'SIM' ? '#2F855A' : r === 'NÃO' ? '#B3263E' : '#0B2545', r); y += 7; }
+      if (no.k === 'p') {
+        n++; var c = no.alerta ? '#B3263E' : COR[cor++ % COR.length];
+        var ln = d.splitTextToSize(T(no.x), bw - 22), h = 9 + ln.length * 3.9;
+        d.setDrawColor(c); d.setLineWidth(0.7); d.setFillColor(no.alerta ? '#FFF5F6' : '#FFFFFF'); d.roundedRect(bx, y, bw, h, 3, 3, 'FD');
+        d.setFillColor(c); d.circle(bx + 8, y + h / 2, 4.2, 'F'); d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(10); d.text(String(n), bx + 8, y + h / 2 + 1.3, { align: 'center' });
+        d.setTextColor('#132033'); d.setFontSize(10); d.text(T(no.t), bx + 16, y + 5.6);
+        d.setFont('helvetica', 'normal'); d.setFontSize(8.5); d.setTextColor('#4B5B70'); d.text(ln, bx + 16, y + 9.6);
+        if (no.tag) { d.setFont('helvetica', 'bold'); d.setFontSize(7.5); d.setTextColor(c); d.text(T(no.tag.toUpperCase()), bx + bw - 2, y + 4.5, { align: 'right' }); }
+        y += h;
+      } else {
+        var lh = 9.5, hw = 34, cy = y + lh, ok = no.lado === 'SIM' && !/Reporte/.test(no.txt), cl = ok ? '#2F855A' : '#B3263E';
+        d.setDrawColor('#C28A17'); d.setLineWidth(0.7); d.setFillColor('#FFFBEB');
+        d.lines([[hw, lh], [-hw, lh], [-hw, -lh], [hw, -lh]], cx, cy - lh, [1, 1], 'FD', true);
+        d.setFont('helvetica', 'bold'); d.setFontSize(8); d.setTextColor('#132033');
+        var ql = d.splitTextToSize(T(no.q), 50); d.text(ql, cx, cy - (ql.length - 1) * 1.7 + 1, { align: 'center' });
+        d.setDrawColor(cl); d.line(cx + hw, cy, lx - 1, cy); d.setFillColor(cl); d.triangle(lx - 3, cy - 1.8, lx - 3, cy + 1.8, lx, cy, 'F');
+        d.setTextColor(cl); d.setFontSize(7.5); d.text(no.lado, cx + hw + 3, cy - 1.8);
+        d.setFont('helvetica', 'bold'); d.setFontSize(8.5); var tl = d.splitTextToSize(T(no.txt), lw - 6), th = tl.length * 3.9 + 5;
+        d.roundedRect(lx, cy - th / 2, lw, th, 2.5, 2.5, 'S'); d.setTextColor('#132033'); d.setFontSize(8.5); d.text(tl, lx + 3, cy - th / 2 + 4.6);
+        y = cy + lh; prox = no.segue;
+      }
+    });
   });
   Z.rodape(d);
-  d.save('fluxograma_relatorio_hospital.pdf');
+  d.save('protocolos_e_fluxogramas.pdf');
 });
 </script>
 <script src="zelo_servicos_menu.js?v=2"></script>
