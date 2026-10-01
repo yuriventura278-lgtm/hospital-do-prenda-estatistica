@@ -202,8 +202,6 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Estatística', file: 'Estatistica.html', modulo: 'estatistica', item: null },
   { nome: 'Procedimentos de Enfermagem · Geral', file: 'procedimentos_enfermagem_geral.html', modulo: 'procedimentos_enfermagem', item: 'geral' },
   { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
-  // Monitorização (só leitura): Testagem de VIH do Laboratório + Hemoterapia, cada um e a soma.
-  { nome: 'Testagem de VIH', file: 'testagem_vih_estatistica.html', modulo: 'sistemas_independentes', item: 'testagem_vih' },
   { nome: 'Movimento Hospitalar Geral', file: 'movimento_hospitalar_geral.html', modulo: 'sistemas_independentes', item: 'movimento_hospitalar_geral' },
   { nome: 'Fluxograma do Relatório', file: 'fluxograma_relatorio.html', modulo: 'sistemas_independentes', item: 'fluxograma_relatorio' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),

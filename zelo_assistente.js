@@ -103,7 +103,6 @@
     'supervisao de maqueiros': 'Supervisão de Maqueiros', 'maqueiros': 'Supervisão de Maqueiros',
     'procedimentos de enfermagem geral': 'Procedimentos de Enfermagem · Geral',
     'controlo de faltas': 'Controlo de Faltas · GEPE/DEMA', 'gepe dema': 'Controlo de Faltas · GEPE/DEMA',
-    'registo vih': 'Testagem de VIH', 'vih': 'Testagem de VIH', 'hiv': 'Testagem de VIH',
   };
   var APELIDOS_CHAVES = Object.keys(APELIDOS).sort(function (a, b) { return b.length - a.length; });
 
