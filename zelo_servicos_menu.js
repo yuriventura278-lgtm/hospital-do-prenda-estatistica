@@ -201,7 +201,7 @@ const ZELO_SERVICO_ESTATISTICA = 'Serviço de Estatística';
 const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Estatística', file: 'Estatistica.html', modulo: 'estatistica', item: null },
   { nome: 'Procedimentos de Enfermagem · Geral', file: 'procedimentos_enfermagem_geral.html', modulo: 'procedimentos_enfermagem', item: 'geral' },
-  { nome: 'Controlo de Faltas · GEPE/DEMA', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
+  { nome: 'Controlo de Faltas', file: 'controlo_faltas_gepedema.html', modulo: 'sistemas_independentes', item: 'controlo_faltas_gepedema' },
   { nome: 'Movimento Hospitalar Geral', file: 'movimento_hospitalar_geral.html', modulo: 'sistemas_independentes', item: 'movimento_hospitalar_geral' },
   { nome: 'Fluxograma do Relatório', file: 'fluxograma_relatorio.html', modulo: 'sistemas_independentes', item: 'fluxograma_relatorio' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),
