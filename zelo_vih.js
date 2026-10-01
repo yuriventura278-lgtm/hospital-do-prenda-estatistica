@@ -1,6 +1,6 @@
 // ── ZELO — Testagem de VIH (Laboratório e Hemoterapia) ──
 // Motor comum às páginas registo_vih_laboratorio.html e
-// registo_vih_hemoterapia.html. Os campos são os do "Registo VIH · Geral"
+// registo_vih_hemoterapia.html. Os campos são os do antigo "Registo VIH · Geral"
 // (Serviço de Estatística): Formação Sanitária, Fonte, Testados / Positivos /
 // Indeterminados por faixa etária e sexo (F/M) e Observações — aqui com
 // registo SEMANAL (todas as semanas do mês, de segunda a domingo, cortadas
