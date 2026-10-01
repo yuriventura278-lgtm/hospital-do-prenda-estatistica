@@ -102,10 +102,10 @@
   .month-bar .label .m{font-size:17px;font-weight:800;text-transform:capitalize;}
   .month-bar .label .y{font-size:12px;color:var(--muted);}
 
-  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-top:16px;margin-bottom:6px;}
+  .weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));margin-top:16px;margin-bottom:6px;}
   .weekdays div{text-align:center;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
 
-  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;}
   .day{
     position:relative;aspect-ratio:1/1;border-radius:12px;
     border:1px solid var(--border);background:#fbfdfe;
@@ -157,6 +157,46 @@
   .btn.ghost{background:#f0f5f8;color:var(--navy-800);border:1px solid var(--border);}
   .btn.small{padding:10px 10px;font-size:12.5px;flex:none;}
   .btn:active{transform:scale(.97);opacity:.9;}
+
+  /* ── Design: indicadores, duas colunas, calendário compacto ── */
+  .cf-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+  .cf-kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-soft);border-top:3px solid var(--k,var(--navy-700));min-width:0;}
+  .cf-kpi .t{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  .cf-kpi .v{font-size:26px;font-weight:800;color:var(--k,var(--ink));line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums;}
+  .cf-kpi .s{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cf-layout{display:block;}
+  .cf-col-main .lead, .cf-col-side .lead{font-size:13.5px;line-height:1.5;color:var(--muted);}
+  .cf-sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;}
+  .cf-sec-h .section-title{margin:0;}
+  .btn.cf-mini{padding:6px 10px;font-size:11.5px;border-radius:9px;}
+  .btn svg{flex-shrink:0;}
+  .emp-row .cf-emp{flex:1;min-width:0;}
+  .cf-bar{height:6px;border-radius:4px;background:#eef2f5;margin-top:7px;overflow:hidden;}
+  .cf-bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--absence-dot),#e0a35a);}
+  .cf-datas{font-size:11px;color:var(--absence);font-weight:600;margin-top:4px;}
+  .emp-row .count{margin-left:12px;}
+  .day .chips{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:3px;}
+  .day .chips b{font-size:9.5px;font-weight:800;color:#fff;background:var(--absence-dot);border-radius:6px;padding:1px 5px;line-height:13px;}
+  .day .chips b.mais{background:var(--navy-700);}
+  @media (max-width:700px){
+    .cf-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+    .cf-kpi{padding:11px 12px;} .cf-kpi .v{font-size:21px;}
+    .day .chips.multi b:not(.mais){display:none;}
+    .day .chips b{font-size:9px;padding:1px 4px;}
+  }
+  @media (min-width:1000px){
+    main{max-width:1320px;padding:18px 20px 110px;}
+    .cf-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(330px,1fr);gap:18px;align-items:start;}
+    .cf-col-side{position:sticky;top:14px;}
+    .cf-col-side .card:last-child{margin-bottom:0;}
+    .grid{gap:7px;}
+    .day{aspect-ratio:auto;height:86px;align-items:flex-start;justify-content:flex-start;padding:8px 9px;cursor:pointer;transition:border-color .15s,box-shadow .15s;}
+    .day:not(.empty):not(.disabled):hover{border-color:var(--cyan-500);box-shadow:0 4px 14px rgba(6,182,212,.14);}
+    .day .n{font-size:14px;font-weight:800;}
+    .day .chips{justify-content:flex-start;margin-top:6px;}
+    .day .chips b{font-size:10px;padding:2px 6px;}
+    .day .dot{display:none;}
+  }
 
   .fab{
     position:fixed;right:18px;bottom:22px;z-index:400;
@@ -303,7 +343,11 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 
 <main>
 
-  <div class="card">
+  <div class="cf-kpis" id="cfKpis" aria-live="polite"></div>
+
+  <div class="cf-layout">
+  <div class="cf-col-main">
+  <div class="card cf-cal">
     <div class="month-bar">
       <button class="nav" id="prevMonth">‹</button>
       <div class="label">
@@ -323,35 +367,37 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
       <span><i style="background:#fff;border:1.5px solid var(--cyan-500);"></i>Hoje</span>
     </div>
   </div>
-
-  <div class="card">
-    <div class="section-title">Resumo do mês</div>
-    <div id="empList"></div>
-    <div class="btnbar" style="margin-top:10px;">
-      <button class="btn ghost small" onclick="window.zeloLerElemento('#empList','Resumo do mês')">🔊 Ler em voz</button>
-    </div>
-  </div>
-
   <div class="card">
     <div class="section-title">Férias</div>
     <div class="lead" style="margin-top:-4px;">Marque quem está de férias por um mês ou por uma quinzena. Nesses dias, a pessoa fica automaticamente fora do registo de faltas.</div>
     <div id="feriasList"></div>
     <div class="btnbar" style="margin-top:10px;">
-      <button class="btn ghost" id="btnAddFerias">＋ Adicionar férias</button>
+      <button class="btn ghost" id="btnAddFerias"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Adicionar férias</button>
     </div>
   </div>
+  </div>
+  <aside class="cf-col-side">
 
   <div class="card">
-    <div class="section-title">Relatório e Backup</div>
+    <div class="cf-sec-h"><div class="section-title">Faltas por funcionário</div>
+      <button class="btn ghost small cf-mini" onclick="window.zeloLerElemento('#empList','Resumo do mês')" title="Ler em voz"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg><span>Ler</span></button></div>
+    <div id="empList"></div>
+  </div>
+
+
+  <div class="card">
+    <div class="section-title">Relatório e cópia de segurança</div>
     <div class="btnbar">
-      <button class="btn primary" id="btnPdf">📄 Gerar PDF do mês</button>
+      <button class="btn primary" id="btnPdf"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg> Gerar PDF do mês</button>
     </div>
     <div class="btnbar" style="margin-top:8px;">
-      <button class="btn ghost small" id="btnExport">⇩ Exportar dados (JSON)</button>
-      <button class="btn ghost small" id="btnImport">⇧ Importar dados</button>
+      <button class="btn ghost small" id="btnExport"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M4 21h16"/></svg> Exportar dados</button>
+      <button class="btn ghost small" id="btnImport"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V9"/><polyline points="7 14 12 9 17 14"/><path d="M4 3h16"/></svg> Importar dados</button>
     </div>
     <input type="file" id="fileImport" accept="application/json" style="display:none;">
     <div style="margin-top:10px;" class="badge-ok"><i></i> Dados guardados no dispositivo (IndexedDB) — nunca se perdem ao fechar a app</div>
+  </div>
+  </aside>
   </div>
 
 </main>
@@ -1046,7 +1092,10 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
       if(feriasIds.length>0) classes += " has-ferias";
       if(isToday(state.year,state.month,d)) classes += " today";
       cell.className = classes;
-      cell.innerHTML = '<div class="n">'+d+'</div>' + (count>0 && !isWeekend ? '<div class="dot">'+iniciais+'</div>' : '');
+      var titulo = empIds.map(function(id){ var e = EMPREGADOS.find(function(x){ return x.id===id; }); var o = dayData[id] && dayData[id].observacao; return (e?e.nome:id) + (o ? ' — '+o : ''); }).join('\n');
+      var fichas = iniciais ? iniciais.split(' ') : [];
+      cell.innerHTML = '<div class="n">'+d+'</div>' + (count>0 && !isWeekend ? '<div class="chips'+(fichas.length>1?' multi':'')+'">'+fichas.map(function(x){ return '<b>'+x+'</b>'; }).join('')+(fichas.length>1?'<b class="mais">'+fichas.length+'</b>':'')+'</div>' : '');
+      if(titulo) cell.title = 'Faltaram: \n' + titulo;
       if(!isWeekend){
         cell.addEventListener("click", (function(dd,kk){
           return function(){ openDayModal(kk, dd); };
@@ -1060,22 +1109,61 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
   function renderSummary(){
     var wrap = document.getElementById("empList");
     wrap.innerHTML = "";
+    var pref = state.year+"-"+pad(state.month+1), por = {}, max = 0;
     EMPREGADOS.forEach(function(emp){
-      var count = 0;
-      Object.keys(state.faltas).forEach(function(key){
-        if(!key.startsWith(state.year+"-"+pad(state.month+1))) return;
-        if(state.faltas[key][emp.id]) count++;
-      });
+      var dias = Object.keys(state.faltas).filter(function(key){ return key.startsWith(pref) && state.faltas[key][emp.id]; }).sort();
+      por[emp.id] = dias; if(dias.length > max) max = dias.length;
+    });
+    EMPREGADOS.forEach(function(emp){
+      var dias = por[emp.id], count = dias.length;
       var row = document.createElement("div");
       row.className = "emp-row";
       row.innerHTML =
-        '<div class="name">'+emp.nome+' <small>'+emp.cargo+'</small></div>' +
+        '<div class="cf-emp"><div class="name">'+emp.nome+' <small>'+emp.cargo+'</small></div>' +
+        '<div class="cf-bar"><i style="width:'+(max ? Math.round(count*100/max) : 0)+'%"></i></div>' +
+        (count ? '<div class="cf-datas">Dia'+(count>1?'s ':' ')+dias.map(function(k){ return +k.slice(8); }).join(', ')+'</div>' : '') + '</div>' +
         '<div class="count'+(count===0?' zero':'')+'">'+count+'</div>';
       wrap.appendChild(row);
     });
   }
 
+  // Indicadores do mês: faltas, dias com faltas, assiduidade e férias.
+  function renderKpis(){
+    var el = document.getElementById("cfKpis"); if(!el) return;
+    var pref = state.year+"-"+pad(state.month+1), total = 0, diasCom = 0, porEmp = {};
+    Object.keys(state.faltas).forEach(function(k){
+      if(!k.startsWith(pref)) return;
+      var n = Object.keys(state.faltas[k]).length; if(!n) return;
+      total += n; diasCom++;
+      Object.keys(state.faltas[k]).forEach(function(id){ porEmp[id] = (porEmp[id]||0) + 1; });
+    });
+    // Dias úteis (seg–sex) do mês já decorridos × funcionários fora de férias
+    var hoje = new Date(), ultimo = daysInMonth(state.year, state.month), possiveis = 0;
+    var ehMesAtual = state.year===hoje.getFullYear() && state.month===hoje.getMonth();
+    var futuro = new Date(state.year, state.month, 1) > hoje;
+    var ate = futuro ? 0 : (ehMesAtual ? hoje.getDate() : ultimo);
+    for(var d=1; d<=ate; d++){
+      var wd = new Date(state.year, state.month, d).getDay(); if(wd===0 || wd===6) continue;
+      var k = dateKey(state.year, state.month, d);
+      EMPREGADOS.forEach(function(e){ if(!feriasAtivaPara(e.id, k)) possiveis++; });
+    }
+    var faltasAte = 0;
+    Object.keys(state.faltas).forEach(function(k){ if(k.startsWith(pref) && +k.slice(8) <= ate){ var wd = new Date(k+'T12:00:00').getDay(); if(wd!==0 && wd!==6) faltasAte += Object.keys(state.faltas[k]).length; } });
+    var assid = possiveis ? Math.max(0, Math.round((1 - faltasAte/possiveis)*1000)/10) : null;
+    var topId = Object.keys(porEmp).sort(function(a,b){ return porEmp[b]-porEmp[a]; })[0];
+    var top = topId ? EMPREGADOS.find(function(e){ return e.id===topId; }) : null;
+    var feriasMes = state.ferias.filter(function(f){ return f.inicio <= pref+"-31" && f.fim >= pref+"-01"; }).length;
+    window.__cfNumeros = { total: total, diasCom: diasCom, assid: assid, feriasMes: feriasMes, top: top, topN: topId ? porEmp[topId] : 0 };
+    var K = function(t,v,s,cor){ return '<div class="cf-kpi" style="--k:'+cor+'"><div class="t">'+t+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>'; };
+    el.innerHTML =
+      K('Faltas no mês', total, total ? (top ? 'Mais faltas: '+top.nome.split(' ')[0]+' ('+porEmp[topId]+')' : '') : 'Nenhuma falta registada', '#b8722f') +
+      K('Dias com faltas', diasCom, 'em '+MESES[state.month]+' de '+state.year, '#15385a') +
+      K('Assiduidade', assid==null ? '—' : String(assid).replace('.',',')+'%', possiveis ? 'presenças ÷ dias úteis decorridos' : 'mês ainda não começou', '#1ca97c') +
+      K('Férias no mês', feriasMes, feriasMes ? (feriasMes===1?'1 período de férias':feriasMes+' períodos de férias') : 'Sem férias marcadas', '#0891b2');
+  }
+
   function renderAll(){
+    renderKpis();
     renderCalendar();
     renderSummary();
     renderFeriasList();
@@ -1443,8 +1531,71 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
     });
     linhas.push(["TOTAL", "", String(totalGeral)]);
 
-    y = Z.secao(doc, y, "1. Resumo por funcionário");
-    y = Z.tabela(doc, y, ["Funcionário","Cargo","Dias de falta"], [45,35,20], linhas);
+    // Indicadores do mês (os mesmos do ecrã)
+    var N = window.__cfNumeros || {};
+    y = Z.indicadores(doc, y, [
+      ["Faltas no mês", String(totalGeral)],
+      ["Dias com faltas", String(N.diasCom != null ? N.diasCom : "—")],
+      ["Assiduidade", N.assid == null ? "—" : String(N.assid).replace(".", ",") + "%"],
+      ["Férias no mês", String(N.feriasMes || 0)]
+    ]);
+
+    // 1. Mapa do mês: funcionários × dias (F = falta, fundo azul = férias, cinzento = fim-de-semana)
+    y = Z.secao(doc, y, "1. Mapa do mês");
+    (function(){
+      var C = Z.cores, ps = doc.internal.pageSize, W = ps.getWidth ? ps.getWidth() : ps.width;
+      var M = 14, CW = W - 28, nomeW = 38, nd = daysInMonth(state.year, state.month), cw = (CW - nomeW) / nd, rh = 7;
+      var INI = ["D","S","T","Q","Q","S","S"], pref = state.year + "-" + pad(state.month + 1);
+      y = Z.quebra(doc, y, rh * (EMPREGADOS.length + 2) + 10);
+      // cabeçalho
+      doc.setFillColor(C.NAVY); doc.rect(M, y, CW, rh + 2, "F");
+      doc.setTextColor("#FFFFFF"); doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+      doc.text("Funcionário", M + 2, y + 5.6);
+      for (var d = 1; d <= nd; d++){
+        var x = M + nomeW + (d - 1) * cw, wd = new Date(state.year, state.month, d).getDay();
+        doc.setFontSize(6.5); doc.text(String(d), x + cw / 2, y + 4, { align: "center" });
+        doc.setFontSize(5); doc.text(INI[wd], x + cw / 2, y + 7.6, { align: "center" });
+      }
+      y += rh + 2;
+      EMPREGADOS.forEach(function(emp, i){
+        if (i % 2){ doc.setFillColor(C.FUNDO); doc.rect(M, y, CW, rh, "F"); }
+        doc.setTextColor(C.PRETO); doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+        doc.text(Z.limpar(emp.nome), M + 2, y + 4.8);
+        for (var d = 1; d <= nd; d++){
+          var x = M + nomeW + (d - 1) * cw, k = pref + "-" + pad(d), wd = new Date(state.year, state.month, d).getDay();
+          if (wd === 0 || wd === 6){ doc.setFillColor("#E2E8F0"); doc.rect(x, y, cw, rh, "F"); }
+          else if (feriasAtivaPara(emp.id, k)){ doc.setFillColor("#CFF4FC"); doc.rect(x, y, cw, rh, "F"); }
+          if (state.faltas[k] && state.faltas[k][emp.id]){
+            doc.setFillColor("#C9822F"); doc.roundedRect(x + 0.4, y + 0.8, cw - 0.8, rh - 1.6, 0.8, 0.8, "F");
+            doc.setTextColor("#FFFFFF"); doc.setFont("helvetica", "bold"); doc.setFontSize(6.5);
+            doc.text("F", x + cw / 2, y + 4.7, { align: "center" });
+          }
+        }
+        y += rh;
+      });
+      // grelha
+      doc.setDrawColor(C.LINHA); doc.setLineWidth(0.15);
+      var y0 = y - rh * EMPREGADOS.length;
+      for (var d = 0; d <= nd; d++){ var x = M + nomeW + d * cw; doc.line(x, y0, x, y); }
+      for (var r = 0; r <= EMPREGADOS.length; r++) doc.line(M, y0 + r * rh, M + CW, y0 + r * rh);
+      doc.rect(M, y0 - rh - 2, CW, rh * (EMPREGADOS.length + 1) + 2);
+      // legenda
+      y += 4.5; doc.setFontSize(7); doc.setFont("helvetica", "normal"); doc.setTextColor(C.CINZA);
+      var lx = M;
+      [["#C9822F","F = Falta"],["#CFF4FC","Férias"],["#E2E8F0","Fim-de-semana"]].forEach(function(l){
+        doc.setFillColor(l[0]); doc.rect(lx, y - 2.6, 3.2, 3.2, "F"); doc.text(l[1], lx + 4.5, y); lx += doc.getTextWidth(l[1]) + 12;
+      });
+      doc.setTextColor(C.PRETO);
+      y += 6;
+    })();
+
+    y = Z.secao(doc, y, "2. Resumo por funcionário");
+    linhas = EMPREGADOS.map(function(emp, i){
+      var ds = detalhes[i].dias.map(function(x){ return +x.data.slice(8); });
+      return [emp.nome, emp.cargo, String(ds.length), ds.length ? ds.join(", ") : "—"];
+    });
+    linhas.push(["TOTAL", "", String(totalGeral), ""]);
+    y = Z.tabela(doc, y, ["Funcionário","Cargo","Faltas","Dias"], [32,30,12,26], linhas);
 
     var corpo = [];
     detalhes.forEach(function(item){
@@ -1454,7 +1605,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var n,r,i,a,
       });
     });
     if(corpo.length){
-      y = Z.secao(doc, y, "2. Detalhe das faltas (datas e observações)");
+      y = Z.secao(doc, y, "3. Detalhe das faltas (datas e observações)");
       y = Z.tabela(doc, y, ["Funcionário","Data","Observação"], [35,18,47], corpo);
     }
 
