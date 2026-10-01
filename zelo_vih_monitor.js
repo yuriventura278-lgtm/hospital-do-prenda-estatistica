@@ -135,7 +135,7 @@
   var vistaFonte = 'soma';
   function kpiCol(a, titulo, cor, n) {
     var T = soma(a, 'testados'), P = soma(a, 'positivos'), N = soma(a, 'indeterminados');
-    return '<div class="mon-col" style="--k:' + cor + '"><div class="mon-col-t">' + titulo + (n != null ? ' <small>' + n + ' dia' + (n === 1 ? '' : 's') + ' com registo</small>' : '') + '</div>' +
+    return '<div class="mon-col" style="--k:' + cor + '"><div class="mon-col-t">' + titulo + (n != null ? ' <small>' + n + (n === 1 ? ' semana' : ' semanas') + ' com registo</small>' : '') + '</div>' +
       '<div class="mon-kpis"><div><span>Testados</span><b>' + T + '</b><em>F ' + soma(a, 'testados', 'f') + ' · M ' + soma(a, 'testados', 'm') + '</em></div>' +
       '<div><span>Positivos</span><b style="color:#b91c1c">' + P + '</b><em>F ' + soma(a, 'positivos', 'f') + ' · M ' + soma(a, 'positivos', 'm') + '</em></div>' +
       '<div><span>Indeterm.</span><b style="color:#6d28d9">' + N + '</b><em>F ' + soma(a, 'indeterminados', 'f') + ' · M ' + soma(a, 'indeterminados', 'm') + '</em></div>' +
