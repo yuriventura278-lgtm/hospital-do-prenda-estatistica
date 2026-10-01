@@ -103,6 +103,7 @@
     'supervisao de maqueiros': 'Supervisão de Maqueiros', 'maqueiros': 'Supervisão de Maqueiros',
     'procedimentos de enfermagem geral': 'Procedimentos de Enfermagem · Geral',
     'controlo de faltas': 'Controlo de Faltas',
+    'testagem de vih geral': 'Testagem de VIH Geral', 'registo vih': 'Testagem de VIH Geral', 'vih': 'Testagem de VIH Geral', 'hiv': 'Testagem de VIH Geral',
   };
   var APELIDOS_CHAVES = Object.keys(APELIDOS).sort(function (a, b) { return b.length - a.length; });
 
