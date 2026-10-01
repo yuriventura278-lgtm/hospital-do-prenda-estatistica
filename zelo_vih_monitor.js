@@ -80,6 +80,22 @@
   }
   function marcarHora() { var n = new Date(); marcarSync('<span class="ponto-vivo"></span> Sincronizado ao vivo · ' + pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds())); }
 
+  // ── semanas (o Laboratório e a Hemoterapia registam por semana: segunda a
+  // domingo, cortada no início e no fim do mês; a chave é o 1.º dia) ──
+  function semanasDoMes(ym) {
+    var p = ym.split('-'), y = +p[0], m = +p[1], n = new Date(y, m, 0).getDate(), out = [], d = 1;
+    while (d <= n) { var dw = (new Date(y, m - 1, d).getDay() + 6) % 7, fim = Math.min(n, d + 6 - dw); out.push({ n: out.length + 1, de: ym + '-' + pad(d), ate: ym + '-' + pad(fim) }); d = fim + 1; }
+    return out;
+  }
+  function rotulo(d, curto) {
+    var sl = dados.lab[d] && dados.lab[d].snapshot, sh = dados.hemo[d] && dados.hemo[d].snapshot;
+    var sem = (sl && sl.semana) || (sh && sh.semana);
+    if (!sem) return curto ? fmtD(d) : fmtDL(d);
+    var w = semanasDoMes(d.slice(0, 7)).filter(function (x) { return x.de === d; })[0]; if (!w) return curto ? fmtD(d) : fmtDL(d);
+    var dd = w.de === w.ate ? 'dia ' + (+w.de.slice(8)) : (+w.de.slice(8)) + ' a ' + (+w.ate.slice(8));
+    return curto ? 'Semana ' + w.n + ' (' + dd + ')' : 'Semana ' + w.n + ' de ' + MESES[+d.slice(5, 7) - 1].toLowerCase() + ' de ' + d.slice(0, 4) + ' · ' + dd;
+  }
+
   // ── períodos ──
   function intervalo() {
     var tipo = $('perTipo').value, de, ate, rot, y;
@@ -144,7 +160,7 @@
     if (I.porDia) {
       for (var d = dt(I.de); iso(d) <= I.ate; d.setDate(d.getDate() + 1)) {
         var k = iso(d), l = dados.lab[k] && dados.lab[k].snapshot, h = dados.hemo[k] && dados.hemo[k].snapshot;
-        if (l || h) linhas.push({ rot: fmtD(k), dia: k, lab: l || vazio(), hemo: h || vazio(), temL: !!l, temH: !!h });
+        if (l || h) linhas.push({ rot: rotulo(k, true), dia: k, lab: l || vazio(), hemo: h || vazio(), temL: !!l, temH: !!h });
       }
     } else {
       var y = +I.de.slice(0, 4);
@@ -157,7 +173,7 @@
     return linhas;
   }
   function tabelaLinhas(I, linhas) {
-    var h = '<div class="r-wrap"><table class="r-table"><thead><tr><th class="l" rowspan="2" style="background:var(--accent);color:#fff">' + (I.porDia ? 'Dia' : 'Mês') + '</th>' +
+    var h = '<div class="r-wrap"><table class="r-table"><thead><tr><th class="l" rowspan="2" style="background:var(--accent);color:#fff">' + (I.porDia ? 'Semana' : 'Mês') + '</th>' +
       '<th colspan="3" style="background:#3E5C87;color:#fff">Laboratório</th><th colspan="3" style="background:#9F1239;color:#fff">Hemoterapia</th><th colspan="4" style="background:#0F766E;color:#fff">Soma</th></tr><tr>' +
       '<th>Test.</th><th>Pos.</th><th>Ind.</th><th>Test.</th><th>Pos.</th><th>Ind.</th><th>Test.</th><th>Pos.</th><th>Ind.</th><th>Taxa</th></tr></thead><tbody>';
     if (!linhas.length) return h + '<tr><td colspan="11" class="l" style="color:var(--muted)">Sem registos no período.</td></tr></tbody></table></div>';
@@ -263,7 +279,7 @@
           '<small>' + esc(q) + (h ? ' · ' + pad(h.getHours()) + ':' + pad(h.getMinutes()) : '') + '</small></div>';
       }
       var L = dados.lab[d] && dados.lab[d].snapshot, H = dados.hemo[d] && dados.hemo[d].snapshot, S = agregar([L || vazio(), H || vazio()]);
-      return '<div class="hist-item mon-dia" data-dia="' + d + '"><div class="hist-date">' + fmtDL(d) + '</div><div class="mon-lados">' + lado('lab', 'Laboratório', '#3E5C87') + lado('hemo', 'Hemoterapia', '#9F1239') +
+      return '<div class="hist-item mon-dia" data-dia="' + d + '"><div class="hist-date">' + esc(rotulo(d)) + '</div><div class="mon-lados">' + lado('lab', 'Laboratório', '#3E5C87') + lado('hemo', 'Hemoterapia', '#9F1239') +
         '<div class="mon-lado soma"><b style="color:#0F766E">Soma</b><span>T <b>' + soma(S, 'testados') + '</b> · P <b style="color:#b91c1c">' + soma(S, 'positivos') + '</b> · I <b style="color:#6d28d9">' + soma(S, 'indeterminados') + '</b></span><small>taxa ' + pct(soma(S, 'positivos'), soma(S, 'testados')) + '</small></div></div></div>';
     }).join('');
   }
@@ -276,7 +292,7 @@
         '<div style="font-size:11.5px;color:var(--muted);margin:-6px 0 10px">Formação Sanitária: <b>' + esc(r.snapshot.formacao || '—') + '</b> · Fonte: <b>' + esc(r.snapshot.fonte || '—') + '</b></div>' +
         tabelaFaixas(r.snapshot) + (r.snapshot.obs ? '<div style="margin-top:10px;font-size:.85rem"><b>Observações:</b> ' + esc(r.snapshot.obs) + '</div>' : '') + '</div>';
     }
-    $('mdlDiaTit').textContent = fmtDL(d);
+    $('mdlDiaTit').textContent = rotulo(d);
     $('mdlDiaCorpo').innerHTML = bloco(L, 'Laboratório', '#3E5C87') + bloco(H, 'Hemoterapia', '#9F1239') +
       '<div class="card" style="border-top:4px solid #0F766E"><div class="card-label" style="color:#0F766E">Soma (Laboratório + Hemoterapia)</div>' + tabelaFaixas(agregar([L && L.snapshot || vazio(), H && H.snapshot || vazio()])) + '</div>';
     $('ovDia').classList.add('open');

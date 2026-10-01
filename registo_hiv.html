@@ -46,6 +46,16 @@
   --s1:0 2px 10px rgba(13,27,62,.08);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+.hiv-sem{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hiv-sem .hs-mes{font-size:.78rem;font-weight:800;color:#0D1B3E;min-width:110px;text-align:center}
+.hiv-sem .hs-nav{width:32px;height:32px;border-radius:8px;border:1.5px solid #CBD5E1;background:#fff;font-weight:800;cursor:pointer;color:#334155}
+.hiv-sem .hs{position:relative;display:flex;flex-direction:column;align-items:flex-start;padding:7px 13px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;color:#334155;font:600 .8rem 'Inter',sans-serif;cursor:pointer}
+.hiv-sem .hs small{font-size:.68rem;color:#64748B}
+.hiv-sem .hs i{position:absolute;top:3px;right:6px;font-style:normal;color:#059669;font-weight:800}
+.hiv-sem .hs.ok{border-color:#6EE7B7;background:#ECFDF5}
+.hiv-sem .hs.falta{border-color:#FCA5A5;background:#FEF2F2}
+.hiv-sem .hs.fut{opacity:.6}
+.hiv-sem .hs.on{border-color:#1A56DB;box-shadow:0 0 0 3px rgba(26,86,219,.18)}
 body{font-family:'Inter',sans-serif;background:var(--sf);color:var(--tx);min-height:100vh;padding-bottom:130px;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;}
 #app-footer{margin-top:auto;border-top:1px solid var(--br);background:var(--nv);padding:16px 18px;}
 .footer-inner{max-width:920px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;}
@@ -263,6 +273,7 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
       <div class="f"><label>Data de Início</label><input type="date" id="data-inicio" oninput="onPeriodChg()"/></div>
       <div class="f"><label>Data de Fim</label><input type="date" id="data-fim" oninput="onPeriodChg()"/></div>
     </div>
+    <div class="f"><label>Semanas do mês (segunda a domingo)</label><div id="hivSemanas" class="hiv-sem"></div></div>
     <div class="f"><label>Formação Sanitária</label><input type="text" id="formacao" value="Hospital do Prenda" oninput="ss()"/></div>
     <div class="f"><label>Fonte</label><input type="text" id="fonte" value="Livros de registo de Testagem dos Servicos de Hemoterapia e de Laboratorio" oninput="ss()"/></div>
   </div>
@@ -543,7 +554,46 @@ function upd(){
     bd.textContent=d.toLocaleDateString('pt-PT',{day:'2-digit',month:'short'});bd.classList.add('on');
   }else bd.classList.remove('on');
 }
-function onPeriodChg(){upd();ss();_mostrarAutoriaDoPeriodo();}
+function onPeriodChg(){upd();ss();_mostrarAutoriaDoPeriodo();hivBarraSemanas();}
+
+// ── SEMANAS DO MÊS ─────────────────────────────────────────────
+// Preenchimento semanal: segunda a domingo, cortada no início e no fim do
+// mês (a 1.ª e a última semana podem ter menos dias).
+function hivSemanasDoMes(ym){
+  const p=ym.split('-'),y=+p[0],m=+p[1],n=new Date(y,m,0).getDate(),out=[];let d=1;
+  const pd=x=>String(x).padStart(2,'0');
+  while(d<=n){const dw=(new Date(y,m-1,d).getDay()+6)%7,fim=Math.min(n,d+6-dw);out.push({n:out.length+1,de:ym+'-'+pd(d),ate:ym+'-'+pd(fim)});d=fim+1;}
+  return out;
+}
+function hivSemanaDe(ds){return hivSemanasDoMes(ds.slice(0,7)).find(w=>ds>=w.de&&ds<=w.ate);}
+function hivBarraSemanas(){
+  const b=document.getElementById('hivSemanas');if(!b)return;
+  const di=gv('data-inicio')||new Date().toISOString().slice(0,10),df=gv('data-fim');
+  const ym=di.slice(0,7),hist=zeloGetHist(),hoje=new Date().toISOString().slice(0,10);
+  const ant=(()=>{const d=new Date(ym+'-01T12:00:00');d.setMonth(d.getMonth()-1);return d.toISOString().slice(0,7);})();
+  const seg=(()=>{const d=new Date(ym+'-01T12:00:00');d.setMonth(d.getMonth()+1);return d.toISOString().slice(0,7);})();
+  const MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  b.innerHTML='<button type="button" class="hs-nav" data-mes="'+ant+'" aria-label="Mês anterior">‹</button><span class="hs-mes">'+MES[+ym.slice(5)-1]+' '+ym.slice(0,4)+'</span><button type="button" class="hs-nav" data-mes="'+seg+'" aria-label="Mês seguinte">›</button>'+
+    hivSemanasDoMes(ym).map(w=>{
+      const tem=hist.some(h=>h.key===w.de+'_'+w.ate&&!h.deleted),on=di===w.de&&df===w.ate,fut=w.de>hoje;
+      return '<button type="button" class="hs'+(on?' on':'')+(tem?' ok':fut?' fut':' falta')+'" data-de="'+w.de+'" data-ate="'+w.ate+'"><b>Semana '+w.n+'</b><small>'+(+w.de.slice(8))+(w.de===w.ate?'':'–'+(+w.ate.slice(8)))+'</small>'+(tem?'<i>✓</i>':'')+'</button>';
+    }).join('');
+}
+function hivIrSemana(de,ate){
+  const atual=buildSnapshot(),hist=zeloGetHist();
+  const sv=hist.find(h=>h.key===atual.dataInicio+'_'+atual.dataFim&&!h.deleted);
+  let tot=0;INDICADORES.forEach(({id})=>{Object.values(atual.dados[id]||{}).forEach(v=>{tot+=+v||0;});});
+  if(tot>0&&(!sv||JSON.stringify(sv.snapshot.dados)!==JSON.stringify(atual.dados))&&!confirm('A semana aberta tem números que ainda não foram guardados. Mudar de semana mesmo assim?'))return;
+  const r=hist.find(h=>h.key===de+'_'+ate&&!h.deleted);
+  applySnapshot(r?r.snapshot:Object.assign({},atual,{dataInicio:de,dataFim:ate,obs:'',dados:{}}));
+  document.getElementById('data-inicio').value=de;document.getElementById('data-fim').value=ate;
+  onPeriodChg();
+}
+document.addEventListener('click',e=>{
+  const w=e.target.closest('#hivSemanas [data-de]');if(w){hivIrSemana(w.dataset.de,w.dataset.ate);return;}
+  const m=e.target.closest('#hivSemanas [data-mes]');
+  if(m){const ws=hivSemanasDoMes(m.dataset.mes),hoje=new Date().toISOString().slice(0,10);const w2=ws.find(x=>hoje>=x.de&&hoje<=x.ate)||ws[0];hivIrSemana(w2.de,w2.ate);}
+});
 
 // ── TOAST ──────────────────────────────────────────────────────
 let toastT;
@@ -698,7 +748,7 @@ function confirmarSave(){
     else{hist.unshift(rec);toast('Registo guardado!');}
     localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));
     hivEnviar(rec);
-    _mostrarHoraGuardado(autor.nome,_savedAtAgora);
+    _mostrarHoraGuardado(autor.nome,_savedAtAgora);hivBarraSemanas();
   }catch(e){toast('Registo guardado!');}
   document.getElementById('mo3-per').textContent=fmtPer();
   setTimeout(()=>{document.getElementById('ov3').style.display='flex';},400);
@@ -925,7 +975,7 @@ function hivAplicarRemoto(v){
   if(!mudou)return false;
   hist.sort((a,b)=>hivHora(b)-hivHora(a));
   try{localStorage.setItem('hiv_reg_v1_hist',JSON.stringify(hist));}catch(e){}
-  _mostrarAutoriaDoPeriodo();
+  _mostrarAutoriaDoPeriodo();hivBarraSemanas();
   // Histórico aberto: mostra já as alterações.
   if(document.getElementById('ov').classList.contains('open')&&document.getElementById('m-periodo').textContent==='Historico de Registos')historico();
   return true;
@@ -951,15 +1001,14 @@ INDICADORES.forEach(({id})=>renderLista(id));
   const today=new Date();
   const day=today.getDay();
   const diffToMon=(day===0?-6:1-day);
-  const mon=new Date(today);mon.setDate(today.getDate()+diffToMon);
-  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
-  const fmt=d=>d.toISOString().slice(0,10);
-  document.getElementById('data-inicio').value=fmt(mon);
-  document.getElementById('data-fim').value=fmt(sun);
+  const w=hivSemanaDe(today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0'));
+  document.getElementById('data-inicio').value=w.de;
+  document.getElementById('data-fim').value=w.ate;
 })();
 ls();
 updateKPIs();
 _mostrarAutoriaDoPeriodo();
+hivBarraSemanas();
 hivSincronizar();
 </script>
 <footer id="app-footer">

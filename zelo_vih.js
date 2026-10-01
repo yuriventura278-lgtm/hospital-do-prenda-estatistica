@@ -3,11 +3,14 @@
 // registo_vih_hemoterapia.html. Os campos são os do "Registo VIH · Geral"
 // (Serviço de Estatística): Formação Sanitária, Fonte, Testados / Positivos /
 // Indeterminados por faixa etária e sexo (F/M) e Observações — aqui com
-// registo diário, como no Laboratório, e relatórios semanal, mensal,
+// registo SEMANAL (todas as semanas do mês, de segunda a domingo, cortadas
+// no início e no fim do mês — a 1.ª e a última semana podem ter menos dias)
+// e relatórios semanal, mensal,
 // trimestral, semestral e anual (com PDF).
 //
 // Dados: registos_sistemas_locais/<mod>/<AAAA-MM-DD> = {savedAt, snapshot,
-// criadoPor}. Nada é apagado: não há botão de apagar, e ao gravar os
+// criadoPor}; a data é o 1.º dia da semana dentro do mês (snapshot.semana =
+// {de, ate}). Registos diários antigos continuam a contar nos relatórios. Nada é apagado: não há botão de apagar, e ao gravar os
 // campos alterados noutro computador entretanto são mesclados (ganha só o
 // que cada um mudou). Poupança do Firebase gratuito: o histórico é lido com
 // zeloLerHistorico (a 1.ª vez tudo, depois só os últimos 60 dias) e fica
@@ -36,6 +39,39 @@
   function dt(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
   function fmtD(s) { try { return dt(s).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch (e) { return s; } }
   function fmtDL(s) { try { return dt(s).toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return s; } }
+  (function () {
+    var st = document.createElement('style');
+    st.textContent = '.vih-semanas{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}' +
+      '.vih-semanas .vs-rot{font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#64748B;margin-right:4px}' +
+      '.vih-semanas .vs{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 14px;border-radius:10px;border:1.5px solid #CBD5E1;background:#fff;color:#334155;font:600 .82rem Inter,system-ui,sans-serif;cursor:pointer}' +
+      '.vih-semanas .vs small{font-size:.7rem;color:#64748B;font-weight:600}' +
+      '.vih-semanas .vs i{position:absolute;top:4px;right:7px;font-style:normal;color:#059669;font-weight:800}' +
+      '.vih-semanas .vs.ok{border-color:#6EE7B7;background:#ECFDF5}' +
+      '.vih-semanas .vs.falta{border-color:#FCA5A5;background:#FEF2F2}' +
+      '.vih-semanas .vs.fut{opacity:.6}' +
+      '.vih-semanas .vs.on{border-color:#1A56DB;box-shadow:0 0 0 3px rgba(26,86,219,.18)}';
+    document.head.appendChild(st);
+  })();
+  // ── semanas do mês: segunda a domingo, cortadas no início e no fim do mês ──
+  function semanasDoMes(ym) {
+    var p = ym.split('-'), y = +p[0], m = +p[1], n = new Date(y, m, 0).getDate(), out = [], d = 1;
+    while (d <= n) { var dw = (new Date(y, m - 1, d).getDay() + 6) % 7, fim = Math.min(n, d + 6 - dw); out.push({ n: out.length + 1, de: ym + '-' + pad(d), ate: ym + '-' + pad(fim) }); d = fim + 1; }
+    return out;
+  }
+  function semanaDe(ds) { return semanasDoMes(ds.slice(0, 7)).filter(function (x) { return ds >= x.de && ds <= x.ate; })[0]; }
+  // Rótulo de um registo: semana (registos novos) ou dia (registos diários antigos).
+  function ehSemana(d, rec) {
+    var sem = semanaDe(d); if (!sem || sem.de !== d) return false;
+    var r = rec || dias()[d];
+    if (r && r.snapshot && !r.snapshot.semana) return false; // registo diário antigo nesse dia
+    return true;
+  }
+  function rotulo(d, rec, curto) {
+    if (!ehSemana(d, rec)) return curto ? fmtD(d) : fmtDL(d);
+    var w = semanaDe(d), m = MESES[+d.slice(5, 7) - 1];
+    var dias = +w.de.slice(8) === +w.ate.slice(8) ? 'dia ' + (+w.de.slice(8)) : (+w.de.slice(8)) + ' a ' + (+w.ate.slice(8));
+    return curto ? 'Semana ' + w.n + ' (' + dias + ')' : 'Semana ' + w.n + ' de ' + m.toLowerCase() + ' de ' + d.slice(0, 4) + ' · ' + dias + ' de ' + m.toLowerCase();
+  }
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function clone(o) { return o ? JSON.parse(JSON.stringify(o)) : o; }
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
@@ -130,15 +166,18 @@
   function estadoGravacao() {
     var e = $('saveStatus'); if (!e) return;
     e.classList.toggle('pend', sujo);
-    e.innerHTML = sujo ? 'Dia <strong>' + fmtD(data) + '</strong> · <strong>alterações por guardar</strong> (ficam guardadas neste computador até carregar em Guardar)'
-      : (baseSavedAt ? 'Dia <strong>' + fmtD(data) + '</strong> · guardado' : 'Dia <strong>' + fmtD(data) + '</strong> · ainda sem registo');
+    var r = '<strong>' + esc(rotulo(data, null, true)) + '</strong>';
+    e.innerHTML = sujo ? r + ' · <strong>alterações por guardar</strong> (ficam guardadas neste computador até carregar em Guardar)'
+      : (baseSavedAt ? r + ' · guardada' : r + ' · ainda sem registo');
+    barraSemanas();
   }
 
   function renderRegisto() {
     $('vihFormacao').value = cur.formacao || '';
     $('vihFonte').value = cur.fonte || '';
     $('vihObs').value = cur.obs || '';
-    $('vihDiaTxt').textContent = fmtDL(data);
+    $('vihDiaTxt').textContent = rotulo(data);
+    barraSemanas();
     var html = '';
     IND.forEach(function (I) {
       html += '<div class="card vih-card" id="card-' + I.id + '" style="--k:' + I.cor + '"><div class="card-label">' + I.nome + '<span class="bdg" id="bdg-' + I.id + '">0</span></div>' +
@@ -210,8 +249,23 @@
     totais(); estadoGravacao();
   }
 
+  // Barra com as semanas do mês (estado de cada uma).
+  function barraSemanas() {
+    var sec = $('sec-registo'); if (!sec) return;
+    var b = $('vihSemanas');
+    if (!b) { b = document.createElement('div'); b.id = 'vihSemanas'; b.className = 'vih-semanas'; var h = sec.querySelector('.pg-hdr'); h.parentNode.insertBefore(b, h.nextSibling);
+      b.addEventListener('click', function (e) { var x = e.target.closest('[data-sem]'); if (x) abrirDia(x.dataset.sem); }); }
+    var ym = data.slice(0, 7), t = dias(), h0 = hoje();
+    b.innerHTML = '<span class="vs-rot">' + MESES[+ym.slice(5) - 1] + ' ' + ym.slice(0, 4) + '</span>' + semanasDoMes(ym).map(function (w) {
+      var tem = !!(t[w.de] && t[w.de].snapshot && t[w.de].snapshot.semana) || !!lsGet(LS_RASC + w.de, null), fut = w.de > h0;
+      var cls = 'vs' + (w.de === data ? ' on' : '') + (tem ? ' ok' : fut ? ' fut' : ' falta');
+      return '<button type="button" class="' + cls + '" data-sem="' + w.de + '"><b>Semana ' + w.n + '</b><small>' + (+w.de.slice(8)) + (w.de === w.ate ? '' : '–' + (+w.ate.slice(8))) + '</small>' + (tem ? '<i>✓</i>' : '') + '</button>';
+    }).join('');
+  }
   function abrirDia(d) {
     if (!d) return;
+    // Registo semanal: qualquer dia abre a sua semana (registos diários antigos abrem como estão).
+    if (!(dias()[d] && !ehSemana(d)) && !lsGet(LS_RASC + d, null)) { var w = semanaDe(d); if (w) d = w.de; }
     data = d;
     if ($('data-registo').value !== d) $('data-registo').value = d;
     var rec = dias()[d];
@@ -244,14 +298,14 @@
   // ── guardar ──
   function pedirGuardar() {
     var T = soma(cur, 'testados'), P = soma(cur, 'positivos'), N = soma(cur, 'indeterminados'), inc = inconsistencias(cur);
-    $('mdlSub').textContent = fmtDL(data);
+    $('mdlSub').textContent = rotulo(data);
     $('mdlCorpo').innerHTML =
       '<div class="ln"><span>Testados</span><b style="color:#0e7490">' + T + ' (F ' + soma(cur, 'testados', 'f') + ' / M ' + soma(cur, 'testados', 'm') + ')</b></div>' +
       '<div class="ln"><span>Positivos</span><b style="color:#b91c1c">' + P + ' (F ' + soma(cur, 'positivos', 'f') + ' / M ' + soma(cur, 'positivos', 'm') + ')</b></div>' +
       '<div class="ln"><span>Indeterminados</span><b style="color:#6d28d9">' + N + ' (F ' + soma(cur, 'indeterminados', 'f') + ' / M ' + soma(cur, 'indeterminados', 'm') + ')</b></div>' +
       '<div class="ln"><span>Taxa de positividade</span><b>' + pct(P, T) + '</b></div>' +
       (inc.length ? '<div class="aviso-cons on">' + inc.map(function (x) { return esc(x.txt); }).join('<br>') + '</div>' : '') +
-      (!T ? '<div class="aviso-cons on">Nenhum utente testado neste dia.</div>' : '') +
+      (!T ? '<div class="aviso-cons on">Nenhum utente testado nesta semana.</div>' : '') +
       '<div style="margin-top:4px;padding:10px 12px;border-radius:8px;background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;"><b>Os dados estão correctos?</b></div>';
     $('ovGuardar').classList.add('open');
   }
@@ -265,6 +319,8 @@
       } catch (e) {}
     }
     var agora = Date.now();
+    var wk = semanaDe(d);
+    if (wk && wk.de === d) cur.semana = { de: wk.de, ate: wk.ate };
     var rec = { savedAt: new Date(agora).toISOString(), snapshot: clone(cur), criadoPor: { nome: sessionStorage.getItem('zeloNome') || null, email: sessionStorage.getItem('zeloEmail') || null } };
     // Hora de cada campo: um registo gravado sem internet junta-se campo a
     // campo com o que outro computador gravou entretanto (zelo_sync.js).
@@ -336,7 +392,7 @@
   function dadosPeriodo(tipo) {
     var I = intervalo(tipo), regs = registosEntre(I.de, I.ate), a = agregar(regs.map(function (r) { return r.s; }));
     var linhas = [];
-    if (I.porDia) regs.forEach(function (r) { linhas.push({ rot: fmtD(r.data), s: r.s }); });
+    if (I.porDia) regs.forEach(function (r) { linhas.push({ rot: rotulo(r.data, r.rec, true), s: r.s }); });
     else {
       var y = +I.de.slice(0, 4), m0 = +I.de.slice(5, 7), m1 = +I.ate.slice(5, 7);
       for (var m = m0; m <= m1; m++) {
@@ -362,7 +418,7 @@
     return h + '<td>' + pct(soma(a, 'positivos'), soma(a, 'testados')) + '</td></tr></tbody></table></div>';
   }
   function tabelaLinhas(P) {
-    var h = '<div class="r-wrap"><table class="r-table"><thead><tr><th class="l">' + (P.I.porDia ? 'Dia' : 'Mês') + '</th>' + (P.I.porDia ? '' : '<th>Dias</th>') +
+    var h = '<div class="r-wrap"><table class="r-table"><thead><tr><th class="l">' + (P.I.porDia ? 'Semana' : 'Mês') + '</th>' + (P.I.porDia ? '' : '<th>Registos</th>') +
       '<th>Testados</th><th>Positivos</th><th>Indeterm.</th><th>Negativos</th><th>Taxa pos.</th></tr></thead><tbody>';
     if (!P.linhas.length) return h + '<tr><td colspan="7" class="l" style="color:var(--muted)">Sem registos no período.</td></tr></tbody></table></div>';
     P.linhas.forEach(function (l) {
@@ -404,7 +460,7 @@
       '<div class="card" style="padding:14px 20px"><div style="display:flex;gap:18px;flex-wrap:wrap;font-size:.8rem"><span><b>Período:</b> ' + P.I.rot + '</span><span><b>Formação Sanitária:</b> ' + esc(P.formacao || '—') + '</span><span><b>Fonte:</b> ' + esc(P.fonte || '—') + '</span></div></div>' +
       '<div class="kpi-grid">' + kpisPeriodo(P.a, P.regs.length) + '</div>' +
       '<div class="card"><div class="card-label">Por faixa etária e sexo</div>' + tabelaFaixas(P.a) + '</div>' +
-      '<div class="grid2"><div class="card"><div class="card-label">' + (P.I.porDia ? 'Por dia' : 'Por mês') + '</div>' + tabelaLinhas(P) + '</div>' +
+      '<div class="grid2"><div class="card"><div class="card-label">' + (P.I.porDia ? 'Por semana' : 'Por mês') + '</div>' + tabelaLinhas(P) + '</div>' +
       '<div class="card"><div class="card-label">Positivos por faixa etária</div>' + barrasFaixas(P.a, 'positivos') + '</div></div>' +
       (obs.length ? '<div class="card"><div class="card-label">Observações</div>' + obs.map(function (r) { return '<div style="font-size:.84rem;padding:6px 0;border-bottom:1px dashed var(--border)"><b>' + fmtD(r.data) + ':</b> ' + esc(r.s.obs) + '</div>'; }).join('') + '</div>' : '');
   }
@@ -413,7 +469,7 @@
   function pdf(tipo) {
     if (!(window.jspdf && window.jspdf.jsPDF) || !window.ZeloPDF) { toast('O gerador de PDF ainda está a carregar — tente de novo'); return; }
     var P;
-    if (tipo === 'dia') P = { I: { rot: fmtDL(data), porDia: true }, regs: [{ data: data, s: cur }], a: agregar([cur]), linhas: [], formacao: cur.formacao, fonte: cur.fonte };
+    if (tipo === 'dia') P = { I: { rot: rotulo(data), porDia: true }, regs: [{ data: data, s: cur }], a: agregar([cur]), linhas: [], formacao: cur.formacao, fonte: cur.fonte };
     else P = dadosPeriodo(tipo);
     var Z = ZeloPDF.criar(), d = Z.d, a = P.a;
     var nomeTipo = { dia: 'Registo Diário', semanal: 'Relatório Semanal', mensal: 'Relatório Mensal', trimestral: 'Relatório Trimestral', semestral: 'Relatório Semestral', anual: 'Relatório Anual' }[tipo];
@@ -433,10 +489,10 @@
     var tl = ['TOTAL']; IND.forEach(function (I) { var f = soma(a, I.id, 'f'), m = soma(a, I.id, 'm'); tl.push(f, m, f + m); }); body.push(tl);
     y = ZeloPDF.autoTable(d, { startY: y, head: head, body: body, styles: { fontSize: 10, halign: 'center' }, columnStyles: { 0: { halign: 'left' } } }) + 4;
     if (tipo !== 'dia') {
-      y = Z.secT(y, '3. ' + (P.I.porDia ? 'Por dia' : 'Por mês'));
+      y = Z.secT(y, '3. ' + (P.I.porDia ? 'Por semana' : 'Por mês'));
       var b2 = P.linhas.map(function (l) { var t = soma(l.s, 'testados'), p = soma(l.s, 'positivos'), n = soma(l.s, 'indeterminados'); return [l.rot].concat(P.I.porDia ? [] : [l.n]).concat([t, p, n, Math.max(0, t - p - n), pct(p, t)]); });
       b2.push(['TOTAL'].concat(P.I.porDia ? [] : [P.regs.length]).concat([T, Po, N, Math.max(0, T - Po - N), pct(Po, T)]));
-      y = ZeloPDF.autoTable(d, { startY: y, head: [[P.I.porDia ? 'Dia' : 'Mês'].concat(P.I.porDia ? [] : ['Dias']).concat(['Testados', 'Positivos', 'Indeterm.', 'Negativos', 'Taxa pos.'])], body: b2, styles: { fontSize: 10, halign: 'center' }, columnStyles: { 0: { halign: 'left' } } }) + 4;
+      y = ZeloPDF.autoTable(d, { startY: y, head: [[P.I.porDia ? 'Semana' : 'Mês'].concat(P.I.porDia ? [] : ['Registos']).concat(['Testados', 'Positivos', 'Indeterm.', 'Negativos', 'Taxa pos.'])], body: b2, styles: { fontSize: 10, halign: 'center' }, columnStyles: { 0: { halign: 'left' } } }) + 4;
     }
     var obs = P.regs.filter(function (r) { return (r.s.obs || '').trim(); });
     if (obs.length) {
@@ -479,7 +535,7 @@
     $('histLista').innerHTML = ks.map(function (d) {
       var r = t[d], s = r ? r.snapshot : lsGet(LS_RASC + d, vazio()), rasc = !!lsGet(LS_RASC + d, null);
       var quem = r && r.criadoPor && r.criadoPor.nome ? 'Guardado por ' + esc(r.criadoPor.nome) + ' · ' + new Date(r.savedAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
-      return '<div class="hist-item" data-dia="' + d + '"><div><div class="hist-date">' + fmtDL(d) + '</div><div class="hist-sub">' + (quem || '') + (rasc ? (quem ? ' · ' : '') + '<b style="color:var(--warn)">alterações por guardar neste computador</b>' : '') + '</div></div>' +
+      return '<div class="hist-item" data-dia="' + d + '"><div><div class="hist-date">' + esc(rotulo(d, r)) + '</div><div class="hist-sub">' + (quem || '') + (rasc ? (quem ? ' · ' : '') + '<b style="color:var(--warn)">alterações por guardar neste computador</b>' : '') + '</div></div>' +
         '<div class="hist-nums"><span style="color:#0e7490">T <b>' + soma(s, 'testados') + '</b></span><span style="color:#b91c1c">P <b>' + soma(s, 'positivos') + '</b></span><span style="color:#6d28d9">I <b>' + soma(s, 'indeterminados') + '</b></span></div></div>';
     }).join('');
   }
@@ -573,7 +629,7 @@
       toast('Valores limpos — carregue em Guardar para gravar');
     } else if (tipo === 'pdf') {
       if (!(window.jspdf && window.jspdf.jsPDF) || !window.ZeloPDF) { toast('O gerador de PDF ainda está a carregar — tente de novo'); return; }
-      var Z = ZeloPDF.criar(), y = Z.cab(C.titulo + ' · ' + nomeInd + ' (selecionados)', fmtDL(data)), tf = 0, tm = 0;
+      var Z = ZeloPDF.criar(), y = Z.cab(C.titulo + ' · ' + nomeInd + ' (selecionados)', rotulo(data)), tf = 0, tm = 0;
       var body = marcados.map(function (c) { var i = +c.dataset.i, f = val(cur, ind, i, 'f'), m = val(cur, ind, i, 'm'); tf += f; tm += m; return [FAIXAS[i], f, m, f + m]; });
       body.push(['TOTAL SELECIONADO', tf, tm, tf + tm]);
       ZeloPDF.autoTable(Z.d, { startY: y, head: [['Faixa etária', 'Feminino', 'Masculino', 'Total']], body: body, styles: { fontSize: 11.5, halign: 'center' }, columnStyles: { 0: { halign: 'left' } } });
