@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<script src="zelo_consumo.js"></script>
+<script src="zelo_espera.js?v=8"></script>
+<script defer src="zelo_cabecalho.js"></script>
+<script>document.documentElement.style.visibility='hidden';</script>
+<script>window.ZELO_MODULE='sistemas_independentes';</script>
+<script>window.ZELO_SO_ADMIN=true; // Serviço de Estatística — só administradores</script>
+<script>window.ZELO_ITEM='consumo_firebase';</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbGetRange = (path,de,ate)=>get(query(ref(db,path), orderByKey(), startAt(de), endAt(ate))).then(snap=>snap.exists()?snap.val():null);
+    window.__fbReady = true;
+  }catch(e){ window.__fbReady = false; }
+</script>
+<script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_pagegate_watchdog.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consumo do Firebase · Hospital do Prenda</title>
+<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--nv:#0B2545;--bg:#F2F5FA;--sf:#fff;--br:#E3E8F0;--tx:#132033;--tx2:#4B5B70;--tx3:#8B98AA;--ok:#1ca97c;--av:#D97706;--mau:#B3263E;--ci:#0891B2;--f:Inter,'Segoe UI',Arial,sans-serif}
+html[data-zelo-theme="dark"]{--bg:#0B1220;--sf:#111A2B;--br:#1F2A3D;--tx:#E6ECF5;--tx2:#AAB6C8;--tx3:#7C8AA0}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--f);background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;width:100%;max-width:1200px;margin:0 auto;padding:22px 18px 40px}
+h2{margin:0 0 4px;font-size:1.35rem;font-weight:900;color:var(--nv)}
+html[data-zelo-theme="dark"] h2{color:#E6ECF5}
+.sub{color:var(--tx2);font-size:.9rem;margin-bottom:18px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--sf);border:1px solid var(--br);border-top:3px solid var(--k,var(--nv));border-radius:14px;padding:14px 16px;min-width:0}
+.kpi .t{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
+.kpi .v{font-size:1.6rem;font-weight:900;color:var(--k,var(--tx));margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:.76rem;color:var(--tx2);margin-top:2px}
+.card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+.card h3{margin:0 0 12px;font-size:.78rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+.barra{height:16px;border-radius:9px;background:#E8EEF5;overflow:hidden;position:relative}
+.barra i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--ok),#34d399)}
+.barra i.prev{position:absolute;left:0;top:0;background:repeating-linear-gradient(45deg,rgba(8,145,178,.25) 0 6px,rgba(8,145,178,.1) 6px 12px)}
+.barra.av i:not(.prev){background:linear-gradient(90deg,var(--av),#f59e0b)}.barra.mau i:not(.prev){background:linear-gradient(90deg,var(--mau),#ef4444)}
+.leg{display:flex;justify-content:space-between;font-size:.76rem;color:var(--tx2);margin-top:6px;flex-wrap:wrap;gap:6px}
+.estado{border-radius:12px;padding:12px 14px;font-weight:700;font-size:.9rem;margin-bottom:16px}
+.estado.ok{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}.estado.av{background:#FFFBEB;color:#92400E;border:1px solid #FCD34D}.estado.mau{background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);padding:6px 8px;border-bottom:1px solid var(--br)}
+td{padding:7px 8px;border-bottom:1px solid var(--br)}
+td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+td .mini{height:6px;border-radius:4px;background:#E8EEF5;margin-top:4px;overflow:hidden}td .mini i{display:block;height:100%;background:var(--ci)}
+.dias{display:flex;align-items:flex-end;gap:4px;height:140px;padding-top:10px}
+.dias div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.dias b{display:block;width:100%;background:var(--ci);border-radius:4px 4px 0 0;min-height:2px}
+.dias span{font-size:.62rem;color:var(--tx3)}
+.dicas{margin:0;padding-left:18px;color:var(--tx2);font-size:.88rem;line-height:1.6}
+.vazio{color:var(--tx3);font-size:.86rem;padding:8px 0}
+.mes{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+.mes input{padding:7px 10px;border:1px solid var(--br);border-radius:8px;font:600 .88rem var(--f);background:var(--sf);color:var(--tx)}
+@media(max-width:800px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+  <h2>Consumo do Firebase</h2>
+  <div class="sub">Plano gratuito (Spark): <b>10 GB de downloads por mês</b>, 1 GB guardado e 100 ligações ao mesmo tempo. O período de faturação é o mês do calendário.</div>
+  <div class="mes"><label for="mes" style="font-size:.8rem;font-weight:700;color:var(--tx2)">Mês</label><input type="month" id="mes"></div>
+  <div class="estado" id="estado">A carregar…</div>
+  <div class="kpis" id="kpis"></div>
+  <div class="card"><h3>Downloads do mês face ao limite gratuito (10 GB)</h3>
+    <div class="barra" id="barra"><i class="prev" id="barPrev"></i><i id="barUsado" style="position:relative"></i></div>
+    <div class="leg"><span id="legUsado"></span><span id="legPrev"></span><span>Limite: 10 GB</span></div>
+  </div>
+  <div class="card"><h3>Downloads por dia</h3><div class="dias" id="dias"></div></div>
+  <div class="g2">
+    <div class="card"><h3>Páginas que mais gastam</h3><div id="pags"></div></div>
+    <div class="card"><h3>Computadores</h3><div id="comps"></div></div>
+  </div>
+  <div class="card"><h3>Como se poupa (já feito no sistema)</h3>
+    <ul class="dicas">
+      <li>Cada página lê só o dia ou o mês aberto; o histórico lê-se uma vez e depois só os últimos 60 dias.</li>
+      <li>As alterações chegam ao vivo só como diferença (não se volta a descarregar tudo).</li>
+      <li>As gravações enviam só os campos alterados.</li>
+      <li>Doentes que saíram há muito tempo vão para o arquivo e deixam de ser descarregados a cada abertura.</li>
+      <li>Fechar as páginas que não estão a ser usadas (cada separador aberto é uma ligação).</li>
+    </ul>
+    <div class="sub" style="margin:10px 0 0">Valores medidos pelas próprias páginas (estimativa). O valor oficial está na consola do Firebase → Realtime Database → Uso.</div>
+  </div>
+</main>
+<script>
+(function(){
+  'use strict';
+  var LIMITE = 10 * 1024 * 1024 * 1024, BASE = 'registos_sistemas_locais/consumo_firebase';
+  function $(id){ return document.getElementById(id); }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function fmt(b){ if (b >= 1073741824) return (b/1073741824).toFixed(2).replace('.',',') + ' GB'; if (b >= 1048576) return (b/1048576).toFixed(1).replace('.',',') + ' MB'; if (b >= 1024) return Math.round(b/1024) + ' KB'; return (b||0) + ' B'; }
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  var NOMES = { index:'Início', Dashboard:'Página Inicial', servicos:'Serviços', Estatistica:'Estatística' };
+  function nomePag(p){ return NOMES[p] || p.replace(/_/g,' ').replace(/\b(v\d[\w-]*)$/,'').trim(); }
+  var agora = new Date();
+  $('mes').value = agora.getFullYear() + '-' + pad(agora.getMonth()+1);
+  $('mes').addEventListener('change', carregar);
+
+  function esperar(){ return new Promise(function(r){ var n=0; (function v(){ if (window.__fbReady && window.__fbGet) return r(true); if (++n > 60) return r(false); setTimeout(v, 250); })(); }); }
+  async function carregar(){
+    var ym = $('mes').value, p = ym.split('-'), nd = new Date(+p[0], +p[1], 0).getDate();
+    if (!(await esperar())) { $('estado').className = 'estado av'; $('estado').textContent = 'Sem ligação ao Firebase.'; return; }
+    // Envia já o que este computador mediu hoje.
+    try { window.__zeloConsumo && window.__zeloConsumo.enviar(); } catch (e) {}
+    var v = null;
+    try { v = window.__fbGetRange ? await window.__fbGetRange(BASE, ym + '-01', ym + '-31') : await window.__fbGet(BASE); } catch (e) {}
+    v = v || {};
+    var porDia = {}, porPag = {}, porComp = {}, total = 0;
+    Object.keys(v).forEach(function(d){
+      if (d.slice(0,7) !== ym) return;
+      var dia = v[d] || {};
+      Object.keys(dia).forEach(function(c){
+        var r = dia[c] || {}, t = Number(r.total) || 0;
+        total += t; porDia[d] = (porDia[d]||0) + t;
+        var nome = r.quem || ('Computador ' + c.slice(-4));
+        porComp[c] = porComp[c] || { nome: nome, t: 0, dias: 0 }; porComp[c].t += t; porComp[c].dias++; if (r.quem) porComp[c].nome = r.quem;
+        Object.keys(r.pag || {}).forEach(function(pg){ porPag[pg] = porPag[pg] || { t:0, ab:0 }; porPag[pg].t += Number(r.pag[pg]) || 0; porPag[pg].ab += Number((r.aberturas||{})[pg]) || 0; });
+      });
+    });
+    var ehAtual = ym === agora.getFullYear() + '-' + pad(agora.getMonth()+1);
+    var decorridos = ehAtual ? agora.getDate() : nd, diasCom = Object.keys(porDia).length;
+    var media = decorridos ? total / decorridos : 0, prev = ehAtual ? media * nd : total, pct = prev / LIMITE * 100;
+    var cls = pct >= 80 ? 'mau' : pct >= 50 ? 'av' : 'ok';
+    $('estado').className = 'estado ' + cls;
+    $('estado').textContent = !total ? 'Ainda não há medições neste mês (as páginas começam a medir quando são abertas com a versão nova).'
+      : cls === 'ok' ? 'Dentro do plano gratuito: a previsão para o mês é ' + fmt(prev) + ' (' + pct.toFixed(1).replace('.',',') + '% do limite).'
+      : cls === 'av' ? 'Atenção: a previsão é ' + fmt(prev) + ' (' + pct.toFixed(0) + '% do limite). Veja as páginas que mais gastam.'
+      : 'Perigo: a previsão (' + fmt(prev) + ') aproxima-se do limite gratuito. Reduza as páginas abertas sem uso.';
+    var K = function(t,val,s,c){ return '<div class="kpi" style="--k:'+c+'"><div class="t">'+t+'</div><div class="v">'+val+'</div><div class="s">'+s+'</div></div>'; };
+    $('kpis').innerHTML = K('Downloads no mês', fmt(total), (total/LIMITE*100).toFixed(2).replace('.',',') + '% de 10 GB', '#0B2545') +
+      K('Média por dia', fmt(media), decorridos + ' dia(s) decorrido(s)', '#0891B2') +
+      K('Previsão do mês', fmt(prev), ehAtual ? 'ao ritmo atual' : 'mês fechado', cls==='ok'?'#1ca97c':cls==='av'?'#D97706':'#B3263E') +
+      K('Computadores', Object.keys(porComp).length, 'com o sistema aberto no mês', '#6A4C9C');
+    $('barUsado').style.width = Math.min(100, total/LIMITE*100) + '%';
+    $('barPrev').style.width = Math.min(100, pct) + '%';
+    $('barra').className = 'barra ' + cls;
+    $('legUsado').textContent = 'Usado: ' + fmt(total);
+    $('legPrev').textContent = ehAtual ? 'Previsão até ao fim do mês: ' + fmt(prev) : '';
+    var max = Math.max.apply(null, [1].concat(Object.keys(porDia).map(function(k){ return porDia[k]; })));
+    var hd = '';
+    for (var d = 1; d <= nd; d++){ var k = ym + '-' + pad(d), t = porDia[k] || 0; hd += '<div title="' + d + ': ' + fmt(t) + '"><b style="height:' + Math.round(t/max*110) + 'px;opacity:' + (t?1:.25) + '"></b><span>' + d + '</span></div>'; }
+    $('dias').innerHTML = hd;
+    var pags = Object.keys(porPag).sort(function(a,b){ return porPag[b].t - porPag[a].t; }), pm = pags.length ? porPag[pags[0]].t : 1;
+    $('pags').innerHTML = pags.length ? '<table><thead><tr><th>Página</th><th style="text-align:right">Aberturas</th><th style="text-align:right">Downloads</th></tr></thead><tbody>' +
+      pags.slice(0, 15).map(function(p){ return '<tr><td>' + esc(nomePag(p)) + '<div class="mini"><i style="width:' + Math.round(porPag[p].t/pm*100) + '%"></i></div></td><td class="n">' + porPag[p].ab + '</td><td class="n">' + fmt(porPag[p].t) + '</td></tr>'; }).join('') + '</tbody></table>'
+      : '<div class="vazio">Sem medições.</div>';
+    var comps = Object.keys(porComp).sort(function(a,b){ return porComp[b].t - porComp[a].t; });
+    $('comps').innerHTML = comps.length ? '<table><thead><tr><th>Último utilizador</th><th style="text-align:right">Dias</th><th style="text-align:right">Downloads</th></tr></thead><tbody>' +
+      comps.map(function(c){ return '<tr><td>' + esc(porComp[c].nome) + '</td><td class="n">' + porComp[c].dias + '</td><td class="n">' + fmt(porComp[c].t) + '</td></tr>'; }).join('') + '</tbody></table>'
+      : '<div class="vazio">Sem medições.</div>';
+  }
+  var feito = false;
+  function primeira(){ if (feito) return; feito = true; carregar(); }
+  window.addEventListener('zelo-gate-ready', primeira);
+  setTimeout(primeira, 1500);
+})();
+</script>
+<script src="zelo_servicos_menu.js?v=3"></script>
+<script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script src="zelo_assistente.js?v=8"></script>
+</body>
+</html>

@@ -206,6 +206,7 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Testagem de VIH Geral', file: 'testagem_vih_estatistica.html', modulo: 'sistemas_independentes', item: 'testagem_vih' },
   { nome: 'Movimento Hospitalar Geral', file: 'movimento_hospitalar_geral.html', modulo: 'sistemas_independentes', item: 'movimento_hospitalar_geral' },
   { nome: 'Fluxograma do Relatório', file: 'fluxograma_relatorio.html', modulo: 'sistemas_independentes', item: 'fluxograma_relatorio' },
+  { nome: 'Consumo do Firebase', file: 'consumo_firebase.html', modulo: 'sistemas_independentes', item: 'consumo_firebase' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),
   // cada uma com a sua entrada, a seguir à Supervisão.
 ];

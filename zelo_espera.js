@@ -21,8 +21,8 @@
   // Histórico de registos (quem registou/editou o quê): carregado já, antes
   // das leituras da página, para saber o "antes" de cada alteração.
   if (!window.__zeloAuditoria && !document.querySelector('script[src*="zelo_auditoria.js"]')) {
-    if (document.readyState === 'loading') document.write('<script src="' + url('zelo_auditoria.js?v=2') + '"><\/script>');
-    else { var au = document.createElement('script'); au.src = url('zelo_auditoria.js?v=2'); document.head.appendChild(au); }
+    if (document.readyState === 'loading') document.write('<script src="' + url('zelo_auditoria.js?v=3') + '"><\/script>');
+    else { var au = document.createElement('script'); au.src = url('zelo_auditoria.js?v=3'); document.head.appendChild(au); }
   }
   // Menu da página (Guardar, Exportar, Backup… saem do cabeçalho).
   if (!document.querySelector('script[src*="zelo_menu_pagina.js"]')) {

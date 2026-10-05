@@ -164,6 +164,20 @@
       if (nome === 'zeloQueueWrite') origQueue = f;
       return w;
     }
+    // Já há outro envoltório com get/set (ex.: zelo_consumo.js, medidor de
+    // downloads): este fica por fora dele, sem o apagar.
+    var ant = Object.getOwnPropertyDescriptor(window, nome);
+    if (ant && typeof ant.get === 'function' && typeof ant.set === 'function') {
+      var g2 = envolver(ant.get());
+      try {
+        Object.defineProperty(window, nome, {
+          configurable: true, enumerable: true,
+          get: function () { return g2; },
+          set: function (v) { ant.set.call(window, v); g2 = envolver(ant.get()); }
+        });
+        return;
+      } catch (e) {}
+    }
     var guardado = envolver(atual);
     try {
       Object.defineProperty(window, nome, {
