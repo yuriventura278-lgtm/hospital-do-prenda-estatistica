@@ -23,34 +23,33 @@ const SERVICOS_MENU = [
   { nome: 'Medicina Homem', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_homem.html', modulo: 'procedimentos_enfermagem', item: 'medicina_homem' }],
-    // Movimento preenchido por género; o da Medicina Interna é o somatório (só leitura).
-    movimento: [{ label: 'Movimento Hospitalar — Medicina Homem', file: 'medicina_homem_movimento.html', modulo: 'movimento_mensal', item: 'medicina_homem' },
-      { label: 'Movimento Hospitalar — Medicina Interna (somatório)', file: 'medicina_interna_movimento.html', modulo: 'movimento_mensal', item: 'medicina_interna' }] },
+    // Movimento preenchido por género; o somatório da Medicina Interna (só leitura)
+    // abre-se a partir do Movimento Hospitalar Geral.
+    movimento: [{ label: 'Movimento Hospitalar Medicina Homem', file: 'medicina_homem_movimento.html', modulo: 'movimento_mensal', item: 'medicina_homem' }] },
   { nome: 'Medicina Mulher', categoria: 'internamento', grupo: 'Medicina Interna', icon: 'heartbeat', cor: '#7C3AED',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_medicina_interna.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_medicina_interna' }], // oculto a pedido: { label: 'Relatório Diário (Homem + Mulher)', file: 'banco_medicina_interna_v2-2-1-2-1.html', modulo: 'servicos', item: 'medicina_interna' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_medicina_mulher.html', modulo: 'procedimentos_enfermagem', item: 'medicina_mulher' }],
-    movimento: [{ label: 'Movimento Hospitalar — Medicina Mulher', file: 'medicina_mulher_movimento.html', modulo: 'movimento_mensal', item: 'medicina_mulher' },
-      { label: 'Movimento Hospitalar — Medicina Interna (somatório)', file: 'medicina_interna_movimento.html', modulo: 'movimento_mensal', item: 'medicina_interna' }] },
+    movimento: [{ label: 'Movimento Hospitalar Medicina Mulher', file: 'medicina_mulher_movimento.html', modulo: 'movimento_mensal', item: 'medicina_mulher' }] },
   { nome: 'Cirurgia Geral', categoria: 'internamento', icon: 'stretcher', cor: '#DC2626',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_cirurgia_geral.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_cirurgia_geral' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Cirurgia_Geral.html', modulo: 'servicos', item: 'cirurgia_geral' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_cirurgia_geral.html', modulo: 'procedimentos_enfermagem', item: 'cirurgia_geral' }],
-    movimento: [{ label: 'Movimento Hospitalar', file: 'cirurgia_geral_movimento.html', modulo: 'movimento_mensal', item: 'cirurgia_geral' }] },
+    movimento: [{ label: 'Movimento Hospitalar Cirurgia Geral', file: 'cirurgia_geral_movimento.html', modulo: 'movimento_mensal', item: 'cirurgia_geral' }] },
   { nome: 'Orto-Traumatologia', categoria: 'internamento', icon: 'bone', cor: '#DC2626',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_ortopedia.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_ortopedia' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Ortopedia.html', modulo: 'servicos', item: 'ortopedia' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_ortopedia.html', modulo: 'procedimentos_enfermagem', item: 'ortopedia' }],
-    movimento: [{ label: 'Movimento Hospitalar', file: 'ortopedia_movimento.html', modulo: 'movimento_mensal', item: 'ortopedia' }] },
+    movimento: [{ label: 'Movimento Hospitalar Orto-Traumatologia', file: 'ortopedia_movimento.html', modulo: 'movimento_mensal', item: 'ortopedia' }] },
   { nome: 'Neurocirurgia', categoria: 'internamento', icon: 'brain', cor: '#DC2626',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_neurocirurgia.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_neurocirurgia' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Neurocirurgia.html', modulo: 'servicos', item: 'neurocirurgia' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_neurocirurgia.html', modulo: 'procedimentos_enfermagem', item: 'neurocirurgia' }],
-    movimento: [{ label: 'Movimento Hospitalar', file: 'neurocirurgia_movimento.html', modulo: 'movimento_mensal', item: 'neurocirurgia' }] },
+    movimento: [{ label: 'Movimento Hospitalar Neurocirurgia', file: 'neurocirurgia_movimento.html', modulo: 'movimento_mensal', item: 'neurocirurgia' }] },
   { nome: 'Maxilo-Facial', categoria: 'internamento', icon: 'jaw', cor: '#DC2626',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_maxilo_facial.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_maxilo_facial' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Cirurgia_Maxilo_Facial.html', modulo: 'servicos', item: 'maxilo_facial' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_maxilo_facial.html', modulo: 'procedimentos_enfermagem', item: 'maxilo_facial' }],
-    movimento: [{ label: 'Movimento Hospitalar', file: 'maxilo_facial_movimento.html', modulo: 'movimento_mensal', item: 'maxilo_facial' }] },
+    movimento: [{ label: 'Movimento Hospitalar Maxilo-Facial', file: 'maxilo_facial_movimento.html', modulo: 'movimento_mensal', item: 'maxilo_facial' }] },
   { nome: 'Nefrologia', categoria: 'internamento', icon: 'droplet', cor: '#7C3AED',
     relatorios: [{ label: 'Controlo de Pacientes', file: 'controlo_pacientes_nefrologia.html', modulo: 'sistemas_independentes', item: 'controlo_pacientes_nefrologia' }], // oculto a pedido: { label: 'Relatório Diário', file: 'Banco_Nefrologia_v2-1.html', modulo: 'servicos', item: 'nefrologia' } — sistema antigo do "banco", descomentar para restaurar
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_nefrologia.html', modulo: 'procedimentos_enfermagem', item: 'nefrologia' }],
-    movimento: [{ label: 'Movimento Hospitalar', file: 'nefrologia_movimento.html', modulo: 'movimento_mensal', item: 'nefrologia' }] },
+    movimento: [{ label: 'Movimento Hospitalar Nefrologia', file: 'nefrologia_movimento.html', modulo: 'movimento_mensal', item: 'nefrologia' }] },
   { nome: 'UC Intermédio', categoria: 'internamento', icon: 'activity', cor: '#7C3AED',
     relatorios: [
       // Cada unidade com o seu Controlo de Pacientes (a página tem também a vista da soma).
@@ -61,8 +60,8 @@ const SERVICOS_MENU = [
     // Cada unidade com o seu Movimento; no Movimento Hospitalar Geral contam
     // como um só serviço (UCI / Cuidados Intermédios = soma das duas).
     movimento: [
-      { label: 'Movimento Hospitalar — UCI', file: 'uci_intensivo_movimento.html', modulo: 'movimento_mensal', item: 'uci_intensivo' },
-      { label: 'Movimento Hospitalar — Cuidados Intermédios', file: 'uci_intermedio_movimento.html', modulo: 'movimento_mensal', item: 'uci_intermedio' },
+      { label: 'Movimento Hospitalar UCI', file: 'uci_intensivo_movimento.html', modulo: 'movimento_mensal', item: 'uci_intensivo' },
+      { label: 'Movimento Hospitalar Cuidados Intermédios', file: 'uci_intermedio_movimento.html', modulo: 'movimento_mensal', item: 'uci_intermedio' },
     ] },
   { nome: 'Banco de Urgência', categoria: 'urgencia', icon: 'shield', cor: '#059669',
     procedimentos: [{ label: 'Procedimentos de Enfermagem', file: 'procedimentos_enfermagem_banco_urgencia.html', modulo: 'procedimentos_enfermagem', item: 'banco_urgencia' }],
