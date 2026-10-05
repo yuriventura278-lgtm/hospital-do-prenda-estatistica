@@ -188,8 +188,8 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="zelo_pdf_guardar.js?v=2"></script>
-<script src="zelo_servicos_menu.js?v=3"></script>
-<script src="zelo_mov_auto.js?v=21"></script>
+<script src="zelo_servicos_menu.js?v=4"></script>
+<script src="zelo_mov_auto.js?v=22"></script>
 <script src="zelo_fecho_mes.js?v=9"></script>
 <script>
 /* Movimento Hospitalar Geral — supervisão e estatística (só leitura).
@@ -207,10 +207,16 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
   var MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   var MES3 = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var EDITAVEIS = ['diretos','transferidos_adm','altas','menos_48','mais_48','transferidos_sai','dia_cama','dia_doente'];
+  // Partes que no Movimento Geral contam como um só serviço (a soma das duas).
+  var SOMA_GERAL = { medicina_interna: ['medicina_homem', 'medicina_mulher'], uci: ['uci_intensivo', 'uci_intermedio'] };
+  var SOMA_NOME = { medicina_interna: ['Medicina Interna', 'medicina_interna_movimento.html'], uci: ['UCI / Cuidados Intermédios', 'uci_movimento.html'] };
+  var PARTE_DE = {}; Object.keys(SOMA_GERAL).forEach(function(k){ SOMA_GERAL[k].forEach(function(p){ PARTE_DE[p] = k; }); });
   function servicos(){
     var lista = [];
     (window.SERVICOS_MENU || []).forEach(function(s){
       (s.movimento || []).forEach(function(m){
+        var soma = PARTE_DE[m.item] || (SOMA_GERAL[m.item] ? m.item : null);
+        if (soma){ if (!lista.some(function(x){ return x.item === soma; })) lista.push({ item: soma, file: SOMA_NOME[soma][1], nome: SOMA_NOME[soma][0], partes: SOMA_GERAL[soma] }); return; }
         if (m.item === 'banco_urgencia' || lista.some(function(x){ return x.item === m.item; })) return;
         var partes = String(m.label).split(/\s+—\s+/);
         lista.push({ item: m.item, file: m.file, nome: partes.length > 1 ? partes[1] : s.nome });
@@ -574,12 +580,27 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
       m.__auto = true; cache[item][ym] = m;
     });
   }
+  // Um serviço: o seu Movimento, ou a soma dos Movimentos das partes (Medicina
+  // Homem + Mulher; UCI + Cuidados Intermédios), cada parte com o seu Controlo
+  // de Pacientes quando o automático está ligado nela.
+  function lerUm(s, lista, forcar){
+    if (!s.partes) return lerServico(s.item, lista, forcar).then(function(){ return lerCP(s.item, forcar); }).then(function(){ aplicarCP(s.item, lista); });
+    return Promise.all(s.partes.map(function(p){ return lerServico(p, lista, forcar).then(function(){ return lerCP(p, forcar); }).then(function(){ aplicarCP(p, lista); }); })).then(function(){ somarPartes(s, lista); });
+  }
+  function somarPartes(s, lista){
+    var A = window.ZeloMovAuto; cache[s.item] = cache[s.item] || {};
+    lista.forEach(function(ym){
+      var ms = s.partes.map(function(p){ return (cache[p] || {})[ym] || null; });
+      cache[s.item][ym] = A && A.somarMeses ? (A.somarMeses(ms, ym) || null) : null;
+    });
+    capacidade[s.item] = s.partes.reduce(function(a, p){ return a + (Number(capacidade[p]) || 0); }, 0) || capacidade[s.item];
+  }
   function carregar(forcar){
     var st = $('mhgEstado');
     if (!window.__fbReady || !window.__fbGet){ st.textContent = 'Sem ligação ao servidor — não é possível ler os dados agora.'; return; }
     var lista = meses(); if (!lista.length){ desenhar(); return; }
     st.textContent = 'A ler os dados dos serviços…';
-    Promise.all(SERVICOS.map(function(s){ return lerServico(s.item, lista, forcar).then(function(){ return lerCP(s.item, forcar); }).then(function(){ aplicarCP(s.item, lista); }); })).then(function(){
+    Promise.all(SERVICOS.map(function(s){ return lerUm(s, lista, forcar); })).then(function(){
       st.textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
       desenhar();
     }).catch(function(){ st.textContent = 'Não foi possível ler os dados.'; });
@@ -591,6 +612,19 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
     if (escutando || typeof window.__fbListen !== 'function') return; escutando = true;
     var vivo = $('mhgVivo'); vivo.classList.remove('off'); vivo.lastChild.textContent = 'Ao vivo';
     SERVICOS.forEach(function(s){
+      if (s.partes){
+        s.partes.forEach(function(p){
+          var prim = true;
+          window.__fbListen('registos_movimento/' + p + '/savedAt', function(v){
+            if (prim){ prim = false; return; }
+            lerServico(p, meses(), true).then(function(){ aplicarCP(p, meses()); somarPartes(s, meses()); recentes[s.item] = true; clearTimeout(tRe); tRe = setTimeout(desenhar, 300);
+              $('mhgEstado').textContent = s.nome + ' atualizou às ' + new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }); });
+          });
+          var ch = p + '_movimento';
+          window.__fbListen('registos_sistemas_locais/ultimas_alteracoes/' + ch, function(v){ if (v && v.ts && (!ultAlt[s.item] || v.ts > ultAlt[s.item].ts)){ ultAlt[s.item] = v; clearTimeout(tRe); tRe = setTimeout(desenhar, 300); } });
+        });
+        return;
+      }
       var primeira = true;
       window.__fbListen('registos_movimento/' + s.item + '/savedAt', function(v){
         var antes = savedAt[s.item]; savedAt[s.item] = v;

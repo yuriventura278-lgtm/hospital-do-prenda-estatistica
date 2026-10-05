@@ -69,8 +69,10 @@
   document.head.appendChild(css);
 
   // ── barra de unidades ──
+  // Aberta pelo menu de uma unidade (?so=1): só essa unidade (e a vista da soma).
+  var SO = /[?&]so=1\b/.test(location.search);
   function botoes(ativo) {
-    return ORDEM.map(function (u) {
+    return ORDEM.filter(function (u) { return !SO || u === AT.u; }).map(function (u) {
       return '<button type="button" data-u="' + u + '" class="' + (ativo === u ? 'on' : '') + '">' + esc(U[u].nome) + ' <small>' + CAMAS[u] + ' camas</small></button>';
     }).join('') + '<button type="button" data-u="soma" class="soma' + (ativo === 'soma' ? ' on' : '') + '">UCI + CI <small>soma · 16 camas</small></button>';
   }
@@ -83,6 +85,7 @@
   function clicar(u) {
     if (u === 'soma') { mostrarSoma(); return; }
     if (u === AT.u) { if (vistaSoma) window.switchView('main'); return; }
+    if (SO) return;
     irPara(u);
   }
 

@@ -413,6 +413,12 @@ function hasModuleAccess(role, permissoes, mod, itemSlug) {
       const v = JUNTOS[itemSlug].map(x => permissoes._paginas[mod + '|' + x]);
       if (v.some(x => x === true)) explicito = true; else if (v.every(x => x === false)) explicito = false;
     }
+    // Partes (Medicina Homem/Mulher; UCI; Cuidados Intermédios): sem permissão
+    // própria, seguem a dada à página junta.
+    if (explicito === undefined && permissoes && permissoes._paginas) {
+      const mae = Object.keys(JUNTOS).filter(k => JUNTOS[k].indexOf(itemSlug) >= 0)[0];
+      if (mae) explicito = permissoes._paginas[mod + '|' + mae];
+    }
     if (explicito === true || explicito === false) return explicito;
     return papeis.indexOf(role) !== -1;
   }

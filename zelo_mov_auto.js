@@ -288,12 +288,18 @@
   // mão); só fica ligado num serviço quando o administrador o ativa
   // (__autoLigado = true). __autoDesligado === false = ativado com a versão antiga.
   function ligadoDe(lig, desl) { return lig === true || desl === false; }
-  window.ZeloMovAuto = { PREDEF: PREDEF, ligadoDe: ligadoDe, baselinesJuntas: baselinesJuntas, existenciaDe: existenciaDe, indicadores: indicadores, INDICADORES: INDICADORES, fmtInd: fmtInd, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
+  // Movimentos de somatório (só leitura) e as suas partes (preenchidas à mão ou
+  // pelo Controlo de Pacientes de cada uma, se o administrador ligar o automático).
+  var SOMA = { medicina_interna: ['medicina_homem', 'medicina_mulher'], uci: ['uci_intensivo', 'uci_intermedio'] };
+  window.ZeloMovAuto = { SOMA: SOMA, PREDEF: PREDEF, ligadoDe: ligadoDe, baselinesJuntas: baselinesJuntas, existenciaDe: existenciaDe, indicadores: indicadores, INDICADORES: INDICADORES, fmtInd: fmtInd, MAPA: MAPA, FONTES: FONTES, FUSAO: FUSAO, PARTES: PARTES, CAP_INICIAL: CAP_INICIAL, fontes: fontes, somarMeses: somarMeses, temValores: temValores,
     CAMPOS: CAMPOS, doServico: doServico, calcular: calcular, meses: meses, mesesExt: mesesExt, ativoNoMes: ativoNoMes, lerPacientes: lerPacientes, pacientesVivos: pacientesVivos, lerExternos: lerExternos };
 
   // ─────────────── Na página de Movimento de um serviço ───────────────
   function item() { try { return String(FB_MOVIMENTO_PATH).split('/').pop(); } catch (e) { return null; } }
   if (!/_movimento\.html$/.test(location.pathname)) return;
+  // Páginas de somatório (Medicina Interna, UCI / Cuidados Intermédios): sem preenchimento
+  // automático nem fusão — os números vêm das páginas das partes (zelo_mov_soma.js).
+  if (window.ZELO_MOV_SOMA) return;
 
   var ps = null, ext = [], auto = {}, aplicando = false;
   window.ZeloMovAuto.mesAuto = function (m) { return !!auto[m]; };

@@ -2,6 +2,7 @@
 <html lang="pt">
 <head>
 <script src="zelo_consumo.js"></script>
+<script>window.ZELO_MOV_SOMA = { partes:['uci_intensivo','uci_intermedio'], nomes:['UCI','Cuidados Intermédios'] }; // somatório só de leitura (zelo_mov_soma.js)</script>
 <script src="zelo_espera.js?v=8"></script>
 <script defer src="zelo_cabecalho.js"></script>
 <script>document.documentElement.style.visibility='hidden';</script>
@@ -734,6 +735,7 @@ function readLocalStorageRaw() {
 // Grava um objeto de dados nos dois armazenamentos, com o mesmo timestamp,
 // sem depender da variável global `data` (usado também na migração inicial).
 function persistRaw(obj) {
+  if (window.ZELO_MOV_SOMA) return; // somatório: não guarda nada
   const payload = { data: obj, savedAt: Date.now() };
   let localStorageFailed = false;
   try {
@@ -752,6 +754,7 @@ function persistRaw(obj) {
 }
 
 function persistData() {
+  if (window.ZELO_MOV_SOMA) return; // somatório: não guarda nada
   persistRaw(data);
   showSaveNotification();
   _fbSyncMovimento();
@@ -822,9 +825,10 @@ function _fbEsperarPronto(timeoutMs){
     }, 150);
   });
 }
-async function _fbCarregarEEscutar(){ _movSync().iniciar(); }
+async function _fbCarregarEEscutar(){ if (window.ZELO_MOV_SOMA) { window.ZeloMovSoma && window.ZeloMovSoma.iniciar(); return; } _movSync().iniciar(); }
 
 async function loadInitialData() {
+  if (window.ZELO_MOV_SOMA) return {}; // somatório: os dados vêm das partes
   dbInstance = await openIndexedDB();
   const fromIdb = normalizeStored(await idbGet(dbInstance, RECORD_KEY));
   const fromLocal = readLocalStorageRaw();
@@ -1932,13 +1936,13 @@ document.addEventListener('wheel', function(e) {
 }, { passive: false });
 </script>
 
-<script src="zelo_servicos_menu.js?v=3"></script>
+<script src="zelo_servicos_menu.js?v=4"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_assistente.js?v=8"></script>
 <script src="zelo_movimento_grelha.js?v=2"></script>
-<script src="zelo_mov_auto.js?v=21"></script>
-<script src="zelo_fecho_mes.js?v=9"></script>
+<script src="zelo_mov_auto.js?v=22"></script>
 <script src="zelo_mov_v2.js?v=20"></script>
+<script src="zelo_mov_soma.js?v=3"></script>
 <script src="zelo_video_movimento.js?v=18"></script>
 </body>
 </html>
