@@ -97,6 +97,8 @@
     // Com a escuta em tempo real ativa, o último valor do servidor já está
     // aqui — não é preciso descarregar o bloco outra vez a cada gravação.
     var ouvindo = false, ultimoRemoto = null;
+    // Limpeza pedida pelo sistema (ex.: retirar um campo em todos os meses): pode esvaziar muitos de uma vez.
+    var permitirMassa = false, fimPrimeira, primeiraFeita = new Promise(function (r) { fimPrimeira = r; });
 
     // Marca com a hora atual os valores que a pessoa mudou desde a última vez.
     function registarAlteracoes() {
@@ -130,7 +132,7 @@
         // Apagar um registo (corrigir um engano) é normal; esvaziar vários de
         // uma vez (mais do que cfg.maxApagar) não é enviado — os dados voltam
         // do servidor.
-        var emMassa = nV > (cfg.maxApagar || 1);
+        var emMassa = !permitirMassa && nV > (cfg.maxApagar || 1);
         if (emMassa) console.warn('ZELO: ' + esvaziados.length + ' valores esvaziados de uma vez — não enviados (proteção contra perda de dados).');
         else esvaziados.forEach(function (k) { meusTs[k] = agora; });
         // Houve alteração de dados feita NESTE aparelho (não a junção com o
@@ -269,13 +271,13 @@
       var inicio = Date.now();
       while (!pronto() && Date.now() - inicio < 30000) await new Promise(function (r) { setTimeout(r, 200); });
       if (!pronto()) return;
-      if (typeof window.__fbListen !== 'function') { await sincronizar(); return; }
+      if (typeof window.__fbListen !== 'function') { await sincronizar(); fimPrimeira(); return; }
       // Uma só leitura: a escuta em tempo real traz o valor atual logo ao
       // início e depois só as alterações.
       var primeira = true;
       window.__fbListen(cfg.caminho, function (remoto) {
         ultimoRemoto = remoto; servidor = remoto; ouvindo = true;
-        if (primeira) { primeira = false; sincronizar(); return; }
+        if (primeira) { primeira = false; Promise.resolve(sincronizar()).then(fimPrimeira, fimPrimeira); return; }
         if (!remoto || Number(remoto.savedAt) === ultimoEnvio) return;
         var res = juntar(remoto);
         aplicarLocal(res);
@@ -283,7 +285,9 @@
       });
     }
 
-    return { iniciar: iniciar, guardou: guardou, sincronizar: sincronizar, aplicando: function () { return aplicando; } };
+    // Grava uma limpeza autorizada (vários valores esvaziados de uma vez).
+    function limpar() { permitirMassa = true; try { registarAlteracoes(); } finally { permitirMassa = false; } return sincronizar(); }
+    return { iniciar: iniciar, guardou: guardou, sincronizar: sincronizar, limpar: limpar, primeiraSincronizacao: function () { return primeiraFeita; }, aplicando: function () { return aplicando; } };
   }
 
   window.ZeloSyncObjeto = { criar: criar, _achatar: achatar, _reconstruir: reconstruir };

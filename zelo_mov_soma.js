@@ -7,9 +7,8 @@
 // página da parte. Atualiza sozinha quando uma parte grava (escuta só a hora
 // de gravação de cada parte).
 // Configuração na página: window.ZELO_MOV_SOMA = { partes:[...], nomes:[...],
-//   limpar:'medicina_interna' } — «limpar»: os dados antigos do Movimento
-// junto são copiados para registos_movimento/<limpar>_arquivo/<hora> e só
-// depois retirados (nada se perde).
+//   limpar:'medicina_interna' } — «limpar»: os dados antigos do Movimento junto
+//   são eliminados (a pedido do serviço, sem cópia).
 (function () {
   'use strict';
   var C = window.ZELO_MOV_SOMA; if (!C || !C.partes) return;
@@ -45,16 +44,16 @@
     return new Promise(function (r) { var n = 0; (function v() { if (window.__fbReady && window.__fbGet && A()) return r(true); if (++n > 80) return r(false); setTimeout(v, 150); })(); });
   }
 
-  // Dados antigos do Movimento junto: cópia de segurança e depois retirados.
+  // Dados antigos do Movimento junto: eliminados (a pedido, sem cópia de segurança),
+  // incluindo a cópia que tinha sido feita antes em <limpar>_arquivo.
   function limparAntigo() {
     if (!C.limpar) return Promise.resolve();
-    var cam = 'registos_movimento/' + C.limpar;
-    return window.__fbGet(cam).then(function (v) {
-      if (!v || !v.snapshot) return;
-      var t = Date.now(), quem = null; try { quem = sessionStorage.getItem('zeloNome') || null; } catch (e) {}
-      return window.__fbSet('registos_movimento/' + C.limpar + '_arquivo/' + t, { copia: v, arquivadoEm: new Date(t).toISOString(), por: quem, motivo: 'Movimento passou a ser o somatório de ' + C.nomes.join(' + ') })
-        .then(function () { return window.__fbGet('registos_movimento/' + C.limpar + '_arquivo/' + t); })
-        .then(function (copia) { if (copia && copia.copia && copia.copia.snapshot) return window.__fbSet(cam, null); });
+    var cam = 'registos_movimento/' + C.limpar, arq = cam + '_arquivo';
+    return Promise.all([window.__fbGet(cam), window.__fbGet(arq)]).then(function (v) {
+      var p = [];
+      if (v[0]) p.push(window.__fbSet(cam, null));
+      if (v[1]) p.push(window.__fbSet(arq, null));
+      return Promise.all(p);
     }).catch(function (e) { console.warn('ZELO: limpeza do Movimento antigo adiada', e); });
   }
 
