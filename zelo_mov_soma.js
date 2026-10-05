@@ -58,6 +58,19 @@
     }).catch(function (e) { console.warn('ZELO: limpeza do Movimento antigo adiada', e); });
   }
 
+  // Cópias do Movimento antigo guardadas neste computador (navegador): retiradas
+  // uma vez. O Controlo de Pacientes não é tocado (tem chaves próprias).
+  function limparLocal() {
+    var L = C.limparLocal; if (!L) return;
+    var flag = 'zeloMovSomaLimpo_' + (C.limpar || 'x');
+    try { if (localStorage.getItem(flag)) return; } catch (e) { return; }
+    try {
+      (L.chaves || []).forEach(function (k) { localStorage.removeItem(k); });
+      Object.keys(localStorage).forEach(function (k) { (L.contem || []).forEach(function (t) { if (k.indexOf(t) >= 0 && k.indexOf('controlo_pacientes') < 0) localStorage.removeItem(k); }); });
+    } catch (e) {}
+    try { (L.idb || []).forEach(function (n) { indexedDB.deleteDatabase(n); }); } catch (e) {}
+    try { localStorage.setItem(flag, String(Date.now())); } catch (e) {}
+  }
   function somar() {
     var Z = A(), lista = C.partes.map(function (p) { return snaps[p] || {}; }), out = {}, meses = {};
     lista.forEach(function (sn) { Object.keys(sn).forEach(function (k) { if (/^\d{4}-\d{2}$/.test(k)) meses[k] = 1; }); });
@@ -96,6 +109,7 @@
       if (iniciado) return; iniciado = true;
       esperarFb().then(function (ok) {
         if (!ok) return;
+        limparLocal();
         limparAntigo().then(function () {
           carregar();
           if (prontoUmaVez || typeof window.__fbListen !== 'function') return; prontoUmaVez = true;
