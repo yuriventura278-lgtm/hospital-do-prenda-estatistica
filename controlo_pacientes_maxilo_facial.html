@@ -2370,6 +2370,7 @@ function addSaida() {
   const tipoSaida = document.getElementById('fTipoSaida').value;
   
   if (!dataSaida || !tipoSaida) { showFeedback('Preencha os campos obrigatórios', 'error'); return; }
+  if (tipoSaida === 'Transferência' && !document.getElementById('fSubtipo').value) { showFeedback('Escolha para onde o paciente foi transferido', 'error'); return; }
   if (tipoSaida === 'Alta Vivo' && !document.getElementById('fSubtipo').value) { showFeedback('Escolha o tipo de alta (médica, por fuga ou a pedido do familiar)', 'error'); return; }
   
   if (new Date(dataSaida) < new Date(paciente.dataEntrada)) {
@@ -2449,6 +2450,18 @@ function updateSaidaInfo() {
   updateObitoClassificacao();
 }
 
+// Transferência: para outro serviço do hospital (nunca para o próprio serviço)
+// ou para fora do hospital.
+const SERVICOS_TRANSFERENCIA = ['UCI', 'Cuidados Intermédios', 'Bloco Operatório', 'Cirurgia Geral', 'Nefrologia', 'Ortopedia', 'Neurocirurgia', 'Maxilo Facial', 'Medicina Interna'];
+const SERVICO_PROPRIO = 'Maxilo Facial';
+function opcoesTransferencia() {
+  const internos = SERVICOS_TRANSFERENCIA.filter(s => s !== SERVICO_PROPRIO)
+    .map(s => `<option value="Transferência para ${s}">${s}</option>`).join('');
+  const fora = ['Transferência para Luanda', 'Transferência para Hospital Privado', 'Transferência para outro Hospital']
+    .map(o => `<option>${o}</option>`).join('');
+  return `<optgroup label="Entre serviços do hospital">${internos}</optgroup><optgroup label="Para fora do hospital">${fora}</optgroup>`;
+}
+
 function updateSubtipoOptions() {
   const tipo = document.getElementById('fTipoSaida').value;
   const opts = {
@@ -2470,9 +2483,9 @@ function updateSubtipoOptions() {
     subtipoRow.style.display = '';
     obitoRow.style.display = 'none';
     diagFinalRow.style.display = 'none';
-    subtipoSel.innerHTML = '<option value="">Selecionar...</option>' + (opts[tipo] || []).map(o => `<option>${o}</option>`).join('');
+    subtipoSel.innerHTML = '<option value="">Selecionar...</option>' + (tipo === 'Transferência' ? opcoesTransferencia() : (opts[tipo] || []).map(o => `<option>${o}</option>`).join(''));
     const lbl = document.getElementById('fSubtipoLabel');
-    if (lbl) lbl.innerHTML = tipo === 'Alta Vivo' ? 'Tipo de Alta <span class="required">*</span>' : 'Detalhes';
+    if (lbl) lbl.innerHTML = tipo === 'Alta Vivo' ? 'Tipo de Alta <span class="required">*</span>' : tipo === 'Transferência' ? 'Transferido para <span class="required">*</span>' : 'Detalhes';
   }
 }
 
