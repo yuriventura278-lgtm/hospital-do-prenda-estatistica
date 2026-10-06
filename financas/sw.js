@@ -1,5 +1,5 @@
 /* Service worker do Controle Financeiro: guarda a app no telemóvel para abrir sem internet. */
-const CACHE = 'financas-v8';
+const CACHE = 'financas-v9';
 const FICHEIROS = ['./', './index.html', './instalar.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
