@@ -2,6 +2,14 @@
 <html lang="pt-AO"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Instalar Controle Financeiro</title>
 <meta name="theme-color" content="#0f6b4e"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finanças"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+/* Se o ícone do ecrã principal foi criado a partir desta página, abre logo a app */
+(function(){ var app=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true;
+  if(app){ location.replace("./index.html"); } })();
+</script>
 <style>
 :root{--g:#0f6b4e;--g2:#0ea371;--ink:#122b2a;--mut:#6c8480;--bg:#eef4f2;--card:#fff;--line:#e4ece9}
 @media (prefers-color-scheme:dark){:root{--ink:#e6f2ef;--mut:#8ba39d;--bg:#0c1413;--card:#142120;--line:#233532}}
@@ -22,7 +30,8 @@ ol{margin:8px 0 12px;padding-left:20px;font-size:14px}li{margin:4px 0}
 <header><img src="icon-192.png" alt=""><h1>Controle Financeiro</h1><p>Planeie · Registe · Acompanhe · Cresça — funciona com e sem internet</p></header>
 <main>
 <section class="c" id="ios"><h2><span>📱</span>iPhone / iPad<span class="tag" hidden>O seu aparelho</span></h2>
-<ol><li>Abra esta página no <b>Safari</b>.</li><li>Toque em <b>Abrir a app</b> (botão abaixo).</li><li>Toque no botão <b>Partilhar</b> (quadrado com seta ↑).</li><li>Escolha <b>Adicionar ao ecrã principal</b> → <b>Adicionar</b>.</li></ol>
+<ol><li>Abra esta página no <b>Safari</b> (não no Chrome do iPhone).</li><li>Toque no botão <b>Partilhar</b> (quadrado com seta ↑) — em baixo ou no topo.</li><li>Escolha <b>Adicionar ao ecrã principal</b> → <b>Adicionar</b>.</li><li>Feche o Safari e abra a app pelo ícone <b>Finanças</b>.</li></ol>
+<p class="nota">Já tinha adicionado antes e o ícone abria esta página? Apague esse ícone (toque longo → Remover) e adicione de novo.</p>
 <a class="btn" href="./index.html">Abrir a app</a>
 <p class="nota">Depois de adicionada, abre pelo ícone e funciona sem internet. Os dados ficam só no seu iPhone. Para backup: Definições → Exportar backup → Guardar em Ficheiros → pasta “Controle Financeiro”.</p></section>
 <section class="c" id="android"><h2><span>🤖</span>Android<span class="tag" hidden>O seu aparelho</span></h2>
@@ -37,6 +46,7 @@ ol{margin:8px 0 12px;padding-left:20px;font-size:14px}li{margin:4px 0}
 <footer>© <span id="ano"></span> Controle Financeiro · Os seus dados nunca saem do seu aparelho.</footer>
 <script>
 document.getElementById("ano").textContent=new Date().getFullYear();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function(){});
 var ua=navigator.userAgent, id=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)?"ios":/android/i.test(ua)?"android":/windows/i.test(ua)?"windows":null;
 if(id){ var s=document.getElementById(id); s.classList.add("on"); s.querySelector(".tag").hidden=false; s.parentNode.insertBefore(s,s.parentNode.firstChild); }
 </script>

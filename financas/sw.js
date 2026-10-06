@@ -1,6 +1,6 @@
 /* Service worker do Controle Financeiro: guarda a app no telemóvel para abrir sem internet. */
-const CACHE = 'financas-v3';
-const FICHEIROS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './icon-maskable-512.png'];
+const CACHE = 'financas-v4';
+const FICHEIROS = ['./', './index.html', './instalar.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FICHEIROS)).then(() => self.skipWaiting()));
