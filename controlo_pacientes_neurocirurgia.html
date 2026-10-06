@@ -2370,7 +2370,8 @@ function addSaida() {
   const tipoSaida = document.getElementById('fTipoSaida').value;
   
   if (!dataSaida || !tipoSaida) { showFeedback('Preencha os campos obrigatórios', 'error'); return; }
-  if (tipoSaida === 'Transferência' && !document.getElementById('fSubtipo').value) { showFeedback('Escolha para onde o paciente foi transferido', 'error'); return; }
+  if (tipoSaida === 'Transferência' && !document.getElementById('fSubtipo').value) { showFeedback('Escolha o tipo de transferência (entre serviços ou para outro hospital)', 'error'); return; }
+  if (tipoSaida === 'Transferência' && !subtipoTransferencia()) { showFeedback('Escolha o serviço para onde o paciente foi transferido', 'error'); return; }
   if (tipoSaida === 'Alta Vivo' && !document.getElementById('fSubtipo').value) { showFeedback('Escolha o tipo de alta (médica, por fuga ou a pedido do familiar)', 'error'); return; }
   
   if (new Date(dataSaida) < new Date(paciente.dataEntrada)) {
@@ -2382,6 +2383,7 @@ function addSaida() {
   // a partir da hora de entrada e saída, nunca escolhida manualmente pelo utilizador.
   const subtipo = tipoSaida === 'Óbito'
     ? classifyObito(paciente.dataEntrada, dataSaida)
+    : tipoSaida === 'Transferência' ? subtipoTransferencia()
     : document.getElementById('fSubtipo').value;
   
   // Guardar diagnóstico final se for óbito
@@ -2404,6 +2406,7 @@ function addSaida() {
   document.getElementById('obitoClassificacaoRow').style.display = 'none';
   document.getElementById('diagnosticoFinalRow').style.display = 'none';
   document.getElementById('subtipoRow').style.display = '';
+  destinoTransferencia(false);
   showFeedback('Saída registada com sucesso', 'success');
 }
 
@@ -2450,16 +2453,37 @@ function updateSaidaInfo() {
   updateObitoClassificacao();
 }
 
-// Transferência: para outro serviço do hospital (nunca para o próprio serviço)
-// ou para fora do hospital.
+// Transferência: só duas opções — entre serviços do hospital (escolhe-se o
+// serviço; nunca o próprio) ou para outro hospital (nome opcional).
 const SERVICOS_TRANSFERENCIA = ['UCI', 'Cuidados Intermédios', 'Bloco Operatório', 'Cirurgia Geral', 'Nefrologia', 'Ortopedia', 'Neurocirurgia', 'Maxilo Facial', 'Medicina Interna'];
 const SERVICO_PROPRIO = 'Neurocirurgia';
 function opcoesTransferencia() {
-  const internos = SERVICOS_TRANSFERENCIA.filter(s => s !== SERVICO_PROPRIO)
-    .map(s => `<option value="Transferência para ${s}">${s}</option>`).join('');
-  const fora = ['Transferência para Luanda', 'Transferência para Hospital Privado', 'Transferência para outro Hospital']
-    .map(o => `<option>${o}</option>`).join('');
-  return `<optgroup label="Entre serviços do hospital">${internos}</optgroup><optgroup label="Para fora do hospital">${fora}</optgroup>`;
+  return '<option value="entre">Transferência entre serviços</option><option value="hospital">Transferência para outro hospital</option>';
+}
+function destinoTransferencia(mostrar) {
+  let row = document.getElementById('transfDestinoRow');
+  if (!row) {
+    row = document.createElement('div'); row.className = 'form-row'; row.id = 'transfDestinoRow';
+    row.innerHTML = '<div class="field" id="transfServicoField"><label>Serviço de destino <span class="required">*</span></label>' +
+      '<select id="fTransfServico"><option value="">Selecionar...</option>' +
+      SERVICOS_TRANSFERENCIA.filter(s => s !== SERVICO_PROPRIO).map(s => `<option>${s}</option>`).join('') + '</select></div>' +
+      '<div class="field" id="transfHospitalField"><label>Nome do hospital <small>(opcional)</small></label>' +
+      '<input type="text" id="fTransfHospital" placeholder="Ex.: Hospital Américo Boavida"></div>';
+    document.getElementById('subtipoRow').insertAdjacentElement('afterend', row);
+    document.getElementById('fSubtipo').addEventListener('change', () => destinoTransferencia(true));
+  }
+  const tipo = document.getElementById('fSubtipo').value;
+  const on = mostrar && document.getElementById('fTipoSaida').value === 'Transferência';
+  row.style.display = on && tipo ? '' : 'none';
+  document.getElementById('transfServicoField').style.display = tipo === 'entre' ? '' : 'none';
+  document.getElementById('transfHospitalField').style.display = tipo === 'hospital' ? '' : 'none';
+  if (!on) { document.getElementById('fTransfServico').value = ''; document.getElementById('fTransfHospital').value = ''; }
+}
+function subtipoTransferencia() {
+  const tipo = document.getElementById('fSubtipo').value;
+  if (tipo === 'entre') { const s = document.getElementById('fTransfServico').value; return s ? 'Transferência para ' + s : null; }
+  if (tipo === 'hospital') { const h = document.getElementById('fTransfHospital').value.trim(); return 'Transferência para outro Hospital' + (h ? ' — ' + h : ''); }
+  return null;
 }
 
 function updateSubtipoOptions() {
@@ -2485,8 +2509,9 @@ function updateSubtipoOptions() {
     diagFinalRow.style.display = 'none';
     subtipoSel.innerHTML = '<option value="">Selecionar...</option>' + (tipo === 'Transferência' ? opcoesTransferencia() : (opts[tipo] || []).map(o => `<option>${o}</option>`).join(''));
     const lbl = document.getElementById('fSubtipoLabel');
-    if (lbl) lbl.innerHTML = tipo === 'Alta Vivo' ? 'Tipo de Alta <span class="required">*</span>' : tipo === 'Transferência' ? 'Transferido para <span class="required">*</span>' : 'Detalhes';
+    if (lbl) lbl.innerHTML = tipo === 'Alta Vivo' ? 'Tipo de Alta <span class="required">*</span>' : tipo === 'Transferência' ? 'Tipo de transferência <span class="required">*</span>' : 'Detalhes';
   }
+  destinoTransferencia(tipo === 'Transferência');
 }
 
 function updateObitoClassificacao() {
