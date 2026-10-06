@@ -76,8 +76,9 @@ header.appbar{position:sticky;top:0;z-index:60;color:#fff;
 .appbar-logo img{width:34px;height:34px;object-fit:contain;display:block;}
 .appbar-top .tt{flex:1;min-width:0;}
 .appbar-top .tt .t1{font-size:15px;font-weight:800;letter-spacing:.2px;}
-.avatar{width:46px;height:46px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#0a3b32;
-  background:linear-gradient(135deg,#ffd27a,#f0a52b);box-shadow:0 0 0 3px rgba(255,255,255,.22),0 4px 12px rgba(0,0,0,.2);}
+.avatar{width:46px;height:46px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.22),0 4px 12px rgba(0,0,0,.2);}
+.avatar img{width:30px;height:30px;object-fit:contain;display:block;}
 .hello-l{font-size:12px;color:#9fe0c6;font-weight:700;line-height:1.1;}
 .hello-n{font-size:21px;font-weight:900;letter-spacing:-.3px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .appbar-top .tt .t2{font-size:10.5px;color:#9fe0c6;margin-top:1px;letter-spacing:.3px;text-transform:uppercase;font-weight:600;}
@@ -906,8 +907,8 @@ main{width:100%;}
 
 <header class="appbar">
   <div class="appbar-top">
-    <div class="avatar" id="avatar" aria-hidden="true">?</div><img id="appLogo" alt="" class="hidden">
-    <div class="tt"><div class="hello-l" id="helloL">Olá,</div><div class="hello-n" id="helloNome">Controle Financeiro</div><div class="t2"><span class="brand-name">Controle Financeiro</span><span class="page-name" id="pageName">Início</span></div></div>
+    <div class="avatar" id="avatar" aria-hidden="true"></div><img id="appLogo" alt="" class="hidden">
+    <div class="tt"><div class="hello-n" id="helloNome">Controle Financeiro</div><div class="t2"><span class="brand-name">Controle Financeiro</span><span class="page-name" id="pageName">Início</span></div></div>
     <button class="iconbtn" data-act="settings" aria-label="Definições"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H3a2 2 0 010-4h.1a1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5V3a2 2 0 014 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H21a2 2 0 010 4h-.1a1.6 1.6 0 00-1.5 1z"/></svg></button>
   </div>
   <div class="mes-nav">
@@ -1850,16 +1851,16 @@ function abOpcoesHTML(){ if(!FS_OK) return '';
 
 /* ================== PERFIL: nome da pessoa (topo e PDF) e boas-vindas ================== */
 function nomePessoa(){ return (state && state.perfil && state.perfil.nome ? String(state.perfil.nome).trim() : ""); }
-function topoNome(){ var n=nomePessoa(), el=document.getElementById("helloNome"), av=document.getElementById("avatar"), l=document.getElementById("helloL");
-  if(!el) return; el.textContent=n||"Controle Financeiro"; l.style.display=n?"":"none";
-  av.textContent=n?n.charAt(0).toUpperCase():"€"; if(!n) av.textContent="✦"; }
+function topoNome(){ var n=nomePessoa(), el=document.getElementById("helloNome"), av=document.getElementById("avatar");
+  if(!el) return; el.textContent=n||"Controle Financeiro";
+  if(av && !av.firstChild) av.innerHTML='<img src="'+LOGO+'" alt="">'; }
 function verificarPerfil(){ if(!unlocked || !state || nomePessoa() || document.getElementById("ob")) return; if(navigator.webdriver && !window.__testarBoasVindas) return; mostrarBoasVindas(); }
 function mostrarBoasVindas(){
   var rec=totReceita(), el=document.createElement("div"); el.id="ob"; el.className="ob"; document.body.appendChild(el); document.body.style.overflow="hidden";
   var passo=1, nome="", valor=rec>0?rec:"";
   function desenhar(){
     el.innerHTML='<div class="ob-in"><div class="ob-lg"><img src="'+LOGO+'" alt=""></div>'+
-      (passo===1?'<h1>Bem-vindo ao Controle Financeiro</h1><p>Vamos preparar a app em 2 passos rápidos.</p>':'<h1>Olá, '+esc(nome.split(" ")[0])+'! 👋</h1><p>Quanto recebe por mês?</p>')+
+      (passo===1?'<h1>Bem-vindo ao Controle Financeiro</h1><p>Vamos preparar a app em 2 passos rápidos.</p>':'<h1>'+esc(nome.split(" ")[0])+', quanto recebe por mês?</h1><p>Indique a sua receita mensal.</p>')+
       '<div class="ob-steps"><i class="on"></i><i class="'+(passo===2?'on':'')+'"></i></div><div class="ob-box">'+
       (passo===1?'<label for="obNome">Como se chama?</label><input id="obNome" type="text" maxlength="40" autocomplete="name" placeholder="O seu nome" value="'+esc(nome)+'"><div class="ob-hint">O seu nome aparece em destaque no topo da app e no fim dos relatórios em PDF.</div><button class="ob-btn" id="obSeg">Continuar →</button>'
                  :'<label for="obRec">Receita mensal</label><div class="ob-val"><input id="obRec" type="number" inputmode="numeric" min="0" placeholder="0" value="'+esc(valor)+'"><span>'+esc(moeda())+'</span></div><div class="ob-hint">Salário e outros rendimentos certos. Pode alterar depois no Plano.</div><button class="ob-btn" id="obSeg">Começar a usar ✓</button>')+
