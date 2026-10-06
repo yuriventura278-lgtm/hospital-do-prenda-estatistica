@@ -2208,7 +2208,7 @@ function iosStandalone(){ return !!(navigator.standalone || (window.matchMedia &
 function mostrarGuiaIOS(forcar){
   if(document.getElementById("iosGuia") || ANDROID) return;
   if(!forcar){
-    if(!IOS || iosStandalone() || !publicada() || !unlocked || document.getElementById("ob")) return;
+    if(!IOS || jaInstalada() || !publicada() || !unlocked || document.getElementById("ob")) return;
     if(navigator.webdriver && !window.__testarGuiaIOS) return;
     try{ var ate=+localStorage.getItem("ios_guia_ate")||0; if(Date.now()<ate) return; }catch(e){}
   }
@@ -2225,13 +2225,22 @@ function mostrarGuiaIOS(forcar){
     '<button class="ios-b1" data-act="ios-fechar" data-n="30">Já instalei</button><button class="ios-b2" data-act="ios-fechar" data-n="2">Lembrar mais tarde</button></div></div>';
   document.body.appendChild(el);
 }
-function fecharGuiaIOS(dias){ var el=document.getElementById("iosGuia"); if(el) el.remove(); try{ localStorage.setItem("ios_guia_ate",String(Date.now()+dias*86400000)); }catch(e){} }
+function fecharGuiaIOS(dias){ var el=document.getElementById("iosGuia"); if(el) el.remove(); if(dias>=30){ marcarInstalada(); if(pagina==="inicio") render(); } try{ localStorage.setItem("ios_guia_ate",String(Date.now()+dias*86400000)); }catch(e){} }
 function copiarEnderecoApp(){ var u=location.href.split("#")[0];
   try{ navigator.clipboard.writeText(u).then(function(){ toast("Endereço copiado. Cole-o no Safari."); },function(){ prompt("Copie o endereço:",u); }); }catch(e){ prompt("Copie o endereço:",u); } }
 setTimeout(function(){ mostrarGuiaIOS(false); },3500);
 
 /* ---------- quem entra pelo link: opção para instalar e fixar no ecrã inicial (funciona sem internet) ---------- */
-function podeInstalar(){ return !ANDROID && !iosStandalone() && publicada(); }
+/* a app já está instalada? (aberta pelo ícone, instalada neste navegador, ou a pessoa confirmou "Já instalei") */
+var INST_KEY="app_instalada";
+function marcarInstalada(){ try{ localStorage.setItem(INST_KEY,"1"); }catch(e){} }
+function jaInstalada(){ if(ANDROID || iosStandalone()) return true; try{ if(localStorage.getItem(INST_KEY)==="1") return true; }catch(e){} return false; }
+if(ANDROID || iosStandalone()) marcarInstalada();
+function podeInstalar(){
+  if(jaInstalada() || !publicada()) return false;
+  if(IOS) return true;                       // iPhone: o Safari não diz se já está instalada → mostra até tocar em "Já instalei"
+  return !!installEvt;                       // Android/computador: o navegador só oferece instalar quando ainda NÃO está instalada
+}
 function cartaoInstalar(){
   if(!podeInstalar()) return "";
   try{ if(Date.now()<(+localStorage.getItem("inst_card_ate")||0)) return ""; }catch(e){}
@@ -2253,7 +2262,7 @@ function instalarAgora(){
 }
 function fecharCartaoInstalar(){ try{ localStorage.setItem("inst_card_ate",String(Date.now()+3*86400000)); }catch(e){} render(); toast("Pode instalar mais tarde em Definições › Instalar."); }
 window.addEventListener("beforeinstallprompt", function(){ setTimeout(function(){ if(pagina==="inicio" && unlocked && !document.querySelector(".inst-card")) render(); },50); });
-window.addEventListener("appinstalled", function(){ try{ localStorage.setItem("inst_card_ate",String(Date.now()+3650*86400000)); }catch(e){} if(pagina==="inicio") render(); });
+window.addEventListener("appinstalled", function(){ marcarInstalada(); if(pagina==="inicio") render(); });
 function metaInfo(f,saldo){
   var meta=Number(f.meta)||0, plano=Number(f.planoMensal)||0;
   if(meta<=0) return '';
@@ -2841,11 +2850,12 @@ function installHTML(){
   var standalone=(window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
   var movel=/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent), h="";
   if(ANDROID) return '<div class="status-line ok">✓ Está a usar a app instalada no telemóvel (versão '+esc(AndroidApp.versao())+'). Funciona com e sem internet.</div>';
-  if(standalone) h+='<div class="status-line ok">Já estás a usar a app instalada.</div>';
+  if(standalone) h+='<div class="status-line ok">✓ Está a usar a app instalada.</div>';
+  else if(jaInstalada()) h+='<div class="status-line ok">✓ A app já está instalada neste aparelho. Abra-a pelo ícone no ecrã inicial.</div>';
   else if(installEvt) h+=opt("install","Instalar app","Fica no ecrã inicial e abre em ecrã inteiro, sem internet",ICO.phone);
   if(!movel) h+=opt("baixar-app","Baixar app para o computador (Windows)","Funciona sem internet · cria o ícone no ambiente de trabalho",ICO.down)+
     '<div class="status-line">Depois de baixar: extraia o <b>.zip</b> e faça duplo clique em <b>INSTALAR.bat</b>. A app abre numa janela própria, sem internet.</div>';
-  else if(!standalone && !installEvt){
+  else if(!standalone && !installEvt && !jaInstalada()){
     if(!publicada()) h+='<div class="status-line">No telemóvel, a instalação precisa que a app seja aberta <b>uma vez</b> a partir de um endereço <b>https</b>. Depois disso funciona sempre <b>sem internet</b>.</div>';
     else if(/iphone|ipad|ipod/i.test(navigator.userAgent)) h+=opt("ios-guia","Instalar no iPhone","Ver os 3 passos: Partilhar › Adicionar ao ecrã principal",ICO.phone);
     else h+='<div class="status-line">No Chrome: menu <b>⋮</b> → <b>Instalar app</b> (ou <b>Adicionar ao ecrã principal</b>).</div>';
