@@ -648,6 +648,22 @@ body.pg-agenda main{padding-bottom:calc(var(--nav-h) + 90px);}
 @media (max-width:420px){ .navbtn span{font-size:8px;letter-spacing:-.3px;} .navbtn .nic{width:30px;} }
 @media (min-width:1000px){ .ag-fab{bottom:28px;right:28px;} }
 
+
+/* ---------- guia para instalar no iPhone ---------- */
+.ios-ov{position:fixed;inset:0;z-index:1500;background:rgba(10,40,34,.55);backdrop-filter:blur(2px);display:flex;align-items:flex-end;justify-content:center;animation:fade .25s;}
+.ios-card{width:100%;max-width:440px;background:var(--surface);color:var(--ink);border-radius:26px 26px 0 0;padding:20px 20px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.25);}
+.ios-h{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.ios-h img{width:52px;height:52px;border-radius:14px;background:#fff;padding:4px;box-shadow:0 3px 10px rgba(0,0,0,.15);}
+.ios-h b{display:block;font-size:17px;} .ios-h small{font-size:12.5px;color:var(--muted);font-weight:600;}
+.ios-p{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.4;}
+.ios-n{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;}
+.ios-ic{display:inline-flex;vertical-align:-5px;width:24px;height:24px;border-radius:6px;background:var(--input);border:1px solid var(--line-strong);align-items:center;justify-content:center;margin:0 2px;}
+.ios-ic svg{width:15px;height:15px;stroke:#0a84ff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.ios-nota{font-size:12px;color:var(--warn-text);background:var(--warn-soft);border-radius:12px;padding:9px 12px;margin-top:6px;line-height:1.5;}
+.ios-b1{display:block;width:100%;border:none;border-radius:14px;padding:14px;font-size:14.5px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--green),var(--green-deep));margin-top:12px;}
+.ios-b2{display:block;width:100%;border:none;background:none;color:var(--muted);font-size:13px;font-weight:700;padding:10px;}
+.ios-seta{text-align:center;font-size:26px;color:#fff;animation:iosSeta 1.1s ease-in-out infinite;margin-bottom:6px;text-shadow:0 2px 8px rgba(0,0,0,.4);}
+@keyframes iosSeta{0%,100%{transform:translateY(0);}50%{transform:translateY(8px);}}
 /* ---------- RELATÓRIOS ---------- */
 .rel-range{font-size:12px;font-weight:700;color:var(--green-dark);background:var(--green-soft);border-radius:10px;padding:8px 13px;display:inline-flex;align-items:center;gap:7px;margin-bottom:12px;}
 .rel-range svg{width:14px;height:14px;stroke:var(--green-dark);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
@@ -2175,6 +2191,34 @@ window.__abrirPagina=function(p){ if(!state) return; pagina=p; filtroGrupo="todo
 setInterval(verificarAvisos,15000);
 document.addEventListener("visibilitychange",function(){ if(!document.hidden) setTimeout(verificarAvisos,800); });
 
+
+/* ---------- iPhone: guia para instalar a app no ecrã principal (Safari: Partilhar › Adicionar ao ecrã principal) ---------- */
+function iosStandalone(){ return !!(navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches)); }
+function mostrarGuiaIOS(forcar){
+  if(document.getElementById("iosGuia") || ANDROID) return;
+  if(!forcar){
+    if(!IOS || iosStandalone() || !publicada() || !unlocked || document.getElementById("ob")) return;
+    if(navigator.webdriver && !window.__testarGuiaIOS) return;
+    try{ var ate=+localStorage.getItem("ios_guia_ate")||0; if(Date.now()<ate) return; }catch(e){}
+  }
+  var outro=/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(navigator.userAgent);
+  var SH='<svg viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 00-1 1v8a1 1 0 001 1h14a1 1 0 001-1v-8a1 1 0 00-1-1h-1"/></svg>';
+  var PL='<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg>';
+  var el=document.createElement("div"); el.id="iosGuia"; el.className="ios-ov";
+  el.innerHTML='<div style="width:100%;max-width:440px">'+'<div class="ios-card">'+
+    '<div class="ios-h"><img src="'+LOGO+'" alt=""><div><b>Instalar no iPhone</b><small>Grátis · fica no ecrã principal como uma app</small></div></div>'+
+    '<div class="ios-p"><span class="ios-n">1</span><div>Toque em <span class="ios-ic">'+SH+'</span> <b>Partilhar</b> '+(outro?'(no Chrome fica <b>em cima, ao lado do endereço</b>)':'(na barra do Safari, <b>em baixo</b>; se não o vir, toque em <b>⋯</b>)')+'.</div></div>'+
+    '<div class="ios-p"><span class="ios-n">2</span><div>Deslize e toque em <span class="ios-ic">'+PL+'</span> <b>Adicionar ao ecrã principal</b>.</div></div>'+
+    '<div class="ios-p"><span class="ios-n">3</span><div>Toque em <b>Adicionar</b>. O ícone <b>Organização</b> aparece no ecrã do iPhone — abra a app sempre por esse ícone.</div></div>'+
+    (outro?'<div class="ios-nota">Se não encontrar “Adicionar ao ecrã principal”, abra este endereço no <b>Safari</b>.<br><button class="ios-b2" data-act="ios-copiar" style="color:var(--green-dark);padding:8px 0 0;text-align:left">📋 Copiar o endereço</button></div>':'')+
+    '<button class="ios-b1" data-act="ios-fechar" data-n="30">Já instalei</button><button class="ios-b2" data-act="ios-fechar" data-n="2">Lembrar mais tarde</button></div></div>';
+  document.body.appendChild(el);
+}
+function fecharGuiaIOS(dias){ var el=document.getElementById("iosGuia"); if(el) el.remove(); try{ localStorage.setItem("ios_guia_ate",String(Date.now()+dias*86400000)); }catch(e){} }
+function copiarEnderecoApp(){ var u=location.href.split("#")[0];
+  try{ navigator.clipboard.writeText(u).then(function(){ toast("Endereço copiado. Cole-o no Safari."); },function(){ prompt("Copie o endereço:",u); }); }catch(e){ prompt("Copie o endereço:",u); } }
+setTimeout(function(){ mostrarGuiaIOS(false); },3500);
+setTimeout(function(){ mostrarGuiaIOS(false); },25000);
 function metaInfo(f,saldo){
   var meta=Number(f.meta)||0, plano=Number(f.planoMensal)||0;
   if(meta<=0) return '';
@@ -2768,7 +2812,7 @@ function installHTML(){
     '<div class="status-line">Depois de baixar: extraia o <b>.zip</b> e faça duplo clique em <b>INSTALAR.bat</b>. A app abre numa janela própria, sem internet.</div>';
   else if(!standalone && !installEvt){
     if(!publicada()) h+='<div class="status-line">No telemóvel, a instalação precisa que a app seja aberta <b>uma vez</b> a partir de um endereço <b>https</b>. Depois disso funciona sempre <b>sem internet</b>.</div>';
-    else if(/iphone|ipad|ipod/i.test(navigator.userAgent)) h+='<div class="status-line">No iPhone (Safari): toque em <b>Partilhar</b> e depois em <b>Adicionar ao ecrã principal</b>.</div>';
+    else if(/iphone|ipad|ipod/i.test(navigator.userAgent)) h+=opt("ios-guia","Instalar no iPhone","Ver os 3 passos: Partilhar › Adicionar ao ecrã principal",ICO.phone);
     else h+='<div class="status-line">No Chrome: menu <b>⋮</b> → <b>Instalar app</b> (ou <b>Adicionar ao ecrã principal</b>).</div>';
   }
   return h;
@@ -2808,6 +2852,9 @@ document.addEventListener("click", function(e){
     case "ag-relp": agRelP=el.dataset.p; render(); break;
     case "ag-pdf": agExportarPDF(); break;
     case "ag-ics": agEnviarCalendario(); break;
+    case "ios-fechar": fecharGuiaIOS(+el.dataset.n||2); break;
+    case "ios-copiar": copiarEnderecoApp(); break;
+    case "ios-guia": fecharSheet(); mostrarGuiaIOS(true); break;
     case "al-feito": alarmeFeito(id, el.dataset.d); break;
     case "al-adiar": alarmeAdiar(id, el.dataset.d); break;
     case "al-fechar": fecharAlarme(); break;
