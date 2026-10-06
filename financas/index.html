@@ -2546,13 +2546,13 @@ if(mqDark){ try{ mqDark.addEventListener("change", aplicarTema); }catch(e){ try{
 function modalSettings(){
   var t=state.tema||"auto";
   var b=setSec("Perfil")+'<div class="field"><label>O seu nome</label><input type="text" id="f_perfilNomeDef" maxlength="40" value="'+esc(nomePessoa())+'"><div class="hint">Aparece no topo da app e no fim dos relatórios em PDF.</div></div>'+
+    setSec("Segurança")+pinSettingsHTML()+
     setSec("Aparência")+
     '<div class="field"><label>Tema</label><div class="seg" id="segTema">'+
     [["auto","Automático","igual ao telemóvel"],["claro","Claro","fundo branco"],["escuro","Escuro","fundo escuro"]].map(function(a){
       return '<button type="button" class="sb '+(t===a[0]?"on":"")+'" data-g="'+a[0]+'" data-act="tema-set">'+a[1]+'<small>'+a[2]+'</small></button>'; }).join("")+
     '</div></div>'+
     '<div class="field"><label>Símbolo da moeda</label><input type="text" id="f_moeda" value="'+esc(state.moeda)+'" maxlength="5"></div>'+
-    setSec("Segurança (PIN)")+pinSettingsHTML()+
     setSec("Instalar no telemóvel / computador")+installHTML()+
     '<div class="status-line ok">🔒 Os seus dados ficam guardados neste aparelho enquanto usar a app.</div>'+
     setSec("Zona de perigo")+
@@ -2625,29 +2625,29 @@ function novoSalt(){ var s=""; for(var i=0;i<16;i++) s+=Math.floor(Math.random()
 function pinOk(pin){ return !!state.pin && hashPin(pin,state.pin.salt)===state.pin.hash; }
 
 function pinSettingsHTML(){
-  if(state.pin) return '<div class="status-line ok">PIN ativo — a app pede o código ao abrir e após 1 minuto em segundo plano.</div>'+
-    opt("pin-change","Alterar PIN","Muda o código de acesso",ICO.lock)+opt("pin-off","Desativar PIN","Deixa de pedir código",ICO.unlock);
-  return '<div class="status-line">Sem PIN — quem tiver o teu telemóvel desbloqueado consegue abrir a app.</div>'+
-    opt("pin-set","Ativar PIN","Código de 6 números",ICO.lock);
+  if(state.pin) return '<div class="status-line ok">🔒 Senha ativa — a app pede a senha ao abrir e depois de 1 minuto fora da app.</div>'+
+    opt("pin-change","Alterar senha","Muda a senha de acesso",ICO.lock)+opt("pin-off","Desativar senha","A app deixa de pedir a senha",ICO.unlock);
+  return '<div class="status-line">Sem senha — quem tiver o seu telemóvel desbloqueado consegue abrir a app.</div>'+
+    opt("pin-set","Criar senha","Senha de 6 números para abrir a app",ICO.lock);
 }
 function campoPin(id,label){ return '<div class="field"><label>'+label+'</label><input type="password" id="'+id+'" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="••••••" style="letter-spacing:6px;font-size:20px"></div>'; }
 function modalPin(modo){ // set | change | off
   var b='';
-  if(modo!=="set") b+=campoPin("f_pinAtual","PIN atual");
-  if(modo!=="off") b+=campoPin("f_pin1","Novo PIN (6 números)")+campoPin("f_pin2","Repetir novo PIN")+
+  if(modo!=="set") b+=campoPin("f_pinAtual","Senha atual");
+  if(modo!=="off") b+=campoPin("f_pin1","Nova senha (6 números)")+campoPin("f_pin2","Repetir a nova senha")+
      '<div class="field"><label>Dica para lembrar (opcional)</label><input type="text" id="f_pinDica" maxlength="60" placeholder="Ex.: data especial" value="'+esc(state.pin&&state.pin.hint||"")+'"></div>'+
-     '<div class="hint-box">Se esqueceres o PIN, só voltas a entrar com um <b>backup exportado</b>. O PIN não vai dentro dos backups.</div>';
-  var tit = modo==="set"?"Ativar PIN":modo==="change"?"Alterar PIN":"Desativar PIN";
-  abrirSheet(tit, b, '<button class="btn-cancel" data-act="modal-close">Cancelar</button><button class="btn-save" data-act="modal-save">'+(modo==="off"?"Desativar":"Guardar PIN")+'</button>');
+     '<div class="hint-box">⚠ Guarde bem a sua senha e escreva uma <b>dica</b>: sem a senha não é possível abrir a app.</div>';
+  var tit = modo==="set"?"Criar senha":modo==="change"?"Alterar senha":"Desativar senha";
+  abrirSheet(tit, b, '<button class="btn-cancel" data-act="modal-close">Cancelar</button><button class="btn-save" data-act="modal-save">'+(modo==="off"?"Desativar":"Guardar senha")+'</button>');
   setTimeout(function(){ var f=document.querySelector("#sheetBody input"); if(f) f.focus(); },350);
   modalSave=function(){
-    if(modo!=="set" && !pinOk(val("f_pinAtual"))){ toast("PIN atual errado."); return; }
-    if(modo==="off"){ delete state.pin; salvar(); fecharSheet(); render(); toast("PIN desativado."); return; }
+    if(modo!=="set" && !pinOk(val("f_pinAtual"))){ toast("Senha atual errada."); return; }
+    if(modo==="off"){ delete state.pin; salvar(); fecharSheet(); render(); toast("Senha desativada."); return; }
     var p1=val("f_pin1"), p2=val("f_pin2");
-    if(!/^[0-9]{6}$/.test(p1)){ toast("O PIN deve ter exatamente 6 números."); return; }
-    if(p1!==p2){ toast("Os dois PIN não coincidem."); return; }
+    if(!/^[0-9]{6}$/.test(p1)){ toast("A senha deve ter exatamente 6 números."); return; }
+    if(p1!==p2){ toast("As duas senhas não coincidem."); return; }
     var salt=novoSalt(); state.pin={salt:salt,hash:hashPin(p1,salt),len:p1.length,hint:val("f_pinDica").trim()};
-    unlocked=true; salvar(); fecharSheet(); render(); toast(modo==="set"?"PIN ativado.":"PIN alterado.");
+    unlocked=true; salvar(); fecharSheet(); render(); toast(modo==="set"?"Senha criada. A app passa a pedi-la ao abrir.":"Senha alterada.");
   };
 }
 
@@ -2666,12 +2666,12 @@ function mostrarLock(){
   var teclas=["1","2","3","4","5","6","7","8","9","","0","del"];
   var hr=new Date().getHours(), sd=hr<12?"Bom dia":hr<19?"Boa tarde":"Boa noite", pn=(nomePessoa()||"").split(" ")[0];
   el.innerHTML='<div class="lock-wrap"><div class="lock-card" role="img" aria-label="Fotografia"><div class="lock-tag"><img src="'+LOGO+'" alt=""><div><b>Organização Pessoal</b><small>&amp; Financeira</small></div></div></div>'+
-    '<div class="lock-box"><div class="lock-t">'+sd+(pn?', <b>'+esc(pn)+'</b>':'')+'</div><div class="lock-s" id="lockMsg">Introduza o seu PIN</div>'+
+    '<div class="lock-box"><div class="lock-t">'+sd+(pn?', <b>'+esc(pn)+'</b>':'')+'</div><div class="lock-s" id="lockMsg">Introduza a sua senha</div>'+
     '<div class="lock-dots" id="lockDots"></div><div class="lock-pad">'+
     teclas.map(function(k){ if(!k) return '<span></span>';
       if(k==="del") return '<button class="lk del" data-act="pin-key" data-k="del" aria-label="Apagar"><svg viewBox="0 0 24 24"><path d="M21 5H9l-6 7 6 7h12a1 1 0 001-1V6a1 1 0 00-1-1z"/><path d="M17 9l-5 6M12 9l5 6"/></svg></button>';
       return '<button class="lk" data-act="pin-key" data-k="'+k+'">'+k+'</button>'; }).join("")+
-    '</div><button class="lock-link" data-act="pin-forgot">Esqueci o PIN</button></div></div>';
+    '</div><button class="lock-link" data-act="pin-forgot">Esqueci a senha</button></div></div>';
   desenharDots();
 }
 function desenharDots(erro){
@@ -2682,7 +2682,7 @@ function desenharDots(erro){
 function teclaPin(k){
   if(Date.now()<pinEsperaAte){ var s=Math.ceil((pinEsperaAte-Date.now())/1000); document.getElementById("lockMsg").textContent="Aguarde "+s+" s…"; return; }
   if(k==="del"){ pinBuf=pinBuf.slice(0,-1); desenharDots(); return; }
-  var lm=document.getElementById("lockMsg"); if(lm && lm.classList.contains("err") && !pinBuf.length){ lm.classList.remove("err"); lm.textContent="Introduza o seu PIN"; }
+  var lm=document.getElementById("lockMsg"); if(lm && lm.classList.contains("err") && !pinBuf.length){ lm.classList.remove("err"); lm.textContent="Introduza a sua senha"; }
   if(pinBuf.length>=state.pin.len) return;
   pinBuf+=k; desenharDots();
   if(pinBuf.length===state.pin.len){
@@ -2691,24 +2691,17 @@ function teclaPin(k){
       else { pinFalhas++; pinBuf=""; desenharDots(true);
         var msg=document.getElementById("lockMsg");
         if(pinFalhas>=5){ pinEsperaAte=Date.now()+30000; pinFalhas=0; msg.textContent="Demasiadas tentativas. Aguarde 30 s."; msg.classList.add("err"); }
-        else msg.textContent="PIN errado. Tente outra vez."; msg.classList.add("err");
+        else msg.textContent="Senha errada. Tente outra vez."; msg.classList.add("err");
         if(navigator.vibrate) try{ navigator.vibrate(120); }catch(e){} }
     },120);
   }
 }
 function esqueciPin(){
   var el=lockEl(); var dica=state.pin&&state.pin.hint;
-  el.innerHTML='<div class="lock-wrap"><div class="lock-box"><div class="lock-sx">Esqueceu o PIN?</div>'+
+  el.innerHTML='<div class="lock-wrap"><div class="lock-box"><div class="lock-sx">Esqueceu a senha?</div>'+
     (dica?'<div class="lock-hint">Dica: <b>'+esc(dica)+'</b></div>':'<div class="lock-s">Não foi definida nenhuma dica.</div>')+
-    '<div class="lock-info">Sem o PIN não é possível abrir os dados. Se não se lembrar, pode <b>apagar todos os dados</b> e começar a app do zero.</div>'+
-    '<button class="lock-btn" data-act="pin-back">Voltar e tentar o PIN</button>'+
-    '<button class="lock-link" data-act="pin-apagar" style="color:#d14343">Apagar todos os dados e começar de novo</button></div></div>';
-}
-function apagarTudoSemPin(){
-  if(!confirm("Apagar TODOS os dados desta app (receitas, gastos, poupança, projetos)? Esta ação não pode ser desfeita.")) return;
-  if(!confirm("Tem a certeza? Os dados serão apagados para sempre.")) return;
-  state=estadoInicial(); salvar(); try{ localStorage.removeItem("zelo_autobackup"); }catch(e){}
-  setTimeout(function(){ location.reload(); },300);
+    '<div class="lock-info">Tente lembrar-se com a ajuda da dica. Por segurança, os dados só abrem com a senha certa.</div>'+
+    '<button class="lock-btn" data-act="pin-back">Voltar e tentar a senha</button></div></div>';
 }
 document.addEventListener("visibilitychange", function(){
   if(document.hidden){ ocultoDesde=Date.now(); }
@@ -2851,7 +2844,6 @@ document.addEventListener("click", function(e){
       if(mesesEntre(de,ate).length>60){ toast("Máximo de 60 meses."); break; } relDe=de<=ate?de:ate; relAte=de<=ate?ate:de; render(); break;
     case "rel-pdf": exportarRelatorioPDF(); break;
     case "export": exportar(); break;
-    case "pin-apagar": apagarTudoSemPin(); break;
     case "fs-escolher": fsEscolherPasta(); break;
     case "fs-retomar": fsRetomar(); break;
     case "fs-desligar": fsDesligar(); break;
