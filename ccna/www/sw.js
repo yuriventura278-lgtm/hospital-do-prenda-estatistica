@@ -1,6 +1,6 @@
 /* Service worker: guarda a app para funcionar sem internet. */
-const CACHE = "ccna-passo-a-passo-v6";
-const FICHEIROS = ["./", "index.html", "css/app.css", "js/armazem.js", "js/conteudo.js", "js/figuras.js", "js/ios.js", "js/plano.js", "js/videoaula.js", "js/leitor.js", "js/simulador.js", "js/simulador_ui.js", "js/exercicios.js", "js/laboratorio.js", "js/app.js", "manifest.webmanifest", "icons/icon-64.png", "icons/icon-192.png", "icons/logo.webp"];
+const CACHE = "ccna-passo-a-passo-v7";
+const FICHEIROS = ["./", "index.html", "css/app.css", "js/armazem.js", "js/conteudo.js", "js/figuras.js", "js/ios.js", "js/plano.js", "js/videoaula.js", "js/leitor.js", "js/lembretes.js", "js/simulador.js", "js/simulador_ui.js", "js/exercicios.js", "js/laboratorio.js", "js/app.js", "manifest.webmanifest", "icons/icon-64.png", "icons/icon-192.png", "icons/logo.webp"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FICHEIROS)).then(() => self.skipWaiting()));
@@ -19,4 +19,13 @@ self.addEventListener("fetch", (e) => {
       return r;
     }).catch(() => caches.match(e.request))
   );
+});
+
+// Toque na notificação de estudo: abre (ou traz para a frente) a app
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => {
+    for (const c of cs) if ("focus" in c) return c.focus();
+    return self.clients.openWindow ? self.clients.openWindow("./#inicio") : null;
+  }));
 });

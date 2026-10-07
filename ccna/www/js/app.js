@@ -14,6 +14,7 @@
 
   // ------------------------------------------------------------ ícones da interface
   const IC = {
+    sino: `<path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.5 20a1.5 1.5 0 0 0 3 0"/>`,
     alvo: `<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>`,
     som: `<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>`,
     casa: '<path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -57,7 +58,7 @@
   // Garante todos os campos (também em perfis guardados por versões anteriores).
   function completarPerfil(p) {
     const base = { xp: 0, licoes: {}, provas: {}, labs: {}, casos: {}, erros: [], dias: [], conquistas: {}, recordes: { subrede: 0, relampago: 0 },
-      sims: {}, projetos: {}, exercicios: {}, estagios: {}, cadernos: {}, salaLab: {}, fichas: {}, caboJogo: 0, idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
+      lembretes: { on: false, horas: [], feitos: {} }, sims: {}, projetos: {}, exercicios: {}, estagios: {}, cadernos: {}, salaLab: {}, fichas: {}, caboJogo: 0, idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
       plano: { min: 30, sessoes: 1, dias: [1, 2, 3, 4, 5], prazo: null, fixo: "tempo", inicio: null }, alvo: null };
     Object.keys(base).forEach((k) => { if (p[k] === undefined) p[k] = base[k]; });
     return p;
@@ -924,7 +925,7 @@
     return `<section class="cartao hoje"><div class="linha entre"><div><span class="rotulo">${diaEstudo ? "Aulas de hoje" : "Hoje"} · ${DIAS_LONGOS[new Date().getDay()]}</span><h2>${diaEstudo ? `${feito} de ${meta} min estudados` : "Dia de descanso"}</h2></div><span class="chip acc">${cfg.sessoes}× ${Math.round(meta / cfg.sessoes)} min</span></div>
       ${diaEstudo ? `<div class="barra"><i style="width:${Math.min(100, (feito / meta) * 100)}%;${feito >= meta ? "background:var(--ok)" : ""}"></i></div>` : ""}
       ${corpo}
-      <button class="btn bloco" data-acao="ir" data-tela="plano">${ic("calendario")} Ver o meu plano completo</button></section>`;
+      <div class="grelha-2"><button class="btn" data-acao="ir" data-tela="plano">${ic("calendario")} O meu plano</button><button class="btn ${p.lembretes.on ? "" : "prim"}" data-acao="ir-lembretes">${ic("sino")} ${p.lembretes.on ? horasLembrete(p).join(" · ") : "Ativar lembretes"}</button></div></section>`;
   }
 
   function avisosPlano(pl) {
@@ -976,6 +977,37 @@
     if (tipo === "dia") { v = +v; cfg.dias = cfg.dias.includes(v) ? cfg.dias.filter((x) => x !== v) : cfg.dias.concat(v).sort(); if (!cfg.dias.length) cfg.dias = [v]; }
   }
 
+  // ------------------------------------------------------------ lembretes das horas de estudo
+  const HORAS_PADRAO = { 1: ["19:00"], 2: ["07:30", "20:00"], 3: ["07:30", "13:00", "20:00"] };
+  function horasLembrete(p) {
+    const n = p.plano.sessoes, L = p.lembretes;
+    if (!L.horas || L.horas.length !== n) L.horas = (L.horas || []).slice(0, n).concat(HORAS_PADRAO[n].slice((L.horas || []).length, n));
+    return L.horas;
+  }
+  const cfgLembretes = () => { const p = P(); if (!p || !p.onboard) return null; horasLembrete(p); return Object.assign(p.lembretes, { dias: p.plano.dias }); };
+  function textoLembrete(k) {
+    const p = P(), pl = calcularPlano(), hoje = pl.dias.find((d) => d.data === hojeISO()), nome = window.Plano.NOMES_SESSAO[p.plano.sessoes][k] || "Sessão";
+    const it = hoje && hoje.sessoes[k] ? hoje.sessoes[k].itens : [];
+    const min = it.reduce((a, i) => a + i.min, 0) || Math.round(pl.min / p.plano.sessoes);
+    return { titulo: `Hora de estudar · ${nome}`, corpo: it.length ? `${it[0].t.titulo}${it.length > 1 ? ` e mais ${it.length - 1} tarefa${it.length > 2 ? "s" : ""}` : ""} · ${horas(min)}` : `${horas(min)} de estudo de redes. Bom trabalho, ${p.nome}!` };
+  }
+  function cartaoLembretes(compacto) {
+    const p = P(), L = p.lembretes, hs = horasLembrete(p), nomes = window.Plano.NOMES_SESSAO[p.plano.sessoes], est = window.Lembretes.estado();
+    const estado = !L.on ? "Desligados" : est === "granted" ? "Ligados" : est === "denied" ? "Bloqueados pelo navegador" : est === "sem-suporte" ? "Sem notificações neste navegador" : "À espera de autorização";
+    return `<section class="cartao lembretes" id="lembretes"><div class="linha entre"><div><span class="rotulo">Lembretes de estudo</span><h2>${L.on ? hs.join(" · ") : "Avisar-me às horas de estudo"}</h2></div><span class="chip ${L.on && est === "granted" ? "ok" : L.on ? "warn" : ""}">${estado}</span></div>
+      ${compacto && L.on ? "" : `<p class="suave peq">Escolha a hora de cada sessão. Avisamos nos seus dias de estudo (${p.plano.dias.map((d) => DIAS_SEMANA[d]).join(", ")}) com o que tem para fazer.</p>
+      <div class="horas-lemb">${hs.map((h, k) => `<label><span class="rotulo">${esc(nomes[k])}</span><input class="campo mono" type="time" id="lemb-h${k}" data-lemb-hora="${k}" value="${esc(h)}"></label>`).join("")}</div>`}
+      ${L.on && est === "denied" ? `<p class="alerta peq">${ic("alerta")}<span>O navegador bloqueou as notificações desta app. Para as ativar: toque no cadeado ao lado do endereço › Permissões › Notificações › Permitir.</span></p>` : ""}
+      ${L.on && est === "sem-suporte" ? `<p class="alerta peq">${ic("alerta")}<span>Este navegador não mostra notificações a apps web. Use os lembretes do calendário, que funcionam sempre.</span></p>` : ""}
+      <div class="grelha-2">${L.on ? `<button type="button" class="btn" data-acao="lemb-testar">Testar agora</button><button type="button" class="btn" data-acao="lemb-desligar">Desligar</button>` : `<button type="button" class="btn prim" data-acao="lemb-ligar" style="grid-column:1/-1">${ic("sino")} Ativar notificações</button>`}</div>
+      <details class="peq"><summary><b>Lembretes no calendário do telemóvel</b> (tocam mesmo com a app fechada)</summary><div class="secao" style="gap:8px;margin-top:8px">
+        <p class="suave peq">As notificações da app aparecem quando ela está aberta ou em segundo plano. Para avisos que tocam sempre, junte as horas de estudo ao calendário do telemóvel: cria um evento semanal por sessão, com alarme 10 minutos antes e à hora certa${p.plano.prazo ? ", até ao fim do prazo" : ""}.</p>
+        <button type="button" class="btn" data-acao="lemb-ics">${ic("calendario")} Adicionar ao calendário (.ics)</button></div></details></section>`;
+  }
+  function arrancarLembretes() {
+    window.Lembretes.iniciar(cfgLembretes, textoLembrete, (t) => { guardar(); toast(t.titulo); });
+  }
+
   function cartaoPrazo(pl) {
     const p = P(), cfg = p.plano, PL = window.Plano;
     if (!cfg.prazo) return `${resumoPlano(cfg)}${p.alvo ? `<p class="suave peq">Objetivo definido: <b>${dataPT(new Date(p.alvo))}</b></p>` : ""}`;
@@ -1000,6 +1032,7 @@
     const proximos = pl.dias.filter((d) => d.total > 0).slice(0, 14);
     return `<div class="secao"><h1>O meu plano de estudo</h1><p class="suave">Calculado a partir do seu progresso real. Muda sozinho quando estuda mais, menos, mais devagar ou quando as notas pedem revisão.</p></div>
       ${cartaoPrazo(pl)}
+      ${cartaoLembretes(false)}
       ${av.length ? `<section class="secao"><h2>Como o plano se adaptou a si</h2>${av.map(([k, t, b]) => `<div class="${k === "atraso" || k === "menos" ? "alerta" : "dica"}">${ic(k === "atraso" || k === "menos" ? "alerta" : "dica")}<div class="secao" style="gap:8px"><span>${t}</span>${b || ""}</div></div>`).join("")}</section>` : ""}
       <details class="cartao"><summary><b>${p.plano.prazo ? "Mudar o prazo, os dias ou as sessões" : "Alterar tempo, sessões e dias"}</b></summary><div class="secao">${htmlPrazo(p.plano, "pl")}</div></details>
       <section class="secao"><h2>Próximos dias</h2>${proximos.map((d) => `<div class="cartao plano dia-plano"><div class="linha entre"><b>${d.data === hojeISO() ? "Hoje" : DIAS_LONGOS[d.date.getDay()]}, ${d.date.toLocaleDateString("pt-PT", { day: "numeric", month: "short" })}</b><span class="chip tab-num">${Math.round(d.total)} min</span></div>
@@ -1038,6 +1071,8 @@
         <li>${ob.plano.prazo ? "Se faltar a um dia, o tempo em falta reparte-se pelos dias seguintes para manter a data. Pode mudar isto no plano." : `Conclusão prevista: <b>${dataPT(pl.fim)}</b>. Fica como o seu objetivo; o plano avisa se se atrasar.`}</li>
         <li>Primeira aula: <b>${esc(MODS[0].licoes[0].titulo)}</b>.</li>
         <li>Motivo: ${ob.motivos.length ? esc(ob.motivos.join(", ")) : "—"}.</li></ul></div>
+      <div class="cartao plano"><label class="linha entre" for="ob-lemb"><span><b>Avisar-me às horas de estudo</b><br><span class="suave peq">Notificação no telemóvel nos seus dias de estudo. Pode mudar as horas no plano.</span></span><input type="checkbox" id="ob-lemb" checked style="width:24px;height:24px"></label>
+        <div class="horas-lemb">${(HORAS_PADRAO[ob.plano.sessoes] || HORAS_PADRAO[1]).map((h, k) => `<label><span class="rotulo">${esc(window.Plano.NOMES_SESSAO[ob.plano.sessoes][k])}</span><input class="campo mono" type="time" id="ob-lemb-h${k}" value="${esc((ob.horasLemb || [])[k] || h)}"></label>`).join("")}</div></div>
       <form data-form="ob" class="secao">${ob.experiencia === "algum" || ob.experiencia === "trabalho" ? `<label class="linha entre" for="ob-livre"><span><b>Modo livre</b><br><span class="suave peq">Abre todos os módulos para ir direto ao que precisa.</span></span><input type="checkbox" id="ob-livre" ${ob.livre || ob.experiencia === "trabalho" ? "checked" : ""} style="width:24px;height:24px"></label>` : ""}`;
     }
     return `<div class="onboarding">${pontos}${c}
@@ -1056,6 +1091,9 @@
       const p = P(), lv = $("#ob-livre");
       Object.assign(p, { nome: ob.nome, idade: ob.idade, genero: ob.genero, motivos: ob.motivos, experiencia: ob.experiencia, plano: ob.plano, onboard: true });
       if (lv) S.livre = lv.checked;
+      const lb = $("#ob-lemb");
+      p.lembretes = { on: !!(lb && lb.checked), horas: [0, 1, 2].slice(0, p.plano.sessoes).map((k) => ($("#ob-lemb-h" + k) || {}).value || HORAS_PADRAO[p.plano.sessoes][k]), feitos: {} };
+      if (p.lembretes.on) window.Lembretes.pedirPermissao().then((r) => { if (r === "granted") arrancarLembretes(); render(); });
       if (p.plano.prazo) p.plano.inicio = new Date().toISOString();
       p.alvo = (p.plano.prazo ? window.Plano.fimDoPrazo(p.plano) : calcularPlano().fim).toISOString();
       guardar(); ob = null; pilha = []; rota = { tela: "inicio" }; render(); window.scrollTo(0, 0);
@@ -1343,6 +1381,8 @@
     render();
   }
   document.addEventListener("change", (e) => {
+    const lh = e.target.closest && e.target.closest("[data-lemb-hora]");
+    if (lh && /^\d{2}:\d{2}$/.test(lh.value)) { const p = P(); horasLembrete(p)[+lh.dataset.lembHora] = lh.value; p.lembretes.feitos = {}; guardar(); toast("Hora guardada: " + lh.value); return; }
     if (e.target.id !== "proj-ficheiro" || !e.target.files[0]) return;
     const fr = new FileReader(); fr.onload = () => importarProjeto(String(fr.result)); fr.readAsText(e.target.files[0]);
   });
@@ -1407,10 +1447,12 @@
   let confirmarApagar = false, msgImport = "";
   TELAS.perfil = function () {
     const p = P();
+    const blocoLembretes = cartaoLembretes(false);
     return `<div class="cartao"><span class="rotulo">Perfil ativo</span>
         <form data-form="nome" class="linha"><span class="avatar" style="background:${p.cor}">${esc(p.nome.slice(0, 1).toUpperCase())}</span>
           <input class="campo" id="nome-perfil" style="flex:1;min-width:0" value="${esc(p.nome)}" maxlength="30" aria-label="Nome"><button class="btn" type="submit">Guardar</button></form>
         <p class="suave peq tab-num">${p.xp} XP · ${esc(nivel(p.xp).nome)} · desde ${new Date(p.criado).toLocaleDateString("pt-PT")}</p></div>
+      ${blocoLembretes}
       <div class="cartao"><span class="rotulo">Os seus dados</span>
         <form data-form="dados" class="linha"><label for="p-idade" style="flex:1">Idade</label><input class="campo" id="p-idade" type="number" min="8" max="100" style="width:110px" value="${esc(p.idade || "")}"><button class="btn" type="submit">Guardar</button></form>
         <span class="rotulo">Género</span><div class="chips">${GENEROS.map((g) => `<button class="chip-op" aria-pressed="${p.genero === g}" data-acao="p-genero" data-id="${g}">${g}</button>`).join("")}</div>
@@ -1544,6 +1586,23 @@
     "ob-genero": (el) => { capturarOb(); ob.genero = el.dataset.id; render(); },
     "ob-motivo": (el) => { const m = D.guia.motivos[+el.dataset.id]; ob.motivos = ob.motivos.includes(m) ? ob.motivos.filter((x) => x !== m) : ob.motivos.concat(m); render(); },
     "ob-exp": (el) => { ob.experiencia = el.dataset.id; render(); },
+    "lemb-ligar": () => {
+      const L = P().lembretes; L.on = true; guardar();
+      window.Lembretes.pedirPermissao().then((r) => {
+        render();
+        if (r === "granted") { arrancarLembretes(); window.Lembretes.mostrar("Lembretes ativados", `Vamos avisar às ${horasLembrete(P()).join(" e ")} nos seus dias de estudo.`); toast("Lembretes ativados"); }
+        else if (r === "denied") toast("O navegador bloqueou as notificações. Use o calendário.");
+        else toast("Lembretes guardados. Use também o calendário.");
+      });
+    },
+    "lemb-desligar": () => { P().lembretes.on = false; guardar(); render(); toast("Lembretes desligados"); },
+    "lemb-testar": () => { const t = textoLembrete(0); window.Lembretes.mostrar(t.titulo, t.corpo).then((ok) => toast(ok ? "Notificação enviada" : "As notificações não estão autorizadas neste navegador")); },
+    "lemb-ics": () => {
+      const p = P(), pl = calcularPlano(), hs = horasLembrete(p), nomes = window.Plano.NOMES_SESSAO[p.plano.sessoes];
+      const txt = window.Lembretes.ics({ horas: hs, dias: p.plano.dias }, nomes, hs.map(() => pl.min / p.plano.sessoes), pl.prazoFim || pl.fim);
+      toast(window.Lembretes.descarregarIcs(txt) ? "Abra o ficheiro para o juntar ao calendário" : "Não foi possível criar o ficheiro neste navegador");
+    },
+    "ir-lembretes": () => { ir("plano"); setTimeout(() => { const el = $("#lembretes"); if (el) el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 60); },
     "ob-prazo": (el) => { capturarOb(); alternarPlano(ob.plano, "prazo", el.dataset.id); render(); },
     "pl-prazo": (el) => { alternarPlano(P().plano, "prazo", el.dataset.id); if (P().plano.prazo) P().alvo = window.Plano.fimDoPrazo(P().plano).toISOString(); guardar(); render(); abrirDetalhes(); toast(P().plano.prazo ? "Prazo atualizado" : "Agora escolhe os minutos por dia"); },
     "pl-fixo": (el) => { const c = P().plano; c.fixo = el.dataset.id; if (c.fixo === "tempo") c.min = calcularPlano().min; guardar(); render(); toast(c.fixo === "prazo" ? "A data fica fixa; o tempo diário ajusta-se" : "O tempo diário fica fixo; a data ajusta-se"); },
@@ -1612,6 +1671,7 @@
   rota = { tela: RAIZ[inicial] ? inicial : "inicio" };
   render();
   conferirCopia();
+  arrancarLembretes();
   if ("serviceWorker" in navigator && location.protocol.startsWith("http") && !/claudeusercontent|claude\.ai/.test(location.host)) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
