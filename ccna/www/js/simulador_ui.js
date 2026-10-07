@@ -84,6 +84,7 @@
         <button data-s="apagar">Apagar</button>
         <span class="sim-grupo"><button data-s="desfazer" aria-label="Desfazer" title="Desfazer (Ctrl+Z)" disabled>↶</button><button data-s="refazer" aria-label="Refazer" title="Refazer (Ctrl+Y)" disabled>↷</button></span>
         <span class="sim-grupo sim-seg" role="group" aria-label="Vista"><button data-s="logica" aria-pressed="true">Lógica</button><button data-s="fisica" aria-pressed="false">Física</button></span>
+        <button data-s="simul" aria-pressed="false" title="Ver cada pacote, passo a passo">▶ Simulação</button>
         <button data-s="mais" aria-pressed="false">Mais ▾</button>
         <button data-s="ajuda" aria-label="Como usar">?</button>
       </div>
@@ -91,11 +92,13 @@
       <div class="sim-palco"><svg id="sim-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Área de trabalho da rede"></svg>
         <div class="sim-zoom" id="sim-zoom"><button data-z="mais" aria-label="Aproximar">+</button><button data-z="menos" aria-label="Afastar">−</button><button data-z="ajustar">Ajustar</button></div>
         <div class="sim-msg" id="sim-msg" role="status">${A ? "Comece pelo primeiro passo. Toque em ? para ver como usar." : "Modo livre: monte a rede que quiser."}</div></div>
+      <div class="sim-simul" id="sim-simul" hidden></div>
       <div class="sim-inspetor" id="sim-insp" hidden></div>
       <div class="sim-modal" id="sim-modal" hidden></div>
     </div>`;
     const $ = (s) => raiz.querySelector(s);
     const svg = $("#sim-svg");
+    $("#sim-simul").addEventListener("click", (e) => cliqueSim(e));
     const msg = (t, tipo) => { const m = $("#sim-msg"); m.innerHTML = t; m.className = "sim-msg " + (tipo || ""); };
 
     // ------------------------------------------------------------ desenho
@@ -133,9 +136,10 @@
         const a = pos(rede.dev(l.a)), b = pos(rede.dev(l.b)), est = rede.estadoLink(l), C = S.CABOS[l.cabo];
         s += `<g data-link="${l.id}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="transparent" stroke-width="22"/>
           <line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="sim-cabo" stroke="${C.cor}" stroke-width="${l.cabo === "consola" ? 3 : 3.5}" ${C.tracejado || l.cabo === "consola" ? 'stroke-dasharray="9 6"' : ""}/>`;
+        const stpL = est.estado === "ok" && rede.stpLed ? rede.stpLed(l) : {};
         if (l.cabo !== "consola") [[0.2, a, b, "A"], [0.8, a, b, "B"]].forEach(([t, p, q, lado]) => {
           const cx = p.x + (q.x - p.x) * t, cy = p.y + (q.y - p.y) * t;
-          const cor = est.estado === "errado" ? "errado" : est.estado === "ok" ? "ok" : ((lado === "A" ? est.baixoA : est.baixoB) ? "errado" : "baixo");
+          const cor = est.estado === "errado" ? "errado" : est.estado === "ok" ? ((lado === "A" ? stpL.a : stpL.b) ? "baixo stp" : "ok") : ((lado === "A" ? est.baixoA : est.baixoB) ? "errado" : "baixo");
           s += `<circle cx="${cx}" cy="${cy}" r="7" class="sim-luz ${cor}"/>`;
         });
         if (op.portas !== false) {
@@ -156,6 +160,8 @@
           <text y="48" class="sim-nome">${esc(d.nome)}</text>${d.modelo && d.eq ? `<text y="${ip ? 84 : 66}" class="sim-ip">${esc(d.modelo)}</text>` : ""}${ip ? `<text y="66" class="sim-ip">${esc(ip)}</text>` : ""}</g>`;
       });
       s += `<circle id="sim-pacote" r="10" class="sim-pacote" cx="-50" cy="-50"/>`;
+      const ev = sm.evs[sm.i];
+      if (sm.aberto && ev) s += envelope(ev);
       svg.innerHTML = s;
     }
 
@@ -173,6 +179,79 @@
         requestAnimationFrame(passo);
       };
       requestAnimationFrame(passo);
+    }
+
+    // ------------------------------------------------------------ modo de simulação (passo a passo, como no Packet Tracer)
+    const SM = window.Simulacao;
+    const sm = { aberto: false, evs: [], i: -1, auto: null, filtro: new Set(["ARP", "ICMP", "DHCP", "DNS", "TCP", "UDP"]), pedido: { tipo: "ping", de: "", para: "" }, res: null };
+    const TIPOS_SIM = [["ping", "Ping (ICMP)"], ["dhcp", "Pedir IP por DHCP"], ["dns", "DNS (nslookup)"], ["http", "Abrir página web (HTTP)"], ["telnet", "Telnet"], ["ssh", "SSH"], ["smb", "Pasta partilhada (SMB)"]];
+    const visiveis = () => sm.evs.map((e, k) => [e, k]).filter(([e]) => e.tipo === "FALHA" || sm.filtro.has(e.tipo));
+    function envelope(ev) {
+      const a = rede.dev(ev.de), b = rede.dev(ev.para); if (!a || !b) return "";
+      const p = pos(a), q = pos(b), cor = ev.tipo === "FALHA" ? "#c03a3a" : (SM.COR[ev.tipo] || "#5b6880");
+      const x = a === b ? p.x : (p.x + q.x) / 2, y = a === b ? p.y - 52 : (p.y + q.y) / 2;
+      return `<g id="sim-env" class="sim-env" transform="translate(${x - 17},${y - 12})" data-x0="${p.x - 17}" data-y0="${p.y - 12}" data-x1="${x - 17}" data-y1="${y - 12}">${ev.tipo === "FALHA" ? `<circle cx="17" cy="12" r="15" fill="${cor}"/><path d="M10 5 L24 19 M24 5 L10 19" stroke="#fff" stroke-width="4" stroke-linecap="round"/>` : `<rect width="34" height="24" rx="4" fill="#fff" stroke="${cor}" stroke-width="2.6"/><path d="M1 2 L17 14 L33 2" fill="none" stroke="${cor}" stroke-width="2.6"/><text x="17" y="38" class="sim-env-txt" fill="${cor}">${esc(ev.tipo)}</text>`}</g>`;
+    }
+    // o envelope sai do equipamento de origem e para a meio do cabo
+    function moverEnvelope() {
+      const g = svg.querySelector("#sim-env"); if (!g || reduzido()) return;
+      const x0 = +g.dataset.x0, y0 = +g.dataset.y0, x1 = +g.dataset.x1, y1 = +g.dataset.y1; let t0 = null;
+      const f = (ts) => { if (!t0) t0 = ts; const k = Math.min(1, (ts - t0) / 380), e = 1 - (1 - k) * (1 - k); g.setAttribute("transform", `translate(${x0 + (x1 - x0) * e},${y0 + (y1 - y0) * e})`); if (k < 1) requestAnimationFrame(f); };
+      requestAnimationFrame(f);
+    }
+    function abrirSim(on) {
+      sm.aberto = on; clearInterval(sm.auto); sm.auto = null;
+      raiz.querySelector('[data-s="simul"]').setAttribute("aria-pressed", String(on));
+      const p = $("#sim-simul"); p.hidden = !on;
+      if (on) { if (!sm.pedido.de) { const h = rede.devs.find((d) => d.pc && rede.l3(d).length) || rede.devs.find((d) => d.eq); sm.pedido.de = h ? h.id : ""; } pintarSim(); msg("<b>Modo de simulação:</b> escolha a origem, o tipo e o destino e toque em Gerar. Depois avance mensagem a mensagem."); }
+      else { sm.i = -1; msg("Tempo real."); }
+      desenhar();
+    }
+    function gerarSim() {
+      if (!SM) return;
+      clearInterval(sm.auto); sm.auto = null;
+      sm.res = SM.gerar(rede, sm.pedido); sm.evs = sm.res.eventos; sm.i = -1;
+      pintarSim(); passoSim(1);
+    }
+    function passoSim(k) {
+      const vs = visiveis(); if (!vs.length) { sm.i = -1; pintarSim(); desenhar(); return; }
+      const pos0 = vs.findIndex(([, i]) => i === sm.i);
+      const n = Math.max(0, Math.min(vs.length - 1, pos0 + k));
+      sm.i = vs[n][1]; desenhar(); moverEnvelope(); pintarSim();
+      if (n >= vs.length - 1) { clearInterval(sm.auto); sm.auto = null; pintarSim(); }
+    }
+    function pintarSim() {
+      const p = $("#sim-simul"); if (!p || p.hidden) return;
+      const cand = rede.devs.filter((d) => d.pc || d.eq);
+      const ev = sm.evs[sm.i], vs = visiveis(), nome = (id) => { const d = rede.dev(id); return d ? d.nome : "?"; };
+      const cor = (t) => (t === "FALHA" ? "#c03a3a" : SM.COR[t] || "#5b6880");
+      p.innerHTML = `<div class="linha entre"><b>Modo de simulação</b><button class="btn-copiar" data-sm="fechar">Voltar ao tempo real</button></div>
+        <form class="sim-sm-form" data-sm-form><label>Origem<select class="campo" name="de">${cand.map((d) => `<option value="${d.id}" ${sm.pedido.de === d.id ? "selected" : ""}>${esc(d.nome)}</option>`).join("")}</select></label>
+          <label>O que fazer<select class="campo" name="tipo">${TIPOS_SIM.map(([k, n]) => `<option value="${k}" ${sm.pedido.tipo === k ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+          <label>Destino (IP, nome do equipamento ou nome DNS)<input class="campo mono" name="para" list="sim-sm-dest" value="${esc(sm.pedido.para)}" placeholder="ex.: 192.168.1.1 ou SRV" autocomplete="off" ${sm.pedido.tipo === "dhcp" ? "disabled" : ""}></label>
+          <datalist id="sim-sm-dest">${rede.devs.filter((d) => rede.l3(d).length).map((d) => `<option value="${esc(d.nome)}">${esc(rede.l3(d)[0].ip)}</option>`).join("")}</datalist>
+          <button class="btn prim">Gerar</button></form>
+        <div class="chips sim-sm-filtro">${["ARP", "ICMP", "DHCP", "DNS", "TCP", "UDP"].map((t) => `<button class="chip-op" data-sm-f="${t}" aria-pressed="${sm.filtro.has(t)}" style="--c:${cor(t)}"><i></i>${t}</button>`).join("")}<button class="chip-op" data-sm="arp" title="Esquece os endereços MAC aprendidos (o próximo pacote começa com ARP)">Limpar ARP</button></div>
+        ${sm.evs.length ? `<div class="sim-sm-ctl"><button class="btn" data-sm="inicio" aria-label="Recomeçar">⏮</button><button class="btn" data-sm="ant" aria-label="Mensagem anterior">◀</button><button class="btn prim" data-sm="seg">Passo seguinte ▶</button><button class="btn" data-sm="auto">${sm.auto ? "⏸ Pausa" : "⏩ Automático"}</button></div>
+        <p class="peq ${sm.res && sm.res.ok ? "sim-ok-txt" : "sim-erro-txt"}">${sm.res ? (sm.res.ok ? "Resultado: chegou ao destino e a resposta voltou." : "Resultado: falhou — " + esc(sm.res.motivo || "")) : ""}</p>
+        <div class="sim-sm-grid"><div class="sim-sm-lista" role="list">${vs.map(([e, k]) => `<button role="listitem" class="sim-sm-ev ${k === sm.i ? "atual" : ""}" data-sm-i="${k}"><span class="tab-num">${vs.findIndex(([, i]) => i === k) + 1}</span><span>${esc(nome(e.de))}</span><span>${e.de === e.para ? "—" : esc(nome(e.para))}</span><span class="sim-sm-tipo" style="background:${cor(e.tipo)}">${esc(e.tipo === "FALHA" ? "✗" : e.tipo)}</span></button>`).join("")}</div>
+          <div class="sim-sm-pdu">${ev ? `<b>${esc(ev.resumo)}</b>${ev.falha ? `<p class="peq sim-erro-txt">${esc(ev.falha)}</p>` : ""}${ev.camadas.map(([c, t]) => `<div class="sim-sm-camada"><span class="rotulo">${esc(c)}</span><code>${esc(t)}</code></div>`).join("")}` : '<p class="peq suave">Toque em Passo seguinte para ver a primeira mensagem.</p>'}</div></div>` : `<p class="peq suave">${sm.res && !sm.res.ok ? esc(sm.res.motivo) : "Ainda não há mensagens. Em modo de simulação, um ping feito no Prompt de um PC também aparece aqui."}</p>`}`;
+      const f = p.querySelector("[data-sm-form]");
+      f.onchange = (e) => { if (e.target.name === "tipo") { sm.pedido.tipo = e.target.value; pintarSim(); } };
+      f.onsubmit = (e) => { e.preventDefault(); const v = Object.fromEntries(new FormData(f).entries()); sm.pedido = { de: v.de, tipo: v.tipo, para: (v.para || "").trim() }; gerarSim(); };
+      const at = p.querySelector(".sim-sm-ev.atual"); if (at) at.scrollIntoView({ block: "nearest" });
+    }
+    function cliqueSim(e) {
+      const b = e.target.closest("[data-sm],[data-sm-f],[data-sm-i]"); if (!b) return;
+      if (b.dataset.smF) { const t = b.dataset.smF; sm.filtro.has(t) ? sm.filtro.delete(t) : sm.filtro.add(t); pintarSim(); return; }
+      if (b.dataset.smI) { sm.i = +b.dataset.smI; desenhar(); moverEnvelope(); pintarSim(); return; }
+      const a = b.dataset.sm;
+      if (a === "fechar") abrirSim(false);
+      if (a === "seg") passoSim(1);
+      if (a === "ant") passoSim(-1);
+      if (a === "inicio") { sm.i = -1; passoSim(1); }
+      if (a === "arp") { SM.limparArp(rede); msg("Tabelas ARP limpas: o próximo pacote começa com ARP."); }
+      if (a === "auto") { if (sm.auto) { clearInterval(sm.auto); sm.auto = null; pintarSim(); } else { if (sm.i >= sm.evs.length - 1) sm.i = -1; sm.auto = setInterval(() => passoSim(1), 900); passoSim(1); } }
     }
 
     // ------------------------------------------------------------ vista física: locais, bastidores e secretárias
@@ -807,9 +886,10 @@
           <form class="secao sim-form" data-colar-caixa hidden><label>Comandos, um por linha (como colar no PuTTY)<textarea class="campo mono" rows="7" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="enable&#10;configure terminal&#10;hostname R1&#10;interface g0/0/0&#10; ip address 192.168.1.1 255.255.255.0&#10; no shutdown&#10;end"></textarea></label>
           <div class="grelha-2"><button type="button" class="btn" data-colar-cancelar>Cancelar</button><button class="btn prim" type="submit">Executar</button></div><p class="peq" data-colar-msg></p></form></div>` : ""}`;
       const cons = corpo.querySelector("#sim-cons"), inp = corpo.querySelector("#sim-in");
-      const pinta = () => { cons.innerHTML = logs[id].map((l) => l.c != null ? `<div><span class="pr">${esc(l.p)}</span><span class="in">${esc(l.c)}</span></div>${l.t ? `<div class="${l.erro ? "err" : ""}">${esc(l.t)}</div>` : ""}` : `<div>${esc(l.t)}</div>`).join(""); cons.scrollTop = cons.scrollHeight; corpo.querySelector("#sim-pr").textContent = prompt(); };
+      const pinta = () => { if (tipo === "ios" && d.eq.pendentes && d.eq.pendentes.length) { logs[id].push({ t: d.eq.pendentes.join("\n") }); d.eq.pendentes = []; } cons.innerHTML = logs[id].map((l) => l.c != null ? `<div><span class="pr">${esc(l.p)}</span><span class="in">${esc(l.c)}</span></div>${l.t ? `<div class="${l.erro ? "err" : ""}">${esc(l.t)}</div>` : ""}` : `<div>${esc(l.t)}</div>`).join(""); cons.scrollTop = cons.scrollHeight; corpo.querySelector("#sim-pr").textContent = prompt(); };
       const correr = (linha, manter, lote) => {
         const p = prompt();
+        if (op.aoComando) op.aoComando(linha, d);
         if (tipo === "ios") {
           // ao colar, "enable" já em modo privilegiado não é erro (como no equipamento real)
           const out = lote && /^\s*en(a(b(le?)?)?)?\s*$/i.test(linha) && d.eq.modo !== "user" ? "" : d.eq.executar(linha);
@@ -822,6 +902,8 @@
           if (r.limpar) logs[id] = []; else logs[id].push({ p, c: linha, t: r.txt, erro: r.ok === false });
           if (r.mudou) rede.mudou();
           if (r.anim) animar(r.anim, r.ok);
+          const pg = linha.trim().match(/^(ping|telnet|http|web|nslookup)\s+(\S+)/i);
+          if (pg && sm.aberto) { sm.pedido = { de: d.id, tipo: { ping: "ping", telnet: "telnet", http: "http", web: "http", nslookup: "dns" }[pg[1].toLowerCase()], para: pg[2] }; gerarSim(); }
         }
         if (linha.trim() && !linha.endsWith("?")) { hist[id].push(linha); hIdx[id] = hist[id].length; }
         inp.value = manter ? linha.replace(/\?$/, "") : "";
@@ -963,7 +1045,7 @@
       const md = $("#sim-modal"); md.hidden = false;
       md.innerHTML = `<div class="sim-caixa"><div class="linha entre"><b>Como usar o simulador</b><button class="btn-copiar" data-fechar>Fechar</button></div>
         <ol class="sim-ajuda">${AJUDA.map(([t, d]) => `<li><b>${t}.</b> ${d}</li>`).join("")}</ol>
-        <p class="peq suave">O simulador calcula a camada 2 (VLANs, access, trunk, VLAN nativa), a camada 3 (gateway, rotas ligadas, estáticas, por defeito, OSPF), router-on-a-stick, SVIs, DHCP e DNS. Também simula a partilha de pastas (SMB: net share, net view, net use, firewall). O terminal aceita os comandos Cisco do CCNA (show, debug, ACL, NAT, HSRP, EtherChannel, SNMP…) e guarda-os na configuração, mas ainda não calcula o efeito de STP, ACL, NAT, HSRP nem Wi-Fi no tráfego: para isso use também o Packet Tracer.</p>
+        <p class="peq suave">O simulador calcula a camada 2 (VLANs, access, trunk, VLAN nativa), a camada 3 (gateway, rotas ligadas, estáticas, por defeito, OSPF), router-on-a-stick, SVIs, DHCP e DNS. Também simula a partilha de pastas (SMB: net share, net view, net use, firewall). Também calcula as ACL (o pacote é mesmo descartado e o show access-lists conta as linhas), a NAT/PAT e a NAT estática, o Spanning Tree (portas bloqueadas a laranja), o EtherChannel, o HSRP e as mensagens de debug. No modo <b>▶ Simulação</b> vê cada mensagem (ARP, ICMP, DHCP, DNS, TCP) a passar cabo a cabo, com o que vai em cada camada.</p>
         <button class="btn prim bloco" data-fechar>Começar</button></div>`;
       md.onclick = (e) => { if (e.target.closest("[data-fechar]") || e.target === md) md.hidden = true; };
       gravar("ccna-sim-ajuda", "1");
@@ -979,6 +1061,7 @@
         if (a === "add") { menu = menu === "add" ? null : "add"; }
         if (a === "cabo") { modo = "cabo"; menu = "cabo"; caboA = null; msg("Escolha o tipo de cabo e toque no primeiro equipamento."); }
         if (a === "mais") menu = menu === "mais" ? null : "mais";
+        if (a === "simul") { abrirSim(!sm.aberto); return; }
         if (a === "area") { modo = "area"; menu = null; caboA = null; msg("<b>Área:</b> arraste no desenho para criar um retângulo (ex.: Edifício A, Sala de servidores). Um toque cria uma área de tamanho padrão."); }
         if (a === "nota") { modo = "nota"; menu = null; caboA = null; msg("<b>Nota:</b> toque no sítio do desenho onde quer a nota."); }
         if (a === "desfazer" || a === "refazer") { historia(a === "desfazer" ? -1 : 1); opcoes(); return; }
@@ -1020,7 +1103,7 @@
 
     opcoes(); atualizar();
     if (!ler("ccna-sim-ajuda")) setTimeout(ajuda, 200);
-    return { parar() { clearTimeout(tGuardar); clearTimeout(tFoto); document.removeEventListener("keydown", teclado); if (op.aoGuardar) op.aoGuardar(rede.exportar()); }, rede: () => rede };
+    return { parar() { clearInterval(sm.auto); clearTimeout(tGuardar); clearTimeout(tFoto); document.removeEventListener("keydown", teclado); if (op.aoGuardar) op.aoGuardar(rede.exportar()); }, rede: () => rede };
   }
 
   window.SimUI = { montar };
