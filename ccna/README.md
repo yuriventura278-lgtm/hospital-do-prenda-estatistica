@@ -11,6 +11,13 @@ Aplicação móvel (PWA) para estudar redes de computadores **do zero absoluto a
 - **Teste final de cada módulo** (nota 0–1000, aprovação 825) com perguntas e exercícios gerados.
 - **Estágio profissional em cada módulo**: numa empresa (loja, escola, clínica, hotel, banco, hospital, operador, fábrica) o instrutor resolve um ticket real passo a passo; depois o estagiário resolve 5 tickets sozinho e recebe nota de 0 a 20.
 - **Simulador de rede dentro da app** (como o Packet Tracer), com o catálogo por categorias: routers ISR 4331, 4321, 2911, 2901, 1941; switches 2960, 2950, 2950T, 3560 e 3650 (L3, PoE); hub, repetidor e bridge; access point, router Wi-Fi doméstico, WLC e LAP; firewall ASA 5506-X; Internet/operador, modem DSL e de cabo; PC de mesa, portátil, servidor, impressora, telefone IP, smartphone, tablet, Smart TV, sniffer; câmara IP, lâmpada e termóstato (IoT). Cabos direto, cruzado, consola, série, fibra, coaxial e telefone. Calcula VLANs, trunks, encaminhamento, OSPF, DHCP, DNS, **Wi-Fi (SSID e WPA2)**, **NAT/PAT**, **firewall ASA** (níveis de segurança e inspeção de ICMP), **PoE**, partilha de pastas; 14 atividades guiadas e **projetos com nome** que se guardam e se continuam depois.
+- **Tráfego a sério no simulador**: ACL que descartam mesmo os pacotes (com contadores no `show access-lists`), NAT/PAT e NAT estática com tabela de traduções, Spanning Tree (root bridge, porta bloqueada a laranja, tempestade de broadcast sem STP, BPDU Guard), EtherChannel (LACP, PAgP, on), HSRP com failover e `standby track`, `debug ip icmp/packet/nat` e os avisos %HSRP, %OSPF e %SPANTREE; telnet, ssh e http nos PCs.
+- **Modo de simulação passo a passo** (como o Packet Tracer): cada mensagem (ARP, ICMP, DHCP, DNS, TCP) a passar cabo a cabo, com o conteúdo de cada camada.
+- **Desafio de avarias**: 3 empresas, 3 níveis, avarias escondidas diferentes de cada vez, tempo limite e nota de 0 a 20.
+- **Atividades do professor**: o professor monta a rede inicial e a solução, escolhe o que conta para a nota e partilha um código; os alunos importam-no e veem a percentagem em tempo real.
+- **Ferramentas do simulador**: desfazer/refazer, duplicar equipamentos, zoom e deslocação, colar uma configuração inteira, guardar a topologia como imagem, relatório da rede, áreas e notas, vista física (locais, bastidores e comprimento dos cabos).
+- **PDF de cada aula** (capa, índice, conteúdo, termos, 10 exercícios, quiz e soluções, referências), **versão para imprimir** e **PDF do módulo inteiro**, gerados em Python com ReportLab (`pdf_aulas.py`).
+- **Equipamentos desenhados como os reais** (ISR 4331, Catalyst 2960/3650, ASA 5506-X, telefone 7960…), no simulador e na sala de laboratório.
 - **Prazo do curso e lembretes**: o aluno escolhe terminar em 3 meses, 6 meses, 1 ano ou 2 anos; o tempo de aula por dia é calculado pelo prazo e pelos dias de estudo. Escolhe também a hora de cada sessão e recebe uma notificação com as tarefas do dia (com a app aberta ou em segundo plano) e pode juntar as horas ao calendário do telemóvel (.ics), que avisa mesmo com a app fechada.
 - **Assistente de leitura**: lê a aula toda em voz alta, de seguida, sem pausas a meio (ou a partir de qualquer bloco), com a pronúncia preparada para siglas, endereços IP e comandos Cisco.
 - **Termos técnicos de cada módulo** reunidos na página do módulo e no fim de cada aula.
@@ -23,9 +30,11 @@ Aplicação móvel (PWA) para estudar redes de computadores **do zero absoluto a
 
 ```bash
 cd ccna
-python build.py          # valida o conteúdo e gera a app
+python build.py          # valida o conteúdo e gera a app e os PDF (--sem-pdf para saltar)
 python servidor.py       # abre em http://localhost:8000 (e no telemóvel, na mesma rede)
 ```
+
+**Online (HTTPS, para instalar e receber os lembretes):** https://yuriventura278-lgtm.github.io/hospital-do-prenda-estatistica/curso-redes/
 
 Também pode abrir `dist/ccna-passo-a-passo.html` com duplo clique: é a app inteira num único ficheiro.
 
