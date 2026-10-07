@@ -1,6 +1,6 @@
 /* Service worker: guarda a app para funcionar sem internet. */
-const CACHE = "ccna-passo-a-passo-v4";
-const FICHEIROS = ["./", "index.html", "css/app.css", "js/conteudo.js", "js/figuras.js", "js/ios.js", "js/plano.js", "js/videoaula.js", "js/simulador.js", "js/simulador_ui.js", "js/app.js", "manifest.webmanifest", "icons/icon-64.png", "icons/icon-192.png", "icons/logo.webp"];
+const CACHE = "ccna-passo-a-passo-v5";
+const FICHEIROS = ["./", "index.html", "css/app.css", "js/armazem.js", "js/conteudo.js", "js/figuras.js", "js/ios.js", "js/plano.js", "js/videoaula.js", "js/simulador.js", "js/simulador_ui.js", "js/exercicios.js", "js/laboratorio.js", "js/app.js", "manifest.webmanifest", "icons/icon-64.png", "icons/icon-192.png", "icons/logo.webp"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FICHEIROS)).then(() => self.skipWaiting()));

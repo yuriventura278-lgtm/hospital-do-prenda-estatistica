@@ -14,8 +14,9 @@ from conteudo.validar import validar  # noqa: E402
 
 
 class TestConteudo(unittest.TestCase):
-    def setUp(self):
-        self.c = curso()
+    @classmethod
+    def setUpClass(cls):
+        cls.c = curso()
 
     def test_sem_erros_de_validacao(self):
         self.assertEqual(validar(self.c), [])
@@ -52,6 +53,16 @@ class TestConteudo(unittest.TestCase):
                 cobertos = {c["bloco"] for c in cenas}
                 self.assertTrue(set(range(len(l["blocos"]))) <= cobertos, l["id"])
 
+    def test_termos_estagio_e_apresentacao(self):
+        for m in self.c["modulos"]:
+            self.assertTrue(m["estagio"], m["id"])
+            self.assertTrue(m["apresentacao"]["video"]["cenas"], m["id"])
+            for l in m["licoes"]:
+                self.assertGreaterEqual(len(l["termos"]), 3, l["id"])
+                self.assertEqual(l["exercicios"]["obrigatorios"], 10)
+        self.assertGreaterEqual(len(self.c["glossario"]), 350)
+        self.assertGreaterEqual(len(self.c["protocolos"]), 60)
+
     def test_pronuncia(self):
         from conteudo.narracao import falar
         self.assertEqual(falar("O router 192.168.1.1/24"), "O ráuter 192 ponto 168 ponto 1 ponto 1 barra 24")
@@ -72,6 +83,10 @@ class TestLaboratorios(unittest.TestCase):
     def test_dicas_resolvem_todos_os_labs(self):
         subprocess.run([sys.executable, str(RAIZ / "build.py")], check=True, capture_output=True)
         r = subprocess.run(["node", str(RAIZ / "tests" / "resolver_labs.cjs")], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_exercicios_gerados(self):
+        r = subprocess.run(["node", str(RAIZ / "tests" / "exercicios.cjs")], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
     def test_atividades_do_simulador(self):

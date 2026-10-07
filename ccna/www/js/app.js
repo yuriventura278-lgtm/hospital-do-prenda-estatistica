@@ -55,21 +55,40 @@
   // Garante todos os campos (também em perfis guardados por versões anteriores).
   function completarPerfil(p) {
     const base = { xp: 0, licoes: {}, provas: {}, labs: {}, casos: {}, erros: [], dias: [], conquistas: {}, recordes: { subrede: 0, relampago: 0 },
-      sims: {}, fichas: {}, caboJogo: 0, idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
+      sims: {}, projetos: {}, exercicios: {}, estagios: {}, cadernos: {}, salaLab: {}, fichas: {}, caboJogo: 0, idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
       plano: { min: 30, sessoes: 1, dias: [1, 2, 3, 4, 5] }, alvo: null };
     Object.keys(base).forEach((k) => { if (p[k] === undefined) p[k] = base[k]; });
     return p;
   }
   let S;
+  const AR = window.Armazem;
+  let localVazio = false;
   function carregar() {
-    try { S = JSON.parse(localStorage.getItem(CHAVE)); } catch (e) { S = null; }
+    try { S = JSON.parse(AR.ler(CHAVE)); } catch (e) { S = null; }
+    localVazio = !S || !S.perfis;
     if (!S || !S.perfis) {
       const p = novoPerfil("Estudante");
       S = { perfis: { [p.id]: p }, ativo: p.id, tema: "auto", livre: false };
     }
     Object.values(S.perfis).forEach(completarPerfil);
   }
-  function guardar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch (e) { /* armazenamento indisponível: a app funciona na mesma */ } }
+  // Grava no localStorage e no IndexedDB (ver armazem.js): os dados nunca ficam só num sítio.
+  function guardar() { S.atualizado = Date.now(); AR.gravar(CHAVE, JSON.stringify(S)); }
+  // Ao abrir: se a cópia do IndexedDB for mais recente (ou o localStorage foi limpo), recupera-a.
+  function conferirCopia() {
+    AR.recuperar(CHAVE).then((r) => {
+      if (!r || !r.valor) { guardar(); return; }
+      let c = null; try { c = JSON.parse(r.valor); } catch (e) { return; }
+      if (!c || !c.perfis) return;
+      const copia = c.atualizado || r.quando || 0;
+      // recupera só se o localStorage foi apagado/estragado, ou se a cópia é mais recente que a última gravação local
+      if (localVazio || (S.atualizado && copia > S.atualizado)) {
+        S = c; Object.values(S.perfis).forEach(completarPerfil); AR.gravar(CHAVE, JSON.stringify(S));
+        aplicarTema(); render(); toast("Progresso recuperado da cópia de segurança");
+      }
+    });
+    AR.persistir();
+  }
   const P = () => S.perfis[S.ativo];
 
   function nivel(xp) {
@@ -98,7 +117,10 @@
   }
 
   // ------------------------------------------------------------ progresso
-  const licaoFeita = (id) => (P().licoes[id] || {}).melhor >= 70;
+  const exFeitos = (id) => (P().exercicios[id] || {}).feitos || 0;
+  const exObrig = (id) => (LICOES[id] && LICOES[id].exercicios ? LICOES[id].exercicios.obrigatorios : 10);
+  // Lição concluída: quiz com 70% ou mais E os exercícios obrigatórios feitos.
+  const licaoFeita = (id) => (P().licoes[id] || {}).melhor >= 70 && exFeitos(id) >= exObrig(id);
   const provaFeita = (mid) => (P().provas[mid] || {}).melhor >= NOTA_APROVACAO;
   function moduloAberto(m) { if (S.livre) return true; const i = MODS.indexOf(m); return i === 0 || provaFeita(MODS[i - 1].id); }
   function licaoAberta(l) { const m = MOD_DA[l.id]; if (S.livre) return true; if (!moduloAberto(m)) return false; return l._i === 0 || licaoFeita(m.licoes[l._i - 1].id); }
@@ -170,7 +192,7 @@
          <span class="xp-pilula tab-num" title="${esc(n.nome)}">${ic("estrela")} ${P().xp} XP</span>
          <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${ic("perfil")}</button>`
       : `<button class="btn-icone" data-acao="voltar" aria-label="Voltar">${ic("voltar")}</button><div class="titulo">${esc(titulo)}</div>`;
-    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
+    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", exercicios: "trilha", estagio: "trilha", cadernos: "jogar", caderno: "jogar", sala: "jogar", bancada: "jogar", glossario: "guia", protocolos: "guia", protocolo: "guia", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
     document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.ir === tab ? "page" : "false"));
     $("#app").innerHTML = TELAS[t]();
     if (POS[t]) POS[t]();
@@ -179,7 +201,10 @@
     modulo: () => mod(rota.mid).codigo, licao: () => LICOES[rota.lid].titulo, quiz: () => "Quiz · " + LICOES[rota.lid].titulo,
     prova: () => "Prova · " + mod(rota.mid).codigo, relampago: () => "Quiz relâmpago", subrede: () => "Desafio sub-rede",
     labs: () => "Laboratório CLI", lab: () => labPorId(rota.id).titulo, revisao: () => "Caderno de erros", perfil: () => "Perfil e definições",
-    plano: () => "O meu plano", sims: () => "Simulador de rede", sim: () => rota.id === "livre" ? "Simulador · modo livre" : ativPorId(rota.id).titulo, casos: () => "Casos reais", caso: () => casoPorId(rota.id).titulo,
+    plano: () => "O meu plano", sims: () => "Simulador de rede", sim: () => rota.proj ? "Projeto" : rota.id === "livre" ? "Simulador · modo livre" : ativPorId(rota.id).titulo, casos: () => "Casos reais", caso: () => casoPorId(rota.id).titulo,
+    exercicios: () => "Exercícios · " + LICOES[rota.lid].titulo, glossario: () => "Glossário", protocolos: () => "Protocolos", protocolo: () => PROT[rota.id].sigla,
+    cadernos: () => "Cadernos de exercícios", caderno: () => window.Exercicios.CADERNOS.find((c) => c.id === rota.id).titulo, estagio: () => "Estágio · " + mod(rota.mid).codigo,
+    sala: () => "Sala de laboratório", bancada: () => "Bancada",
   };
   const mod = (id) => MODS.find((m) => m.id === id);
   const labPorId = (id) => D.labs.find((l) => l.id === id);
@@ -263,6 +288,7 @@
     const curso = CURSOS.find((c) => c.id === m.curso), ant = MODS[MODS.indexOf(m) - 1], seg = MODS[MODS.indexOf(m) + 1];
     return `<div class="secao"><span class="rotulo">${esc(curso.titulo)}</span><h1><span class="codigo-mod grande">${esc(m.codigo)}</span> ${esc(m.titulo)}</h1>
         <div class="linha"><span class="chip">${ic("relogio")} ${m.horas} h</span><span class="leds">${leds(m)}</span><span class="chip tab-num">${Math.round(progressoModulo(m) * 100)}% concluído</span></div></div>
+      <section class="secao"><header><h2>Apresentação do módulo</h2><span class="rotulo">${Math.max(1, Math.round(m.apresentacao.video.segundos / 60))} min${ant ? " · inclui o resumo do " + esc(ant.codigo) : ""}</span></header><div id="video-modulo"></div></section>
       ${aberto ? "" : `<div class="alerta">${ic("cadeado")}<div>Passe a prova do módulo anterior (${esc(ant ? ant.codigo : "")}) para desbloquear, ou ative o <b>modo livre</b> no perfil.</div></div>`}
       <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${m.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
         <span class="rotulo">Conteúdo programático</span><ul class="temas">${m.temas.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>
@@ -271,7 +297,7 @@
         const feita = licaoFeita(l.id), ab = licaoAberta(l), r = P().licoes[l.id];
         return `<button class="item" data-acao="licao" data-id="${l.id}" ${ab ? "" : 'aria-disabled="true"'}>
           <span class="estado-ico ${feita ? "ok" : ab ? "atual" : "bloq"}">${feita ? ic("check") : ab ? i + 1 : ic("cadeado")}</span>
-          <div class="meio"><b>${esc(l.titulo)}</b><span class="suave peq">${l.minutos} min · vídeo-aula ${Math.round(l.video.segundos / 60)} min · ${l.quiz.length} perguntas${r && r.video ? " · vídeo visto ✓" : ""}</span></div>
+          <div class="meio"><b>${esc(l.titulo)}</b><span class="suave peq">${l.minutos} min · vídeo-aula ${Math.round(l.video.segundos / 60)} min · ${l.quiz.length} perguntas · exercícios ${Math.min(exFeitos(l.id), exObrig(l.id))}/${exObrig(l.id)}${r && r.video ? " · vídeo visto ✓" : ""}</span></div>
           ${r && r.melhor != null ? `<span class="chip ${r.melhor >= 70 ? "ok" : "warn"} tab-num">${r.melhor}%</span>` : ""}</button>`;
       }).join("")}</div></section>
       ${sims.length ? `<section class="secao"><h2>Prática no simulador</h2><div class="lista">${sims.map(itemSim).join("")}</div></section>` : ""}
@@ -282,11 +308,18 @@
         <ol class="ficha">${m.ficha.map((q) => `<li><p>${esc(q.p)}</p><details><summary>ver resposta</summary><p class="resposta">${esc(q.r)}</p></details></li>`).join("")}</ol>
         ${fichaFeita(m.id) ? "" : `<button class="btn bloco" data-acao="ficha-feita" data-id="${m.id}">${ic("check")} Marcar ficha como feita</button>`}</section>
       ${m.comandos ? `<section class="secao"><h2>Comandos do módulo</h2><div class="term"><div class="barra-term"><span class="pontos"><i></i><i></i><i></i></span><span>referência</span></div><pre>${esc(m.comandos)}</pre></div></section>` : ""}
-      <section class="secao"><h2>Avaliação</h2><button class="item" data-acao="prova" data-id="${m.id}" ${provaAberta(m) ? "" : 'aria-disabled="true"'}>
+      ${m.estagio ? (() => { const emp = D.empresas[m.estagio.empresa], ne = notaEstagio(m.id); return `<section class="secao"><h2>Estágio profissional</h2><button class="item" data-acao="estagio" data-id="${m.id}" ${aberto ? "" : 'aria-disabled="true"'}>
+          <div class="ico-caixa">${F.icone("servidor", 32)}</div><div class="meio"><b>${esc(emp.nome)}</b><span class="suave peq">${esc(emp.setor)} · o instrutor resolve um ticket real e depois faz ${m.estagio.tarefas.length} sozinho · nota 0–20</span></div>
+          ${ne != null ? `<span class="chip ${ne >= 10 ? "ok" : "bad"} tab-num">${ne}/20</span>` : ""}</button></section>`; })() : ""}
+      <section class="secao"><h2>Teste final do módulo</h2><button class="item" data-acao="prova" data-id="${m.id}" ${provaAberta(m) ? "" : 'aria-disabled="true"'}>
           <span class="estado-ico ${provaFeita(m.id) ? "ok" : provaAberta(m) ? "atual" : "bloq"}">${provaFeita(m.id) ? ic("check") : ic(provaAberta(m) ? "medalha" : "cadeado")}</span>
-          <div class="meio"><b>Prova do módulo ${esc(m.codigo)}</b><span class="suave peq">${Math.min(15, totalPerguntas(m))} perguntas · cronometrada · aprovação ${NOTA_APROVACAO}/1000</span></div>
+          <div class="meio"><b>Prova do módulo ${esc(m.codigo)}</b><span class="suave peq">${nProva(m)} perguntas · cronometrada · aprovação ${NOTA_APROVACAO}/1000</span></div>
           ${pr ? `<span class="chip ${pr.melhor >= NOTA_APROVACAO ? "ok" : "bad"} tab-num">${pr.melhor}</span>` : ""}</button></section>
       <div class="grelha-2">${ant ? `<button class="btn" data-acao="modulo" data-id="${ant.id}">← ${esc(ant.codigo)}</button>` : "<span></span>"}${seg ? `<button class="btn" data-acao="modulo" data-id="${seg.id}" ${moduloAberto(seg) ? "" : "disabled"}>${esc(seg.codigo)} →</button>` : "<span></span>"}</div>`;
+  };
+  POS.modulo = function () {
+    const m = mod(rota.mid), caixa = $("#video-modulo");
+    if (caixa && window.VideoAula && m.apresentacao) { const lt = window.VideoAula.montar(caixa, m.apresentacao, {}); limpar = () => lt.parar(); }
   };
   function grelhaAprender(m, labs, casos, sims) {
     const tempo = m.licoes.reduce((a, l) => a + Math.max(l.minutos, Math.ceil(l.video.segundos / 60)) + Math.ceil(l.quiz.length * 1.2), 0) + labs.length * 15 + casos.length * 10 + sims.length * 20 + 10 + 15;
@@ -298,9 +331,10 @@
         ${sims.length ? `<div class="tile extra"><span class="rotulo">Simulador</span><b>${sims.length} prática${sims.length > 1 ? "s" : ""} guiada${sims.length > 1 ? "s" : ""}</b><ul>${sims.map((a) => `<li>${esc(a.titulo)}</li>`).join("")}</ul></div>` : ""}
         ${labs.length ? `<div class="tile extra"><span class="rotulo">Laboratório</span><b>${labs.length} laboratório${labs.length > 1 ? "s" : ""} CLI</b><ul>${labs.map((l) => `<li>${esc(l.titulo)}</li>`).join("")}</ul></div>` : ""}
         ${casos.length ? `<div class="tile extra"><span class="rotulo">Problemas reais</span><b>${casos.length} caso${casos.length > 1 ? "s" : ""}</b><ul>${casos.map((c) => `<li>${esc(c.titulo)}</li>`).join("")}</ul></div>` : ""}
-        <div class="tile extra"><span class="rotulo">Ficha e prova</span><b>${m.ficha.length} exercícios + prova</b><ul><li>${Math.min(15, totalPerguntas(m))} perguntas cronometradas</li><li>Aprovação ${NOTA_APROVACAO}/1000</li></ul></div>
+        <div class="tile extra"><span class="rotulo">Ficha e prova</span><b>${m.ficha.length} exercícios + prova</b><ul><li>${nProva(m)} perguntas cronometradas</li><li>Aprovação ${NOTA_APROVACAO}/1000</li></ul></div>
       </div></section>`;
   }
+  const nProva = (m) => Math.min(15, totalPerguntas(m)) + 5;
   const totalPerguntas = (m) => m.licoes.reduce((a, l) => a + l.quiz.length, 0) + m.prova_extra.length;
 
   // ------------------------------------------------------------ lição
@@ -316,8 +350,10 @@
         <div id="videoaula"></div><p class="suave peq">A vídeo-aula explica todo o conteúdo desta lição, cena a cena, com legendas. Por baixo tem o texto completo para ler ao seu ritmo.</p></section>
       <h2>Conteúdo da lição</h2>
       <div class="conteudo">${l.blocos.map(bloco).join("")}</div>
+      ${termosLicao(l)}
       <section class="secao"><h2>Referências bibliográficas</h2><ol class="refs">${l.referencias.map((k) => `<li>${linkar(D.referencias[k])}</li>`).join("")}</ol></section>
-      <div class="cartao"><h3>Testar o que aprendeu</h3><p class="suave">${l.quiz.length} perguntas. Precisa de 70% para concluir a lição.</p>
+      ${cartaoExercicios(l)}
+      <div class="cartao"><h3>Testar o que aprendeu</h3><p class="suave">${l.quiz.length} perguntas. Para concluir a aula: 70% no quiz e os ${exObrig(l.id)} exercícios obrigatórios.</p>
         <button class="btn prim bloco" data-acao="quiz" data-id="${l.id}">${ic("play")} Fazer o quiz</button>
         <button class="btn bloco" data-acao="repetir" data-id="${l.id}">${ic("repetir")} Repetir a aula desde o início</button></div>
       <div class="grelha-2">${ant ? `<button class="btn" data-acao="licao" data-id="${ant.id}">← Anterior</button>` : "<span></span>"}${prox ? `<button class="btn" data-acao="licao" data-id="${prox.id}" ${licaoAberta(prox) ? "" : "disabled"}>Seguinte →</button>` : `<button class="btn" data-acao="prova" data-id="${m.id}" ${provaAberta(m) ? "" : "disabled"}>Prova do módulo →</button>`}</div>`;
@@ -369,8 +405,21 @@
   function corrigir(q, resp) {
     if (q.tipo === "mc") return resp === q.correta;
     if (q.tipo === "vf") return resp === q.correta;
+    if (q.tipo === "valor") return window.Exercicios.corrigir(q, resp);
     return q.respostas.some((r) => normCmd(r) === normCmd(resp));
   }
+  // Prompt do terminal da pergunta de comando: Windows, Linux ou Cisco, pela resposta esperada
+  function promptDe(q) {
+    const r = (q.respostas || [""])[0].trim().toLowerCase();
+    if (/^(net |ipconfig|ping |tracert|nslookup|netsh|arp |test-netconnection|new-smbshare|get-smbshare|route print|hostname$|getmac)/.test(r)) return "C:\\>";
+    if (/^(sudo |ip |ls|cat |nano |systemctl|smbclient|mount|ssh |chmod|chown|apt |ufw |testparm|exportfs)/.test(r)) return "$";
+    if (/^(show|sh |enable|en$|conf|copy|wr|ping|traceroute|debug|undebug|clear|reload|dir)/.test(r)) return "Router#";
+    if (/^(sw|switchport|ip address|ip add|shut|no shut|description|desc|spanning-tree (portfast|bpduguard|guard)|channel-group|standby|encapsulation|encap|ip helper|ip nat (inside|outside)|ip ospf|ip access-group|ipv6 address|duplex|speed|interface)/.test(r)) return "Router(config-if)#";
+    if (/^(network|router-id|passive|default-information|auto-cost|default-router|dns-server|permit|deny|remark)/.test(r)) return "Router(config-…)#";
+    return "Router(config)#";
+  }
+  const txtP = (q) => (q.html ? q.p : esc(q.p));
+  const txtE = (q) => (q.html ? q.explica : esc(q.explica));
   function respostaCerta(q) { return q.tipo === "mc" ? q.opcoes[q.correta] : q.tipo === "vf" ? (q.correta ? "Verdadeiro" : "Falso") : q.respostas[0]; }
 
   function htmlPergunta(q, estado) {
@@ -384,15 +433,18 @@
       let c = ""; if (fixo && estado.feedback) { if (v === q.correta) c = "certa"; else if (v === estado.resp) c = "errada"; } else if (estado.resp === v) c = "sel";
       return `<button class="opcao ${c}" data-acao="resp" data-v="${v}" ${fixo ? "disabled" : ""}><span class="letra">${v ? "V" : "F"}</span><span>${v ? "Verdadeiro" : "Falso"}</span></button>`;
     }).join("")}</div>`;
-    else corpo = `<form data-form="cmd" class="secao"><div class="term" style="display:flex;align-items:center;gap:8px;padding:10px 12px"><span style="color:var(--term-prompt)">Router#</span>
+    else if (q.tipo === "valor") corpo = `<form data-form="cmd" class="secao"><label class="rotulo" for="resp-cmd">A sua resposta</label>
+        <input class="campo mono" id="resp-cmd" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text" placeholder="${esc(q.dica || "escreva a resposta")}" value="${esc(estado.resp || "")}" ${fixo ? "disabled" : ""}>
+        ${fixo ? "" : `<button class="btn prim" type="submit">Responder</button>`}</form>`;
+    else corpo = `<form data-form="cmd" class="secao"><div class="term" style="display:flex;align-items:center;gap:8px;padding:10px 12px"><span style="color:var(--term-prompt)">${promptDe(q)}</span>
         <input class="campo mono" id="resp-cmd" style="background:transparent;border:0;color:#fff;min-height:36px;padding:0" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="escreva o comando" value="${esc(estado.resp || "")}" ${fixo ? "disabled" : ""}></div>
         ${fixo ? "" : `<button class="btn prim" type="submit">Responder</button>`}</form>`;
     let fb = "";
     if (fixo && estado.feedback) {
       const ok = corrigir(q, estado.resp);
-      fb = `<div class="feedback ${ok ? "ok" : "bad"}"><b>${ok ? "Certo!" : "Não é bem assim."}</b>${ok ? "" : `<span>Resposta: <b>${esc(respostaCerta(q))}</b></span>`}<span>${esc(q.explica)}</span></div>`;
+      fb = `<div class="feedback ${ok ? "ok" : "bad"}"><b>${ok ? "Certo!" : "Não é bem assim."}</b>${ok ? "" : `<span>Resposta: <b class="mono">${esc(respostaCerta(q))}</b></span>`}${q.html ? `<details class="resolucao" ${ok ? "" : "open"}><summary>Ver a resolução passo a passo</summary><div class="html">${q.explica}</div></details>` : `<span>${esc(q.explica)}</span>`}</div>`;
     }
-    return `<p class="pergunta">${esc(q.p)}</p>${corpo}${fb}`;
+    return `<div class="pergunta">${txtP(q)}</div>${q.fig ? `<div class="fig-caixa">${q.fig}</div>` : ""}${corpo}${fb}`;
   }
 
   // Sessão genérica de perguntas: usada no quiz, na prova, na revisão e no relâmpago
@@ -405,6 +457,7 @@
     const q = sessao.perguntas[sessao.i];
     sessao.respostas[sessao.i] = valor;
     const ok = corrigir(q, valor);
+    if (sessao.aoResponder) sessao.aoResponder(q, ok);
     if (!ok) registarErro(q, sessao.origem);
     else if (sessao.tipo === "revisao") removerErro(q);
     if (sessao.feedback) { sessao.mostrar = true; render(); }
@@ -441,9 +494,9 @@
   function revisaoRespostas(s) {
     return `<details class="cartao plano"><summary><b>Rever todas as respostas</b></summary><div class="lista" style="margin-top:12px">${s.perguntas.map((q, i) => {
       const ok = corrigir(q, s.respostas[i]);
-      return `<div class="cartao plano"><div class="linha"><span class="chip ${ok ? "ok" : "bad"}">${ok ? "Certa" : "Errada"}</span></div><p><b>${esc(q.p)}</b></p>
+      return `<div class="cartao plano"><div class="linha"><span class="chip ${ok ? "ok" : "bad"}">${ok ? "Certa" : "Errada"}</span></div><div><b>${txtP(q)}</b></div>
         ${ok ? "" : `<p class="peq">A sua: ${esc(s.respostas[i] == null ? "sem resposta" : q.tipo === "mc" ? q.opcoes[s.respostas[i]] : q.tipo === "vf" ? (s.respostas[i] ? "Verdadeiro" : "Falso") : s.respostas[i])}</p>`}
-        <p class="peq">Correta: <b>${esc(respostaCerta(q))}</b></p><p class="suave peq">${esc(q.explica)}</p></div>`;
+        <p class="peq">Correta: <b>${esc(respostaCerta(q))}</b></p><div class="suave peq">${txtE(q)}</div></div>`;
     }).join("")}</div></details>`;
   }
 
@@ -456,11 +509,12 @@
     if (!sessao.fim) return telaPerguntas();
     const pct = Math.round((sessao.acertos / sessao.perguntas.length) * 100), m = MOD_DA[l.id], prox = m.licoes[l._i + 1];
     return `<div class="cartao resultado"><span class="rotulo">Resultado</span>${estrelas(pct)}<div class="grande tab-num">${pct}%</div>
-        <p>${sessao.acertos} de ${sessao.perguntas.length} certas. ${pct >= 70 ? "Lição concluída!" : "Precisa de 70% para concluir. Reveja a aula e tente de novo."}</p>
+        <p>${sessao.acertos} de ${sessao.perguntas.length} certas. ${pct >= 70 ? (exFeitos(l.id) >= exObrig(l.id) ? "Lição concluída!" : `Quiz aprovado! Faltam ${exObrig(l.id) - exFeitos(l.id)} exercícios obrigatórios para concluir a aula.`) : "Precisa de 70% para concluir. Reveja a aula e tente de novo."}</p>
         ${sessao.ganho ? `<span class="chip acc">+${sessao.ganho} XP</span>` : ""}</div>
       ${revisaoRespostas(sessao)}
       <div class="grelha-2"><button class="btn" data-acao="refazer-quiz" data-id="${l.id}">${ic("repetir")} Refazer quiz</button><button class="btn" data-acao="licao" data-id="${l.id}">Rever a aula</button></div>
-      ${pct >= 70 ? (prox ? `<button class="btn prim bloco" data-acao="licao" data-id="${prox.id}">Próxima lição →</button>` : `<button class="btn prim bloco" data-acao="prova" data-id="${m.id}" ${provaAberta(m) ? "" : "disabled"}>Fazer a prova do módulo →</button>`) : ""}`;
+      ${pct >= 70 && exFeitos(l.id) < exObrig(l.id) ? `<button class="btn prim bloco" data-acao="exercicios" data-id="${l.id}">${ic("calc")} Fazer os exercícios obrigatórios</button>` : ""}
+      ${licaoFeita(l.id) ? (prox ? `<button class="btn prim bloco" data-acao="licao" data-id="${prox.id}">Próxima lição →</button>` : `<button class="btn prim bloco" data-acao="prova" data-id="${m.id}" ${provaAberta(m) ? "" : "disabled"}>Fazer a prova do módulo →</button>`) : ""}`;
   };
   function fimQuiz(s) {
     const l = LICOES[s.origem], r = P().licoes[l.id] || (P().licoes[l.id] = {});
@@ -479,10 +533,10 @@
     if (!provaAberta(m)) return `<div class="vazio">${ic("cadeado")}<p>Conclua todas as lições deste módulo (70% em cada quiz) para fazer a prova.</p></div>`;
     if (!sessao || sessao.tipo !== "prova" || sessao.origem !== m.id) {
       return `<div class="cartao"><span class="rotulo">Prova do ${m.codigo}</span><h1>${esc(m.titulo)}</h1>
-        <ul class="objetivos"><li>${Math.min(15, totalPerguntas(m))} perguntas sorteadas de todo o módulo.</li><li>${Math.min(15, totalPerguntas(m))} minutos no total; sem correção até ao fim, como no exame real.</li><li>Pontuação de 0 a 1000. Aprovação: <b>${NOTA_APROVACAO}</b>.</li><li>Pode repetir quantas vezes quiser; conta a melhor nota.</li></ul>
+        <ul class="objetivos"><li>${nProva(m)} perguntas sorteadas de todo o módulo.</li><li>${Math.min(15, totalPerguntas(m))} minutos no total; sem correção até ao fim, como no exame real.</li><li>Pontuação de 0 a 1000. Aprovação: <b>${NOTA_APROVACAO}</b>.</li><li>Pode repetir quantas vezes quiser; conta a melhor nota.</li></ul>
         <button class="btn prim bloco" data-acao="comecar-prova" data-id="${m.id}">${ic("relogio")} Começar a prova</button></div>`;
     }
-    if (!sessao.fim) return telaPerguntas(`<span class="chip warn temporizador tab-num" id="tempo">--:--</span>`) + (sessao.perguntas[sessao.i].tipo === "cmd" ? "" : `<button class="btn bloco" data-acao="seguinte-prova" ${sessao.respostas[sessao.i] == null ? "disabled" : ""}>Confirmar e seguir</button>`);
+    if (!sessao.fim) return telaPerguntas(`<span class="chip warn temporizador tab-num" id="tempo">--:--</span>`) + (["cmd", "valor"].includes(sessao.perguntas[sessao.i].tipo) ? "" : `<button class="btn bloco" data-acao="seguinte-prova" ${sessao.respostas[sessao.i] == null ? "disabled" : ""}>Confirmar e seguir</button>`);
     const nota = sessao.nota, ok = nota >= NOTA_APROVACAO;
     const clas = nota >= 950 ? "Excelente" : ok ? "Aprovado" : nota >= 700 ? "Quase lá" : "Precisa de rever";
     return `<div class="cartao resultado"><span class="rotulo">Prova do ${m.codigo}</span><span class="chip ${ok ? "ok" : "bad"}">${clas}</span>
@@ -539,6 +593,8 @@
     return `<div class="secao"><h1>Jogar e praticar</h1><p class="suave">Aprender a fazer, não só a ler. Cada jogo dá XP.</p></div>
       <div class="lista">
         <button class="item" data-acao="ir" data-tela="sims"><div class="ico-caixa">${F.icone("switch", 34)}</div><div class="meio"><b>Simulador de rede</b><span class="suave peq">Monte e configure redes como no Packet Tracer, com atividades passo a passo.</span></div><span class="chip acc tab-num">${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length}</span></button>
+        <button class="item" data-acao="ir" data-tela="sala"><div class="ico-caixa">${F.icone("pc", 34)}</div><div class="meio"><b>Sala de laboratório</b><span class="suave peq">Bancadas com equipamentos físicos: ligar cabos, cabo de consola, PuTTY, placa de rede, testador e partilha.</span></div><span class="chip acc tab-num">${Object.values(p.salaLab).filter((x) => x.feito).length}/${(window.Laboratorio ? window.Laboratorio.BANCADAS.length : 0)}</span></button>
+        <button class="item" data-acao="ir" data-tela="cadernos"><div class="ico-caixa">${ic("calc")}</div><div class="meio"><b>Cadernos de exercícios</b><span class="suave peq">50 de conversão binária, 100 de sub-redes, classes e máscaras, VLSM com diagrama, OSI e portas.</span></div><span class="chip acc tab-num">${Object.values(p.cadernos).reduce((a, c) => a + Object.values(c).filter(Boolean).length, 0)}</span></button>
         <button class="item" data-acao="ir" data-tela="casos"><div class="ico-caixa">${ic("caso")}</div><div class="meio"><b>Casos reais</b><span class="suave peq">Um cliente liga com um problema: diagnostique e resolva, como no trabalho.</span></div><span class="chip acc tab-num">${Object.keys(p.casos).length}/${D.casos.length}</span></button>
         <button class="item" data-acao="ir" data-tela="relampago"><div class="ico-caixa">${ic("raio")}</div><div class="meio"><b>Quiz relâmpago</b><span class="suave peq">Quantas acerta em 60 segundos? Perguntas dos módulos desbloqueados.</span></div><span class="chip acc tab-num">${p.recordes.relampago}</span></button>
         <button class="item" data-acao="ir" data-tela="subrede"><div class="ico-caixa">${ic("calc")}</div><div class="meio"><b>Desafio sub-rede</b><span class="suave peq">Rede, broadcast, hosts e máscaras de cabeça.</span></div><span class="chip acc tab-num">${p.recordes.subrede}</span></button>
@@ -706,7 +762,7 @@
   // --- guia
   let abaGuia = "roteiro", filtroGloss = "";
   TELAS.guia = function () {
-    const abas = [["roteiro", "Roteiro"], ["plano", "Plano 12 semanas"], ["exame", "Dicas de exame"], ["simreal", "Simulador × real"], ["ferramentas", "Ferramentas"], ["glossario", "Glossário"], ["refs", "Referências"]];
+    const abas = [["roteiro", "Roteiro"], ["plano", "Plano 12 semanas"], ["exame", "Dicas de exame"], ["simreal", "Simulador × real"], ["ferramentas", "Ferramentas"], ["glossario", "Glossário e protocolos"], ["refs", "Referências"]];
     const G = D.guia;
     let corpo = "";
     if (abaGuia === "roteiro") corpo = `<p class="suave">Os 6 domínios do exame CCNA 200-301 v1.1, o peso de cada um e onde os estudar nesta app.</p>
@@ -721,6 +777,10 @@
       <div class="tabela-caixa"><table><thead><tr><th>Tema</th><th>Simulador</th><th>Equipamento real</th></tr></thead><tbody>${G.sim_real.map((r) => `<tr><td><b>${esc(r.tema)}</b></td><td>${esc(r.sim)}</td><td>${esc(r.real)}</td></tr>`).join("")}</tbody></table></div>`;
     if (abaGuia === "ferramentas") corpo = `<div class="lista">${G.ferramentas.map((f) => `<a class="item" href="${esc(f.url)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div class="ico-caixa">${ic("terminal")}</div><div class="meio"><b>${esc(f.nome)}</b><span class="suave peq">${esc(f.desc)}</span></div><span class="suave">↗</span></a>`).join("")}</div>`;
     if (abaGuia === "glossario") {
+      corpo = `<div class="lista"><button class="item" data-acao="ir" data-tela="glossario"><div class="ico-caixa">${ic("livro")}</div><div class="meio"><b>Glossário completo</b><span class="suave peq">${D.glossario.length} termos técnicos explicados, com exemplo e pesquisa.</span></div></button>
+        <button class="item" data-acao="ir" data-tela="protocolos"><div class="ico-caixa">${ic("terminal")}</div><div class="meio"><b>Todos os protocolos</b><span class="suave peq">${D.protocolos.length} protocolos: para que servem, camada, portas, como funcionam e comandos.</span></div></button></div>`;
+    }
+    if (false) {
       const f = filtroGloss.toLowerCase();
       const itens = G.glossario.filter((g) => !f || (g.termo + " " + g.def).toLowerCase().includes(f));
       corpo = `<input class="campo" id="filtro-gloss" type="search" placeholder="Procurar termo (ex.: VLAN)" value="${esc(filtroGloss)}">
@@ -749,7 +809,7 @@
     return {
       modulos: MODS, labs: D.labs, casos: D.casos, licaoFeita, provaFeita, labFeito: (id) => !!p.labs[id], casoFeito,
       nota: (id) => (p.licoes[id] || {}).melhor || 0, reforcado: (id) => !!p.reforcos[id],
-      tempoLicao: p.tempoLicao, erros: p.erros.length, atividades: D.atividades, simFeito, fichaFeita, minutosHoje: cfgMinHoje == null ? minutosHoje() : cfgMinHoje,
+      tempoLicao: p.tempoLicao, erros: p.erros.length, atividades: D.atividades, simFeito, fichaFeita, exFeitos, estagioFeito: (mid) => notaEstagio(mid) >= 10, empresa: (m) => D.empresas[m.estagio.empresa].nome, minutosHoje: cfgMinHoje == null ? minutosHoje() : cfgMinHoje,
     };
   }
   const calcularPlano = (cfg) => window.Plano.calcular(ctxPlano(cfg ? 0 : null), cfg || P().plano);
@@ -761,14 +821,16 @@
       case "lab": return `data-acao="lab" data-id="${t.lab.id}"`;
       case "caso": return `data-acao="caso" data-id="${t.caso.id}"`;
       case "sim": return `data-acao="sim" data-id="${t.sim.id}"`;
+      case "exercicios": return `data-acao="exercicios" data-id="${t.l.id}"`;
+      case "estagio": return `data-acao="estagio" data-id="${t.m.id}"`;
       case "ficha": return `data-acao="modulo" data-id="${t.m.id}"`;
       case "revmod": return `data-acao="modulo" data-id="${t.m.id}"`;
       case "prova": return `data-acao="prova" data-id="${t.m.id}"`;
       default: return `data-acao="ir" data-tela="revisao"`;
     }
   }
-  const ICONE_TAREFA = { sim: "jogo", ficha: "caderno", aula: "livro", rever: "repetir", pratica: "terminal", quiz: "estrela", lab: "terminal", caso: "caso", revmod: "repetir", prova: "medalha", erros: "caderno" };
-  const NOME_TAREFA = { sim: "Simulador", ficha: "Ficha", aula: "Aula", rever: "Reforço", pratica: "Prática", quiz: "Quiz", lab: "Laboratório", caso: "Caso real", revmod: "Revisão", prova: "Prova", erros: "Revisão" };
+  const ICONE_TAREFA = { exercicios: "calc", estagio: "caso", sim: "jogo", ficha: "caderno", aula: "livro", rever: "repetir", pratica: "terminal", quiz: "estrela", lab: "terminal", caso: "caso", revmod: "repetir", prova: "medalha", erros: "caderno" };
+  const NOME_TAREFA = { exercicios: "Exercícios", estagio: "Estágio", sim: "Simulador", ficha: "Ficha", aula: "Aula", rever: "Reforço", pratica: "Prática", quiz: "Quiz", lab: "Laboratório", caso: "Caso real", revmod: "Revisão", prova: "Prova", erros: "Revisão" };
   function itemTarefa(it, bloqueia) {
     const t = it.t;
     const aberto = !bloqueia || (t.l ? licaoAberta(t.l) : t.m ? moduloAberto(t.m) : true);
@@ -944,6 +1006,205 @@
     if (s.ganho) ganharXP(s.ganho, "caso real"); else verificarConquistas();
   }
 
+  // ------------------------------------------------------------ glossário e protocolos
+  const GLOS = {}; (D.glossario || []).forEach((t) => { GLOS[t.termo] = t; });
+  const PROT = {}; (D.protocolos || []).forEach((p) => { PROT[p.id] = p; });
+  const NOMES_OSI = ["", "Física", "Ligação de dados", "Rede", "Transporte", "Sessão", "Apresentação", "Aplicação"];
+  function htmlTermo(t) {
+    return `<dt>${esc(t.termo)}${t.extenso ? ` <span class="suave peq">— ${esc(t.extenso)}</span>` : ""}</dt><dd>${esc(t.def)}${t.exemplo ? `<br><span class="peq suave">Exemplo: ${esc(t.exemplo)}</span>` : ""}</dd>`;
+  }
+  function termosLicao(l) {
+    const ts = (l.termos || []).map((n) => GLOS[n]).filter(Boolean);
+    if (!ts.length) return "";
+    return `<section class="secao" id="termos"><header><h2>Termos técnicos desta aula</h2><span class="rotulo">${ts.length} termos</span></header>
+      <p class="suave peq">O que quer dizer cada palavra técnica que aparece na aula, em linguagem simples.</p>
+      <details class="cartao plano"${ts.length <= 12 ? " open" : ""}><summary><b>Ver os ${ts.length} termos explicados</b></summary><dl class="gloss">${ts.map(htmlTermo).join("")}</dl></details>
+      ${(l.protocolos || []).length ? `<p class="peq"><b>Protocolos desta aula:</b></p><div class="chips">${l.protocolos.map((id) => `<button class="chip-op" data-acao="protocolo" data-id="${id}">${esc(PROT[id].sigla)}</button>`).join("")}</div>` : ""}</section>`;
+  }
+  let filtroProt = "";
+  TELAS.protocolos = function () {
+    const f = filtroProt.toLowerCase();
+    const lista = D.protocolos.filter((p) => !f || (p.sigla + " " + p.nome + " " + p.para_que + " " + p.portas).toLowerCase().includes(f));
+    const cats = [...new Set(lista.map((p) => p.categoria))];
+    return `<div class="secao"><h1>Protocolos de rede</h1><p class="suave">${D.protocolos.length} protocolos explicados: para que servem, em que camada trabalham, que portas usam, como funcionam passo a passo e os comandos para os ver ou configurar.</p></div>
+      <input class="campo" id="filtro-prot" type="search" placeholder="Procurar (ex.: DHCP, 443, e-mail)" value="${esc(filtroProt)}">
+      ${cats.map((c) => `<section class="secao"><h2>${esc(c)}</h2><div class="lista">${lista.filter((p) => p.categoria === c).map((p) => `<button class="item" data-acao="protocolo" data-id="${p.id}"><div class="ico-caixa mono" style="font-weight:800;font-size:.72rem">${esc(p.sigla.slice(0, 6))}</div>
+        <div class="meio"><b>${esc(p.nome)}</b><span class="suave peq">Camada ${p.camada_osi} (${NOMES_OSI[p.camada_osi]}) · ${esc(p.transporte)}${p.portas && p.portas !== "—" ? " · porta " + esc(p.portas) : ""}</span></div></button>`).join("")}</div></section>`).join("") || '<p class="suave">Nenhum protocolo encontrado.</p>'}`;
+  };
+  POS.protocolos = function () { const f = $("#filtro-prot"); if (f) f.addEventListener("input", () => { filtroProt = f.value; const pos = f.selectionStart; render(); const n = $("#filtro-prot"); n.focus(); n.setSelectionRange(pos, pos); }); };
+  TELAS.protocolo = function () {
+    const p = PROT[rota.id];
+    return `<article class="cab-licao"><span class="rotulo">${esc(p.categoria)}</span><h1>${esc(p.sigla)}</h1><p class="suave">${esc(p.nome)}</p>
+      <div class="chips"><span class="chip">OSI ${p.camada_osi} · ${NOMES_OSI[p.camada_osi]}</span><span class="chip">TCP/IP · ${esc(p.camada_tcpip)}</span><span class="chip acc">${esc(p.transporte)}</span>${p.portas && p.portas !== "—" ? `<span class="chip">Porta ${esc(p.portas)}</span>` : ""}${p.norma ? `<span class="chip">${esc(p.norma)}</span>` : ""}</div></article>
+      <section class="bloco"><h3>Para que serve</h3><p>${esc(p.para_que)}</p></section>
+      <section class="bloco"><h3>Como funciona, passo a passo</h3><ol class="passos-res">${p.como_funciona.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></section>
+      <section class="bloco exemplo"><span class="rotulo">Exemplo real</span><p>${esc(p.exemplo)}</p></section>
+      ${p.comandos.length ? `<section class="bloco"><h3>${ic("terminal")} Comandos</h3><div class="term"><ol class="passos">${p.comandos.map((c) => `<li><div class="cmdl"><span class="cm">${esc(c.cmd)}</span></div><div class="ex">${esc(c.explica)}</div></li>`).join("")}</ol></div></section>` : ""}
+      ${p.seguranca ? `<div class="alerta">${ic("alerta")}<div class="html"><b>Segurança:</b> ${esc(p.seguranca)}</div></div>` : ""}`;
+  };
+  let filtroG = "", catG = "";
+  TELAS.glossario = function () {
+    const f = filtroG.toLowerCase();
+    const cats = [...new Set(D.glossario.map((t) => t.categoria))].sort();
+    const lista = D.glossario.filter((t) => (!catG || t.categoria === catG) && (!f || (t.termo + " " + t.extenso + " " + t.def + " " + t.variantes.join(" ")).toLowerCase().includes(f))).sort((a, b) => a.termo.localeCompare(b.termo, "pt"));
+    return `<div class="secao"><h1>Glossário</h1><p class="suave">${D.glossario.length} termos técnicos explicados de forma simples, com exemplo.</p></div>
+      <input class="campo" id="filtro-g" type="search" placeholder="Procurar termo (ex.: gateway, VLAN, máscara)" value="${esc(filtroG)}">
+      <div class="chips" style="overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px"><button class="chip-op" data-acao="cat-g" data-id="" aria-pressed="${!catG}">Todos</button>${cats.map((c) => `<button class="chip-op" data-acao="cat-g" data-id="${esc(c)}" aria-pressed="${catG === c}">${esc(c)}</button>`).join("")}</div>
+      <p class="peq suave">${lista.length} termo(s)</p><dl class="gloss">${lista.map(htmlTermo).join("") || '<p class="suave">Nenhum termo encontrado.</p>'}</dl>`;
+  };
+  POS.glossario = function () { const f = $("#filtro-g"); if (f) f.addEventListener("input", () => { filtroG = f.value; const pos = f.selectionStart; render(); const n = $("#filtro-g"); n.focus(); n.setSelectionRange(pos, pos); }); };
+
+  // ------------------------------------------------------------ exercícios da aula (10 obrigatórios + prática sem fim)
+  function contextoEx(l) {
+    return { quiz: l.quiz, termos: (l.termos || []).map((n) => GLOS[n]).filter(Boolean), protocolos: (l.protocolos || []).map((id) => PROT[id]).filter(Boolean) };
+  }
+  function gerarEx(l, n, vistos) {
+    const ctx = contextoEx(l), out = [];
+    for (let k = 0, tent = 0; k < n && tent < n * 8; tent++) {
+      const ex = window.Exercicios.gerar(l.exercicios.geradores, Math.floor(Math.random() * 2 ** 31), ctx);
+      if (!ex || vistos.has(ex.p)) continue;
+      vistos.add(ex.p); ex.html = ex.gen !== "quiz"; out.push(ex); k++;
+    }
+    return out;
+  }
+  function iniciarExercicios(l) {
+    const vistos = new Set();
+    iniciarSessao({ tipo: "exercicios", origem: l.id, perguntas: gerarEx(l, 10, vistos), vistos, lote: 1,
+      aoResponder: (q, ok) => {
+        const r = P().exercicios[l.id] || (P().exercicios[l.id] = { feitos: 0, certos: 0 });
+        const antes = r.feitos; r.feitos++; if (ok) r.certos++;
+        guardar();
+        if (ok) ganharXP(2, "exercício");
+        if (antes < exObrig(l.id) && r.feitos >= exObrig(l.id)) { ganharXP(20, "exercícios obrigatórios"); toast("10 exercícios obrigatórios feitos!"); }
+      },
+      aoTerminar: () => {} });
+  }
+  TELAS.exercicios = function () {
+    const l = LICOES[rota.lid];
+    if (!sessao || sessao.tipo !== "exercicios" || sessao.origem !== l.id) iniciarExercicios(l);
+    const r = P().exercicios[l.id] || { feitos: 0, certos: 0 }, ob = exObrig(l.id);
+    const topo = `<span class="chip ${r.feitos >= ob ? "ok" : "warn"} tab-num">${Math.min(r.feitos, ob)}/${ob} obrigatórios</span>`;
+    if (!sessao.fim) return telaPerguntas(topo);
+    const ac = sessao.perguntas.slice(-10).filter((q, i) => corrigir(q, sessao.respostas[sessao.perguntas.length - 10 + i])).length;
+    return `<div class="cartao resultado"><span class="rotulo">Série ${sessao.lote} concluída</span>${estrelas(ac * 10)}<div class="grande tab-num">${ac}/10</div>
+        <p>${r.feitos >= ob ? "Exercícios obrigatórios desta aula: feitos ✓" : `Faltam ${ob - r.feitos} exercícios obrigatórios.`}</p>
+        <p class="suave peq">Total nesta aula: ${r.feitos} exercícios, ${r.certos} certos (${r.feitos ? Math.round(r.certos / r.feitos * 100) : 0}%).</p></div>
+      ${revisaoRespostas({ perguntas: sessao.perguntas.slice(-10), respostas: sessao.respostas.slice(-10) })}
+      <button class="btn prim bloco" data-acao="mais-exercicios">${ic("repetir")} Continuar a praticar (+10 novos)</button>
+      <div class="grelha-2"><button class="btn" data-acao="licao" data-id="${l.id}">Voltar à aula</button><button class="btn" data-acao="quiz" data-id="${l.id}">Fazer o quiz</button></div>`;
+  };
+  function cartaoExercicios(l) {
+    const r = P().exercicios[l.id] || { feitos: 0, certos: 0 }, ob = exObrig(l.id), cad = window.Exercicios.CADERNOS.filter((c) => c.licao === l.id || l.exercicios.geradores.some((g) => c.geradores.includes(g)));
+    return `<div class="cartao"><header class="linha entre"><h3>Exercícios da aula</h3><span class="chip ${r.feitos >= ob ? "ok" : "warn"} tab-num">${Math.min(r.feitos, ob)}/${ob}</span></header>
+      <p class="suave peq">${ob} exercícios obrigatórios para concluir a aula. Depois pode continuar: há sempre exercícios novos, cada um com a resolução passo a passo.${r.feitos ? ` Já fez ${r.feitos} (${Math.round(r.certos / r.feitos * 100)}% certos).` : ""}</p>
+      <button class="btn ${r.feitos >= ob ? "" : "prim"} bloco" data-acao="exercicios" data-id="${l.id}">${ic("calc")} ${r.feitos >= ob ? "Praticar mais" : r.feitos ? "Continuar os exercícios" : "Começar os exercícios"}</button>
+      ${cad.length ? `<p class="peq">Cadernos de exercícios numerados:</p><div class="chips">${cad.slice(0, 3).map((c) => `<button class="chip-op" data-acao="caderno" data-id="${c.id}">${esc(c.titulo)} (${c.total})</button>`).join("")}</div>` : ""}</div>`;
+  }
+
+  // ------------------------------------------------------------ cadernos numerados (50 de binário, 100 de sub-redes…)
+  const POR_PAG = 10;
+  TELAS.cadernos = function () {
+    return `<div class="secao"><h1>Cadernos de exercícios</h1><p class="suave">Exercícios numerados, sempre os mesmos para poder voltar e comparar. Cada um tem a resolução completa passo a passo. Aprenda primeiro nas aulas e depois pratique aqui.</p></div>
+      <div class="lista">${window.Exercicios.CADERNOS.map((c) => { const feitos = Object.keys(P().cadernos[c.id] || {}).length, certos = Object.values(P().cadernos[c.id] || {}).filter(Boolean).length;
+        return `<button class="item" data-acao="caderno" data-id="${c.id}"><div class="ico-caixa">${ic("calc")}</div><div class="meio"><b>${esc(c.titulo)} · ${c.total} exercícios</b><span class="suave peq">${esc(c.desc)}</span>
+          <div class="barra"><i style="width:${feitos / c.total * 100}%"></i></div></div><span class="chip acc tab-num">${certos}/${c.total}</span></button>`; }).join("")}</div>`;
+  };
+  let cadEstado = {};
+  TELAS.caderno = function () {
+    const c = window.Exercicios.CADERNOS.find((x) => x.id === rota.id), pag = rota.pag || 0, res = P().cadernos[c.id] || {};
+    const ini = pag * POR_PAG, fim = Math.min(c.total, ini + POR_PAG), npag = Math.ceil(c.total / POR_PAG);
+    const certos = Object.values(res).filter(Boolean).length;
+    const L = LICOES[c.licao];
+    const itens = [];
+    for (let n = ini + 1; n <= fim; n++) {
+      const ex = window.Exercicios.doCaderno(c, n), st = cadEstado[c.id + n] || {}, feito = n in res;
+      let corpo;
+      if (ex.tipo === "mc") corpo = `<div class="opcoes">${ex.opcoes.map((o, i) => `<button class="opcao ${st.v != null ? (i === ex.correta ? "certa" : i === st.v ? "errada" : "") : ""}" data-acao="cad-resp" data-n="${n}" data-v="${i}" ${st.v != null ? "disabled" : ""}><span class="letra">${"ABCD"[i]}</span><span>${esc(o)}</span></button>`).join("")}</div>`;
+      else if (ex.tipo === "vf") corpo = `<div class="opcoes">${[true, false].map((v) => `<button class="opcao ${st.v != null ? (v === ex.correta ? "certa" : v === st.v ? "errada" : "") : ""}" data-acao="cad-resp" data-n="${n}" data-v="${v}" ${st.v != null ? "disabled" : ""}><span class="letra">${v ? "V" : "F"}</span><span>${v ? "Verdadeiro" : "Falso"}</span></button>`).join("")}</div>`;
+      else corpo = `<form data-form="cad" data-n="${n}" class="linha"><input class="campo mono" id="cad-${n}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="resposta" value="${esc(st.v || "")}" ${st.v != null ? "disabled" : ""}>${st.v != null ? "" : '<button class="btn prim">Verificar</button>'}</form>`;
+      const ok = st.v != null ? window.Exercicios.corrigir(ex, st.v) : null;
+      itens.push(`<li class="cartao cad-item" id="cad-item-${n}"><div class="linha entre"><span class="rotulo tab-num">Exercício ${n}</span>${feito ? `<span class="chip ${res[n] ? "ok" : "bad"}">${res[n] ? "certo" : "errado"}</span>` : ""}</div>
+        <div class="pergunta">${ex.p}</div>${ex.fig ? `<div class="fig-caixa">${ex.fig}</div>` : ""}${corpo}
+        ${ok != null ? `<div class="feedback ${ok ? "ok" : "bad"}"><b>${ok ? "Certo!" : "Ainda não."}</b>${ok ? "" : `<span>Resposta: <b class="mono">${esc(ex.tipo === "mc" ? ex.opcoes[ex.correta] : ex.tipo === "vf" ? (ex.correta ? "Verdadeiro" : "Falso") : ex.respostas[0])}</b></span>`}</div>` : ""}
+        <details class="resolucao" ${ok === false ? "open" : ""}><summary>Ver a resolução passo a passo</summary><div class="html">${ex.explica}</div></details></li>`);
+    }
+    return `<div class="secao"><h1>${esc(c.titulo)}</h1><p class="suave">${c.total} exercícios · ${certos} certos · página ${pag + 1} de ${npag}</p>
+        ${L ? `<button class="btn" data-acao="licao" data-id="${L.id}">${ic("livro")} Aprender primeiro: ${esc(L.titulo)}</button>` : ""}</div>
+      <ol class="lista cad-lista" start="${ini + 1}">${itens.join("")}</ol>
+      <div class="grelha-2"><button class="btn" data-acao="cad-pag" data-id="${pag - 1}" ${pag ? "" : "disabled"}>← Anteriores</button><button class="btn" data-acao="cad-pag" data-id="${pag + 1}" ${pag + 1 < npag ? "" : "disabled"}>Seguintes →</button></div>
+      <div class="chips">${Array.from({ length: npag }, (_, k) => `<button class="chip-op" data-acao="cad-pag" data-id="${k}" aria-pressed="${k === pag}">${k * POR_PAG + 1}–${Math.min(c.total, (k + 1) * POR_PAG)}</button>`).join("")}</div>`;
+  };
+  function respostaCaderno(n, v) {
+    const c = window.Exercicios.CADERNOS.find((x) => x.id === rota.id), ex = window.Exercicios.doCaderno(c, n);
+    cadEstado[c.id + n] = { v };
+    const ok = window.Exercicios.corrigir(ex, v), res = P().cadernos[c.id] || (P().cadernos[c.id] = {});
+    const primeira = !(n in res);
+    if (primeira || ok) res[n] = ok;
+    guardar();
+    if (ok && primeira) ganharXP(3, "caderno"); else render();
+    const el = $("#cad-item-" + n); if (el) el.scrollIntoView({ block: "nearest" });
+  }
+
+  // ------------------------------------------------------------ estágio profissional
+  const notaEstagio = (mid) => (P().estagios[mid] || {}).melhor;
+  TELAS.estagio = function () {
+    const m = mod(rota.mid), e = m.estagio, emp = D.empresas[e.empresa], r = P().estagios[m.id] || {};
+    const fase = rota.fase || "inicio";
+    const cab = `<div class="cartao empresa"><span class="rotulo">Estágio profissional · ${esc(m.codigo)}</span><h1>${esc(emp.nome)}</h1>
+      <p class="suave">${esc(emp.setor)} · ${emp.pessoas} pessoas</p><p>${esc(emp.descricao)}</p><p class="peq"><b>Rede:</b> ${esc(emp.rede)}</p></div>`;
+    if (fase === "inicio") return cab + `<section class="secao"><h2>Como funciona</h2><ol class="passos-res"><li><b>Com o instrutor:</b> acompanha o técnico sénior a resolver um ticket real, passo a passo, e percebe porquê.</li><li><b>Sozinho:</b> recebe ${e.tarefas.length} tickets e resolve-os sem ajuda (há dicas se precisar).</li><li><b>Nota de estágio</b> de 0 a 20. Aprovado com 10 ou mais. Pode repetir para melhorar.</li></ol>
+      ${r.melhor != null ? `<p>Melhor nota: <b class="tab-num">${r.melhor}/20</b> ${r.melhor >= 10 ? '<span class="chip ok">Aprovado</span>' : '<span class="chip bad">Repetir</span>'}</p>` : ""}</section>
+      <button class="btn prim bloco" data-acao="estagio-fase" data-id="instrutor">${ic("play")} Começar com o instrutor</button>
+      ${r.instrutor ? `<button class="btn bloco" data-acao="estagio-fase" data-id="tarefas">Ir direto às tarefas</button>` : ""}`;
+    if (fase === "instrutor") {
+      const k = rota.passo || 0, t = e.instrutor;
+      return `<div class="cartao ticket"><span class="rotulo">Ticket aberto</span><h2>${esc(t.titulo)}</h2><p class="citacao">“${esc(t.pedido)}”</p></div>
+        <section class="secao"><h2>O instrutor resolve, passo a passo</h2><ol class="instrutor">${t.passos.slice(0, k + 1).map((p, i) => `<li class="cartao ${i === k ? "atual" : ""}"><span class="rotulo">Passo ${i + 1} de ${t.passos.length}</span><b>${esc(p.acao)}</b>${p.cmd ? `<div class="term"><pre>${esc(p.cmd)}</pre></div>` : ""}<p class="suave">${esc(p.explica)}</p></li>`).join("")}</ol></section>
+        ${k + 1 < t.passos.length ? `<button class="btn prim bloco" data-acao="estagio-passo" data-id="${k + 1}">Próximo passo →</button>` :
+          `<div class="dica">${ic("dica")}<div class="html"><b>Lição do instrutor:</b> ${esc(t.licao)}</div></div><button class="btn prim bloco" data-acao="estagio-fase" data-id="tarefas">Agora é a sua vez: ${e.tarefas.length} tickets →</button>`}`;
+    }
+    if (!sessao || sessao.tipo !== "estagio" || sessao.origem !== m.id) {
+      iniciarSessao({ tipo: "estagio", origem: m.id, perguntas: e.tarefas.map((t, i) => Object.assign({}, t.pergunta, { html: true,
+        p: `<span class="rotulo">Ticket ${i + 1} de ${e.tarefas.length}</span><b>${esc(t.titulo)}</b><p class="citacao">${esc(t.pedido)}</p><p>${esc(t.pergunta.p)}</p>${t.dica ? `<details><summary class="peq">Pedir uma dica ao instrutor</summary><p class="peq">${esc(t.dica)}</p></details>` : ""}`,
+        explica: esc(t.pergunta.explica) })), aoTerminar: fimEstagio });
+    }
+    if (!sessao.fim) return `<p class="peq suave">${esc(emp.nome)} · resolva sozinho</p>` + telaPerguntas();
+    const nota = sessao.nota;
+    return `<div class="cartao resultado"><span class="rotulo">Nota de estágio · ${esc(emp.nome)}</span><div class="grande tab-num">${nota}/20</div>
+        <span class="chip ${nota >= 10 ? "ok" : "bad"}">${nota >= 18 ? "Excelente" : nota >= 14 ? "Muito bom" : nota >= 10 ? "Aprovado" : "Não aprovado"}</span>
+        <p>${sessao.acertos} de ${sessao.perguntas.length} tickets resolvidos. ${nota >= 10 ? "O instrutor assinou a avaliação do estágio deste módulo." : "Reveja as aulas e repita: o instrutor dá-lhe outra oportunidade."}</p>${sessao.ganho ? `<span class="chip acc">+${sessao.ganho} XP</span>` : ""}</div>
+      ${revisaoRespostas(sessao)}
+      <div class="grelha-2"><button class="btn" data-acao="estagio-repetir" data-id="${m.id}">${ic("repetir")} Repetir tarefas</button><button class="btn" data-acao="modulo" data-id="${m.id}">Voltar ao módulo</button></div>`;
+  };
+  function fimEstagio(s) {
+    const r = P().estagios[s.origem] || (P().estagios[s.origem] = {});
+    s.nota = Math.round(s.acertos / s.perguntas.length * 20);
+    const antes = r.melhor == null ? -1 : r.melhor;
+    r.ultima = s.nota; r.quando = Date.now();
+    s.ganho = 0;
+    if (s.nota > antes) { r.melhor = s.nota; s.ganho = Math.max(0, s.nota - Math.max(0, antes)) * 3; }
+    guardar(); if (s.ganho) ganharXP(s.ganho, "estágio"); else verificarConquistas();
+  }
+
+  // ------------------------------------------------------------ sala de laboratório (equipamento físico)
+  TELAS.sala = function () {
+    const L = window.Laboratorio;
+    return `<div class="secao"><h1>Sala de laboratório</h1><p class="suave">Aqui está na sala com o equipamento à frente: escolhe o cabo, liga-o na porta certa, liga a corrente, olha para as luzes, liga o cabo de consola e abre o PuTTY, configura a placa de rede do Windows, testa cabos e partilha pastas. É a parte física que o simulador lógico não mostra.</p></div>
+      <div class="lista">${L.BANCADAS.map((b, i) => { const r = P().salaLab[b.id] || {}, m = mod(b.modulo);
+        return `<button class="item" data-acao="bancada" data-id="${b.id}"><span class="estado-ico ${r.feito ? "ok" : "atual"}">${r.feito ? ic("check") : i + 1}</span><div class="meio"><span class="rotulo">${m ? esc(m.codigo) + " · " : ""}${esc(b.nivel)} · ${b.passos.length} passos</span><b>${esc(b.titulo)}</b><span class="suave peq">${esc(b.cenario)}</span></div>${!r.feito && r.passos ? `<span class="chip acc tab-num">${r.passos}/${b.passos.length}</span>` : ""}</button>`; }).join("")}</div>`;
+  };
+  TELAS.bancada = function () { const b = window.Laboratorio.BANCADAS.find((x) => x.id === rota.id); return `<div class="secao"><span class="rotulo">Sala de laboratório</span><h1>${esc(b.titulo)}</h1></div><div id="lb-raiz"></div>`; };
+  POS.bancada = function () {
+    const b = window.Laboratorio.BANCADAS.find((x) => x.id === rota.id), reg = () => P().salaLab[b.id] || (P().salaLab[b.id] = {});
+    const lb = window.Laboratorio.montar($("#lb-raiz"), b, {
+      estado: reg().estado || null,
+      aoGuardar: (e) => { reg().estado = e; guardar(); },
+      aoProgresso: (n) => { if (n > (reg().passos || 0)) { reg().passos = n; guardar(); } },
+      aoConcluir: () => { if (!reg().feito) { reg().feito = Date.now(); guardar(); ganharXP(40, "bancada do laboratório"); } },
+    });
+    limpar = () => lb.parar();
+  };
+
   // ------------------------------------------------------------ simulador de rede
   function itemSim(a) {
     const m = mod(a.modulo), ab = moduloAberto(m), r = P().sims[a.id];
@@ -953,15 +1214,58 @@
   }
   TELAS.sims = function () {
     return `<div class="secao"><h1>Simulador de rede</h1><p class="suave">Monte redes como no Cisco Packet Tracer, aqui dentro: equipamentos, cabos, configuração no terminal Cisco, IP nos PCs, ping e tracert. Cada atividade tem passos guiados que se verificam sozinhos.</p></div>
-      <button class="item" data-acao="sim" data-id="livre"><div class="ico-caixa">${ic("terminal")}</div><div class="meio"><b>Modo livre</b><span class="suave peq">Área de trabalho vazia para montar e testar o que quiser.</span></div></button>
+      ${htmlProjetos()}
       <h2>Atividades guiadas</h2><div class="lista">${D.atividades.map(itemSim).join("")}</div>`;
   };
+  // ------------------------------------------------------------ projetos do simulador (com nome, para continuar depois)
+  let msgProj = "";
+  const dataHora = (t) => new Date(t).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  function htmlProjetos() {
+    const ps = Object.entries(P().projetos).sort((a, b) => b[1].alterado - a[1].alterado);
+    return `<div class="cartao"><h2>Os meus projetos</h2><p class="peq suave">Cada projeto guarda a rede inteira (equipamentos, cabos e configurações) automaticamente, no telemóvel. Pode fechar a app e continuar depois.</p>
+      <form data-form="novo-projeto" class="linha"><input class="campo" id="proj-nome" placeholder="Nome do projeto (ex.: Rede da escola)" maxlength="60" autocomplete="off" aria-label="Nome do projeto"><button class="btn prim">Criar</button></form>
+      ${ps.length ? `<div class="lista">${ps.map(([id, x]) => `<div class="item proj"><div class="ico-caixa">${F.icone("switch", 30)}</div>
+        <div class="meio"><b>${esc(x.nome)}</b><span class="suave peq">${x.estado ? x.estado.devs.length : 0} equipamentos · ${x.estado ? x.estado.links.length : 0} cabos · alterado ${dataHora(x.alterado)}</span>
+        <div class="chips"><button class="chip-op" data-acao="proj-abrir" data-id="${id}">Abrir</button><button class="chip-op" data-acao="proj-renomear" data-id="${id}">Renomear</button><button class="chip-op" data-acao="proj-duplicar" data-id="${id}">Duplicar</button><button class="chip-op" data-acao="proj-exportar" data-id="${id}">Exportar</button><button class="chip-op" data-acao="proj-apagar" data-id="${id}">${projApagar === id ? "Confirmar apagar" : "Apagar"}</button></div></div></div>`).join("")}</div>` : '<p class="peq">Ainda não tem projetos.</p>'}
+      <details><summary class="peq">Importar um projeto (código ou ficheiro)</summary><div class="secao"><textarea class="campo mono" id="proj-import" rows="3" placeholder="Cole aqui o código de um projeto exportado"></textarea>
+        <div class="grelha-2"><button class="btn" data-acao="proj-importar">Importar código</button><label class="btn">Abrir ficheiro<input type="file" accept=".json,application/json" id="proj-ficheiro" hidden></label></div>${msgProj ? `<p class="peq">${esc(msgProj)}</p>` : ""}</div></details></div>`;
+  }
+  let projApagar = null;
+  function novoProjeto(nome, estado) {
+    const id = "pr" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+    P().projetos[id] = { nome: nome.slice(0, 60), criado: Date.now(), alterado: Date.now(), estado: estado || null };
+    guardar(); return id;
+  }
+  function importarProjeto(txt) {
+    try {
+      let j; try { j = JSON.parse(txt); } catch (e) { j = JSON.parse(decodeURIComponent(escape(atob(txt.trim())))); }
+      if (!j || !j.estado || !Array.isArray(j.estado.devs)) throw new Error("formato");
+      window.Simulador.Rede.importar(j.estado);
+      novoProjeto((j.nome || "Projeto importado") + "", j.estado); msgProj = "Projeto importado: " + (j.nome || ""); toast("Projeto importado");
+    } catch (e) { msgProj = "Não foi possível importar: o código está incompleto ou não é de um projeto."; }
+    render();
+  }
+  document.addEventListener("change", (e) => {
+    if (e.target.id !== "proj-ficheiro" || !e.target.files[0]) return;
+    const fr = new FileReader(); fr.onload = () => importarProjeto(String(fr.result)); fr.readAsText(e.target.files[0]);
+  });
+
   let simLeitor = null;
   TELAS.sim = function () {
+    if (rota.proj) { const x = P().projetos[rota.proj]; return `<div class="secao"><span class="rotulo">Projeto · guardado automaticamente</span><h1>${esc(x ? x.nome : "Projeto")}</h1><p class="peq suave" id="proj-guardado">${x ? "Última alteração: " + dataHora(x.alterado) : ""}</p></div><div id="sim-raiz"></div>`; }
     const a = rota.id === "livre" ? null : ativPorId(rota.id);
     return `${a ? `<div class="secao"><span class="rotulo">${esc(mod(a.modulo).codigo)} · prática guiada</span><h1>${esc(a.titulo)}</h1></div>` : '<div class="secao"><h1>Modo livre</h1></div>'}<div id="sim-raiz"></div>`;
   };
   POS.sim = function () {
+    if (rota.proj) {
+      const id = rota.proj, x = P().projetos[id]; if (!x) return;
+      simLeitor = window.SimUI.montar($("#sim-raiz"), {
+        atividade: null, estado: x.estado,
+        aoGuardar: (e) => { const y = P().projetos[id]; if (!y) return; y.estado = e; y.alterado = Date.now(); guardar(); const el = $("#proj-guardado"); if (el) el.textContent = "Guardado às " + new Date(y.alterado).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); },
+      });
+      limpar = () => { if (simLeitor) simLeitor.parar(); simLeitor = null; };
+      return;
+    }
     const a = rota.id === "livre" ? null : ativPorId(rota.id);
     const chave = a ? a.id : "livre", st = P().sims[chave] || {};
     simLeitor = window.SimUI.montar($("#sim-raiz"), {
@@ -993,7 +1297,7 @@
   // ------------------------------------------------------------ tempo de estudo
   let ultimaInteracao = Date.now();
   ["click", "keydown", "scroll", "touchstart"].forEach((ev) => document.addEventListener(ev, () => { ultimaInteracao = Date.now(); }, { passive: true }));
-  const TELAS_ESTUDO = ["sim", "licao", "quiz", "prova", "lab", "caso", "revisao", "relampago", "subrede", "modulo"];
+  const TELAS_ESTUDO = ["exercicios", "estagio", "caderno", "bancada", "sim", "licao", "quiz", "prova", "lab", "caso", "revisao", "relampago", "subrede", "modulo"];
   setInterval(() => {
     if (document.visibilityState !== "visible" || Date.now() - ultimaInteracao > 120000 || !TELAS_ESTUDO.includes(rota.tela) || !P().onboard) return;
     const p = P(), h = hojeISO();
@@ -1048,6 +1352,28 @@
 
   const ACOES = {
     voltar, perfil: () => ir("perfil"),
+    bancada: (el) => ir("bancada", { id: el.dataset.id }),
+    "proj-abrir": (el) => ir("sim", { proj: el.dataset.id }),
+    exercicios: (el) => { if (!sessao || sessao.tipo !== "exercicios" || sessao.origem !== el.dataset.id) sessao = null; ir("exercicios", { lid: el.dataset.id }); },
+    "mais-exercicios": () => { const l = LICOES[rota.lid]; const novos = gerarEx(l, 10, sessao.vistos).map(prepararPergunta); sessao.perguntas = sessao.perguntas.concat(novos); sessao.fim = false; sessao.lote++; render(); window.scrollTo(0, 0); },
+    protocolo: (el) => ir("protocolo", { id: el.dataset.id }),
+    "cat-g": (el) => { catG = el.dataset.id; render(); },
+    caderno: (el) => ir("caderno", { id: el.dataset.id, pag: 0 }),
+    "cad-pag": (el) => { rota.pag = +el.dataset.id; render(); window.scrollTo(0, 0); },
+    "cad-resp": (el) => respostaCaderno(+el.dataset.n, el.dataset.v === "true" ? true : el.dataset.v === "false" ? false : +el.dataset.v),
+    estagio: (el) => { sessao = null; ir("estagio", { mid: el.dataset.id, fase: "inicio" }); },
+    "estagio-fase": (el) => { if (el.dataset.id === "tarefas") { sessao = null; const r = P().estagios[rota.mid] || (P().estagios[rota.mid] = {}); r.instrutor = true; guardar(); } rota.fase = el.dataset.id; rota.passo = 0; render(); window.scrollTo(0, 0); },
+    "estagio-passo": (el) => { rota.passo = +el.dataset.id; render(); const li = document.querySelector(".instrutor li.atual"); if (li) li.scrollIntoView({ block: "start", behavior: "smooth" }); },
+    "estagio-repetir": () => { sessao = null; render(); window.scrollTo(0, 0); },
+    "proj-renomear": (el) => { const x = P().projetos[el.dataset.id]; const inp = $("#proj-nome"); if (inp && inp.value.trim()) { x.nome = inp.value.trim().slice(0, 60); inp.value = ""; guardar(); render(); toast("Projeto renomeado"); } else { toast("Escreva o novo nome na caixa de cima e toque em Renomear"); if (inp) { inp.value = x.nome; inp.focus(); } } },
+    "proj-duplicar": (el) => { const x = P().projetos[el.dataset.id]; novoProjeto(x.nome + " (cópia)", x.estado ? JSON.parse(JSON.stringify(x.estado)) : null); render(); toast("Projeto duplicado"); },
+    "proj-apagar": (el) => { const id = el.dataset.id; if (projApagar !== id) { projApagar = id; render(); return; } delete P().projetos[id]; projApagar = null; guardar(); render(); toast("Projeto apagado"); },
+    "proj-exportar": (el) => {
+      const x = P().projetos[el.dataset.id], txt = JSON.stringify({ tipo: "ccna-projeto", nome: x.nome, estado: x.estado });
+      try { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([txt], { type: "application/json" })); a.download = x.nome.replace(/[^\w\- ]+/g, "_") + ".json"; document.body.appendChild(a); a.click(); a.remove(); } catch (e) { /* sem transferências */ }
+      copiar(btoa(unescape(encodeURIComponent(txt))), $("#proj-import"));
+    },
+    "proj-importar": () => importarProjeto(($("#proj-import") || {}).value || ""),
     ir: (el) => { if (el.dataset.tela === "relampago" || el.dataset.tela === "revisao") sessao = null; if (el.dataset.tela === "subrede") sub = null; ir(el.dataset.tela); },
     modulo: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Módulo bloqueado"); ir("modulo", { mid: el.dataset.id }); },
     licao: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Conclua a lição anterior primeiro"); ir("licao", { lid: el.dataset.id }); },
@@ -1059,7 +1385,11 @@
       const m = mod(el.dataset.id);
       const todas = m.licoes.flatMap((l) => l.quiz).concat(m.prova_extra);
       const n = Math.min(15, todas.length);
-      iniciarSessao({ tipo: "prova", origem: m.id, perguntas: embaralhar(todas).slice(0, n), feedback: false, limite: n * 60000, aoTerminar: fimProva });
+      // + 5 exercícios gerados (cálculos, termos, protocolos) das aulas do módulo
+      const vistos = new Set(), gerados = [];
+      for (let k = 0; k < 40 && gerados.length < 5; k++) { const l = m.licoes[k % m.licoes.length]; const ex = gerarEx(l, 1, vistos).find((x) => x.gen !== "quiz"); if (ex) gerados.push(ex); }
+      const lista = embaralhar(embaralhar(todas).slice(0, n).concat(gerados));
+      iniciarSessao({ tipo: "prova", origem: m.id, perguntas: lista, feedback: false, limite: lista.length * 60000 + gerados.length * 60000, aoTerminar: fimProva });
       render();
     },
     "comecar-revisao": () => { const e = embaralhar(P().erros).slice(0, 10); iniciarSessao({ tipo: "revisao", origem: "revisao", perguntas: e.map((x) => x.q) }); render(); },
@@ -1166,6 +1496,8 @@
       else sub.serie = 0;
       render();
     }
+    if (f === "cad") { const n = +e.target.dataset.n, v = $("#cad-" + n).value; if (!v.trim()) return; respostaCaderno(n, v); return; }
+    if (f === "novo-projeto") { const v = $("#proj-nome").value.trim() || "Projeto " + (Object.keys(P().projetos).length + 1); const id = novoProjeto(v); ir("sim", { proj: id }); return; }
     if (f === "nome") { const v = $("#nome-perfil").value.trim(); if (v) { P().nome = v; guardar(); render(); toast("Nome guardado"); } }
     if (f === "novo-perfil") { const v = $("#novo-nome").value.trim(); if (!v) return; const p = novoPerfil(v); S.perfis[p.id] = p; S.ativo = p.id; guardar(); render(); toast("Perfil criado: " + v); }
   });
@@ -1177,6 +1509,7 @@
   const inicial = (location.hash || "").replace("#", "");
   rota = { tela: RAIZ[inicial] ? inicial : "inicio" };
   render();
+  conferirCopia();
   if ("serviceWorker" in navigator && location.protocol.startsWith("http") && !/claudeusercontent|claude\.ai/.test(location.host)) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }

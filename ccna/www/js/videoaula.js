@@ -70,8 +70,8 @@
       const c = cenas[ci], b = c.bloco >= 0 ? licao.blocos[c.bloco] : null;
       let corpo = "";
       const listaFalas = (cls) => `<div class="va-frases ${cls || ""}">${c.falas.map((f, k) => `<p data-fala="${k}" class="${k === fi ? "agora" : k < fi ? "dita" : ""}">${esc(f.t)}</p>`).join("")}</div>`;
-      if (c.tipo === "abertura") corpo = `<div class="va-abertura"><span class="va-modulo">Vídeo-aula</span><h2>${esc(licao.titulo)}</h2><ul>${licao.objetivos.map((o, k) => `<li data-item="${k}">${esc(o)}</li>`).join("")}</ul></div>`;
-      else if (c.tipo === "fecho") corpo = `<div class="va-abertura"><span class="va-modulo">Resumo</span><h2>Agora já sabe</h2><ul class="check">${licao.objetivos.map((o, k) => `<li data-item="${k}">${esc(o)}</li>`).join("")}</ul></div>`;
+      if (c.tipo === "abertura") corpo = `<div class="va-abertura"><span class="va-modulo">${/^apresentacao_/.test(licao.id || "") ? "Apresentação do módulo" : "Vídeo-aula"}</span><h2>${esc(licao.titulo)}</h2><ul>${licao.objetivos.map((o, k) => `<li data-item="${k}">${esc(o)}</li>`).join("")}</ul></div>`;
+      else if (c.tipo === "fecho") corpo = `<div class="va-abertura"><span class="va-modulo">${c.titulo === "Resumo" ? "Resumo" : "Apresentação"}</span><h2>${c.titulo === "Resumo" ? "Agora já sabe" : esc(c.titulo)}</h2><ul class="check">${licao.objetivos.map((o, k) => `<li data-item="${k}">${esc(o)}</li>`).join("")}</ul></div>`;
       else if (c.tipo === "figura") corpo = `<div class="va-fig">${F.figura(b.nome)}</div>`;
       else if (c.tipo === "topologia") corpo = `<div class="va-fig">${F.topologia(b)}</div>`;
       else if (c.tipo === "tabela") corpo = `<div class="va-tabela"><table><thead><tr>${b.cabecalho.map((x) => `<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>${b.linhas.map((l, r) => `<tr data-linha="${r}">${l.map((x) => `<td>${esc(x)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;

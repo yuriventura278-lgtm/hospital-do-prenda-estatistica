@@ -16,6 +16,10 @@ Tipos de verificação (``check``):
 - dhcp: {nome}                       o PC recebeu IP por DHCP
 - ospf_viz: {nome, n}                o router tem n vizinhos OSPF
 - dns: {nome, registo}               o servidor tem o registo DNS
+- partilha: {nome, share, perm?}     o PC/servidor partilha a pasta (perm "R" leitura, "W" alteração)
+- fw_partilha: {nome}                a firewall do PC/servidor permite a partilha (porta TCP 445)
+- mapa: {pc, share, letra?, por?}    o PC tem a pasta mapeada numa letra e consegue abri-la (por="nome": pelo nome)
+- ficheiro_partilha: {nome, share}   alguém copiou um ficheiro para a pasta partilhada
 """
 
 
@@ -205,4 +209,47 @@ ATIVIDADES = [
                passo("Do PC1, faça ping a www.escola.local", "PC1 › Prompt › ping www.escola.local", {"t": "ping", "de": "PC1", "para": "www.escola.local"})],
               dispositivos=[dev("SRV1", "servidor", 50, 18), dev("S1", "switch", 50, 50), dev("PC1", "pc", 25, 85, dhcp=True), dev("PC2", "pc", 75, 85, dhcp=True)],
               ligacoes=[lig("SRV1", "FastEthernet0", "S1", "FastEthernet0/24", "direto"), lig("PC1", "FastEthernet0", "S1", "FastEthernet0/1", "direto"), lig("PC2", "FastEthernet0", "S1", "FastEthernet0/2", "direto")]),
+
+    atividade("s13", "Pasta partilhada na rede", "e7", "básico",
+              "A Papelaria Kianda quer que os dois PCs da loja guardem as faturas numa pasta comum no servidor SRV1, em vez de andar com pens USB.",
+              [passo("No SRV1 partilhe a pasta Faturas com permissão de Alteração para Todos",
+                     "SRV1 › Partilhas › Nome “Faturas”, pasta C:\\Faturas, permissão Alteração › Partilhar. (Ou no Prompt: net share Faturas=C:\\Faturas /grant:Todos,CHANGE)",
+                     {"t": "partilha", "nome": "SRV1", "share": "Faturas", "perm": "W"}),
+               passo("Abra a firewall do SRV1 à partilha de ficheiros (porta TCP 445)",
+                     "SRV1 › Partilhas › ative “Partilha de ficheiros e impressoras na firewall”. Sem isto os PCs recebem o erro 53.",
+                     {"t": "fw_partilha", "nome": "SRV1"}),
+               passo("No PC1 veja as pastas partilhadas do servidor e mapeie Faturas na letra Z:",
+                     "PC1 › Prompt › net view \\\\192.168.1.10 › net use Z: \\\\192.168.1.10\\Faturas",
+                     {"t": "mapa", "pc": "PC1", "share": "Faturas", "letra": "Z:"}),
+               passo("No PC2 mapeie a mesma pasta usando o NOME do servidor",
+                     "PC2 › Prompt › net use Z: \\\\SRV1\\Faturas  (na mesma rede o nome resolve-se por NetBIOS)",
+                     {"t": "mapa", "pc": "PC2", "share": "Faturas", "por": "nome"}),
+               passo("Do PC1 copie o ficheiro relatorio.docx para a pasta partilhada e veja-o do PC2",
+                     "PC1 › copy relatorio.docx Z:   e depois no PC2 › dir Z:",
+                     {"t": "ficheiro_partilha", "nome": "SRV1", "share": "Faturas"})],
+              dispositivos=[dev("SRV1", "servidor", 50, 18, ip="192.168.1.10", mask=M24, gw="192.168.1.1"), dev("S1", "switch", 50, 50),
+                            dev("PC1", "pc", 25, 85, ip="192.168.1.21", mask=M24, gw="192.168.1.1"), dev("PC2", "pc", 75, 85, ip="192.168.1.22", mask=M24, gw="192.168.1.1")],
+              ligacoes=[lig("SRV1", "FastEthernet0", "S1", "FastEthernet0/24", "direto"), lig("PC1", "FastEthernet0", "S1", "FastEthernet0/1", "direto"),
+                        lig("PC2", "FastEthernet0", "S1", "FastEthernet0/2", "direto")]),
+
+    atividade("s14", "Partilha entre duas redes (com router e DNS)", "e7", "intermédio",
+              "Na Clínica Sorriso o servidor de ficheiros FS01 está na rede dos servidores (192.168.99.0/24) e a receção noutra rede (192.168.10.0/24). A receção tem de abrir \\\\fs01.clinica.local\\Fichas.",
+              [passo("Configure o R1: G0/0/0 192.168.10.1/24 e G0/0/1 192.168.99.1/24, ambas ativas",
+                     "R1 › CLI › enable › conf t › interface g0/0/0 › ip address 192.168.10.1 255.255.255.0 › no shutdown (e o mesmo na g0/0/1).",
+                     {"t": "e", "lista": [{"t": "ios", "nome": "R1", "check": {"t": "iface_ip", "if": G0, "ip": "192.168.10.1", "mask": M24, "up": True}},
+                                          {"t": "ios", "nome": "R1", "check": {"t": "iface_ip", "if": G1, "ip": "192.168.99.1", "mask": M24, "up": True}}]}),
+               passo("No FS01 partilhe a pasta Fichas (Alteração) e abra a firewall à partilha",
+                     "FS01 › Partilhas.",
+                     {"t": "e", "lista": [{"t": "partilha", "nome": "FS01", "share": "Fichas", "perm": "W"}, {"t": "fw_partilha", "nome": "FS01"}]}),
+               passo("Crie no FS01 o registo DNS fs01.clinica.local → 192.168.99.10",
+                     "FS01 › Serviços › DNS (o FS01 também é o servidor DNS da clínica).",
+                     {"t": "dns", "nome": "FS01", "registo": "fs01.clinica.local"}),
+               passo("Na RECECAO mapeie Z: para \\\\fs01.clinica.local\\Fichas",
+                     "RECECAO › Prompt › net use Z: \\\\fs01.clinica.local\\Fichas. Experimente antes \\\\FS01\\Fichas: noutra rede o NetBIOS não chega, por isso usa-se DNS.",
+                     {"t": "mapa", "pc": "RECECAO", "share": "Fichas", "letra": "Z:", "por": "nome"})],
+              dispositivos=[dev("R1", "router", 50, 18, nomeIos="Router"), dev("S1", "switch", 25, 50), dev("S2", "switch", 75, 50),
+                            dev("RECECAO", "pc", 25, 85, ip="192.168.10.20", mask=M24, gw="192.168.10.1", dns="192.168.99.10"),
+                            dev("FS01", "servidor", 75, 85, ip="192.168.99.10", mask=M24, gw="192.168.99.1")],
+              ligacoes=[lig("R1", G0, "S1", "GigabitEthernet0/1", "direto"), lig("R1", G1, "S2", "GigabitEthernet0/1", "direto"),
+                        lig("RECECAO", "FastEthernet0", "S1", "FastEthernet0/1", "direto"), lig("FS01", "FastEthernet0", "S2", "FastEthernet0/1", "direto")]),
 ]

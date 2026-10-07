@@ -200,7 +200,7 @@
     function abrirInsp(d, abaPedida) {
       sel = d.id; desenhar();
       const T = S.TIPOS[d.tipo];
-      const abas = d.eq ? [["cli", "CLI"], ["portas", "Portas"]] : d.srv ? [["ip", "Configuração IP"], ["servicos", "Serviços"], ["prompt", "Prompt"]] : [["ip", "Configuração IP"], ["prompt", "Prompt"]];
+      const abas = d.eq ? [["cli", "CLI"], ["portas", "Portas"]] : d.srv ? [["ip", "Configuração IP"], ["servicos", "Serviços"], ["partilhas", "Partilhas"], ["prompt", "Prompt"]] : [["ip", "Configuração IP"], ["partilhas", "Partilhas"], ["prompt", "Prompt"]];
       aba = abaPedida || (abas.find((a) => a[0] === aba) ? aba : abas[0][0]);
       const insp = $("#sim-insp");
       insp.hidden = false;
@@ -216,6 +216,7 @@
         return `<tr><td>${esc(curto(p))}</td><td>${o ? esc(o.nome) + " " + esc(curto(l.a === d.id ? l.pb : l.pa)) : "—"}</td><td><span class="chip ${est === "ativa" ? "ok" : l ? "bad" : ""}">${est}</span></td><td>${esc(cf)}</td></tr>`; }).join("")}</tbody></table></div>`;
       if (aba === "ip") formIP(corpo, d);
       if (aba === "servicos") formServicos(corpo, d);
+      if (aba === "partilhas") formPartilhas(corpo, d);
       insp.onclick = (e) => {
         if (e.target.closest("[data-fechar-insp]")) return fecharInsp();
         const b = e.target.closest("[data-aba]"); if (b) { aba = b.dataset.aba; abrirInsp(d); }
@@ -281,6 +282,31 @@
       f2.onclick = (e) => { const b = e.target.closest("[data-tirar]"); if (b) { s.dns.registos.splice(+b.dataset.tirar, 1); rede.mudou(); formServicos(corpo, d); atualizar(); } };
     }
 
+    // Pastas partilhadas (SMB): o equivalente a Propriedades › Partilha › Partilha avançada no Windows
+    function formPartilhas(corpo, d) {
+      const c = d.pc;
+      corpo.innerHTML = `<div class="secao sim-form">
+        <label class="linha"><input type="checkbox" data-fw ${c.fwPartilha ? "checked" : ""}> Firewall: permitir “Partilha de ficheiros e impressoras” (TCP 445)</label>
+        <ul class="sim-dns">${c.partilhas.map((p, i) => `<li><b>\\\\${esc(d.nome)}\\${esc(p.nome)}</b> → <code>${esc(p.pasta)}</code> · Todos: ${p.perm === "W" ? "Alteração" : "Leitura"} · ${p.ficheiros.length} ficheiro(s) <button type="button" class="btn-copiar" data-tirar-p="${i}">deixar de partilhar</button></li>`).join("") || '<li class="suave peq">Nenhuma pasta partilhada.</li>'}</ul></div>
+        <form class="secao sim-form" data-f="part"><b>Partilhar uma pasta</b>
+        <label>Nome da partilha<input class="campo mono" name="nome" placeholder="Documentos" autocomplete="off"></label>
+        <label>Pasta no disco<input class="campo mono" name="pasta" placeholder="C:\\Documentos" autocomplete="off"></label>
+        <label>Permissão para Todos<select class="campo" name="perm"><option value="R">Leitura</option><option value="W">Alteração (ler e gravar)</option></select></label>
+        <button class="btn prim" type="submit">Partilhar</button><p class="peq" id="sim-part-msg"></p>
+        <p class="peq suave">Nos outros PCs: Prompt › <code>net view \\\\${esc(rede.ipEfetivo(d).ip || d.nome)}</code> e <code>net use Z: \\\\${esc(rede.ipEfetivo(d).ip || d.nome)}\\Nome</code></p></form>`;
+      corpo.querySelector("[data-fw]").onchange = (e) => { c.fwPartilha = e.target.checked; rede.mudou(); atualizar(); msg(`Firewall de ${esc(d.nome)}: partilha ${c.fwPartilha ? "permitida" : "bloqueada"}.`, "ok"); };
+      corpo.onclick = (e) => { const b = e.target.closest("[data-tirar-p]"); if (b) { c.partilhas.splice(+b.dataset.tirarP, 1); rede.mudou(); formPartilhas(corpo, d); atualizar(); } };
+      const f = corpo.querySelector("form");
+      f.onsubmit = (e) => {
+        e.preventDefault(); const v = Object.fromEntries(new FormData(f).entries()), m = corpo.querySelector("#sim-part-msg");
+        const nome = v.nome.trim();
+        if (!/^[\w$-]{1,40}$/.test(nome)) { m.textContent = "Nome inválido: use letras, números, - ou _ (sem espaços)."; return; }
+        if (c.partilhas.some((p) => p.nome.toLowerCase() === nome.toLowerCase())) { m.textContent = "Já existe uma partilha com esse nome."; return; }
+        c.partilhas.push({ nome, pasta: v.pasta.trim() || "C:\\" + nome, perm: v.perm, ficheiros: [{ nome: "LEIA-ME.txt" }] });
+        rede.mudou(); formPartilhas(corpo, d); atualizar(); msg(`Pasta <b>${esc(nome)}</b> partilhada em ${esc(d.nome)}.${c.fwPartilha ? "" : " Falta abrir a firewall (TCP 445)."}`, "ok");
+      };
+    }
+
     function terminal(corpo, d, tipo) {
       const id = d.id + tipo;
       if (!logs[id]) logs[id] = [{ t: tipo === "ios" ? `${d.eq.cfg.hostname} — consola. Escreva ? para ver os comandos.\n` : `Prompt de ${d.nome}. Escreva help para ver os comandos.\n` }];
@@ -288,7 +314,7 @@
       const prompt = () => tipo === "ios" ? d.eq.prompt() : "C:\\>";
       corpo.innerHTML = `<div class="term"><div class="consola sim-consola" id="sim-cons"></div>
         <form class="entrada" data-f="t"><label for="sim-in" id="sim-pr">${esc(prompt())}</label><input id="sim-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" aria-label="Comando"></form>
-        <div class="teclas">${tipo === "ios" ? '<button type="button" data-k="?">?</button><button type="button" data-k="tab">Tab</button>' : ""}<button type="button" data-k="up">↑</button><button type="button" data-k="down">↓</button>${tipo === "ios" ? '<button type="button" data-k="end">Ctrl+Z</button><button type="button" data-k="sh ip int br">sh ip int br</button><button type="button" data-k="sh run">show run</button>' : '<button type="button" data-k="ipconfig">ipconfig</button><button type="button" data-k="ipconfig /renew">/renew</button>'}</div></div>`;
+        <div class="teclas">${tipo === "ios" ? '<button type="button" data-k="?">?</button><button type="button" data-k="tab">Tab</button>' : ""}<button type="button" data-k="up">↑</button><button type="button" data-k="down">↓</button>${tipo === "ios" ? '<button type="button" data-k="end">Ctrl+Z</button><button type="button" data-k="sh ip int br">sh ip int br</button><button type="button" data-k="sh run">show run</button>' : '<button type="button" data-k="ipconfig">ipconfig</button><button type="button" data-k="ipconfig /renew">/renew</button><button type="button" data-k="net use">net use</button><button type="button" data-k="help">help</button>'}</div></div>`;
       const cons = corpo.querySelector("#sim-cons"), inp = corpo.querySelector("#sim-in");
       const pinta = () => { cons.innerHTML = logs[id].map((l) => l.c != null ? `<div><span class="pr">${esc(l.p)}</span><span class="in">${esc(l.c)}</span></div>${l.t ? `<div class="${l.erro ? "err" : ""}">${esc(l.t)}</div>` : ""}` : `<div>${esc(l.t)}</div>`).join(""); cons.scrollTop = cons.scrollHeight; corpo.querySelector("#sim-pr").textContent = prompt(); };
       const correr = (linha, manter) => {
@@ -334,7 +360,7 @@
       const md = $("#sim-modal"); md.hidden = false;
       md.innerHTML = `<div class="sim-caixa"><div class="linha entre"><b>Como usar o simulador</b><button class="btn-copiar" data-fechar>Fechar</button></div>
         <ol class="sim-ajuda">${AJUDA.map(([t, d]) => `<li><b>${t}.</b> ${d}</li>`).join("")}</ol>
-        <p class="peq suave">O simulador calcula a camada 2 (VLANs, access, trunk, VLAN nativa), a camada 3 (gateway, rotas ligadas, estáticas, por defeito, OSPF), router-on-a-stick, SVIs, DHCP e DNS. Ainda não simula STP, ACL, NAT, HSRP, EtherChannel nem Wi-Fi: para esses temas use os Laboratórios CLI e o Packet Tracer.</p>
+        <p class="peq suave">O simulador calcula a camada 2 (VLANs, access, trunk, VLAN nativa), a camada 3 (gateway, rotas ligadas, estáticas, por defeito, OSPF), router-on-a-stick, SVIs, DHCP e DNS. Também simula a partilha de pastas (SMB: net share, net view, net use, firewall). O terminal aceita os comandos Cisco do CCNA (show, debug, ACL, NAT, HSRP, EtherChannel, SNMP…) e guarda-os na configuração, mas ainda não calcula o efeito de STP, ACL, NAT, HSRP nem Wi-Fi no tráfego: para isso use também o Packet Tracer.</p>
         <button class="btn prim bloco" data-fechar>Começar</button></div>`;
       md.onclick = (e) => { if (e.target.closest("[data-fechar]") || e.target === md) md.hidden = true; };
       gravar("ccna-sim-ajuda", "1");

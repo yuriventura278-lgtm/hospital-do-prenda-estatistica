@@ -1,0 +1,28 @@
+"""Empresas fictícias onde decorre o estágio profissional (ambiente de empresa real)."""
+
+EMPRESAS = {
+    "loja": {"nome": "Papelaria Kianda", "setor": "Comércio", "pessoas": 6,
+             "rede": "1 router da operadora, 1 switch de 8 portas, 4 PCs, 1 impressora, Wi-Fi para clientes.",
+             "descricao": "Pequena loja no centro da cidade. Tudo tem de funcionar à hora de abertura: caixa, impressora e Internet."},
+    "escola": {"nome": "Colégio Horizonte", "setor": "Educação", "pessoas": 80,
+               "rede": "2 switches, 1 router, sala de informática com 25 PCs, secretaria, Wi-Fi para professores.",
+               "descricao": "Escola com sala de informática, secretaria e direção em VLANs diferentes."},
+    "clinica": {"nome": "Clínica Sorriso", "setor": "Saúde", "pessoas": 25,
+                "rede": "Router, 2 switches, servidor de ficheiros e de fichas clínicas, receção, 6 consultórios.",
+                "descricao": "Clínica dentária: os dados dos pacientes são sensíveis e a receção não pode parar."},
+    "hotel": {"nome": "Hotel Baía Azul", "setor": "Hotelaria", "pessoas": 60,
+              "rede": "Router com NAT, switches por piso, Wi-Fi de hóspedes isolado, rede de gestão, câmaras IP.",
+              "descricao": "Hotel de 4 pisos: hóspedes, receção, restaurante e câmaras de segurança na mesma infraestrutura."},
+    "banco": {"nome": "Banco Comercial Atlântico (agência)", "setor": "Banca", "pessoas": 30,
+              "rede": "2 routers (sede e Internet), firewall, switches com segurança de porta, VPN para a sede.",
+              "descricao": "Agência bancária: segurança e disponibilidade acima de tudo; tudo é registado."},
+    "hospital": {"nome": "Hospital Municipal", "setor": "Saúde", "pessoas": 400,
+                 "rede": "Núcleo com switches L3, OSPF entre edifícios, VLANs por serviço, servidores, Wi-Fi, telefones IP.",
+                 "descricao": "Hospital com urgência, laboratório, farmácia e administração. Uma falha de rede pode atrasar tratamentos."},
+    "isp": {"nome": "NetSul Telecomunicações", "setor": "Operador de Internet", "pessoas": 120,
+            "rede": "Routers de núcleo, OSPF, ligações WAN e fibra até casa dos clientes, NOC 24 h.",
+            "descricao": "Operador regional: o estagiário trabalha no centro de operações (NOC) a atender clientes e empresas."},
+    "fabrica": {"nome": "Fábrica Lubango Alimentar", "setor": "Indústria", "pessoas": 200,
+                "rede": "Rede de escritório e rede de produção separadas, switches industriais, Wi-Fi no armazém, automação.",
+                "descricao": "Fábrica com linhas de produção automatizadas: a rede industrial não pode ser misturada com a de escritório."},
+}

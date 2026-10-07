@@ -35,6 +35,7 @@
           lista.push({ tipo: "aula", l, m, titulo: "Vídeo-aula e leitura: " + l.titulo, min: Math.max(5, Math.round((Math.max(l.minutos, Math.ceil((l.video ? l.video.segundos : 0) / 60)) + 3) * fator)) });
           if (l.blocos.some((b) => b.tipo === "cli")) lista.push({ tipo: "pratica", l, m, titulo: "Praticar os comandos de “" + l.titulo + "”", min: 10 });
           lista.push({ tipo: "quiz", l, m, titulo: "Quiz: " + l.titulo, min: Math.ceil(l.quiz.length * 1.2) });
+          if (ctx.exFeitos && ctx.exFeitos(l.id) < 10) lista.push({ tipo: "exercicios", l, m, titulo: `Exercícios: ${l.titulo} (${ctx.exFeitos(l.id)}/10)`, min: 12 });
         } else if (ctx.nota(l.id) < 85 && !ctx.reforcado(l.id)) {
           lista.push({ tipo: "rever", l, m, titulo: "Rever: " + l.titulo + ` (nota ${ctx.nota(l.id)}%)`, min: Math.max(5, Math.round(l.minutos / 2)) });
         }
@@ -43,6 +44,7 @@
       (m.sim || []).map((id) => (ctx.atividades || []).find((a) => a.id === id)).filter((a) => a && !ctx.simFeito(a.id)).forEach((a) => lista.push({ tipo: "sim", sim: a, m, titulo: "Simulador: " + a.titulo, min: 20 }));
       if (ctx.fichaFeita && !ctx.fichaFeita(m.id) && (m.ficha || []).length) lista.push({ tipo: "ficha", m, titulo: `Ficha de trabalho ${m.codigo}`, min: 10 });
       ctx.casos.filter((x) => x.modulo === m.id && !ctx.casoFeito(x.id)).forEach((x) => lista.push({ tipo: "caso", caso: x, m, titulo: "Caso real: " + x.titulo, min: 10 }));
+      if (m.estagio && ctx.estagioFeito && !ctx.estagioFeito(m.id)) lista.push({ tipo: "estagio", m, titulo: `Estágio ${m.codigo}: ${ctx.empresa(m)}`, min: 20 });
       if (!ctx.provaFeita(m.id)) {
         lista.push({ tipo: "revmod", m, titulo: `Revisão do ${m.codigo}`, min: 15 });
         lista.push({ tipo: "prova", m, titulo: `Prova do ${m.codigo}`, min: 15 });

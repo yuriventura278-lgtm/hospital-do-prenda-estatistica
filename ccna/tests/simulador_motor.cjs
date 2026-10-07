@@ -66,6 +66,30 @@ r.dev("SRV1").srv.dns.registos.push({ nome: "www.escola.local", ip: "192.168.1.5
 r.devs.filter((d) => d.pc && d.pc.dhcp).forEach((d) => r.pedirDhcp(d));
 ok(passos(r, A.s12).every(Boolean), "s12: " + passos(r, A.s12));
 
+
+// s13 e s14 partilha de ficheiros
+{
+  const { promptPC } = window.Simulador;
+  let r = Rede.deAtividade(A.s13);
+  const pc = (n, l) => promptPC(r, r.dev(n), l);
+  ok(/Erro de sistema 53/.test(pc("PC1", "net view \\\\192.168.1.10").txt), "s13: sem firewall devia dar erro 53");
+  ok(/partilhado com êxito/.test(pc("SRV1", "net share Faturas=C:\\Faturas /grant:Todos,CHANGE").txt), "s13: net share");
+  pc("SRV1", 'netsh advfirewall firewall set rule group="Partilha de ficheiros e impressoras" new enable=Yes');
+  ok(/Faturas/.test(pc("PC1", "net view \\\\192.168.1.10").txt), "s13: net view");
+  ok(/êxito/.test(pc("PC1", "net use Z: \\\\192.168.1.10\\Faturas").txt), "s13: net use por IP");
+  ok(/êxito/.test(pc("PC2", "net use Z: \\\\SRV1\\Faturas").txt), "s13: net use por nome (NetBIOS)");
+  ok(/copiado/.test(pc("PC1", "copy relatorio.docx Z:").txt), "s13: copy");
+  ok(/relatorio\.docx/.test(pc("PC2", "dir Z:").txt), "s13: dir no PC2");
+  ok(passos(r, A.s13).every(Boolean), "s13: " + passos(r, A.s13));
+  r = Rede.deAtividade(A.s14);
+  cli(r, "R1", ["enable", "conf t", "int g0/0/0", "ip add 192.168.10.1 255.255.255.0", "no sh", "int g0/0/1", "ip add 192.168.99.1 255.255.255.0", "no sh", "end"]);
+  pc("FS01", "net share Fichas=C:\\Fichas /grant:Todos,CHANGE"); r.dev("FS01").pc.fwPartilha = true;
+  ok(/Erro de sistema 53/.test(pc("RECECAO", "net use Z: \\\\FS01\\Fichas").txt), "s14: NetBIOS não devia passar o router");
+  r.dev("FS01").srv.dns.registos.push({ nome: "fs01.clinica.local", ip: "192.168.99.10" }); r.mudou();
+  ok(/êxito/.test(pc("RECECAO", "net use Z: \\\\fs01.clinica.local\\Fichas").txt), "s14: net use por DNS " + pc("RECECAO", "net use Z: \\\\fs01.clinica.local\\Fichas").txt);
+  ok(passos(r, A.s14).every(Boolean), "s14: " + passos(r, A.s14));
+}
+
 // s02 cabos e s03 switch
 r = Rede.deAtividade(A.s02);
 const L = (a, pa, b, pb, c) => r.ligar(r.dev(a), pa, r.dev(b), pb, c);

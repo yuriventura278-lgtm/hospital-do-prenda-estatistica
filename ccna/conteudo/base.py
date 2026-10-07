@@ -172,3 +172,68 @@ def modulo(id: str, numero: int, titulo: str, descricao: str, dominio: str,
         "licoes": licoes,
         "prova_extra": prova_extra or [],
     }
+
+
+def valor(pergunta: str, respostas: list[str], explica: str) -> dict:
+    """Pergunta de resposta escrita (um número, um endereço, uma palavra).
+    ``respostas`` são as formas aceites (a app ignora maiúsculas e espaços)."""
+    return {"tipo": "valor", "p": pergunta, "respostas": respostas, "explica": explica}
+
+
+# ---------------------------------------------------------------------------
+# Glossário, protocolos e estágio profissional
+# ---------------------------------------------------------------------------
+
+def termo(nome: str, definicao: str, extenso: str = "", exemplo: str = "",
+          categoria: str = "geral", variantes: list[str] | None = None) -> dict:
+    """Termo técnico explicado em linguagem simples.
+
+    ``nome``: como aparece no texto (ex.: "DHCP", "gateway", "máscara de sub-rede").
+    ``extenso``: o que a sigla significa (ex.: "Dynamic Host Configuration Protocol").
+    ``definicao``: 1 a 3 frases simples, sem jargão por explicar.
+    ``exemplo``: uma situação do dia a dia ou um valor concreto.
+    ``variantes``: outras formas que aparecem no texto (plural, sinónimos) para a app
+    encontrar o termo nas aulas.
+    """
+    return {"termo": nome, "extenso": extenso, "def": definicao.strip(), "exemplo": exemplo.strip(),
+            "categoria": categoria, "variantes": variantes or []}
+
+
+def protocolo(id: str, sigla: str, nome: str, categoria: str, camada_osi: int, camada_tcpip: str,
+              transporte: str, portas: str, para_que: str, como_funciona: list[str], exemplo: str,
+              comandos: list[tuple] | None = None, seguranca: str = "", norma: str = "") -> dict:
+    """Ficha de um protocolo de rede.
+
+    ``camada_osi``: 1 a 7. ``camada_tcpip``: "Acesso à rede", "Internet", "Transporte" ou "Aplicação".
+    ``transporte``: "TCP", "UDP", "TCP e UDP" ou "—" (não usa TCP/UDP).
+    ``portas``: ex. "80" ou "67 (servidor), 68 (cliente)" ou "—".
+    ``como_funciona``: passos curtos, pela ordem em que acontecem.
+    ``comandos``: lista de (comando, explicação) para ver ou configurar (Cisco, Windows ou Linux).
+    """
+    return {"id": id, "sigla": sigla, "nome": nome, "categoria": categoria, "camada_osi": camada_osi,
+            "camada_tcpip": camada_tcpip, "transporte": transporte, "portas": portas, "para_que": para_que.strip(),
+            "como_funciona": como_funciona, "exemplo": exemplo.strip(),
+            "comandos": [{"cmd": c[0], "explica": c[1]} for c in (comandos or [])],
+            "seguranca": seguranca.strip(), "norma": norma}
+
+
+def instrutor(titulo: str, pedido: str, passos: list[tuple], licao: str) -> dict:
+    """Ticket resolvido pelo instrutor, passo a passo, à frente do estagiário.
+
+    ``pedido``: o que o cliente/colega escreveu no ticket (linguagem real, com sintomas).
+    ``passos``: lista de (o que o instrutor faz, porquê / o que observou, comando ou cálculo — pode ser "").
+    ``licao``: a lição a reter, numa frase.
+    """
+    return {"titulo": titulo, "pedido": pedido.strip(),
+            "passos": [{"acao": p[0], "explica": p[1], "cmd": p[2] if len(p) > 2 else ""} for p in passos],
+            "licao": licao}
+
+
+def tarefa(titulo: str, pedido: str, pergunta: dict, dica: str = "") -> dict:
+    """Tarefa que o estagiário resolve sozinho. ``pergunta`` é mc(), vf(), cmd() ou valor()."""
+    return {"titulo": titulo, "pedido": pedido.strip(), "pergunta": pergunta, "dica": dica}
+
+
+def estagio(empresa: str, instrutor_: dict, tarefas: list[dict]) -> dict:
+    """Estágio de um módulo: primeiro o instrutor resolve um caso, depois o estagiário faz as tarefas (nota 0-20)."""
+    return {"empresa": empresa, "instrutor": instrutor_, "tarefas": tarefas}

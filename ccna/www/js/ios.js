@@ -67,9 +67,45 @@
       this.startup = "";
     }
 
+    // Comandos aceites que o simulador não calcula, mas que ficam na configuração
+    // (aparecem no show running-config tal como no equipamento real).
+    guardarExtra(bruto, padrao) {
+      const linha = bruto.trim().replace(/\s+/g, " ").replace(/^do\s+/i, "");
+      const semNo = (x) => x.replace(/^no\s+/i, "");
+      const pad = (padrao || linha.split(" ")).slice(), literal = /^no$/i.test(pad[0]);
+      if (literal) pad.shift();
+      const neg = /^no\s+/i.test(linha), base = semNo(linha);
+      // chave = o comando sem o último valor (ex.: "bandwidth 100" e "bandwidth 200" são o mesmo comando)
+      const chave = (x) => {
+        const t = semNo(x).toLowerCase().split(" "), u = pad[pad.length - 1] || "";
+        const n = u === "<rest>" ? Math.max(pad.length - 1, t.length - 1) : (u.startsWith("<") || u.includes("|")) ? pad.length - 1 : t.length;
+        return t.slice(0, n).join(" ");
+      };
+      const aplicar = (lista) => {
+        const k = chave(base);
+        const fica = lista.filter((x) => chave(x) !== k);
+        if (literal || !neg) fica.push(literal ? linha : base);
+        return fica;
+      };
+      const c = this.cfg;
+      if (["if", "range", "subif"].includes(this.modo)) this.cadaIf((i) => { i.extra = aplicar(i.extra || []); });
+      else if (this.modo === "line") { const l = c.lines[this.ctx]; l.extra = aplicar(l.extra || []); }
+      else if (this.modo === "router") c.ospf.extra = aplicar(c.ospf.extra || []);
+      else if (this.modo === "eigrp") c.eigrp.extra = aplicar(c.eigrp.extra);
+      else if (this.modo === "rip") c.rip.extra = aplicar(c.rip.extra);
+      else if (this.modo === "dhcp") { const p = c.dhcpPools[this.ctx]; p.extra = aplicar(p.extra || []); }
+      else if (this.modo === "config") c.extra = aplicar(c.extra || []);
+    }
+
+    tabelaArp() {
+      const mac = (n) => { let h = 0; for (const ch of this.cfg.hostname + n) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const x = h.toString(16).padStart(8, "0"); return `0060.${x.slice(0, 4)}.${x.slice(4, 8)}`; };
+      return "Protocol  Address          Age (min)  Hardware Addr   Type   Interface\n" + Object.entries(this.cfg.interfaces).filter(([, i]) => i.ip && i.ip !== "dhcp" && !i.shutdown)
+        .map(([n, i]) => "Internet  " + pad(i.ip, 17) + pad("-", 11) + pad(mac(n), 16) + pad("ARPA", 7) + n).join("\n") + "\n(as entradas dos vizinhos aparecem depois de haver tráfego, ex.: um ping)";
+    }
+
     prompt() {
       const h = this.cfg.hostname;
-      return h + ({ user: ">", priv: "#", config: "(config)#", if: "(config-if)#", range: "(config-if-range)#", subif: "(config-subif)#", line: "(config-line)#", router: "(config-router)#", vlan: "(config-vlan)#", dhcp: "(dhcp-config)#" }[this.modo]);
+      return h + ({ user: ">", priv: "#", config: "(config)#", if: "(config-if)#", range: "(config-if-range)#", subif: "(config-subif)#", line: "(config-line)#", router: "(config-router)#", vlan: "(config-vlan)#", dhcp: "(dhcp-config)#", "nacl-std": "(config-std-nacl)#", "nacl-ext": "(config-ext-nacl)#", eigrp: "(config-router)#", rip: "(config-router)#" }[this.modo]);
     }
 
     // ------------------------------------------------------------ execução
@@ -101,7 +137,7 @@
         }
       }
       // comando válido noutro modo de configuração? (o IOS sai automaticamente do submodo)
-      if (["if", "range", "subif", "line", "router", "vlan", "dhcp"].includes(this.modo)) {
+      if (["if", "range", "subif", "line", "router", "vlan", "dhcp", "nacl-std", "nacl-ext", "eigrp", "rip"].includes(this.modo)) {
         const glob = COMANDOS.filter((d) => d.modos.includes("config") && (!d.so || d.so === this.tipo));
         for (const d of glob) {
           const r = casar(d.padrao, t);
@@ -192,6 +228,7 @@
         if (p.gw) L.push(" default-router " + p.gw);
         if (p.dns) L.push(" dns-server " + p.dns);
         if (p.domain) L.push(" domain-name " + p.domain);
+        (p.extra || []).forEach((x) => L.push(" " + x));
       });
       if (this.tipo === "switch") L.push("!", "spanning-tree mode " + c.stpMode);
       Object.entries(c.vlans).filter(([id]) => id !== "1").forEach(([id, nome]) => L.push("!", "vlan " + id, " name " + nome));
@@ -220,6 +257,7 @@
         if (i.helper) L.push(" ip helper-address " + i.helper);
         if (i.nat) L.push(" ip nat " + i.nat);
         (i.ipv6 || []).forEach((a) => L.push(" ipv6 address " + a));
+        (i.extra || []).forEach((x) => L.push(" " + x));
         if (i.shutdown) L.push(" shutdown");
       });
       if (c.ospf) {
@@ -228,11 +266,16 @@
         c.ospf.passive.forEach((p) => L.push(" passive-interface " + p));
         c.ospf.nets.forEach((n) => L.push(` network ${n.net} ${n.wc} area ${n.area}`));
         if (c.ospf.defOrig) L.push(" default-information originate");
+        (c.ospf.extra || []).forEach((x) => L.push(" " + x));
       }
+      if (c.eigrp) { L.push("!", "router eigrp " + c.eigrp.asn); c.eigrp.extra.forEach((x) => L.push(" " + x)); }
+      if (c.rip) { L.push("!", "router rip"); c.rip.extra.forEach((x) => L.push(" " + x)); }
       c.natRules.forEach((r) => L.push(r));
       c.routes.forEach((r) => L.push(`ip route ${r.net} ${r.mask} ${r.via}${r.ad ? " " + r.ad : ""}`));
       Object.entries(c.acls).forEach(([n, linhas]) => linhas.forEach((l) => L.push(`access-list ${n} ${l}`)));
+      Object.entries(c.nacls || {}).forEach(([n, a]) => { L.push("ip access-list " + a.tipo + " " + n); a.linhas.forEach((x) => L.push(" " + x)); });
       c.ntp.forEach((s) => L.push("ntp server " + s));
+      (c.extra || []).forEach((x) => L.push(x));
       if (c.banner) L.push("!", "banner motd ^C" + c.banner + "^C");
       ["con", "vty"].forEach((k) => {
         const l = c.lines[k];
@@ -240,6 +283,7 @@
         if (l.password) L.push(" password " + (c.pwdEnc ? "7 " + tipo7(l.password) : l.password));
         if (l.local) L.push(" login local"); else if (l.login) L.push(" login");
         if (k === "vty" && l.transport !== "all") L.push(" transport input " + l.transport);
+        (l.extra || []).forEach((x) => L.push(" " + x));
       });
       L.push("!", "end");
       return L.join("\n");
@@ -403,7 +447,7 @@ Configuration register is 0x2102
   function tipo7(s) { return "0" + [...s].map((c, i) => ((c.charCodeAt(0) ^ (0x64 + i)) & 255).toString(16).padStart(2, "0").toUpperCase()).join(""); }
 
   // ---------------------------------------------------------------- comandos
-  const EXEC = ["user", "priv"], PRIV = ["priv"], CFG = ["config"], IFM = ["if", "range", "subif"], TODOS_CFG = ["config", "if", "range", "subif", "line", "router", "vlan", "dhcp"];
+  const EXEC = ["user", "priv"], PRIV = ["priv"], CFG = ["config"], IFM = ["if", "range", "subif"], TODOS_CFG = ["config", "if", "range", "subif", "line", "router", "vlan", "dhcp", "nacl-std", "nacl-ext", "eigrp", "rip"];
   const C = (modos, padrao, fn, ajuda, so) => ({ modos, padrao: padrao.split(" "), fn, ajuda, so });
 
   const COMANDOS = [
@@ -596,8 +640,165 @@ Configuration register is 0x2102
     C(["dhcp"], "default-router <ip>", function ([g]) { this.cfg.dhcpPools[this.ctx].gw = g; }, "Gateway dos clientes"),
     C(["dhcp"], "dns-server <rest>", function ([d]) { this.cfg.dhcpPools[this.ctx].dns = d; }, "Servidores DNS"),
     C(["dhcp"], "domain-name <w>", function ([d]) { this.cfg.dhcpPools[this.ctx].domain = d; }),
-    C(["dhcp"], "lease <rest>", function () {}),
+    C(["dhcp"], "lease <rest>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    // ================================================================ comandos adicionais
+    // EXEC: visualização e diagnóstico
+    C(EXEC, "show ip interface <if>", function ([n]) {
+      const nome = normIf(n), i = this.cfg.interfaces[nome]; if (!i) return "% Invalid input detected at '^' marker.";
+      return `${nome} is ${i.shutdown ? "administratively down" : "up"}, line protocol is ${i.shutdown ? "down" : "up"}\n` + (i.ip && i.ip !== "dhcp" ? `  Internet address is ${i.ip}/${prefixo(i.mask)}\n  Broadcast address is 255.255.255.255\n` : "  Internet protocol processing disabled\n") +
+        `  MTU is 1500 bytes\n  Helper address is ${i.helper || "not set"}\n  Outgoing access list is not set\n  Inbound  access list is not set\n  Proxy ARP is enabled\n  ICMP redirects are always sent\n  IP fast switching is enabled\n  NAT is ${i.nat ? "enabled, interface in domain " + i.nat : "disabled"}`;
+    }, "Detalhes IP de uma interface"),
+    C(EXEC, "show interfaces status", function () {
+      return "Port      Name               Status       Vlan       Duplex  Speed Type\n" + Object.entries(this.cfg.interfaces).filter(([n]) => !/^(Vlan|Loopback|Port)/.test(n)).map(([n, i]) => {
+        const up = this.sim && this.sim.ligada ? this.sim.ligada(n) : false;
+        return pad(curto(n), 10) + pad((i.desc || "").slice(0, 18), 19) + pad(i.shutdown ? "disabled" : up ? "connected" : "notconnect", 13) + pad(i.routed ? "routed" : i.mode === "trunk" ? "trunk" : i.accessVlan, 11) + pad("auto", 8) + pad("auto", 6) + (/Gig/.test(n) ? "10/100/1000BaseTX" : "10/100BaseTX");
+      }).join("\n");
+    }, "Estado das portas", "switch"),
+    C(EXEC, "show interfaces description", function () {
+      return "Interface                      Status         Protocol Description\n" + Object.entries(this.cfg.interfaces).map(([n, i]) => pad(curto(n), 31) + pad(i.shutdown ? "admin down" : "up", 15) + pad(i.shutdown ? "down" : "up", 9) + (i.desc || "")).join("\n");
+    }, "Descrições das interfaces"),
+    C(EXEC, "show interfaces switchport", function () {
+      return Object.entries(this.cfg.interfaces).filter(([n, i]) => !i.routed && !/^(Vlan|Loopback)/.test(n)).slice(0, 4).map(([n, i]) => `Name: ${curto(n)}\nSwitchport: Enabled\nAdministrative Mode: ${i.mode === "trunk" ? "trunk" : i.mode === "access" ? "static access" : "dynamic auto"}\nOperational Mode: ${i.mode === "trunk" ? "trunk" : "static access"}\nAccess Mode VLAN: ${i.accessVlan}\nTrunking Native Mode VLAN: ${i.native}\nTrunking VLANs Enabled: ${i.allowed || "ALL"}\n`).join("\n") + "\n(mostradas as 4 primeiras portas)";
+    }, "", "switch"),
+    C(EXEC, "show running-config interface <if>", function ([n]) {
+      const nome = normIf(n); if (!this.cfg.interfaces[nome]) return "% Invalid input detected at '^' marker.";
+      const linhas = this.runningConfig().split("\n"), k = linhas.indexOf("interface " + nome); if (k < 0) return "";
+      let f = k + 1; while (f < linhas.length && linhas[f].startsWith(" ")) f++;
+      return "Building configuration...\n\nCurrent configuration : 120 bytes\n!\n" + linhas.slice(k, f).join("\n") + "\nend";
+    }),
+    C(EXEC, "show arp", function () { return this.tabelaArp(); }, "Tabela ARP"),
+    C(EXEC, "show ip arp", function () { return this.tabelaArp(); }),
+    C(EXEC, "show users", function () { return "    Line       User       Host(s)              Idle       Location\n*  0 con 0                idle                 00:00:00"; }),
+    C(EXEC, "show etherchannel summary", function () {
+      const pcs = Object.keys(this.cfg.interfaces).filter((n) => /^Port-channel/.test(n));
+      return "Flags:  D - down        P - bundled in port-channel\n        S - Layer2      U - in use\nNumber of channel-groups in use: " + pcs.length + "\nGroup  Port-channel  Protocol    Ports\n------+-------------+-----------+----------------------------------------------\n" +
+        pcs.map((n) => pad(n.replace("Port-channel", ""), 7) + pad(curto(n) + "(SU)", 14) + pad("LACP", 12) + Object.entries(this.cfg.interfaces).filter(([, i]) => (i.extra || []).some((x) => x.startsWith("channel-group " + n.replace("Port-channel", "") + " "))).map(([k]) => curto(k) + "(P)").join(" ")).join("\n");
+    }, "Resumo do EtherChannel", "switch"),
+    C(EXEC, "show standby brief", function () {
+      const L = ["                     P indicates configured to preempt.", "Interface   Grp  Pri P State   Active          Standby         Virtual IP"];
+      Object.entries(this.cfg.interfaces).forEach(([n, i]) => (i.extra || []).filter((x) => /^standby \d+ ip /.test(x)).forEach((x) => { const [, g, , ip] = x.split(" "); const pr = (i.extra.find((y) => y.startsWith(`standby ${g} priority`)) || " 100").split(" ").pop(); L.push(pad(curto(n), 12) + pad(g, 5) + pad(pr, 4) + pad(i.extra.some((y) => y === `standby ${g} preempt`) ? "P" : " ", 2) + pad("Active", 8) + pad("local", 16) + pad("unknown", 16) + ip); }));
+      return L.join("\n");
+    }, "Estado do HSRP"),
+    C(EXEC, "show ip ospf interface brief", function () {
+      if (!this.cfg.ospf) return "";
+      return "Interface    PID   Area            IP Address/Mask    Cost  State Nbrs F/C\n" + Object.entries(this.cfg.interfaces).filter(([, i]) => i.ip && i.ip !== "dhcp" && this.cfg.ospf.nets.some((x) => (n2i(i.ip) & ~n2i(x.wc)) >>> 0 === (n2i(x.net) & ~n2i(x.wc)) >>> 0)).map(([n, i]) => pad(curto(n), 13) + pad(this.cfg.ospf.pid, 6) + pad(this.cfg.ospf.nets[0].area, 16) + pad(i.ip + "/" + prefixo(i.mask), 19) + pad("1", 6) + pad(this.cfg.ospf.passive.includes(n) ? "DR" : "DR", 6) + "0/0").join("\n");
+    }, "Interfaces com OSPF"),
+    C(EXEC, "show ip ospf", function () { const o = this.cfg.ospf; return o ? ` Routing Process "ospf ${o.pid}" with ID ${o.rid || "1.1.1.1"}\n Start time: 00:00:10.000, Time elapsed: 00:15:21.000\n Supports only single TOS(TOS0) routes\n Number of areas in this router is 1. 1 normal 0 stub 0 nssa\n    Area BACKBONE(${o.nets[0] ? o.nets[0].area : 0})\n        Number of interfaces in this area is ${o.nets.length}\n        SPF algorithm executed 3 times` : "%OSPF: Router process not running"; }),
+    C(EXEC, "show ip ospf database", function () { const o = this.cfg.ospf; if (!o) return ""; return `            OSPF Router with ID (${o.rid || "1.1.1.1"}) (Process ID ${o.pid})\n\n                Router Link States (Area 0)\n\nLink ID         ADV Router      Age         Seq#       Checksum Link count\n${pad(o.rid || "1.1.1.1", 16)}${pad(o.rid || "1.1.1.1", 16)}120         0x80000004 0x00A1B2 ${o.nets.length}`; }),
+    C(EXEC, "show ipv6 route", function () { return "IPv6 Routing Table - default - " + (this.cfg.ipv6Routing ? "" : "(ipv6 unicast-routing desligado) ") + "\nCodes: C - Connected, L - Local, S - Static, O - OSPF\n" + Object.entries(this.cfg.interfaces).filter(([, i]) => i.ipv6 && i.ipv6.length && !i.shutdown).map(([n, i]) => i.ipv6.map((a) => `C   ${a}\n     via ${n}, directly connected`).join("\n")).join("\n"); }),
+    C(EXEC, "show cdp", function () { return "Global CDP information:\n        Sending CDP packets every 60 seconds\n        Sending a holdtime value of 180 seconds\n        Sending CDPv2 advertisements is  enabled"; }),
+    C(EXEC, "show cdp neighbors detail", function () { if (!this.sim) return ""; return this.sim.cdp().map((v) => `-------------------------\nDevice ID: ${v.nome}\nEntry address(es):\nPlatform: ${v.plat},  Capabilities: ${v.cap === "R" ? "Router" : v.cap === "S" ? "Switch IGMP" : "Host"}\nInterface: ${v.local},  Port ID (outgoing port): ${v.remota}\nHoldtime : 160 sec\n\nVersion :\nCisco IOS Software, Version 15.2`).join("\n"); }),
+    C(EXEC, "show lldp neighbors", function () { if (!this.sim) return ""; return "Capability codes: (R) Router, (B) Bridge, (S) Station\nDevice ID           Local Intf     Hold-time  Capability      Port ID\n" + this.sim.cdp().map((v) => pad(v.nome, 20) + pad(curto(v.local), 15) + pad("120", 11) + pad(v.cap === "R" ? "R" : v.cap === "S" ? "B" : "S", 16) + curto(v.remota)).join("\n") + "\n\nTotal entries displayed: " + this.sim.cdp().length; }),
+    C(EXEC, "show ntp status", function () { return this.cfg.ntp.length ? `Clock is synchronized, stratum 3, reference is ${this.cfg.ntp[0]}\nnominal freq is 250.0000 Hz, actual freq is 250.0000 Hz, precision is 2**18` : "Clock is unsynchronized, stratum 16, no reference clock"; }),
+    C(EXEC, "show ntp associations", function () { return "  address         ref clock       st   when   poll reach  delay  offset   disp\n" + this.cfg.ntp.map((n) => `*~${pad(n, 16)}127.127.1.1      2     14     64   377  1.204   0.338   0.191`).join("\n") + "\n * sys.peer, # selected, + candidate, - outlyer, x falseticker, ~ configured"; }),
+    C(EXEC, "show logging", function () { return "Syslog logging: enabled (0 messages dropped, 0 flushes, 0 overruns)\n    Console logging: level debugging\n    Monitor logging: level debugging\n    Buffer logging:  level debugging\n    Trap logging: level informational\n" + ((this.cfg.extra || []).filter((x) => x.startsWith("logging host")).map((x) => "        Logging to " + x.split(" ").pop()).join("\n")); }),
+    C(EXEC, "show vtp status", function () { const ex = this.cfg.extra || [], v = (k, d) => { const l = ex.find((x) => x.startsWith(k)); return l ? l.split(" ").pop() : d; }; return `VTP Version capable             : 1 to 3\nVTP version running             : ${v("vtp version", "1")}\nVTP Domain Name                 : ${v("vtp domain", "")}\nVTP Pruning Mode                : Disabled\nVTP Operating Mode              : ${v("vtp mode", "Server").replace(/^./, (c) => c.toUpperCase())}\nMaximum VLANs supported locally : 255\nNumber of existing VLANs        : ${Object.keys(this.cfg.vlans).length + 4}`; }, "", "switch"),
+    C(EXEC, "show ip nat statistics", function () { return `Total active translations: 0 (0 static, 0 dynamic; 0 extended)\nOutside interfaces:\n  ${Object.entries(this.cfg.interfaces).filter(([, i]) => i.nat === "outside").map(([n]) => n).join(", ")}\nInside interfaces:\n  ${Object.entries(this.cfg.interfaces).filter(([, i]) => i.nat === "inside").map(([n]) => n).join(", ")}\nHits: 0  Misses: 0`; }),
+    C(EXEC, "show ip dhcp conflict", function () { return "IP address        Detection method   Detection time          VRF"; }),
+    C(EXEC, "show ip dhcp snooping", function () { const on = (this.cfg.extra || []).includes("ip dhcp snooping"); return `Switch DHCP snooping is ${on ? "enabled" : "disabled"}\nDHCP snooping is configured on following VLANs:\n${((this.cfg.extra || []).find((x) => x.startsWith("ip dhcp snooping vlan")) || "none").replace("ip dhcp snooping vlan ", "")}\nInterface                  Trusted    Allow option    Rate limit (pps)\n` + Object.entries(this.cfg.interfaces).filter(([, i]) => (i.extra || []).includes("ip dhcp snooping trust")).map(([n]) => pad(n, 27) + "yes        yes             unlimited").join("\n"); }, "", "switch"),
+    C(EXEC, "show mac address-table dynamic", function () { return this.executar("show mac address-table"); }, "", "switch"),
+    C(EXEC, "show processes cpu", function () { return "CPU utilization for five seconds: 2%/0%; one minute: 3%; five minutes: 3%\n PID Runtime(ms)     Invoked      uSecs   5Sec   1Min   5Min TTY Process\n   1          12         512         23  0.00%  0.00%  0.00%   0 Chunk Manager"; }),
+    C(EXEC, "show inventory", function () { return `NAME: "${this.tipo === "router" ? "CISCO" + this.modelo : "WS-C2960-24TT-L"}", DESCR: "${this.tipo === "router" ? "Cisco " + this.modelo + " ISR" : "Catalyst 2960 24 10/100 + 2 1000BT"}"\nPID: ${this.tipo === "router" ? "ISR" + this.modelo + "/K9" : "WS-C2960-24TT-L"}  , VID: V02  , SN: FTX1840ABCD`; }),
+    C(EXEC, "show license", function () { return "Index 1 Feature: ipbasek9\n        Period left: Life time\n        License Type: Permanent\n        License State: Active, In Use"; }),
+    C(EXEC, "show controllers <if>", function ([n]) { const nome = normIf(n); return /^Serial/.test(nome) ? `Interface ${nome}\nHardware is GT96K\n${(this.cfg.interfaces[nome].extra || []).some((x) => x.startsWith("clock rate")) ? "DCE V.35, clock rate " + this.cfg.interfaces[nome].extra.find((x) => x.startsWith("clock rate")).split(" ").pop() : "DTE V.35 TX and RX clocks detected."}` : `Interface ${nome}\nHardware is Gigabit Ethernet`; }),
+    C(EXEC, "show terminal", function () { return "Line 0, Location: \"\", Type: \"\"\nLength: 24 lines, Width: 80 columns\nBaud rate (TX/RX) is 9600/9600, no parity, 1 stopbits, 8 databits"; }),
+    C(EXEC, "show sessions", function () { return "% No connections open"; }),
+    C(EXEC, "show boot", function () { return "BOOT path-list      : flash:" + (this.tipo === "router" ? "c2900-universalk9-mz.SPA.152-4.M.bin" : "c2960-lanbasek9-mz.152-2.E.bin"); }, "", "switch"),
+    C(EXEC, "dir", function () { return this.executar("show flash:"); }, "Lista ficheiros da flash"),
+    C(EXEC, "dir flash:", function () { return this.executar("show flash:"); }),
+    C(EXEC, "terminal length <n>", function () {}, "Configura o terminal"),
+    C(EXEC, "terminal monitor", function () { return ""; }),
+    C(EXEC, "terminal no monitor", function () { return ""; }),
+    C(PRIV, "clock set <rest>", function () {}, "Acerta o relógio"),
+    C(PRIV, "debug <rest>", function ([d]) { return `${d.replace(/^ip /, "IP ").toUpperCase().includes("ICMP") ? "ICMP packet debugging is on" : d + " debugging is on"}\n(no simulador as mensagens de debug não aparecem; num equipamento real use com cuidado: pode sobrecarregar o CPU)`; }, "Depuração"),
+    C(PRIV, "undebug all", function () { return "All possible debugging has been turned off"; }),
+    C(PRIV, "no debug all", function () { return "All possible debugging has been turned off"; }),
+    C(PRIV, "clear mac address-table dynamic", function () {}, "Limpa tabelas e contadores"),
+    C(PRIV, "clear arp-cache", function () {}),
+    C(PRIV, "clear counters", function () { return "Clear \"show interface\" counters on all interfaces [confirm]"; }),
+    C(PRIV, "clear ip nat translation *", function () {}),
+    C(PRIV, "clear ip ospf process", function () { return "Reset ALL OSPF processes? [no]: yes"; }),
+    C(PRIV, "copy running-config tftp", function () { return "Address or name of remote host []? 192.168.1.10\nDestination filename [" + this.cfg.hostname.toLowerCase() + "-confg]? \n!!\n1234 bytes copied in 0.5 secs\n(simulado: no equipamento real precisa de um servidor TFTP acessível)"; }),
+    C(PRIV, "copy startup-config running-config", function () { if (this.startup) { this.cfg = JSON.parse(this.startup); } return "Destination filename [running-config]? \n" + (this.startup ? "1234 bytes copied" : "%Error opening nvram:/startup-config (No such file or directory)"); }),
+    C(EXEC, "telnet <ip>", function ([ip]) { return this.sim && !this.sim.ping(ip).ok ? `Trying ${ip} ...\n% Connection timed out; remote host not responding` : `Trying ${ip} ... Open\n(simulado: a sessão remota não abre aqui. No equipamento real lembre-se de que o Telnet envia tudo em texto claro — prefira SSH)`; }, "Ligação remota"),
+    C(EXEC, "ssh -l <w> <ip>", function ([u, ip]) { return this.sim && !this.sim.ping(ip).ok ? `% Connection refused by remote host` : `Password:\n(simulado: sessão SSH para ${ip} como ${u}. No equipamento remoto tem de existir: ip domain-name, crypto key generate rsa, username e transport input ssh)`; }),
+
+    // Configuração global (aceites e guardados na configuração)
+    C(CFG, "ip access-list standard|extended <w>", function ([t, n]) { this.cfg.nacls = this.cfg.nacls || {}; if (!this.cfg.nacls[n]) this.cfg.nacls[n] = { tipo: t.toLowerCase(), linhas: [] }; this.modo = t.toLowerCase() === "standard" ? "nacl-std" : "nacl-ext"; this.ctx = n; }, "Lista de acesso com nome"),
+    C(["nacl-std", "nacl-ext"], "permit|deny <rest>", function ([a, r]) { this.cfg.nacls[this.ctx].linhas.push(a + " " + r); }, "Regra da lista"),
+    C(["nacl-std", "nacl-ext"], "remark <rest>", function ([r]) { this.cfg.nacls[this.ctx].linhas.push("remark " + r); }, "Comentário"),
+    C(["nacl-std", "nacl-ext"], "no <n>", function ([k]) { const l = this.cfg.nacls[this.ctx].linhas; l.splice(+k / 10 - 1, 1); }, "Apaga uma regra pelo número"),
+    C(CFG, "access-list <n> remark <rest>", function ([n, r]) { (this.cfg.acls[n] = this.cfg.acls[n] || []).push("remark " + r); }),
+    C(CFG, "no access-list <n>", function ([n]) { delete this.cfg.acls[n]; }),
+    C(CFG, "router eigrp <n>", function ([a]) { if (!this.cfg.eigrp) this.cfg.eigrp = { asn: a, extra: [] }; this.modo = "eigrp"; }, "", "router"),
+    C(CFG, "router rip", function () { if (!this.cfg.rip) this.cfg.rip = { extra: [] }; this.modo = "rip"; }, "", "router"),
+    C(["eigrp", "rip"], "network <ip>", function (r, t, bruto) { this.guardarExtra(bruto, null); }, "Redes anunciadas"),
+    C(["eigrp"], "network <ip> <ip>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["eigrp"], "eigrp router-id <ip>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["rip"], "version <n>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["eigrp", "rip"], "no auto-summary", function () { this.guardarExtra(arguments[2], ["no", "auto-summary"]); }, "Desliga a sumarização automática"),
+    C(["eigrp", "rip"], "passive-interface <if>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["eigrp", "rip"], "redistribute <rest>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["router"], "area <rest>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["router"], "maximum-paths <n>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["router"], "log-adjacency-changes", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["router"], "redistribute <rest>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["router"], "distance <n>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["router"], "default-information originate always", function () { this.cfg.ospf.defOrig = true; }),
+    C(["router"], "passive-interface default", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["router"], "no passive-interface <if>", function ([i]) { this.cfg.ospf.passive = this.cfg.ospf.passive.filter((x) => x !== normIf(i)); }),
+    C(["dhcp"], "option <rest>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["dhcp"], "netbios-name-server <rest>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["line"], "history size <n>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["line"], "privilege level <n>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["line"], "speed <n>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
+    C(["line"], "session-timeout <n>", function (r, t, bruto) { this.guardarExtra(bruto, null); }),
   ];
+  // Comandos "de configuração" (sem efeito no cálculo do simulador): ficam guardados
+  // e aparecem no show running-config, como no equipamento real.
+  const GUARDAR = [
+    [CFG, "vtp mode <w>", "Modo VTP", "switch"], [CFG, "vtp domain <w>", "", "switch"], [CFG, "vtp password <w>", "", "switch"], [CFG, "vtp version <n>", "", "switch"],
+    [CFG, "errdisable recovery cause <w>", "Recuperação de portas err-disabled"], [CFG, "errdisable recovery interval <n>", ""],
+    [CFG, "mac address-table static <rest>", "Tabela MAC", "switch"], [CFG, "mac address-table aging-time <n>", "", "switch"],
+    [CFG, "ip nat pool <rest>", "NAT"], [CFG, "ip nat inside source list <w> pool <w>", ""], [CFG, "ip nat inside source list <w> pool <w> overload", ""],
+    [CFG, "ip dhcp snooping", "DHCP snooping", "switch"], [CFG, "ip dhcp snooping vlan <rest>", "", "switch"], [CFG, "no ip dhcp snooping information option", "", "switch"],
+    [CFG, "ip arp inspection vlan <rest>", "Inspeção ARP dinâmica", "switch"], [CFG, "ipv6 route <rest>", "Rota estática IPv6"],
+    [CFG, "snmp-server community <rest>", "SNMP"], [CFG, "snmp-server location <rest>", ""], [CFG, "snmp-server contact <rest>", ""], [CFG, "snmp-server host <rest>", ""], [CFG, "snmp-server enable traps", ""],
+    [CFG, "logging buffered <rest>", "Registo de eventos"], [CFG, "logging console <w>", ""], [CFG, "service timestamps <rest>", ""],
+    [CFG, "ip ssh time-out <n>", "SSH"], [CFG, "ip ssh authentication-retries <n>", ""], [CFG, "login block-for <rest>", "Bloqueio após tentativas falhadas"],
+    [CFG, "security passwords min-length <n>", "Tamanho mínimo das palavras-passe"], [CFG, "aaa new-model", "AAA"], [CFG, "aaa authentication login <rest>", ""],
+    [CFG, "ip http server", "Servidor web de gestão"], [CFG, "no ip http server", ""], [CFG, "ip http secure-server", ""], [CFG, "no ip http secure-server", ""],
+    [CFG, "no cdp run", ""], [CFG, "no lldp run", ""], [CFG, "ntp master <n>", ""], [CFG, "clock summer-time <rest>", ""],
+    [CFG, "monitor session <rest>", "Espelhamento de portas (SPAN)", "switch"], [CFG, "spanning-tree portfast default", "", "switch"], [CFG, "spanning-tree portfast bpduguard default", "", "switch"],
+    [CFG, "spanning-tree vlan <w> root secondary", "", "switch"], [CFG, "port-channel load-balance <w>", "", "switch"], [CFG, "udld enable", "", "switch"],
+    [CFG, "ip cef", ""], [CFG, "no ip cef", ""], [CFG, "ipv6 cef", ""], [CFG, "ip classless", ""], [CFG, "alias <rest>", "Atalhos de comandos"],
+    [CFG, "default interface <if>", "Repõe uma interface"], [CFG, "ip ospf name-lookup", ""], [CFG, "archive", ""], [CFG, "service dhcp", ""], [CFG, "no service dhcp", ""],
+    [IFM, "bandwidth <n>", "Largura de banda (métricas)"], [IFM, "delay <n>", ""], [IFM, "mtu <n>", ""], [IFM, "ip mtu <n>", ""], [IFM, "clock rate <n>", "Relógio do lado DCE (série)"],
+    [IFM, "encapsulation ppp|hdlc", "Encapsulamento da série"], [IFM, "ppp authentication chap|pap", ""], [IFM, "ip ospf hello-interval <n>", ""], [IFM, "ip ospf dead-interval <n>", ""],
+    [IFM, "ip ospf priority <n>", ""], [IFM, "ip ospf network point-to-point", ""], [IFM, "ip ospf authentication <rest>", ""], [IFM, "ipv6 enable", ""], [IFM, "ipv6 ospf <n> area <n>", ""],
+    [IFM, "ipv6 nd <rest>", ""], [IFM, "keepalive <n>", ""], [IFM, "cdp enable", ""], [IFM, "no cdp enable", ""], [IFM, "lldp transmit", ""], [IFM, "lldp receive", ""], [IFM, "no lldp transmit", ""], [IFM, "no lldp receive", ""],
+    [IFM, "switchport port-security aging <rest>", "", "switch"], [IFM, "switchport port-security mac-address <rest>", "", "switch"], [IFM, "storm-control <rest>", "", "switch"],
+    [IFM, "ip dhcp snooping trust", "", "switch"], [IFM, "ip dhcp snooping limit rate <n>", "", "switch"], [IFM, "ip arp inspection trust", "", "switch"],
+    [IFM, "spanning-tree guard root", "", "switch"], [IFM, "spanning-tree link-type point-to-point", "", "switch"], [IFM, "spanning-tree cost <n>", "", "switch"], [IFM, "spanning-tree port-priority <n>", "", "switch"],
+    [IFM, "spanning-tree vlan <w> cost <n>", "", "switch"], [IFM, "standby version <n>", ""], [IFM, "standby <n> track <rest>", ""], [IFM, "channel-protocol lacp|pagp", "", "switch"],
+    [IFM, "switchport mode dynamic desirable|auto", "", "switch"], [IFM, "switchport", "", "switch"], [IFM, "power inline <w>", "", "switch"], [IFM, "mdix auto", ""], [IFM, "negotiation auto", ""], [IFM, "no negotiation auto", ""],
+    [IFM, "ip proxy-arp", ""], [IFM, "no ip proxy-arp", ""], [IFM, "no ip redirects", ""], [IFM, "no ip unreachables", ""], [IFM, "load-interval <n>", ""], [IFM, "ip summary-address <rest>", ""],
+    [IFM, "ip virtual-reassembly", ""], [IFM, "no ip virtual-reassembly", ""], [IFM, "ip access-group <w> in|out", "Aplica uma ACL"], [IFM, "ip ospf <n> area <n>", "OSPF na interface"], [IFM, "ip ospf cost <n>", "Custo OSPF"],
+    [IFM, "standby <n> ip <ip>", "HSRP"], [IFM, "standby <n> priority <n>", ""], [IFM, "standby <n> preempt", ""], [IFM, "switchport voice vlan <n>", "", "switch"], [IFM, "speed <w>", ""], [IFM, "duplex <w>", ""],
+    [["line"], "exec-timeout <n> <n>", "Tempo até desligar por inatividade"], [["line"], "logging synchronous", "Mensagens não cortam o que escreve"], [["line"], "access-class <n> in", "ACL de acesso remoto"],
+    [CFG, "ip name-server <rest>", "Servidor DNS"], [CFG, "spanning-tree vlan <w> root primary", "", "switch"], [CFG, "spanning-tree vlan <w> priority <n>", "", "switch"], [CFG, "cdp run", ""], [CFG, "lldp run", ""],
+    [CFG, "logging host <ip>", "Servidor Syslog"], [CFG, "logging trap <w>", ""], [CFG, "clock timezone <w> <n>", "Fuso horário"],
+  ];
+  const vazios = new Set(GUARDAR.map(([m, p]) => m.join() + "|" + p));
+  for (let i = COMANDOS.length - 1; i >= 0; i--) if (vazios.has(COMANDOS[i].modos.join() + "|" + COMANDOS[i].padrao.join(" "))) COMANDOS.splice(i, 1);
+  GUARDAR.forEach(([modos, padrao, ajuda, so]) => COMANDOS.push(C(modos, padrao, function (r, t, bruto) { this.guardarExtra(bruto, padrao.split(" ")); }, ajuda, so)));
+  // "no <comando>" genérico: aceita a negação de um comando que exista neste modo e apaga-o da configuração
+  COMANDOS.push(C(TODOS_CFG, "no <rest>", function ([resto], t, bruto) {
+    const tk = tokens(resto), defs = COMANDOS.filter((d) => d.modos.includes(this.modo) && (!d.so || d.so === this.tipo) && d.padrao[0] !== "no");
+    const d = defs.find((x) => casar(x.padrao, tk)) || defs.find((x) => x.padrao.length > 1 && casar(x.padrao.slice(0, -1), tk) && casar(x.padrao.slice(0, -1), tk) !== "incompleto");
+    if (!d) return "% Invalid input detected at '^' marker.";
+    this.guardarExtra(bruto, d.padrao);
+  }, "Nega um comando (desfaz)"));
 
   window.IOS = { Equipamento, normIf, n2i, i2n, prefixo, rede };
 })();

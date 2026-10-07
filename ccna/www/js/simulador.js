@@ -45,7 +45,8 @@
         d.eq = new IOS.Equipamento(tipo === "router" ? "router" : "switch", (opc && opc.nomeIos) || T.host, tipo === "router" ? "4331" : "2960");
         d.eq.sim = this.ganchos(d);
       } else {
-        d.pc = { dhcp: !!(opc && opc.dhcp), ip: (opc && opc.ip) || "", mask: (opc && opc.mask) || "", gw: (opc && opc.gw) || "", dns: (opc && opc.dns) || "", lease: null, log: [], arp: {} };
+        d.pc = { dhcp: !!(opc && opc.dhcp), ip: (opc && opc.ip) || "", mask: (opc && opc.mask) || "", gw: (opc && opc.gw) || "", dns: (opc && opc.dns) || "", lease: null, log: [], arp: {},
+          partilhas: [], fwPartilha: false, mapas: {}, ficheiros: ["relatorio.docx", "orcamento.xlsx", "foto.jpg"] };
         if (tipo === "servidor") d.srv = { dhcp: { on: false, inicio: "", mask: "255.255.255.0", gw: "", dns: "", max: 50 }, dns: { on: true, registos: [] }, http: true };
       }
       this.devs.push(d);
@@ -397,6 +398,33 @@
       return { erro: `Ping request could not find host ${nome}. Please check the name and try again.` };
     }
 
+    // ---------------------------------------------------------------- partilha de ficheiros (SMB, porta TCP 445)
+    // Nome → IP: endereço, DNS, ou nome NetBIOS de um equipamento na mesma rede (difusão local).
+    resolverSmb(d, nome) {
+      if (ehIP(nome)) return { ip: nome };
+      const r = this.resolver(d, nome); if (r.ip) return r;
+      const alvo = this.devs.find((x) => x.nome.toLowerCase() === nome.toLowerCase() && ehHost(x));
+      const a = this.ipEfetivo(d), b = alvo ? this.ipEfetivo(alvo) : {};
+      if (alvo && b.ip && a.ip && redeDe(a.ip, a.mask) === redeDe(b.ip, a.mask)) return { ip: b.ip, netbios: true };
+      return { erro: `O nome ${nome} não foi encontrado. Noutra rede use o endereço IP ou um registo DNS (o NetBIOS só funciona na mesma rede).` };
+    }
+    // Abre \\servidor\partilha a partir do PC d: { ok, p (partilha), alvo, ip } ou { erro }
+    abrirPartilha(d, caminho) {
+      const m = String(caminho).match(/^\\\\([^\\]+)(?:\\([^\\]+))?\\?$/);
+      if (!m) return { erro: "Caminho inválido. Use o formato \\\\servidor\\pasta (ex.: \\\\192.168.1.10\\Documentos)." };
+      if (!this.ipEfetivo(d).ip) return { erro: "Este PC não tem endereço IP." };
+      const r = this.resolverSmb(d, m[1]); if (!r.ip) return { erro: "Erro de sistema 53.\n\nO caminho de rede não foi encontrado.\n(" + r.erro + ")" };
+      const alvo = this.dono(r.ip);
+      const ping = this.pingCompleto(d, r.ip);
+      if (!ping.ok) return { erro: `Erro de sistema 53.\n\nO caminho de rede não foi encontrado.\n(motivo simulado: ${r.ip} não responde — ${ping.motivo})` };
+      if (!alvo || !alvo.pc) return { erro: "Erro de sistema 53.\n\nO caminho de rede não foi encontrado.\n(motivo simulado: " + r.ip + " não é um computador com partilhas)" };
+      if (!alvo.pc.fwPartilha) return { erro: `Erro de sistema 53.\n\nO caminho de rede não foi encontrado.\n(motivo simulado: a firewall de ${alvo.nome} bloqueia a porta TCP 445. Ative “Partilha de ficheiros e impressoras” nesse computador.)` };
+      if (!m[2]) return { ok: true, alvo, ip: r.ip, lista: true };
+      const p = alvo.pc.partilhas.find((x) => x.nome.toLowerCase() === m[2].toLowerCase());
+      if (!p) return { erro: "Erro de sistema 67.\n\nNão foi possível encontrar o nome de rede.\n(a pasta " + m[2] + " não está partilhada em " + alvo.nome + ")" };
+      return { ok: true, alvo, ip: r.ip, p, anim: ping.devs };
+    }
+
     // ---------------------------------------------------------------- guardar / carregar
     exportar() {
       return { seq: this.seq, devs: this.devs.map((d) => ({ id: d.id, tipo: d.tipo, nome: d.nome, x: d.x, y: d.y, cfg: d.eq ? d.eq.cfg : null, startup: d.eq ? d.eq.startup : null, pc: d.pc ? Object.assign({}, d.pc, { log: [] }) : null, srv: d.srv || null })), links: this.links };
@@ -407,7 +435,7 @@
         const d = r.novoDev(s.tipo, s.x, s.y, s.nome);
         d.id = s.id;
         if (d.eq && s.cfg) { d.eq.cfg = s.cfg; d.eq.startup = s.startup || ""; d.eq.sim = r.ganchos(d); }
-        if (d.pc && s.pc) d.pc = Object.assign(d.pc, s.pc, { log: [] });
+        if (d.pc && s.pc) d.pc = Object.assign(d.pc, s.pc, { log: [] }, { partilhas: s.pc.partilhas || [], mapas: s.pc.mapas || {}, ficheiros: s.pc.ficheiros || d.pc.ficheiros });
         if (s.srv) d.srv = s.srv;
       });
       r.links = o.links || [];
@@ -438,6 +466,10 @@
     switch (c.t) {
       case "e": return c.lista.every((x) => verificar(rede, x));
       case "tem": return devsTipo(c.tipo).length >= c.n;
+      case "partilha": { const d = rede.dev(c.nome); return !!(d && d.pc && d.pc.partilhas.some((p) => p.nome.toLowerCase() === c.share.toLowerCase() && (!c.perm || p.perm === c.perm))); }
+      case "fw_partilha": { const d = rede.dev(c.nome); return !!(d && d.pc && d.pc.fwPartilha); }
+      case "mapa": { const d = rede.dev(c.pc); if (!d || !d.pc) return false; return Object.entries(d.pc.mapas).some(([l, cam]) => (!c.letra || l.toUpperCase() === c.letra.toUpperCase()) && (!c.por || (c.por === "nome" ? !/\\\\\d/.test(cam) : true)) && rede.abrirPartilha(d, cam).p && rede.abrirPartilha(d, cam).p.nome.toLowerCase() === c.share.toLowerCase()); }
+      case "ficheiro_partilha": { const d = rede.dev(c.nome); return !!(d && d.pc && d.pc.partilhas.some((p) => p.nome.toLowerCase() === c.share.toLowerCase() && (p.ficheiros || []).some((f) => f.de))); }
       case "ligado_tipo": { const a = devsTipo(c.a).map((d) => d.id), b = devsTipo(c.b).map((d) => d.id); return rede.links.filter((l) => valido(l) && ((a.includes(l.a) && b.includes(l.b)) || (a.includes(l.b) && b.includes(l.a)))).length >= c.n; }
       case "cabo": { const a = rede.dev(c.a), b = rede.dev(c.b); if (!a || !b) return false; return rede.links.some((l) => ((l.a === a.id && l.b === b.id) || (l.a === b.id && l.b === a.id)) && l.cabo === c.cabo && valido(l)); }
       case "cabos_ok": return rede.links.length > 0 && rede.links.every(valido);
@@ -467,7 +499,7 @@
     const t = linha.trim().split(/\s+/), c = (t[0] || "").toLowerCase();
     const cfg = rede.ipEfetivo(d);
     if (!c) return { txt: "" };
-    if (c === "help" || c === "?") return { txt: "Comandos disponíveis:\n  ipconfig [/all | /release | /renew]\n  ping <IP ou nome>\n  tracert <IP ou nome>\n  nslookup <nome>\n  arp -a\n  cls" };
+    if (c === "help" || c === "?") return { txt: "Comandos disponíveis:\n  ipconfig [/all | /release | /renew]\n  ping <IP ou nome>\n  tracert <IP ou nome>\n  nslookup <nome>\n  arp -a\n  hostname\n  net share [Nome=C:\\Pasta /grant:Todos,READ|CHANGE]\n  net view \\\\servidor\n  net use [Z: \\\\servidor\\pasta | Z: /delete]\n  dir [Z:]\n  copy <ficheiro> Z:\n  netsh advfirewall firewall set rule group=\"Partilha de ficheiros e impressoras\" new enable=Yes\n  cls" };
     if (c === "cls") return { limpar: true };
     if (c === "ipconfig") {
       const op = (t[1] || "").toLowerCase();
@@ -494,6 +526,61 @@
       return { txt: `Tracing route to ${t[1]}${ip !== t[1] ? " [" + ip + "]" : ""}\nover a maximum of 30 hops:\n\n` + linhas.join("\n") + (r.ok ? "\n\nTrace complete." : ""), anim: r.devs, ok: r.ok };
     }
     if (c === "nslookup") { if (!t[1]) return { txt: "Uso: nslookup <nome>" }; const r = rede.resolver(d, t[1]); return { txt: r.ip ? `Server:  ${r.servidor || cfg.dns}\nAddress: ${r.servidor || cfg.dns}\n\nName:    ${t[1]}\nAddress: ${r.ip}` : r.erro }; }
+    if (c === "hostname") return { txt: d.nome };
+    if (c === "net") {
+      const sub = (t[1] || "").toLowerCase(), resto = linha.trim().split(/\s+/).slice(2).join(" ");
+      if (sub === "share") {
+        if (!t[2]) return { txt: d.pc.partilhas.length ? "Nome da partilha   Recurso                         Observação\n" + "-".repeat(64) + "\n" + d.pc.partilhas.map((p) => p.nome.padEnd(19) + p.pasta.padEnd(32) + (p.perm === "W" ? "Todos: Alteração" : "Todos: Leitura")).join("\n") + "\nO comando foi concluído com êxito." : "Não existem entradas na lista." };
+        const del = resto.match(/^(\S+)\s+\/delete$/i);
+        if (del) { const n = d.pc.partilhas.length; d.pc.partilhas = d.pc.partilhas.filter((p) => p.nome.toLowerCase() !== del[1].toLowerCase()); return { txt: n !== d.pc.partilhas.length ? del[1] + " foi eliminado." : "O nome de partilha não existe.", mudou: true }; }
+        const m = resto.match(/^([^=\s]+)=(\S+)(?:\s+\/grant:([^,]+),(read|change|full))?/i);
+        if (!m) return { txt: "Sintaxe: net share Nome=C:\\Pasta /grant:Todos,READ   (READ = leitura, CHANGE = alteração, FULL = controlo total)" };
+        if (d.pc.partilhas.some((p) => p.nome.toLowerCase() === m[1].toLowerCase())) return { txt: "Erro de sistema 2118: o nome já está partilhado." };
+        d.pc.partilhas.push({ nome: m[1], pasta: m[2], perm: m[4] && /change|full/i.test(m[4]) ? "W" : "R", ficheiros: [{ nome: "LEIA-ME.txt" }] });
+        return { txt: `${m[1]} foi partilhado com êxito.${!d.pc.fwPartilha ? "\n(atenção: a firewall deste computador ainda bloqueia a partilha — ative a regra “Partilha de ficheiros e impressoras”)" : ""}`, mudou: true };
+      }
+      if (sub === "view") {
+        if (!t[2]) return { txt: "Uso: net view \\\\servidor" };
+        const r = rede.abrirPartilha(d, t[2].replace(/\\+$/, ""));
+        if (r.erro) return { txt: r.erro, ok: false };
+        return { txt: `Recursos partilhados em ${t[2]}\n\nNome da partilha  Tipo   Usada como  Comentário\n${"-".repeat(56)}\n` + (r.alvo.pc.partilhas.map((p) => p.nome.padEnd(18) + "Disco").join("\n") || "(nenhuma pasta partilhada)") + "\nO comando foi concluído com êxito.", anim: rede.pingCompleto(d, r.ip).devs, ok: true };
+      }
+      if (sub === "use") {
+        if (!t[2]) { const e = Object.entries(d.pc.mapas); return { txt: e.length ? "Estado       Local     Remoto\n" + "-".repeat(50) + "\n" + e.map(([l, cam]) => `${rede.abrirPartilha(d, cam).ok ? "OK" : "Indisponível"}`.padEnd(13) + l.padEnd(10) + cam).join("\n") : "Não há ligações à rede." }; }
+        const del = resto.match(/^([a-z]:|\*)\s+\/delete/i);
+        if (del) { if (del[1] === "*") d.pc.mapas = {}; else delete d.pc.mapas[del[1].toUpperCase()]; return { txt: del[1].toUpperCase() + " foi eliminado.", mudou: true }; }
+        const m = resto.match(/^(?:([a-z]:)\s+)?(\\\\\S+)/i);
+        if (!m) return { txt: "Sintaxe: net use Z: \\\\servidor\\pasta /persistent:yes" };
+        const r = rede.abrirPartilha(d, m[2]);
+        if (r.erro) return { txt: r.erro, ok: false };
+        if (!r.p) return { txt: "Indique a pasta: \\\\servidor\\pasta" };
+        const letra = (m[1] || "Z:").toUpperCase();
+        d.pc.mapas[letra] = m[2];
+        return { txt: (m[1] ? "" : `Unidade ${letra} está agora ligada a ${m[2]}.\n\n`) + "O comando foi concluído com êxito.", mudou: true, anim: r.anim, ok: true };
+      }
+      return { txt: "A sintaxe deste comando é:\nNET [ SHARE | USE | VIEW ]" };
+    }
+    if (c === "netsh") {
+      if (/firewall/i.test(linha) && /(partilha de ficheiros|file and printer sharing)/i.test(linha)) { const on = /enable\s*=\s*(yes|sim)/i.test(linha); d.pc.fwPartilha = on; return { txt: `Atualizadas regras do grupo “Partilha de ficheiros e impressoras”: ${on ? "ativadas" : "desativadas"}.\nOk.`, mudou: true }; }
+      return { txt: "Exemplo: netsh advfirewall firewall set rule group=\"Partilha de ficheiros e impressoras\" new enable=Yes" };
+    }
+    const unidade = (x) => { const k = (x || "").toUpperCase().replace(/\\$/, ""); if (/^[A-Z]:$/.test(k) && k !== "C:") { const cam = d.pc.mapas[k]; if (!cam) return { erro: "O sistema não consegue encontrar a unidade especificada." }; return rede.abrirPartilha(d, cam); } if (/^\\\\/.test(x || "")) return rede.abrirPartilha(d, x); return null; };
+    if (c === "dir") {
+      const u = unidade(t[1]);
+      if (!u) return { txt: " Diretório de C:\\Users\\" + d.nome + "\\Documentos\n\n" + d.pc.ficheiros.map((f) => "  " + f).join("\n") + `\n        ${d.pc.ficheiros.length} ficheiro(s)` };
+      if (u.erro) return { txt: u.erro, ok: false };
+      if (!u.p) return { txt: "Indique a pasta partilhada." };
+      return { txt: ` Diretório de ${t[1]} (${u.p.nome} em ${u.alvo.nome})\n\n` + u.p.ficheiros.map((f) => "  " + f.nome + (f.de ? "   (copiado de " + f.de + ")" : "")).join("\n") + `\n        ${u.p.ficheiros.length} ficheiro(s)`, anim: u.anim, ok: true };
+    }
+    if (c === "copy") {
+      if (!t[1] || !t[2]) return { txt: "Uso: copy relatorio.docx Z:" };
+      if (!d.pc.ficheiros.includes(t[1])) return { txt: "O sistema não consegue encontrar o ficheiro especificado. Ficheiros: " + d.pc.ficheiros.join(", ") };
+      const u = unidade(t[2]); if (!u) return { txt: "Destino inválido. Use uma unidade de rede (ex.: Z:) ou \\\\servidor\\pasta." };
+      if (u.erro) return { txt: u.erro, ok: false };
+      if (u.p.perm !== "W") return { txt: "Acesso negado.\n(a partilha só dá permissão de Leitura a Todos. No servidor, mude a permissão para Alteração.)", ok: false };
+      if (!u.p.ficheiros.some((f) => f.nome === t[1])) u.p.ficheiros.push({ nome: t[1], de: d.nome });
+      return { txt: "        1 ficheiro(s) copiado(s).", mudou: true, anim: u.anim, ok: true };
+    }
     if (c === "arp") { const ips = Object.keys(d.pc.arp); return { txt: ips.length ? "  Internet Address      Physical Address      Type\n" + ips.map((ip) => `  ${ip.padEnd(22)}00d0.ba${(n2i(ip) % 255).toString(16).padStart(2, "0")}.${(n2i(ip) % 9000 + 1000)}        dynamic`).join("\n") : "No ARP Entries Found" }; }
     return { txt: `'${t[0]}' não é reconhecido como comando. Escreva help para ver os comandos.` };
   }

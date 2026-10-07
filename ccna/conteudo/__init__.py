@@ -19,7 +19,16 @@ from .introducoes import INTRODUCOES
 from .labs import LABS
 from .licoes_novas_a import LICOES as NOVAS_A
 from .licoes_novas_b import LICOES as NOVAS_B
-from .narracao import video_da_licao
+from .licoes_aprofundadas import LICOES as APROFUNDADAS
+from .licoes_partilha import LICOES as PARTILHA
+from .glossario import GLOSSARIO_COMPLETO
+from .protocolos import PROTOCOLOS
+from .estagio_empresas import EMPRESAS
+from .estagio_a import ESTAGIOS as ESTAGIOS_A
+from .estagio_b import ESTAGIOS as ESTAGIOS_B
+from .termos import preparar, protocolos_da_licao, termos_da_licao
+from .exercicios import exercicios_da_licao
+from .narracao import video_da_licao, video_do_modulo
 from .programa import CASOS_MODULO, CURSOS, EXTRA_MODULO, LABS_MODULO, PROGRAMA
 from .referencias import REFERENCIAS
 from .simulador import ATIVIDADES
@@ -37,6 +46,9 @@ for _l in INTRODUCOES.values():
     LICOES[_l["id"]] = _l
 LICOES.update(NOVAS_A)
 LICOES.update(NOVAS_B)
+LICOES.update(APROFUNDADAS)
+LICOES.update(PARTILHA)
+ESTAGIOS = {**ESTAGIOS_A, **ESTAGIOS_B}
 
 _EXTRA = {}
 for _m in _ANTIGOS:
@@ -55,6 +67,7 @@ def _modulos() -> list[dict]:
             "sim": p["sim"], "icone": "router",
             "licoes": [LICOES[x] for x in p["licoes_ids"]],
             "prova_extra": _EXTRA.get(p["id"], []),
+            "estagio": ESTAGIOS.get(p["id"]),
         })
     return mods
 
@@ -68,9 +81,14 @@ for _c in CASOS:
 
 def curso() -> dict:
     """Devolve todo o curso num único dicionário pronto a exportar."""
-    for m in MODULOS:
+    pre = preparar(GLOSSARIO_COMPLETO)
+    for k, m in enumerate(MODULOS):
         for l in m["licoes"]:
             l["video"] = video_da_licao(l, m)
+            l["termos"] = termos_da_licao(l, pre)
+            l["protocolos"] = protocolos_da_licao(l, PROTOCOLOS)
+            l["exercicios"] = exercicios_da_licao(l, m)
+        m["apresentacao"] = video_do_modulo(m, MODULOS[k - 1] if k else None)
     return {
         "versao": 2,
         "titulo": "Curso de Redes de Computadores",
@@ -80,6 +98,9 @@ def curso() -> dict:
         "casos": CASOS,
         "atividades": ATIVIDADES,
         "referencias": REFERENCIAS,
+        "glossario": GLOSSARIO_COMPLETO,
+        "protocolos": PROTOCOLOS,
+        "empresas": EMPRESAS,
         "guia": {
             "dominios": [{"nome": n, "peso": p, "modulos": m} for n, p, m in DOMINIOS_EXAME],
             "plano": [{"semana": s, "tema": t, "pratica": p} for s, t, p in PLANO_SEMANAL],

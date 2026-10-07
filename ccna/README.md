@@ -4,17 +4,17 @@ Aplicação móvel (PWA) para estudar redes de computadores **do zero absoluto a
 
 - **Primeiro acesso guiado**: nome, idade, género, motivos para estudar, experiência e horário de estudo (minutos por dia, sessões por dia, dias da semana).
 - **Plano diário adaptativo**: as aulas de cada dia distribuídas pelas sessões; a data de conclusão é recalculada pelo ritmo real, pelas notas (aulas fracas ganham reforço), pelo caderno de erros e pelos dias falhados. Avisa quando há atraso e propõe a nova carga horária.
-- **Módulo 0 “Do zero”**: o que é um computador, história dos computadores e das redes, como a informação viaja, binário e hexadecimal.
-- **Cada módulo começa pelo básico** (“Comece por aqui”, ex.: *o que é um endereço IP?* com exemplos) e mostra a grelha **O que vai aprender**.
-- **11 casos reais** (clínica, escola, hotel, hospital, loja…) e laboratórios com cenário prático.
-
-- **10 módulos, 54 lições**, cada uma com **vídeo-aula narrada dentro da app** (sem ir à Internet), texto, ilustrações dos equipamentos (SVG), topologias, exemplos resolvidos, configurações Cisco passo a passo, saídas de `show` e **referências bibliográficas** (livros Cisco Press, NetAcad, normas IEEE e RFCs) no fim de cada lição.
-- **Simulador × equipamento real** em cada tema: o que muda entre o Packet Tracer e um router/switch físico.
-- **Quiz em cada lição** (70% para concluir), botão **Repetir aula**, e **prova cronometrada** no fim de cada módulo (nota 0–1000, aprovação 825) que desbloqueia o módulo seguinte.
-- **Jogos**: quiz relâmpago (60 s), desafio de sub-redes, **laboratório CLI** com um terminal Cisco IOS simulado (12 labs com verificação automática) e caderno de erros.
-- **Classificação**: XP, 7 níveis (de Estagiário a Arquiteto de Redes), conquistas, notas das provas e ranking dos perfis no dispositivo.
-- **Guia de estudo**: domínios e pesos do exame, plano de 12 semanas, dicas de exame, ferramentas, glossário e todas as referências.
-- Funciona sem internet, tema claro/escuro, instalável no telemóvel.
+- **Conteúdo programático completo**: 65 módulos em 6 partes (Fundamentos, CCNA 1 ITN, CCNA 2 SRWE, CCNA 3 ENSA, complementares e projeto final), 98 aulas. Cada módulo abre com um **vídeo curto**: resumo do módulo anterior, apresentação do novo e o seu conteúdo programático.
+- **Aulas aprofundadas e muito explicadas**: conversões decimal/binário/hexadecimal, classes de endereços, máscaras e CIDR, cálculo de sub-redes passo a passo, divisão em sub-redes, VLSM e desenho da rede lógica, modelo OSI e TCP/IP em profundidade.
+- **Termos técnicos explicados em todas as aulas** (glossário de 573 termos) e **catálogo de 68 protocolos** (para que servem, camada, portas, como funcionam, comandos, segurança).
+- **Exercícios sem fim em cada aula**: 10 obrigatórios para concluir a aula, depois tantos quantos quiser, todos com a resolução passo a passo. Cadernos numerados: **50 de conversão binária**, **100 de sub-redes**, 40 de classes/máscaras, 20 de VLSM com diagrama e 40 de OSI/portas.
+- **Teste final de cada módulo** (nota 0–1000, aprovação 825) com perguntas e exercícios gerados.
+- **Estágio profissional em cada módulo**: numa empresa (loja, escola, clínica, hotel, banco, hospital, operador, fábrica) o instrutor resolve um ticket real passo a passo; depois o estagiário resolve 5 tickets sozinho e recebe nota de 0 a 20.
+- **Simulador de rede dentro da app** (como o Packet Tracer): equipamentos, cabos com luzes, terminal Cisco IOS com os comandos do CCNA, PCs, servidores DHCP/DNS, **partilha de pastas (SMB)**, 14 atividades guiadas e **projetos com nome** que se guardam e se continuam depois (exportar/importar).
+- **Sala de laboratório**: bancadas com equipamento “físico”: escolher e ligar cabos, ligar à corrente, luzes das portas, cabo de consola e PuTTY, placa de rede no Windows, testador de cabos, tomada de parede e patch panel, partilhar uma pasta entre dois PCs.
+- **Crimpagem**: aula de conectores e ferramentas e jogo de montar o RJ45 (T568A/T568B).
+- **Os dados nunca se perdem**: tudo é gravado ao mesmo tempo no localStorage e no IndexedDB (com cópias diárias dos últimos 14 dias); se um dos dois for apagado, a app recupera do outro.
+- **11 casos reais**, laboratórios CLI e fichas de trabalho por módulo.
 
 ## Como usar
 
@@ -42,6 +42,13 @@ Todo o conteúdo está em **Python**, na pasta `conteudo/`:
 | `labs.py` | Laboratórios do terminal simulado (com cenário) |
 | `guia.py` | Plano de estudo, dicas, glossário |
 | `referencias.py` | Bibliografia (citada nas lições pela chave) |
+| `programa.py` | Conteúdo programático: cursos, módulos, aulas de cada módulo, ficha de trabalho |
+| `licoes_aprofundadas.py`, `licoes_partilha.py`, `licoes_novas_*.py` | Aulas do novo programa |
+| `glossario.py` | Glossário: todos os termos técnicos (`termo(...)`) |
+| `protocolos.py` | Catálogo de protocolos (`protocolo(...)`) |
+| `estagio_a.py`, `estagio_b.py`, `estagio_empresas.py` | Estágio profissional de cada módulo |
+| `exercicios.py` | Que exercícios gerados pertencem a cada aula (os geradores estão em `www/js/exercicios.js`) |
+| `simulador.py` | Atividades guiadas do simulador de rede |
 
 Exemplo — acrescentar uma pergunta ao quiz de uma lição:
 

@@ -37,7 +37,7 @@ def _pergunta(q: dict, onde: str, erros: list[str]) -> None:
     elif q["tipo"] == "vf":
         if not isinstance(q["correta"], bool):
             erros.append(f"{onde}: resposta V/F tem de ser True ou False")
-    elif q["tipo"] == "cmd":
+    elif q["tipo"] in ("cmd", "valor"):
         if not q["respostas"]:
             erros.append(f"{onde}: pergunta de comando sem respostas aceites")
     else:
@@ -121,7 +121,7 @@ def validar(curso: dict) -> list[str]:
         for s_id in m["sim"]:
             if s_id not in ativ:
                 erros.append(f"{m['id']}: atividade de simulador inexistente {s_id!r}")
-    CHECKS_SIM = {"tem", "ligado_tipo", "cabo", "cabos_ok", "pc_ip", "pc_rede", "ping", "ping_tipo", "ios", "dhcp", "ospf_viz", "dns", "srv_dhcp", "e"}
+    CHECKS_SIM = {"tem", "ligado_tipo", "cabo", "cabos_ok", "pc_ip", "pc_rede", "ping", "ping_tipo", "ios", "dhcp", "ospf_viz", "dns", "srv_dhcp", "e", "partilha", "fw_partilha", "mapa", "ficheiro_partilha"}
     def _chk(c, onde):
         if c["t"] not in CHECKS_SIM:
             erros.append(f"{onde}: verificação de simulador desconhecida {c['t']!r}")

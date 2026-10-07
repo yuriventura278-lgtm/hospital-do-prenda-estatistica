@@ -360,7 +360,7 @@ def _cena_bloco(i: int, b: dict) -> dict | None:
 def video_da_licao(l: dict, modulo: dict) -> dict:
     cenas = [{
         "tipo": "abertura", "bloco": -1, "titulo": l["titulo"],
-        "falas": [fala(f"Módulo {modulo['numero']}. Aula: {l['titulo']}.", mostrar=l["titulo"]),
+        "falas": [fala(f"Módulo {modulo['codigo']}. Aula: {l['titulo']}.", mostrar=l["titulo"]),
                   fala("Nesta aula vai aprender a:")] + [dict(fala(o + "."), item=k) for k, o in enumerate(l["objetivos"])],
     }]
     for i, b in enumerate(l["blocos"]):
@@ -374,3 +374,44 @@ def video_da_licao(l: dict, modulo: dict) -> dict:
     })
     palavras = sum(len(f["f"].split()) for c in cenas for f in c["falas"])
     return {"cenas": cenas, "segundos": round(palavras / 2.4 + sum(f.get("pausa", 0) for c in cenas for f in c["falas"]))}
+
+
+def video_do_modulo(m: dict, anterior: dict | None) -> dict:
+    """Vídeo curto de abertura do módulo: resumo do módulo anterior, apresentação
+    do novo módulo e o seu conteúdo programático. Tem o formato de uma aula
+    (titulo, objetivos, blocos, video) para usar o mesmo leitor de vídeo."""
+    blocos = []
+    if anterior:
+        blocos.append({"tipo": "texto", "titulo": f"Resumo do módulo anterior: {anterior['codigo']} — {anterior['titulo']}",
+                       "html": "<p>No módulo anterior aprendeu a:</p><ul>" + "".join(f"<li>{o}.</li>" for o in anterior["objetivos"]) + "</ul>"
+                               + "<p>Os temas foram: " + "; ".join(anterior["temas"]) + ".</p>"})
+    else:
+        blocos.append({"tipo": "texto", "titulo": "Bem-vindo ao curso",
+                       "html": "<p>Este é o primeiro módulo. Começamos do zero: não precisa de saber nada antes.</p>"})
+    blocos.append({"tipo": "texto", "titulo": f"Apresentação: {m['codigo']} — {m['titulo']}",
+                   "html": f"<p>Este módulo tem {len(m['licoes'])} aula{'s' if len(m['licoes']) != 1 else ''} e cerca de {m['horas']} horas de estudo, com teoria, prática, exercícios e um teste no fim.</p>"
+                           "<p>No fim do módulo vai ser capaz de:</p><ul>" + "".join(f"<li>{o}.</li>" for o in m["objetivos"]) + "</ul>"})
+    blocos.append({"tipo": "tabela", "titulo": "Conteúdo programático do módulo", "cabecalho": ["N.º", "Tema"],
+                   "linhas": [[str(k + 1), t] for k, t in enumerate(m["temas"])]})
+    blocos.append({"tipo": "tabela", "titulo": "Aulas", "cabecalho": ["Aula", "Título", "Minutos"],
+                   "linhas": [[str(k + 1), l["titulo"], str(l["minutos"])] for k, l in enumerate(m["licoes"])]})
+    pratica = ["10 exercícios obrigatórios em cada aula (e mais, se quiser)", "ficha de trabalho"]
+    if m.get("sim"):
+        pratica.append(f"{len(m['sim'])} prática{'s' if len(m['sim']) != 1 else ''} no simulador de rede")
+    if m.get("estagio"):
+        pratica.append("estágio profissional numa empresa")
+    pratica.append("teste final do módulo")
+    blocos.append({"tipo": "texto", "titulo": "Como vai estudar",
+                   "html": "<p>Em cada aula: veja a vídeo-aula, leia o conteúdo, faça o quiz e os exercícios. Depois:</p><ul>" + "".join(f"<li>{x}.</li>" for x in pratica) + "</ul>"})
+    l = {"id": "apresentacao_" + m["id"], "titulo": f"{m['codigo']} — {m['titulo']}", "objetivos": m["objetivos"], "blocos": blocos, "quiz": []}
+    cenas = [{"tipo": "abertura", "bloco": -1, "titulo": l["titulo"],
+              "falas": [fala(f"Módulo {m['codigo']}: {m['titulo']}.", mostrar=l["titulo"]), fala("Vídeo de apresentação do módulo.")]}]
+    for i, b in enumerate(blocos):
+        c = _cena_bloco(i, b)
+        if c and c["falas"]:
+            cenas.append(c)
+    cenas.append({"tipo": "fecho", "bloco": -1, "titulo": "Vamos começar",
+                  "falas": [fala("Agora já conhece o plano do módulo. Comece pela primeira aula. Bom estudo!")]})
+    palavras = sum(len(f["f"].split()) for c in cenas for f in c["falas"])
+    l["video"] = {"cenas": cenas, "segundos": round(palavras / 2.4)}
+    return l
