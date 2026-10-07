@@ -31,7 +31,6 @@ INTRODUCOES = {
                 "A rede de uma pequena loja: dois computadores, Wi-Fi para os clientes e ligação à Internet."),
             exemplo("Pense na sua casa", """
 <p>A “caixa” que o operador instalou faz quase tudo: é <b>router</b> (liga à Internet), <b>switch</b> (tem 4 portas de cabo), <b>access point</b> (cria o Wi-Fi) e <b>firewall</b> (bloqueia acessos de fora). Numa empresa, cada uma destas funções é um equipamento separado e mais potente.</p>"""),
-            video("Redes de computadores para iniciantes", "redes de computadores para iniciantes aula 1"),
         ],
         [
             mc("Na “caixa” de Internet de casa, que função cria o Wi-Fi?", ["Switch", "Access point", "Firewall", "Cabo"], 1, "O access point emite o sinal sem fios."),
@@ -58,7 +57,6 @@ INTRODUCOES = {
             texto("O que é um protocolo", """
 <p>Um <b>protocolo</b> é um conjunto de regras combinadas, como as regras de trânsito ou a forma de começar um telefonema (“Estou? / Sim, diga.”). Exemplos: <b>HTTP</b> (páginas web), <b>TCP</b> (entrega fiável), <b>IP</b> (endereços), <b>Ethernet</b> (rede com cabo).</p>"""),
             dica("Sempre que algo não funciona, os técnicos perguntam “em que camada está o problema?”. É o método que vai aprender aqui."),
-            video("Camadas de rede explicadas", "camadas de rede explicação simples analogia"),
         ],
         [
             mc("Na analogia da encomenda, a etiqueta com a morada corresponde a…", ["Camada física", "Camada de rede (IP)", "Aplicação", "Cabo"], 1, "A morada = endereço IP."),
@@ -110,7 +108,6 @@ INTRODUCOES = {
                 ["Router Cisco", "show ip interface brief"],
             ], "Descubra o seu"),
             dica("Há duas versões: <b>IPv4</b> (ex. 192.168.1.23) e <b>IPv6</b> (ex. 2001:db8::23), criado porque os endereços IPv4 acabaram. Estuda os dois neste módulo."),
-            video("O que é um endereço IP", "o que é endereço IP explicado para iniciantes IP público privado"),
         ],
         [
             mc("Qual destes é um endereço IPv4 válido?", ["192.168.1.300", "192.168.1.30", "192.168.1", "192-168-1-30"], 1, "Quatro números de 0 a 255 separados por pontos."),
@@ -141,7 +138,6 @@ LOJA-R1(config)#</code></pre>
                 ("4", "Arrastar um router e clicar nele › separador CLI", "Já pode escrever os primeiros comandos."),
             ], "Enquanto não instala, use o <b>Laboratório CLI</b> desta app (separador Jogar)."),
             dica("Não tenha medo de errar: no simulador nada se estraga. Se escrever algo errado, o IOS mostra <code>% Invalid input</code> e aponta o erro com <code>^</code>."),
-            video("Instalar Packet Tracer e primeiros comandos", "instalar Cisco Packet Tracer primeiros comandos tutorial"),
         ],
         [
             mc("O que é uma CLI?", ["Um tipo de cabo", "Uma interface onde se escrevem comandos", "Um antivírus", "Uma placa de rede"], 1, "Command Line Interface."),
@@ -166,7 +162,6 @@ LOJA-R1(config)#</code></pre>
                 "Um só switch, três redes separadas."),
             exemplo("Num hospital", """
 <p>Equipamentos médicos, computadores administrativos e Wi-Fi para visitantes ficam em VLANs diferentes. Se o portátil de um visitante tiver um vírus, não chega aos equipamentos médicos.</p>"""),
-            video("O que é uma VLAN", "o que é VLAN explicação simples switch"),
         ],
         [
             mc("O que faz o switch com uma mensagem para um equipamento que conhece?", ["Envia para todas as portas", "Envia só para a porta desse equipamento", "Apaga-a", "Envia para a Internet"], 1, "Encaminha só para a porta certa."),
@@ -189,7 +184,6 @@ LOJA-R1(config)#</code></pre>
                 "Dois caminhos até à filial: o router escolhe o melhor e usa o outro se o primeiro falhar."),
             exemplo("A rota por defeito", """
 <p>O router de casa só conhece a rede da casa. Para tudo o resto tem uma regra: “se não sabes, manda para o operador”. Chama-se <b>rota por defeito</b> (0.0.0.0/0), como a placa “todas as direções”.</p>"""),
-            video("O que é roteamento", "o que é roteamento routing explicado simples"),
         ],
         [
             mc("Como se chama a lista de rotas de um router?", ["Tabela MAC", "Tabela de encaminhamento", "Lista de contactos", "VLAN"], 1, "Routing table."),
@@ -213,7 +207,6 @@ LOJA-R1(config)#</code></pre>
             ], "Os serviços deste módulo"),
             exemplo("Quando liga o portátil no café", """
 <p>O <b>DHCP</b> do router do café dá-lhe um IP. Ao abrir um site, o <b>DNS</b> descobre o IP do servidor. Ao sair para a Internet, o <b>NAT</b> troca o seu IP privado pelo IP público do café. Tudo em milissegundos.</p>"""),
-            video("DHCP DNS NAT explicados", "DHCP DNS NAT explicação simples"),
         ],
         [
             mc("Que serviço converte nomes de sites em IP?", ["DHCP", "DNS", "NAT", "NTP"], 1, "DNS."),
@@ -242,7 +235,6 @@ LOJA-R1(config)#</code></pre>
 <li>Wi-Fi aberto com o mesmo nome do café — <b>falso access point</b> para espiar.</li>
 <li>Ficheiros cifrados com pedido de resgate — <b>ransomware</b>.</li>
 </ul>"""),
-            video("Segurança de redes para iniciantes", "segurança de redes para iniciantes ameaças comuns"),
         ],
         [
             mc("Na comparação com uma casa, a firewall é…", ["O cofre", "O porteiro", "A janela", "O carteiro"], 1, "Decide quem pode entrar."),
@@ -266,7 +258,6 @@ for ip in switches:
 print("Concluído!")</code></pre>
 <p>No módulo vai ver a versão completa com a biblioteca <b>Netmiko</b>, e também APIs, JSON e controladores.</p>"""),
             dica("Não precisa de ser programador para o CCNA: basta perceber os conceitos e ler exemplos simples."),
-            video("Automação de redes para iniciantes", "automação de redes Python iniciantes"),
         ],
         [
             mc("Qual a principal vantagem da automação?", ["Gastar mais cabos", "Fazer tarefas repetitivas de forma rápida e consistente", "Desligar a firewall", "Eliminar o IP"], 1, "Rapidez e consistência."),

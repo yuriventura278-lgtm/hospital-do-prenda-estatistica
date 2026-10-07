@@ -103,15 +103,14 @@ def tabela(cabecalho: list[str], linhas: list[list[str]], titulo: str = "") -> d
             "cabecalho": cabecalho, "linhas": linhas}
 
 
-def video(titulo: str, busca: str, youtube_id: str = "", canal: str = "") -> dict:
-    """Vídeo de apoio.
+def video(titulo: str, arquivo: str) -> dict:
+    """Vídeo gravado, guardado dentro da app (ex.: ``videos/m3l0.mp4`` na pasta www).
 
-    Sem ``youtube_id`` a app mostra um cartão que abre a pesquisa no YouTube
-    com o texto ``busca``. Para fixar um vídeo concreto, coloque o ID (a parte
-    depois de ``v=`` no link) em ``youtube_id``.
+    Não é obrigatório: TODAS as lições já têm uma vídeo-aula narrada, gerada
+    automaticamente a partir do conteúdo (ver conteudo/narracao.py). Use isto
+    apenas para juntar um vídeo gravado por um professor.
     """
-    return {"tipo": "video", "titulo": titulo, "busca": busca,
-            "youtube_id": youtube_id, "canal": canal}
+    return {"tipo": "video", "titulo": titulo, "arquivo": arquivo}
 
 
 # ---------------------------------------------------------------------------

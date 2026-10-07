@@ -47,7 +47,6 @@ MODULO = modulo(
 <li><b>Segurança</b>: confidencialidade, integridade e disponibilidade (a tríade CIA).</li>
 </ul>"""),
                 dica("No exame CCNA, “host” e “dispositivo final” querem dizer a mesma coisa. Switches e routers <b>não</b> são hosts."),
-                video("Introdução às redes de computadores", "introdução redes de computadores CCNA aula 1"),
             ],
             [
                 mc("Qual destes é um dispositivo intermediário?", ["Impressora de rede", "Switch", "Servidor web", "Telemóvel"], 1,
@@ -105,7 +104,6 @@ MODULO = modulo(
                      "Os LEDs das portas ficam âmbar ~30 s enquanto o STP verifica a porta, antes de ficarem verdes.",
                      "Módulos SFP têm de ser compatíveis com o modelo (algumas plataformas recusam SFP de terceiros)."]),
                 dica("Pelo símbolo: <b>router = círculo</b>, <b>switch = quadrado</b>. É assim em quase todos os diagramas do exame."),
-                video("Dispositivos de rede: router, switch, AP", "router vs switch vs access point explicado"),
             ],
             [
                 mc("Que equipamento decide o encaminhamento com base no endereço IP?", ["Switch L2", "Hub", "Router", "Access Point"], 2,
@@ -161,7 +159,6 @@ MODULO = modulo(
                     [("s1", "l1"), ("s1", "l2"), ("s1", "l3"), ("s1", "l4"), ("s2", "l1"), ("s2", "l2"), ("s2", "l3"), ("s2", "l4")],
                     "Spine-leaf: todos os leaf ligados a todos os spine."),
                 dica("Pergunta frequente: “numa arquitetura spine-leaf, um leaf liga-se a outro leaf?” — <b>Não</b>."),
-                video("Arquitetura de 3 camadas e spine-leaf", "CCNA network topology architectures spine leaf three tier"),
             ],
             [
                 mc("Quantas ligações tem uma malha completa com 6 routers?", ["12", "15", "30", "36"], 1,
@@ -224,7 +221,6 @@ MODULO = modulo(
                      "Cabos mal cravados causam erros CRC e ligações instáveis: teste com um testador de cabos.",
                      "Fibra: nunca olhe diretamente para o conector (laser invisível) e mantenha as pontas limpas."]),
                 alerta("A velocidade e o duplex têm de coincidir nas duas pontas. <i>Duplex mismatch</i> (um lado full, outro half) causa colisões tardias e lentidão — prefira <code>auto</code> nos dois lados."),
-                video("Cabos de rede e fibra ótica", "cabo UTP direto cruzado fibra monomodo multimodo explicado"),
             ],
             [
                 mc("Qual a distância máxima típica de um cabo UTP Ethernet?", ["10 m", "55 m", "100 m", "2 km"], 2,

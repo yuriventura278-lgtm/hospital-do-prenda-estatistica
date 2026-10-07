@@ -32,7 +32,7 @@
     ctx.modulos.forEach((m) => {
       m.licoes.forEach((l) => {
         if (!ctx.licaoFeita(l.id)) {
-          lista.push({ tipo: "aula", l, m, titulo: l.titulo, min: Math.max(5, Math.round(l.minutos * fator)) });
+          lista.push({ tipo: "aula", l, m, titulo: "Vídeo-aula e leitura: " + l.titulo, min: Math.max(5, Math.round((Math.max(l.minutos, Math.ceil((l.video ? l.video.segundos : 0) / 60)) + 3) * fator)) });
           if (l.blocos.some((b) => b.tipo === "cli")) lista.push({ tipo: "pratica", l, m, titulo: "Praticar os comandos de “" + l.titulo + "”", min: 10 });
           lista.push({ tipo: "quiz", l, m, titulo: "Quiz: " + l.titulo, min: Math.ceil(l.quiz.length * 1.2) });
         } else if (ctx.nota(l.id) < 85 && !ctx.reforcado(l.id)) {

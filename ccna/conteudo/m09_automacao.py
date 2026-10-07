@@ -32,7 +32,6 @@ MODULO = modulo(
                     ["Alterações", "Manuais, propensas a erro", "Automatizadas e consistentes"],
                     ["Resolução de problemas", "Reativa", "Assistida (garantia/analytics)"],
                 ]),
-                video("SDN e Catalyst Center", "SDN controller based networking CCNA northbound southbound"),
             ],
             [
                 mc("OSPF pertence a que plano?", ["Dados", "Controlo", "Gestão", "Aplicação"], 1, "Protocolos de encaminhamento decidem o caminho: controlo."),
@@ -84,7 +83,6 @@ for equipamento in resposta.json()["response"]:
 <li><b>Cliente-servidor</b>, <b>sem estado</b> (cada pedido traz tudo o que é preciso, incluindo o token), cacheável, interface uniforme baseada em URIs.</li>
 <li>Autenticação comum: Basic, tokens (Bearer), chaves de API, OAuth.</li>
 </ul>"""),
-                video("REST API e JSON para CCNA", "REST API JSON CCNA automação explicado"),
             ],
             [
                 mc("Que verbo HTTP corresponde a 'Create'?", ["GET", "POST", "PUT", "DELETE"], 1, "POST cria."),
@@ -155,7 +153,6 @@ with ConnectHandler(**switch) as ligacao:
                     ["Teste sempre os scripts primeiro num laboratório (CML/EVE-NG) e depois num equipamento pouco crítico.",
                      "Guarde credenciais num cofre/variáveis de ambiente, nunca no repositório.",
                      "Use controlo de versões (Git) para scripts, playbooks e backups de configuração."]),
-                video("Automação de redes com Python", "Python Netmiko automação de redes Cisco tutorial"),
             ],
             [
                 mc("Qual destas ferramentas não precisa de agente nos equipamentos?", ["Puppet", "Chef", "Ansible", "Todas precisam"], 2, "Ansible usa SSH/APIs."),

@@ -39,7 +39,6 @@ Vlan    Mac Address       Type        Ports
 <li><b>Store-and-forward</b>: recebe a trama inteira e verifica o FCS. Padrão na maioria dos switches Cisco.</li>
 <li><b>Cut-through</b>: começa a enviar logo que lê o MAC de destino. Menor latência, mas propaga tramas com erros.</li>
 </ul>"""),
-                video("Como funciona um switch", "como funciona switch tabela MAC CCNA"),
             ],
             [
                 mc("O switch aprende endereços a partir do…", ["MAC de destino", "MAC de origem", "IP de origem", "FCS"], 1, "Lê sempre o MAC de origem."),
@@ -107,7 +106,6 @@ Vlan    Mac Address       Type        Ports
                     ["Em produção, configure sempre trunks estáticos e <code>switchport nonegotiate</code>.",
                      "Num trunk com outro fabricante, o DTP não existe: configure trunk manualmente dos dois lados.",
                      "Ao adicionar uma VLAN a um trunk use <code>switchport trunk allowed vlan <b>add</b> 30</code> — sem 'add' substitui a lista e pode cortar a rede!"]),
-                video("VLANs e trunks", "VLAN trunk 802.1Q configuração Cisco CCNA"),
             ],
             [
                 cmd("Que comando atribui a porta à VLAN 10 (no modo interface)?", ["switchport access vlan 10"], "switchport access vlan 10."),
@@ -161,7 +159,6 @@ Vlan    Mac Address       Type        Ports
                     ["Escala", "Poucas VLANs/tráfego", "Campus empresarial"], ["Ponto de falha", "Uma ligação", "Pode ter redundância (HSRP)"],
                 ]),
                 dica("Erro clássico: PC sem acesso a outras VLANs porque o <b>gateway</b> configurado no PC não é o IP da subinterface/SVI da sua VLAN."),
-                video("Inter-VLAN routing", "inter VLAN routing router on a stick SVI configuração"),
             ],
             [
                 cmd("Que comando associa uma subinterface à VLAN 30?", ["encapsulation dot1q 30", "encapsulation dot1Q 30"], "encapsulation dot1Q 30."),
@@ -228,7 +225,6 @@ Fa0/5               Desg FWD 19        128.5    P2p Edge""", "Prioridade 24586 =
                      "Defina SEMPRE a root bridge manualmente (no núcleo/distribuição); não deixe que um switch velho com MAC baixo ganhe.",
                      "Use BPDU Guard em todas as portas de utilizador: evita que alguém ligue um switch doméstico e crie loops.",
                      "Para recuperar uma porta err-disabled: shutdown + no shutdown (ou errdisable recovery)."]),
-                video("Spanning Tree explicado", "spanning tree protocol STP eleição root bridge CCNA"),
             ],
             [
                 mc("Que switch se torna root bridge?", ["O de maior MAC", "O de menor Bridge ID", "O mais rápido", "O que tem mais portas"], 1, "Menor prioridade + MAC."),
@@ -270,7 +266,6 @@ Group  Port-channel  Protocol    Ports
 ------+-------------+-----------+-------------------------
 1      Po1(SU)         LACP      Gi0/1(P)    Gi0/2(P)"""),
                 alerta("Todas as portas do grupo têm de ter a mesma velocidade, duplex, modo (access/trunk), VLANs permitidas e VLAN nativa. Uma diferença deixa a porta em estado <b>(s) suspended</b>."),
-                video("EtherChannel LACP", "EtherChannel LACP PAgP configuração Cisco"),
             ],
             [
                 mc("Que combinação LACP NÃO forma EtherChannel?", ["active / active", "active / passive", "passive / passive", "Todas formam"], 2, "Dois passivos esperam um pelo outro."),
@@ -326,7 +321,6 @@ Group  Port-channel  Protocol    Ports
                      "Paredes, metal, água e micro-ondas reduzem o sinal; 5 GHz atravessa menos paredes.",
                      "Use PoE (802.3af/at/bt) para alimentar APs pelo cabo de rede — confirme o orçamento de potência do switch.",
                      "Separe a rede de convidados numa VLAN própria com isolamento e portal cativo."]),
-                video("Wireless para CCNA", "wireless LAN controller CAPWAP WPA3 CCNA aula"),
             ],
             [
                 mc("Quais os canais de 2,4 GHz que não se sobrepõem?", ["1, 5, 9", "1, 6, 11", "2, 7, 12", "1, 7, 13"], 1, "1, 6 e 11."),

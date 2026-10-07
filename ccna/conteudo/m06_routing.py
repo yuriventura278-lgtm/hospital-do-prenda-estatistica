@@ -42,7 +42,6 @@ S        10.2.5.0/24 [1/0] via 10.0.13.3""",
                 exemplo("Qual rota é usada para 172.16.10.5?", """
 <p>Tabela: <code>172.16.0.0/16 via A</code> (OSPF), <code>172.16.10.0/24 via B</code> (RIP), <code>172.16.10.0/28 via C</code> (estática), <code>0.0.0.0/0 via D</code>.</p>
 <p>172.16.10.5 cabe em /16, /24 e /28 (.0–.15). O mais longo é <b>/28 → via C</b>. A AD só desempata prefixos iguais.</p>"""),
-                video("Tabela de roteamento Cisco", "show ip route explicado longest prefix match distância administrativa"),
             ],
             [
                 mc("Qual a distância administrativa do OSPF?", ["90", "110", "120", "1"], 1, "OSPF = 110."),
@@ -83,7 +82,6 @@ S        10.2.5.0/24 [1/0] via 10.0.13.3""",
                     ["Rota estática só com interface de saída em Ethernet obriga o router a fazer ARP para cada destino (proxy ARP) — use next hop.",
                      "Em produção, as estáticas servem para rotas por defeito, filiais pequenas e rotas flutuantes de reserva (ex.: 4G).",
                      "Combine rotas flutuantes com IP SLA para detetar falhas além da própria ligação."]),
-                video("Rotas estáticas Cisco", "rota estática Cisco configuração flutuante default route"),
             ],
             [
                 cmd("Escreva a rota por defeito via 203.0.113.1.", ["ip route 0.0.0.0 0.0.0.0 203.0.113.1"], "ip route 0.0.0.0 0.0.0.0 203.0.113.1."),
@@ -156,7 +154,6 @@ Neighbor ID     Pri   State           Dead Time   Address         Interface
                      "MTU diferente entre fabricantes (ou túneis) deixa vizinhos presos em EXSTART/EXCHANGE.",
                      "Ative autenticação OSPF (MD5/SHA) para evitar routers intrusos.",
                      "Ajuste a reference-bandwidth em TODOS os routers, senão os custos ficam incoerentes."]),
-                video("OSPF single area", "OSPF configuração single area CCNA DR BDR"),
             ],
             [
                 mc("Qual o endereço multicast dos Hellos OSPF para todos os routers?", ["224.0.0.2", "224.0.0.5", "224.0.0.6", "224.0.0.10"], 1, "224.0.0.5 todos os OSPF; 224.0.0.6 DR/BDR."),
@@ -200,7 +197,6 @@ Neighbor ID     Pri   State           Dead Time   Address         Interface
                     ["Preempção", "Desligada por defeito", "Ligada por defeito", "Desligada (AVG)"],
                 ]),
                 dica("Para balancear com HSRP use dois grupos: R1 Active na VLAN 10 e R2 Active na VLAN 20."),
-                video("HSRP", "HSRP configuração Cisco CCNA FHRP"),
             ],
             [
                 mc("Qual a prioridade HSRP por defeito?", ["0", "50", "100", "255"], 2, "100."),

@@ -34,7 +34,6 @@ MODULO = modulo(
 <li><b>Transporte/Aplicação</b>: o DNS resolve nomes? Uma firewall está a bloquear a porta 443?</li>
 </ol>"""),
                 dica("No dia a dia de redes diz-se “problema de camada 1” (cabo), “camada 2” (VLAN/MAC), “camada 3” (IP/rotas). Fale assim também."),
-                video("Modelo OSI explicado", "modelo OSI 7 camadas explicado CCNA"),
             ],
             [
                 mc("Em que camada OSI trabalha o router?", ["2", "3", "4", "7"], 1, "Camada 3, rede: endereços IP e encaminhamento."),
@@ -77,7 +76,6 @@ MODULO = modulo(
 <li><b>TTL</b> do IP: cada router diminui 1.</li>
 </ul>"""),
                 dica("Pergunta clássica do exame: “quando o pacote sai de R1 para R2, qual é o MAC de destino?” — o MAC da interface de <b>R2</b>, não o do servidor."),
-                video("Encapsulamento TCP/IP", "encapsulamento TCP/IP explicado camadas"),
             ],
             [
                 mc("Quantas camadas tem o modelo TCP/IP original?", ["4", "5", "6", "7"], 0, "Aplicação, Transporte, Internet e Acesso à rede."),
@@ -117,7 +115,6 @@ MODULO = modulo(
                 exemplo("Socket", """
 <p>Uma ligação é identificada por <b>IP de origem + porta de origem + IP de destino + porta de destino + protocolo</b>. Por exemplo, o seu browser em 192.168.1.20:51344 liga a 142.250.0.10:443 (TCP). A porta de origem é <i>efémera</i> (aleatória, normalmente acima de 49152).</p>"""),
                 dica("Truque: tudo o que é “tempo real” (voz, vídeo, jogos) ou “pergunta curta” (DNS, DHCP) prefere UDP."),
-                video("TCP vs UDP e three-way handshake", "TCP vs UDP three way handshake explicado"),
             ],
             [
                 mc("Qual a sequência correta do handshake TCP?", ["SYN, ACK, SYN-ACK", "SYN, SYN-ACK, ACK", "ACK, SYN, FIN", "SYN, FIN, ACK"], 1, "SYN → SYN-ACK → ACK."),
@@ -166,7 +163,6 @@ Interface: 192.168.1.20 --- 0xb
                     ("SW1#", "show mac address-table dynamic interface g0/1", "Filtra por porta."),
                 ]),
                 dica("Em IPv6 não há ARP: o mesmo papel é feito pelo <b>NDP</b> (Neighbor Solicitation / Neighbor Advertisement, em ICMPv6)."),
-                video("ARP e endereços MAC", "ARP protocolo explicado endereço MAC CCNA"),
             ],
             [
                 mc("Quantos bits tem um endereço MAC?", ["32", "48", "64", "128"], 1, "48 bits = 6 bytes."),

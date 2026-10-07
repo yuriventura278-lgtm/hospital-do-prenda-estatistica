@@ -47,7 +47,6 @@ MODULO = modulo(
                     [("pc", "portatil", 12, 50, "Suplicante"), ("sw", "switch", 50, 50, "Autenticador"), ("ise", "servidor", 88, 50, "Servidor RADIUS")],
                     [("pc", "sw", "EAPoL"), ("sw", "ise", "RADIUS")],
                     "802.1X: o switch só abre a porta depois de o servidor autenticar o utilizador."),
-                video("AAA RADIUS TACACS+", "AAA RADIUS vs TACACS+ 802.1X CCNA"),
             ],
             [
                 mc("Que protocolo AAA usa TCP 49 e cifra todo o pacote?", ["RADIUS", "TACACS+", "Kerberos", "LDAP"], 1, "TACACS+."),
@@ -113,7 +112,6 @@ MODULO = modulo(
                     ["Aplicar uma ACL errada via SSH pode cortar o seu próprio acesso! Use 'reload in 10' antes de alterar (e 'reload cancel' se tudo correr bem).",
                      "Comente as ACLs com 'remark' para quem vier depois.",
                      "Confirme os contadores (show access-lists) para ver se o tráfego bate na linha esperada."]),
-                video("ACLs Cisco", "ACL standard extended Cisco configuração wildcard CCNA"),
             ],
             [
                 mc("Onde deve aplicar uma ACL standard?", ["Perto da origem", "Perto do destino", "Em todas as interfaces", "Na linha de consola"], 1, "Filtra só pela origem; perto da origem bloquearia demasiado."),
@@ -174,7 +172,6 @@ MODULO = modulo(
                     ["Com DHCP snooping ativo e o uplink esquecido como untrusted, NINGUÉM recebe IP — configure o trust primeiro.",
                      "Port security 'sticky' + mudança de secretária de um colaborador = porta desligada. Documente o processo.",
                      "Em redes grandes prefira 802.1X/ISE a manter listas de MACs à mão."]),
-                video("Port security e DHCP snooping", "port security DHCP snooping dynamic ARP inspection CCNA"),
             ],
             [
                 mc("Qual o modo de violação padrão do port security?", ["protect", "restrict", "shutdown", "drop"], 2, "shutdown → err-disabled."),
@@ -211,7 +208,6 @@ MODULO = modulo(
 </ul>
 <p><b>GRE</b> sozinho não cifra, mas transporta multicast (útil para OSPF) — por isso usa-se GRE sobre IPsec.</p>"""),
                 dica("Para o CCNA basta perceber os conceitos de VPN; a configuração completa de IPsec é tema do CCNP Security."),
-                video("VPN IPsec explicada", "VPN IPsec site to site remote access CCNA explicado"),
             ],
             [
                 mc("Que protocolo IPsec cifra os dados?", ["AH", "ESP", "GRE", "IKE"], 1, "ESP. O AH só autentica."),

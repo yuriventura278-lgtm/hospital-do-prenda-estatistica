@@ -52,7 +52,6 @@ MODULO = modulo(
                     ["Use 'ipconfig /release' e '/renew' (Windows) ou 'dhclient' (Linux) para testar.",
                      "Em empresas o DHCP costuma ser um servidor Windows/Linux ou a firewall; o router faz só relay.",
                      "Ative DHCP snooping nos switches para evitar servidores DHCP falsos (módulo de segurança)."]),
-                video("DHCP DORA e relay", "DHCP DORA ip helper-address configuração Cisco"),
             ],
             [
                 mc("Qual a ordem do DHCP?", ["Discover, Request, Offer, Ack", "Discover, Offer, Request, Ack", "Offer, Discover, Ack, Request", "Request, Offer, Discover, Ack"], 1, "D-O-R-A."),
@@ -100,7 +99,6 @@ Pro  Inside global         Inside local          Outside local         Outside g
 tcp  203.0.113.2:1024      192.168.1.10:51344    142.250.0.10:443      142.250.0.10:443
 tcp  203.0.113.2:1025      192.168.1.11:51344    142.250.0.10:443      142.250.0.10:443"""),
                 dica("Erro nº1 em NAT: esquecer <code>ip nat inside</code>/<code>ip nat outside</code> nas interfaces ou trocar os lados."),
-                video("NAT e PAT Cisco", "NAT PAT overload configuração Cisco inside local global"),
             ],
             [
                 mc("O IP privado de um PC interno, do ponto de vista da LAN, é o…", ["Inside global", "Inside local", "Outside local", "Outside global"], 1, "Inside local."),
@@ -153,7 +151,6 @@ tcp  203.0.113.2:1025      192.168.1.11:51344    142.250.0.10:443      142.250.0
                     ("R1(config)#", "ip ftp password Bkp#2026", ""),
                     ("R1#", "copy running-config ftp://192.168.1.70/r1-config.txt", ""),
                 ]),
-                video("NTP SNMP Syslog", "NTP SNMP Syslog CCNA explicado"),
             ],
             [
                 mc("Que nível Syslog é 'Warning'?", ["2", "3", "4", "5"], 2, "4 = Warning."),
@@ -193,7 +190,6 @@ tcp  203.0.113.2:1025      192.168.1.11:51344    142.250.0.10:443      142.250.0
                     ("R1(config)#", "interface g0/1", ""),
                     ("R1(config-if)#", "service-policy output WAN-OUT", "Aplica à saída."),
                 ], "O CCNA exige perceber os conceitos; a configuração MQC aprofunda-se no CCNP."),
-                video("QoS para CCNA", "QoS CCNA DSCP LLQ policing shaping explicado"),
             ],
             [
                 mc("Que marcação DSCP se usa para voz?", ["AF41", "CS1", "EF", "BE"], 2, "EF = 46."),

@@ -2,12 +2,12 @@ from .base import *
 
 MODULO = modulo(
     id="m0", numero=0, icone="pc",
-    titulo="Do zero: computadores e redes",
-    descricao="Para quem nunca estudou informática: o que é um computador, como nasceram as redes e a Internet, como a informação viaja e os números que as redes usam.",
+    titulo="Do zero: informática, computadores e redes",
+    descricao="Para quem nunca estudou informática: o que é a informática, como surgiram os computadores, o que há dentro deles, o software, porque precisaram de comunicar, a história das redes e da Internet, e os números que as redes usam.",
     dominio="Base (antes do exame)",
     licoes=[
         licao(
-            "m0l1", "O que é um computador", 15,
+            "m0l3", "O que é um computador por dentro", 15,
             ["Explicar o que é um computador com palavras simples",
              "Distinguir hardware e software",
              "Conhecer as peças principais: processador, memória, armazenamento e placa de rede",
@@ -42,7 +42,6 @@ MODULO = modulo(
                     ["Supercomputador / cloud", "Cálculos enormes, milhares de máquinas", "Centros de dados das grandes empresas"],
                 ], "Tipos de computadores"),
                 dica("Quando um técnico diz <i>host</i>, quer dizer qualquer computador que usa a rede: PC, telemóvel, servidor, impressora."),
-                video("O que é um computador e como funciona", "como funciona um computador hardware software explicado para iniciantes"),
             ],
             [
                 mc("Qual a ordem do funcionamento de um computador?", ["Saída → entrada → processamento", "Entrada → processamento → saída", "Processamento → saída → entrada", "Entrada → saída → processamento"], 1,
@@ -56,7 +55,7 @@ MODULO = modulo(
         ),
 
         licao(
-            "m0l2", "A história dos computadores e das redes", 18,
+            "m0l6", "A história das redes e da Internet", 18,
             ["Situar no tempo as grandes invenções da informática e das redes",
              "Conhecer a ARPANET, o TCP/IP, a Ethernet e a Web",
              "Perceber porque a Internet funciona como funciona hoje"],
@@ -92,7 +91,6 @@ MODULO = modulo(
                 exemplo("A Internet hoje", """
 <p>Hoje a Internet liga milhares de milhões de dispositivos. É uma <b>rede de redes</b>: a rede da sua casa liga ao seu operador, que liga a outros operadores, a cabos submarinos de fibra ótica entre continentes e aos centros de dados das empresas. Ninguém é “dono” da Internet inteira; há organizações que coordenam as regras (IETF) e a distribuição de endereços (IANA e os registos regionais, como o AFRINIC em África).</p>"""),
                 dica("Não precisa de decorar datas para o exame CCNA. Mas conhecer a história ajuda a perceber <b>porque</b> as coisas são como são."),
-                video("História da Internet", "história da internet ARPANET TCP/IP documentário"),
             ],
             [
                 mc("Como se chamava a rede que deu origem à Internet?", ["Ethernet", "ARPANET", "Wi-Fi", "NSFNET"], 1, "ARPANET, 1969."),
@@ -105,7 +103,7 @@ MODULO = modulo(
         ),
 
         licao(
-            "m0l3", "Como a informação viaja numa rede", 18,
+            "m0l7", "Como a informação viaja numa rede", 18,
             ["Explicar com analogias o que é endereço IP, MAC, porta e protocolo",
              "Acompanhar uma mensagem do telemóvel até ao destino",
              "Perceber o papel do router, do switch e do DNS"],
@@ -147,7 +145,6 @@ MODULO = modulo(
                 texto("Rede local e Internet", """
 <p>A <b>rede local (LAN)</b> é a rede da sua casa, escola ou escritório. A <b>Internet</b> é a ligação entre milhões de redes locais. O router é a fronteira entre as duas: por isso se chama <b>gateway</b> (porta de saída).</p>"""),
                 dica("Experimente: no Windows abra o <i>Prompt de Comando</i> e escreva <code>ipconfig</code>. No Android: Definições › Wi-Fi › (a sua rede) › Avançado. Vai ver o seu endereço IP e o do gateway."),
-                video("Como a Internet funciona", "como funciona a internet pacotes router explicação simples"),
             ],
             [
                 mc("Na analogia do correio, o endereço IP é…", ["O selo", "A morada", "O carteiro", "A lista telefónica"], 1, "O IP indica onde está o destino."),
@@ -160,7 +157,7 @@ MODULO = modulo(
         ),
 
         licao(
-            "m0l4", "Os números das redes: binário, hexadecimal e velocidades", 20,
+            "m0l8", "Os números das redes: binário, hexadecimal e velocidades", 20,
             ["Perceber porque os computadores usam binário",
              "Converter números pequenos entre decimal, binário e hexadecimal",
              "Distinguir bit de byte e Mbit/s de MB/s"],
@@ -189,7 +186,6 @@ MODULO = modulo(
 <p>Um filme de <b>1 GB</b> = 1000 MB = <b>8000 Mbit</b>. Com uma Internet de <b>100 Mbit/s</b>: 8000 ÷ 100 = <b>80 segundos</b> (na prática um pouco mais, por causa dos cabeçalhos e de outros utilizadores).</p>
 <p>Atenção: os operadores anunciam velocidades em <b>bits</b>; o computador mostra downloads em <b>bytes</b>. 100 Mbit/s ≈ 12,5 MB/s.</p>"""),
                 dica("Use a calculadora do Windows em modo <i>Programador</i> para conferir as conversões enquanto pratica."),
-                video("Binário e hexadecimal para iniciantes", "sistema binário hexadecimal explicado iniciantes redes"),
             ],
             [
                 mc("Quantos bits tem um byte?", ["4", "8", "16", "32"], 1, "1 byte = 8 bits."),
@@ -210,3 +206,9 @@ MODULO = modulo(
         vf("O endereço MAC é escrito em hexadecimal.", True, "Ex.: 00:1A:2B:3C:4D:5E."),
     ],
 )
+
+# Ordem do módulo: primeiro a informática básica, depois as redes.
+from .m00_basicos import COMUNICAR, INFORMATICA, SOFTWARE, SURGIMENTO  # noqa: E402
+
+_comp, _hist, _viagem, _numeros = MODULO["licoes"]
+MODULO["licoes"] = [INFORMATICA, SURGIMENTO, _comp, SOFTWARE, COMUNICAR, _hist, _viagem, _numeros]

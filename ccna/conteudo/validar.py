@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 TIPOS_BLOCO = {"texto", "figura", "topologia", "exemplo", "cli", "saida",
                "sim_real", "dica", "alerta", "tabela", "video"}
 FIGURAS = {"router", "switch", "switch_l3", "firewall", "ap", "wlc", "pc",
@@ -79,8 +81,15 @@ def validar(curso: dict) -> list[str]:
                     for lg in b["ligacoes"]:
                         if lg["a"] not in nos or lg["b"] not in nos:
                             erros.append(f"{onde}: ligação para nó inexistente {lg}")
-            if not any(b["tipo"] == "video" for b in l["blocos"]):
-                erros.append(f"{onde}: lição sem vídeo de apoio")
+            if "video" in l:
+                cobertos = {c["bloco"] for c in l["video"]["cenas"]}
+                for i, b in enumerate(l["blocos"]):
+                    if b["tipo"] != "video" and i not in cobertos:
+                        erros.append(f"{onde}: o bloco {i + 1} ({b['tipo']}) não aparece na vídeo-aula")
+                for c in l["video"]["cenas"]:
+                    for f in c["falas"]:
+                        if re.search(r"</?(p|b|i|li|ul|ol|code|pre|br|sup)>", f["f"] + f["t"]):
+                            erros.append(f"{onde}: fala com HTML por limpar: {f['t'][:40]}")
             for i, q in enumerate(l["quiz"]):
                 _pergunta(q, f"{onde} quiz #{i + 1}", erros)
     for lab in curso["labs"]:

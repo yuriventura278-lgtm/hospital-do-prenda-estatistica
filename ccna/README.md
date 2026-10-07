@@ -8,7 +8,7 @@ Aplicação móvel (PWA) para estudar redes de computadores **do zero absoluto a
 - **Cada módulo começa pelo básico** (“Comece por aqui”, ex.: *o que é um endereço IP?* com exemplos) e mostra a grelha **O que vai aprender**.
 - **11 casos reais** (clínica, escola, hotel, hospital, loja…) e laboratórios com cenário prático.
 
-- **9 módulos, 37 lições** com texto, ilustrações dos equipamentos (SVG), topologias, exemplos resolvidos, configurações Cisco passo a passo, saídas de `show`, vídeos de apoio e **referências bibliográficas** (livros Cisco Press, NetAcad, normas IEEE e RFCs) no fim de cada lição.
+- **10 módulos, 54 lições**, cada uma com **vídeo-aula narrada dentro da app** (sem ir à Internet), texto, ilustrações dos equipamentos (SVG), topologias, exemplos resolvidos, configurações Cisco passo a passo, saídas de `show` e **referências bibliográficas** (livros Cisco Press, NetAcad, normas IEEE e RFCs) no fim de cada lição.
 - **Simulador × equipamento real** em cada tema: o que muda entre o Packet Tracer e um router/switch físico.
 - **Quiz em cada lição** (70% para concluir), botão **Repetir aula**, e **prova cronometrada** no fim de cada módulo (nota 0–1000, aprovação 825) que desbloqueia o módulo seguinte.
 - **Jogos**: quiz relâmpago (60 s), desafio de sub-redes, **laboratório CLI** com um terminal Cisco IOS simulado (12 labs com verificação automática) e caderno de erros.
@@ -51,7 +51,12 @@ mc("Que comando mostra a tabela de encaminhamento?",
    "show ip route mostra rotas ligadas (C), estáticas (S), OSPF (O)…"),
 ```
 
-Para fixar um vídeo concreto numa lição, ponha o ID do YouTube em `video(..., youtube_id="...")`.
+### Vídeo-aulas
+
+Cada lição tem uma vídeo-aula gerada a partir de **todo** o seu conteúdo (`conteudo/narracao.py`): cenas animadas (texto, figuras, tabelas linha a linha, comandos a ser escritos no terminal), legendas sempre visíveis e narração com a voz portuguesa do dispositivo. Funciona sem Internet.
+
+- Para corrigir a pronúncia de uma palavra, acrescente-a a `PALAVRAS` (texto) ou `COMANDOS` (comandos Cisco) em `narracao.py`.
+- Para juntar um vídeo gravado por um professor, coloque o ficheiro em `www/videos/` e use `video("Título", "videos/ficheiro.mp4")` na lição.
 
 Depois de editar: `python build.py` (valida tudo e avisa se faltar algo) e `python -m unittest discover tests`.
 

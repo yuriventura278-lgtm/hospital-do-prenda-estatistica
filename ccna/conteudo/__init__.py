@@ -12,6 +12,7 @@ from .guia import (DICAS_EXAME, DOMINIOS_EXAME, EXPERIENCIA, FERRAMENTAS,
 from .casos import CASOS
 from .introducoes import INTRODUCOES
 from .labs import LABS
+from .narracao import video_da_licao
 from .referencias import REFERENCIAS
 
 MODULOS = [
@@ -35,6 +36,10 @@ for _m in MODULOS:
 
 def curso() -> dict:
     """Devolve todo o curso num único dicionário pronto a exportar."""
+    # vídeo-aula de cada lição, gerada a partir de todo o conteúdo
+    for m in MODULOS:
+        for l in m["licoes"]:
+            l["video"] = video_da_licao(l, m)
     return {
         "versao": 1,
         "titulo": "CCNA Passo a Passo",

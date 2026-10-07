@@ -286,6 +286,9 @@
     return `<article class="cab-licao"><span class="rotulo">Módulo ${m.numero} · Lição ${l._i + 1} de ${m.licoes.length}</span><h1>${esc(l.titulo)}</h1>
         <div class="linha"><span class="chip">${ic("relogio")} ${l.minutos} min</span><span class="chip acc">${esc(l.nivel)}</span>${r && r.melhor != null ? `<span class="chip ${r.melhor >= 70 ? "ok" : "warn"}">Melhor quiz: ${r.melhor}%</span>` : ""}</div>
         <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${l.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></div></article>
+      <section class="secao"><header><h2>Vídeo-aula</h2><span class="rotulo">${Math.round(l.video.segundos / 60)} min · narrada${r && r.video ? " · vista ✓" : ""}</span></header>
+        <div id="videoaula"></div><p class="suave peq">A vídeo-aula explica todo o conteúdo desta lição, cena a cena, com legendas. Por baixo tem o texto completo para ler ao seu ritmo.</p></section>
+      <h2>Conteúdo da lição</h2>
       <div class="conteudo">${l.blocos.map(bloco).join("")}</div>
       <section class="secao"><h2>Referências bibliográficas</h2><ol class="refs">${l.referencias.map((k) => `<li>${linkar(D.referencias[k])}</li>`).join("")}</ol></section>
       <div class="cartao"><h3>Testar o que aprendeu</h3><p class="suave">${l.quiz.length} perguntas. Precisa de 70% para concluir a lição.</p>
@@ -295,6 +298,14 @@
   };
   POS.licao = function () {
     const l = LICOES[rota.lid];
+    const caixa = $("#videoaula");
+    if (caixa && window.VideoAula) {
+      const leitor = window.VideoAula.montar(caixa, l, {
+        aoTerminar: () => { const r = P().licoes[l.id] || (P().licoes[l.id] = {}); if (!r.video) { r.video = Date.now(); guardar(); ganharXP(10, "vídeo-aula"); } },
+        aoQuiz: () => { sessao = null; ir("quiz", { lid: l.id }); },
+      });
+      limpar = () => leitor.parar();
+    }
     const r = P().licoes[l.id] || (P().licoes[l.id] = {});
     if (!r.lida) { r.lida = Date.now(); guardar(); setTimeout(() => ganharXP(10, "lição aberta"), 400); }
     else if (licaoFeita(l.id) && (r.melhor || 0) < 85 && !P().reforcos[l.id]) { P().reforcos[l.id] = Date.now(); guardar(); }
@@ -315,10 +326,7 @@
           ${b.nota ? `<p class="suave peq">${b.nota}</p>` : ""}</section>`;
       case "saida": return `<section class="bloco"><h3>${esc(b.titulo)}</h3><div class="term"><pre>${esc(b.texto)}</pre></div>${b.explica ? `<p class="suave peq">${b.explica}</p>` : ""}</section>`;
       case "sim_real": return `<section class="bloco"><h3>${esc(b.titulo)}</h3><div class="simreal"><div class="sim"><span class="rotulo">No simulador</span><ul>${b.simulador.map((x) => `<li>${x}</li>`).join("")}</ul></div><div class="real"><span class="rotulo">No equipamento real</span><ul>${b.real.map((x) => `<li>${x}</li>`).join("")}</ul></div></div></section>`;
-      case "video": {
-        const url = b.youtube_id ? "https://www.youtube.com/watch?v=" + encodeURIComponent(b.youtube_id) : "https://www.youtube.com/results?search_query=" + encodeURIComponent(b.busca);
-        return `<a class="video" href="${url}" target="_blank" rel="noopener"><span class="play">${ic("play")}</span><span><span class="rotulo">Vídeo de apoio</span><br><b>${esc(b.titulo)}</b><br><span class="suave peq">${b.youtube_id ? "Abrir no YouTube" : "Pesquisar no YouTube: “" + esc(b.busca) + "”"}</span></span></a>`;
-      }
+      case "video": return b.arquivo ? `<figure class="fig-caixa" style="margin:0"><video src="${esc(b.arquivo)}" controls preload="metadata" style="width:100%;border-radius:10px"></video><figcaption>${esc(b.titulo)}</figcaption></figure>` : "";
       default: return "";
     }
   }
@@ -677,7 +685,7 @@
       <div class="lista">${G.dominios.map((d) => { const ms = d.modulos.map(mod); const pct = Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100);
         return `<div class="cartao plano peso"><b>${esc(d.nome)}</b><span class="chip acc tab-num">${d.peso}% do exame</span><div class="barra"><i style="width:${pct}%"></i></div>
           <span class="suave peq">${ms.map((m) => `Módulo ${m.numero}`).join(", ")} · ${pct}% concluído</span></div>`; }).join("")}</div>
-      <div class="cartao plano"><h3>Como usar a app</h3><ol class="objetivos"><li>Leia a lição com calma e veja as figuras e os comandos.</li><li>Abra o vídeo de apoio para ver o tema explicado de outra forma.</li><li>Faça o quiz (70% para concluir). Errou? Use “Repetir a aula”.</li><li>Pratique o laboratório do módulo no terminal simulado e depois no Packet Tracer.</li><li>Passe a prova (${NOTA_APROVACAO}/1000) para desbloquear o próximo módulo.</li><li>Todos os dias: 5 min de desafio sub-rede e o caderno de erros.</li></ol></div>`;
+      <div class="cartao plano"><h3>Como usar a app</h3><ol class="objetivos"><li>Veja a vídeo-aula: explica todo o conteúdo, cena a cena, com voz e legendas.</li><li>Leia a lição com calma e reveja as figuras e os comandos.</li><li>Faça o quiz (70% para concluir). Errou? Use “Repetir a aula”.</li><li>Pratique o laboratório do módulo no terminal simulado e depois no Packet Tracer.</li><li>Passe a prova (${NOTA_APROVACAO}/1000) para desbloquear o próximo módulo.</li><li>Todos os dias: 5 min de desafio sub-rede e o caderno de erros.</li></ol></div>`;
     if (abaGuia === "plano") corpo = `<div class="tabela-caixa"><table><thead><tr><th>Semana</th><th>Estudar</th><th>Praticar</th></tr></thead><tbody>${G.plano.map((p) => `<tr><td><b>${esc(p.semana)}</b></td><td>${esc(p.tema)}</td><td>${esc(p.pratica)}</td></tr>`).join("")}</tbody></table></div>
       <p class="suave peq">Ritmo pensado para ~1 h por dia, 5 dias por semana. Ajuste ao seu tempo.</p>`;
     if (abaGuia === "exame") corpo = `<ol class="objetivos">${G.dicas.map((d) => `<li>${esc(d)}</li>`).join("")}</ol>`;

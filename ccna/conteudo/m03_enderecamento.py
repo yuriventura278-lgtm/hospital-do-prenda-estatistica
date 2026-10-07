@@ -41,7 +41,6 @@ MODULO = modulo(
                     ["A", "1–126", "/8"], ["B", "128–191", "/16"], ["C", "192–223", "/24"], ["D", "224–239", "Multicast"], ["E", "240–255", "Experimental"],
                 ], "Classes (histórico, ainda aparece no exame)"),
                 dica("Se um PC mostra <code>169.254.x.x</code>, o problema é <b>DHCP</b>: o cliente não obteve resposta de nenhum servidor."),
-                video("Binário e endereçamento IPv4", "endereçamento IPv4 binário máscara de rede aula"),
             ],
             [
                 mc("Quanto é 11000000 em decimal?", ["128", "192", "224", "240"], 1, "128 + 64 = 192."),
@@ -91,7 +90,6 @@ MODULO = modulo(
 <p>/20 → máscara 255.255.<b>240</b>.0. Mágico = 16 no 3.º octeto: 0, 16, 32, <b>48</b>… 45 está em 32–47.</p>
 <p>Rede <b>172.16.32.0</b>, broadcast <b>172.16.47.255</b>, hosts 172.16.32.1 a 172.16.47.254 (2<sup>12</sup> − 2 = 4094).</p>"""),
                 dica("Pratique todos os dias 10 minutos no <b>Desafio Sub-rede</b> (separador Jogar). No exame não há calculadora e a rapidez faz diferença."),
-                video("Subnetting rápido", "subnetting fácil método número mágico CCNA"),
             ],
             [
                 mc("Qual o endereço de rede de 10.1.1.130/25?", ["10.1.1.0", "10.1.1.128", "10.1.1.129", "10.1.1.255"], 1, "Bloco 128: 0 e 128. 130 está na rede .128."),
@@ -132,7 +130,6 @@ MODULO = modulo(
 <p>Juntar várias redes contíguas numa só rota reduz o tamanho das tabelas. Escreva as redes em binário e conte os bits iguais à esquerda.</p>
 <p>Ex.: 172.16.0.0/24, 172.16.1.0/24, 172.16.2.0/24, 172.16.3.0/24 → o 3.º octeto vai de 000000<b>00</b> a 000000<b>11</b>: 22 bits iguais → <b>172.16.0.0/22</b>.</p>"""),
                 alerta("Sobreposição: 10.0.0.0/25 e 10.0.0.64/26 sobrepõem-se (.64 a .127 pertencem às duas). O IOS recusa configurar sub-redes sobrepostas em interfaces diferentes do mesmo router (<i>% ... overlaps with ...</i>)."),
-                video("VLSM passo a passo", "VLSM passo a passo exemplo CCNA"),
             ],
             [
                 mc("Ao planear com VLSM, por onde começar?", ["Pelas redes menores", "Pelas ligações WAN", "Pelas redes maiores", "Por ordem alfabética"], 2, "Maiores primeiro evita fragmentar o espaço."),
@@ -197,7 +194,6 @@ MODULO = modulo(
                      "Os PCs simulados não usam endereços temporários de privacidade."],
                     ["Windows/macOS/Linux geram endereços aleatórios (privacidade, RFC 8981) em vez de EUI-64 — o endereço que vê no PC não bate com o MAC.",
                      "Em alguns switches é preciso ativar o modelo SDM para IPv6 antes de o configurar (ex.: Catalyst 2960: <code>sdm prefer dual-ipv4-and-ipv6 default</code> + reload)."]),
-                video("IPv6 para CCNA", "IPv6 explicado CCNA tipos de endereço SLAAC EUI-64"),
             ],
             [
                 mc("Qual é a forma abreviada correta de 2001:0DB8:0000:0000:0000:00A0:0000:0001?", ["2001:DB8::A0::1", "2001:DB8::A0:0:1", "2001:DB8:0:0:0:A:0:1", "2001:DB8::A:1"], 1, "Só se pode usar :: uma vez, e não se tiram zeros à direita (00A0 → A0)."),

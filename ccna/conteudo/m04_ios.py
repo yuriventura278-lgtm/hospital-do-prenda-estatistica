@@ -45,7 +45,6 @@ MODULO = modulo(
 <p>Para guardar: <code>copy running-config startup-config</code> (ou <code>write memory</code> / <code>wr</code>).</p>"""),
                 alerta("Escreveu um nome errado e o equipamento ficou parado a “Translating…”? Ele pensou que era um nome de host e tentou DNS. Use <b>Ctrl+Shift+6</b> e configure <code>no ip domain-lookup</code>."),
                 dica("Experimente já no <b>Laboratório CLI</b> (separador Jogar): o terminal simulado aceita abreviações, <code>?</code> e <code>do</code>."),
-                video("Cisco IOS CLI básico", "Cisco IOS CLI modos de configuração básico aula"),
             ],
             [
                 mc("Que prompt indica o modo de configuração global?", ["R1>", "R1#", "R1(config)#", "R1(config-if)#"], 2, "(config)# = configuração global."),
@@ -108,7 +107,6 @@ MODULO = modulo(
                      "Antes de 'transport input ssh' confirme que consegue entrar por SSH, ou fica trancado fora (só resta a consola).",
                      "Em produção use AAA com TACACS+/RADIUS, não só utilizadores locais."]),
                 alerta("Nunca use Telnet em produção: tudo, incluindo palavras-passe, passa em texto claro e qualquer analisador (Wireshark) lê."),
-                video("Configurar SSH em router Cisco", "configurar SSH router switch Cisco passo a passo"),
             ],
             [
                 cmd("Que comando dá ao router o nome R1?", ["hostname R1"], "hostname R1 no modo de configuração global."),
@@ -173,7 +171,6 @@ Loopback0              1.1.1.1         YES manual up                    up""",
                      "Contadores com CRC, input errors e drops são comuns e são a primeira pista.",
                      "Por segurança, CDP/LLDP costumam estar desligados em portas viradas para fora (no cdp enable).",
                      "O primeiro ping costuma perder 1 resposta (.!!!!) enquanto o ARP resolve — é normal."]),
-                video("Troubleshooting Cisco show commands", "Cisco show ip interface brief troubleshooting CCNA"),
             ],
             [
                 mc("Uma interface mostra 'administratively down'. O que fazer?", ["Trocar o cabo", "Executar no shutdown", "Mudar o duplex", "Reiniciar"], 1, "Foi desligada por configuração."),
@@ -235,7 +232,6 @@ Loopback0              1.1.1.1         YES manual up                    up""",
                      "Documente tudo, use controlo de alterações e guarde backups fora do equipamento.",
                      "Equipamentos usados podem vir com configuração antiga: <code>write erase</code> + <code>delete vlan.dat</code> (switch) + <code>reload</code>."]),
                 dica("Para o exame, o Packet Tracer chega para quase tudo. Para a vida real, ganhe experiência física com 2 switches e 1 router usados — é barato e ensina muito."),
-                video("Packet Tracer vs GNS3 vs equipamento real", "Packet Tracer vs GNS3 vs EVE-NG vs CML lab CCNA"),
             ],
             [
                 mc("Onde fica guardado normalmente o ficheiro do IOS?", ["NVRAM", "RAM", "Flash", "ROM"], 2, "A imagem IOS está na flash."),

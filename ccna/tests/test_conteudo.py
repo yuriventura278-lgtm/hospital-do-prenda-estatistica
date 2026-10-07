@@ -42,6 +42,29 @@ class TestConteudo(unittest.TestCase):
         self.assertGreaterEqual(len(self.c["casos"]), 10)
         self.assertTrue(all(l["cenario"] for l in self.c["labs"]))
 
+    def test_todas_as_licoes_tem_video_aula_completa(self):
+        for m in self.c["modulos"]:
+            for l in m["licoes"]:
+                cenas = l["video"]["cenas"]
+                self.assertEqual(cenas[0]["tipo"], "abertura", l["id"])
+                self.assertEqual(cenas[-1]["tipo"], "fecho", l["id"])
+                cobertos = {c["bloco"] for c in cenas}
+                self.assertTrue(set(range(len(l["blocos"]))) <= cobertos, l["id"])
+
+    def test_pronuncia(self):
+        from conteudo.narracao import falar
+        self.assertEqual(falar("O router 192.168.1.1/24"), "O ráuter 192 ponto 168 ponto 1 ponto 1 barra 24")
+        self.assertEqual(falar("Use TCP e DHCP"), "Use T C P e D H C P")
+        self.assertEqual(falar("no shutdown", comando=True), "nôu chât dáun")
+        self.assertEqual(falar("100 Mbit/s"), "100 megabits por segundo")
+        self.assertIn("guígabit 0 barra 0", falar("interface g0/0", comando=True))
+
+    def test_modulo_zero_comeca_pela_informatica(self):
+        titulos = [l["titulo"] for l in self.c["modulos"][0]["licoes"]]
+        self.assertEqual(titulos[0], "O que é a informática")
+        self.assertIn("Como surgiram os computadores", titulos)
+        self.assertIn("Porque os computadores precisam de comunicar", titulos)
+
 
 @unittest.skipUnless(shutil.which("node"), "Node.js não instalado")
 class TestLaboratorios(unittest.TestCase):
