@@ -1,0 +1,105 @@
+"""Guia de estudo, plano semanal, temas do exame e glossário."""
+
+DOMINIOS_EXAME = [
+    # (domínio, peso %, módulos da app)
+    ("1.0 Network Fundamentals", 20, ["m1", "m2", "m3", "m4"]),
+    ("2.0 Network Access", 20, ["m5"]),
+    ("3.0 IP Connectivity", 25, ["m6"]),
+    ("4.0 IP Services", 10, ["m7"]),
+    ("5.0 Security Fundamentals", 15, ["m8"]),
+    ("6.0 Automation and Programmability", 10, ["m9"]),
+]
+
+PLANO_SEMANAL = [
+    ("Semana 1", "Módulo 1 + Módulo 2", "Instale o Packet Tracer. Desenhe a rede de sua casa com os ícones certos."),
+    ("Semana 2", "Módulo 3 (IPv4 e sub-redes)", "Desafio Sub-rede todos os dias: objetivo 10 acertos seguidos em menos de 30 s cada."),
+    ("Semana 3", "Módulo 3 (VLSM e IPv6) + Módulo 4", "Faça os Laboratórios CLI 1 e 2 até não precisar de ajuda."),
+    ("Semana 4", "Módulo 5 (switch, VLANs, inter-VLAN)", "Monte no Packet Tracer 2 switches, 3 VLANs e router-on-a-stick."),
+    ("Semana 5", "Módulo 5 (STP, EtherChannel, Wi-Fi)", "Provoque um loop e veja o STP a resolvê-lo; configure LACP."),
+    ("Semana 6", "Módulo 6 (rotas estáticas e tabela)", "Laboratório de rotas estáticas com caminho de volta e rota flutuante."),
+    ("Semana 7", "Módulo 6 (OSPF e HSRP)", "OSPF com 3 routers, DR/BDR e passive-interface."),
+    ("Semana 8", "Módulo 7 (DHCP, NAT, NTP, Syslog, QoS)", "Rede completa com DHCP central + relay e PAT para a Internet."),
+    ("Semana 9", "Módulo 8 (segurança)", "ACLs standard e extended, port security, DHCP snooping."),
+    ("Semana 10", "Módulo 9 (automação)", "Escreva um script Python que faça backup de 2 routers (CML/DevNet sandbox)."),
+    ("Semana 11", "Revisão geral", "Refaça todas as provas de módulo até ≥ 900 pontos. Reveja o caderno de erros."),
+    ("Semana 12", "Simulados", "Simulados completos cronometrados (120 min). Marque o exame quando passar com folga."),
+]
+
+DICAS_EXAME = [
+    "O exame 200-301 tem cerca de 100 a 120 perguntas em 120 minutos (a Cisco não publica o número exato) e não permite voltar atrás.",
+    "Tipos de pergunta: escolha múltipla (uma ou várias), arrastar e largar, e simulações/testlets em CLI.",
+    "A nota de aprovação não é publicada oficialmente; a comunidade aponta cerca de 800–850 em 1000. Nesta app a prova de módulo exige 825.",
+    "Gestão de tempo: ~1 minuto por pergunta. Se não sabe, elimine opções, escolha e avance.",
+    "Leia a pergunta duas vezes: palavras como NOT, BEST, FIRST e “escolha duas” mudam tudo.",
+    "Sub-redes: tem de as fazer de cabeça em menos de 30 segundos.",
+    "Pratique CLI até escrever os comandos sem pensar — as simulações valem mais pontos.",
+    "Agende o exame na Pearson VUE (centro de testes ou online) e leia as regras de identificação.",
+    "A certificação CCNA é válida por 3 anos; renova-se com novo exame ou créditos de formação contínua (CE).",
+]
+
+FERRAMENTAS = [
+    ("Cisco Packet Tracer", "Gratuito via NetAcad. Usado em todos os laboratórios desta app.", "https://www.netacad.com/cisco-packet-tracer"),
+    ("Cisco Modeling Labs (CML)", "Imagens IOS reais. Versão Free com limite de nós.", "https://developer.cisco.com/modeling-labs/"),
+    ("GNS3", "Emulador gratuito e de código aberto.", "https://www.gns3.com"),
+    ("EVE-NG", "Plataforma de emulação multi-fabricante (Community gratuita).", "https://www.eve-ng.net"),
+    ("Wireshark", "Analisador de pacotes: veja ARP, DHCP, TCP a acontecer.", "https://www.wireshark.org"),
+    ("Cisco DevNet Sandbox", "Ambientes gratuitos para testar APIs e automação.", "https://developer.cisco.com/site/sandbox/"),
+    ("Cisco Learning Network", "Comunidade oficial, temas do exame e grupos de estudo.", "https://learningnetwork.cisco.com"),
+]
+
+GLOSSARIO = [
+    ("AAA", "Authentication, Authorization, Accounting: quem é, o que pode fazer, o que fez."),
+    ("ACL", "Access Control List: lista de regras que permite ou nega tráfego."),
+    ("AD", "Distância administrativa: confiança numa origem de rotas (menor = melhor)."),
+    ("APIPA", "Endereço 169.254.x.x que o host atribui a si próprio quando não há DHCP."),
+    ("ARP", "Descobre o MAC a partir do IP numa rede IPv4."),
+    ("BPDU", "Mensagem do Spanning Tree trocada entre switches."),
+    ("CAPWAP", "Protocolo de túnel entre APs leves e a WLC."),
+    ("CDP", "Cisco Discovery Protocol: descobre vizinhos Cisco diretamente ligados."),
+    ("CIDR", "Notação /prefixo e agregação de redes sem classes."),
+    ("CoS", "Class of Service: 3 bits de prioridade na etiqueta 802.1Q."),
+    ("DHCP", "Atribui IP, máscara, gateway e DNS automaticamente."),
+    ("DNS", "Traduz nomes em endereços IP."),
+    ("DSCP", "6 bits do cabeçalho IP usados para QoS."),
+    ("DTP", "Dynamic Trunking Protocol: negociação automática de trunk (Cisco)."),
+    ("EtherChannel", "Agregação de várias ligações físicas numa lógica."),
+    ("FHRP", "Protocolos de redundância de gateway: HSRP, VRRP, GLBP."),
+    ("Gateway", "Router que leva o tráfego para fora da rede local."),
+    ("HSRP", "Hot Standby Router Protocol (Cisco): gateway virtual redundante."),
+    ("LACP", "Protocolo aberto de negociação de EtherChannel."),
+    ("LLDP", "Descoberta de vizinhos, norma IEEE 802.1AB."),
+    ("MAC", "Endereço físico de 48 bits de uma placa de rede."),
+    ("MTU", "Tamanho máximo do pacote numa ligação (1500 bytes em Ethernet)."),
+    ("NAT/PAT", "Tradução de endereços privados para públicos; PAT usa portas."),
+    ("NTP", "Sincroniza os relógios dos equipamentos."),
+    ("OSPF", "Protocolo de encaminhamento de estado de ligação (link-state)."),
+    ("PoE", "Power over Ethernet: alimentação de APs e telefones pelo cabo."),
+    ("PortFast", "Porta de acesso passa logo a forwarding no STP."),
+    ("QoS", "Mecanismos para priorizar tráfego (voz, vídeo)."),
+    ("REST", "Estilo de API sobre HTTP com verbos GET/POST/PUT/DELETE."),
+    ("SDN", "Rede definida por software, com controlador central."),
+    ("SNMP", "Protocolo de monitorização e gestão de equipamentos."),
+    ("SSH", "Acesso remoto cifrado à CLI (TCP 22)."),
+    ("STP", "Spanning Tree Protocol: evita loops de camada 2."),
+    ("SVI", "Interface virtual de VLAN num switch (interface vlan X)."),
+    ("Syslog", "Envio de mensagens de registo para um servidor."),
+    ("Trunk", "Ligação que transporta várias VLANs com etiquetas 802.1Q."),
+    ("TTL", "Contador do IP que diminui a cada router; a 0 o pacote é descartado."),
+    ("VLAN", "Rede lógica separada dentro de um switch; um domínio de broadcast."),
+    ("VLSM", "Máscaras de tamanho variável dentro do mesmo bloco."),
+    ("VPN", "Túnel cifrado sobre uma rede pública."),
+    ("Wildcard", "Inverso da máscara, usado em ACLs e OSPF."),
+    ("WLC", "Wireless LAN Controller: gere APs centralmente."),
+    ("YANG", "Linguagem de modelação de dados de configuração de rede."),
+]
+
+SIM_REAL_RESUMO = [
+    ("Ligar ao equipamento", "Clique no separador CLI.", "Cabo de consola, driver USB-série, PuTTY a 9600 8N1."),
+    ("Arranque", "Segundos.", "Minutos; ROMMON se a imagem falhar."),
+    ("Comandos", "Subconjunto do IOS; alguns comandos não existem.", "IOS/IOS-XE completo; varia com a versão e a licença."),
+    ("Portas", "Ficam verdes rapidamente.", "LED âmbar ~30 s com STP; PortFast acelera."),
+    ("Erros físicos", "Praticamente inexistentes.", "Cabos maus, CRC, duplex mismatch, fibra suja."),
+    ("Riscos", "Nenhum: apague e recomece.", "Um erro corta a rede de uma empresa; use janelas de manutenção e 'reload in'."),
+    ("Testes", "Modo Simulation mostra cada pacote.", "Wireshark com SPAN, ping, traceroute, logs."),
+    ("Documentação", "Opcional.", "Obrigatória: diagramas, IPAM, backups e registo de alterações."),
+]
