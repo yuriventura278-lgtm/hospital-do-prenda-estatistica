@@ -26,10 +26,24 @@
     return { fator: Math.min(1.8, Math.max(0.6, media)), amostras: ult.length };
   }
 
+  // Duração base de cada tarefa (minutos de trabalho efetivo)
+  const BASE = { aula: (l) => Math.max(l.minutos, Math.ceil((l.video ? l.video.segundos : 0) / 60)) + 3, pratica: 10, quiz: (l) => Math.ceil(l.quiz.length * 1.2), exercicios: 12, lab: 15, sim: 20, ficha: 10, caso: 10, estagio: 20, revmod: 15, prova: 15 };
+  // Soma das tarefas do módulo como se nada estivesse feito: serve para repartir a carga
+  // horária oficial (m.horas) pelas tarefas, para que o curso todo some as horas oficiais.
+  function nominal(ctx, m) {
+    let t = 0;
+    m.licoes.forEach((l) => { t += BASE.aula(l) + BASE.quiz(l) + BASE.exercicios; if (l.blocos.some((b) => b.tipo === "cli")) t += BASE.pratica; });
+    t += ctx.labs.filter((x) => x.modulo === m.id).length * BASE.lab + (m.sim || []).length * BASE.sim + ((m.ficha || []).length ? BASE.ficha : 0)
+      + ctx.casos.filter((x) => x.modulo === m.id).length * BASE.caso + (m.estagio ? BASE.estagio : 0) + BASE.revmod + BASE.prova;
+    return t;
+  }
+  function escala(ctx, m) { return m.horas ? Math.max(1, (m.horas * 60) / nominal(ctx, m)) : 1; }
+
   function tarefas(ctx, fator) {
     const lista = [];
     if (ctx.erros >= 5) lista.push({ tipo: "erros", titulo: `Caderno de erros (${ctx.erros} perguntas)`, min: 10 });
     ctx.modulos.forEach((m) => {
+      const ini = lista.length, k = escala(ctx, m);
       m.licoes.forEach((l) => {
         if (!ctx.licaoFeita(l.id)) {
           lista.push({ tipo: "aula", l, m, titulo: "Vídeo-aula e leitura: " + l.titulo, min: Math.max(5, Math.round((Math.max(l.minutos, Math.ceil((l.video ? l.video.segundos : 0) / 60)) + 3) * fator)) });
@@ -49,6 +63,8 @@
         lista.push({ tipo: "revmod", m, titulo: `Revisão do ${m.codigo}`, min: 15 });
         lista.push({ tipo: "prova", m, titulo: `Prova do ${m.codigo}`, min: 15 });
       }
+      // a carga horária do módulo reparte-se pelas tarefas (estudo, prática, revisão e testes)
+      for (let i = ini; i < lista.length; i++) lista[i].min = Math.max(5, Math.round(lista[i].min * k / 5) * 5);
     });
     return lista;
   }
@@ -105,5 +121,34 @@
     return Math.min(240, Math.max(10, Math.ceil(totalMin / dias / 5) * 5));
   }
 
-  window.Plano = { calcular, minutosParaAlvo, iso, NOMES_SESSAO };
+  // Minutos que faltam (com a escala da carga horária e o ritmo do aluno)
+  function totalRestante(ctx) { return tarefas(ctx, ritmo(ctx).fator).reduce((a, t) => a + t.min, 0); }
+  // Dias de estudo (segundo cfg.dias) entre hoje e a data limite, incluindo os dois
+  function diasAte(cfg, fim, hoje) {
+    hoje = hoje || new Date(); let n = 0;
+    for (let d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()); d <= fim; d = new Date(d.getTime() + DIA_MS)) if (cfg.dias.includes(d.getDay())) n++;
+    return n;
+  }
+  // Prazos que o aluno pode escolher
+  const PRAZOS = [
+    { id: "3m", nome: "3 meses", n: 3, un: "meses", semanas: 13 },
+    { id: "6m", nome: "6 meses", n: 6, un: "meses", semanas: 26 },
+    { id: "1a", nome: "1 ano", n: 1, un: "ano", semanas: 52 },
+    { id: "2a", nome: "2 anos", n: 2, un: "anos", semanas: 104 },
+  ];
+  const fimDoPrazo = (cfg) => { const p = PRAZOS.find((x) => x.id === cfg.prazo); if (!p) return null; const i = cfg.inicio ? new Date(cfg.inicio) : new Date(); return new Date(i.getFullYear(), i.getMonth(), i.getDate() + p.semanas * 7); };
+  // Minutos por dia para acabar no prazo (arredondado a 5 min)
+  function minutosDoPrazo(ctx, cfg, hoje) {
+    const fim = fimDoPrazo(cfg); if (!fim) return cfg.min;
+    const dias = Math.max(1, diasAte(cfg, fim, hoje));
+    let min = Math.min(720, Math.max(10, Math.ceil(totalRestante(ctx) / dias / 5) * 5));
+    // confirma com o plano real (as tarefas não se partem em qualquer pedaço): o menor tempo que cumpre a data
+    const cabe = (m) => calcular(ctx, Object.assign({}, cfg, { min: m }), hoje).fim <= fim;
+    for (let k = 0; k < 60 && min < 720 && !cabe(min); k++) min += 5;
+    for (let k = 0; k < 10 && min > 10 && cabe(min - 5); k++) min -= 5;
+    return min;
+  }
+  const ritmoNome = (min) => (min <= 45 ? ["Leve", "ok"] : min <= 90 ? ["Moderado", "acc"] : min <= 180 ? ["Intenso", "warn"] : ["Muito intenso", "bad"]);
+
+  window.Plano = { calcular, minutosParaAlvo, iso, NOMES_SESSAO, PRAZOS, fimDoPrazo, minutosDoPrazo, totalRestante, diasAte, ritmoNome };
 })();

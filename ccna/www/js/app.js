@@ -58,7 +58,7 @@
   function completarPerfil(p) {
     const base = { xp: 0, licoes: {}, provas: {}, labs: {}, casos: {}, erros: [], dias: [], conquistas: {}, recordes: { subrede: 0, relampago: 0 },
       sims: {}, projetos: {}, exercicios: {}, estagios: {}, cadernos: {}, salaLab: {}, fichas: {}, caboJogo: 0, idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
-      plano: { min: 30, sessoes: 1, dias: [1, 2, 3, 4, 5] }, alvo: null };
+      plano: { min: 30, sessoes: 1, dias: [1, 2, 3, 4, 5], prazo: null, fixo: "tempo", inicio: null }, alvo: null };
     Object.keys(base).forEach((k) => { if (p[k] === undefined) p[k] = base[k]; });
     return p;
   }
@@ -846,7 +846,48 @@
       tempoLicao: p.tempoLicao, erros: p.erros.length, atividades: D.atividades, simFeito, fichaFeita, exFeitos, estagioFeito: (mid) => notaEstagio(mid) >= 10, empresa: (m) => D.empresas[m.estagio.empresa].nome, minutosHoje: cfgMinHoje == null ? minutosHoje() : cfgMinHoje,
     };
   }
-  const calcularPlano = (cfg) => window.Plano.calcular(ctxPlano(cfg ? 0 : null), cfg || P().plano);
+  // Com prazo escolhido (3 meses … 2 anos) o tempo por dia calcula-se a partir do que falta e
+  // dos dias de estudo até à data final. No modo "tempo" os minutos ficam fixos e a data mexe.
+  function calcularPlano(cfg) {
+    const proprio = !cfg; cfg = cfg || P().plano;
+    const ctx = ctxPlano(proprio ? null : 0), PL = window.Plano;
+    let efetivo = cfg;
+    if (cfg.prazo && cfg.fixo !== "tempo") {
+      const min = PL.minutosDoPrazo(ctx, cfg);
+      efetivo = Object.assign({}, cfg, { min });
+      if (proprio && cfg.min !== min) { cfg.min = min; guardar(); }
+    }
+    const pl = PL.calcular(ctx, efetivo);
+    pl.min = efetivo.min; pl.prazoFim = cfg.prazo ? PL.fimDoPrazo(cfg) : null;
+    return pl;
+  }
+  // Data em que cada parte do curso fica concluída, segundo o plano
+  function fimDasPartes(pl) {
+    const ult = {};
+    pl.dias.forEach((d) => d.sessoes.forEach((se) => se.itens.forEach((i) => { const m = i.t.m || (i.t.l && MOD_DA[i.t.l.id]); if (m) ult[m.curso] = d.date; })));
+    return D.cursos.map((c) => ({ c, fim: ult[c.id] || null, feito: MODS.filter((m) => m.curso === c.id).every((m) => provaFeita(m.id)) }));
+  }
+  const dataCurta = (d) => d.toLocaleDateString("pt-PT", { day: "numeric", month: "short", year: "numeric" });
+  const HORAS_CURSO = MODS.reduce((a, m) => a + (m.horas || 0), 0);
+  function htmlPrazo(cfg, prefixo) {
+    const PL = window.Plano, ctx = ctxPlano(0);
+    if (!cfg.prazo) return `${formPlano(cfg, prefixo)}${resumoPlano(cfg)}<button type="button" class="btn bloco" data-acao="${prefixo}-prazo" data-id="1a">Prefiro escolher em quanto tempo quero terminar</button>`;
+    const nd = cfg.dias.length;
+    const cartoes = PL.PRAZOS.map((x) => {
+      const c2 = Object.assign({}, cfg, { prazo: x.id, inicio: cfg.inicio || new Date().toISOString() }), min = PL.minutosDoPrazo(ctx, c2), [r, k] = PL.ritmoNome(min);
+      return `<button type="button" class="prazo" data-acao="${prefixo}-prazo" data-id="${x.id}" aria-pressed="${cfg.prazo === x.id}"><span class="cal"><b>${x.n}</b><span>${x.un}</span></span>
+        <span class="meio"><b>${x.nome}</b><small class="tab-num">≈ ${horas(min)} por dia · ${nd} dia${nd > 1 ? "s" : ""}/semana</small><small>termina a ${dataPT(PL.fimDoPrazo(c2))}</small></span><span class="chip ${k}">${r}</span></button>`;
+    }).join("");
+    const min = PL.minutosDoPrazo(ctx, cfg), fim = PL.fimDoPrazo(cfg), nomesS = PL.NOMES_SESSAO[cfg.sessoes];
+    return `<div class="prazos">${cartoes}</div>
+      ${min > 240 ? `<p class="alerta peq">${ic("alerta")}<span>${horas(min)} por dia é um ritmo de quem estuda a tempo inteiro. Se trabalha ou estuda noutro lado, um prazo maior é mais seguro.</span></p>` : ""}
+      <div><span class="rotulo">Em que dias pode estudar?</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" class="chip-op dia" aria-pressed="${cfg.dias.includes(d)}" data-acao="${prefixo}-dia" data-id="${d}">${DIAS_SEMANA[d]}</button>`).join("")}</div></div>
+      <div><span class="rotulo">Quantas vezes por dia?</span><div class="chips">${[1, 2, 3].map((n) => `<button type="button" class="chip-op" aria-pressed="${cfg.sessoes === n}" data-acao="${prefixo}-ses" data-id="${n}">${n === 1 ? "1 vez" : n + " vezes"}</button>`).join("")}</div></div>
+      <div class="resultado-prazo" aria-live="polite"><span class="rotulo">Tempo de aula por dia</span><div class="grande tab-num">${horas(min)} <small>por dia</small></div>
+        <div class="sessoes-prazo">${nomesS.map((n) => `<span>${esc(n)} · ${horas(Math.round(min / cfg.sessoes / 5) * 5)}</span>`).join("")}</div>
+        <div class="linha-prazo"><div><b class="tab-num">${horas(min * nd)}</b><span>por semana</span></div><div><b>${dataCurta(fim)}</b><span>fim do curso</span></div><div><b class="tab-num">${HORAS_CURSO} h</b><span>carga horária</span></div></div></div>
+      <button type="button" class="btn-link" data-acao="${prefixo}-prazo" data-id="">Prefiro escolher eu os minutos por dia</button>`;
+  }
 
   function acaoTarefa(t) {
     switch (t.tipo) {
@@ -872,7 +913,7 @@
   }
   function cartaoHoje() {
     const p = P(), cfg = p.plano, pl = calcularPlano();
-    const feito = minutosHoje(), meta = cfg.min, diaEstudo = cfg.dias.includes(new Date().getDay());
+    const feito = minutosHoje(), meta = pl.min || cfg.min, diaEstudo = cfg.dias.includes(new Date().getDay());
     const hoje = pl.dias.find((d) => d.data === hojeISO());
     const prox = pl.dias.find((d) => d.data !== hojeISO() && d.total > 0);
     let corpo;
@@ -895,7 +936,7 @@
     const reforcos = pl.lista.filter((t) => t.tipo === "rever").length;
     if (reforcos) av.push(["notas", `${reforcos} aula${reforcos > 1 ? "s" : ""} com nota abaixo de 85% ${reforcos > 1 ? "têm" : "tem"} uma revisão curta no plano, para consolidar.`]);
     if (p.erros.length >= 5) av.push(["erros", `Tem ${p.erros.length} perguntas no caderno de erros: o plano começa com 10 minutos de revisão.`]);
-    const alvo = p.alvo ? new Date(p.alvo) : null;
+    const alvo = p.alvo && !cfg.prazo ? new Date(p.alvo) : null;
     if (alvo && pl.lista.length) {
       const dif = Math.round((pl.fim - alvo) / 86400000);
       if (dif > 3) {
@@ -928,19 +969,39 @@
     return `<div class="resumo-plano"><div><span class="rotulo">Por semana</span><b class="tab-num">${horas(pl.semanal)}</b></div><div><span class="rotulo">Curso que falta</span><b class="tab-num">${horas(pl.totalMin)}</b></div><div><span class="rotulo">Conclusão prevista</span><b>${dataPT(pl.fim)}</b><span class="suave peq">~${semanas} semana${semanas > 1 ? "s" : ""}</span></div></div>`;
   }
   function alternarPlano(cfg, tipo, v) {
+    if (tipo === "prazo") { cfg.prazo = v || null; cfg.inicio = v ? (cfg.prazoAnterior === v && cfg.inicio ? cfg.inicio : new Date().toISOString()) : null; cfg.prazoAnterior = v; if (!cfg.fixo) cfg.fixo = "prazo"; if (!v) cfg.fixo = "tempo"; }
+    if (tipo === "fixo") cfg.fixo = v;
     if (tipo === "min") cfg.min = +v;
     if (tipo === "ses") cfg.sessoes = +v;
     if (tipo === "dia") { v = +v; cfg.dias = cfg.dias.includes(v) ? cfg.dias.filter((x) => x !== v) : cfg.dias.concat(v).sort(); if (!cfg.dias.length) cfg.dias = [v]; }
   }
 
+  function cartaoPrazo(pl) {
+    const p = P(), cfg = p.plano, PL = window.Plano;
+    if (!cfg.prazo) return `${resumoPlano(cfg)}${p.alvo ? `<p class="suave peq">Objetivo definido: <b>${dataPT(new Date(p.alvo))}</b></p>` : ""}`;
+    const prazo = PL.PRAZOS.find((x) => x.id === cfg.prazo), fimPrazo = pl.prazoFim, [r, k] = PL.ritmoNome(pl.min);
+    const partes = fimDasPartes(pl), inicio = new Date(cfg.inicio || Date.now()), total = Math.max(1, fimPrazo - inicio);
+    let antes = inicio;
+    const atraso = cfg.fixo === "tempo" && pl.fim > fimPrazo ? Math.round((pl.fim - fimPrazo) / 86400000) : 0;
+    return `<section class="cartao plano-prazo">
+      <div class="linha entre"><div><span class="rotulo">Prazo escolhido</span><h2>${esc(prazo.nome)}</h2></div><div style="text-align:right"><span class="rotulo">${cfg.fixo === "tempo" ? "Fim previsto" : "Termina"}</span><h2 class="tab-num">${dataPT(cfg.fixo === "tempo" ? pl.fim : fimPrazo)}</h2></div></div>
+      <div class="linha-prazo claro"><div><b class="tab-num">${horas(pl.min)}</b><span>por dia de estudo</span></div><div><b class="tab-num">${horas(pl.min * cfg.dias.length)}</b><span>por semana</span></div><div><b class="tab-num">${Math.round(Math.min(pl.totalMin, HORAS_CURSO * 60) / 60)} h</b><span>faltam de ${HORAS_CURSO} h</span></div></div>
+      <span class="chip ${k}" style="justify-self:start">Ritmo ${r.toLowerCase()}</span>
+      <span class="rotulo">Calendário das 6 partes</span>
+      <div class="partes-prazo">${partes.map(({ c, fim, feito }) => { const a = Math.max(0, (antes - inicio) / total), f = fim ? Math.min(1, Math.max(a + 0.02, (fim - inicio) / total)) : a; if (fim) antes = fim;
+        return `<div class="parte-prazo" style="${corCurso(c.id)}"><span class="cabo-letra">${c.id}</span><span class="cabo-fio rel"><i style="margin-left:${a * 100}%;width:${Math.max(2, (f - a) * 100)}%"></i></span><span class="tab-num peq suave">${feito ? "feita ✓" : fim ? "até " + fim.toLocaleDateString("pt-PT", { day: "numeric", month: "short" }) : "—"}</span></div>`; }).join("")}</div>
+      ${atraso ? `<div class="alerta">${ic("alerta")}<span>Ao ritmo de ${horas(pl.min)} por dia termina ${atraso} dias depois do prazo (${dataPT(fimPrazo)}).</span></div>` : ""}
+      <div class="secao" style="gap:8px"><b>Se faltar a um dia ou se atrasar</b>
+        <div class="grelha-2"><button type="button" class="chip-op" aria-pressed="${cfg.fixo !== "tempo"}" data-acao="pl-fixo" data-id="prazo">Manter o prazo<br><span class="peq suave">o tempo por dia sobe</span></button><button type="button" class="chip-op" aria-pressed="${cfg.fixo === "tempo"}" data-acao="pl-fixo" data-id="tempo">Manter o tempo por dia<br><span class="peq suave">a data de fim muda</span></button></div></div>
+    </section>`;
+  }
   TELAS.plano = function () {
     const p = P(), pl = calcularPlano(), av = avisosPlano(pl);
     const proximos = pl.dias.filter((d) => d.total > 0).slice(0, 14);
     return `<div class="secao"><h1>O meu plano de estudo</h1><p class="suave">Calculado a partir do seu progresso real. Muda sozinho quando estuda mais, menos, mais devagar ou quando as notas pedem revisão.</p></div>
-      ${resumoPlano(p.plano)}
-      ${p.alvo ? `<p class="suave peq">Objetivo definido: <b>${dataPT(new Date(p.alvo))}</b></p>` : ""}
+      ${cartaoPrazo(pl)}
       ${av.length ? `<section class="secao"><h2>Como o plano se adaptou a si</h2>${av.map(([k, t, b]) => `<div class="${k === "atraso" || k === "menos" ? "alerta" : "dica"}">${ic(k === "atraso" || k === "menos" ? "alerta" : "dica")}<div class="secao" style="gap:8px"><span>${t}</span>${b || ""}</div></div>`).join("")}</section>` : ""}
-      <details class="cartao"><summary><b>Alterar tempo, sessões e dias</b></summary>${formPlano(p.plano, "pl")}</details>
+      <details class="cartao"><summary><b>${p.plano.prazo ? "Mudar o prazo, os dias ou as sessões" : "Alterar tempo, sessões e dias"}</b></summary><div class="secao">${htmlPrazo(p.plano, "pl")}</div></details>
       <section class="secao"><h2>Próximos dias</h2>${proximos.map((d) => `<div class="cartao plano dia-plano"><div class="linha entre"><b>${d.data === hojeISO() ? "Hoje" : DIAS_LONGOS[d.date.getDay()]}, ${d.date.toLocaleDateString("pt-PT", { day: "numeric", month: "short" })}</b><span class="chip tab-num">${Math.round(d.total)} min</span></div>
         ${d.sessoes.filter((s) => s.itens.length).map((s) => `<div class="sessao">${p.plano.sessoes > 1 ? `<span class="rotulo">${esc(s.nome)}</span>` : ""}${s.itens.map((i) => itemTarefa(i, true)).join("")}</div>`).join("")}</div>`).join("") || '<p class="suave">Nada pendente: concluiu tudo!</p>'}</section>`;
   };
@@ -949,7 +1010,7 @@
   let ob = null;
   const GENEROS = ["Feminino", "Masculino", "Outro", "Prefiro não dizer"];
   const saudacao = (g) => g === "Feminino" ? "Bem-vinda" : g === "Masculino" ? "Bem-vindo" : "Boas-vindas";
-  function iniciarOb() { const p = P(); ob = { passo: 1, nome: p.nome === "Estudante" ? "" : p.nome, idade: p.idade || "", genero: p.genero, motivos: p.motivos.slice(), experiencia: p.experiencia, plano: JSON.parse(JSON.stringify(p.plano)), livre: false, erro: "" }; }
+  function iniciarOb() { const p = P(); if (!p.plano.prazo && !p.onboard) Object.assign(p.plano, { prazo: "1a", fixo: "prazo", inicio: new Date().toISOString(), sessoes: 2 }); ob = { passo: 1, nome: p.nome === "Estudante" ? "" : p.nome, idade: p.idade || "", genero: p.genero, motivos: p.motivos.slice(), experiencia: p.experiencia, plano: JSON.parse(JSON.stringify(p.plano)), livre: false, erro: "" }; }
   TELAS.boasvindas = function () {
     if (!ob) iniciarOb();
     const G = D.guia, passos = 5;
@@ -965,15 +1026,16 @@
       <span class="rotulo">O que já sabe?</span><div class="lista">${G.experiencia.map((e) => `<button type="button" class="item opcao-ob" aria-pressed="${ob.experiencia === e.id}" data-acao="ob-exp" data-id="${e.id}"><div class="meio"><b>${esc(e.nome)}</b><span class="suave peq">${esc(e.sugestao)}</span></div><span class="estado-ico ${ob.experiencia === e.id ? "ok" : "bloq"}">${ob.experiencia === e.id ? ic("check") : ""}</span></button>`).join("")}</div>`;
     if (ob.passo === 4) {
       const crianca = +ob.idade && +ob.idade < 15;
-      c = `<h2>O seu horário de estudo</h2><p class="suave">A carga horária adapta-se a si: escolha o que consegue cumprir com regularidade.${crianca ? " Para a sua idade recomendamos sessões curtas (15–20 min)." : ""}</p>
-      <form data-form="ob" class="secao">${formPlano(ob.plano, "ob")}${resumoPlano(ob.plano)}`;
+      c = `<h2>${ob.plano.prazo ? "Em quanto tempo quer terminar o curso?" : "O seu horário de estudo"}</h2><p class="suave">${ob.plano.prazo ? `São ${HORAS_CURSO} horas do zero ao CCNA. Escolha o prazo e os dias: o tempo de aula por dia é calculado a partir deles.` : "Escolha quanto tempo por dia consegue estudar com regularidade; a data de fim é calculada a partir dele."}${crianca ? " Para a sua idade recomendamos prazos longos e sessões curtas." : ""}</p>
+      <form data-form="ob" class="secao">${htmlPrazo(ob.plano, "ob")}`;
     }
     if (ob.passo === 5) {
       const pl = calcularPlano(ob.plano);
       c = `<h2>Tudo pronto, ${esc(ob.nome)}!</h2>
       <div class="cartao plano"><ul class="objetivos">
-        <li><b>${horas(ob.plano.min)}</b> por dia${ob.plano.sessoes > 1 ? ` em ${ob.plano.sessoes} sessões` : ""}, ${ob.plano.dias.length} dias por semana (${ob.plano.dias.map((d) => DIAS_SEMANA[d]).join(", ")}).</li>
-        <li>Conclusão prevista: <b>${dataPT(pl.fim)}</b>. Fica como o seu objetivo; o plano avisa se se atrasar.</li>
+        ${ob.plano.prazo ? `<li>Prazo: <b>${esc(window.Plano.PRAZOS.find((x) => x.id === ob.plano.prazo).nome)}</b>, fim a <b>${dataPT(pl.prazoFim)}</b>. Carga horária do curso: ${HORAS_CURSO} h.</li>` : ""}
+        <li><b>${horas(pl.min)}</b> por dia${ob.plano.sessoes > 1 ? ` em ${ob.plano.sessoes} sessões` : ""}, ${ob.plano.dias.length} dias por semana (${ob.plano.dias.map((d) => DIAS_SEMANA[d]).join(", ")}).</li>
+        <li>${ob.plano.prazo ? "Se faltar a um dia, o tempo em falta reparte-se pelos dias seguintes para manter a data. Pode mudar isto no plano." : `Conclusão prevista: <b>${dataPT(pl.fim)}</b>. Fica como o seu objetivo; o plano avisa se se atrasar.`}</li>
         <li>Primeira aula: <b>${esc(MODS[0].licoes[0].titulo)}</b>.</li>
         <li>Motivo: ${ob.motivos.length ? esc(ob.motivos.join(", ")) : "—"}.</li></ul></div>
       <form data-form="ob" class="secao">${ob.experiencia === "algum" || ob.experiencia === "trabalho" ? `<label class="linha entre" for="ob-livre"><span><b>Modo livre</b><br><span class="suave peq">Abre todos os módulos para ir direto ao que precisa.</span></span><input type="checkbox" id="ob-livre" ${ob.livre || ob.experiencia === "trabalho" ? "checked" : ""} style="width:24px;height:24px"></label>` : ""}`;
@@ -994,7 +1056,8 @@
       const p = P(), lv = $("#ob-livre");
       Object.assign(p, { nome: ob.nome, idade: ob.idade, genero: ob.genero, motivos: ob.motivos, experiencia: ob.experiencia, plano: ob.plano, onboard: true });
       if (lv) S.livre = lv.checked;
-      p.alvo = calcularPlano().fim.toISOString();
+      if (p.plano.prazo) p.plano.inicio = new Date().toISOString();
+      p.alvo = (p.plano.prazo ? window.Plano.fimDoPrazo(p.plano) : calcularPlano().fim).toISOString();
       guardar(); ob = null; pilha = []; rota = { tela: "inicio" }; render(); window.scrollTo(0, 0);
       toast(`${saudacao(p.genero)}, ${p.nome}!`);
       return;
@@ -1481,6 +1544,9 @@
     "ob-genero": (el) => { capturarOb(); ob.genero = el.dataset.id; render(); },
     "ob-motivo": (el) => { const m = D.guia.motivos[+el.dataset.id]; ob.motivos = ob.motivos.includes(m) ? ob.motivos.filter((x) => x !== m) : ob.motivos.concat(m); render(); },
     "ob-exp": (el) => { ob.experiencia = el.dataset.id; render(); },
+    "ob-prazo": (el) => { capturarOb(); alternarPlano(ob.plano, "prazo", el.dataset.id); render(); },
+    "pl-prazo": (el) => { alternarPlano(P().plano, "prazo", el.dataset.id); if (P().plano.prazo) P().alvo = window.Plano.fimDoPrazo(P().plano).toISOString(); guardar(); render(); abrirDetalhes(); toast(P().plano.prazo ? "Prazo atualizado" : "Agora escolhe os minutos por dia"); },
+    "pl-fixo": (el) => { const c = P().plano; c.fixo = el.dataset.id; if (c.fixo === "tempo") c.min = calcularPlano().min; guardar(); render(); toast(c.fixo === "prazo" ? "A data fica fixa; o tempo diário ajusta-se" : "O tempo diário fica fixo; a data ajusta-se"); },
     "ob-min": (el) => { alternarPlano(ob.plano, "min", el.dataset.id); render(); },
     "ob-ses": (el) => { alternarPlano(ob.plano, "ses", el.dataset.id); render(); },
     "ob-dia": (el) => { alternarPlano(ob.plano, "dia", el.dataset.id); render(); },
