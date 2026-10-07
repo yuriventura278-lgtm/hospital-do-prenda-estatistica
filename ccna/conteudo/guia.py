@@ -2,29 +2,14 @@
 
 DOMINIOS_EXAME = [
     # (domínio, peso %, módulos da app)
-    ("1.0 Network Fundamentals", 20, ["m0", "m1", "m2", "m3", "m4"]),
-    ("2.0 Network Access", 20, ["m5"]),
-    ("3.0 IP Connectivity", 25, ["m6"]),
-    ("4.0 IP Services", 10, ["m7"]),
-    ("5.0 Security Fundamentals", 15, ["m8"]),
-    ("6.0 Automation and Programmability", 10, ["m9"]),
+    ("1.0 Network Fundamentals", 20, ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "itn1", "itn2", "itn3", "itn4", "itn5", "itn6", "itn9", "itn11", "itn12", "itn13", "itn14", "itn17", "ensa7", "ensa11", "ensa12"]),
+    ("2.0 Network Access", 20, ["itn7", "srwe1", "srwe2", "srwe3", "srwe4", "srwe5", "srwe6", "srwe12", "srwe13"]),
+    ("3.0 IP Connectivity", 25, ["itn8", "itn10", "srwe9", "srwe14", "srwe15", "srwe16", "ensa1", "ensa2"]),
+    ("4.0 IP Services", 10, ["itn15", "srwe7", "srwe8", "ensa6", "ensa9", "ensa10"]),
+    ("5.0 Security Fundamentals", 15, ["itn16", "srwe10", "srwe11", "ensa3", "ensa4", "ensa5", "ensa8"]),
+    ("6.0 Automation and Programmability", 10, ["ensa13", "ensa14"]),
 ]
 
-PLANO_SEMANAL = [
-    ("Semana 0", "Módulo 0 (do zero)", "Para quem nunca estudou informática: computador, história das redes, binário."),
-    ("Semana 1", "Módulo 1 + Módulo 2", "Instale o Packet Tracer. Desenhe a rede de sua casa com os ícones certos."),
-    ("Semana 2", "Módulo 3 (IPv4 e sub-redes)", "Desafio Sub-rede todos os dias: objetivo 10 acertos seguidos em menos de 30 s cada."),
-    ("Semana 3", "Módulo 3 (VLSM e IPv6) + Módulo 4", "Faça os Laboratórios CLI 1 e 2 até não precisar de ajuda."),
-    ("Semana 4", "Módulo 5 (switch, VLANs, inter-VLAN)", "Monte no Packet Tracer 2 switches, 3 VLANs e router-on-a-stick."),
-    ("Semana 5", "Módulo 5 (STP, EtherChannel, Wi-Fi)", "Provoque um loop e veja o STP a resolvê-lo; configure LACP."),
-    ("Semana 6", "Módulo 6 (rotas estáticas e tabela)", "Laboratório de rotas estáticas com caminho de volta e rota flutuante."),
-    ("Semana 7", "Módulo 6 (OSPF e HSRP)", "OSPF com 3 routers, DR/BDR e passive-interface."),
-    ("Semana 8", "Módulo 7 (DHCP, NAT, NTP, Syslog, QoS)", "Rede completa com DHCP central + relay e PAT para a Internet."),
-    ("Semana 9", "Módulo 8 (segurança)", "ACLs standard e extended, port security, DHCP snooping."),
-    ("Semana 10", "Módulo 9 (automação)", "Escreva um script Python que faça backup de 2 routers (CML/DevNet sandbox)."),
-    ("Semana 11", "Revisão geral", "Refaça todas as provas de módulo até ≥ 900 pontos. Reveja o caderno de erros."),
-    ("Semana 12", "Simulados", "Simulados completos cronometrados (120 min). Marque o exame quando passar com folga."),
-]
 
 DICAS_EXAME = [
     "O exame 200-301 tem cerca de 100 a 120 perguntas em 120 minutos (a Cisco não publica o número exato) e não permite voltar atrás.",
@@ -103,6 +88,15 @@ SIM_REAL_RESUMO = [
     ("Riscos", "Nenhum: apague e recomece.", "Um erro corta a rede de uma empresa; use janelas de manutenção e 'reload in'."),
     ("Testes", "Modo Simulation mostra cada pacote.", "Wireshark com SPAN, ping, traceroute, logs."),
     ("Documentação", "Opcional.", "Obrigatória: diagramas, IPAM, backups e registo de alterações."),
+]
+
+PLANO_SEMANAL = [
+    ("Semanas 1–3", "Parte A — Fundamentos (30 h)", "Primeira rede no Simulador; números binários e hexadecimais."),
+    ("Semanas 4–10", "CCNA 1 — ITN 1 a 17 (70 h)", "Crimpar um cabo; simulador: configurar switch, router e sub-redes; projeto Clínica Boa Saúde."),
+    ("Semanas 11–17", "CCNA 2 — SRWE 1 a 16 (70 h)", "VLANs, trunk, router-on-a-stick, DHCP, rotas estáticas; projeto Imobiliária Horizonte."),
+    ("Semanas 18–24", "CCNA 3 — ENSA 1 a 14 (70 h)", "OSPF, ACL, NAT, gestão; projeto Rede de farmácias."),
+    ("Semanas 25–32", "Complementares E1–E6 (80 h)", "Cabeamento estruturado, Linux, Wireshark, cibersegurança, IPv6, CCNP."),
+    ("Semanas 33–36", "Projeto final e exame (40 h)", "Hospital Municipal; simulados de 120 min; marcar o exame."),
 ]
 
 # Opções do primeiro acesso

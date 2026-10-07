@@ -323,7 +323,27 @@
     return `<svg viewBox="0 0 520 140" class="fig">${s}</svg>`;
   }
 
+  function conectores() {
+    const item = (x, nome, sub, desenho) => `<g transform="translate(${x},0)">${desenho}${T(50, 128, nome, "f-label", 'text-anchor="middle"')}${T(50, 143, sub, "f-mini", 'text-anchor="middle"')}</g>`;
+    const rj = (larg, pinos, cls) => `<rect x="${50 - larg / 2}" y="30" width="${larg}" height="46" rx="4" class="${cls || "f-rj45"}"/>${Array.from({ length: pinos }, (_, k) => `<rect x="${50 - larg / 2 + 5 + k * ((larg - 10) / pinos)}" y="36" width="${(larg - 10) / pinos - 2}" height="14" class="f-pino"/>`).join("")}<path d="M${50 - larg / 4} 76 h${larg / 2} l-4 12 h-${larg / 2 - 8}z" class="${cls || "f-rj45"}"/><rect x="${50 - 8}" y="88" width="16" height="22" rx="3" class="f-capa"/>`;
+    const lc = `<rect x="22" y="30" width="24" height="50" rx="3" class="f-lc"/><rect x="54" y="30" width="24" height="50" rx="3" class="f-lc"/><rect x="28" y="20" width="12" height="12" class="f-ferrule"/><rect x="60" y="20" width="12" height="12" class="f-ferrule"/><rect x="38" y="80" width="24" height="30" rx="4" class="f-fibra-capa"/>`;
+    const sc = `<rect x="30" y="30" width="40" height="50" rx="2" class="f-sc"/><rect x="44" y="18" width="12" height="14" class="f-ferrule"/><rect x="42" y="80" width="16" height="30" rx="3" class="f-fibra-capa"/>`;
+    const st = `<circle cx="50" cy="52" r="20" class="f-st"/><rect x="45" y="18" width="10" height="16" class="f-ferrule"/><rect x="42" y="72" width="16" height="38" rx="3" class="f-fibra-capa"/>`;
+    const bnc = `<rect x="34" y="28" width="32" height="44" rx="8" class="f-metal"/><circle cx="50" cy="40" r="6" class="f-pino"/><rect x="44" y="72" width="12" height="38" rx="3" class="f-capa-preta"/>`;
+    const db9 = `<path d="M22 34 h56 l-7 34 h-42z" class="f-db9"/>${[0, 1, 2, 3, 4].map((i) => `<circle cx="${30 + i * 10}" cy="44" r="2.5" class="f-pino"/>`).join("")}${[0, 1, 2, 3].map((i) => `<circle cx="${35 + i * 10}" cy="56" r="2.5" class="f-pino"/>`).join("")}<rect x="42" y="68" width="16" height="42" rx="3" class="f-consola"/>`;
+    return `<svg viewBox="0 0 700 150" class="fig">${item(0, "RJ45", "UTP, 8 fios", rj(44, 8))}${item(100, "RJ11", "telefone, 4 fios", rj(30, 4))}${item(200, "LC", "fibra, SFP", lc)}${item(300, "SC", "fibra, FTTH", sc)}${item(400, "ST", "fibra, baioneta", st)}${item(500, "F / BNC", "coaxial", bnc)}${item(600, "DB9", "consola série", db9)}</svg>`;
+  }
+  function ferramentas() {
+    const item = (x, nome, sub, d) => `<g transform="translate(${x},0)">${d}${T(70, 132, nome, "f-label", 'text-anchor="middle"')}${T(70, 147, sub, "f-mini", 'text-anchor="middle"')}</g>`;
+    const alicate = `<path d="M30 30 L70 60 L110 30 L118 40 L80 70 L80 112 L66 112 L66 72 L22 40z" class="f-cabo-ferr"/><rect x="58" y="52" width="24" height="16" rx="2" class="f-metal"/><circle cx="70" cy="60" r="4" class="f-pino"/>`;
+    const descarnador = `<rect x="40" y="24" width="60" height="70" rx="14" class="f-cabo-ferr"/><circle cx="70" cy="56" r="12" class="f-porta-in"/><rect x="62" y="50" width="16" height="4" class="f-metal"/>`;
+    const testador = `<rect x="22" y="22" width="56" height="84" rx="6" class="f-testador"/>${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `<circle cx="${32 + (k % 4) * 12}" cy="${42 + Math.floor(k / 4) * 14}" r="4" class="f-led-on"/>`).join("")}<rect x="40" y="80" width="20" height="14" rx="2" class="f-porta"/><rect x="88" y="44" width="34" height="50" rx="5" class="f-testador"/><rect x="96" y="70" width="18" height="12" rx="2" class="f-porta"/>`;
+    const impacto = `<rect x="58" y="22" width="24" height="64" rx="8" class="f-cabo-ferr"/><rect x="64" y="86" width="12" height="26" class="f-metal"/><path d="M60 112 h20 l-4 6 h-12z" class="f-metal"/>`;
+    return `<svg viewBox="0 0 560 155" class="fig">${item(0, "Alicate de crimpar", "prende o RJ45", alicate)}${item(140, "Descarnador", "tira a capa", descarnador)}${item(280, "Testador de cabos", "luzes 1 a 8", testador)}${item(420, "Ferramenta de impacto", "keystone e patch panel", impacto)}</svg>`;
+  }
+
   const FIGURAS = {
+    conectores, ferramentas_cabo: ferramentas,
     computador_partes: computadorPartes, linha_tempo: linhaTempo,
     painel_switch: painelSwitch, painel_router: painelRouter,
     cabo_utp: caboUtp, cabo_fibra: caboFibra, cabo_consola: caboConsola, rj45_pinos: rj45Pinos,

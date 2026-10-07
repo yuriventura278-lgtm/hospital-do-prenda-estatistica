@@ -29,14 +29,15 @@ class TestConteudo(unittest.TestCase):
     def test_prova_tem_perguntas_suficientes(self):
         for m in self.c["modulos"]:
             total = sum(len(l["quiz"]) for l in m["licoes"]) + len(m["prova_extra"])
-            self.assertGreaterEqual(total, 15, m["id"])
+            self.assertGreaterEqual(total, 3, m["id"])
 
     def test_numeracao_dos_modulos(self):
         self.assertEqual([m["numero"] for m in self.c["modulos"]], list(range(0, len(self.c["modulos"]))))
 
-    def test_cada_modulo_comeca_pelo_basico(self):
-        for m in self.c["modulos"][1:]:
-            self.assertTrue(m["licoes"][0]["titulo"].startswith("Comece por aqui"), m["id"])
+    def test_programa_por_cursos(self):
+        cursos = {c["id"] for c in self.c["cursos"]}
+        self.assertTrue(all(m["curso"] in cursos for m in self.c["modulos"]))
+        self.assertTrue(all(m["ficha"] for m in self.c["modulos"]))
 
     def test_ha_casos_reais_e_cenarios(self):
         self.assertGreaterEqual(len(self.c["casos"]), 10)
@@ -60,7 +61,7 @@ class TestConteudo(unittest.TestCase):
         self.assertIn("guígabit 0 barra 0", falar("interface g0/0", comando=True))
 
     def test_modulo_zero_comeca_pela_informatica(self):
-        titulos = [l["titulo"] for l in self.c["modulos"][0]["licoes"]]
+        titulos = [l["titulo"] for m in self.c["modulos"] if m["curso"] == "A" for l in m["licoes"]]
         self.assertEqual(titulos[0], "O que é a informática")
         self.assertIn("Como surgiram os computadores", titulos)
         self.assertIn("Porque os computadores precisam de comunicar", titulos)
@@ -71,6 +72,10 @@ class TestLaboratorios(unittest.TestCase):
     def test_dicas_resolvem_todos_os_labs(self):
         subprocess.run([sys.executable, str(RAIZ / "build.py")], check=True, capture_output=True)
         r = subprocess.run(["node", str(RAIZ / "tests" / "resolver_labs.cjs")], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_atividades_do_simulador(self):
+        r = subprocess.run(["node", str(RAIZ / "tests" / "simulador_motor.cjs")], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
 

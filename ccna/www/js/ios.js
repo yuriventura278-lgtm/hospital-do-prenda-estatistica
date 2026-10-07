@@ -41,7 +41,7 @@
   }
 
   class Equipamento {
-    constructor(tipo, hostname) {
+    constructor(tipo, hostname, modelo) {
       this.tipo = tipo;
       this.modo = "user";
       this.ctx = null;
@@ -55,7 +55,10 @@
         dhcpExcl: [], dhcpPools: {}, acls: {}, natRules: [], ntp: [], stpMode: "pvst",
       };
       const add = (n, extra) => { this.cfg.interfaces[n] = Object.assign({ ip: "", mask: "", shutdown: tipo === "router", desc: "", mode: "", accessVlan: 1, native: 1, nonegotiate: false, portsec: false, psMax: 1, psSticky: false, nat: "", helper: "", portfast: false, encap: null, routed: tipo === "router" }, extra || {}); };
-      if (tipo === "router") ["GigabitEthernet0/0", "GigabitEthernet0/1", "GigabitEthernet0/2", "Serial0/1/0"].forEach((n) => add(n));
+      this.modelo = modelo || (tipo === "router" ? "2911" : "2960");
+      this.sim = null; // ganchos do simulador de rede (ligação física, ping, OSPF, CDP)
+      if (tipo === "router") (this.modelo === "4331" ? ["GigabitEthernet0/0/0", "GigabitEthernet0/0/1", "GigabitEthernet0/0/2", "Serial0/1/0", "Serial0/1/1"]
+        : ["GigabitEthernet0/0", "GigabitEthernet0/1", "GigabitEthernet0/2", "Serial0/1/0"]).forEach((n) => add(n));
       else {
         for (let i = 1; i <= 24; i++) add("FastEthernet0/" + i);
         add("GigabitEthernet0/1"); add("GigabitEthernet0/2");
@@ -245,7 +248,7 @@
     ipIntBrief() {
       const L = ["Interface              IP-Address      OK? Method Status                Protocol"];
       Object.entries(this.cfg.interfaces).forEach(([n, i]) => {
-        const up = !i.shutdown && (this.tipo === "router" ? !/^Serial/.test(n) : (/^Vlan/.test(n) ? true : /^Fast/.test(n) ? +n.split("/")[1] <= 4 : true));
+        const up = !i.shutdown && (this.sim ? this.sim.ligada(n) : (this.tipo === "router" ? !/^Serial/.test(n) : (/^Vlan/.test(n) ? true : /^Fast/.test(n) ? +n.split("/")[1] <= 4 : true)));
         const st = i.shutdown ? "administratively down" : up ? "up" : "down";
         L.push(pad(n, 23) + pad(i.ip === "dhcp" ? "unassigned" : i.ip || "unassigned", 16) + "YES " + pad(i.ip ? (i.ip === "dhcp" ? "DHCP" : "manual") : "unset", 7) + pad(st, 22) + (up && !i.shutdown ? "up" : "down"));
       });
@@ -281,11 +284,12 @@
       L.push(def ? `Gateway of last resort is ${def.via} to network 0.0.0.0` : "Gateway of last resort is not set", "");
       if (def) L.push(`S*    0.0.0.0/0 [${def.ad || 1}/0] via ${def.via}`);
       Object.entries(this.cfg.interfaces).forEach(([n, i]) => {
-        if (!i.ip || i.ip === "dhcp" || i.shutdown) return;
+        if (!i.ip || i.ip === "dhcp" || i.shutdown || (this.sim && !this.sim.ligada(n))) return;
         const p = prefixo(i.mask);
         L.push(`C        ${rede(i.ip, i.mask)}/${p} is directly connected, ${n}`, `L        ${i.ip}/32 is directly connected, ${n}`);
       });
       this.cfg.routes.filter((r) => r.net !== "0.0.0.0").forEach((r) => L.push(`S        ${r.net}/${prefixo(r.mask)} [${r.ad || 1}/0] via ${r.via}`));
+      if (this.sim) this.sim.rotasOspf().forEach((r) => L.push(`O        ${r.net}/${r.pref} [110/${r.custo}] via ${r.via}, 00:00:12, ${r.iface}`));
       return L.join("\n");
     }
 
@@ -416,12 +420,13 @@ Configuration register is 0x2102
     C(PRIV, "erase startup-config", function () { this.startup = ""; return "Erasing the nvram filesystem will remove all configuration files! Continue? [confirm]\n[OK]\nErase of nvram: complete"; }),
     C(PRIV, "write erase", function () { this.startup = ""; return "[OK]\nErase of nvram: complete"; }),
     C(EXEC, "ping <ip>", function ([ip]) {
+      if (this.sim) { const r = this.sim.ping(ip); return `Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to ${ip}, timeout is 2 seconds:\n${r.ok ? ".!!!!" : r.inalcancavel ? "U.U.U" : "....."}\nSuccess rate is ${r.ok ? "80 percent (4/5), round-trip min/avg/max = 1/2/4 ms" : "0 percent (0/5)"}`; }
       const alcancavel = Object.values(this.cfg.interfaces).some((i) => i.ip && i.ip !== "dhcp" && !i.shutdown && rede(i.ip, i.mask) === rede(ip, i.mask));
       const viaRota = this.cfg.routes.length > 0;
       const ok = alcancavel || viaRota;
       return `Type escape sequence to abort.\nSending 5, 100-byte ICMP Echos to ${ip}, timeout is 2 seconds:\n${ok ? ".!!!!" : "....."}\nSuccess rate is ${ok ? "80 percent (4/5)" : "0 percent (0/5)"}` + (ok ? ", round-trip min/avg/max = 1/2/4 ms" : "") + "\n(simulado: o primeiro '.' é o tempo do ARP)";
     }, "Testa a conectividade"),
-    C(EXEC, "traceroute <ip>", function ([ip]) { return `Type escape sequence to abort.\nTracing the route to ${ip}\n  1 10.0.12.2 4 msec 2 msec 2 msec\n  2 ${ip} 6 msec 4 msec 5 msec\n(simulado)`; }, "Mostra os saltos até ao destino"),
+    C(EXEC, "traceroute <ip>", function ([ip]) { if (this.sim) { const r = this.sim.tracert(ip); return `Type escape sequence to abort.\nTracing the route to ${ip}\n` + r.saltos.map((h, k) => `  ${k + 1} ${h} ${2 + k} msec ${1 + k} msec ${2 + k} msec`).join("\n") + (r.ok ? "" : `\n  ${r.saltos.length + 1}  *  *  *`); } return `Type escape sequence to abort.\nTracing the route to ${ip}\n  1 10.0.12.2 4 msec 2 msec 2 msec\n  2 ${ip} 6 msec 4 msec 5 msec\n(simulado)`; }, "Mostra os saltos até ao destino"),
     C(PRIV, "show running-config", function () { return this.runningConfig(); }, "Mostra informação do sistema"),
     C(PRIV, "show startup-config", function () { if (!this.startup) return "startup-config is not present"; const atual = this.cfg; this.cfg = JSON.parse(this.startup); const r = this.runningConfig().replace("Current configuration", "Using"); this.cfg = atual; return r; }),
     C(EXEC, "show ip interface brief", function () { return this.ipIntBrief(); }),
@@ -441,14 +446,14 @@ Configuration register is 0x2102
     }),
     C(EXEC, "show mac address-table", function () { return "          Mac Address Table\n-------------------------------------------\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n   1    0050.7966.6800    DYNAMIC     Fa0/1\n   1    0050.7966.6801    DYNAMIC     Fa0/2\nTotal Mac Addresses for this criterion: 2"; }, "", "switch"),
     C(EXEC, "show ip protocols", function () { const o = this.cfg.ospf; if (!o) return ""; return `Routing Protocol is "ospf ${o.pid}"\n  Router ID ${o.rid || "1.1.1.1"}\n  Routing for Networks:\n${o.nets.map((n) => `    ${n.net} ${n.wc} area ${n.area}`).join("\n")}\n  Passive Interface(s):\n${o.passive.map((p) => "    " + p).join("\n")}\n  Distance: (default is 110)`; }),
-    C(EXEC, "show ip ospf neighbor", function () { return this.cfg.ospf ? "Neighbor ID     Pri   State           Dead Time   Address         Interface\n(no simulador não há routers vizinhos ligados)" : ""; }),
+    C(EXEC, "show ip ospf neighbor", function () { if (this.sim && this.cfg.ospf) return "Neighbor ID     Pri   State           Dead Time   Address         Interface\n" + this.sim.vizinhosOspf().map((v) => pad(v.rid, 16) + pad("1", 6) + pad("FULL/  -", 16) + pad("00:00:35", 12) + pad(v.ip, 16) + v.iface).join("\n"); return this.cfg.ospf ? "Neighbor ID     Pri   State           Dead Time   Address         Interface\n(no simulador não há routers vizinhos ligados)" : ""; }),
     C(EXEC, "show ip dhcp pool", function () { return Object.entries(this.cfg.dhcpPools).map(([n, p]) => `Pool ${n} :\n Utilization mark (high/low)    : 100 / 0\n Total addresses                : ${p.mask ? Math.pow(2, 32 - prefixo(p.mask)) - 2 : 0}\n Network ${p.net || "-"} / ${p.mask || "-"}  Default router ${p.gw || "-"}`).join("\n\n"); }),
     C(EXEC, "show ip dhcp binding", function () { return "Bindings from all pools not associated with VRF:\nIP address      Client-ID/              Lease expiration        Type\n                Hardware address/\n(nenhum cliente no simulador)"; }),
     C(EXEC, "show ip nat translations", function () { return this.cfg.natRules.length ? "Pro  Inside global      Inside local       Outside local      Outside global\n(sem tráfego no simulador)" : ""; }),
     C(EXEC, "show access-lists", function () { return Object.entries(this.cfg.acls).map(([n, l]) => `Standard IP access list ${n}\n` + l.map((x, i) => `    ${(i + 1) * 10} ${x}`).join("\n")).join("\n"); }),
     C(EXEC, "show port-security interface <if>", function ([n]) { const i = this.cfg.interfaces[normIf(n)] || {}; return `Port Security              : ${i.portsec ? "Enabled" : "Disabled"}\nPort Status                : ${i.portsec ? "Secure-up" : "Secure-down"}\nViolation Mode             : ${i.psViol || "Shutdown"}\nMaximum MAC Addresses      : ${i.psMax || 1}\nSticky MAC Addresses       : ${i.psSticky ? 1 : 0}`; }, "", "switch"),
     C(EXEC, "show ip ssh", function () { return this.cfg.rsa ? `SSH Enabled - version ${this.cfg.sshV2 ? "2.0" : "1.99"}\nAuthentication timeout: 120 secs; Authentication retries: 3` : "SSH Disabled - version 1.99\n%Please create RSA keys to enable SSH (and of atleast 768 bits for SSH v2)."; }),
-    C(EXEC, "show cdp neighbors", function () { return "Capability Codes: R - Router, S - Switch, H - Host\nDevice ID    Local Intrfce   Holdtme    Capability   Platform    Port ID\n" + (this.tipo === "router" ? "SW1          Gig 0/0         152            S          2960        Gig 0/1" : "R1           Gig 0/1         146            R          C2900       Gig 0/0"); }),
+    C(EXEC, "show cdp neighbors", function () { if (this.sim) return "Capability Codes: R - Router, S - Switch, H - Host\nDevice ID    Local Intrfce   Holdtme    Capability   Platform    Port ID\n" + this.sim.cdp().map((v) => pad(v.nome, 13) + pad(curto(v.local), 16) + pad("150", 11) + pad(v.cap, 13) + pad(v.plat, 12) + curto(v.remota)).join("\n"); return "Capability Codes: R - Router, S - Switch, H - Host\nDevice ID    Local Intrfce   Holdtme    Capability   Platform    Port ID\n" + (this.tipo === "router" ? "SW1          Gig 0/0         152            S          2960        Gig 0/1" : "R1           Gig 0/1         146            R          C2900       Gig 0/0"); }),
     C(EXEC, "show clock", function () { return "*" + new Date().toUTCString(); }),
     C(EXEC, "show flash:", function () { return "-#- --length-- -----date/time------ path\n1    33591768 Jan 01 2026 00:00:00 +00:00 " + (this.tipo === "router" ? "c2900-universalk9-mz.SPA.152-4.M.bin" : "c2960-lanbasek9-mz.152-2.E.bin"); }),
     C(EXEC, "show history", function () { return "(use as setas ↑ ↓ para navegar no histórico)"; }),
@@ -508,7 +513,7 @@ Configuration register is 0x2102
     C(CFG, "spanning-tree vlan <w> priority <n>", function () {}, "", "switch"),
     C(CFG, "cdp run", function () {}),
     C(CFG, "lldp run", function () {}),
-    C(CFG, "ip default-gateway <ip>", function () {}, "", "switch"),
+    C(CFG, "ip default-gateway <ip>", function ([g]) { this.cfg.defaultGateway = g; }, "", "switch"),
     C(CFG, "logging host <ip>", function () {}),
     C(CFG, "logging trap <w>", function () {}),
     C(CFG, "clock timezone <w> <n>", function () {}),
@@ -594,5 +599,5 @@ Configuration register is 0x2102
     C(["dhcp"], "lease <rest>", function () {}),
   ];
 
-  window.IOS = { Equipamento, normIf };
+  window.IOS = { Equipamento, normIf, n2i, i2n, prefixo, rede };
 })();

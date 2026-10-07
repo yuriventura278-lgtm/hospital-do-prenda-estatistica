@@ -5,13 +5,13 @@ from __future__ import annotations
 import re
 
 TIPOS_BLOCO = {"texto", "figura", "topologia", "exemplo", "cli", "saida",
-               "sim_real", "dica", "alerta", "tabela", "video"}
+               "sim_real", "dica", "alerta", "tabela", "video", "jogo_cabo"}
 FIGURAS = {"router", "switch", "switch_l3", "firewall", "ap", "wlc", "pc",
            "portatil", "servidor", "nuvem", "telefone_ip", "cabo_utp",
            "cabo_fibra", "cabo_consola", "rj45_pinos", "osi", "encapsulamento",
            "handshake", "painel_switch", "painel_router", "stp",
            "trama_ethernet", "cabecalho_ipv4", "cabecalho_ipv6", "nat", "sdn",
-           "computador_partes", "linha_tempo"}
+           "computador_partes", "linha_tempo", "conectores", "ferramentas_cabo"}
 NOS_TOPOLOGIA = {"router", "switch", "switch_l3", "firewall", "ap", "wlc", "pc",
                  "portatil", "servidor", "nuvem", "telefone_ip"}
 CHECKS = {"mode", "ran", "hostname", "iface_ip", "iface_up", "iface_desc",
@@ -105,6 +105,39 @@ def validar(curso: dict) -> list[str]:
             erros.append(f"{c['id']}: um caso precisa de pelo menos 3 etapas")
         for i, q in enumerate(c["etapas"]):
             _pergunta(q, f"{c['id']} etapa #{i + 1}", erros)
+    usadas: dict[str, str] = {}
+    for m in curso["modulos"]:
+        for l in m["licoes"]:
+            if l["id"] in usadas:
+                erros.append(f"aula {l['id']} aparece em {usadas[l['id']]} e em {m['id']}")
+            usadas[l["id"]] = m["id"]
+        total = sum(len(l["quiz"]) for l in m["licoes"]) + len(m["prova_extra"])
+        if total < 3:
+            erros.append(f"{m['id']}: a prova do módulo precisa de pelo menos 3 perguntas")
+        if not m["ficha"]:
+            erros.append(f"{m['id']}: módulo sem ficha de trabalho")
+    ativ = {a["id"] for a in curso.get("atividades", [])}
+    for m in curso["modulos"]:
+        for s_id in m["sim"]:
+            if s_id not in ativ:
+                erros.append(f"{m['id']}: atividade de simulador inexistente {s_id!r}")
+    CHECKS_SIM = {"tem", "ligado_tipo", "cabo", "cabos_ok", "pc_ip", "pc_rede", "ping", "ping_tipo", "ios", "dhcp", "ospf_viz", "dns", "srv_dhcp", "e"}
+    def _chk(c, onde):
+        if c["t"] not in CHECKS_SIM:
+            erros.append(f"{onde}: verificação de simulador desconhecida {c['t']!r}")
+        if c["t"] == "ios" and c["check"]["t"] not in CHECKS:
+            erros.append(f"{onde}: verificação IOS desconhecida {c['check']['t']!r}")
+        for x in c.get("lista", []):
+            _chk(x, onde)
+    for a in curso.get("atividades", []):
+        if a["modulo"] not in ids:
+            erros.append(f"{a['id']}: módulo {a['modulo']!r} não existe")
+        nomes = {d["nome"] for d in a["inicial"]["dispositivos"]}
+        for lg in a["inicial"]["ligacoes"]:
+            if lg["a"] not in nomes or lg["b"] not in nomes:
+                erros.append(f"{a['id']}: ligação com equipamento inexistente")
+        for p in a["passos"]:
+            _chk(p["check"], a["id"])
     for lab in curso["labs"]:
         if not lab.get("cenario"):
             erros.append(f"{lab['id']}: laboratório sem cenário real")

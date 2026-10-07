@@ -489,3 +489,101 @@ body.va-aberto { overflow: hidden; }
 .va { grid-template-columns: minmax(0, 1fr); width: 100%; }
 .va > * { min-width: 0; }
 .va-palco, .va-abertura, .va-frases { grid-template-columns: minmax(0, 1fr); }
+
+/* ------------------------------------------------------------ figuras novas */
+.f-sc { fill: #2f6fd1; } .f-st { fill: #9aa5b1; stroke: var(--muted); } .f-metal { fill: #b9c2cc; stroke: var(--muted); }
+.f-fibra-capa { fill: #ef8a1a; } .f-capa-preta { fill: #2b2f36; } .f-cabo-ferr { fill: #d23c3c; stroke: #8a1f1f; } .f-testador { fill: #f2c230; stroke: #8a6a00; }
+
+/* ------------------------------------------------------------ trilha por cursos */
+details.curso { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+details.curso > summary { list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 14px; cursor: pointer; }
+details.curso > summary::-webkit-details-marker { display: none; }
+details.curso > summary .meio { display: grid; gap: 4px; min-width: 0; }
+details.curso > summary b { font-family: var(--f-display); font-stretch: 88%; font-size: 1.08rem; }
+details.curso[open] > summary { border-bottom: 1px solid var(--line); }
+details.curso > .lista { padding: 10px; }
+.codigo-mod { display: inline-grid; place-items: center; min-width: 58px; padding: 6px 8px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font: 800 .78rem var(--f-mono); text-align: center; }
+.codigo-mod.grande { font-size: .9rem; vertical-align: middle; margin-right: 4px; }
+.temas { margin: 0; padding-left: 1.2em; display: grid; gap: 3px; font-size: .92rem; }
+.ficha { margin: 0; padding-left: 1.3em; display: grid; gap: 12px; }
+.ficha details { margin-top: 4px; }
+.ficha summary { color: var(--accent); font-weight: 700; font-size: .85rem; }
+.ficha .resposta { background: var(--ok-soft); border-radius: 8px; padding: 8px 10px; margin-top: 6px; }
+
+/* ------------------------------------------------------------ jogo do cabo */
+.jogo-cabo { display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; }
+.rj45-jogo { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; background: var(--plastico); border: 2px solid var(--muted); border-radius: 8px 8px 4px 4px; padding: 10px 8px 6px; }
+.pino { display: grid; justify-items: center; gap: 4px; border: 0; background: none; padding: 0; cursor: pointer; }
+.pino .fio { width: 100%; height: 64px; border-radius: 4px; }
+.pino small { font: 700 .72rem var(--f-mono); color: var(--ink); }
+.pino.certo .fio { outline: 3px solid var(--ok); } .pino.errado .fio { outline: 3px solid var(--bad); }
+.fios { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.fio-btn { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); font-size: .85rem; font-weight: 600; cursor: pointer; text-align: left; }
+.fio-btn:disabled { opacity: .35; }
+.fio-btn .fio { width: 26px; height: 16px; border-radius: 3px; flex: none; }
+.fio { display: block; }
+.fio-vazio { background: repeating-linear-gradient(45deg, transparent 0 4px, var(--line) 4px 6px); border: 1px dashed var(--muted); }
+.fio-l { background: #f08a24; } .fio-v { background: #2e9e4f; } .fio-az { background: #2f6fd1; } .fio-c { background: #7a4a2a; }
+.fio-bl { background: repeating-linear-gradient(0deg, #ffffff 0 5px, #f08a24 5px 9px); }
+.fio-bv { background: repeating-linear-gradient(0deg, #ffffff 0 5px, #2e9e4f 5px 9px); }
+.fio-baz { background: repeating-linear-gradient(0deg, #ffffff 0 5px, #2f6fd1 5px 9px); }
+.fio-bc { background: repeating-linear-gradient(0deg, #ffffff 0 5px, #7a4a2a 5px 9px); }
+.fio-btn .fio-bl, .fio-btn .fio-bv, .fio-btn .fio-baz, .fio-btn .fio-bc { background-image: repeating-linear-gradient(90deg, #ffffff 0 4px, transparent 4px 8px); }
+.fio-btn .fio-bl { background-color: #f08a24; } .fio-btn .fio-bv { background-color: #2e9e4f; } .fio-btn .fio-baz { background-color: #2f6fd1; } .fio-btn .fio-bc { background-color: #7a4a2a; }
+
+/* ------------------------------------------------------------ simulador */
+.sim { display: grid; gap: 10px; }
+.sim-passos { gap: 8px; }
+.sim-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sim-lista li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: start; font-size: .92rem; }
+.sim-lista .cx { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font: 800 .75rem var(--f-mono); background: var(--surface-2); border: 1px solid var(--line); }
+.sim-lista li.feito .cx { background: var(--ok); color: #fff; border-color: var(--ok); }
+.sim-lista li.feito > div > span { color: var(--muted); text-decoration: line-through; }
+.sim-lista li.atual .cx { background: var(--led-amb); color: #241a00; border-color: var(--led-amb); }
+.sim-lista li.atual > div > span { font-weight: 700; }
+.sim-lista details summary { color: var(--accent); font-size: .8rem; font-weight: 700; }
+.sim-btn-link { color: var(--accent) !important; border-color: var(--line) !important; }
+.sim-barra { display: flex; gap: 6px; overflow-x: auto; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 61px); z-index: 5; background: var(--bg); padding: 4px 0; }
+.sim-barra button { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-weight: 700; font-size: .88rem; cursor: pointer; }
+.sim-barra button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.sim-opcoes { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.sim-opcoes button { flex: none; display: grid; justify-items: center; gap: 4px; padding: 8px 10px; min-width: 84px; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; font-size: .75rem; font-weight: 700; cursor: pointer; }
+.sim-opcoes button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.sim-opcoes button i { display: block; width: 40px; height: 5px; border-radius: 3px; margin: 8px 0; }
+.sim-palco { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden;
+  background-image: radial-gradient(color-mix(in srgb, var(--muted) 30%, transparent) 1px, transparent 1px); background-size: 22px 22px; }
+.sim-palco > svg { display: block; width: 100%; height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+.sim-dev { cursor: pointer; }
+.sim-halo { fill: transparent; }
+.sim-dev.sel .sim-halo { fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: var(--accent); stroke-width: 3; }
+.sim-dev.origem .sim-halo { fill: color-mix(in srgb, var(--led-amb) 22%, transparent); stroke: var(--led-amb); stroke-width: 3; stroke-dasharray: 6 4; }
+.sim-nome { fill: var(--ink); font: 800 19px var(--f-body); text-anchor: middle; }
+.sim-ip { fill: var(--muted); font: 600 15px var(--f-mono); text-anchor: middle; }
+.sim-porta-txt { fill: var(--muted); font: 600 13px var(--f-mono); text-anchor: middle; }
+.sim-cabo { stroke-linecap: round; }
+:root[data-theme="dark"] .sim-cabo[stroke="#222f3b"] { stroke: #c9d6e2; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sim-cabo[stroke="#222f3b"] { stroke: #c9d6e2; } }
+.sim-luz { stroke: var(--surface); stroke-width: 2; }
+.sim-luz.ok { fill: var(--led-on); } .sim-luz.baixo { fill: var(--led-amb); } .sim-luz.errado { fill: var(--bad); }
+.sim-pacote { fill: #ffffff; stroke: var(--accent); stroke-width: 4; }
+.sim-pacote.ok { stroke: var(--ok); } .sim-pacote.falha { stroke: var(--bad); }
+.sim-msg { padding: 10px 12px; border-top: 1px solid var(--line); background: var(--surface-2); font-size: .88rem; min-height: 2.6em; }
+.sim-msg.ok { background: var(--ok-soft); } .sim-msg.erro { background: var(--bad-soft); }
+.sim-inspetor { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; display: grid; gap: 10px; box-shadow: var(--shadow); }
+.sim-insp-cab svg { width: 30px; height: 30px; }
+.sim-consola { height: 38vh; min-height: 220px; }
+.sim-form { gap: 8px; }
+.sim-form label { display: grid; gap: 4px; font-size: .85rem; font-weight: 700; }
+.sim-dns { margin: 0; padding-left: 1em; display: grid; gap: 4px; font-size: .88rem; }
+.sim-modal { position: fixed; inset: 0; z-index: 60; background: rgba(5, 12, 24, .55); display: grid; place-items: end center; padding: 16px; }
+.sim-caixa { background: var(--surface); border-radius: 16px; padding: 16px; width: min(560px, 100%); max-height: 80vh; overflow-y: auto; display: grid; gap: 10px; box-shadow: var(--shadow); }
+.sim-portas { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.sim-portas button { display: grid; gap: 2px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; font-size: .8rem; }
+.sim-portas button b { font-family: var(--f-mono); }
+.sim-portas button span { color: var(--muted); font-size: .72rem; }
+.sim-portas button:disabled { opacity: .4; cursor: not-allowed; }
+.sim-ajuda { margin: 0; padding-left: 1.3em; display: grid; gap: 8px; font-size: .9rem; }
+.luz { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; }
+.luz.ok { background: var(--led-on); } .luz.baixo { background: var(--led-amb); } .luz.errado { background: var(--bad); }
+
+[hidden] { display: none !important; }

@@ -347,6 +347,13 @@ def _cena_bloco(i: int, b: dict) -> dict | None:
         falas.append(fala("No equipamento real:"))
         falas += [dict(fala(_limpar(x)), lado="real", item=k) for k, x in enumerate(b["real"])]
         return {"tipo": tipo, "bloco": i, "titulo": b["titulo"], "falas": falas}
+    if tipo == "jogo_cabo":
+        ordem = ["branco-laranja", "laranja", "branco-verde", "azul", "branco-azul", "verde", "branco-castanho", "castanho"] if b["norma"] == "T568B" else \
+                ["branco-verde", "verde", "branco-laranja", "azul", "branco-azul", "laranja", "branco-castanho", "castanho"]
+        falas = [fala(f"Agora pratique: monte o conector {b['norma']} fio a fio.", mostrar=f"Jogo: monte o cabo {b['norma']}")]
+        falas += [dict(fala(f"Pino {k + 1}: {c}."), item=k) for k, c in enumerate(ordem)]
+        falas.append(fala("Depois da vídeo-aula, faça o jogo por baixo do vídeo e confirme se acertou."))
+        return {"tipo": "jogo_cabo", "bloco": i, "titulo": f"Montar o cabo {b['norma']}", "falas": falas}
     return None
 
 

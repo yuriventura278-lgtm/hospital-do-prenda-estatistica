@@ -25,7 +25,7 @@
     return p;
   }
 
-  const TIPOS = { abertura: "Abertura", texto: "Explicação", exemplo: "Exemplo", dica: "Dica", alerta: "Atenção", figura: "Ilustração", topologia: "Diagrama", tabela: "Tabela", cli: "Configuração passo a passo", saida: "Saída do comando", sim_real: "Simulador × real", fecho: "Resumo" };
+  const TIPOS = { abertura: "Abertura", texto: "Explicação", exemplo: "Exemplo", dica: "Dica", alerta: "Atenção", figura: "Ilustração", topologia: "Diagrama", tabela: "Tabela", cli: "Configuração passo a passo", saida: "Saída do comando", sim_real: "Simulador × real", jogo_cabo: "Prática", fecho: "Resumo" };
 
   function montar(raiz, licao, opcoes) {
     const F = window.Figuras, cenas = licao.video.cenas, op = opcoes || {};

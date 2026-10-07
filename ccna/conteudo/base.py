@@ -113,6 +113,11 @@ def video(titulo: str, arquivo: str) -> dict:
     return {"tipo": "video", "titulo": titulo, "arquivo": arquivo}
 
 
+def jogo_cabo(norma: str = "T568B") -> dict:
+    """Jogo interativo: o aluno coloca os 8 fios pela ordem certa no conector RJ45."""
+    return {"tipo": "jogo_cabo", "norma": norma}
+
+
 # ---------------------------------------------------------------------------
 # Perguntas (quiz da lição e prova do módulo)
 # ---------------------------------------------------------------------------

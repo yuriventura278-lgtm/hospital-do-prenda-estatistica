@@ -40,10 +40,12 @@
         }
       });
       ctx.labs.filter((x) => x.modulo === m.id && !ctx.labFeito(x.id)).forEach((x) => lista.push({ tipo: "lab", lab: x, m, titulo: "Laboratório: " + x.titulo, min: 15 }));
+      (m.sim || []).map((id) => (ctx.atividades || []).find((a) => a.id === id)).filter((a) => a && !ctx.simFeito(a.id)).forEach((a) => lista.push({ tipo: "sim", sim: a, m, titulo: "Simulador: " + a.titulo, min: 20 }));
+      if (ctx.fichaFeita && !ctx.fichaFeita(m.id) && (m.ficha || []).length) lista.push({ tipo: "ficha", m, titulo: `Ficha de trabalho ${m.codigo}`, min: 10 });
       ctx.casos.filter((x) => x.modulo === m.id && !ctx.casoFeito(x.id)).forEach((x) => lista.push({ tipo: "caso", caso: x, m, titulo: "Caso real: " + x.titulo, min: 10 }));
       if (!ctx.provaFeita(m.id)) {
-        lista.push({ tipo: "revmod", m, titulo: `Revisão do Módulo ${m.numero}`, min: 15 });
-        lista.push({ tipo: "prova", m, titulo: `Prova do Módulo ${m.numero}`, min: 15 });
+        lista.push({ tipo: "revmod", m, titulo: `Revisão do ${m.codigo}`, min: 15 });
+        lista.push({ tipo: "prova", m, titulo: `Prova do ${m.codigo}`, min: 15 });
       }
     });
     return lista;

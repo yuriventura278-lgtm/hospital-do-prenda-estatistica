@@ -55,7 +55,7 @@
   // Garante todos os campos (também em perfis guardados por versões anteriores).
   function completarPerfil(p) {
     const base = { xp: 0, licoes: {}, provas: {}, labs: {}, casos: {}, erros: [], dias: [], conquistas: {}, recordes: { subrede: 0, relampago: 0 },
-      idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
+      sims: {}, fichas: {}, caboJogo: 0, idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
       plano: { min: 30, sessoes: 1, dias: [1, 2, 3, 4, 5] }, alvo: null };
     Object.keys(base).forEach((k) => { if (p[k] === undefined) p[k] = base[k]; });
     return p;
@@ -134,6 +134,9 @@
     ["lab1", "Mãos no teclado", "Concluir um laboratório", (p) => Object.keys(p.labs).length >= 1],
     ["lab5", "Engenheiro de campo", "Concluir 5 laboratórios", (p) => Object.keys(p.labs).length >= 5],
     ["semana", "Disciplina", "Estudar 7 dias seguidos", () => sequencia() >= 7],
+    ["simulador", "Engenheiro do simulador", "Concluir 3 práticas no simulador", (p) => Object.values(p.sims || {}).filter((x) => x.feito).length >= 3],
+    ["crimpador", "Mãos de técnico", "Montar um cabo RJ45 sem erros", (p) => (p.caboJogo || 0) >= 1],
+    ["fichas", "Caderno em dia", "Fazer 10 fichas de trabalho", (p) => Object.keys(p.fichas || {}).length >= 10],
     ["revisor", "Sem erros pendentes", "Limpar o caderno de erros depois de errar", (p) => p.conquistas._errou && p.erros.length === 0],
   ];
   function verificarConquistas() {
@@ -167,16 +170,16 @@
          <span class="xp-pilula tab-num" title="${esc(n.nome)}">${ic("estrela")} ${P().xp} XP</span>
          <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${ic("perfil")}</button>`
       : `<button class="btn-icone" data-acao="voltar" aria-label="Voltar">${ic("voltar")}</button><div class="titulo">${esc(titulo)}</div>`;
-    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
+    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
     document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.ir === tab ? "page" : "false"));
     $("#app").innerHTML = TELAS[t]();
     if (POS[t]) POS[t]();
   }
   const TITULOS = {
-    modulo: () => "Módulo " + mod(rota.mid).numero, licao: () => LICOES[rota.lid].titulo, quiz: () => "Quiz · " + LICOES[rota.lid].titulo,
-    prova: () => "Prova · Módulo " + mod(rota.mid).numero, relampago: () => "Quiz relâmpago", subrede: () => "Desafio sub-rede",
+    modulo: () => mod(rota.mid).codigo, licao: () => LICOES[rota.lid].titulo, quiz: () => "Quiz · " + LICOES[rota.lid].titulo,
+    prova: () => "Prova · " + mod(rota.mid).codigo, relampago: () => "Quiz relâmpago", subrede: () => "Desafio sub-rede",
     labs: () => "Laboratório CLI", lab: () => labPorId(rota.id).titulo, revisao: () => "Caderno de erros", perfil: () => "Perfil e definições",
-    plano: () => "O meu plano", casos: () => "Casos reais", caso: () => casoPorId(rota.id).titulo,
+    plano: () => "O meu plano", sims: () => "Simulador de rede", sim: () => rota.id === "livre" ? "Simulador · modo livre" : ativPorId(rota.id).titulo, casos: () => "Casos reais", caso: () => casoPorId(rota.id).titulo,
   };
   const mod = (id) => MODS.find((m) => m.id === id);
   const labPorId = (id) => D.labs.find((l) => l.id === id);
@@ -192,10 +195,10 @@
     if (!prox) continuar = `<div class="cartao"><span class="rotulo">Trilha concluída</span><h2>Passou todas as provas.</h2><p class="suave">Mantenha a forma no quiz relâmpago e marque o exame 200-301.</p></div>`;
     else if (prox.tipo === "licao") continuar = `<button class="item" data-acao="licao" data-id="${prox.l.id}">
         <div class="ico-caixa">${F.icone(prox.m.icone in F.ICONES ? prox.m.icone : "router", 34)}</div>
-        <div class="meio"><span class="rotulo">Continuar · Módulo ${prox.m.numero}</span><b>${esc(prox.l.titulo)}</b><span class="suave peq">${prox.l.minutos} min · ${esc(prox.l.nivel)}</span></div>
+        <div class="meio"><span class="rotulo">Continuar · ${prox.m.codigo}</span><b>${esc(prox.l.titulo)}</b><span class="suave peq">${prox.l.minutos} min · ${esc(prox.l.nivel)}</span></div>
         <span class="estado-ico atual">${ic("play")}</span></button>`;
     else continuar = `<button class="item" data-acao="prova" data-id="${prox.m.id}"><div class="ico-caixa">${ic("medalha")}</div>
-        <div class="meio"><span class="rotulo">Pronto para a prova</span><b>Prova do Módulo ${prox.m.numero}: ${esc(prox.m.titulo)}</b><span class="suave peq">Precisa de ${NOTA_APROVACAO}/1000</span></div><span class="estado-ico atual">${ic("play")}</span></button>`;
+        <div class="meio"><span class="rotulo">Pronto para a prova</span><b>Prova do ${prox.m.codigo}: ${esc(prox.m.titulo)}</b><span class="suave peq">Precisa de ${NOTA_APROVACAO}/1000</span></div><span class="estado-ico atual">${ic("play")}</span></button>`;
     const dica = D.guia.dicas[new Date().getDate() % D.guia.dicas.length];
     return `
       <section class="nivel">
@@ -208,13 +211,16 @@
       ${cartaoHoje()}
       ${continuar}
       <section class="secao">
-        <header><h2>O seu painel</h2><span class="rotulo">cada LED é uma lição</span></header>
-        <div class="painel">${MODS.map((m) => `<button class="fila" data-acao="modulo" data-id="${m.id}" aria-label="Módulo ${m.numero}: ${esc(m.titulo)}">
-          <span class="num">M${String(m.numero).padStart(2, "0")}</span><span class="leds">${leds(m)}</span><span class="pct tab-num">${moduloAberto(m) ? Math.round(progressoModulo(m) * 100) + "%" : "🔒"}</span></button>`).join("")}</div>
+        <header><h2>O seu painel</h2><span class="rotulo">cada LED é um módulo</span></header>
+        <div class="painel">${D.cursos.map((c) => { const ms = MODS.filter((m) => m.curso === c.id);
+          return `<button class="fila" data-acao="trilha-curso" data-id="${c.id}" aria-label="${esc(c.titulo)}"><span class="num">${c.id === "B" ? "CCNA1" : c.id === "C" ? "CCNA2" : c.id === "D" ? "CCNA3" : c.id === "E" ? "EXTRA" : c.id === "F" ? "FINAL" : "BASE"}</span>
+            <span class="leds">${ms.map((m) => `<i class="led ${progressoModulo(m) >= 1 ? "on" : progressoModulo(m) > 0 || (proximaLicao() && proximaLicao().m === m) ? "amb" : ""}" title="${esc(m.codigo)}"></i>`).join("")}</span>
+            <span class="pct tab-num">${Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100)}%</span></button>`; }).join("")}</div>
       </section>
       <section class="secao">
         <h2>Praticar</h2>
         <div class="acoes">
+          <button class="acao" data-acao="ir" data-tela="sims">${F.icone("switch", 28)}<b>Simulador de rede</b><span>${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length} práticas feitas</span></button>
           <button class="acao" data-acao="ir" data-tela="relampago">${ic("raio")}<b>Quiz relâmpago</b><span>60 segundos, recorde ${p.recordes.relampago}</span></button>
           <button class="acao" data-acao="ir" data-tela="subrede">${ic("calc")}<b>Desafio sub-rede</b><span>Melhor série: ${p.recordes.subrede}</span></button>
           <button class="acao" data-acao="ir" data-tela="labs">${ic("terminal")}<b>Laboratório CLI</b><span>${Object.keys(p.labs).length}/${D.labs.length} concluídos</span></button>
@@ -226,53 +232,73 @@
       <div class="dica">${ic("dica")}<div><b>Dica de exame.</b> ${esc(dica)}</div></div>`;
   };
 
+  const CURSOS = D.cursos;
+  const modsDoCurso = (c) => MODS.filter((m) => m.curso === c);
+  const ativPorId = (id) => D.atividades.find((a) => a.id === id);
+  const simFeito = (id) => !!(P().sims[id] && P().sims[id].feito);
+  const fichaFeita = (mid) => !!P().fichas[mid];
+
   TELAS.trilha = function () {
-    return `<div class="secao"><h1>Trilha CCNA 200-301</h1><p class="suave">Do mais básico ao mais complexo. Cada módulo termina com uma prova; passe com ${NOTA_APROVACAO}/1000 para desbloquear o seguinte${S.livre ? " (modo livre ativo: tudo desbloqueado)" : ""}.</p></div>
-      <div class="lista">${MODS.map((m) => {
-        const aberto = moduloAberto(m), pct = Math.round(progressoModulo(m) * 100);
-        return `<button class="item" data-acao="modulo" data-id="${m.id}" ${aberto ? "" : 'aria-disabled="true"'}>
-          <div class="ico-caixa">${F.icone(m.icone in F.ICONES ? m.icone : "router", 34)}</div>
-          <div class="meio"><span class="rotulo">Módulo ${m.numero} · ${esc(m.dominio)}</span><b>${esc(m.titulo)}</b>
-            <span class="leds">${leds(m)}</span></div>
-          ${aberto ? `<span class="chip ${pct === 100 ? "ok" : pct ? "acc" : ""} tab-num">${pct}%</span>` : `<span class="estado-ico bloq">${ic("cadeado")}</span>`}</button>`;
-      }).join("")}</div>`;
+    const prox = proximaLicao();
+    return `<div class="secao"><h1>Conteúdo programático</h1><p class="suave">Do mais básico ao CCNA e além: ${CURSOS.length} partes, ${MODS.length} módulos, ${Object.keys(LICOES).length} aulas. Cada módulo termina com uma prova; passe com ${NOTA_APROVACAO}/1000 para desbloquear o seguinte${S.livre ? " (modo livre ativo: tudo desbloqueado)" : ""}.</p></div>
+      ${CURSOS.map((c) => {
+        const ms = modsDoCurso(c.id), pct = Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100);
+        const aberto = (prox && prox.m.curso === c.id) || rota.curso === c.id;
+        return `<details class="curso" ${aberto ? "open" : ""}><summary><div class="meio"><span class="rotulo">Parte ${c.id} · ${c.horas} h · ${ms.length} módulos</span><b>${esc(c.titulo)}</b><span class="suave peq">${esc(c.descricao)}</span>
+          <div class="barra"><i style="width:${pct}%"></i></div></div><span class="chip ${pct === 100 ? "ok" : pct ? "acc" : ""} tab-num">${pct}%</span></summary>
+          <div class="lista">${ms.map((m) => {
+            const ab = moduloAberto(m), p = Math.round(progressoModulo(m) * 100);
+            return `<button class="item" data-acao="modulo" data-id="${m.id}" ${ab ? "" : 'aria-disabled="true"'}>
+              <span class="codigo-mod">${esc(m.codigo)}</span>
+              <div class="meio"><b>${esc(m.titulo)}</b><span class="suave peq">${m.horas} h · ${m.licoes.length} aula${m.licoes.length > 1 ? "s" : ""}${m.sim.length ? " · simulador" : ""}</span><span class="leds">${leds(m)}</span></div>
+              ${ab ? `<span class="chip ${p === 100 ? "ok" : p ? "acc" : ""} tab-num">${p}%</span>` : `<span class="estado-ico bloq">${ic("cadeado")}</span>`}</button>`;
+          }).join("")}</div></details>`;
+      }).join("")}`;
   };
 
   TELAS.modulo = function () {
     const m = mod(rota.mid), aberto = moduloAberto(m);
     const pr = P().provas[m.id];
-    const labs = D.labs.filter((l) => l.modulo === m.id);
-    return `<div class="secao"><span class="rotulo">Módulo ${m.numero} · ${esc(m.dominio)}</span><h1>${esc(m.titulo)}</h1><p class="suave">${esc(m.descricao)}</p>
-        <div class="linha"><span class="leds">${leds(m)}</span><span class="chip tab-num">${Math.round(progressoModulo(m) * 100)}% concluído</span></div></div>
-      ${aberto ? "" : `<div class="alerta">${ic("cadeado")}<div>Passe a prova do Módulo ${m.numero - 1} para desbloquear, ou ative o <b>modo livre</b> no perfil.</div></div>`}
-      ${grelhaAprender(m)}
-      <h2>Aulas</h2>
-      <div class="lista">${m.licoes.map((l, i) => {
+    const labs = D.labs.filter((l) => l.modulo === m.id), casos = D.casos.filter((c) => c.modulo === m.id), sims = m.sim.map(ativPorId).filter(Boolean);
+    const curso = CURSOS.find((c) => c.id === m.curso), ant = MODS[MODS.indexOf(m) - 1], seg = MODS[MODS.indexOf(m) + 1];
+    return `<div class="secao"><span class="rotulo">${esc(curso.titulo)}</span><h1><span class="codigo-mod grande">${esc(m.codigo)}</span> ${esc(m.titulo)}</h1>
+        <div class="linha"><span class="chip">${ic("relogio")} ${m.horas} h</span><span class="leds">${leds(m)}</span><span class="chip tab-num">${Math.round(progressoModulo(m) * 100)}% concluído</span></div></div>
+      ${aberto ? "" : `<div class="alerta">${ic("cadeado")}<div>Passe a prova do módulo anterior (${esc(ant ? ant.codigo : "")}) para desbloquear, ou ative o <b>modo livre</b> no perfil.</div></div>`}
+      <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${m.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
+        <span class="rotulo">Conteúdo programático</span><ul class="temas">${m.temas.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>
+      ${grelhaAprender(m, labs, casos, sims)}
+      <section class="secao"><h2>Aulas</h2><div class="lista">${m.licoes.map((l, i) => {
         const feita = licaoFeita(l.id), ab = licaoAberta(l), r = P().licoes[l.id];
         return `<button class="item" data-acao="licao" data-id="${l.id}" ${ab ? "" : 'aria-disabled="true"'}>
           <span class="estado-ico ${feita ? "ok" : ab ? "atual" : "bloq"}">${feita ? ic("check") : ab ? i + 1 : ic("cadeado")}</span>
-          <div class="meio"><b>${esc(l.titulo)}</b><span class="suave peq">${l.minutos} min · ${esc(l.nivel)} · ${l.quiz.length} perguntas</span></div>
+          <div class="meio"><b>${esc(l.titulo)}</b><span class="suave peq">${l.minutos} min · vídeo-aula ${Math.round(l.video.segundos / 60)} min · ${l.quiz.length} perguntas${r && r.video ? " · vídeo visto ✓" : ""}</span></div>
           ${r && r.melhor != null ? `<span class="chip ${r.melhor >= 70 ? "ok" : "warn"} tab-num">${r.melhor}%</span>` : ""}</button>`;
-      }).join("")}
-        <button class="item" data-acao="prova" data-id="${m.id}" ${provaAberta(m) ? "" : 'aria-disabled="true"'}>
+      }).join("")}</div></section>
+      ${sims.length ? `<section class="secao"><h2>Prática no simulador</h2><div class="lista">${sims.map(itemSim).join("")}</div></section>` : ""}
+      ${labs.length ? `<section class="secao"><h2>Laboratórios CLI</h2><div class="lista">${labs.map(itemLab).join("")}</div></section>` : ""}
+      ${casos.length ? `<section class="secao"><h2>Problemas reais</h2><div class="lista">${casos.map(itemCaso).join("")}</div></section>` : ""}
+      <section class="secao" id="ficha"><header><h2>Ficha de trabalho</h2>${fichaFeita(m.id) ? '<span class="chip ok">Feita</span>' : ""}</header>
+        <p class="suave peq">Responda no caderno e só depois toque em “ver resposta”.</p>
+        <ol class="ficha">${m.ficha.map((q) => `<li><p>${esc(q.p)}</p><details><summary>ver resposta</summary><p class="resposta">${esc(q.r)}</p></details></li>`).join("")}</ol>
+        ${fichaFeita(m.id) ? "" : `<button class="btn bloco" data-acao="ficha-feita" data-id="${m.id}">${ic("check")} Marcar ficha como feita</button>`}</section>
+      ${m.comandos ? `<section class="secao"><h2>Comandos do módulo</h2><div class="term"><div class="barra-term"><span class="pontos"><i></i><i></i><i></i></span><span>referência</span></div><pre>${esc(m.comandos)}</pre></div></section>` : ""}
+      <section class="secao"><h2>Avaliação</h2><button class="item" data-acao="prova" data-id="${m.id}" ${provaAberta(m) ? "" : 'aria-disabled="true"'}>
           <span class="estado-ico ${provaFeita(m.id) ? "ok" : provaAberta(m) ? "atual" : "bloq"}">${provaFeita(m.id) ? ic("check") : ic(provaAberta(m) ? "medalha" : "cadeado")}</span>
-          <div class="meio"><b>Prova do módulo</b><span class="suave peq">${Math.min(15, totalPerguntas(m))} perguntas · cronometrada · aprovação ${NOTA_APROVACAO}/1000</span></div>
-          ${pr ? `<span class="chip ${pr.melhor >= NOTA_APROVACAO ? "ok" : "bad"} tab-num">${pr.melhor}</span>` : ""}</button>
-      </div>
-      ${labs.length ? `<section class="secao"><h2>Laboratórios deste módulo</h2><div class="lista">${labs.map(itemLab).join("")}</div></section>` : ""}
-      ${D.casos.some((c) => c.modulo === m.id) ? `<section class="secao"><h2>Casos reais deste módulo</h2><div class="lista">${D.casos.filter((c) => c.modulo === m.id).map(itemCaso).join("")}</div></section>` : ""}`;
+          <div class="meio"><b>Prova do módulo ${esc(m.codigo)}</b><span class="suave peq">${Math.min(15, totalPerguntas(m))} perguntas · cronometrada · aprovação ${NOTA_APROVACAO}/1000</span></div>
+          ${pr ? `<span class="chip ${pr.melhor >= NOTA_APROVACAO ? "ok" : "bad"} tab-num">${pr.melhor}</span>` : ""}</button></section>
+      <div class="grelha-2">${ant ? `<button class="btn" data-acao="modulo" data-id="${ant.id}">← ${esc(ant.codigo)}</button>` : "<span></span>"}${seg ? `<button class="btn" data-acao="modulo" data-id="${seg.id}" ${moduloAberto(seg) ? "" : "disabled"}>${esc(seg.codigo)} →</button>` : "<span></span>"}</div>`;
   };
-  function grelhaAprender(m) {
-    const labs = D.labs.filter((l) => l.modulo === m.id), casos = D.casos.filter((c) => c.modulo === m.id);
-    const tempo = m.licoes.reduce((a, l) => a + l.minutos + Math.ceil(l.quiz.length * 1.2), 0) + labs.length * 15 + casos.length * 10 + 15;
+  function grelhaAprender(m, labs, casos, sims) {
+    const tempo = m.licoes.reduce((a, l) => a + Math.max(l.minutos, Math.ceil(l.video.segundos / 60)) + Math.ceil(l.quiz.length * 1.2), 0) + labs.length * 15 + casos.length * 10 + sims.length * 20 + 10 + 15;
     const pl = P().plano, diasMod = Math.max(1, Math.ceil(tempo / pl.min));
-    return `<section class="secao"><header><h2>O que vai aprender</h2><span class="rotulo">${horas(tempo)} · ~${diasMod} dia${diasMod > 1 ? "s" : ""} de estudo</span></header>
+    return `<section class="secao"><header><h2>O que vai aprender</h2><span class="rotulo">${horas(tempo)} na app · ~${diasMod} dia${diasMod > 1 ? "s" : ""}</span></header>
       <div class="grelha-aprender">${m.licoes.map((l, i) => `<button class="tile ${licaoFeita(l.id) ? "feita" : ""}" data-acao="licao" data-id="${l.id}" ${licaoAberta(l) ? "" : 'aria-disabled="true"'}>
         <span class="rotulo">Aula ${i + 1}${licaoFeita(l.id) ? " ✓" : ""}</span><b>${esc(l.titulo.replace(/^Comece por aqui: /, ""))}</b>
-        <ul>${l.objetivos.slice(0, 2).map((o) => `<li>${esc(o)}</li>`).join("")}</ul><span class="suave peq">${l.minutos} min · ${esc(l.nivel)}</span></button>`).join("")}
-        ${labs.length ? `<div class="tile extra"><span class="rotulo">Prática</span><b>${labs.length} laboratório${labs.length > 1 ? "s" : ""} CLI</b><ul>${labs.map((l) => `<li>${esc(l.titulo)}</li>`).join("")}</ul></div>` : ""}
-        ${casos.length ? `<div class="tile extra"><span class="rotulo">Casos reais</span><b>${casos.length} situação${casos.length > 1 ? "ões" : ""} prática${casos.length > 1 ? "s" : ""}</b><ul>${casos.map((c) => `<li>${esc(c.titulo)}</li>`).join("")}</ul></div>` : ""}
-        <div class="tile extra"><span class="rotulo">Avaliação</span><b>Prova do módulo</b><ul><li>${Math.min(15, totalPerguntas(m))} perguntas cronometradas</li><li>Aprovação ${NOTA_APROVACAO}/1000</li></ul></div>
+        <ul>${l.objetivos.slice(0, 2).map((o) => `<li>${esc(o)}</li>`).join("")}</ul><span class="suave peq">${l.minutos} min + vídeo · ${esc(l.nivel)}</span></button>`).join("")}
+        ${sims.length ? `<div class="tile extra"><span class="rotulo">Simulador</span><b>${sims.length} prática${sims.length > 1 ? "s" : ""} guiada${sims.length > 1 ? "s" : ""}</b><ul>${sims.map((a) => `<li>${esc(a.titulo)}</li>`).join("")}</ul></div>` : ""}
+        ${labs.length ? `<div class="tile extra"><span class="rotulo">Laboratório</span><b>${labs.length} laboratório${labs.length > 1 ? "s" : ""} CLI</b><ul>${labs.map((l) => `<li>${esc(l.titulo)}</li>`).join("")}</ul></div>` : ""}
+        ${casos.length ? `<div class="tile extra"><span class="rotulo">Problemas reais</span><b>${casos.length} caso${casos.length > 1 ? "s" : ""}</b><ul>${casos.map((c) => `<li>${esc(c.titulo)}</li>`).join("")}</ul></div>` : ""}
+        <div class="tile extra"><span class="rotulo">Ficha e prova</span><b>${m.ficha.length} exercícios + prova</b><ul><li>${Math.min(15, totalPerguntas(m))} perguntas cronometradas</li><li>Aprovação ${NOTA_APROVACAO}/1000</li></ul></div>
       </div></section>`;
   }
   const totalPerguntas = (m) => m.licoes.reduce((a, l) => a + l.quiz.length, 0) + m.prova_extra.length;
@@ -283,7 +309,7 @@
     if (!licaoAberta(l)) return `<div class="vazio">${ic("cadeado")}<p>Conclua a lição anterior para abrir esta.</p></div>`;
     const ant = m.licoes[l._i - 1], prox = m.licoes[l._i + 1];
     const r = P().licoes[l.id];
-    return `<article class="cab-licao"><span class="rotulo">Módulo ${m.numero} · Lição ${l._i + 1} de ${m.licoes.length}</span><h1>${esc(l.titulo)}</h1>
+    return `<article class="cab-licao"><span class="rotulo">${m.codigo} · Lição ${l._i + 1} de ${m.licoes.length}</span><h1>${esc(l.titulo)}</h1>
         <div class="linha"><span class="chip">${ic("relogio")} ${l.minutos} min</span><span class="chip acc">${esc(l.nivel)}</span>${r && r.melhor != null ? `<span class="chip ${r.melhor >= 70 ? "ok" : "warn"}">Melhor quiz: ${r.melhor}%</span>` : ""}</div>
         <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${l.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></div></article>
       <section class="secao"><header><h2>Vídeo-aula</h2><span class="rotulo">${Math.round(l.video.segundos / 60)} min · narrada${r && r.video ? " · vista ✓" : ""}</span></header>
@@ -326,6 +352,7 @@
           ${b.nota ? `<p class="suave peq">${b.nota}</p>` : ""}</section>`;
       case "saida": return `<section class="bloco"><h3>${esc(b.titulo)}</h3><div class="term"><pre>${esc(b.texto)}</pre></div>${b.explica ? `<p class="suave peq">${b.explica}</p>` : ""}</section>`;
       case "sim_real": return `<section class="bloco"><h3>${esc(b.titulo)}</h3><div class="simreal"><div class="sim"><span class="rotulo">No simulador</span><ul>${b.simulador.map((x) => `<li>${x}</li>`).join("")}</ul></div><div class="real"><span class="rotulo">No equipamento real</span><ul>${b.real.map((x) => `<li>${x}</li>`).join("")}</ul></div></div></section>`;
+      case "jogo_cabo": return `<section class="bloco"><h3>${ic("jogo")} Prática: montar o cabo</h3>${htmlJogoCabo(b.norma)}</section>`;
       case "video": return b.arquivo ? `<figure class="fig-caixa" style="margin:0"><video src="${esc(b.arquivo)}" controls preload="metadata" style="width:100%;border-radius:10px"></video><figcaption>${esc(b.titulo)}</figcaption></figure>` : "";
       default: return "";
     }
@@ -451,14 +478,14 @@
     const m = mod(rota.mid);
     if (!provaAberta(m)) return `<div class="vazio">${ic("cadeado")}<p>Conclua todas as lições deste módulo (70% em cada quiz) para fazer a prova.</p></div>`;
     if (!sessao || sessao.tipo !== "prova" || sessao.origem !== m.id) {
-      return `<div class="cartao"><span class="rotulo">Prova do Módulo ${m.numero}</span><h1>${esc(m.titulo)}</h1>
+      return `<div class="cartao"><span class="rotulo">Prova do ${m.codigo}</span><h1>${esc(m.titulo)}</h1>
         <ul class="objetivos"><li>${Math.min(15, totalPerguntas(m))} perguntas sorteadas de todo o módulo.</li><li>${Math.min(15, totalPerguntas(m))} minutos no total; sem correção até ao fim, como no exame real.</li><li>Pontuação de 0 a 1000. Aprovação: <b>${NOTA_APROVACAO}</b>.</li><li>Pode repetir quantas vezes quiser; conta a melhor nota.</li></ul>
         <button class="btn prim bloco" data-acao="comecar-prova" data-id="${m.id}">${ic("relogio")} Começar a prova</button></div>`;
     }
     if (!sessao.fim) return telaPerguntas(`<span class="chip warn temporizador tab-num" id="tempo">--:--</span>`) + (sessao.perguntas[sessao.i].tipo === "cmd" ? "" : `<button class="btn bloco" data-acao="seguinte-prova" ${sessao.respostas[sessao.i] == null ? "disabled" : ""}>Confirmar e seguir</button>`);
     const nota = sessao.nota, ok = nota >= NOTA_APROVACAO;
     const clas = nota >= 950 ? "Excelente" : ok ? "Aprovado" : nota >= 700 ? "Quase lá" : "Precisa de rever";
-    return `<div class="cartao resultado"><span class="rotulo">Prova do Módulo ${m.numero}</span><span class="chip ${ok ? "ok" : "bad"}">${clas}</span>
+    return `<div class="cartao resultado"><span class="rotulo">Prova do ${m.codigo}</span><span class="chip ${ok ? "ok" : "bad"}">${clas}</span>
         <div class="grande tab-num">${nota}</div><p class="suave">de 1000 · aprovação ${NOTA_APROVACAO} · ${sessao.acertos}/${sessao.perguntas.length} certas${sessao.esgotou ? " · tempo esgotado" : ""}</p>
         ${sessao.ganho ? `<span class="chip acc">+${sessao.ganho} XP</span>` : ""}
         ${ok ? `<p>${MODS[MODS.indexOf(m) + 1] ? "Módulo seguinte desbloqueado." : "Concluiu a trilha completa!"}</p>` : "<p>As perguntas erradas foram para o caderno de erros.</p>"}</div>
@@ -511,6 +538,7 @@
     const p = P();
     return `<div class="secao"><h1>Jogar e praticar</h1><p class="suave">Aprender a fazer, não só a ler. Cada jogo dá XP.</p></div>
       <div class="lista">
+        <button class="item" data-acao="ir" data-tela="sims"><div class="ico-caixa">${F.icone("switch", 34)}</div><div class="meio"><b>Simulador de rede</b><span class="suave peq">Monte e configure redes como no Packet Tracer, com atividades passo a passo.</span></div><span class="chip acc tab-num">${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length}</span></button>
         <button class="item" data-acao="ir" data-tela="casos"><div class="ico-caixa">${ic("caso")}</div><div class="meio"><b>Casos reais</b><span class="suave peq">Um cliente liga com um problema: diagnostique e resolva, como no trabalho.</span></div><span class="chip acc tab-num">${Object.keys(p.casos).length}/${D.casos.length}</span></button>
         <button class="item" data-acao="ir" data-tela="relampago"><div class="ico-caixa">${ic("raio")}</div><div class="meio"><b>Quiz relâmpago</b><span class="suave peq">Quantas acerta em 60 segundos? Perguntas dos módulos desbloqueados.</span></div><span class="chip acc tab-num">${p.recordes.relampago}</span></button>
         <button class="item" data-acao="ir" data-tela="subrede"><div class="ico-caixa">${ic("calc")}</div><div class="meio"><b>Desafio sub-rede</b><span class="suave peq">Rede, broadcast, hosts e máscaras de cabeça.</span></div><span class="chip acc tab-num">${p.recordes.subrede}</span></button>
@@ -605,7 +633,7 @@
   function itemLab(lab) {
     const feito = !!P().labs[lab.id];
     return `<button class="item" data-acao="lab" data-id="${lab.id}"><div class="ico-caixa">${F.icone(lab.dispositivo, 34)}</div>
-      <div class="meio"><span class="rotulo">Módulo ${mod(lab.modulo).numero} · ${esc(lab.nivel)}</span><b>${esc(lab.titulo)}</b><span class="suave peq">${esc(lab.cenario)}</span></div>
+      <div class="meio"><span class="rotulo">${mod(lab.modulo).codigo} · ${esc(lab.nivel)}</span><b>${esc(lab.titulo)}</b><span class="suave peq">${esc(lab.cenario)}</span></div>
       <span class="estado-ico ${feito ? "ok" : "bloq"}">${feito ? ic("check") : lab.tarefas.length}</span></button>`;
   }
   TELAS.labs = function () {
@@ -670,7 +698,7 @@
       <button class="btn bloco" data-acao="perfil">Adicionar ou trocar de perfil</button>
       <section class="secao"><h2>Níveis</h2><div class="tabela-caixa"><table><tbody>${NIVEIS.map(([xp, nome], i) => `<tr${i === n.i ? ' style="background:var(--accent-soft)"' : ""}><td>${i + 1}</td><td><b>${esc(nome)}</b></td><td class="tab-num">${xp} XP</td></tr>`).join("")}</tbody></table></div></section>
       <section class="secao"><h2>Notas das provas</h2><div class="tabela-caixa"><table><thead><tr><th>Módulo</th><th>Melhor</th><th>Tentativas</th><th>Estado</th></tr></thead><tbody>
-        ${MODS.map((m) => { const r = p.provas[m.id]; return `<tr><td>${m.numero}. ${esc(m.titulo)}</td><td class="tab-num">${r ? r.melhor : "—"}</td><td class="tab-num">${r ? r.tentativas : 0}</td><td>${r ? (r.melhor >= NOTA_APROVACAO ? '<span class="chip ok">Aprovado</span>' : '<span class="chip bad">Repetir</span>') : '<span class="chip">Por fazer</span>'}</td></tr>`; }).join("")}
+        ${MODS.map((m) => { const r = p.provas[m.id]; return `<tr><td>${esc(m.codigo)} · ${esc(m.titulo)}</td><td class="tab-num">${r ? r.melhor : "—"}</td><td class="tab-num">${r ? r.tentativas : 0}</td><td>${r ? (r.melhor >= NOTA_APROVACAO ? '<span class="chip ok">Aprovado</span>' : '<span class="chip bad">Repetir</span>') : '<span class="chip">Por fazer</span>'}</td></tr>`; }).join("")}
       </tbody></table></div></section>
       <section class="secao"><h2>Conquistas</h2><div class="medalhas">${CONQUISTAS.map(([id, nome, desc]) => `<div class="medalha ${p.conquistas[id] ? "ganha" : ""}"><span class="m">${ic("medalha")}</span><b>${esc(nome)}</b><span class="suave">${esc(desc)}</span></div>`).join("")}</div></section>`;
   };
@@ -684,7 +712,7 @@
     if (abaGuia === "roteiro") corpo = `<p class="suave">Os 6 domínios do exame CCNA 200-301 v1.1, o peso de cada um e onde os estudar nesta app.</p>
       <div class="lista">${G.dominios.map((d) => { const ms = d.modulos.map(mod); const pct = Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100);
         return `<div class="cartao plano peso"><b>${esc(d.nome)}</b><span class="chip acc tab-num">${d.peso}% do exame</span><div class="barra"><i style="width:${pct}%"></i></div>
-          <span class="suave peq">${ms.map((m) => `Módulo ${m.numero}`).join(", ")} · ${pct}% concluído</span></div>`; }).join("")}</div>
+          <span class="suave peq">${ms.map((m) => `${m.codigo}`).join(", ")} · ${pct}% concluído</span></div>`; }).join("")}</div>
       <div class="cartao plano"><h3>Como usar a app</h3><ol class="objetivos"><li>Veja a vídeo-aula: explica todo o conteúdo, cena a cena, com voz e legendas.</li><li>Leia a lição com calma e reveja as figuras e os comandos.</li><li>Faça o quiz (70% para concluir). Errou? Use “Repetir a aula”.</li><li>Pratique o laboratório do módulo no terminal simulado e depois no Packet Tracer.</li><li>Passe a prova (${NOTA_APROVACAO}/1000) para desbloquear o próximo módulo.</li><li>Todos os dias: 5 min de desafio sub-rede e o caderno de erros.</li></ol></div>`;
     if (abaGuia === "plano") corpo = `<div class="tabela-caixa"><table><thead><tr><th>Semana</th><th>Estudar</th><th>Praticar</th></tr></thead><tbody>${G.plano.map((p) => `<tr><td><b>${esc(p.semana)}</b></td><td>${esc(p.tema)}</td><td>${esc(p.pratica)}</td></tr>`).join("")}</tbody></table></div>
       <p class="suave peq">Ritmo pensado para ~1 h por dia, 5 dias por semana. Ajuste ao seu tempo.</p>`;
@@ -721,7 +749,7 @@
     return {
       modulos: MODS, labs: D.labs, casos: D.casos, licaoFeita, provaFeita, labFeito: (id) => !!p.labs[id], casoFeito,
       nota: (id) => (p.licoes[id] || {}).melhor || 0, reforcado: (id) => !!p.reforcos[id],
-      tempoLicao: p.tempoLicao, erros: p.erros.length, minutosHoje: cfgMinHoje == null ? minutosHoje() : cfgMinHoje,
+      tempoLicao: p.tempoLicao, erros: p.erros.length, atividades: D.atividades, simFeito, fichaFeita, minutosHoje: cfgMinHoje == null ? minutosHoje() : cfgMinHoje,
     };
   }
   const calcularPlano = (cfg) => window.Plano.calcular(ctxPlano(cfg ? 0 : null), cfg || P().plano);
@@ -732,13 +760,15 @@
       case "quiz": return `data-acao="quiz" data-id="${t.l.id}"`;
       case "lab": return `data-acao="lab" data-id="${t.lab.id}"`;
       case "caso": return `data-acao="caso" data-id="${t.caso.id}"`;
+      case "sim": return `data-acao="sim" data-id="${t.sim.id}"`;
+      case "ficha": return `data-acao="modulo" data-id="${t.m.id}"`;
       case "revmod": return `data-acao="modulo" data-id="${t.m.id}"`;
       case "prova": return `data-acao="prova" data-id="${t.m.id}"`;
       default: return `data-acao="ir" data-tela="revisao"`;
     }
   }
-  const ICONE_TAREFA = { aula: "livro", rever: "repetir", pratica: "terminal", quiz: "estrela", lab: "terminal", caso: "caso", revmod: "repetir", prova: "medalha", erros: "caderno" };
-  const NOME_TAREFA = { aula: "Aula", rever: "Reforço", pratica: "Prática", quiz: "Quiz", lab: "Laboratório", caso: "Caso real", revmod: "Revisão", prova: "Prova", erros: "Revisão" };
+  const ICONE_TAREFA = { sim: "jogo", ficha: "caderno", aula: "livro", rever: "repetir", pratica: "terminal", quiz: "estrela", lab: "terminal", caso: "caso", revmod: "repetir", prova: "medalha", erros: "caderno" };
+  const NOME_TAREFA = { sim: "Simulador", ficha: "Ficha", aula: "Aula", rever: "Reforço", pratica: "Prática", quiz: "Quiz", lab: "Laboratório", caso: "Caso real", revmod: "Revisão", prova: "Prova", erros: "Revisão" };
   function itemTarefa(it, bloqueia) {
     const t = it.t;
     const aberto = !bloqueia || (t.l ? licaoAberta(t.l) : t.m ? moduloAberto(t.m) : true);
@@ -881,7 +911,7 @@
   function itemCaso(c) {
     const m = mod(c.modulo), aberto = moduloAberto(m), r = P().casos[c.id];
     return `<button class="item" data-acao="caso" data-id="${c.id}" ${aberto ? "" : 'aria-disabled="true"'}><div class="ico-caixa">${ic("caso")}</div>
-      <div class="meio"><span class="rotulo">${esc(c.local)} · Módulo ${m.numero}</span><b>${esc(c.titulo)}</b><span class="suave peq">Papel: ${esc(c.papel)} · ${c.etapas.length} etapas · ${esc(c.nivel)}</span></div>
+      <div class="meio"><span class="rotulo">${esc(c.local)} · ${m.codigo}</span><b>${esc(c.titulo)}</b><span class="suave peq">Papel: ${esc(c.papel)} · ${c.etapas.length} etapas · ${esc(c.nivel)}</span></div>
       ${!aberto ? `<span class="estado-ico bloq">${ic("cadeado")}</span>` : r ? `<span class="chip ${r.melhor === 100 ? "ok" : "acc"} tab-num">${r.melhor}%</span>` : ""}</button>`;
   }
   TELAS.casos = function () {
@@ -891,7 +921,7 @@
   TELAS.caso = function () {
     const c = casoPorId(rota.id);
     const cab = `<div class="cartao caso-cab"><div class="linha"><span class="chip acc">${esc(c.local)}</span><span class="chip">Você é: ${esc(c.papel)}</span></div><h1>${esc(c.titulo)}</h1></div>`;
-    if (!moduloAberto(mod(c.modulo))) return `<div class="vazio">${ic("cadeado")}<p>Desbloqueie o Módulo ${mod(c.modulo).numero} para abrir este caso.</p></div>`;
+    if (!moduloAberto(mod(c.modulo))) return `<div class="vazio">${ic("cadeado")}<p>Desbloqueie o ${mod(c.modulo).codigo} para abrir este caso.</p></div>`;
     if (!sessao || sessao.tipo !== "caso" || sessao.origem !== c.id) {
       return `${cab}<section class="bloco"><span class="rotulo">A situação</span><div class="html">${c.historia}</div></section>
         <button class="btn prim bloco" data-acao="comecar-caso" data-id="${c.id}">${ic("play")} Resolver o caso</button>`;
@@ -914,10 +944,56 @@
     if (s.ganho) ganharXP(s.ganho, "caso real"); else verificarConquistas();
   }
 
+  // ------------------------------------------------------------ simulador de rede
+  function itemSim(a) {
+    const m = mod(a.modulo), ab = moduloAberto(m), r = P().sims[a.id];
+    return `<button class="item" data-acao="sim" data-id="${a.id}" ${ab ? "" : 'aria-disabled="true"'}><div class="ico-caixa">${F.icone("switch", 34)}</div>
+      <div class="meio"><span class="rotulo">${esc(m.codigo)} · ${esc(a.nivel)} · ${a.passos.length} passos</span><b>${esc(a.titulo)}</b><span class="suave peq">${esc(a.cenario)}</span></div>
+      ${!ab ? `<span class="estado-ico bloq">${ic("cadeado")}</span>` : r && r.feito ? `<span class="estado-ico ok">${ic("check")}</span>` : r && r.passos ? `<span class="chip acc tab-num">${r.passos}/${a.passos.length}</span>` : ""}</button>`;
+  }
+  TELAS.sims = function () {
+    return `<div class="secao"><h1>Simulador de rede</h1><p class="suave">Monte redes como no Cisco Packet Tracer, aqui dentro: equipamentos, cabos, configuração no terminal Cisco, IP nos PCs, ping e tracert. Cada atividade tem passos guiados que se verificam sozinhos.</p></div>
+      <button class="item" data-acao="sim" data-id="livre"><div class="ico-caixa">${ic("terminal")}</div><div class="meio"><b>Modo livre</b><span class="suave peq">Área de trabalho vazia para montar e testar o que quiser.</span></div></button>
+      <h2>Atividades guiadas</h2><div class="lista">${D.atividades.map(itemSim).join("")}</div>`;
+  };
+  let simLeitor = null;
+  TELAS.sim = function () {
+    const a = rota.id === "livre" ? null : ativPorId(rota.id);
+    return `${a ? `<div class="secao"><span class="rotulo">${esc(mod(a.modulo).codigo)} · prática guiada</span><h1>${esc(a.titulo)}</h1></div>` : '<div class="secao"><h1>Modo livre</h1></div>'}<div id="sim-raiz"></div>`;
+  };
+  POS.sim = function () {
+    const a = rota.id === "livre" ? null : ativPorId(rota.id);
+    const chave = a ? a.id : "livre", st = P().sims[chave] || {};
+    simLeitor = window.SimUI.montar($("#sim-raiz"), {
+      atividade: a, estado: st.estado || null,
+      aoGuardar: (e) => { const r = P().sims[chave] || (P().sims[chave] = {}); r.estado = e; guardar(); },
+      aoProgresso: (n) => { const r = P().sims[chave] || (P().sims[chave] = {}); if (n > (r.passos || 0)) { r.passos = n; guardar(); } },
+      aoConcluir: () => { const r = P().sims[chave] || (P().sims[chave] = {}); if (!r.feito) { r.feito = Date.now(); guardar(); ganharXP(60, "simulador"); } },
+    });
+    limpar = () => { if (simLeitor) simLeitor.parar(); simLeitor = null; };
+  };
+
+  // ------------------------------------------------------------ jogo: montar o cabo
+  const FIOS = { bl: "Branco-laranja", l: "Laranja", bv: "Branco-verde", v: "Verde", baz: "Branco-azul", az: "Azul", bc: "Branco-castanho", c: "Castanho" };
+  const NORMAS = { T568B: ["bl", "l", "bv", "az", "baz", "v", "bc", "c"], T568A: ["bv", "v", "bl", "az", "baz", "l", "bc", "c"] };
+  let jogoCabo = { norma: null, pinos: [], res: null };
+  function htmlJogoCabo(norma) {
+    if (jogoCabo.norma !== norma) jogoCabo = { norma, pinos: [], res: null };
+    const usados = new Set(jogoCabo.pinos), certos = NORMAS[norma];
+    return `<div class="jogo-cabo" data-norma="${norma}"><div class="linha entre"><b>Monte o conector ${norma}</b><span class="abas"><button data-acao="cabo-norma" data-id="T568B" aria-selected="${norma === "T568B"}">T568B</button><button data-acao="cabo-norma" data-id="T568A" aria-selected="${norma === "T568A"}">T568A</button></span></div>
+      <p class="peq suave">Toque nos fios pela ordem do pino 1 ao 8 (patilha do conector para baixo). Toque num pino para o tirar.</p>
+      <div class="rj45-jogo">${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => { const f = jogoCabo.pinos[k]; const st = jogoCabo.res ? (f === certos[k] ? "certo" : "errado") : "";
+        return `<button class="pino ${st}" data-acao="cabo-tirar" data-id="${k}" aria-label="Pino ${k + 1}: ${f ? FIOS[f] : "vazio"}"><span class="fio fio-${f || "vazio"}"></span><small>${k + 1}</small></button>`; }).join("")}</div>
+      <div class="fios">${Object.keys(FIOS).map((f) => `<button class="fio-btn" data-acao="cabo-por" data-id="${f}" ${usados.has(f) || jogoCabo.pinos.length >= 8 ? "disabled" : ""}><span class="fio fio-${f}"></span>${FIOS[f]}</button>`).join("")}</div>
+      ${jogoCabo.res ? `<div class="feedback ${jogoCabo.res === "ok" ? "ok" : "bad"}"><b>${jogoCabo.res === "ok" ? "Cabo perfeito! O testador acende 1 a 8 pela ordem." : "Há fios trocados (a vermelho)."}</b><span>${norma}: ${certos.map((f) => FIOS[f]).join(", ")}.</span></div>` : ""}
+      <div class="grelha-2"><button class="btn" data-acao="cabo-limpar">Recomeçar</button><button class="btn prim" data-acao="cabo-testar" ${jogoCabo.pinos.length < 8 ? "disabled" : ""}>Testar o cabo</button></div></div>`;
+  }
+  function redesenharJogo() { const el = $(".jogo-cabo"); if (el) el.outerHTML = htmlJogoCabo(el.dataset.norma); }
+
   // ------------------------------------------------------------ tempo de estudo
   let ultimaInteracao = Date.now();
   ["click", "keydown", "scroll", "touchstart"].forEach((ev) => document.addEventListener(ev, () => { ultimaInteracao = Date.now(); }, { passive: true }));
-  const TELAS_ESTUDO = ["licao", "quiz", "prova", "lab", "caso", "revisao", "relampago", "subrede", "modulo"];
+  const TELAS_ESTUDO = ["sim", "licao", "quiz", "prova", "lab", "caso", "revisao", "relampago", "subrede", "modulo"];
   setInterval(() => {
     if (document.visibilityState !== "visible" || Date.now() - ultimaInteracao > 120000 || !TELAS_ESTUDO.includes(rota.tela) || !P().onboard) return;
     const p = P(), h = hojeISO();
@@ -1025,6 +1101,14 @@
     apagar: () => { confirmarApagar = true; render(); },
     "cancelar-apagar": () => { confirmarApagar = false; render(); },
     "apagar-sim": () => { const p = P(); const novo = novoPerfil(p.nome); novo.id = p.id; novo.cor = p.cor; S.perfis[p.id] = novo; confirmarApagar = false; guardar(); render(); toast("Progresso apagado"); },
+    sim: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Desbloqueie o módulo desta prática primeiro"); ir("sim", { id: el.dataset.id }); },
+    "trilha-curso": (el) => ir("trilha", { curso: el.dataset.id }),
+    "ficha-feita": (el) => { if (!P().fichas[el.dataset.id]) { P().fichas[el.dataset.id] = Date.now(); guardar(); ganharXP(15, "ficha de trabalho"); } render(); setTimeout(() => { const f = $("#ficha"); if (f) f.scrollIntoView(); }, 30); },
+    "cabo-norma": (el) => { const j = $(".jogo-cabo"); jogoCabo = { norma: el.dataset.id, pinos: [], res: null }; if (j) j.outerHTML = htmlJogoCabo(el.dataset.id); },
+    "cabo-por": (el) => { if (jogoCabo.pinos.length < 8 && !jogoCabo.pinos.includes(el.dataset.id)) jogoCabo.pinos.push(el.dataset.id); jogoCabo.res = null; redesenharJogo(); },
+    "cabo-tirar": (el) => { jogoCabo.pinos.splice(+el.dataset.id, 1); jogoCabo.res = null; redesenharJogo(); },
+    "cabo-limpar": () => { jogoCabo.pinos = []; jogoCabo.res = null; redesenharJogo(); },
+    "cabo-testar": () => { const ok = jogoCabo.pinos.every((f, k) => f === NORMAS[jogoCabo.norma][k]); jogoCabo.res = ok ? "ok" : "mal"; redesenharJogo(); if (ok) { P().caboJogo = (P().caboJogo || 0) + 1; guardar(); if (P().caboJogo === 1) ganharXP(15, "cabo crimpado"); else verificarConquistas(); } },
     caso: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Desbloqueie o módulo deste caso primeiro"); sessao = null; ir("caso", { id: el.dataset.id }); },
     "comecar-caso": (el) => { const c = casoPorId(el.dataset.id); iniciarSessao({ tipo: "caso", origem: c.id, perguntas: c.etapas, aoTerminar: fimCaso }); render(); window.scrollTo(0, 0); },
     "ob-voltar": () => { capturarOb(); ob.passo--; ob.erro = ""; render(); },
