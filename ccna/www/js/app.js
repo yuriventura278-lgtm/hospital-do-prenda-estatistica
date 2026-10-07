@@ -14,6 +14,7 @@
 
   // ------------------------------------------------------------ ícones da interface
   const IC = {
+    som: `<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>`,
     casa: '<path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     trilha: '<path d="M4 6h10M4 12h16M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="18" r="2"/>',
     jogo: '<rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r="1"/><circle cx="18" cy="13.5" r="1"/>',
@@ -292,6 +293,9 @@
       ${aberto ? "" : `<div class="alerta">${ic("cadeado")}<div>Passe a prova do módulo anterior (${esc(ant ? ant.codigo : "")}) para desbloquear, ou ative o <b>modo livre</b> no perfil.</div></div>`}
       <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${m.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
         <span class="rotulo">Conteúdo programático</span><ul class="temas">${m.temas.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>
+      ${(m.termos || []).length ? `<section class="secao" id="termos-mod"><header><h2>Termos técnicos do módulo</h2><span class="rotulo">${m.termos.length} termos</span></header>
+        <p class="suave peq">Todas as palavras técnicas que vai encontrar neste módulo, explicadas antes de começar. Também aparecem no fim de cada aula.</p>
+        <details class="cartao plano"><summary><b>Ver os ${m.termos.length} termos do ${esc(m.codigo)}</b></summary><dl class="gloss">${m.termos.map((n) => GLOS[n]).filter(Boolean).map(htmlTermo).join("")}</dl></details></section>` : ""}
       ${grelhaAprender(m, labs, casos, sims)}
       <section class="secao"><h2>Aulas</h2><div class="lista">${m.licoes.map((l, i) => {
         const feita = licaoFeita(l.id), ab = licaoAberta(l), r = P().licoes[l.id];
@@ -346,10 +350,13 @@
     return `<article class="cab-licao"><span class="rotulo">${m.codigo} · Lição ${l._i + 1} de ${m.licoes.length}</span><h1>${esc(l.titulo)}</h1>
         <div class="linha"><span class="chip">${ic("relogio")} ${l.minutos} min</span><span class="chip acc">${esc(l.nivel)}</span>${r && r.melhor != null ? `<span class="chip ${r.melhor >= 70 ? "ok" : "warn"}">Melhor quiz: ${r.melhor}%</span>` : ""}</div>
         <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${l.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></div></article>
+      <div class="cartao assistente"><div class="linha"><span class="ico-caixa">${ic("som")}</span><div class="meio"><b>Assistente de leitura</b><span class="suave peq">Lê toda a aula em voz alta, de seguida, com a voz do telemóvel. Pode ler a partir de qualquer parte (botão 🔊 em cada bloco).</span></div></div>
+        <button class="btn prim bloco" data-acao="ouvir-aula">${ic("som")} Ouvir a aula toda</button></div>
       <section class="secao"><header><h2>Vídeo-aula</h2><span class="rotulo">${Math.round(l.video.segundos / 60)} min · narrada${r && r.video ? " · vista ✓" : ""}</span></header>
         <div id="videoaula"></div><p class="suave peq">A vídeo-aula explica todo o conteúdo desta lição, cena a cena, com legendas. Por baixo tem o texto completo para ler ao seu ritmo.</p></section>
       <h2>Conteúdo da lição</h2>
-      <div class="conteudo">${l.blocos.map(bloco).join("")}</div>
+      <div class="conteudo">${l.blocos.map((b, i) => { const h = bloco(b); return h ? `<div class="bloco-lt" data-b="${i}"><button class="ouvir-bloco" data-acao="ouvir-bloco" data-id="${i}" aria-label="Ouvir a partir daqui">🔊</button>${h}</div>` : ""; }).join("")}</div>
+      <div id="leitor-barra" class="leitor-barra" hidden></div>
       ${termosLicao(l)}
       <section class="secao"><h2>Referências bibliográficas</h2><ol class="refs">${l.referencias.map((k) => `<li>${linkar(D.referencias[k])}</li>`).join("")}</ol></section>
       ${cartaoExercicios(l)}
@@ -358,16 +365,38 @@
         <button class="btn bloco" data-acao="repetir" data-id="${l.id}">${ic("repetir")} Repetir a aula desde o início</button></div>
       <div class="grelha-2">${ant ? `<button class="btn" data-acao="licao" data-id="${ant.id}">← Anterior</button>` : "<span></span>"}${prox ? `<button class="btn" data-acao="licao" data-id="${prox.id}" ${licaoAberta(prox) ? "" : "disabled"}>Seguinte →</button>` : `<button class="btn" data-acao="prova" data-id="${m.id}" ${provaAberta(m) ? "" : "disabled"}>Prova do módulo →</button>`}</div>`;
   };
+  let assistente = null;
+  function abrirAssistente() {
+    const l = LICOES[rota.lid], barra = $("#leitor-barra"); if (!barra || !window.Leitor) return null;
+    if (assistente) return assistente;
+    barra.hidden = false;
+    assistente = window.Leitor.montar(barra, l, {
+      aoTrecho: (t) => {
+        document.querySelectorAll(".lendo").forEach((x) => x.classList.remove("lendo"));
+        const el = t.b === -1 ? $(".cab-licao") : t.b === -2 ? $("#termos") : $(`.bloco-lt[data-b="${t.b}"]`);
+        if (!el) return;
+        el.classList.add("lendo");
+        if (t.b === -2) { const d = el.querySelector("details"); if (d) d.open = true; }
+        const r = el.getBoundingClientRect();
+        if (r.top < 70 || r.top > window.innerHeight * 0.55) el.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      },
+      aoFechar: () => { barra.hidden = true; document.querySelectorAll(".lendo").forEach((x) => x.classList.remove("lendo")); assistente = null; },
+      aoFim: () => { const r = P().licoes[l.id] || (P().licoes[l.id] = {}); if (!r.ouvida) { r.ouvida = Date.now(); guardar(); ganharXP(10, "aula ouvida"); } },
+    });
+    return assistente;
+  }
   POS.licao = function () {
     const l = LICOES[rota.lid];
     const caixa = $("#videoaula");
+    assistente = null;
+    let leitor = null;
     if (caixa && window.VideoAula) {
-      const leitor = window.VideoAula.montar(caixa, l, {
+      leitor = window.VideoAula.montar(caixa, l, {
         aoTerminar: () => { const r = P().licoes[l.id] || (P().licoes[l.id] = {}); if (!r.video) { r.video = Date.now(); guardar(); ganharXP(10, "vídeo-aula"); } },
         aoQuiz: () => { sessao = null; ir("quiz", { lid: l.id }); },
       });
-      limpar = () => leitor.parar();
     }
+    limpar = () => { if (leitor) leitor.parar(); if (assistente) assistente.parar(); assistente = null; };
     const r = P().licoes[l.id] || (P().licoes[l.id] = {});
     if (!r.lida) { r.lida = Date.now(); guardar(); setTimeout(() => ganharXP(10, "lição aberta"), 400); }
     else if (licaoFeita(l.id) && (r.melhor || 0) < 85 && !P().reforcos[l.id]) { P().reforcos[l.id] = Date.now(); guardar(); }
@@ -1353,6 +1382,8 @@
   const ACOES = {
     voltar, perfil: () => ir("perfil"),
     bancada: (el) => ir("bancada", { id: el.dataset.id }),
+    "ouvir-aula": () => { const a = abrirAssistente(); if (a) a.tocar(); },
+    "ouvir-bloco": (el) => { const a = abrirAssistente(); if (a) a.lerBloco(+el.dataset.id); },
     "proj-abrir": (el) => ir("sim", { proj: el.dataset.id }),
     exercicios: (el) => { if (!sessao || sessao.tipo !== "exercicios" || sessao.origem !== el.dataset.id) sessao = null; ir("exercicios", { lid: el.dataset.id }); },
     "mais-exercicios": () => { const l = LICOES[rota.lid]; const novos = gerarEx(l, 10, sessao.vistos).map(prepararPergunta); sessao.perguntas = sessao.perguntas.concat(novos); sessao.fim = false; sessao.lote++; render(); window.scrollTo(0, 0); },

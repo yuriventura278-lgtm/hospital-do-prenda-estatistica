@@ -57,11 +57,17 @@
       const add = (n, extra) => { this.cfg.interfaces[n] = Object.assign({ ip: "", mask: "", shutdown: tipo === "router", desc: "", mode: "", accessVlan: 1, native: 1, nonegotiate: false, portsec: false, psMax: 1, psSticky: false, nat: "", helper: "", portfast: false, encap: null, routed: tipo === "router" }, extra || {}); };
       this.modelo = modelo || (tipo === "router" ? "2911" : "2960");
       this.sim = null; // ganchos do simulador de rede (ligação física, ping, OSPF, CDP)
-      if (tipo === "router") (this.modelo === "4331" ? ["GigabitEthernet0/0/0", "GigabitEthernet0/0/1", "GigabitEthernet0/0/2", "Serial0/1/0", "Serial0/1/1"]
-        : ["GigabitEthernet0/0", "GigabitEthernet0/1", "GigabitEthernet0/2", "Serial0/1/0"]).forEach((n) => add(n));
+      const PORTAS_ROUTER = {
+        4331: ["GigabitEthernet0/0/0", "GigabitEthernet0/0/1", "GigabitEthernet0/0/2", "Serial0/1/0", "Serial0/1/1"],
+        4321: ["GigabitEthernet0/0/0", "GigabitEthernet0/0/1", "Serial0/1/0", "Serial0/1/1"],
+        2911: ["GigabitEthernet0/0", "GigabitEthernet0/1", "GigabitEthernet0/2", "Serial0/1/0"],
+        2901: ["GigabitEthernet0/0", "GigabitEthernet0/1", "Serial0/0/0", "Serial0/0/1"],
+        1941: ["GigabitEthernet0/0", "GigabitEthernet0/1", "Serial0/0/0", "Serial0/0/1"],
+      };
+      if (tipo === "router") (PORTAS_ROUTER[this.modelo] || PORTAS_ROUTER[2911]).forEach((n) => add(n));
       else {
         for (let i = 1; i <= 24; i++) add("FastEthernet0/" + i);
-        add("GigabitEthernet0/1"); add("GigabitEthernet0/2");
+        if (this.modelo !== "2950") { add("GigabitEthernet0/1"); add("GigabitEthernet0/2"); }
         add("Vlan1", { shutdown: true, routed: true });
       }
       this.startup = "";
@@ -346,8 +352,8 @@ ROM: System Bootstrap
 ${this.cfg.hostname} uptime is 12 minutes
 System image file is "flash:${r ? "c2900-universalk9-mz.SPA.152-4.M.bin" : "c2960-lanbasek9-mz.152-2.E.bin"}"
 
-cisco ${r ? "CISCO2911/K9" : "WS-C2960-24TT-L"} processor with 491520K/32768K bytes of memory.
-${r ? "3 Gigabit Ethernet interfaces" : "24 FastEthernet interfaces\n2 Gigabit Ethernet interfaces"}
+cisco ${r ? ({ 4331: "ISR4331/K9", 4321: "ISR4321/K9", 2911: "CISCO2911/K9", 2901: "CISCO2901/K9", 1941: "CISCO1941/K9" }[this.modelo] || "CISCO2911/K9") : ({ 2950: "WS-C2950-24", "2950T": "WS-C2950T-24", 3650: "WS-C3650-24PS", 3560: "WS-C3560-24PS" }[this.modelo] || "WS-C2960-24TT-L")} processor with 491520K/32768K bytes of memory.
+${Object.keys(this.cfg.interfaces).filter((n) => /^Gigabit/.test(n)).length} Gigabit Ethernet interfaces${Object.keys(this.cfg.interfaces).some((n) => /^Fast/.test(n)) ? "\n" + Object.keys(this.cfg.interfaces).filter((n) => /^Fast/.test(n)).length + " FastEthernet interfaces" : ""}${Object.keys(this.cfg.interfaces).some((n) => /^Serial/.test(n)) ? "\n" + Object.keys(this.cfg.interfaces).filter((n) => /^Serial/.test(n)).length + " Serial interfaces" : ""}
 255K bytes of non-volatile configuration memory.
 
 Configuration register is 0x2102

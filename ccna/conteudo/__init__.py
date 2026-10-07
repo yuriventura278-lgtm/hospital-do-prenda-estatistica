@@ -28,7 +28,7 @@ from .estagio_a import ESTAGIOS as ESTAGIOS_A
 from .estagio_b import ESTAGIOS as ESTAGIOS_B
 from .termos import preparar, protocolos_da_licao, termos_da_licao
 from .exercicios import exercicios_da_licao
-from .narracao import video_da_licao, video_do_modulo
+from .narracao import leitura_da_licao, video_da_licao, video_do_modulo
 from .programa import CASOS_MODULO, CURSOS, EXTRA_MODULO, LABS_MODULO, PROGRAMA
 from .referencias import REFERENCIAS
 from .simulador import ATIVIDADES
@@ -49,6 +49,7 @@ LICOES.update(NOVAS_B)
 LICOES.update(APROFUNDADAS)
 LICOES.update(PARTILHA)
 ESTAGIOS = {**ESTAGIOS_A, **ESTAGIOS_B}
+GLOS_POR_NOME = {t["termo"]: t for t in GLOSSARIO_COMPLETO}
 
 _EXTRA = {}
 for _m in _ANTIGOS:
@@ -88,6 +89,11 @@ def curso() -> dict:
             l["termos"] = termos_da_licao(l, pre)
             l["protocolos"] = protocolos_da_licao(l, PROTOCOLOS)
             l["exercicios"] = exercicios_da_licao(l, m)
+            l["leitura"] = leitura_da_licao(l, [GLOS_POR_NOME[t] for t in l["termos"] if t in GLOS_POR_NOME])
+        vistos = []
+        for l in m["licoes"]:
+            vistos += [t for t in l["termos"] if t not in vistos]
+        m["termos"] = vistos
         m["apresentacao"] = video_do_modulo(m, MODULOS[k - 1] if k else None)
     return {
         "versao": 2,

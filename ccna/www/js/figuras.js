@@ -5,6 +5,60 @@
 
   // Ícones 64×64 desenhados no estilo dos diagramas de rede.
   const ICONES = {
+    hub: `
+      <rect x="8" y="24" width="48" height="18" rx="3" class="i-corpo"/>
+      <g class="i-corpo-esc"><rect x="13" y="34" width="6" height="5"/><rect x="22" y="34" width="6" height="5"/><rect x="31" y="34" width="6" height="5"/><rect x="40" y="34" width="6" height="5"/></g>
+      <g class="i-seta"><path d="M14 29 h36 l-4 -3 M50 29 l-4 3" stroke="#fff" stroke-width="2" fill="none"/></g>`,
+    repetidor: `
+      <rect x="12" y="24" width="40" height="18" rx="9" class="i-corpo"/>
+      <g class="i-seta"><path d="M18 33 h28 l-5 -4 v8 z"/></g>`,
+    bridge: `
+      <rect x="10" y="26" width="44" height="16" rx="3" class="i-corpo"/>
+      <path d="M14 26 Q32 6 50 26" class="i-onda" fill="none"/>
+      <g class="i-corpo-esc"><rect x="16" y="32" width="8" height="5"/><rect x="40" y="32" width="8" height="5"/></g>`,
+    router_wifi: `
+      <rect x="8" y="34" width="48" height="14" rx="4" class="i-corpo"/>
+      <g class="i-led"><circle cx="16" cy="41" r="2"/><circle cx="23" cy="41" r="2"/></g>
+      <path d="M14 34 v-14 M50 34 v-14" class="i-onda" fill="none"/>
+      <g class="i-onda" fill="none"><path d="M26 24 Q32 18 38 24"/><path d="M21 18 Q32 8 43 18"/></g>`,
+    modem: `
+      <rect x="18" y="12" width="28" height="40" rx="5" class="i-corpo"/>
+      <g class="i-led"><circle cx="32" cy="20" r="2"/><circle cx="32" cy="27" r="2"/><circle cx="32" cy="34" r="2"/></g>
+      <rect x="24" y="42" width="16" height="5" rx="1" class="i-corpo-esc"/>`,
+    impressora: `
+      <rect x="18" y="10" width="28" height="12" class="i-ecra"/>
+      <rect x="8" y="22" width="48" height="20" rx="3" class="i-corpo"/>
+      <rect x="16" y="38" width="32" height="16" class="i-ecra"/>
+      <circle cx="49" cy="28" r="2" class="i-led"/>`,
+    smartphone: `
+      <rect x="22" y="8" width="20" height="48" rx="4" class="i-corpo"/>
+      <rect x="25" y="13" width="14" height="34" class="i-ecra"/>
+      <circle cx="32" cy="51" r="2" class="i-corpo-esc"/>`,
+    tablet: `
+      <rect x="12" y="10" width="40" height="44" rx="4" class="i-corpo"/>
+      <rect x="16" y="14" width="32" height="34" class="i-ecra"/>
+      <circle cx="32" cy="51" r="1.8" class="i-corpo-esc"/>`,
+    tv: `
+      <rect x="6" y="12" width="52" height="32" rx="3" class="i-corpo"/>
+      <rect x="10" y="16" width="44" height="24" class="i-ecra"/>
+      <path d="M24 44 h16 l4 8 h-24z" class="i-corpo-esc"/>`,
+    camara: `
+      <rect x="12" y="20" width="30" height="20" rx="4" class="i-corpo"/>
+      <circle cx="27" cy="30" r="6" class="i-ecra"/>
+      <path d="M42 26 l12 -6 v20 l-12 -6z" class="i-corpo-esc"/>
+      <rect x="22" y="40" width="6" height="12" class="i-corpo-esc"/>`,
+    lampada: `
+      <circle cx="32" cy="26" r="15" class="i-ecra"/>
+      <rect x="25" y="40" width="14" height="10" rx="2" class="i-corpo"/>
+      <g class="i-onda" fill="none"><path d="M44 12 Q50 8 54 14"/></g>`,
+    termostato: `
+      <circle cx="32" cy="32" r="22" class="i-corpo"/>
+      <circle cx="32" cy="32" r="15" class="i-ecra"/>
+      <path d="M32 32 L40 24" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`,
+    sniffer: `
+      <circle cx="26" cy="28" r="14" class="i-ecra"/>
+      <circle cx="26" cy="28" r="14" fill="none" class="i-onda"/>
+      <path d="M36 38 L52 54" class="i-onda"/>`,
     router: `
       <ellipse cx="32" cy="40" rx="26" ry="10" class="i-corpo-esc"/>
       <rect x="6" y="26" width="52" height="14" class="i-corpo-esc"/>

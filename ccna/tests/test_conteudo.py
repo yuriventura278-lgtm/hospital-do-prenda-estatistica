@@ -63,6 +63,15 @@ class TestConteudo(unittest.TestCase):
         self.assertGreaterEqual(len(self.c["glossario"]), 350)
         self.assertGreaterEqual(len(self.c["protocolos"]), 60)
 
+    def test_leitura_e_termos_do_modulo(self):
+        for m in self.c["modulos"]:
+            self.assertTrue(m["termos"], m["id"])
+            for l in m["licoes"]:
+                blocos = {t["b"] for t in l["leitura"]}
+                lidos = {i for i, b in enumerate(l["blocos"]) if b["tipo"] != "video"}
+                self.assertTrue(lidos <= blocos, l["id"])
+                self.assertTrue(all(len(t["f"]) < 600 for t in l["leitura"]), l["id"])
+
     def test_pronuncia(self):
         from conteudo.narracao import falar
         self.assertEqual(falar("O router 192.168.1.1/24"), "O ráuter 192 ponto 168 ponto 1 ponto 1 barra 24")
@@ -87,6 +96,10 @@ class TestLaboratorios(unittest.TestCase):
 
     def test_exercicios_gerados(self):
         r = subprocess.run(["node", str(RAIZ / "tests" / "exercicios.cjs")], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_equipamentos_do_simulador(self):
+        r = subprocess.run(["node", str(RAIZ / "tests" / "dispositivos.cjs")], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
     def test_atividades_do_simulador(self):

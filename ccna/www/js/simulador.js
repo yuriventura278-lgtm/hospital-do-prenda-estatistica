@@ -6,7 +6,9 @@
    - O ping é calculado a partir da topologia e da configuração: camada 2 (VLANs, access,
      trunk 802.1Q, VLAN nativa), camada 3 (gateway, rotas ligadas, estáticas, por defeito,
      OSPF), router-on-a-stick, SVIs, DHCP (servidor no router, relay e servidor dedicado), DNS.
-   Não simula (ainda): STP, ACL, NAT, HSRP, EtherChannel e Wi-Fi. */
+   Também: hub/repetidor/bridge, Wi-Fi (AP, router doméstico, WLC/LAP), NAT/PAT, firewall ASA
+   (níveis de segurança e inspeção de ICMP), operador/Internet com DHCP e DNS, modems, PoE.
+   Não simula (ainda): STP, ACL, HSRP e EtherChannel no tráfego. */
 (function () {
   "use strict";
   const IOS = window.IOS, F = window.Figuras;
@@ -19,58 +21,165 @@
   const pref = (m) => n2i(m).toString(2).replace(/0/g, "").length;
   const mesmaRede = (a, b, m) => ehIP(a) && ehIP(b) && mascaraOk(m) && redeDe(a, m) === redeDe(b, m);
 
+  // Tipos de equipamento (comportamento). "classe" decide o cabo: dte↔dce = direto, iguais = cruzado.
   const TIPOS = {
-    router: { nome: "Router ISR4331", icone: "router", prefixo: "R", ios: true, host: "Router", classe: "dte" },
-    switch: { nome: "Switch 2960", icone: "switch", prefixo: "S", ios: true, host: "Switch", classe: "dce" },
-    switch_l3: { nome: "Switch L3 3650", icone: "switch_l3", prefixo: "D", ios: true, host: "Switch", classe: "dce" },
-    pc: { nome: "PC", icone: "pc", prefixo: "PC", classe: "dte" },
-    portatil: { nome: "Portátil", icone: "portatil", prefixo: "Portatil", classe: "dte" },
-    servidor: { nome: "Servidor", icone: "servidor", prefixo: "SRV", classe: "dte" },
+    router: { nome: "Router", icone: "router", prefixo: "R", ios: true, host: "Router", classe: "dte" },
+    switch: { nome: "Switch", icone: "switch", prefixo: "S", ios: true, host: "Switch", classe: "dce" },
+    switch_l3: { nome: "Switch multicamada", icone: "switch_l3", prefixo: "D", ios: true, host: "Switch", classe: "dce" },
+    hub: { nome: "Hub", icone: "hub", prefixo: "Hub", classe: "dce", ponte: true },
+    repetidor: { nome: "Repetidor", icone: "repetidor", prefixo: "Rep", classe: "dce", ponte: true },
+    bridge: { nome: "Bridge", icone: "bridge", prefixo: "Bridge", classe: "dce", ponte: true },
+    ap: { nome: "Access point", icone: "ap", prefixo: "AP", classe: "dte", ponte: true },
+    lap: { nome: "Access point leve (LAP)", icone: "ap", prefixo: "LAP", classe: "dte", ponte: true },
+    wlc: { nome: "Controlador WLC", icone: "wlc", prefixo: "WLC", classe: "dte", fim: true },
+    router_wifi: { nome: "Router Wi-Fi doméstico", icone: "router_wifi", prefixo: "Wireless Router", classe: "dce" },
+    asa: { nome: "Firewall ASA", icone: "firewall", prefixo: "ASA", classe: "dte" },
+    nuvem: { nome: "Internet (operador)", icone: "nuvem", prefixo: "Internet", classe: "dce" },
+    modem_dsl: { nome: "Modem DSL", icone: "modem", prefixo: "DSL Modem", classe: "dce", ponte: true },
+    modem_cabo: { nome: "Modem de cabo", icone: "modem", prefixo: "Cable Modem", classe: "dce", ponte: true },
+    pc: { nome: "PC de mesa", icone: "pc", prefixo: "PC", classe: "dte", fim: true, nic: "ethernet", consola: true },
+    portatil: { nome: "Portátil", icone: "portatil", prefixo: "Portatil", classe: "dte", fim: true, nic: "ambos", consola: true },
+    servidor: { nome: "Servidor", icone: "servidor", prefixo: "SRV", classe: "dte", fim: true, nic: "ethernet" },
+    impressora: { nome: "Impressora de rede", icone: "impressora", prefixo: "Impressora", classe: "dte", fim: true, nic: "ethernet" },
+    telefone_ip: { nome: "Telefone IP", icone: "telefone_ip", prefixo: "IP Phone", classe: "dte", fim: true, nic: "ethernet", poe: true },
+    smartphone: { nome: "Smartphone", icone: "smartphone", prefixo: "Smartphone", classe: "dte", fim: true, nic: "wifi" },
+    tablet: { nome: "Tablet", icone: "tablet", prefixo: "Tablet", classe: "dte", fim: true, nic: "wifi" },
+    tv: { nome: "Smart TV", icone: "tv", prefixo: "TV", classe: "dte", fim: true, nic: "ambos" },
+    camara: { nome: "Câmara IP", icone: "camara", prefixo: "Camara", classe: "dte", fim: true, nic: "ambos", iot: true },
+    lampada: { nome: "Lâmpada inteligente", icone: "lampada", prefixo: "Lampada", classe: "dte", fim: true, nic: "wifi", iot: true },
+    termostato: { nome: "Termóstato inteligente", icone: "termostato", prefixo: "Termostato", classe: "dte", fim: true, nic: "wifi", iot: true },
+    sniffer: { nome: "Sniffer (analisador)", icone: "sniffer", prefixo: "Sniffer", classe: "dte", fim: true, nic: "ethernet", semIp: true },
   };
+  // Catálogo como no Packet Tracer: categoria › modelos
+  const CATALOGO = [
+    ["Routers", [["router", "4331", "ISR 4331", "3 portas Gigabit, 2 série. O router das aulas."], ["router", "4321", "ISR 4321", "2 Gigabit + 2 série."], ["router", "2911", "Router 2911", "3 Gigabit + 1 série (G0/0, G0/1, G0/2)."],
+      ["router", "2901", "Router 2901", "2 Gigabit + 2 série (S0/0/0)."], ["router", "1941", "Router 1941", "2 Gigabit + 2 série, pequenos escritórios."]]],
+    ["Switches", [["switch", "2960", "Catalyst 2960-24TT", "24 FastEthernet + 2 Gigabit. O switch das aulas."], ["switch", "2950T", "Catalyst 2950T-24", "24 FastEthernet + 2 Gigabit (antigo)."],
+      ["switch", "2950", "Catalyst 2950-24", "Só 24 FastEthernet."], ["switch_l3", "3650", "Catalyst 3650-24PS (L3, PoE)", "Switch multicamada: encaminha entre VLANs (ip routing). Dá energia PoE."],
+      ["switch_l3", "3560", "Catalyst 3560-24PS (L3, PoE)", "Multicamada com PoE para telefones e AP."]]],
+    ["Hubs e ligações", [["hub", "", "Hub", "Repete tudo para todas as portas (camada 1): um só domínio de colisão."], ["repetidor", "", "Repetidor", "Regenera o sinal para chegar mais longe (camada 1)."],
+      ["bridge", "", "Bridge (ponte)", "Liga dois segmentos e aprende MAC (camada 2), como um switch de 2 portas."]]],
+    ["Sem fios", [["router_wifi", "", "Router Wi-Fi doméstico (WRT300N)", "Router + switch de 4 portas + Wi-Fi + DHCP + NAT, como o de casa."], ["ap", "", "Access point", "Liga os clientes Wi-Fi à rede com fios."],
+      ["wlc", "", "Controlador WLC 2504", "Gere os LAP: cria as redes Wi-Fi (WLAN) num só sítio."], ["lap", "", "Access point leve (LAP)", "Recebe a configuração do WLC (CAPWAP)."]]],
+    ["Segurança", [["asa", "5506", "Firewall ASA 5506-X", "inside (nível 100) e outside (nível 0); bloqueia o que vem de fora."]]],
+    ["WAN e Internet", [["nuvem", "", "Internet / operador (Cloud)", "Simula o operador: dá IP público por DHCP e tem servidores na Internet."], ["modem_dsl", "", "Modem DSL", "Liga pela linha telefónica (cabo de telefone RJ11)."],
+      ["modem_cabo", "", "Modem de cabo", "Liga pelo cabo coaxial da TV."]]],
+    ["Dispositivos finais", [["pc", "", "PC de mesa", "Com placa de rede com fios (pode trocar para Wi-Fi)."], ["portatil", "", "Portátil", "Placa com fios e Wi-Fi."], ["servidor", "", "Servidor", "DHCP, DNS e partilha de pastas."],
+      ["impressora", "", "Impressora de rede", "Recebe IP e imprime pela rede."], ["telefone_ip", "", "Telefone IP 7960", "Voz sobre IP; precisa de energia PoE do switch ou do transformador."],
+      ["smartphone", "", "Smartphone", "Só Wi-Fi."], ["tablet", "", "Tablet", "Só Wi-Fi."], ["tv", "", "Smart TV", "Com fios ou Wi-Fi."], ["sniffer", "", "Sniffer", "Capta o tráfego que passa (ligue-o a um hub)."]]],
+    ["Casa inteligente (IoT)", [["camara", "", "Câmara IP", "Videovigilância pela rede."], ["lampada", "", "Lâmpada inteligente", "Wi-Fi."], ["termostato", "", "Termóstato", "Wi-Fi."]]],
+  ];
   const CABOS = {
     auto: { nome: "Automático", cor: "#7a8796" }, direto: { nome: "Direto", cor: "#222f3b" }, cruzado: { nome: "Cruzado", cor: "#222f3b", tracejado: true },
     consola: { nome: "Consola", cor: "#4aa8e8" }, fibra: { nome: "Fibra", cor: "#ef8a1a" }, serial: { nome: "Serial", cor: "#d33a3a" },
+    coaxial: { nome: "Coaxial", cor: "#7a5a3a" }, telefone: { nome: "Telefone (RJ11)", cor: "#5b8f3a" },
   };
-  const ehHost = (d) => ["pc", "portatil", "servidor"].includes(d.tipo);
+  const ehHost = (d) => !!(TIPOS[d.tipo] && TIPOS[d.tipo].fim);
+  const ehPonte = (d) => !!(TIPOS[d.tipo] && TIPOS[d.tipo].ponte);
+  const nicDe = (d) => (d.pc && d.pc.nic) || (TIPOS[d.tipo] && TIPOS[d.tipo].nic) || "ethernet";
+  const temWifi = (d) => ehHost(d) && nicDe(d) !== "ethernet";
+  const nomeDe = (d) => (d.eq ? d.eq.cfg.hostname : d.nome);
+  const POE = ["3650", "3560"];
+  // Servidores "na Internet" que a nuvem do operador tem (para testar a saída para a Internet)
+  const INTERNET = { "8.8.8.8": "dns.google", "93.184.216.34": "www.exemplo.com", "142.250.184.4": "www.google.com" };
 
   // ================================================================== modelo
   class Rede {
     constructor() { this.devs = []; this.links = []; this.seq = 1; this.cache = null; this.aoMudar = null; }
 
     novoDev(tipo, x, y, nome, opc) {
-      const T = TIPOS[tipo];
+      const T = TIPOS[tipo]; opc = opc || {};
       if (!nome) { let k = 0; do { nome = T.prefixo + (k || (T.prefixo.length > 2 ? 0 : 1)); k++; } while (this.devs.some((d) => d.nome === nome)); }
-      const d = { id: "d" + (this.seq++), tipo, nome, x, y };
+      const d = { id: "d" + (this.seq++), tipo, nome, x, y, modelo: opc.modelo || (tipo === "router" ? "4331" : tipo === "switch" ? "2960" : tipo === "switch_l3" ? "3650" : tipo === "asa" ? "5506" : "") };
       if (T.ios) {
-        d.eq = new IOS.Equipamento(tipo === "router" ? "router" : "switch", (opc && opc.nomeIos) || T.host, tipo === "router" ? "4331" : "2960");
+        d.eq = new IOS.Equipamento(tipo === "router" ? "router" : "switch", opc.nomeIos || T.host, d.modelo);
         d.eq.sim = this.ganchos(d);
-      } else {
-        d.pc = { dhcp: !!(opc && opc.dhcp), ip: (opc && opc.ip) || "", mask: (opc && opc.mask) || "", gw: (opc && opc.gw) || "", dns: (opc && opc.dns) || "", lease: null, log: [], arp: {},
-          partilhas: [], fwPartilha: false, mapas: {}, ficheiros: ["relatorio.docx", "orcamento.xlsx", "foto.jpg"] };
+      } else if (T.fim) {
+        d.pc = { dhcp: opc.dhcp != null ? !!opc.dhcp : opc.ip ? false : !!(T.iot || ["smartphone", "tablet", "tv", "telefone_ip", "impressora"].includes(tipo)), ip: opc.ip || "", mask: opc.mask || "", gw: opc.gw || "", dns: opc.dns || "", lease: null, log: [], arp: {},
+          partilhas: [], fwPartilha: false, mapas: {}, ficheiros: ["relatorio.docx", "orcamento.xlsx", "foto.jpg"], nic: T.nic || "ethernet", wifi: { ssid: "", chave: "" }, energia: false };
         if (tipo === "servidor") d.srv = { dhcp: { on: false, inicio: "", mask: "255.255.255.0", gw: "", dns: "", max: 50 }, dns: { on: true, registos: [] }, http: true };
-      }
+        if (tipo === "wlc") d.wlc = { wlans: [{ ssid: "Empresa", seguranca: "wpa2", chave: "cisco12345" }] };
+      } else if (tipo === "ap") d.ap = { ssid: "Default", seguranca: "aberta", chave: "", canal: 6 };
+      else if (tipo === "router_wifi") d.rw = { wan: { modo: "dhcp", ip: "", mask: "", gw: "", dns: "", lease: null }, lan: { ip: "192.168.0.1", mask: "255.255.255.0", dhcp: { on: true, inicio: "192.168.0.100", max: 50 } }, wifi: { ssid: "Default", seguranca: "aberta", chave: "" } };
+      else if (tipo === "asa") d.asa = { ifs: Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((k) => ["GigabitEthernet1/" + k, k === 1 ? { nome: "outside", nivel: 0, modo: "dhcp", ip: "", mask: "", lease: null } : k === 2 ? { nome: "inside", nivel: 100, modo: "estatico", ip: "192.168.1.1", mask: "255.255.255.0" } : { nome: "", nivel: 0, modo: "estatico", ip: "", mask: "" }])),
+        gw: "", nat: true, icmp: false, dhcp: { on: true, inicio: "192.168.1.5", max: 50 } };
+      else if (tipo === "nuvem") d.nuvem = { portas: { Ethernet6: { ip: "203.0.113.1", mask: "255.255.255.0", dhcp: true }, Ethernet7: { ip: "198.51.100.1", mask: "255.255.255.0", dhcp: true },
+        Coaxial7: { ip: "100.64.10.1", mask: "255.255.255.0", dhcp: true }, Modem4: { ip: "100.64.20.1", mask: "255.255.255.0", dhcp: true } } };
+      ["ap", "rw", "asa", "nuvem", "wlc"].forEach((k) => { if (opc[k]) d[k] = JSON.parse(JSON.stringify(opc[k])); });
+      if (d.pc && opc.nic) d.pc.nic = opc.nic;
+      if (d.pc && opc.wifi) d.pc.wifi = Object.assign({}, opc.wifi);
       this.devs.push(d);
       return d;
     }
     dev(nomeOuId) { return this.devs.find((d) => d.id === nomeOuId || d.nome === nomeOuId); }
 
     portas(d) {
-      if (ehHost(d)) return ["FastEthernet0", "RS232"];
-      const fis = Object.keys(d.eq.cfg.interfaces).filter((n) => !/\.|^Vlan|^Loopback|^Port-channel/.test(n));
-      return fis.concat("Console");
+      if (ehHost(d)) { const n = nicDe(d), T = TIPOS[d.tipo]; return [].concat(n !== "wifi" ? ["FastEthernet0"] : [], n !== "ethernet" ? ["Wireless0"] : [], T.consola ? ["RS232"] : []); }
+      if (d.eq) { const fis = Object.keys(d.eq.cfg.interfaces).filter((n) => !/\.|^Vlan|^Loopback|^Port-channel/.test(n)); return fis.concat("Console"); }
+      return {
+        hub: ["Port0", "Port1", "Port2", "Port3", "Port4", "Port5"], repetidor: ["Port0", "Port1"], bridge: ["Port0", "Port1"],
+        ap: ["Port0", "Wireless"], lap: ["GigabitEthernet0", "Wireless"], router_wifi: ["Internet", "Ethernet1", "Ethernet2", "Ethernet3", "Ethernet4", "Wireless"],
+        asa: d.asa ? Object.keys(d.asa.ifs).concat("Console") : [], nuvem: ["Ethernet6", "Ethernet7", "Coaxial7", "Modem4"],
+        modem_dsl: ["Port0 (linha)", "Port1"], modem_cabo: ["Port0 (coaxial)", "Port1"],
+      }[d.tipo] || [];
     }
-    tipoPorta(p) { return p === "Console" || p === "RS232" ? "consola" : /^Serial/.test(p) ? "serial" : /^Gigabit/.test(p) ? "giga" : "cobre"; }
-    linkDe(d, p) { return this.links.find((l) => (l.a === d.id && l.pa === p) || (l.b === d.id && l.pb === p)); }
-    portaLivre(d, p) { return !this.linkDe(d, p); }
+    tipoPorta(p) { return p === "Console" || p === "RS232" ? "consola" : /^Wireless/.test(p) ? "wifi" : /^Serial/.test(p) ? "serial" : /^Coaxial|coaxial\)$/.test(p) ? "coax" : /^Modem|linha\)$/.test(p) ? "rj11" : /^Gigabit/.test(p) ? "giga" : "cobre"; }
+    classe(d, p) { if (d.tipo === "router_wifi") return p === "Internet" ? "dte" : "dce"; return TIPOS[d.tipo].classe; }
+    // Ligações sem fios: cada cliente Wi-Fi associa-se ao AP com o mesmo SSID e a chave certa.
+    wifi() {
+      if (this.cache && this.cache.wifi) return this.cache.wifi;
+      this.cache = this.cache || {};
+      const res = { links: [], estado: {} };
+      this.cache.wifi = res;
+      const aps = this.devs.map((a) => {
+        if (a.tipo === "ap") return { a, redes: [a.ap] };
+        if (a.tipo === "router_wifi") return { a, redes: [a.rw.wifi] };
+        if (a.tipo === "lap") { const w = this.wlcDe(a); return w ? { a, redes: w.wlc.wlans } : null; }
+        return null;
+      }).filter(Boolean);
+      this.devs.filter(temWifi).forEach((h) => {
+        const w = h.pc.wifi || {};
+        if (!w.ssid) { res.estado[h.id] = "sem rede escolhida"; return; }
+        let auth = false;
+        const ap = aps.find((x) => x.redes.some((r) => r.ssid === w.ssid && ((auth = true), r.seguranca === "aberta" || r.chave === w.chave)));
+        if (!ap) { res.estado[h.id] = auth ? "falha de autenticação (chave errada)" : `rede “${w.ssid}” não encontrada`; return; }
+        res.estado[h.id] = "ligado a " + ap.a.nome;
+        res.links.push({ id: "w-" + h.id, a: h.id, pa: "Wireless0", b: ap.a.id, pb: "Wireless", cabo: "wifi" });
+      });
+      return res;
+    }
+    // LAP: procura um WLC pela rede com fios (como o CAPWAP descobre o controlador)
+    wlcDe(lap) {
+      const visto = new Set([lap.id]), fila = [lap];
+      while (fila.length) {
+        const x = fila.shift();
+        for (const l of this.links) {
+          if ((l.a !== x.id && l.b !== x.id) || !this.linkUp(l)) continue;
+          const o = this.dev(l.a === x.id ? l.b : l.a);
+          if (visto.has(o.id)) continue; visto.add(o.id);
+          if (o.tipo === "wlc") return o;
+          if (!ehHost(o) && o.tipo !== "router" && o.tipo !== "asa" && o.tipo !== "nuvem") fila.push(o);
+        }
+      }
+      return null;
+    }
+    todosLinks() { return this.links.concat(this.wifi().links); }
+    linkDe(d, p) { return this.todosLinks().find((l) => (l.a === d.id && l.pa === p) || (l.b === d.id && l.pb === p)); }
+    linksDe(d) { return this.todosLinks().filter((l) => l.a === d.id || l.b === d.id); }
+    portaLivre(d, p) { return !this.links.some((l) => (l.a === d.id && l.pa === p) || (l.b === d.id && l.pb === p)); }
 
     caboCerto(da, pa, db, pb) {
       const ta = this.tipoPorta(pa), tb = this.tipoPorta(pb);
+      if (ta === "wifi" || tb === "wifi") return null;
       if (ta === "consola" || tb === "consola") return (pa === "RS232" && pb === "Console") || (pb === "RS232" && pa === "Console") ? "consola" : null;
       if (ta === "serial" || tb === "serial") return ta === tb ? "serial" : null;
-      return TIPOS[da.tipo].classe === TIPOS[db.tipo].classe ? "cruzado" : "direto";
+      if (ta === "coax" || tb === "coax") return ta === tb ? "coaxial" : null;
+      if (ta === "rj11" || tb === "rj11") return ta === tb ? "telefone" : null;
+      return this.classe(da, pa) === this.classe(db, pb) ? "cruzado" : "direto";
     }
     // Estado de uma ligação: "ok" (verde), "baixo" (porta desligada, laranja), "errado" (cabo incorreto, vermelho)
     estadoLink(l) {
+      if (l.cabo === "wifi") return { estado: "ok" };
       const da = this.dev(l.a), db = this.dev(l.b);
       const certo = this.caboCerto(da, l.pa, db, l.pb);
       let valido;
@@ -81,13 +190,13 @@
       const baixoA = this.adminDown(da, l.pa), baixoB = this.adminDown(db, l.pb);
       return { estado: baixoA || baixoB ? "baixo" : "ok", baixoA, baixoB };
     }
-    adminDown(d, p) { if (ehHost(d)) return false; const i = d.eq.cfg.interfaces[p]; return !i || i.shutdown; }
+    adminDown(d, p) { if (!d.eq) return false; const i = d.eq.cfg.interfaces[p]; return !i || i.shutdown; }
     linkUp(l) { return this.estadoLink(l).estado === "ok"; }
 
     ligar(da, pa, db, pb, cabo) {
       if (cabo === "auto") {
         cabo = this.caboCerto(da, pa, db, pb) || "direto";
-        if (this.tipoPorta(pa) === "giga" && this.tipoPorta(pb) === "giga" && da.tipo !== "pc" && db.tipo !== "pc" && (TIPOS[da.tipo].classe === "dce" && TIPOS[db.tipo].classe === "dce")) cabo = "cruzado";
+        if (this.tipoPorta(pa) === "giga" && this.tipoPorta(pb) === "giga" && !ehHost(da) && !ehHost(db) && this.classe(da, pa) === "dce" && this.classe(db, pb) === "dce") cabo = "cruzado";
       }
       const l = { id: "l" + (this.seq++), a: da.id, pa, b: db.id, pb, cabo };
       this.links.push(l);
@@ -95,7 +204,7 @@
       return l;
     }
     portaAuto(d, outro) {
-      const ps = this.portas(d).filter((p) => this.portaLivre(d, p) && this.tipoPorta(p) !== "consola" && this.tipoPorta(p) !== "serial");
+      const ps = this.portas(d).filter((p) => this.portaLivre(d, p) && !["consola", "serial", "wifi", "coax", "rj11"].includes(this.tipoPorta(p)));
       if (!ps.length) return null;
       if (d.tipo === "switch" && outro && !ehHost(outro)) return ps.find((p) => /^Giga/.test(p)) || ps[0];
       return ps[0];
@@ -138,7 +247,20 @@
     // ---------------------------------------------------------------- endereços de camada 3
     // Lista as interfaces L3 ativas de um equipamento: {iface, ip, mask, porta, vlan}
     l3(d) {
-      if (ehHost(d)) { const c = this.ipEfetivo(d); return c.ip ? [{ iface: "FastEthernet0", ip: c.ip, mask: c.mask, porta: "FastEthernet0", vlan: null }] : []; }
+      if (ehHost(d)) {
+        if (TIPOS[d.tipo].semIp || (TIPOS[d.tipo].poe && !this.temEnergia(d))) return [];
+        const c = this.ipEfetivo(d), porta = this.portaAtiva(d);
+        return c.ip ? [{ iface: porta, ip: c.ip, mask: c.mask, porta, vlan: null }] : [];
+      }
+      if (d.tipo === "router_wifi") {
+        const out = [{ iface: "LAN", ip: d.rw.lan.ip, mask: d.rw.lan.mask, lanbox: true }], w = this.wanRW(d);
+        if (w.ip && this.portaUp(d, "Internet")) out.push({ iface: "Internet", ip: w.ip, mask: w.mask, porta: "Internet", vlan: null });
+        return out.filter((e) => ehIP(e.ip) && mascaraOk(e.mask));
+      }
+      if (d.tipo === "asa") return Object.entries(d.asa.ifs).map(([n, i]) => { const e = i.modo === "dhcp" ? (i.lease || {}) : i; return e.ip && i.nome && this.portaUp(d, n) ? { iface: n, ip: e.ip, mask: e.mask, porta: n, vlan: null } : null; }).filter(Boolean);
+      if (d.tipo === "nuvem") return Object.entries(d.nuvem.portas).filter(([n, p]) => ehIP(p.ip) && this.portaUp(d, n)).map(([n, p]) => ({ iface: n, ip: p.ip, mask: p.mask, porta: n, vlan: null }))
+        .concat(Object.entries(INTERNET).map(([ip]) => ({ iface: "Internet", ip, mask: "255.255.255.255", loop: true })));
+      if (!d.eq) return [];
       const out = [];
       Object.entries(d.eq.cfg.interfaces).forEach(([n, i]) => {
         if (!i.ip || i.ip === "dhcp" || i.shutdown) return;
@@ -151,8 +273,25 @@
       });
       return out;
     }
+    // Porta que o PC usa: a com fios se tiver cabo, senão o Wi-Fi.
+    portaAtiva(d) {
+      const ps = this.portas(d).filter((p) => p !== "RS232");
+      if (ps.includes("FastEthernet0") && this.portaUp(d, "FastEthernet0")) return "FastEthernet0";
+      if (ps.includes("Wireless0") && this.linkDe(d, "Wireless0")) return "Wireless0";
+      return ps[0] || "FastEthernet0";
+    }
+    // Telefone IP: precisa de PoE (switch 3560/3650) ou do transformador
+    temEnergia(d) {
+      if (d.pc.energia) return true;
+      const l = this.linkDe(d, "FastEthernet0"); if (!l || l.cabo === "wifi") return false;
+      const o = this.dev(l.a === d.id ? l.b : l.a);
+      return !!(o.eq && POE.includes(o.modelo));
+    }
+    wanRW(d) { const w = d.rw.wan; return w.modo === "dhcp" ? (w.lease || {}) : w; }
     ipEfetivo(d) { const c = d.pc; if (c.dhcp) return c.lease || { ip: "", mask: "", gw: "", dns: "" }; return { ip: ehIP(c.ip) ? c.ip : "", mask: c.mask, gw: c.gw, dns: c.dns }; }
-    encaminha(d) { return d.tipo === "router" || (d.eq && d.eq.cfg.ipRouting && d.eq.tipo === "switch"); }
+    encaminha(d) { return d.tipo === "router" || ["router_wifi", "asa", "nuvem"].includes(d.tipo) || (d.eq && d.eq.cfg.ipRouting && d.eq.tipo === "switch"); }
+    // Nível de segurança da interface de uma ASA
+    nivelAsa(d, iface) { const i = d.asa.ifs[iface]; return i ? +i.nivel : 0; }
 
     // ---------------------------------------------------------------- camada 2: domínio de broadcast
     // A partir de uma interface L3, devolve os pontos L3 alcançáveis na mesma rede local e o caminho.
@@ -161,7 +300,10 @@
       const chegaA = (dev, porta, vlan, de) => {
         const k = dev.id + "|" + porta + "|" + vlan; if (visto.has(k)) return; visto.add(k);
         if (!pai.has(dev.id)) pai.set(dev.id, de);
-        if (ehHost(dev)) { if (vlan === null) this.l3(dev).forEach((e) => achados.push({ dev, e })); return; }
+        if (ehHost(dev)) { if (vlan === null) this.l3(dev).filter((e) => e.porta === porta).forEach((e) => achados.push({ dev, e })); return; }
+        if (ehPonte(dev)) { ponte(dev, vlan); return; }
+        if (dev.tipo === "router_wifi") { if (vlan !== null) return; if (porta === "Internet") this.l3(dev).filter((e) => e.porta === "Internet").forEach((e) => achados.push({ dev, e })); else caixaLan(dev); return; }
+        if (!dev.eq) { if (vlan === null) this.l3(dev).filter((e) => e.porta === porta).forEach((e) => achados.push({ dev, e })); return; }
         const i = dev.eq.cfg.interfaces[porta]; if (!i || i.shutdown) return;
         if (dev.eq.tipo === "router" || i.routed) {
           this.l3(dev).filter((e) => e.porta === porta && (e.vlan === vlan || (vlan === null && e.vlan === null))).forEach((e) => achados.push({ dev, e }));
@@ -184,14 +326,24 @@
           sair(sw, p, tag);
         });
       };
-      const sair = (dev, porta, tag) => {
-        const l = this.linkDe(dev, porta); if (!l || !this.linkUp(l)) return;
+      const sair = (dev, porta, tag) => { const l = this.linkDe(dev, porta); if (l) sairLink(dev, l, tag); };
+      const sairLink = (dev, l, tag) => {
+        if (!this.linkUp(l)) return;
         const eu = l.a === dev.id, outro = this.dev(eu ? l.b : l.a), pOutro = eu ? l.pb : l.pa;
         chegaA(outro, pOutro, tag, dev.id);
+      };
+      // hub, repetidor, bridge, AP, modem: tudo o que entra sai por todas as outras ligações
+      const ponte = (dev, vlan) => { const k = dev.id + "|ponte|" + vlan; if (visto.has(k)) return; visto.add(k); this.linksDe(dev).forEach((l) => sairLink(dev, l, vlan)); };
+      // router Wi-Fi: as portas Ethernet1-4 e o Wi-Fi formam um switch interno com o IP da LAN
+      const caixaLan = (dev) => {
+        const k = dev.id + "|lan"; if (visto.has(k)) return; visto.add(k);
+        this.l3(dev).filter((e) => e.lanbox).forEach((e) => achados.push({ dev, e }));
+        this.linksDe(dev).forEach((l) => { if ((l.a === dev.id ? l.pa : l.pb) !== "Internet") sairLink(dev, l, null); });
       };
       visto.add(d.id + "|" + (l3.porta || "svi") + "|origem");
       pai.set(d.id, null);
       if (l3.svi) dentroSwitch(d, l3.svi, null);
+      else if (l3.lanbox) caixaLan(d);
       else if (l3.porta) sair(d, l3.porta, l3.vlan);
       return { achados: achados.filter((a) => !(a.dev === d && a.e.iface === l3.iface)), pai };
     }
@@ -203,14 +355,20 @@
       const l3 = this.l3(d);
       l3.forEach((e) => rotas.push({ net: redeDe(e.ip, e.mask), mask: e.mask, tipo: "C", iface: e, ad: 0 }));
       if (this.encaminha(d)) {
-        (d.eq.cfg.routes || []).forEach((r) => {
+        this.estaticas(d).forEach((r) => {
           if (/^[A-Za-z]/.test(r.via)) { const e = l3.find((x) => x.iface === r.via); if (e) rotas.push({ net: r.net, mask: r.mask, tipo: "S", iface: e, via: null, ad: r.ad || 1 }); return; }
           const e = l3.find((x) => mesmaRede(x.ip, r.via, x.mask));
           if (e) rotas.push({ net: r.net, mask: r.mask, tipo: "S", iface: e, via: r.via, ad: r.ad || 1 });
         });
-        (this.ospf().rotas[d.id] || []).forEach((r) => { const e = l3.find((x) => x.iface === r.iface); if (e) rotas.push({ net: r.net, mask: i2n(r.pref ? (2 ** 32 - 2 ** (32 - r.pref)) : 0), tipo: "O", iface: e, via: r.via, ad: 110 }); });
+        if (d.eq) (this.ospf().rotas[d.id] || []).forEach((r) => { const e = l3.find((x) => x.iface === r.iface); if (e) rotas.push({ net: r.net, mask: i2n(r.pref ? (2 ** 32 - 2 ** (32 - r.pref)) : 0), tipo: "O", iface: e, via: r.via, ad: 110 }); });
       }
       return rotas;
+    }
+    estaticas(d) {
+      if (d.eq) return d.eq.cfg.routes || [];
+      if (d.tipo === "router_wifi") { const w = this.wanRW(d); return ehIP(w.gw) ? [{ net: "0.0.0.0", mask: "0.0.0.0", via: w.gw }] : []; }
+      if (d.tipo === "asa") { const o = Object.values(d.asa.ifs).find((i) => i.nome === "outside"); const gw = (o && o.modo === "dhcp" && o.lease ? o.lease.gw : "") || d.asa.gw; return ehIP(gw) ? [{ net: "0.0.0.0", mask: "0.0.0.0", via: gw }] : []; }
+      return [];
     }
     procurar(d, ip) {
       let melhor = null;
@@ -225,20 +383,28 @@
     }
     dono(ip) { for (const d of this.devs) if (this.l3(d).some((e) => e.ip === ip)) return d; return null; }
 
-    // Vai de um equipamento até um IP; devolve {ok, saltos, devs, motivo}
-    ir(d, ip, ttl) {
+    // Vai de um equipamento até um IP; devolve {ok, saltos, devs, motivo, nat}
+    // retorno: é a resposta de uma ligação já aberta (a firewall deixa passar se inspecionar).
+    // entrada0: interface por onde o pacote entrou no primeiro equipamento (para a ASA).
+    ir(d, ip, ttl, retorno, entrada0) {
       const saltos = [], devs = [d.id];
-      let atual = d;
+      let atual = d, entrada = entrada0 || null, nat = null;
       for (let n = 0; n < (ttl || 16); n++) {
-        if (this.l3(atual).some((e) => e.ip === ip)) return { ok: true, saltos, devs, fim: atual };
+        if (this.l3(atual).some((e) => e.ip === ip)) return { ok: true, saltos, devs, fim: atual, nat };
         let saida, prox;
         if (this.encaminha(atual)) {
           const r = this.procurar(atual, ip);
-          if (!r) return { ok: false, saltos, devs, motivo: `${atual.eq.cfg.hostname} não tem rota para ${ip}`, inalcancavel: true };
+          if (!r) return { ok: false, saltos, devs, motivo: `${nomeDe(atual)} não tem rota para ${ip}${atual.tipo === "router_wifi" || atual.tipo === "asa" ? " (falta o gateway da Internet: ligue a porta Internet/outside ao operador)" : ""}`, inalcancavel: true };
           saida = r.iface; prox = r.tipo === "C" || !r.via ? ip : r.via;
+          if (atual.tipo === "asa" && entrada && saida.iface !== entrada.iface) {
+            const ni = this.nivelAsa(atual, entrada.iface), ns = this.nivelAsa(atual, saida.iface);
+            if (ns > ni && !retorno) return { ok: false, saltos, devs, motivo: `a firewall ${atual.nome} bloqueou: tráfego de ${atual.asa.ifs[entrada.iface].nome} (nível ${ni}) para ${atual.asa.ifs[saida.iface].nome} (nível ${ns}) só passa com uma regra de acesso` };
+            if (ns > ni && retorno && !atual.asa.icmp) return { ok: false, saltos, devs, motivo: `a firewall ${atual.nome} deixou sair o ping mas bloqueou a resposta: por defeito a ASA não inspeciona ICMP (ative “Inspecionar ICMP”)` };
+          }
+          if (!nat && entrada && this.fazNat(atual, entrada, saida)) nat = { dev: atual, ip: saida.ip, e: saida };
         } else {
           const l3 = this.l3(atual);
-          if (!l3.length) return { ok: false, saltos, devs, motivo: `${atual.nome} não tem endereço IP` };
+          if (!l3.length) return { ok: false, saltos, devs, motivo: `${atual.nome} não tem endereço IP${TIPOS[atual.tipo].poe && !this.temEnergia(atual) ? " (o telefone está sem energia: ligue-o a um switch PoE ou ao transformador)" : ""}` };
           saida = ehHost(atual) ? l3[0] : (l3.find((e) => mesmaRede(e.ip, ip, e.mask)) || l3[0]);
           if (mesmaRede(saida.ip, ip, saida.mask)) prox = ip;
           else {
@@ -253,12 +419,19 @@
         this.caminho(dom.pai, alvo.dev.id).slice(1).forEach((x) => devs.push(x));
         if (alvo.dev !== d) saltos.push(prox === ip ? ip : prox);
         if (ehHost(alvo.dev) || !this.encaminha(alvo.dev) || alvo.e.ip === ip) {
-          if (alvo.e.ip === ip || this.l3(alvo.dev).some((e) => e.ip === ip)) { if (ehHost(alvo.dev) && alvo.e.ip !== ip) return { ok: false, saltos, devs, motivo: "destino inalcançável" }; return { ok: true, saltos, devs, fim: alvo.dev }; }
+          if (alvo.e.ip === ip || this.l3(alvo.dev).some((e) => e.ip === ip)) { if (ehHost(alvo.dev) && alvo.e.ip !== ip) return { ok: false, saltos, devs, motivo: "destino inalcançável" }; return { ok: true, saltos, devs, fim: alvo.dev, nat }; }
           return { ok: false, saltos, devs, motivo: `${alvo.dev.nome} não encaminha pacotes` };
         }
-        atual = alvo.dev;
+        atual = alvo.dev; entrada = alvo.e;
       }
       return { ok: false, saltos, devs, motivo: "TTL esgotado (loop de encaminhamento)" };
+    }
+    // NAT/PAT: router Wi-Fi (LAN → Internet), router Cisco com ip nat inside/outside, ASA (inside → outside)
+    fazNat(d, entrada, saida) {
+      if (d.tipo === "router_wifi") return !!entrada.lanbox && saida.iface === "Internet";
+      if (d.tipo === "asa") return d.asa.nat && this.nivelAsa(d, entrada.iface) > this.nivelAsa(d, saida.iface);
+      if (d.eq && (d.eq.cfg.natRules || []).length) { const I = d.eq.cfg.interfaces; return (I[entrada.iface] || {}).nat === "inside" && (I[saida.iface] || {}).nat === "outside"; }
+      return false;
     }
     origemIp(d, ip) {
       if (ehHost(d)) return this.ipEfetivo(d).ip;
@@ -267,11 +440,25 @@
       const l3 = this.l3(d); return l3.length ? l3[0].ip : "";
     }
     pingCompleto(d, ip) {
+      const r = this.pingCalc(d, ip);
+      (this.trafego = this.trafego || []).push({ de: d.nome, para: ip, ok: r.ok, devs: r.devs || [], quando: Date.now() });
+      if (this.trafego.length > 40) this.trafego.shift();
+      return r;
+    }
+    pingCalc(d, ip) {
       const ida = this.ir(d, ip);
       if (!ida.ok) return ida;
       const src = this.origemIp(d, ip);
       if (!src) return { ok: false, saltos: [], devs: ida.devs, motivo: "sem IP de origem" };
-      const volta = this.ir(ida.fim, src);
+      if (ida.nat) {
+        // a resposta volta para o endereço público do NAT e depois o NAT entrega-a ao PC
+        const v1 = this.ir(ida.fim, ida.nat.ip, 16, true);
+        if (!v1.ok) return { ok: false, saltos: ida.saltos, devs: ida.devs, motivo: `a resposta não consegue voltar ao endereço público ${ida.nat.ip}: ${v1.motivo}` };
+        const v2 = this.ir(ida.nat.dev, src, 16, true, ida.nat.e);
+        if (!v2.ok) return { ok: false, saltos: ida.saltos, devs: ida.devs, motivo: `a resposta chegou ao NAT mas não volta para dentro: ${v2.motivo}` };
+        return { ok: true, saltos: ida.saltos, devs: ida.devs.concat(v1.devs.slice(1), v2.devs.slice(1)), ida: ida.devs, nat: ida.nat.ip };
+      }
+      const volta = this.ir(ida.fim, src, 16, true);
       if (!volta.ok) return { ok: false, saltos: ida.saltos, devs: ida.devs, motivo: `a resposta não consegue voltar: ${volta.motivo}` };
       return { ok: true, saltos: ida.saltos, devs: ida.devs.concat(volta.devs.slice(1)), ida: ida.devs };
     }
@@ -332,52 +519,69 @@
 
     // ---------------------------------------------------------------- DHCP
     renovarDhcp() {
-      this.devs.filter((d) => ehHost(d) && d.pc.dhcp).forEach((d) => {
+      // primeiro as portas Internet/outside (recebem IP do operador), depois os PCs
+      this.devs.forEach((d) => {
+        const w = d.tipo === "router_wifi" ? d.rw.wan : d.tipo === "asa" ? Object.entries(d.asa.ifs).find(([, i]) => i.nome === "outside" && i.modo === "dhcp") : null;
+        if (!w) return;
+        const [porta, cfg] = d.tipo === "router_wifi" ? ["Internet", w] : w;
+        if (cfg.modo !== "dhcp") return;
+        if (!this.portaUp(d, porta)) { cfg.lease = null; return; }
+        if (cfg.lease && this.leaseNaRede(d, porta, cfg.lease)) return;
+        cfg.lease = this.leaseDe(d, porta);
+      });
+      this.devs.filter((d) => ehHost(d) && d.pc.dhcp && !TIPOS[d.tipo].semIp).forEach((d) => {
         const l = d.pc.lease;
         if (l && !/^169\.254/.test(l.ip) && this.leaseValido(d)) return;
         this.pedirDhcp(d);
       });
     }
-    leaseValido(d) {
-      const dom = this.dominio(d, { porta: "FastEthernet0", vlan: null, iface: "x" });
-      return dom.achados.some((a) => mesmaRede(a.e.ip, d.pc.lease.ip, d.pc.lease.mask));
-    }
+    leaseNaRede(d, porta, lease) { return this.dominio(d, { porta, vlan: null, iface: "x" }).achados.some((a) => mesmaRede(a.e.ip, lease.ip, lease.mask)); }
+    leaseValido(d) { return this.leaseNaRede(d, this.portaAtiva(d), d.pc.lease); }
     pedirDhcp(d) {
       d.pc.lease = null;
-      const dom = this.dominio(d, { porta: "FastEthernet0", vlan: null, iface: "x" });
-      const usados = new Set(this.devs.flatMap((x) => this.l3(x).map((e) => e.ip)));
-      for (const a of dom.achados) {
-        let fonte = null, rede = null, mask = null, gw = null, dns = "";
-        if (a.dev.eq) {
-          const pools = Object.values(a.dev.eq.cfg.dhcpPools || {});
-          let p = pools.find((x) => x.net && x.mask && redeDe(a.e.ip, x.mask) === x.net);
-          let excl = a.dev.eq.cfg.dhcpExcl;
-          if (!p && a.dev.eq.cfg.interfaces[a.e.iface] && a.dev.eq.cfg.interfaces[a.e.iface].helper) {
-            const h = this.dono(a.dev.eq.cfg.interfaces[a.e.iface].helper);
-            if (h && this.ir(a.dev, a.dev.eq.cfg.interfaces[a.e.iface].helper).ok) {
-              if (h.eq) { p = Object.values(h.eq.cfg.dhcpPools || {}).find((x) => x.net && x.mask && redeDe(a.e.ip, x.mask) === x.net); excl = h.eq.cfg.dhcpExcl; }
-              else if (h.srv && h.srv.dhcp.on && mesmaRede(h.srv.dhcp.inicio, a.e.ip, h.srv.dhcp.mask)) fonte = { srv: h };
-            }
-          }
-          if (p) { fonte = { pool: p, excl }; rede = p.net; mask = p.mask; gw = p.gw; dns = (p.dns || "").split(" ")[0]; }
-        } else if (a.dev.srv && a.dev.srv.dhcp.on && ehIP(a.dev.srv.dhcp.inicio)) fonte = { srv: a.dev };
-        if (fonte && fonte.srv) { const s = fonte.srv.srv.dhcp; mask = s.mask; gw = s.gw; dns = s.dns; const ini = n2i(s.inicio);
-          for (let k = 0; k < (s.max || 50); k++) { const ip = i2n(ini + k); if (!usados.has(ip) && !this.leaseUsado(ip, d)) { d.pc.lease = { ip, mask, gw, dns, de: fonte.srv.nome }; return; } }
-        }
-        if (fonte && fonte.pool) {
-          const base = n2i(rede), tam = 2 ** (32 - pref(mask));
-          for (let k = 1; k < tam - 1; k++) {
-            const ip = i2n(base + k);
-            if (usados.has(ip) || this.leaseUsado(ip, d) || this.excluido(ip, fonte.excl)) continue;
-            d.pc.lease = { ip, mask, gw, dns, de: a.dev.eq.cfg.hostname };
-            return;
-          }
-        }
-      }
+      const l = TIPOS[d.tipo].poe && !this.temEnergia(d) ? null : this.leaseDe(d, this.portaAtiva(d));
+      if (l) { d.pc.lease = l; return; }
       const k = this.devs.indexOf(d);
       d.pc.lease = { ip: `169.254.${10 + (k % 200)}.${2 + ((k * 37) % 250)}`, mask: "255.255.0.0", gw: "", dns: "", apipa: true };
     }
-    leaseUsado(ip, eu) { return this.devs.some((x) => x !== eu && x.pc && x.pc.lease && x.pc.lease.ip === ip); }
+    todasLeases(eu) {
+      const out = [];
+      this.devs.forEach((x) => {
+        if (x === eu) return;
+        if (x.pc && x.pc.lease) out.push(x.pc.lease.ip);
+        if (x.rw && x.rw.wan.lease) out.push(x.rw.wan.lease.ip);
+        if (x.asa) Object.values(x.asa.ifs).forEach((i) => { if (i.lease) out.push(i.lease.ip); });
+      });
+      return new Set(out);
+    }
+    // Pede um endereço por DHCP a partir de uma porta: devolve {ip, mask, gw, dns, de} ou null
+    leaseDe(d, porta) {
+      const dom = this.dominio(d, { porta, vlan: null, iface: "x" });
+      const usados = new Set(this.devs.flatMap((x) => x === d ? [] : this.l3(x).map((e) => e.ip))), dados = this.todasLeases(d);
+      const livre = (ip) => !usados.has(ip) && !dados.has(ip);
+      const intervalo = (ini, max, mask, gw, dns, de, excl) => { const b = n2i(ini); for (let k = 0; k < max; k++) { const ip = i2n(b + k); if (livre(ip) && !this.excluido(ip, excl)) return { ip, mask, gw, dns, de }; } return null; };
+      for (const a of dom.achados) {
+        const x = a.dev;
+        if (x.eq) {
+          const pools = Object.values(x.eq.cfg.dhcpPools || {});
+          let p = pools.find((q) => q.net && q.mask && redeDe(a.e.ip, q.mask) === q.net), excl = x.eq.cfg.dhcpExcl, quem = x.eq.cfg.hostname;
+          const helper = x.eq.cfg.interfaces[a.e.iface] && x.eq.cfg.interfaces[a.e.iface].helper;
+          if (!p && helper) {
+            const h = this.dono(helper);
+            if (h && this.ir(x, helper).ok) {
+              if (h.eq) { p = Object.values(h.eq.cfg.dhcpPools || {}).find((q) => q.net && q.mask && redeDe(a.e.ip, q.mask) === q.net); excl = h.eq.cfg.dhcpExcl; quem = h.eq.cfg.hostname; }
+              else if (h.srv && h.srv.dhcp.on && mesmaRede(h.srv.dhcp.inicio, a.e.ip, h.srv.dhcp.mask)) { const s2 = h.srv.dhcp; const r = intervalo(s2.inicio, s2.max || 50, s2.mask, s2.gw, s2.dns, h.nome); if (r) return r; }
+            }
+          }
+          if (p) { const tam = 2 ** (32 - pref(p.mask)); const r = intervalo(i2n(n2i(p.net) + 1), tam - 2, p.mask, p.gw, (p.dns || "").split(" ")[0], quem, excl); if (r) return r; }
+        } else if (x.srv && x.srv.dhcp.on && ehIP(x.srv.dhcp.inicio)) { const s2 = x.srv.dhcp; const r = intervalo(s2.inicio, s2.max || 50, s2.mask, s2.gw, s2.dns, x.nome); if (r) return r; }
+        else if (x.tipo === "router_wifi" && a.e.lanbox && x.rw.lan.dhcp.on) { const r = intervalo(x.rw.lan.dhcp.inicio, x.rw.lan.dhcp.max || 50, x.rw.lan.mask, x.rw.lan.ip, x.rw.lan.ip, x.nome); if (r) return r; }
+        else if (x.tipo === "asa" && x.asa.dhcp.on && (x.asa.ifs[a.e.iface] || {}).nome === "inside") { const r = intervalo(x.asa.dhcp.inicio, x.asa.dhcp.max || 50, a.e.mask, a.e.ip, "8.8.8.8", x.nome); if (r) return r; }
+        else if (x.tipo === "nuvem" && (x.nuvem.portas[a.e.iface] || {}).dhcp) { const r = intervalo(i2n(n2i(redeDe(a.e.ip, a.e.mask)) + 10), 200, a.e.mask, a.e.ip, "8.8.8.8", "operador"); if (r) return r; }
+      }
+      return null;
+    }
+    leaseUsado(ip, eu) { return this.todasLeases(eu).has(ip); }
     excluido(ip, excl) { const n = n2i(ip); return (excl || []).some((e) => { const a = n2i(e[0]), b = n2i(e[1] || e[0]); return n >= a && n <= b; }); }
 
     // ---------------------------------------------------------------- DNS
@@ -386,13 +590,18 @@
       const porNome = this.devs.find((x) => x.nome.toLowerCase() === nome.toLowerCase());
       const dns = ehHost(d) ? this.ipEfetivo(d).dns : "";
       if (ehIP(dns)) {
-        const srv = this.dono(dns);
-        if (srv && srv.srv && srv.srv.dns.on && this.pingCompleto(d, dns).ok) {
-          const r = srv.srv.dns.registos.find((x) => x.nome.toLowerCase() === nome.toLowerCase());
+        let srv = this.dono(dns);
+        if (!srv || !this.pingCalc(d, dns).ok) return { erro: `DNS request timed out. (servidor ${dns} inalcançável)` };
+        // o router Wi-Fi reencaminha as perguntas DNS para o DNS do operador
+        if (srv.tipo === "router_wifi") { const w = this.wanRW(srv); if (!ehIP(w.dns) || !this.pingCalc(srv, w.dns).ok) return { erro: `DNS request timed out. (${srv.nome} não chega ao DNS do operador)` }; srv = this.dono(w.dns); }
+        const nm = nome.toLowerCase();
+        if (srv && srv.tipo === "nuvem") { const ip = Object.keys(INTERNET).find((k) => INTERNET[k] === nm); return ip ? { ip, servidor: dns } : { erro: `*** ${dns} não encontrou ${nome}: Non-existent domain (na Internet simulada existem: ${Object.values(INTERNET).join(", ")})` }; }
+        if (srv && srv.srv && srv.srv.dns.on) {
+          const r = srv.srv.dns.registos.find((x) => x.nome.toLowerCase() === nm);
           if (r) return { ip: r.ip, servidor: dns };
           return { erro: `*** ${dns} não encontrou ${nome}: Non-existent domain` };
         }
-        return { erro: `DNS request timed out. (servidor ${dns} inalcançável)` };
+        return { erro: `DNS request timed out. (${dns} não é um servidor DNS)` };
       }
       if (porNome) return { erro: `Ping request could not find host ${nome}. Configure um servidor DNS (o nome do equipamento não é um nome DNS).` };
       return { erro: `Ping request could not find host ${nome}. Please check the name and try again.` };
@@ -427,12 +636,13 @@
 
     // ---------------------------------------------------------------- guardar / carregar
     exportar() {
-      return { seq: this.seq, devs: this.devs.map((d) => ({ id: d.id, tipo: d.tipo, nome: d.nome, x: d.x, y: d.y, cfg: d.eq ? d.eq.cfg : null, startup: d.eq ? d.eq.startup : null, pc: d.pc ? Object.assign({}, d.pc, { log: [] }) : null, srv: d.srv || null })), links: this.links };
+      return { seq: this.seq, devs: this.devs.map((d) => ({ id: d.id, tipo: d.tipo, nome: d.nome, x: d.x, y: d.y, modelo: d.modelo, cfg: d.eq ? d.eq.cfg : null, startup: d.eq ? d.eq.startup : null, pc: d.pc ? Object.assign({}, d.pc, { log: [] }) : null, srv: d.srv || null,
+        ap: d.ap, rw: d.rw, asa: d.asa, nuvem: d.nuvem, wlc: d.wlc })), links: this.links };
     }
     static importar(o) {
       const r = new Rede(); r.seq = o.seq || 1;
       o.devs.forEach((s) => {
-        const d = r.novoDev(s.tipo, s.x, s.y, s.nome);
+        const d = r.novoDev(s.tipo, s.x, s.y, s.nome, { modelo: s.modelo, ap: s.ap, rw: s.rw, asa: s.asa, nuvem: s.nuvem, wlc: s.wlc });
         d.id = s.id;
         if (d.eq && s.cfg) { d.eq.cfg = s.cfg; d.eq.startup = s.startup || ""; d.eq.sim = r.ganchos(d); }
         if (d.pc && s.pc) d.pc = Object.assign(d.pc, s.pc, { log: [] }, { partilhas: s.pc.partilhas || [], mapas: s.pc.mapas || {}, ficheiros: s.pc.ficheiros || d.pc.ficheiros });
@@ -506,7 +716,8 @@
       if (op === "/release") { if (!d.pc.dhcp) return { txt: "O adaptador não está configurado para DHCP." }; d.pc.lease = null; d.pc.libertado = true; return { txt: "Endereço IP libertado.", mudou: true }; }
       if (op === "/renew") { if (!d.pc.dhcp) return { txt: "O adaptador não está configurado para DHCP. Mude para DHCP em Configuração IP." }; d.pc.libertado = false; rede.pedirDhcp(d); const l = d.pc.lease; return { txt: l.apipa ? "Não foi possível contactar o servidor DHCP.\nEndereço automático (APIPA): " + l.ip : `DHCP: recebido ${l.ip} de ${l.de}\n   Máscara . . . . : ${l.mask}\n   Gateway . . . . : ${l.gw || "-"}\n   DNS . . . . . . : ${l.dns || "-"}`, mudou: true }; }
       const mac = "00D0.BA" + String(d.id).padStart(2, "0").slice(-2) + ".1" + String(rede.devs.indexOf(d)).padStart(3, "0");
-      return { txt: `FastEthernet0:\n   Endereço IPv4 . . . . . : ${cfg.ip || "0.0.0.0"}\n   Máscara de sub-rede . . : ${cfg.mask || "0.0.0.0"}\n   Gateway predefinido . . : ${cfg.gw || "0.0.0.0"}` + (op === "/all" ? `\n   Endereço físico . . . . : ${mac}\n   DHCP ativo  . . . . . . : ${d.pc.dhcp ? "Sim" : "Não"}\n   Servidor DNS  . . . . . : ${cfg.dns || "-"}` : "") };
+      const pa = rede.portaAtiva(d);
+      return { txt: `${pa === "Wireless0" ? "Adaptador de rede sem fios Wi-Fi (" + (d.pc.wifi.ssid || "sem rede") + ")" : "Adaptador Ethernet FastEthernet0"}:\n   Endereço IPv4 . . . . . : ${cfg.ip || "0.0.0.0"}\n   Máscara de sub-rede . . : ${cfg.mask || "0.0.0.0"}\n   Gateway predefinido . . : ${cfg.gw || "0.0.0.0"}` + (op === "/all" ? `\n   Endereço físico . . . . : ${mac}\n   DHCP ativo  . . . . . . : ${d.pc.dhcp ? "Sim" : "Não"}\n   Servidor DNS  . . . . . : ${cfg.dns || "-"}` : "") };
     }
     if (c === "ping" || c === "tracert") {
       if (!t[1]) return { txt: `Uso: ${c} <IP ou nome>` };
@@ -527,6 +738,7 @@
     }
     if (c === "nslookup") { if (!t[1]) return { txt: "Uso: nslookup <nome>" }; const r = rede.resolver(d, t[1]); return { txt: r.ip ? `Server:  ${r.servidor || cfg.dns}\nAddress: ${r.servidor || cfg.dns}\n\nName:    ${t[1]}\nAddress: ${r.ip}` : r.erro }; }
     if (c === "hostname") return { txt: d.nome };
+    if (c === "netsh" && /wlan/i.test(linha)) return { txt: temWifi(d) ? `Nome      : Wi-Fi\nEstado    : ${rede.wifi().estado[d.id] || "desligado"}\nSSID      : ${d.pc.wifi.ssid || "-"}\nAutenticação: WPA2-Pessoal` : "Este equipamento não tem placa sem fios." };
     if (c === "net") {
       const sub = (t[1] || "").toLowerCase(), resto = linha.trim().split(/\s+/).slice(2).join(" ");
       if (sub === "share") {
@@ -585,5 +797,5 @@
     return { txt: `'${t[0]}' não é reconhecido como comando. Escreva help para ver os comandos.` };
   }
 
-  window.Simulador = { Rede, TIPOS, CABOS, verificar, promptPC, ehHost, ehIP, mascaraOk };
+  window.Simulador = { Rede, TIPOS, CABOS, CATALOGO, INTERNET, ehPonte, temWifi, nicDe, verificar, promptPC, ehHost, ehIP, mascaraOk };
 })();

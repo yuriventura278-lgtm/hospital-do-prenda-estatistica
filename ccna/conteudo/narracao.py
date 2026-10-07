@@ -67,7 +67,7 @@ PALAVRAS = {
     "discarding": "discárding", "designated": "désignêited", "alternate": "ólternêit", "proposal": "propôusal",
     "agreement": "agríment", "default": "difólt", "best": "bést", "effort": "éfort", "boundary": "báundari",
     "scavenger": "scávendjer", "unicast": "iunicast", "multicast": "multicast", "broadcast": "bródcast",
-    "anycast": "énicast", "link-local": "línk lôucal", "unique": "iuníque", "global": "glôbal", "local": "lôcal",
+    "anycast": "énicast", "link-local": "línk lôucal", "unique": "iuníque",
     "lightweight": "láit uêit", "flexconnect": "fléx conéct", "meraki": "meráqui", "split-mac": "split mac",
     "split": "split", "survey": "sârvei", "roaming": "rôuming", "guest": "guést", "suplicante": "suplicante",
     "enterprise": "énterpráiz", "personal": "pârsonal", "wireless": "uáierless", "controller": "contrôuler",
@@ -415,3 +415,100 @@ def video_do_modulo(m: dict, anterior: dict | None) -> dict:
     palavras = sum(len(f["f"].split()) for c in cenas for f in c["falas"])
     l["video"] = {"cenas": cenas, "segundos": round(palavras / 2.4)}
     return l
+
+
+# ---------------------------------------------------------------------------
+# Leitura da aula pelo assistente (texto corrido, sem as pausas da vídeo-aula)
+# ---------------------------------------------------------------------------
+
+def _frase(t: str) -> str:
+    t = t.strip()
+    return t if not t or t[-1] in ".!?:;" else t + "."
+
+
+def _linhas_codigo(html: str) -> list[str]:
+    out = []
+    for bruto in re.findall(r"<pre>(.*?)</pre>", html, flags=re.S):
+        for linha in _html.unescape(re.sub(r"<[^>]+>", "", bruto)).split("\n"):
+            linha = linha.strip()
+            if linha:
+                out.append(linha)
+    return out
+
+
+def _partes_bloco(b: dict) -> list[tuple[str, str]]:
+    """Lista de (texto mostrado, texto falado) de um bloco, pela ordem de leitura."""
+    tipo, P = b["tipo"], []
+    def add(t, comando=False, falado=None):
+        t = _frase(_pontuar(t))
+        if t:
+            P.append((t, falado if falado is not None else falar(t, comando)))
+    if tipo in ("texto", "exemplo"):
+        if b.get("titulo"):
+            add(("Exemplo: " if tipo == "exemplo" else "") + b["titulo"])
+        for f in frases(b["html"]):
+            add(f)
+        cod = _linhas_codigo(b["html"])
+        if cod:
+            add("No ecrã está o exemplo, linha a linha")
+            for c in cod[:12]:
+                P.append((c, _frase(falar(c, True))))
+    elif tipo in ("dica", "alerta"):
+        fs = frases(b["html"])
+        for k, f in enumerate(fs):
+            add(("Dica: " if tipo == "dica" else "Atenção: ") + f if k == 0 else f)
+    elif tipo in ("figura", "topologia"):
+        add(b["legenda"])
+    elif tipo == "tabela":
+        add(("Tabela: " + b["titulo"]) if b.get("titulo") else "Tabela")
+        cab = b["cabecalho"]
+        for linha in b["linhas"]:
+            partes = [_limpar(linha[0])] + [f"{_limpar(cab[j])}: {_limpar(linha[j])}" for j in range(1, len(linha)) if linha[j] and cab[j]]
+            add(", ".join(p.rstrip(".") for p in partes if p))
+    elif tipo == "cli":
+        add(b["titulo"])
+        for k, p in enumerate(b["passos"]):
+            mostrado = f"Passo {k + 1}: {p['prompt']} {p['cmd']}" + (f" — {p['explica']}" if p["explica"] else "")
+            if re.search(r"[#>$]$", p["prompt"].strip()):
+                falado = f"Passo {k + 1}: escreva {falar(p['cmd'], True)}." + (" " + _frase(falar(p["explica"])) if p["explica"] else "")
+            else:
+                falado = _frase(falar(f"Passo {k + 1}: {p['cmd']}")) + (" " + _frase(falar(p["explica"])) if p["explica"] else "")
+            P.append((_frase(mostrado), falado))
+        if b.get("nota"):
+            add(_limpar(b["nota"]))
+    elif tipo == "saida":
+        add(b["titulo"] + ". A saída do comando está no ecrã")
+        for f in frases(b.get("explica") or ""):
+            add(f)
+    elif tipo == "sim_real":
+        add(b["titulo"].replace("×", "comparado com"))
+        add("No simulador")
+        for x in b["simulador"]:
+            add(_limpar(x))
+        add("No equipamento real")
+        for x in b["real"]:
+            add(_limpar(x))
+    elif tipo == "jogo_cabo":
+        add(f"Prática: monte o conector {b['norma']} fio a fio, do pino 1 ao 8")
+    return P
+
+
+def leitura_da_licao(l: dict, termos: list[dict] | None = None, maximo: int = 230) -> list[dict]:
+    """Divide a aula em trechos de leitura contínua (cada trecho tem algumas frases do
+    mesmo bloco, até ~230 caracteres, para a voz não cortar e não haver pausas a meio)."""
+    blocos = [(-1, [(_frase(l["titulo"]), _frase(falar("Aula: " + l["titulo"])))] +
+               [(_frase("Objetivos: " + "; ".join(l["objetivos"])), _frase(falar("Nesta aula vai aprender a: " + "; ".join(l["objetivos"]))))])]
+    blocos += [(i, _partes_bloco(b)) for i, b in enumerate(l["blocos"])]
+    if termos:
+        blocos.append((-2, [("Termos técnicos desta aula.", "Termos técnicos desta aula.")] +
+                       [(_frase(f"{t['termo']}: {t['def']}"), _frase(falar(f"{t['termo']}" + (f", {t['extenso']}" if t.get('extenso') else "") + f": {t['def']}"))) for t in termos]))
+    out = []
+    for b, partes in blocos:
+        atual = None
+        for t, f in partes:
+            if atual and len(atual["t"]) + len(t) + 1 <= maximo:
+                atual["t"] += " " + t; atual["f"] += " " + f
+            else:
+                atual = {"b": b, "t": t, "f": f}
+                out.append(atual)
+    return out

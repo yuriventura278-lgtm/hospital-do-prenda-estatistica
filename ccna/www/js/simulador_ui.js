@@ -11,7 +11,8 @@
   const reduzido = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const AJUDA = [
-    ["Adicionar equipamentos", "Toque em <b>+ Equipamento</b> e escolha Router, Switch, PC, Portátil ou Servidor. Aparece na área de trabalho com um nome (R1, S1, PC1…)."],
+    ["Adicionar equipamentos", "Toque em <b>+ Equipamento</b>. Como no Packet Tracer, escolha a categoria (Routers, Switches, Hubs, Sem fios, Segurança, WAN e Internet, Dispositivos finais, IoT) e depois o modelo: ISR 4331, 1941, Catalyst 2960, 3560, hub, access point, router Wi-Fi, ASA, PC de mesa, portátil, servidor, impressora, telefone IP, smartphone…"],
+    ["Wi-Fi", "Os equipamentos sem fios não levam cabo: no access point ou no router Wi-Fi defina o SSID e a palavra-passe; no portátil, smartphone ou tablet (separador <b>Sem fios</b>) escreva o mesmo SSID e a mesma palavra-passe. A ligação aparece a tracejado roxo."],
     ["Mover", "Com a ferramenta <b>Mover</b>, arraste o equipamento. Um toque curto abre o painel de configuração."],
     ["Ligar cabos", "Toque em <b>Cabo</b> e escolha o tipo: <b>Automático</b> escolhe o cabo e a porta certos; <b>Direto</b> liga equipamentos diferentes (PC–switch, switch–router); <b>Cruzado</b> liga iguais (switch–switch, router–router, PC–router); <b>Consola</b> liga a porta RS232 do PC à porta Console. Toque no primeiro equipamento, escolha a porta, toque no segundo e escolha a porta."],
     ["Ler as luzes", "<span class='luz ok'></span> verde: ligação a funcionar. <span class='luz baixo'></span> laranja: a porta está desligada (falta <code>no shutdown</code> no router). <span class='luz errado'></span> vermelho: cabo errado ou portas incompatíveis — toque no cabo para ver a correção."],
@@ -26,7 +27,7 @@
     const larg = raiz.clientWidth || window.innerWidth || 400;
     W = larg < 600 ? 620 : 1000; H = larg < 600 ? 720 : 620;
     let rede = op.estado ? S.Rede.importar(op.estado) : (A ? S.Rede.deAtividade(A) : new S.Rede());
-    let modo = "mover", cabo = "auto", sel = null, caboA = null, menu = null, aba = null, feito = false;
+    let modo = "mover", cabo = "auto", sel = null, caboA = null, menu = null, aba = null, feito = false, categoria = 0;
     const logs = {}, hist = {}, hIdx = {};
     let tGuardar = null;
     rede.aoMudar = () => { clearTimeout(tGuardar); tGuardar = setTimeout(() => op.aoGuardar && op.aoGuardar(rede.exportar()), 300); };
@@ -70,12 +71,16 @@
         }
         s += "</g>";
       });
+      rede.wifi().links.forEach((l) => {
+        const a = pos(rede.dev(l.a)), b = pos(rede.dev(l.b));
+        s += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="sim-wifi"/>`;
+      });
       rede.devs.forEach((d) => {
         const p = pos(d), T = S.TIPOS[d.tipo];
-        const ip = d.pc ? rede.ipEfetivo(d).ip : "";
+        const ip = d.pc ? (rede.l3(d)[0] || {}).ip || "" : "";
         s += `<g data-dev="${d.id}" class="sim-dev ${sel === d.id ? "sel" : ""} ${caboA && caboA.d === d.id ? "origem" : ""}" transform="translate(${p.x},${p.y})">
           <circle r="40" class="sim-halo"/><g transform="translate(-30,-30)"><svg width="60" height="60" viewBox="0 0 64 64">${F.ICONES[T.icone]}</svg></g>
-          <text y="48" class="sim-nome">${esc(d.nome)}</text>${ip ? `<text y="66" class="sim-ip">${esc(ip)}</text>` : ""}</g>`;
+          <text y="48" class="sim-nome">${esc(d.nome)}</text>${d.modelo && d.eq ? `<text y="${ip ? 84 : 66}" class="sim-ip">${esc(d.modelo)}</text>` : ""}${ip ? `<text y="66" class="sim-ip">${esc(ip)}</text>` : ""}</g>`;
       });
       s += `<circle id="sim-pacote" r="10" class="sim-pacote" cx="-50" cy="-50"/>`;
       svg.innerHTML = s;
@@ -114,25 +119,33 @@
     // ------------------------------------------------------------ ferramentas
     function opcoes() {
       const o = $("#sim-opcoes");
-      if (menu === "add") { o.hidden = false; o.innerHTML = Object.entries(S.TIPOS).map(([k, T]) => `<button data-add="${k}">${F.icone(T.icone, 28)}<span>${esc(T.nome)}</span></button>`).join(""); }
+      if (menu === "add") {
+        o.hidden = false;
+        const [, itens] = S.CATALOGO[categoria];
+        o.innerHTML = `<div class="sim-cats">${S.CATALOGO.map(([c], i) => `<button data-cat="${i}" aria-pressed="${i === categoria}">${esc(c)}</button>`).join("")}</div>
+          <div class="sim-modelos">${itens.map(([t, m, n, desc], i) => `<button data-add="${t}" data-modelo="${esc(m)}" title="${esc(desc)}">${F.icone(S.TIPOS[t].icone, 30)}<span>${esc(n)}</span></button>`).join("")}</div>
+          <p class="peq suave sim-desc">${esc(itens.map((x) => x[2] + ": " + x[3]).join(" · "))}</p>`;
+      }
       else if (menu === "cabo") { o.hidden = false; o.innerHTML = Object.entries(S.CABOS).map(([k, C]) => `<button data-cabo="${k}" aria-pressed="${cabo === k}"><i style="background:${C.cor};${C.tracejado ? "background-image:repeating-linear-gradient(90deg,transparent 0 4px,var(--surface) 4px 7px)" : ""}"></i><span>${esc(C.nome)}</span></button>`).join(""); }
       else o.hidden = true;
       raiz.querySelectorAll("[data-s]").forEach((b) => { if (["mover", "cabo", "apagar"].includes(b.dataset.s)) b.setAttribute("aria-pressed", String(modo === b.dataset.s)); if (b.dataset.s === "add") b.setAttribute("aria-pressed", String(menu === "add")); });
     }
     function lugarLivre() {
-      for (let y = 20; y <= 85; y += 16) for (let x = 12; x <= 88; x += 14) if (!rede.devs.some((d) => Math.abs(d.x - x) < 9 && Math.abs(d.y - y) < 12)) return { x, y };
+      const dx = W < 800 ? 24 : 15, dy = W < 800 ? 17 : 16;
+      for (let y = 14; y <= 88; y += dy) for (let x = 12; x <= 90; x += dx) if (!rede.devs.some((d) => Math.abs(d.x - x) < dx - 2 && Math.abs(d.y - y) < dy - 3)) return { x, y };
       return { x: 50, y: 50 };
     }
 
     function escolherPorta(d, outro, depois) {
       const ps = rede.portas(d);
-      const compat = (p) => cabo === "consola" ? ["RS232", "Console"].includes(p) : cabo === "serial" ? /^Serial/.test(p) : cabo === "fibra" ? /^Gigabit/.test(p) : !["RS232", "Console"].includes(p) && !/^Serial/.test(p);
+      const tp = (p) => rede.tipoPorta(p);
+      const compat = (p) => tp(p) === "wifi" ? false : cabo === "consola" ? tp(p) === "consola" : cabo === "serial" ? tp(p) === "serial" : cabo === "fibra" ? tp(p) === "giga" : cabo === "coaxial" ? tp(p) === "coax" : cabo === "telefone" ? tp(p) === "rj11" : cabo === "auto" ? !["consola", "wifi"].includes(tp(p)) : ["cobre", "giga"].includes(tp(p));
       const md = $("#sim-modal");
       md.hidden = false;
       md.innerHTML = `<div class="sim-caixa"><div class="linha entre"><b>Porta de ${esc(d.nome)}</b><button class="btn-copiar" data-fechar>Cancelar</button></div>
         <p class="peq suave">Cabo ${esc(S.CABOS[cabo].nome.toLowerCase())}${outro ? ` para ${esc(outro.nome)}` : ""}.</p>
         <div class="sim-portas">${ps.map((p) => { const l = rede.linkDe(d, p); const ok = !l && compat(p); const o2 = l ? rede.dev(l.a === d.id ? l.b : l.a) : null;
-          return `<button data-porta="${esc(p)}" ${ok ? "" : "disabled"}><b>${esc(curto(p))}</b><span>${l ? "ligada a " + esc(o2.nome) : compat(p) ? "livre" : "não serve para este cabo"}</span></button>`; }).join("")}</div></div>`;
+          return `<button data-porta="${esc(p)}" ${ok ? "" : "disabled"}><b>${esc(curto(p))}</b><span>${tp(p) === "wifi" ? "sem fios (configure o SSID)" : l ? "ligada a " + esc(o2.nome) : compat(p) ? "livre" : "não serve para este cabo"}</span></button>`; }).join("")}</div></div>`;
       md.onclick = (e) => {
         if (e.target.closest("[data-fechar]") || e.target === md) { md.hidden = true; caboA = null; desenhar(); return; }
         const b = e.target.closest("[data-porta]"); if (!b || b.disabled) return;
@@ -200,7 +213,7 @@
     function abrirInsp(d, abaPedida) {
       sel = d.id; desenhar();
       const T = S.TIPOS[d.tipo];
-      const abas = d.eq ? [["cli", "CLI"], ["portas", "Portas"]] : d.srv ? [["ip", "Configuração IP"], ["servicos", "Serviços"], ["partilhas", "Partilhas"], ["prompt", "Prompt"]] : [["ip", "Configuração IP"], ["partilhas", "Partilhas"], ["prompt", "Prompt"]];
+      const abas = abasDe(d);
       aba = abaPedida || (abas.find((a) => a[0] === aba) ? aba : abas[0][0]);
       const insp = $("#sim-insp");
       insp.hidden = false;
@@ -217,11 +230,142 @@
       if (aba === "ip") formIP(corpo, d);
       if (aba === "servicos") formServicos(corpo, d);
       if (aba === "partilhas") formPartilhas(corpo, d);
+      if (aba === "wifi") formWifiCliente(corpo, d);
+      if (aba === "wlans") formWlans(corpo, d);
+      if (aba === "captura") captura(corpo, d);
+      if (aba === "info") info(corpo, d);
+      if (aba === "ap") formAP(corpo, d);
+      if (aba === "rw") formRW(corpo, d);
+      if (aba === "rwwifi") formAP(corpo, d, true);
+      if (aba === "asa") formASA(corpo, d);
+      if (aba === "nuvem") formNuvem(corpo, d);
       insp.onclick = (e) => {
         if (e.target.closest("[data-fechar-insp]")) return fecharInsp();
         const b = e.target.closest("[data-aba]"); if (b) { aba = b.dataset.aba; abrirInsp(d); }
       };
       insp.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    // Separadores do painel de cada equipamento
+    function abasDe(d) {
+      const T = S.TIPOS[d.tipo];
+      if (d.eq) return [["cli", "CLI"], ["portas", "Portas"], ["info", "Físico"]];
+      if (T.fim) {
+        const a = [];
+        if (T.semIp) return [["captura", "Captura"], ["info", "Informação"]];
+        a.push(["ip", "Configuração IP"]);
+        if (S.temWifi(d) || d.tipo === "pc") a.push(["wifi", d.tipo === "pc" ? "Placa e Wi-Fi" : "Sem fios"]);
+        if (d.srv) a.push(["servicos", "Serviços"]);
+        if (d.wlc) a.push(["wlans", "WLANs"]);
+        if (["pc", "portatil", "servidor"].includes(d.tipo)) a.push(["partilhas", "Partilhas"]);
+        if (!T.iot && d.tipo !== "wlc") a.push(["prompt", "Prompt"]);
+        a.push(["info", "Informação"]);
+        return a;
+      }
+      if (d.tipo === "ap") return [["ap", "Sem fios"], ["info", "Informação"]];
+      if (d.tipo === "router_wifi") return [["rw", "Internet e LAN"], ["rwwifi", "Sem fios"], ["info", "Estado"]];
+      if (d.tipo === "asa") return [["asa", "Configuração"], ["info", "Estado"]];
+      if (d.tipo === "nuvem") return [["nuvem", "Operador"], ["info", "Internet"]];
+      return [["info", "Informação"]];
+    }
+    const DESC = Object.fromEntries(S.CATALOGO.flatMap(([, it]) => it.map(([t, m, n, desc]) => [t + "|" + m, { n, desc }])));
+    function info(corpo, d) {
+      const x = DESC[d.tipo + "|" + (d.modelo || "")] || DESC[d.tipo + "|"] || { n: S.TIPOS[d.tipo].nome, desc: "" };
+      const ls = rede.linksDe(d).map((l) => { const eu = l.a === d.id, o = rede.dev(eu ? l.b : l.a); return `<li><code>${esc(curto(eu ? l.pa : l.pb))}</code> → ${esc(o.nome)} <code>${esc(curto(eu ? l.pb : l.pa))}</code> (${esc(S.CABOS[l.cabo] ? S.CABOS[l.cabo].nome : "Wi-Fi")})</li>`; }).join("");
+      let extra = "";
+      if (d.tipo === "router_wifi") { const w = rede.wanRW(d); extra = `<p class="peq">Internet: <b>${esc(w.ip || "sem endereço")}</b>${w.gw ? ", gateway " + esc(w.gw) : ""}${w.dns ? ", DNS " + esc(w.dns) : ""}. LAN: <b>${esc(d.rw.lan.ip)}</b>. Clientes Wi-Fi: ${rede.wifi().links.filter((l) => l.b === d.id).length}.</p>`; }
+      if (d.tipo === "asa") extra = `<ul class="sim-dns">${Object.entries(d.asa.ifs).filter(([, i]) => i.nome).map(([n, i]) => { const e = i.modo === "dhcp" ? (i.lease || {}) : i; return `<li><code>${esc(curto(n))}</code> ${esc(i.nome)} · nível ${i.nivel} · ${esc(e.ip || "sem IP")}</li>`; }).join("")}</ul>`;
+      if (d.tipo === "nuvem") extra = `<p class="peq">Servidores na Internet simulada: ${Object.entries(S.INTERNET).map(([ip, n]) => `<code>${esc(n)}</code> (${ip})`).join(", ")}. DNS público: 8.8.8.8.</p>`;
+      if (d.tipo === "lap") { const w = rede.wlcDe(d); extra = `<p class="peq">${w ? `Associado ao controlador <b>${esc(w.nome)}</b> (CAPWAP). Redes Wi-Fi: ${w.wlc.wlans.map((x) => esc(x.ssid)).join(", ")}.` : "Ainda não encontrou nenhum WLC: ligue-o por cabo à mesma rede do controlador."}</p>`; }
+      if (S.TIPOS[d.tipo].poe) extra = `<p class="peq">Energia: <b>${rede.temEnergia(d) ? "sim" : "não"}</b> (PoE de um switch 3560/3650 ou transformador ligado).</p>`;
+      corpo.innerHTML = `<div class="secao"><b>${esc(x.n)}</b><p class="peq">${esc(x.desc)}</p>${extra}<p class="peq"><b>Portas:</b> ${rede.portas(d).map((p) => `<code>${esc(curto(p))}</code>`).join(" ")}</p>
+        <ul class="sim-dns">${ls || '<li class="suave peq">Sem ligações.</li>'}</ul></div>`;
+    }
+    // Formulário genérico: campos [nome, rótulo, valor, tipo?, opções?]
+    function formulario(corpo, titulo, campos, aoGuardar, nota) {
+      corpo.innerHTML = `<form class="secao sim-form" data-f="gen"><b>${titulo}</b>${campos.map(([n, r, v, t, ops]) => t === "check" ? `<label class="linha"><input type="checkbox" name="${n}" ${v ? "checked" : ""}> ${r}</label>`
+        : t === "select" ? `<label>${r}<select class="campo" name="${n}">${ops.map(([k, txt]) => `<option value="${esc(k)}" ${String(v) === String(k) ? "selected" : ""}>${esc(txt)}</option>`).join("")}</select></label>`
+        : `<label>${r}<input class="campo mono" name="${n}" value="${esc(v == null ? "" : v)}" autocomplete="off"></label>`).join("")}
+        <button class="btn prim" type="submit">Guardar</button><p class="peq" id="sim-gen-msg">${nota || ""}</p></form>`;
+      const f = corpo.querySelector("form");
+      f.onsubmit = (e) => {
+        e.preventDefault();
+        const v = {}; campos.forEach(([n, , , t]) => { v[n] = t === "check" ? f.elements[n].checked : (f.elements[n].value || "").trim(); });
+        const erro = aoGuardar(v);
+        corpo.querySelector("#sim-gen-msg").textContent = erro || "Guardado.";
+        if (!erro) { rede.mudou(); atualizar(); }
+      };
+    }
+    const ipOk = (x) => !x || S.ehIP(x);
+    function formWifiCliente(corpo, d) {
+      const c = d.pc, est = rede.wifi().estado[d.id] || "";
+      const campos = [];
+      if (d.tipo === "pc") campos.push(["nic", "Placa de rede (como trocar o módulo no Packet Tracer)", c.nic, "select", [["ethernet", "Com fios (FastEthernet)"], ["wifi", "Sem fios (WMP300N)"], ["ambos", "As duas"]]]);
+      campos.push(["ssid", "Nome da rede Wi-Fi (SSID)", c.wifi.ssid], ["chave", "Palavra-passe (WPA2)", c.wifi.chave]);
+      formulario(corpo, "Ligação sem fios", campos, (v) => {
+        if (v.nic && v.nic !== c.nic) { c.nic = v.nic; rede.links = rede.links.filter((l) => !((l.a === d.id && !rede.portas(d).includes(l.pa)) || (l.b === d.id && !rede.portas(d).includes(l.pb)))); }
+        c.wifi = { ssid: v.ssid, chave: v.chave };
+        if (c.dhcp) setTimeout(() => { rede.pedirDhcp(d); rede.mudou(); atualizar(); }, 0);
+        msg(`${esc(d.nome)}: Wi-Fi “${esc(v.ssid || "—")}”.`, "ok");
+      }, est ? "Estado: " + est : "");
+    }
+    function formAP(corpo, d, rw) {
+      const w = rw ? d.rw.wifi : d.ap;
+      formulario(corpo, rw ? "Rede sem fios do router" : "Access point", [["ssid", "SSID (nome da rede)", w.ssid], ["seguranca", "Segurança", w.seguranca, "select", [["aberta", "Aberta (sem palavra-passe — inseguro)"], ["wpa2", "WPA2-Pessoal (PSK)"]]],
+        ["chave", "Palavra-passe (8 caracteres ou mais)", w.chave], ["canal", "Canal (2,4 GHz: 1, 6 ou 11)", w.canal || 6, "select", [[1, "1"], [6, "6"], [11, "11"]]]], (v) => {
+        if (!v.ssid) return "Escreva um SSID.";
+        if (v.seguranca === "wpa2" && v.chave.length < 8) return "No WPA2 a palavra-passe tem pelo menos 8 caracteres.";
+        Object.assign(w, { ssid: v.ssid, seguranca: v.seguranca, chave: v.chave, canal: +v.canal });
+        msg(`Wi-Fi “${esc(v.ssid)}” ${v.seguranca === "wpa2" ? "com WPA2" : "aberta"}.`, "ok");
+      }, `Clientes ligados: ${rede.wifi().links.filter((l) => l.b === d.id).length}`);
+    }
+    function formWlans(corpo, d) {
+      const w = d.wlc.wlans[0];
+      formulario(corpo, "WLAN do controlador (enviada para todos os LAP)", [["ssid", "SSID", w.ssid], ["seguranca", "Segurança", w.seguranca, "select", [["aberta", "Aberta"], ["wpa2", "WPA2-PSK"]]], ["chave", "Palavra-passe", w.chave]], (v) => {
+        if (!v.ssid) return "Escreva um SSID."; if (v.seguranca === "wpa2" && v.chave.length < 8) return "Palavra-passe com 8 ou mais caracteres.";
+        Object.assign(w, v); msg(`WLAN “${esc(v.ssid)}” criada no ${esc(d.nome)}.`, "ok");
+      }, `LAP associados: ${rede.devs.filter((x) => x.tipo === "lap" && rede.wlcDe(x) === d).map((x) => esc(x.nome)).join(", ") || "nenhum"}`);
+    }
+    function formRW(corpo, d) {
+      const w = d.rw.wan, l = d.rw.lan;
+      formulario(corpo, "Router Wi-Fi: Internet e rede local", [["modo", "Ligação à Internet", w.modo, "select", [["dhcp", "Automática (DHCP do operador)"], ["estatico", "IP estático"]]], ["ip", "IP Internet (se estático)", w.ip], ["mask", "Máscara", w.mask], ["gw", "Gateway do operador", w.gw], ["dns", "DNS", w.dns],
+        ["lip", "IP do router na LAN", l.ip], ["lmask", "Máscara da LAN", l.mask], ["dhcp", "Servidor DHCP para a LAN", l.dhcp.on, "check"], ["inicio", "Primeiro IP a dar", l.dhcp.inicio], ["max", "Máximo de clientes", l.dhcp.max]], (v) => {
+        if (![v.ip, v.mask, v.gw, v.dns, v.lip, v.inicio].every(ipOk) || !S.ehIP(v.lip)) return "Há um endereço inválido.";
+        if (v.modo === "estatico" && (!S.ehIP(v.ip) || !S.mascaraOk(v.mask))) return "No modo estático indique IP e máscara.";
+        Object.assign(w, { modo: v.modo, ip: v.ip, mask: v.mask, gw: v.gw, dns: v.dns }); if (v.modo === "dhcp") w.lease = null;
+        Object.assign(l, { ip: v.lip, mask: v.lmask || "255.255.255.0" }); Object.assign(l.dhcp, { on: v.dhcp, inicio: v.inicio, max: +v.max || 50 });
+        rede.devs.filter((x) => x.pc && x.pc.dhcp).forEach((x) => rede.pedirDhcp(x));
+        msg(`${esc(d.nome)} configurado.`, "ok");
+      }, (() => { const e = rede.wanRW(d); return `Internet agora: ${e.ip ? e.ip + " via " + (e.gw || "?") : "sem endereço (ligue a porta Internet ao modem/operador)"}`; })());
+    }
+    function formASA(corpo, d) {
+      const I = d.asa.ifs, o = I["GigabitEthernet1/1"], i = I["GigabitEthernet1/2"], z = I["GigabitEthernet1/3"];
+      formulario(corpo, "Firewall ASA 5506-X", [["omodo", "G1/1 outside (nível 0)", o.modo, "select", [["dhcp", "DHCP do operador"], ["estatico", "Estático"]]], ["oip", "IP outside (estático)", o.ip], ["omask", "Máscara outside", o.mask], ["gw", "Rota por defeito (gateway)", d.asa.gw],
+        ["iip", "G1/2 inside (nível 100): IP", i.ip], ["imask", "Máscara inside", i.mask], ["zip", "G1/3 dmz (nível 50): IP (opcional)", z.ip], ["zmask", "Máscara dmz", z.mask],
+        ["nat", "NAT dinâmico (PAT) de dentro para fora", d.asa.nat, "check"], ["icmp", "Inspecionar ICMP (deixa voltar a resposta do ping)", d.asa.icmp, "check"], ["dhcp", "Servidor DHCP no inside", d.asa.dhcp.on, "check"], ["inicio", "Primeiro IP do DHCP", d.asa.dhcp.inicio]], (v) => {
+        if (![v.oip, v.omask, v.gw, v.iip, v.imask, v.zip, v.zmask, v.inicio].every(ipOk)) return "Há um endereço inválido.";
+        Object.assign(o, { modo: v.omodo, ip: v.oip, mask: v.omask }); if (v.omodo === "dhcp") o.lease = null;
+        Object.assign(i, { ip: v.iip, mask: v.imask }); Object.assign(z, { nome: v.zip ? "dmz" : "", nivel: 50, ip: v.zip, mask: v.zmask || "255.255.255.0" });
+        Object.assign(d.asa, { gw: v.gw, nat: v.nat, icmp: v.icmp }); Object.assign(d.asa.dhcp, { on: v.dhcp, inicio: v.inicio });
+        msg(`${esc(d.nome)} configurada.`, "ok");
+      }, "Regra da ASA: o tráfego de um nível mais alto para um mais baixo passa (inside → outside); de fora para dentro é bloqueado. Por defeito a ASA não inspeciona ICMP: o ping sai mas a resposta não volta.");
+    }
+    function formNuvem(corpo, d) {
+      const P = d.nuvem.portas, ks = Object.keys(P);
+      formulario(corpo, "Operador / Internet", ks.flatMap((k) => [[k + "_ip", `${k}: IP do operador`, P[k].ip], [k + "_dhcp", `${k}: dar IP aos clientes por DHCP`, P[k].dhcp, "check"]]), (v) => {
+        if (!ks.every((k) => ipOk(v[k + "_ip"]))) return "Há um endereço inválido.";
+        ks.forEach((k) => { P[k].ip = v[k + "_ip"]; P[k].dhcp = v[k + "_dhcp"]; });
+        rede.devs.forEach((x) => { if (x.rw) x.rw.wan.lease = null; if (x.asa) Object.values(x.asa.ifs).forEach((y) => { y.lease = null; }); });
+        msg("Operador configurado.", "ok");
+      }, "Cada porta é uma ligação a um cliente (/24). Ethernet para routers e firewalls, Coaxial7 para o modem de cabo, Modem4 para o modem DSL.");
+    }
+    function captura(corpo, d) {
+      const viz = new Set(rede.linksDe(d).map((l) => (l.a === d.id ? l.b : l.a)));
+      const vistos = (rede.trafego || []).filter((t) => t.devs.some((x) => viz.has(x) && S.ehPonte(rede.dev(x) || {}) ) || t.devs.includes(d.id)).slice(-15).reverse();
+      corpo.innerHTML = `<div class="secao"><p class="peq">O sniffer só vê o tráfego que lhe chega: ligue-o a um <b>hub</b> (que repete tudo para todas as portas). Ligado a um switch, só veria o tráfego dirigido a ele.</p>
+        <div class="tabela-caixa"><table><thead><tr><th>Origem</th><th>Destino</th><th>Protocolo</th><th>Resultado</th></tr></thead><tbody>${vistos.map((t) => `<tr><td>${esc(t.de)}</td><td>${esc(t.para)}</td><td>ICMP echo</td><td>${t.ok ? "resposta" : "sem resposta"}</td></tr>`).join("") || '<tr><td colspan="4" class="suave">Ainda não passou nada. Faça um ping entre dois PCs ligados ao hub.</td></tr>'}</tbody></table></div>
+        <button class="btn" type="button" data-atualizar-cap>Atualizar</button></div>`;
+      corpo.querySelector("[data-atualizar-cap]").onclick = () => captura(corpo, d);
     }
 
     function formIP(corpo, d) {
@@ -234,6 +378,10 @@
         <label>Gateway por defeito<input class="campo mono" name="gw" value="${esc(c.gw)}" placeholder="192.168.1.1" inputmode="decimal" autocomplete="off"></label>
         <label>Servidor DNS<input class="campo mono" name="dns" value="${esc(c.dns)}" placeholder="opcional" inputmode="decimal" autocomplete="off"></label>
         <button class="btn prim" type="submit">Aplicar</button><p class="peq" id="sim-ip-erro"></p>`}</form>`;
+      if (S.TIPOS[d.tipo].poe) {
+        corpo.insertAdjacentHTML("afterbegin", `<label class="linha secao"><input type="checkbox" data-energia ${c.energia ? "checked" : ""}> Transformador ligado à tomada (sem ele precisa de PoE do switch 3560/3650) · energia: <b>${rede.temEnergia(d) ? "sim" : "não"}</b></label>`);
+        corpo.querySelector("[data-energia]").onchange = (e) => { c.energia = e.target.checked; if (c.dhcp) rede.pedirDhcp(d); rede.mudou(); abrirInsp(d, "ip"); atualizar(); };
+      }
       const f = corpo.querySelector("form");
       f.onclick = (e) => {
         const m = e.target.closest("[data-modo]");
@@ -384,8 +532,10 @@
         }
         opcoes(); desenhar(); return;
       }
+      const ct = e.target.closest("[data-cat]");
+      if (ct) { categoria = +ct.dataset.cat; opcoes(); return; }
       const ad = e.target.closest("[data-add]");
-      if (ad) { const p = lugarLivre(); const d = rede.novoDev(ad.dataset.add, p.x, p.y); rede.mudou(); menu = null; opcoes(); msg(`Adicionado <b>${esc(d.nome)}</b>. Arraste para mover ou toque para configurar.`, "ok"); atualizar(); return; }
+      if (ad) { const p = lugarLivre(); const d = rede.novoDev(ad.dataset.add, p.x, p.y, null, { modelo: ad.dataset.modelo || undefined }); rede.mudou(); menu = null; opcoes(); msg(`Adicionado <b>${esc(d.nome)}</b>. Arraste para mover ou toque para configurar.`, "ok"); atualizar(); return; }
       const cb = e.target.closest("[data-cabo]");
       if (cb) { cabo = cb.dataset.cabo; modo = "cabo"; caboA = null; opcoes(); msg(`Cabo <b>${esc(S.CABOS[cabo].nome)}</b>: toque no primeiro equipamento.`); }
     });
