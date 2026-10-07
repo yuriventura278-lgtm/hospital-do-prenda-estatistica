@@ -1,13 +1,16 @@
 """Gera os dados da app a partir do conteúdo em Python.
 
 Uso:
-    python build.py            # valida e gera www/js/conteudo.js e dist/
+    python build.py            # valida e gera www/js/conteudo.js, os PDFs das aulas e dist/
+    python build.py --sem-pdf  # não gera os PDFs (usa os que já existirem em www/pdf)
     python build.py --check    # só valida
 
 Saídas:
     www/js/conteudo.js         dados usados pela app (pasta www)
     dist/ccna-passo-a-passo.html   app inteira num único ficheiro HTML
                                (abre com duplo clique, funciona sem internet)
+    www/pdf/                   PDF de cada aula (a cores e para imprimir) e de cada módulo
+                               (ver pdf_aulas.py); copiado para dist/pdf/
 """
 
 from __future__ import annotations
@@ -15,11 +18,14 @@ from __future__ import annotations
 import base64
 import json
 import re
+import shutil
 import sys
+import time
 from pathlib import Path
 
 from conteudo import curso
 from conteudo.validar import validar
+from pdf_aulas import anexar_indice, gerar_pdfs, ler_indice
 
 RAIZ = Path(__file__).parent
 WWW = RAIZ / "www"
@@ -75,11 +81,27 @@ def main() -> int:
     if "--check" in sys.argv:
         return 0
 
+    pdf = WWW / "pdf"
+    if "--sem-pdf" in sys.argv:
+        indice = ler_indice(pdf)
+        print("PDFs não gerados (--sem-pdf)" + ("; uso os que já existem em www/pdf" if indice else ""))
+    else:
+        t0 = time.time()
+        indice = gerar_pdfs(c, pdf)
+        tam = sum(f.stat().st_size for f in pdf.rglob("*.pdf"))
+        n = sum(1 for _ in pdf.rglob("*.pdf"))
+        print(f"Gerado: www/pdf/ ({n} PDFs, {tam / 1e6:.1f} MB, {time.time() - t0:.0f} s)")
+    anexar_indice(c, indice)
+
     js = gerar_js(c)
     (WWW / "js" / "conteudo.js").write_text(js, encoding="utf-8")
     DIST.mkdir(exist_ok=True)
     unico = ficheiro_unico(js)
     (DIST / "ccna-passo-a-passo.html").write_text(unico, encoding="utf-8")
+    if indice and pdf.exists():
+        # o ficheiro único aponta para pdf/…: a pasta fica ao lado dele
+        shutil.rmtree(DIST / "pdf", ignore_errors=True)
+        shutil.copytree(pdf, DIST / "pdf")
     print("Gerado: www/js/conteudo.js")
     print("Gerado: dist/ccna-passo-a-passo.html")
     return 0

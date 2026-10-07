@@ -18,51 +18,110 @@
   };
 
   // ------------------------------------------------------------ desenho dos equipamentos e portas
-  // Cada tipo devolve { w, h, svg, portas: [{ id, x, y, tipo, rotulo }] } em coordenadas locais.
+  // Cada tipo devolve { w, h, svg, portas: [{ id, x, y, tipo, rotulo }], tinta? } em coordenadas locais.
+  // Os desenhos imitam a frente/traseira dos equipamentos reais (Catalyst 2960, ISR 4331, torre de PC,
+  // tomada de parede com keystone, patch panel de 1U). "tinta" é a cor dos rótulos das portas.
+  const rep = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join("");
+  // grelha de ventilação em favo (círculos)
+  const favo = (x, y, w, h, passo, cor) => {
+    let s = "";
+    for (let j = 0, yy = y + passo / 2; yy < y + h; j++, yy += passo * 0.87)
+      for (let xx = x + passo / 2 + (j % 2) * passo / 2; xx < x + w; xx += passo) s += `<circle cx="${xx.toFixed(1)}" cy="${yy.toFixed(1)}" r="${(passo * 0.32).toFixed(1)}"/>`;
+    return `<g fill="${cor}">${s}</g>`;
+  };
+  const parafuso = (x, y) => `<circle cx="${x}" cy="${y}" r="4" fill="#aab2bb" stroke="#5d6672"/><path d="M${x - 2.4} ${y} h4.8 M${x} ${y - 2.4} v4.8" stroke="#5d6672" stroke-width="1.2"/>`;
+  // ficha de alimentação IEC C14 (tomada do cabo de corrente)
+  const iec = (x, y) => `<path d="M${x} ${y + 5} l5 -5 h22 l5 5 v16 h-32z" fill="#0b0d10" stroke="#59616b" stroke-width="1.5"/><g fill="#9aa3ad"><rect x="${x + 7}" y="${y + 8}" width="3" height="8"/><rect x="${x + 14.5}" y="${y + 5}" width="3" height="8"/><rect x="${x + 22}" y="${y + 8}" width="3" height="8"/></g>`;
   const DESENHO = {
     pc(d, st) {
       const on = st.energia[d.id];
-      return { w: 150, h: 220, svg: `<rect width="150" height="220" rx="10" class="lb-caixa"/><text x="75" y="22" class="lb-t">${esc(d.nome)} · traseira</text>
-        <rect x="18" y="36" width="114" height="34" rx="4" class="lb-fonte"/><text x="75" y="58" class="lb-mini">fonte de alimentação</text>
-        <rect x="18" y="150" width="114" height="54" rx="4" class="lb-painel"/><text x="75" y="198" class="lb-mini">placa de rede · USB</text>
-        <circle cx="128" cy="100" r="13" class="lb-botao ${on ? "on" : ""}" data-energia="${d.id}"/><path d="M128 92 v8 M122 96 a8 8 0 1 0 12 0" class="lb-simb" pointer-events="none"/>`,
+      return { w: 150, h: 220, svg: `<rect width="150" height="220" rx="8" fill="#2f343b" stroke="#16191d" stroke-width="2"/><rect x="4" y="4" width="142" height="212" rx="6" fill="none" stroke="#454b54"/>
+        <text x="75" y="22" class="lb-t"${d.nome.length > 10 ? ' style="font-size:11px"' : ""}>${esc(d.nome)} · traseira</text>
+        <rect x="14" y="32" width="122" height="44" rx="4" fill="#1d2025" stroke="#4a5059"/>
+        <circle cx="44" cy="54" r="17" fill="#121417"/>${favo(28, 38, 32, 32, 5, "#2f343b")}<circle cx="44" cy="54" r="17" fill="none" stroke="#5b626c" stroke-width="2"/>
+        ${iec(78, 42)}<rect x="116" y="44" width="12" height="20" rx="2" fill="#111" stroke="#59616b"/><text x="122" y="58" class="lb-mini" style="font-size:9px">I/O</text>
+        <text x="75" y="86" class="lb-mini">fonte de alimentação</text>
+        <rect x="14" y="92" width="96" height="50" rx="3" fill="#b9c0c8" stroke="#7d8690"/>
+        ${rep(4, (i) => `<rect x="${22 + (i % 2) * 18}" y="${100 + Math.floor(i / 2) * 12}" width="14" height="7" rx="1" fill="#2563c9" stroke="#0b0d10"/>`)}
+        <rect x="62" y="98" width="30" height="12" rx="2" fill="#1f2328"/><text x="77" y="107" style="font:700 7px var(--f-mono);fill:#cfd6de;text-anchor:middle">HDMI</text>
+        ${["#7ac943", "#f28cb1", "#4fb3d9"].map((c, i) => `<circle cx="${68 + i * 12}" cy="128" r="4.5" fill="${c}" stroke="#2a2e33" stroke-width="1.5"/>`).join("")}
+        <rect x="14" y="148" width="122" height="60" rx="3" fill="#22262c" stroke="#4a5059"/>
+        <rect x="30" y="152" width="44" height="34" rx="2" fill="#8f98a3"/><rect x="82" y="152" width="44" height="34" rx="2" fill="#8f98a3"/>
+        ${rep(5, (i) => `<rect x="${18 + i * 24}" y="210" width="18" height="4" rx="1" fill="#454b54"/>`)}
+        <g data-energia="${d.id}" style="cursor:pointer"><circle cx="128" cy="117" r="14" class="lb-botao ${on ? "on" : ""}"/><path d="M128 109 v8 M122 113 a8 8 0 1 0 12 0" class="lb-simb" pointer-events="none"/></g>`,
         portas: [{ id: "nic", x: 52, y: 170, tipo: "rj45", rotulo: "Rede" }, { id: "usb", x: 104, y: 170, tipo: "usb", rotulo: "USB" }] };
     },
     switch(d, st) {
-      const n = d.portas || 8, portas = [];
+      const n = d.portas || 8, portas = [], on = st.energia[d.id];
       for (let k = 1; k <= n; k++) portas.push({ id: "p" + k, x: 60 + (k - 1) * 52, y: 52, tipo: "rj45", rotulo: String(k), led: true });
       portas.push({ id: "con", x: 60 + n * 52 + 30, y: 52, tipo: "con", rotulo: "CON" });
-      const w = 60 + n * 52 + 90;
-      return { w, h: 92, svg: `<rect width="${w}" height="92" rx="6" class="lb-switch"/><text x="10" y="16" class="lb-t lb-esq">${esc(d.nome)} · Catalyst 2960 (frente)</text>
-        <circle cx="${w - 22}" cy="22" r="6" class="lb-led ${st.energia[d.id] ? "verde" : ""}"/><text x="${w - 22}" y="42" class="lb-mini">SYST</text>
-        <rect x="${w - 40}" y="58" width="30" height="22" rx="3" class="lb-tomada-e ${st.energia[d.id] ? "on" : ""}" data-energia="${d.id}"/><text x="${w - 25}" y="88" class="lb-mini">⏻ corrente</text>`, portas };
+      const w = 60 + n * 52 + 90, xf = 60 + (n - 1) * 52 + 22;
+      return { w, h: 92, tinta: "#1d2733", svg: `<rect x="-14" y="2" width="18" height="88" rx="2" fill="#aab3bd" stroke="#6b7682"/><rect x="${w - 4}" y="2" width="18" height="88" rx="2" fill="#aab3bd" stroke="#6b7682"/>
+        <ellipse cx="-5" cy="22" rx="3.5" ry="6" fill="#4a5360"/><ellipse cx="-5" cy="70" rx="3.5" ry="6" fill="#4a5360"/><ellipse cx="${w + 5}" cy="22" rx="3.5" ry="6" fill="#4a5360"/><ellipse cx="${w + 5}" cy="70" rx="3.5" ry="6" fill="#4a5360"/>
+        <rect width="${w}" height="92" rx="4" fill="#c9d1d9" stroke="#6b7682" stroke-width="2"/><rect x="2" y="2" width="${w - 4}" height="5" fill="#e6ebf0"/><rect x="2" y="84" width="${w - 4}" height="6" fill="#aeb8c2"/>
+        <text x="10" y="20" class="lb-t lb-esq" style="fill:#1d2733">${esc(d.nome)} · Catalyst 2960 (frente)</text>
+        <rect x="4" y="28" width="30" height="52" rx="3" fill="#3e5a73"/>
+        ${["SYST", "STAT", "DPLX", "SPD"].map((t, i) => `<circle cx="10" cy="${36 + i * 10}" r="3" class="lb-led ${on && i < 2 ? "verde" : ""}"/><text x="15" y="${38.5 + i * 10}" style="font:700 6px var(--f-mono);fill:#d6e2ee">${t}</text>`).join("")}
+        <rect x="34" y="34" width="${xf - 34 + 6}" height="44" rx="3" fill="#8794a1"/>
+        <rect x="${60 + n * 52 + 10}" y="34" width="40" height="44" rx="3" fill="#8794a1"/>
+        <text x="${w - 22}" y="16" style="font:800 9px var(--f-body);fill:#1d2733;text-anchor:middle">cisco</text>
+        <g data-energia="${d.id}" style="cursor:pointer"><rect x="${w - 40}" y="54" width="32" height="26" rx="3" class="lb-tomada-e ${on ? "on" : ""}"/><g pointer-events="none" transform="translate(${w - 40} 54) scale(1 1.15)">${iec(0, 0)}</g></g>
+        <circle cx="${w - 22}" cy="34" r="5" class="lb-led ${on ? "verde" : ""}"/><text x="${w - 22}" y="48" style="font:700 8px var(--f-mono);fill:#1d2733;text-anchor:middle">PWR</text>`, portas };
     },
     router(d, st) {
       const on = st.energia[d.id];
       const portas = [{ id: "g0", x: 70, y: 56, tipo: "rj45", rotulo: "G0/0/0" }, { id: "g1", x: 140, y: 56, tipo: "rj45", rotulo: "G0/0/1" }, { id: "con", x: 230, y: 56, tipo: "con", rotulo: "CONSOLE" }, { id: "aux", x: 300, y: 56, tipo: "aux", rotulo: "AUX" }];
-      return { w: 430, h: 96, svg: `<rect width="430" height="96" rx="6" class="lb-router"/><text x="10" y="16" class="lb-t lb-esq">${esc(d.nome)} · ISR 4331 (traseira)</text>
-        <rect x="370" y="36" width="40" height="34" rx="4" class="lb-interruptor ${on ? "on" : ""}" data-energia="${d.id}"/><text x="390" y="58" class="lb-t" pointer-events="none">${on ? "I" : "O"}</text><text x="390" y="88" class="lb-mini">interruptor</text>
-        <circle cx="352" cy="28" r="5" class="lb-led ${on ? "verde" : ""}"/>`, portas };
+      return { w: 430, h: 96, svg: `<rect width="430" height="96" rx="5" fill="#25292f" stroke="#0f1114" stroke-width="2"/><rect x="2" y="2" width="426" height="5" fill="#3d434b"/>
+        <text x="10" y="18" class="lb-t lb-esq">${esc(d.nome)} · ISR 4331 (traseira)</text>
+        <rect x="8" y="26" width="34" height="62" rx="2" fill="#16181c"/>${favo(8, 26, 34, 62, 6, "#33383f")}
+        <rect x="46" y="28" width="290" height="62" rx="3" fill="#2f343b" stroke="#454c55"/>
+        <rect x="186" y="32" width="2" height="54" fill="#454c55"/>
+        <text x="105" y="40" style="font:700 8px var(--f-mono);fill:#aab2bc;text-anchor:middle">GE 10/100/1000</text>
+        <rect x="318" y="44" width="12" height="7" rx="1" fill="#9aa1aa"/><text x="324" y="40" style="font:700 7px var(--f-mono);fill:#aab2bc;text-anchor:middle">USB</text>
+        <rect x="342" y="10" width="82" height="80" rx="3" fill="#1b1e22" stroke="#454c55"/>${favo(346, 14, 22, 72, 5, "#33383f")}
+        <text x="400" y="26" style="font:700 8px var(--f-mono);fill:#aab2bc;text-anchor:middle">PSU</text>
+        <g data-energia="${d.id}" style="cursor:pointer"><rect x="374" y="34" width="40" height="36" rx="4" class="lb-interruptor ${on ? "on" : ""}"/>
+        <rect x="384" y="${on ? 39 : 51}" width="20" height="14" rx="2" fill="${on ? "#c8312f" : "#3a3f46"}" pointer-events="none"/><text x="394" y="${on ? 50 : 62}" class="lb-t" pointer-events="none" style="font-size:11px">${on ? "I" : "O"}</text></g>
+        <text x="394" y="86" class="lb-mini">interruptor</text>
+        <circle cx="200" cy="46" r="5" class="lb-led ${on ? "verde" : ""}"/><text x="200" y="62" style="font:700 8px var(--f-mono);fill:#aab2bc;text-anchor:middle">SYS</text>
+        <text x="265" y="38" style="font:800 10px var(--f-body);fill:#cfd6de;text-anchor:middle">cisco</text>`, portas };
     },
     tomada(d) {
-      return { w: 120, h: 130, svg: `<rect width="120" height="130" rx="10" class="lb-parede"/><text x="60" y="20" class="lb-t">${esc(d.nome)}</text>`,
-        portas: (d.tomadas || ["A-07"]).map((t, k) => ({ id: t, x: 60, y: 54 + k * 44, tipo: "rj45", rotulo: t })) };
+      const ts = d.tomadas || ["A-07"];
+      return { w: 120, h: 130, tinta: "#333", svg: `<rect width="120" height="130" rx="10" class="lb-parede"/><rect x="2" y="2" width="116" height="6" rx="4" fill="#fff" opacity=".7"/><text x="60" y="20" class="lb-t">${esc(d.nome)}</text>
+        ${ts.map((t, k) => `<rect x="30" y="${34 + k * 44}" width="60" height="40" rx="6" fill="#fbfaf6" stroke="#b9b4a3"/><rect x="40" y="${38 + k * 44}" width="40" height="32" rx="3" fill="#e8e5dc" stroke="#c7c2b2"/>`).join("")}
+        ${parafuso(60, 28)}${parafuso(60, 34 + ts.length * 44 + 2)}`,
+        portas: ts.map((t, k) => ({ id: t, x: 60, y: 54 + k * 44, tipo: "rj45", rotulo: t })) };
     },
     patch(d) {
       const n = 12, portas = [];
       for (let k = 1; k <= n; k++) portas.push({ id: "pp" + k, x: 40 + (k - 1) * 40, y: 46, tipo: "rj45", rotulo: String(k).padStart(2, "0") });
-      return { w: 40 + n * 40, h: 76, svg: `<rect width="${40 + n * 40}" height="76" rx="4" class="lb-patch"/><text x="10" y="16" class="lb-t lb-esq">${esc(d.nome)} · patch panel (as portas ligam às tomadas A-01…A-12)</text>`, portas };
+      const w = 40 + n * 40;
+      return { w, h: 76, svg: `<rect x="-12" y="2" width="16" height="72" rx="2" fill="#3a3f46" stroke="#111"/><rect x="${w - 4}" y="2" width="16" height="72" rx="2" fill="#3a3f46" stroke="#111"/>
+        <ellipse cx="-4" cy="38" rx="3" ry="6" fill="#0b0d10"/><ellipse cx="${w + 4}" cy="38" rx="3" ry="6" fill="#0b0d10"/>
+        <rect width="${w}" height="76" rx="3" class="lb-patch"/><rect x="2" y="2" width="${w - 4}" height="4" fill="#454b54"/>
+        <text x="10" y="16" class="lb-t lb-esq">${esc(d.nome)} · patch panel (as portas ligam às tomadas A-01…A-12)</text>
+        ${rep(2, (g) => `<rect x="${22 + g * 240}" y="26" width="236" height="7" rx="1" fill="#f3f1ea"/>`)}`, portas };
     },
     testador(d, st) {
       const t = st.teste, leds = (lado) => [0, 1, 2, 3, 4, 5, 6, 7].map((k) => {
         const aceso = t && t.passo > k && (lado === "a" ? true : t.mapa[k] != null);
         return `<circle cx="${30 + k * 20}" cy="${lado === "a" ? 50 : 132}" r="7" class="lb-led ${aceso ? "verde" : ""}"/><text x="${30 + k * 20}" y="${lado === "a" ? 70 : 152}" class="lb-mini">${lado === "a" ? k + 1 : t && t.passo > k && t.mapa[k] != null ? t.mapa[k] + 1 : k + 1}</text>`;
       }).join("");
-      return { w: 200, h: 180, svg: `<rect width="200" height="84" rx="10" class="lb-testador"/><text x="100" y="20" class="lb-t">Testador · unidade principal</text>${leds("a")}
-        <rect y="96" width="200" height="84" rx="10" class="lb-testador"/><text x="100" y="114" class="lb-t">Unidade remota</text>${leds("b")}`,
+      const corpo = (y) => `<rect y="${y}" width="200" height="84" rx="12" fill="#f2c230" stroke="#8a6a00" stroke-width="2"/><rect x="8" y="${y + 26}" width="166" height="52" rx="6" fill="#2b2f36"/>`;
+      return { w: 200, h: 180, svg: `${corpo(0)}<text x="88" y="19" class="lb-t" style="fill:#222;font-size:12px">Testador · unidade principal</text>${leds("a")}
+        ${corpo(96)}<text x="100" y="114" class="lb-t" style="fill:#222">Unidade remota</text>${leds("b")}`,
         portas: [{ id: "a", x: 186, y: 30, tipo: "rj45", rotulo: "" }, { id: "b", x: 186, y: 150, tipo: "rj45", rotulo: "" }] };
     },
   };
+  // interior da ficha (só decoração, não recebe toques): contactos do RJ45 e entalhe da patilha, ou a língua do USB
+  function tomadaPorta(p) {
+    const x = p.x, y = p.y;
+    if (p.tipo === "usb") return `<rect x="${x - 10}" y="${y - 3}" width="20" height="6" rx="1" fill="#d7dce2" pointer-events="none"/>`;
+    const fio = p.tipo === "con" ? "#0d3a4d" : "#c9a227";
+    return `<path d="M${x - 5} ${y + 12} v-5 h-4 M${x + 5} ${y + 12} v-5 h4" fill="none" stroke="#8e9aa6" stroke-width="1.2" pointer-events="none"/>` +
+      `<g fill="${fio}" pointer-events="none">${[0, 1, 2, 3, 4, 5, 6, 7].map((k) => `<rect x="${x - 10.5 + k * 3}" y="${y - 10}" width="1.6" height="5"/>`).join("")}</g>`;
+  }
   const geo = (d, st) => DESENHO[d.tipo](d, st);
   function posPorta(bc, st, ref) {
     const [id, p] = ref.split("."), d = bc.devs.find((x) => x.id === id); if (!d) return null;
@@ -217,8 +276,8 @@
         const g = geo(d, st);
         s += `<g transform="translate(${d.x},${d.y})">${g.svg}${g.portas.map((p) => {
           const ref = d.id + "." + p.id, usada = cabosEm(st, ref).length, l = p.led ? luz(bc, st, d.id, p.id) : "";
-          return `${p.led ? `<circle cx="${p.x}" cy="${p.y - 26}" r="5" class="lb-led ${l}"/>` : ""}<rect x="${p.x - 15}" y="${p.y - 12}" width="30" height="24" rx="3" class="lb-porta ${p.tipo} ${usada ? "usada" : ""} ${pontaA === ref ? "sel" : ""}" data-porta="${ref}"/>
-            <text x="${p.x}" y="${p.y + 26}" class="lb-mini">${esc(p.rotulo)}</text>`;
+          return `${p.led ? `<circle cx="${p.x}" cy="${p.y - 26}" r="5" class="lb-led ${l}"/>` : ""}<rect x="${p.x - 15}" y="${p.y - 12}" width="30" height="24" rx="3" class="lb-porta ${p.tipo} ${usada ? "usada" : ""} ${pontaA === ref ? "sel" : ""}" data-porta="${ref}"/>${tomadaPorta(p)}
+            <text x="${p.x}" y="${p.y + 26}" class="lb-mini"${g.tinta ? ` style="fill:${g.tinta}"` : ""}>${esc(p.rotulo)}</text>`;
         }).join("")}</g>`;
       });
       raiz.querySelector("#lb-svg").innerHTML = s;

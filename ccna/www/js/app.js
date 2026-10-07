@@ -42,6 +42,8 @@
     caso: '<path d="M4 7h16v12H4zM9 7V5h6v2M4 12h16M11 12v2h2v-2"/>',
     calendario: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M14 14h2M8 18h2"/>',
     lua: '<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/>',
+    descarregar: '<path d="M12 3v12M7 10l5 5 5-5M5 20h14"/>',
+    imprimir: '<path d="M7 9V3h10v6M7 17H4v-8h16v8h-3"/><path d="M7 14h10v7H7z"/>',
   };
   const ic = (n, cls) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${cls || ""}" aria-hidden="true">${IC[n]}</svg>`;
 
@@ -58,7 +60,7 @@
   // Garante todos os campos (também em perfis guardados por versões anteriores).
   function completarPerfil(p) {
     const base = { xp: 0, licoes: {}, provas: {}, labs: {}, casos: {}, erros: [], dias: [], conquistas: {}, recordes: { subrede: 0, relampago: 0 },
-      lembretes: { on: false, horas: [], feitos: {} }, sims: {}, projetos: {}, exercicios: {}, estagios: {}, cadernos: {}, salaLab: {}, fichas: {}, caboJogo: 0, idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
+      lembretes: { on: false, horas: [], feitos: {} }, sims: {}, projetos: {}, desafios: {}, profAtiv: {}, profImport: {}, exercicios: {}, estagios: {}, cadernos: {}, salaLab: {}, fichas: {}, caboJogo: 0, idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
       plano: { min: 30, sessoes: 1, dias: [1, 2, 3, 4, 5], prazo: null, fixo: "tempo", inicio: null }, alvo: null };
     Object.keys(base).forEach((k) => { if (p[k] === undefined) p[k] = base[k]; });
     return p;
@@ -195,7 +197,7 @@
          <span class="xp-pilula tab-num" title="${esc(n.nome)}">${ic("estrela")} ${P().xp} XP</span>
          <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${ic("perfil")}</button>`
       : `<button class="btn-icone" data-acao="voltar" aria-label="Voltar">${ic("voltar")}</button><div class="titulo">${esc(titulo)}</div>`;
-    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", exercicios: "trilha", estagio: "trilha", cadernos: "jogar", caderno: "jogar", sala: "jogar", bancada: "jogar", glossario: "guia", protocolos: "guia", protocolo: "guia", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
+    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", prof: "jogar", exercicios: "trilha", estagio: "trilha", cadernos: "jogar", caderno: "jogar", sala: "jogar", bancada: "jogar", glossario: "guia", protocolos: "guia", protocolo: "guia", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
     document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.ir === tab ? "page" : "false"));
     $("#app").innerHTML = TELAS[t]();
     if (POS[t]) POS[t]();
@@ -204,7 +206,7 @@
     modulo: () => mod(rota.mid).codigo, licao: () => LICOES[rota.lid].titulo, quiz: () => "Quiz · " + LICOES[rota.lid].titulo,
     prova: () => "Prova · " + mod(rota.mid).codigo, relampago: () => "Quiz relâmpago", subrede: () => "Desafio sub-rede",
     labs: () => "Laboratório CLI", lab: () => labPorId(rota.id).titulo, revisao: () => "Caderno de erros", perfil: () => "Perfil e definições",
-    plano: () => "O meu plano", sims: () => "Simulador de rede", sim: () => rota.proj ? "Projeto" : rota.id === "livre" ? "Simulador · modo livre" : ativPorId(rota.id).titulo, casos: () => "Casos reais", caso: () => casoPorId(rota.id).titulo,
+    plano: () => "O meu plano", sims: () => "Simulador de rede", sim: () => rota.proj ? "Projeto" : rota.desafio ? "Desafio de avarias" : rota.profEd ? "Atividade do professor" : rota.profAt ? "Atividade do professor" : rota.id === "livre" ? "Simulador · modo livre" : ativPorId(rota.id).titulo, prof: () => "Criar atividade", casos: () => "Casos reais", caso: () => casoPorId(rota.id).titulo,
     exercicios: () => "Exercícios · " + LICOES[rota.lid].titulo, glossario: () => "Glossário", protocolos: () => "Protocolos", protocolo: () => PROT[rota.id].sigla,
     cadernos: () => "Cadernos de exercícios", caderno: () => window.Exercicios.CADERNOS.find((c) => c.id === rota.id).titulo, estagio: () => "Estágio · " + mod(rota.mid).codigo,
     sala: () => "Sala de laboratório", bancada: () => "Bancada",
@@ -298,7 +300,8 @@
       <section class="secao"><header><h2>Apresentação do módulo</h2><span class="rotulo">${Math.max(1, Math.round(m.apresentacao.video.segundos / 60))} min${ant ? " · inclui o resumo do " + esc(ant.codigo) : ""}</span></header><div id="video-modulo"></div></section>
       ${aberto ? "" : `<div class="alerta">${ic("cadeado")}<div>Passe a prova do módulo anterior (${esc(ant ? ant.codigo : "")}) para desbloquear, ou ative o <b>modo livre</b> no perfil.</div></div>`}
       <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${m.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
-        <span class="rotulo">Conteúdo programático</span><ul class="temas">${m.temas.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>
+        <span class="rotulo">Conteúdo programático</span><ul class="temas">${m.temas.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+        ${m.pdf ? `<a class="btn bloco" href="${esc(m.pdf.arquivo)}" download="ccna-${m.id}-modulo.pdf">${ic("descarregar")} PDF do módulo <span class="suave peq">· ${m.pdf.paginas} páginas</span></a>` : ""}</div>
       ${(m.termos || []).length ? `<section class="secao" id="termos-mod"><header><h2>Termos técnicos do módulo</h2><span class="rotulo">${m.termos.length} termos</span></header>
         <p class="suave peq">Todas as palavras técnicas que vai encontrar neste módulo, explicadas antes de começar. Também aparecem no fim de cada aula.</p>
         <details class="cartao plano"><summary><b>Ver os ${m.termos.length} termos do ${esc(m.codigo)}</b></summary><dl class="gloss">${m.termos.map((n) => GLOS[n]).filter(Boolean).map(htmlTermo).join("")}</dl></details></section>` : ""}
@@ -358,6 +361,7 @@
         <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${l.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></div></article>
       <div class="cartao assistente"><div class="linha"><span class="ico-caixa">${ic("som")}</span><div class="meio"><b>Assistente de leitura</b><span class="suave peq">Lê toda a aula em voz alta, de seguida, com a voz do telemóvel. Pode ler a partir de qualquer parte (botão 🔊 em cada bloco).</span></div></div>
         <button class="btn prim bloco" data-acao="ouvir-aula">${ic("som")} Ouvir a aula toda</button></div>
+      ${cartaoPdf(l, m)}
       <section class="secao"><header><h2>Vídeo-aula</h2><span class="rotulo">${Math.round(l.video.segundos / 60)} min · narrada${r && r.video ? " · vista ✓" : ""}</span></header>
         <div id="videoaula"></div><p class="suave peq">A vídeo-aula explica todo o conteúdo desta lição, cena a cena, com legendas. Por baixo tem o texto completo para ler ao seu ritmo.</p></section>
       <h2>Conteúdo da lição</h2>
@@ -371,6 +375,15 @@
         <button class="btn bloco" data-acao="repetir" data-id="${l.id}">${ic("repetir")} Repetir a aula desde o início</button></div>
       <div class="grelha-2">${ant ? `<button class="btn" data-acao="licao" data-id="${ant.id}">← Anterior</button>` : "<span></span>"}${prox ? `<button class="btn" data-acao="licao" data-id="${prox.id}" ${licaoAberta(prox) ? "" : "disabled"}>Seguinte →</button>` : `<button class="btn" data-acao="prova" data-id="${m.id}" ${provaAberta(m) ? "" : "disabled"}>Prova do módulo →</button>`}</div>`;
   };
+  // PDF da aula (gerado no build: www/pdf/…; os caminhos vêm em l.pdf e m.pdf)
+  function cartaoPdf(l, m) {
+    if (!l.pdf) return "";
+    const nome = `ccna-${m.id}-aula-${l._i + 1}`;
+    return `<div class="cartao pdf-aula"><div class="linha"><span class="pdf-chip" aria-hidden="true">PDF</span><div class="meio"><b>Aula em PDF</b><span class="suave peq">${l.pdf.paginas} páginas · conteúdo, termos, exercícios e quiz com soluções</span></div></div>
+        <a class="btn prim bloco" href="${esc(l.pdf.arquivo)}" download="${nome}.pdf">${ic("descarregar")} Baixar PDF da aula</a>
+        <div class="grelha-2">${m.pdf ? `<a class="btn" href="${esc(m.pdf.arquivo)}" download="ccna-${m.id}-modulo.pdf">${ic("livro")} PDF do módulo</a>` : ""}${l.pdf.imprimir ? `<a class="btn" href="${esc(l.pdf.imprimir)}" download="${nome}-imprimir.pdf">${ic("imprimir")} Versão para imprimir</a>` : ""}</div>
+        <p class="suave peq">A versão para imprimir é a preto e branco, com letra maior e mais espaço para responder à mão.</p></div>`;
+  }
   let assistente = null;
   function abrirAssistente() {
     const l = LICOES[rota.lid], barra = $("#leitor-barra"); if (!barra || !window.Leitor) return null;
@@ -1350,6 +1363,8 @@
   TELAS.sims = function () {
     return `<div class="secao"><h1>Simulador de rede</h1><p class="suave">Monte redes como no Cisco Packet Tracer, aqui dentro: equipamentos, cabos, configuração no terminal Cisco, IP nos PCs, ping e tracert. Cada atividade tem passos guiados que se verificam sozinhos.</p></div>
       ${htmlProjetos()}
+      ${htmlDesafios()}
+      ${htmlProfessor()}
       <h2>Atividades guiadas</h2><div class="lista">${D.atividades.map(itemSim).join("")}</div>`;
   };
   // ------------------------------------------------------------ projetos do simulador (com nome, para continuar depois)
@@ -1387,13 +1402,153 @@
     const fr = new FileReader(); fr.onload = () => importarProjeto(String(fr.result)); fr.readAsText(e.target.files[0]);
   });
 
+
+  // ------------------------------------------------------------ desafio de avarias (troubleshooting)
+  const DZ = () => window.Desafios;
+  const mmss = (s) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
+  let dzCen = "clinica", dzNivel = "medio";
+  function htmlDesafios() {
+    if (!DZ()) return "";
+    const hist = Object.entries(P().desafios || {}).sort((a, b) => b[1].inicio - a[1].inicio).slice(0, 6);
+    return `<div class="cartao dz-cartao"><div class="linha entre"><h2>Desafio de avarias</h2><span class="chip acc">como no exame</span></div>
+      <p class="peq suave">A app monta a rede de uma empresa a funcionar e estraga algumas coisas às escondidas. Só vê as queixas dos utilizadores: encontre e corrija as avarias antes de o tempo acabar. Cada desafio é diferente. Nota de 0 a 20.</p>
+      <div class="dz-escolha"><span class="rotulo">Empresa</span><div class="chips">${Object.entries(DZ().CENARIOS).map(([k, c]) => `<button class="chip-op" data-acao="dz-cen" data-id="${k}" aria-pressed="${dzCen === k}">${esc(c.nome)}</button>`).join("")}</div>
+      <p class="peq">${esc(DZ().CENARIOS[dzCen].texto)}</p>
+      <span class="rotulo">Dificuldade</span><div class="chips">${Object.entries(DZ().NIVEIS).map(([k, n]) => `<button class="chip-op" data-acao="dz-nivel" data-id="${k}" aria-pressed="${dzNivel === k}">${n.nome} · ${n.n} avarias · ${n.min} min</button>`).join("")}</div></div>
+      <button class="btn prim bloco" data-acao="dz-novo">Começar desafio</button>
+      ${hist.length ? `<div class="lista">${hist.map(([id, d]) => `<button class="item" data-acao="dz-abrir" data-id="${id}"><div class="ico-caixa">${F.icone("router", 30)}</div><div class="meio"><b>${esc(DZ().CENARIOS[d.cenario].nome)} · ${esc(DZ().NIVEIS[d.nivel].nome)}</b><span class="suave peq">${new Date(d.inicio).toLocaleDateString("pt-PT")} · ${d.fim ? "terminado" : "em curso"}</span></div>${d.fim ? `<span class="chip ${d.nota >= 10 ? "ok" : "bad"} tab-num">${String(d.nota).replace(".", ",")}</span>` : '<span class="chip acc">continuar</span>'}</button>`).join("")}</div>` : ""}</div>`;
+  }
+  function telaDesafio() {
+    const d = P().desafios[rota.desafio]; if (!d) return "<p>Desafio não encontrado.</p>";
+    const C = DZ().CENARIOS[d.cenario];
+    return `<div class="cartao dz-painel" id="dz-painel"><div class="linha entre"><div><span class="rotulo">${esc(C.nome)} · ${esc(DZ().NIVEIS[d.nivel].nome)}</span><h1 class="dz-h">Desafio de avarias</h1></div><span class="dz-relogio tab-num" id="dz-relogio">--:--</span></div>
+      <div id="dz-corpo"></div></div><div id="sim-raiz"></div>`;
+  }
+  function pintarDesafio(d, rede) {
+    const corpo = $("#dz-corpo"); if (!corpo) return;
+    const av = DZ().avaliar(rede, d, d.fim || Date.now());
+    if (d.fim) {
+      corpo.innerHTML = `<div class="dz-nota"><span class="tab-num">${String(d.nota).replace(".", ",")}</span><small>/ 20</small></div><p class="peq">Avarias corrigidas: <b>${av.feitas} de ${av.total}</b> · tempo: ${mmss(av.gasto)} · comandos de diagnóstico: ${d.diag || 0}</p>
+        <ol class="dz-lista">${av.lista.map((x) => `<li class="${x.ok ? "ok" : "falta"}"><b>${x.ok ? "✓" : "✗"} ${esc(x.queixa)}</b><span class="peq">${esc(x.solucao)}</span></li>`).join("")}</ol>
+        <div class="grelha-2"><button class="btn" data-acao="ir" data-tela="sims">Voltar ao simulador</button><button class="btn prim" data-acao="dz-novo">Novo desafio</button></div>`;
+      return;
+    }
+    corpo.innerHTML = `<p class="peq suave">${esc(C(d).texto)} Queixas dos utilizadores:</p>
+      <ol class="dz-lista">${av.lista.map((x) => `<li class="${x.ok ? "ok" : ""}"><b>${x.ok ? "✓ " : ""}${esc(x.queixa)}</b>${x.ok ? '<span class="peq">Resolvido!</span>' : ""}</li>`).join("")}</ol>
+      <div class="barra"><i style="width:${(av.feitas / av.total) * 100}%"></i></div>
+      <p class="peq suave">Dica: verifique antes de mudar (show running-config, show ip interface brief, ipconfig, ping). Os comandos de diagnóstico contam para a nota.</p>
+      <button class="btn bloco" data-acao="dz-terminar">${av.feitas === av.total ? "Entregar e ver a nota" : "Desistir e ver a nota"}</button>`;
+    if (av.feitas === av.total) terminarDesafio(d, rede);
+  }
+  const C = (d) => DZ().CENARIOS[d.cenario];
+  let dzRede = null;
+  function terminarDesafio(d, rede) {
+    if (d.fim) return;
+    d.fim = Date.now(); d.nota = DZ().avaliar(rede, d, d.fim).nota; guardar();
+    ganharXP(Math.round(d.nota * 4), "desafio de avarias");
+    pintarDesafio(d, rede);
+    const p = $("#dz-painel"); if (p) p.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+  function posDesafio() {
+    const id = rota.desafio, d = P().desafios[id]; if (!d) return;
+    simLeitor = window.SimUI.montar($("#sim-raiz"), {
+      atividade: null, estado: d.estado || d.rede,
+      aoGuardar: (e) => { d.estado = e; guardar(); if (simLeitor) pintarDesafio(d, simLeitor.rede()); },
+      aoComando: (linha) => { if (!d.fim && DZ().ehDiagnostico(linha)) { d.diag = (d.diag || 0) + 1; guardar(); } },
+    });
+    dzRede = simLeitor.rede;
+    const tic = () => {
+      const r = $("#dz-relogio"); if (!r) return;
+      const resta = d.limite - Math.round(((d.fim || Date.now()) - d.inicio) / 1000);
+      r.textContent = d.fim ? "terminado" : mmss(resta); r.classList.toggle("pouco", !d.fim && resta < 120);
+      if (!d.fim && resta <= 0) terminarDesafio(d, simLeitor.rede());
+    };
+    pintarDesafio(d, simLeitor.rede()); tic();
+    const t = setInterval(tic, 1000);
+    limpar = () => { clearInterval(t); if (simLeitor) simLeitor.parar(); simLeitor = null; };
+  }
+
+  // ------------------------------------------------------------ atividades criadas pelo professor
+  let profMsg = "";
+  function htmlProfessor() {
+    if (!DZ()) return "";
+    const minhas = Object.entries(P().profAtiv || {}).sort((a, b) => b[1].criado - a[1].criado);
+    const imp = Object.entries(P().profImport || {}).sort((a, b) => b[1].importado - a[1].importado);
+    return `<div class="cartao"><h2>Atividades do professor</h2><p class="peq suave">O professor monta a rede inicial e a solução; a app propõe o que conta para a nota. Partilha um código e os alunos importam-no aqui. A percentagem atualiza-se enquanto trabalham.</p>
+      ${imp.length ? `<div class="lista">${imp.map(([id, x]) => { const st = P().sims["prof:" + id] || {}, t = x.ativ.passos.length, n = st.feito ? t : st.passos || 0; return `<button class="item" data-acao="prof-fazer" data-id="${id}"><div class="ico-caixa">${F.icone("pc", 30)}</div><div class="meio"><b>${esc(x.ativ.titulo)}</b><span class="suave peq">${t} critérios · ${esc((x.ativ.cenario || "").slice(0, 90))}</span><div class="barra"><i style="width:${t ? (n / t) * 100 : 0}%"></i></div></div><span class="chip ${st.feito ? "ok" : "acc"} tab-num">${t ? Math.round((n / t) * 100) : 0}%</span></button>`; }).join("")}</div>` : ""}
+      <details><summary class="peq">Importar uma atividade (código do professor)</summary><div class="secao"><textarea class="campo mono" id="prof-import" rows="3" placeholder="Cole aqui o código da atividade"></textarea>
+        <div class="grelha-2"><button class="btn" data-acao="prof-importar">Importar código</button><label class="btn">Abrir ficheiro<input type="file" accept=".json,application/json" id="prof-ficheiro" hidden></label></div>${profMsg ? `<p class="peq">${esc(profMsg)}</p>` : ""}</div></details>
+      <details ${minhas.length ? "open" : ""}><summary class="peq"><b>Sou professor: criar uma atividade</b></summary><div class="secao">
+        <form data-form="prof-nova" class="secao"><input class="campo" id="prof-titulo" maxlength="80" placeholder="Título (ex.: VLANs na escola)" aria-label="Título da atividade"><textarea class="campo" id="prof-instr" rows="3" maxlength="800" placeholder="Instruções para os alunos" aria-label="Instruções"></textarea><button class="btn prim">Criar atividade</button></form>
+        ${minhas.length ? `<div class="lista">${minhas.map(([id, x]) => `<button class="item" data-acao="prof-editar" data-id="${id}"><div class="ico-caixa">${F.icone("servidor", 30)}</div><div class="meio"><b>${esc(x.titulo)}</b><span class="suave peq">${x.inicial ? x.inicial.devs.length + " equipamentos" : "sem rede"} · ${(x.passos || []).length} critérios</span></div></button>`).join("")}</div>` : ""}</div></details></div>`;
+  }
+  TELAS.prof = function () {
+    const x = P().profAtiv[rota.id]; if (!x) return "<p>Atividade não encontrada.</p>";
+    const cand = x.inicial && x.solucao ? DZ().candidatos(x.inicial, x.solucao) : [];
+    x.passos = (x.passos || []).filter((p) => cand.some((c) => JSON.stringify(c.check) === JSON.stringify(p.check)));
+    const marcado = (c) => x.passos.some((p) => JSON.stringify(p.check) === JSON.stringify(c.check));
+    const grupos = [...new Set(cand.map((c) => c.grupo))];
+    const codigo = x.passos.length && x.inicial ? DZ().codificar({ tipo: "ccna-atividade", id: rota.id, titulo: x.titulo, instrucoes: x.instrucoes, inicial: x.inicial, passos: x.passos }) : "";
+    return `<div class="secao"><span class="rotulo">Atividade do professor</span><h1>${esc(x.titulo)}</h1><p class="peq suave">${esc(x.instrucoes || "")}</p></div>
+      <ol class="prof-passos">
+        <li class="${x.inicial ? "feito" : "atual"}"><b>Rede inicial</b><span class="peq suave">${x.inicial ? x.inicial.devs.length + " equipamentos, " + x.inicial.links.length + " cabos" : "O que os alunos recebem ao abrir."}</span><button class="btn" data-acao="prof-montar" data-id="inicial">${x.inicial ? "Editar a rede inicial" : "Montar a rede inicial"}</button></li>
+        <li class="${x.solucao ? "feito" : x.inicial ? "atual" : ""}"><b>Solução</b><span class="peq suave">${x.solucao ? "Configurada." + (x.solucaoVelha ? " (A rede inicial mudou depois: confira a solução.)" : "") : "Parte de uma cópia da rede inicial: configure tudo como deve ficar."}</span><button class="btn" data-acao="prof-montar" data-id="solucao" ${x.inicial ? "" : "disabled"}>${x.solucao ? "Editar a solução" : "Montar a solução"}</button></li>
+        <li class="${x.passos.length ? "feito" : x.solucao ? "atual" : ""}"><b>O que conta para a nota</b>${cand.length ? grupos.map((g) => `<fieldset class="prof-grupo"><legend class="rotulo">${esc(g)}</legend>${cand.filter((c) => c.grupo === g).map((c) => { const k = cand.indexOf(c); return `<label class="linha"><input type="checkbox" data-prof-crit="${k}" ${marcado(c) ? "checked" : ""}> ${esc(c.texto)}</label>`; }).join("")}</fieldset>`).join("") : '<span class="peq suave">Aparece depois de montar a solução (a app compara as duas redes).</span>'}</li>
+        <li class="${codigo ? "atual" : ""}"><b>Partilhar com os alunos</b>${codigo ? `<span class="peq suave">${x.passos.length} critérios · cada um vale ${String(Math.round(2000 / x.passos.length) / 100).replace(".", ",")} valores em 20.</span><textarea class="campo mono" rows="3" readonly id="prof-codigo">${esc(codigo)}</textarea><div class="grelha-2"><button class="btn prim" data-acao="prof-copiar">Copiar código</button><button class="btn" data-acao="prof-baixar">Guardar ficheiro</button></div><button class="btn" data-acao="prof-testar">Experimentar como aluno</button>` : '<span class="peq suave">Escolha pelo menos um critério.</span>'}</li>
+      </ol>
+      <button class="btn bloco" data-acao="prof-apagar">${rota.apagar ? "Confirmar: apagar esta atividade" : "Apagar atividade"}</button>`;
+  };
+  function importarAtividade(txt) {
+    try {
+      let j; try { j = JSON.parse(txt); } catch (e) { j = DZ().descodificar(txt); }
+      if (!j || j.tipo !== "ccna-atividade" || !j.inicial || !Array.isArray(j.passos)) throw new Error("formato");
+      const id = "pi" + (j.id || Date.now().toString(36));
+      P().profImport[id] = { ativ: DZ().atividadeDe({ id, titulo: j.titulo, instrucoes: j.instrucoes, inicial: j.inicial, passos: j.passos }), importado: Date.now() };
+      guardar(); profMsg = "Atividade importada: " + j.titulo; toast("Atividade importada");
+    } catch (e) { profMsg = "Não foi possível importar: o código está incompleto ou não é de uma atividade."; }
+    render();
+  }
+  document.addEventListener("change", (e) => {
+    const c = e.target.closest && e.target.closest("[data-prof-crit]");
+    if (c && rota.tela === "prof") {
+      const x = P().profAtiv[rota.id], cand = DZ().candidatos(x.inicial, x.solucao), it = cand[+c.dataset.profCrit];
+      x.passos = (x.passos || []).filter((p) => JSON.stringify(p.check) !== JSON.stringify(it.check));
+      if (c.checked) x.passos.push({ texto: it.texto, check: it.check });
+      x.passos.sort((a, b) => cand.findIndex((k) => JSON.stringify(k.check) === JSON.stringify(a.check)) - cand.findIndex((k) => JSON.stringify(k.check) === JSON.stringify(b.check)));
+      guardar(); const y = window.scrollY; render(); window.scrollTo(0, y); return;
+    }
+    if (e.target.id === "prof-ficheiro" && e.target.files[0]) { const fr = new FileReader(); fr.onload = () => importarAtividade(String(fr.result)); fr.readAsText(e.target.files[0]); }
+  });
+
   let simLeitor = null;
   TELAS.sim = function () {
+    if (rota.desafio) return telaDesafio();
+    if (rota.profEd) { const x = P().profAtiv[rota.profEd]; return `<div class="secao"><span class="rotulo">Atividade do professor · ${rota.fase === "inicial" ? "passo 1: rede inicial" : "passo 2: solução"}</span><h1>${esc(x ? x.titulo : "")}</h1><p class="peq suave">${rota.fase === "inicial" ? "Monte a rede que os alunos vão receber (pode deixar coisas por configurar). Fica guardada sozinha." : "Agora configure tudo como deve ficar no fim. A app compara com a rede inicial e propõe o que conta para a nota."}</p><button class="btn prim" data-acao="prof-voltar" data-id="${esc(rota.profEd)}">Concluir este passo</button></div><div id="sim-raiz"></div>`; }
+    if (rota.profAt) { const x = P().profImport[rota.profAt]; return `<div class="secao"><span class="rotulo">Atividade do professor</span><h1>${esc(x ? x.ativ.titulo : "")}</h1></div><div id="sim-raiz"></div>`; }
     if (rota.proj) { const x = P().projetos[rota.proj]; return `<div class="secao"><span class="rotulo">Projeto · guardado automaticamente</span><h1>${esc(x ? x.nome : "Projeto")}</h1><p class="peq suave" id="proj-guardado">${x ? "Última alteração: " + dataHora(x.alterado) : ""}</p></div><div id="sim-raiz"></div>`; }
     const a = rota.id === "livre" ? null : ativPorId(rota.id);
     return `${a ? `<div class="secao"><span class="rotulo">${esc(mod(a.modulo).codigo)} · prática guiada</span><h1>${esc(a.titulo)}</h1></div>` : '<div class="secao"><h1>Modo livre</h1></div>'}<div id="sim-raiz"></div>`;
   };
   POS.sim = function () {
+    if (rota.desafio) return posDesafio();
+    if (rota.profEd) {
+      const x = P().profAtiv[rota.profEd]; if (!x) return; const fase = rota.fase;
+      if (fase === "solucao" && !x.solucao && x.inicial) x.solucao = JSON.parse(JSON.stringify(x.inicial));
+      simLeitor = window.SimUI.montar($("#sim-raiz"), { atividade: null, estado: x[fase] || null, aoGuardar: (e) => { x[fase] = JSON.parse(JSON.stringify(e)); x.alterado = Date.now(); if (fase === "inicial") x.solucaoVelha = true; guardar(); } });
+      limpar = () => { if (simLeitor) simLeitor.parar(); simLeitor = null; };
+      return;
+    }
+    if (rota.profAt) {
+      const x = P().profImport[rota.profAt]; if (!x) return; const chave = "prof:" + rota.profAt, st = P().sims[chave] || {};
+      simLeitor = window.SimUI.montar($("#sim-raiz"), {
+        atividade: x.ativ, estado: st.estado || null,
+        aoGuardar: (e) => { const r = P().sims[chave] || (P().sims[chave] = {}); r.estado = e; guardar(); },
+        aoProgresso: (n) => { const r = P().sims[chave] || (P().sims[chave] = {}); r.passos = n; guardar(); },
+        aoConcluir: () => { const r = P().sims[chave] || (P().sims[chave] = {}); if (!r.feito) { r.feito = Date.now(); guardar(); ganharXP(40, "atividade do professor"); } },
+      });
+      limpar = () => { if (simLeitor) simLeitor.parar(); simLeitor = null; };
+      return;
+    }
     if (rota.proj) {
       const id = rota.proj, x = P().projetos[id]; if (!x) return;
       simLeitor = window.SimUI.montar($("#sim-raiz"), {
@@ -1495,6 +1650,20 @@
     "ouvir-aula": () => { const a = abrirAssistente(); if (a) a.tocar(); },
     "ouvir-bloco": (el) => { const a = abrirAssistente(); if (a) a.lerBloco(+el.dataset.id); },
     "proj-abrir": (el) => ir("sim", { proj: el.dataset.id }),
+    "dz-cen": (el) => { dzCen = el.dataset.id; const y = window.scrollY; render(); window.scrollTo(0, y); },
+    "dz-nivel": (el) => { dzNivel = el.dataset.id; const y = window.scrollY; render(); window.scrollTo(0, y); },
+    "dz-novo": () => { const d = DZ().criar(dzCen, dzNivel); P().desafios[d.id] = d; guardar(); ir("sim", { desafio: d.id }); },
+    "dz-abrir": (el) => ir("sim", { desafio: el.dataset.id }),
+    "dz-terminar": () => { const d = P().desafios[rota.desafio]; if (d && simLeitor) terminarDesafio(d, simLeitor.rede()); },
+    "prof-editar": (el) => ir("prof", { id: el.dataset.id }),
+    "prof-montar": (el) => ir("sim", { profEd: rota.id, fase: el.dataset.id }),
+    "prof-voltar": (el) => { const x = P().profAtiv[el.dataset.id]; if (x && rota.fase === "solucao") x.solucaoVelha = false; guardar(); voltar(); },
+    "prof-copiar": () => { const t = $("#prof-codigo"); if (t) copiar(t.value, t); },
+    "prof-baixar": () => { const x = P().profAtiv[rota.id], t = $("#prof-codigo"); if (!t) return; try { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(DZ().descodificar(t.value))], { type: "application/json" })); a.download = "atividade-" + x.titulo.replace(/[^\w\- ]+/g, "_") + ".json"; document.body.appendChild(a); a.click(); a.remove(); } catch (e) { /* sem transferências */ } },
+    "prof-testar": () => { const t = $("#prof-codigo"); if (t) { importarAtividade(t.value); const id = Object.keys(P().profImport).sort((a, b) => P().profImport[b].importado - P().profImport[a].importado)[0]; delete P().sims["prof:" + id]; ir("sim", { profAt: id }); } },
+    "prof-apagar": () => { if (!rota.apagar) { rota.apagar = true; render(); return; } delete P().profAtiv[rota.id]; guardar(); voltar(); toast("Atividade apagada"); },
+    "prof-importar": () => importarAtividade(($("#prof-import") || {}).value || ""),
+    "prof-fazer": (el) => ir("sim", { profAt: el.dataset.id }),
     exercicios: (el) => { if (!sessao || sessao.tipo !== "exercicios" || sessao.origem !== el.dataset.id) sessao = null; ir("exercicios", { lid: el.dataset.id }); },
     "mais-exercicios": () => { const l = LICOES[rota.lid]; const novos = gerarEx(l, 10, sessao.vistos).map(prepararPergunta); sessao.perguntas = sessao.perguntas.concat(novos); sessao.fim = false; sessao.lote++; render(); window.scrollTo(0, 0); },
     protocolo: (el) => ir("protocolo", { id: el.dataset.id }),
@@ -1658,6 +1827,7 @@
       render();
     }
     if (f === "cad") { const n = +e.target.dataset.n, v = $("#cad-" + n).value; if (!v.trim()) return; respostaCaderno(n, v); return; }
+    if (f === "prof-nova") { const t = $("#prof-titulo").value.trim(); if (!t) return toast("Escreva o título da atividade"); const id = "pa" + Date.now().toString(36); P().profAtiv[id] = { titulo: t.slice(0, 80), instrucoes: $("#prof-instr").value.trim().slice(0, 800), criado: Date.now(), inicial: null, solucao: null, passos: [] }; guardar(); ir("prof", { id }); return; }
     if (f === "novo-projeto") { const v = $("#proj-nome").value.trim() || "Projeto " + (Object.keys(P().projetos).length + 1); const id = novoProjeto(v); ir("sim", { proj: id }); return; }
     if (f === "nome") { const v = $("#nome-perfil").value.trim(); if (v) { P().nome = v; guardar(); render(); toast("Nome guardado"); } }
     if (f === "novo-perfil") { const v = $("#novo-nome").value.trim(); if (!v) return; const p = novoPerfil(v); S.perfis[p.id] = p; S.ativo = p.id; guardar(); render(); toast("Perfil criado: " + v); }

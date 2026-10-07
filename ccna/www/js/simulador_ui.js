@@ -19,6 +19,12 @@
     ["Configurar routers e switches", "Toque no equipamento › separador <b>CLI</b>. Escreva os comandos Cisco como no equipamento real: <code>enable</code>, <code>configure terminal</code>… Use <code>?</code> para ajuda e Tab para completar."],
     ["Configurar PCs e servidores", "Toque no PC › <b>Configuração IP</b>: escolha Estático (IP, máscara, gateway, DNS) ou DHCP. No servidor há também o separador <b>Serviços</b> (DHCP e DNS)."],
     ["Testar", "No PC › <b>Prompt</b>: <code>ping 192.168.1.1</code>, <code>tracert</code>, <code>ipconfig /all</code>, <code>ipconfig /renew</code>, <code>nslookup</code>. Veja o pacote a andar pelos cabos: verde chegou, vermelho falhou (e o motivo aparece no fim)."],
+    ["Desfazer, zoom e deslocar", "<b>↶</b> desfaz e <b>↷</b> refaz (até 50 passos; no computador Ctrl+Z e Ctrl+Y). Afaste ou aproxime com dois dedos, com a roda do rato ou com <b>+</b> / <b>−</b>; arraste no vazio para deslocar o desenho. <b>Ajustar</b> mostra tudo."],
+    ["Duplicar", "Com um equipamento aberto, toque em <b>Duplicar</b> (ou Ctrl+C e Ctrl+V): cria uma cópia com a mesma configuração, sem cabos. Num PC com IP estático o IP fica em branco para não repetir."],
+    ["Colar configuração", "No separador <b>CLI</b> de routers e switches, <b>Colar configuração</b> executa vários comandos de uma vez, um por linha, como no PuTTY. As linhas com erro ficam a vermelho."],
+    ["Áreas e notas", "Em <b>Mais</b>: <b>Área</b> desenha um retângulo com nome (Edifício A, Sala de servidores…); arraste-a pelo nome e mude o tamanho pelo canto. <b>Nota</b> põe um texto no desenho. Toque numa área ou nota para editar, mudar a cor ou apagar."],
+    ["Vista física", "<b>Física</b> mostra a rede por locais: cada área é um edifício ou sala, com os routers e switches num bastidor e os PCs em secretárias. Os cabos mostram o comprimento estimado; um cabo de cobre com mais de 100 m fica a vermelho."],
+    ["Imagem e relatório", "Em <b>Mais</b>: <b>Imagem</b> guarda a topologia em PNG; <b>Relatório</b> lista todos os equipamentos com interfaces, IP, VLANs, rotas e running-config, e pode ser baixado em .txt."],
     ["Apagar e recomeçar", "Ferramenta <b>Apagar</b> e toque no equipamento ou no cabo. <b>Reiniciar</b> volta ao início da atividade."],
   ];
 
@@ -28,9 +34,45 @@
     W = larg < 600 ? 620 : 1000; H = larg < 600 ? 720 : 620;
     let rede = op.estado ? S.Rede.importar(op.estado) : (A ? S.Rede.deAtividade(A) : new S.Rede());
     let modo = "mover", cabo = "auto", sel = null, caboA = null, menu = null, aba = null, feito = false, categoria = 0;
+    let vista = "logica", copiado = null; // vista lógica ou física; equipamento copiado (Ctrl+C)
+    const vb = { x: 0, y: 0, w: W, h: H }; // zoom e deslocação: viewBox da vista lógica
     const logs = {}, hist = {}, hIdx = {};
     let tGuardar = null;
-    rede.aoMudar = () => { clearTimeout(tGuardar); tGuardar = setTimeout(() => op.aoGuardar && op.aoGuardar(rede.exportar()), 300); };
+    const guardarDepois = () => { clearTimeout(tGuardar); tGuardar = setTimeout(() => op.aoGuardar && op.aoGuardar(rede.exportar()), 300); };
+
+    // ------------------------------------------------------------ desfazer / refazer (fotografias da rede em JSON)
+    const desf = [], refz = [];
+    let tFoto = null, ultimo = null;
+    const foto = () => JSON.stringify(rede.exportar());
+    function registar() {
+      clearTimeout(tFoto); tFoto = null;
+      const s = foto(); if (s === ultimo) return;
+      if (ultimo != null) { desf.push(ultimo); if (desf.length > 50) desf.shift(); }
+      refz.length = 0; ultimo = s; botoesHist();
+    }
+    function ligarRede() { rede.aoMudar = () => { guardarDepois(); if (!tFoto) tFoto = setTimeout(registar, 0); }; }
+    function restaurar(s) {
+      // o modo do terminal (enable, conf t…) não vai na fotografia: mantém-se
+      const modos = {}; rede.devs.forEach((d) => { if (d.eq) modos[d.id] = { modo: d.eq.modo, ctx: d.eq.ctx, executados: d.eq.executados }; });
+      rede = S.Rede.importar(JSON.parse(s)); ligarRede();
+      rede.devs.forEach((d) => { if (d.eq && modos[d.id]) Object.assign(d.eq, modos[d.id]); });
+      ultimo = foto(); caboA = null; guardarDepois();
+      const d = sel && rede.dev(sel);
+      if (d) abrirInsp(d); else fecharInsp();
+      atualizar(); botoesHist();
+    }
+    function historia(dir) {
+      if (tFoto) registar();
+      const de = dir < 0 ? desf : refz, para = dir < 0 ? refz : desf;
+      if (!de.length) { msg(dir < 0 ? "Nada para desfazer." : "Nada para refazer."); return; }
+      para.push(ultimo); restaurar(de.pop());
+      msg(dir < 0 ? "Desfeito. <b>↷</b> volta a fazer." : "Refeito.");
+    }
+    function botoesHist() {
+      const a = raiz.querySelector('[data-s="desfazer"]'), b = raiz.querySelector('[data-s="refazer"]');
+      if (a) a.disabled = !desf.length && !tFoto; if (b) b.disabled = !refz.length;
+    }
+    ligarRede(); ultimo = foto();
 
     raiz.innerHTML = `<div class="sim">
       ${A ? `<div class="cartao sim-passos"><div class="linha entre"><span class="rotulo">Atividade · <span id="sim-prog"></span></span><button class="btn-copiar sim-btn-link" data-s="reiniciar">Reiniciar</button></div>
@@ -40,10 +82,14 @@
         <button data-s="add">+ Equipamento</button>
         <button data-s="cabo">Cabo</button>
         <button data-s="apagar">Apagar</button>
+        <span class="sim-grupo"><button data-s="desfazer" aria-label="Desfazer" title="Desfazer (Ctrl+Z)" disabled>↶</button><button data-s="refazer" aria-label="Refazer" title="Refazer (Ctrl+Y)" disabled>↷</button></span>
+        <span class="sim-grupo sim-seg" role="group" aria-label="Vista"><button data-s="logica" aria-pressed="true">Lógica</button><button data-s="fisica" aria-pressed="false">Física</button></span>
+        <button data-s="mais" aria-pressed="false">Mais ▾</button>
         <button data-s="ajuda" aria-label="Como usar">?</button>
       </div>
       <div class="sim-opcoes" id="sim-opcoes" hidden></div>
       <div class="sim-palco"><svg id="sim-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Área de trabalho da rede"></svg>
+        <div class="sim-zoom" id="sim-zoom"><button data-z="mais" aria-label="Aproximar">+</button><button data-z="menos" aria-label="Afastar">−</button><button data-z="ajustar">Ajustar</button></div>
         <div class="sim-msg" id="sim-msg" role="status">${A ? "Comece pelo primeiro passo. Toque em ? para ver como usar." : "Modo livre: monte a rede que quiser."}</div></div>
       <div class="sim-inspetor" id="sim-insp" hidden></div>
       <div class="sim-modal" id="sim-modal" hidden></div>
@@ -54,8 +100,35 @@
 
     // ------------------------------------------------------------ desenho
     const pos = (d) => ({ x: d.x / 100 * W, y: d.y / 100 * H });
-    function desenhar() {
+    // Notas: quebra o texto em linhas que caibam na largura
+    function linhasNota(n) {
+      const max = Math.max(8, Math.floor((n.w / 100 * W - 24) / 8.6)), out = [];
+      String(n.texto || "").split("\n").forEach((p) => {
+        let l = "";
+        p.split(/\s+/).forEach((w) => { while (w.length > max) { if (l) { out.push(l); l = ""; } out.push(w.slice(0, max)); w = w.slice(max); } if ((l + " " + w).trim().length > max) { out.push(l); l = w; } else l = (l ? l + " " : "") + w; });
+        out.push(l);
+      });
+      return out.slice(0, 14);
+    }
+    function desenharAreas() {
       let s = "";
+      rede.areas.forEach((a) => {
+        const x = a.x / 100 * W, y = a.y / 100 * H, w = a.w / 100 * W, h = a.h / 100 * H, lw = Math.min(w, String(a.nome).length * 9.5 + 26);
+        s += `<g data-area="${a.id}" class="sim-area"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="14" class="sim-area-corpo" fill="${a.cor}" stroke="${a.cor}"/>
+          <g class="sim-pega"><rect x="${x - 6}" y="${y - 6}" width="${lw + 12}" height="44" fill="transparent"/><rect x="${x}" y="${y}" width="${lw}" height="30" rx="8" fill="${a.cor}"/><text x="${x + 12}" y="${y + 21}" class="sim-area-txt">${esc(a.nome)}</text></g>
+          <g class="sim-redim" data-redim data-so-ecra><circle cx="${x + w - 12}" cy="${y + h - 12}" r="26" fill="transparent"/><path d="M${x + w - 6} ${y + h - 26} V${y + h - 6} H${x + w - 26} Z" fill="${a.cor}"/></g></g>`;
+      });
+      rede.notas.forEach((n) => {
+        const x = n.x / 100 * W, y = n.y / 100 * H, w = n.w / 100 * W, ls = linhasNota(n), h = 20 + ls.length * 21;
+        s += `<g data-nota="${n.id}" class="sim-nota"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${n.cor}" class="sim-nota-corpo"/>
+          <text x="${x + 12}" y="${y + 8}" class="sim-nota-txt">${ls.map((l) => `<tspan x="${x + 12}" dy="21">${esc(l) || " "}</tspan>`).join("")}</text>
+          <g class="sim-redim" data-redim data-so-ecra><circle cx="${x + w - 8}" cy="${y + h - 8}" r="22" fill="transparent"/><path d="M${x + w - 4} ${y + h - 18} V${y + h - 4} H${x + w - 18} Z" fill="rgba(0,0,0,.28)"/></g></g>`;
+      });
+      return s;
+    }
+    function desenhar() {
+      if (vista === "fisica") return desenharFisica();
+      let s = desenharAreas();
       rede.links.forEach((l) => {
         const a = pos(rede.dev(l.a)), b = pos(rede.dev(l.b)), est = rede.estadoLink(l), C = S.CABOS[l.cabo];
         s += `<g data-link="${l.id}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="transparent" stroke-width="22"/>
@@ -87,7 +160,7 @@
     }
 
     function animar(devs, ok) {
-      if (!devs || devs.length < 2 || reduzido()) return;
+      if (!devs || devs.length < 2 || reduzido() || vista === "fisica") return;
       const pts = devs.map((id) => rede.dev(id)).filter(Boolean).map(pos);
       const bola = svg.querySelector("#sim-pacote"); if (!bola) return;
       bola.setAttribute("class", "sim-pacote" + (ok ? " ok" : " falha"));
@@ -100,6 +173,94 @@
         requestAnimationFrame(passo);
       };
       requestAnimationFrame(passo);
+    }
+
+    // ------------------------------------------------------------ vista física: locais, bastidores e secretárias
+    const NO_BASTIDOR = ["router", "asa", "switch_l3", "switch", "wlc", "hub", "repetidor", "bridge", "modem_dsl", "modem_cabo", "servidor"];
+    const COBRE = ["direto", "cruzado"];
+    // comprimento estimado: 1 % do desenho = 1 m (mais 1 m de folga)
+    const metros = (l) => { const a = rede.dev(l.a), b = rede.dev(l.b); return Math.max(1, Math.round(Math.hypot(a.x - b.x, (a.y - b.y) * H / W)) + 1); };
+    const longoDemais = (l) => COBRE.includes(l.cabo) && metros(l) > 100;
+    const corta = (t, n) => (t.length > n ? t.slice(0, n - 1) + "…" : t);
+    const AVISO_100 = "acima de 100 m: use fibra ou um switch intermédio";
+    function localDe(d) { let r = null; rede.areas.forEach((a) => { if (d.x >= a.x && d.x <= a.x + a.w && d.y >= a.y && d.y <= a.y + a.h && (!r || a.w * a.h < r.w * r.h)) r = a; }); return r; }
+    function locais() {
+      const ls = rede.areas.map((a) => ({ a, nome: a.nome, cor: a.cor, devs: [] })), sem = { a: null, nome: "Sem local", cor: "#7a8796", devs: [] };
+      rede.devs.forEach((d) => { const a = localDe(d); (a ? ls.find((x) => x.a === a) : sem).devs.push(d); });
+      if (sem.devs.length) ls.push(sem);
+      return ls;
+    }
+    function desenharFisica() {
+      // no telemóvel o desenho é mais estreito para o texto ficar legível
+      const WF = W < 800 ? 470 : W, cols = WF >= 900 ? 2 : 1, M = 16, G = 20, pw = (WF - 2 * M - (cols - 1) * G) / cols, RW = WF < 800 ? 172 : 200, U = 32, CEL = WF < 800 ? 108 : 124, FILA = 136;
+      const ancora = {}, uAlt = (d) => d.tipo === "servidor" ? 2 : 1;
+      let fundo = "", cabos = "", devs = "", rot = "", y = M;
+      const ls = locais().map((L) => {
+        const rack = L.devs.filter((d) => NO_BASTIDOR.includes(d.tipo)).sort((a, b) => NO_BASTIDOR.indexOf(a.tipo) - NO_BASTIDOR.indexOf(b.tipo));
+        const mesas = L.devs.filter((d) => !NO_BASTIDOR.includes(d.tipo));
+        const rackH = rack.length ? 48 + (rack.reduce((t, d) => t + uAlt(d), 0) + 1) * U : 0, mx = rack.length ? RW + 28 : 0;
+        const porLinha = Math.max(1, Math.floor((pw - 32 - mx) / CEL)), filas = Math.ceil(mesas.length / porLinha);
+        return Object.assign(L, { rack, mesas, rackH, mx, porLinha, h: 60 + Math.max(rackH, filas * FILA, 50) + 14 });
+      });
+      for (let i = 0; i < ls.length; i += cols) {
+        const linha = ls.slice(i, i + cols), alt = Math.max(...linha.map((L) => L.h));
+        linha.forEach((L, k) => {
+          const x = M + k * (pw + G), sem = !L.a;
+          fundo += `<g class="sim-local"><rect x="${x}" y="${y}" width="${pw}" height="${alt}" rx="16" class="sim-local-corpo${sem ? " sem" : ""}" stroke="${L.cor}"/>
+            <path d="M${x + 16} ${y + 34} v-12 l10 -8 l10 8 v12 z" fill="${L.cor}"/><text x="${x + 44}" y="${y + 33}" class="sim-local-txt">${esc(corta(L.nome, Math.floor((pw - 130) / 10.5)))}</text>
+            <text x="${x + pw - 16}" y="${y + 33}" class="sim-local-info">${L.devs.length} equip.</text>`;
+          const top = y + 52;
+          if (L.rack.length) {
+            const rx = x + 16;
+            fundo += `<rect x="${rx}" y="${top}" width="${RW}" height="${L.rackH}" rx="8" class="sim-rack"/><rect x="${rx + 10}" y="${top + 20}" width="9" height="${L.rackH - 40}" class="sim-rack-calha"/><rect x="${rx + RW - 19}" y="${top + 20}" width="9" height="${L.rackH - 40}" class="sim-rack-calha"/>
+              <text x="${rx + RW / 2}" y="${top + 15}" class="sim-rack-txt">Bastidor 19"</text>`;
+            let u = 0;
+            L.rack.forEach((d) => {
+              const uy = top + 24 + u * U, uh = uAlt(d) * U - 4, ativo = rede.linksDe(d).some((l) => l.cabo === "wifi" || rede.linkUp(l));
+              devs += `<g data-dev="${d.id}" class="sim-dev sim-unid ${sel === d.id ? "sel" : ""}"><rect x="${rx + 22}" y="${uy}" width="${RW - 44}" height="${uh}" rx="3" class="sim-unid-corpo"/>
+                <g transform="translate(${rx + 26},${uy + uh / 2 - 11})"><svg width="22" height="22" viewBox="0 0 64 64">${F.ICONES[S.TIPOS[d.tipo].icone]}</svg></g>
+                <text x="${rx + 52}" y="${uy + uh / 2 + 5}" class="sim-unid-txt">${esc(corta(d.nome + (d.modelo ? " · " + d.modelo : ""), RW < 200 ? 14 : 17))}</text><title>${esc(d.nome)}</title>
+                <circle cx="${rx + RW - 32}" cy="${uy + uh / 2}" r="4" class="${ativo ? "sim-led-on" : "sim-led-off"}"/></g>`;
+              ancora[d.id] = { x: rx + RW - 22, y: uy + uh / 2, dx: 1, dy: 0 }; u += uAlt(d);
+            });
+          }
+          L.mesas.forEach((d, j) => {
+            const cx = x + 16 + L.mx + (j % L.porLinha) * CEL + CEL / 2, my = top + Math.floor(j / L.porLinha) * FILA;
+            fundo += `<rect x="${cx - 48}" y="${my + 78}" width="96" height="9" rx="2" class="sim-mesa"/><rect x="${cx - 42}" y="${my + 87}" width="6" height="26" class="sim-mesa"/><rect x="${cx + 36}" y="${my + 87}" width="6" height="26" class="sim-mesa"/>`;
+            devs += `<g data-dev="${d.id}" class="sim-dev ${sel === d.id ? "sel" : ""}"><rect x="${cx - 44}" y="${my}" width="88" height="80" rx="10" class="sim-halo"/>
+              <text x="${cx}" y="${my + 15}" class="sim-nome-p">${esc(corta(d.nome, 12))}</text><title>${esc(d.nome)}</title><g transform="translate(${cx - 30},${my + 18})"><svg width="60" height="60" viewBox="0 0 64 64">${F.ICONES[S.TIPOS[d.tipo].icone]}</svg></g></g>`;
+            ancora[d.id] = { x: cx + 12, y: my + 74, dx: 0, dy: 1 }; // o cabo chega por baixo da secretária
+          });
+          if (!L.devs.length) fundo += `<text x="${x + pw / 2}" y="${top + 34}" class="sim-local-info meio">Vazio: arraste equipamentos para esta área.</text>`;
+        });
+        y += alt + G;
+      }
+      const avisos = [];
+      rede.links.forEach((l) => {
+        const a = ancora[l.a], b = ancora[l.b]; if (!a || !b) return;
+        const C = S.CABOS[l.cabo] || S.CABOS.direto, k = Math.max(60, Math.hypot(b.x - a.x, b.y - a.y) / 3);
+        const c1 = { x: a.x + a.dx * k, y: a.y + a.dy * k }, c2 = { x: b.x + b.dx * k, y: b.y + b.dy * k };
+        cabos += `<path d="M${a.x} ${a.y} C${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}" class="sim-cabo-f" stroke="${C.cor}" ${C.tracejado || l.cabo === "consola" ? 'stroke-dasharray="9 6"' : ""}/>`;
+        const m = metros(l), longo = longoDemais(l), px = (a.x + 3 * c1.x + 3 * c2.x + b.x) / 8, py = (a.y + 3 * c1.y + 3 * c2.y + b.y) / 8;
+        const tx = `${m} m${longo ? " ⚠" : ""}`, tw = tx.length * 7.6 + 12;
+        rot += `<g class="sim-metros${longo ? " longo" : ""}"><rect x="${px - tw / 2}" y="${py - 10}" width="${tw}" height="20" rx="10" stroke="${C.cor}"/><text x="${px}" y="${py + 4.5}">${tx}</text></g>`;
+        if (longo) avisos.push(`${rede.dev(l.a).nome} ↔ ${rede.dev(l.b).nome}: ${m} m de cobre — ${AVISO_100}`);
+      });
+      rede.wifi().links.forEach((l) => { const a = ancora[l.a], b = ancora[l.b]; if (a && b) cabos += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="sim-wifi"/>`; });
+      if (!rede.devs.length) { rot += `<text x="${WF / 2}" y="${y + 20}" class="sim-local-info meio">Ainda não há equipamentos. Adicione-os e desenhe áreas (Mais › Área).</text>`; y += 50; }
+      avisos.forEach((t) => {
+        const max = Math.floor((WF - 2 * M) / 7.4), ls = []; let l = "";
+        ("⚠ " + t).split(" ").forEach((w) => { if ((l + " " + w).length > max) { ls.push(l); l = w; } else l = l ? l + " " + w : w; }); ls.push(l);
+        ls.forEach((x, i) => { rot += `<text x="${M + (i ? 18 : 0)}" y="${y + 14}" class="sim-aviso">${esc(x)}</text>`; y += 19; }); y += 6;
+      });
+      svg.setAttribute("viewBox", `0 0 ${WF} ${Math.max(y + 10, 200)}`);
+      svg.innerHTML = fundo + cabos + devs + rot;
+      return avisos;
+    }
+    function resumoFisica() {
+      const ls = locais(), tot = rede.links.reduce((t, l) => t + metros(l), 0), longos = rede.links.filter(longoDemais).length;
+      msg(`<b>Vista física</b>: ${ls.length} ${ls.length === 1 ? "local" : "locais"}, ${rede.links.length} cabos, cerca de ${tot} m de cabo (1 % do desenho ≈ 1 m).` +
+        (longos ? ` <b>${longos} cabo(s) de cobre ${AVISO_100}.</b>` : rede.areas.length ? "" : " Desenhe áreas (Mais › Área) para separar edifícios e salas."), longos ? "erro" : "");
     }
 
     // ------------------------------------------------------------ passos da atividade
@@ -127,8 +288,22 @@
           <p class="peq suave sim-desc">${esc(itens.map((x) => x[2] + ": " + x[3]).join(" · "))}</p>`;
       }
       else if (menu === "cabo") { o.hidden = false; o.innerHTML = Object.entries(S.CABOS).map(([k, C]) => `<button data-cabo="${k}" aria-pressed="${cabo === k}"><i style="background:${C.cor};${C.tracejado ? "background-image:repeating-linear-gradient(90deg,transparent 0 4px,var(--surface) 4px 7px)" : ""}"></i><span>${esc(C.nome)}</span></button>`).join(""); }
+      else if (menu === "mais") {
+        o.hidden = false;
+        o.innerHTML = [["area", "▭", "Área", "edifício, sala"], ["nota", "✎", "Nota", "texto no desenho"], ["imagem", "⤓", "Imagem", "guardar PNG"], ["relatorio", "≡", "Relatório", "todos os equipamentos"]]
+          .map(([k, ic, n, d]) => `<button data-s="${k}" ${["area", "nota"].includes(k) ? `aria-pressed="${modo === k}"` : ""}><span class="sim-mais-ic" aria-hidden="true">${ic}</span><b>${n}</b><span class="suave">${d}</span></button>`).join("");
+      }
       else o.hidden = true;
-      raiz.querySelectorAll("[data-s]").forEach((b) => { if (["mover", "cabo", "apagar"].includes(b.dataset.s)) b.setAttribute("aria-pressed", String(modo === b.dataset.s)); if (b.dataset.s === "add") b.setAttribute("aria-pressed", String(menu === "add")); });
+      o.classList.toggle("sim-mais", menu === "mais");
+      raiz.querySelectorAll("[data-s]").forEach((b) => {
+        const k = b.dataset.s;
+        if (["mover", "cabo", "apagar", "area", "nota"].includes(k)) b.setAttribute("aria-pressed", String(modo === k && vista === "logica"));
+        if (k === "add" || k === "mais") b.setAttribute("aria-pressed", String(menu === k));
+        if (k === "logica" || k === "fisica") b.setAttribute("aria-pressed", String(vista === k));
+      });
+      $("#sim-zoom").hidden = vista === "fisica";
+      svg.style.cursor = vista === "logica" && (modo === "area" || modo === "nota") ? "crosshair" : "";
+      botoesHist();
     }
     function lugarLivre() {
       const dx = W < 800 ? 24 : 15, dy = W < 800 ? 17 : 16;
@@ -154,6 +329,7 @@
     }
 
     function tocarDev(d) {
+      if (vista === "fisica") return abrirInsp(d);
       if (modo === "apagar") { rede.apagarDev(d); if (sel === d.id) fecharInsp(); msg(`${esc(d.nome)} apagado.`); atualizar(); return; }
       if (modo === "cabo") {
         if (!caboA) {
@@ -189,24 +365,161 @@
         (e.estado === "errado" ? `<b>Errado</b> — use ${esc(e.certo)}. Apague-o e volte a ligar.` : e.estado === "baixo" ? "Uma das portas está desligada (shutdown)." : e.estado === "consola" ? "Ligação de consola para configurar." : "<b>A funcionar.</b>"), e.estado === "errado" ? "erro" : "");
     }
 
-    // ------------------------------------------------------------ arrastar
+    // ------------------------------------------------------------ zoom e deslocação (muda o viewBox; as posições ficam em % de W×H)
+    function aplicarVB() { if (vista === "logica") svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); }
+    const pSvg = (cx, cy) => { const pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy; return pt.matrixTransform(svg.getScreenCTM().inverse()); };
+    const lim = (v, a, b) => Math.max(a, Math.min(b, v));
+    function limitarVB() { vb.x = lim(vb.x, -vb.w / 2, W - vb.w / 2); vb.y = lim(vb.y, -vb.h / 2, H - vb.h / 2); }
+    function zoomEm(f, cx, cy) {
+      const p = cx == null ? { x: vb.x + vb.w / 2, y: vb.y + vb.h / 2 } : pSvg(cx, cy);
+      const nw = lim(vb.w * f, W / 5, W * 2), k = nw / vb.w;
+      vb.x = p.x - (p.x - vb.x) * k; vb.y = p.y - (p.y - vb.y) * k; vb.w = nw; vb.h = nw * H / W;
+      limitarVB(); aplicarVB();
+    }
+    // retângulo com tudo o que está desenhado (equipamentos, áreas e notas), em unidades do desenho
+    function limites() {
+      const xs = [], ys = [];
+      rede.devs.forEach((d) => { const p = pos(d); xs.push(p.x - 46, p.x + 46); ys.push(p.y - 44, p.y + 90); });
+      rede.areas.forEach((a) => { xs.push(a.x / 100 * W, (a.x + a.w) / 100 * W); ys.push(a.y / 100 * H, (a.y + a.h) / 100 * H); });
+      rede.notas.forEach((n) => { xs.push(n.x / 100 * W, (n.x + n.w) / 100 * W); ys.push(n.y / 100 * H, n.y / 100 * H + 20 + linhasNota(n).length * 21); });
+      if (!xs.length) return null;
+      const x = Math.min(...xs), y = Math.min(...ys);
+      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+    }
+    function ajustar() {
+      const b = limites();
+      if (!b) Object.assign(vb, { x: 0, y: 0, w: W, h: H });
+      else {
+        let w = Math.max(b.w + 60, W / 3), h = Math.max(b.h + 60, H / 3);
+        if (w / h > W / H) h = w * H / W; else w = h * W / H;
+        Object.assign(vb, { x: b.x + b.w / 2 - w / 2, y: b.y + b.h / 2 - h / 2, w, h });
+      }
+      aplicarVB();
+    }
+
+    // ------------------------------------------------------------ arrastar, tocar, pinça
+    const toques = new Map();
     let arr = null;
-    const ponto = (ev) => { const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const p = pt.matrixTransform(svg.getScreenCTM().inverse()); return { x: p.x / W * 100, y: p.y / H * 100 }; };
+    const ponto = (ev) => { const p = pSvg(ev.clientX, ev.clientY); return { x: p.x / W * 100, y: p.y / H * 100 }; };
+    const dentro = (a, o) => o !== a && o.x >= a.x && o.x <= a.x + a.w && o.y >= a.y && o.y <= a.y + a.h;
+    const tirarRasc = () => { const r = svg.querySelector("#sim-rasc"); if (r) r.remove(); };
     svg.addEventListener("pointerdown", (ev) => {
-      const g = ev.target.closest("[data-dev]"); if (!g) return;
-      const d = rede.dev(g.dataset.dev); arr = { d, x0: ev.clientX, y0: ev.clientY, moveu: false, id: ev.pointerId };
-      if (modo === "mover") svg.setPointerCapture(ev.pointerId);
+      toques.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (toques.size === 2 && vista === "logica") { // dois dedos: zoom
+        const [p, q] = [...toques.values()]; tirarRasc();
+        if (arr && arr.moveu && arr.tipo !== "pan") rede.aoMudar();
+        arr = { tipo: "pinca", dist: Math.hypot(p.x - q.x, p.y - q.y), mx: (p.x + q.x) / 2, my: (p.y + q.y) / 2 }; return;
+      }
+      if (toques.size > 1) return;
+      const t = ev.target, base = { x0: ev.clientX, y0: ev.clientY, p0: ponto(ev), moveu: false, alvo: t };
+      const prender = () => { try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* sem captura */ } };
+      if (vista === "fisica") { arr = Object.assign(base, { tipo: "toque" }); return; }
+      if (modo === "area" || modo === "nota") { arr = Object.assign(base, { tipo: modo === "area" ? "desenho" : "toque" }); prender(); return; }
+      const g = t.closest("[data-dev]");
+      if (g) { arr = Object.assign(base, { tipo: "dev", d: rede.dev(g.dataset.dev) }); if (modo === "mover") prender(); return; }
+      const ga = t.closest("[data-area]"), gn = t.closest("[data-nota]");
+      if ((ga && t.closest(".sim-pega, [data-redim]")) || gn) {
+        const o = ga ? rede.areas.find((a) => a.id === ga.dataset.area) : rede.notas.find((n) => n.id === gn.dataset.nota), redim = !!t.closest("[data-redim]");
+        // ao mover uma área, leva também o que está lá dentro
+        const leva = ga && !redim ? [].concat(rede.devs, rede.notas, rede.areas).filter((x) => dentro(o, x)).map((x) => [x, x.x, x.y]) : [];
+        arr = Object.assign(base, { tipo: ga ? "area" : "nota", o, redim, orig: Object.assign({}, o), leva });
+        if (modo === "mover") prender(); return;
+      }
+      arr = Object.assign(base, { tipo: "pan", vb0: Object.assign({}, vb) }); prender();
     });
     svg.addEventListener("pointermove", (ev) => {
-      if (!arr || modo !== "mover") return;
-      if (Math.abs(ev.clientX - arr.x0) + Math.abs(ev.clientY - arr.y0) > 6) arr.moveu = true;
+      if (toques.has(ev.pointerId)) toques.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (!arr) return;
+      if (arr.tipo === "pinca") {
+        if (toques.size < 2) return;
+        const [p, q] = [...toques.values()], dist = Math.hypot(p.x - q.x, p.y - q.y), mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2, u = vb.w / svg.clientWidth;
+        vb.x -= (mx - arr.mx) * u; vb.y -= (my - arr.my) * u; aplicarVB();
+        zoomEm(arr.dist / Math.max(dist, 1), mx, my);
+        Object.assign(arr, { dist, mx, my }); return;
+      }
+      if (!arr.moveu && Math.abs(ev.clientX - arr.x0) + Math.abs(ev.clientY - arr.y0) > 6) arr.moveu = true;
       if (!arr.moveu) return;
-      const p = ponto(ev); arr.d.x = Math.max(5, Math.min(95, p.x)); arr.d.y = Math.max(8, Math.min(90, p.y)); desenhar();
+      if (arr.tipo === "pan") { const u = arr.vb0.w / svg.clientWidth; vb.x = arr.vb0.x - (ev.clientX - arr.x0) * u; vb.y = arr.vb0.y - (ev.clientY - arr.y0) * u; limitarVB(); aplicarVB(); return; }
+      const p = ponto(ev), dx = p.x - arr.p0.x, dy = p.y - arr.p0.y;
+      if (arr.tipo === "desenho") {
+        let r = svg.querySelector("#sim-rasc");
+        if (!r) { r = document.createElementNS("http://www.w3.org/2000/svg", "rect"); r.id = "sim-rasc"; r.setAttribute("class", "sim-rasc"); r.setAttribute("rx", "14"); svg.appendChild(r); }
+        const x = lim(Math.min(p.x, arr.p0.x), 0, 100), y = lim(Math.min(p.y, arr.p0.y), 0, 100);
+        r.setAttribute("x", x / 100 * W); r.setAttribute("y", y / 100 * H); r.setAttribute("width", (lim(Math.max(p.x, arr.p0.x), 0, 100) - x) / 100 * W); r.setAttribute("height", (lim(Math.max(p.y, arr.p0.y), 0, 100) - y) / 100 * H);
+        return;
+      }
+      if (modo !== "mover" || arr.tipo === "toque") return;
+      if (arr.tipo === "dev") { arr.d.x = lim(p.x, 5, 95); arr.d.y = lim(p.y, 8, 90); desenhar(); return; }
+      const o = arr.o, g = arr.orig;
+      if (arr.redim) { o.w = lim(g.w + dx, arr.tipo === "nota" ? 12 : 8, 100 - g.x); if (arr.tipo === "area") o.h = lim(g.h + dy, 8, 100 - g.y); }
+      else {
+        const mx = lim(dx, -g.x, 100 - g.x - g.w), my = lim(dy, -g.y, 100 - g.y - (g.h || 4));
+        o.x = g.x + mx; o.y = g.y + my; arr.leva.forEach(([x, x0, y0]) => { x.x = x0 + mx; x.y = y0 + my; });
+      }
+      desenhar();
     });
-    svg.addEventListener("pointerup", (ev) => {
-      if (arr) { const a = arr; arr = null; if (a.moveu) { rede.aoMudar(); return; } tocarDev(a.d); return; }
-      const lg = ev.target.closest("[data-link]"); if (lg) tocarLink(rede.links.find((l) => l.id === lg.dataset.link));
-    });
+    const fimToque = (ev) => {
+      toques.delete(ev.pointerId);
+      const a = arr; if (!a) return;
+      if (a.tipo === "pinca") { if (toques.size < 2) arr = null; return; }
+      arr = null;
+      if (ev.type === "pointercancel") { tirarRasc(); if (a.moveu && a.tipo !== "pan") rede.aoMudar(); return; }
+      if (a.tipo === "toque") {
+        if (a.moveu) return;
+        if (vista === "fisica") { const g = a.alvo.closest("[data-dev]"); if (g) abrirInsp(rede.dev(g.dataset.dev)); return; }
+        const n = { id: novoId("n"), texto: "", x: lim(a.p0.x, 0, 84), y: lim(a.p0.y, 0, 92), w: lim(220 / W * 100, 12, 60), cor: CORES_NOTA[0][0] };
+        return editarObj("nota", n, true);
+      }
+      if (a.tipo === "desenho") {
+        const r = svg.querySelector("#sim-rasc"), p = r ? { x: +r.getAttribute("x") / W * 100, y: +r.getAttribute("y") / H * 100, w: +r.getAttribute("width") / W * 100, h: +r.getAttribute("height") / H * 100 } : null;
+        // um toque sem arrastar cria uma área de tamanho padrão
+        const b = p && p.w >= 4 && p.h >= 4 ? p : { w: 40, h: 34, x: lim(a.p0.x - 20, 0, 60), y: lim(a.p0.y - 17, 0, 66) };
+        const k = rede.areas.length;
+        return editarObj("area", Object.assign({ id: novoId("a"), nome: "Edifício " + String.fromCharCode(65 + (k % 26)), cor: CORES_AREA[k % CORES_AREA.length][0] }, b), true);
+      }
+      if (a.tipo === "dev") { if (a.moveu) rede.aoMudar(); else tocarDev(a.d); return; }
+      if (a.tipo === "area" || a.tipo === "nota") { if (a.moveu) { rede.aoMudar(); return; } if (modo === "apagar") apagarObj(a.tipo, a.o); else editarObj(a.tipo, a.o); return; }
+      if (!a.moveu) { const lg = a.alvo.closest("[data-link]"); if (lg) tocarLink(rede.links.find((l) => l.id === lg.dataset.link)); }
+    };
+    svg.addEventListener("pointerup", fimToque);
+    svg.addEventListener("pointercancel", fimToque);
+    svg.addEventListener("wheel", (ev) => { if (vista !== "logica") return; ev.preventDefault(); zoomEm(Math.exp(ev.deltaY * (ev.deltaMode ? 0.05 : 0.0015)), ev.clientX, ev.clientY); }, { passive: false });
+
+    // ------------------------------------------------------------ áreas e notas
+    const CORES_AREA = [["#2f6fdf", "Azul"], ["#1b8d4c", "Verde"], ["#e08a12", "Laranja"], ["#8b5cf6", "Roxo"], ["#d33a3a", "Vermelho"], ["#64748b", "Cinzento"]];
+    const CORES_NOTA = [["#fde68a", "Amarelo"], ["#bfdbfe", "Azul"], ["#bbf7d0", "Verde"], ["#fecdd3", "Rosa"], ["#e5e7eb", "Cinzento"]];
+    const novoId = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+    function editarObj(tipo, o, nova) {
+      const area = tipo === "area", cores = area ? CORES_AREA : CORES_NOTA, md = $("#sim-modal");
+      md.hidden = false;
+      md.innerHTML = `<form class="sim-caixa sim-form" data-f="obj"><div class="linha entre"><b>${nova ? (area ? "Nova área" : "Nova nota") : area ? "Editar área" : "Editar nota"}</b><button type="button" class="btn-copiar" data-fechar>Cancelar</button></div>
+        ${area ? `<p class="peq suave">Um edifício, um piso ou uma sala. Os equipamentos dentro da área vão com ela quando a arrasta pelo nome; na vista física aparecem nesse local.</p>
+          <label>Nome<input class="campo" name="t" value="${esc(o.nome)}" maxlength="40" list="sim-sug" autocomplete="off"></label><datalist id="sim-sug">${["Edifício A", "Edifício B", "Sala de servidores", "Sala de aula", "Receção", "Escritório", "Armazém", "Filial"].map((x) => `<option value="${x}">`).join("")}</datalist>`
+          : `<label>Texto<textarea class="campo" name="t" rows="4" maxlength="400" placeholder="Ex.: VLAN 10 = Vendas, gateway 192.168.10.1">${esc(o.texto)}</textarea></label>`}
+        <div class="sim-cores" role="radiogroup" aria-label="Cor">${cores.map(([c, n]) => `<label title="${n}"><input type="radio" name="cor" value="${c}" aria-label="${n}" ${o.cor === c ? "checked" : ""}><i style="background:${c}"></i></label>`).join("")}</div>
+        <div class="grelha-2"><button type="button" class="btn" ${nova ? "data-fechar>Cancelar" : "data-apagar-obj>Apagar"}</button><button class="btn prim" type="submit">${nova ? "Criar" : "Guardar"}</button></div><p class="peq" data-erro></p></form>`;
+      const f = md.querySelector("form"), campo = f.elements.t;
+      setTimeout(() => { campo.focus({ preventScroll: true }); if (area) campo.select(); }, 30);
+      md.onclick = (e) => {
+        if (e.target.closest("[data-fechar]") || e.target === md) { md.hidden = true; desenhar(); return; }
+        if (e.target.closest("[data-apagar-obj]")) { md.hidden = true; apagarObj(tipo, o); }
+      };
+      f.onsubmit = (e) => {
+        e.preventDefault();
+        const t = campo.value.trim();
+        if (!t) { f.querySelector("[data-erro]").textContent = area ? "Escreva um nome (ex.: Edifício A)." : "Escreva o texto da nota."; return; }
+        if (area) o.nome = t; else o.texto = t;
+        o.cor = (f.elements.cor.value || o.cor);
+        if (nova) (area ? rede.areas : rede.notas).push(o);
+        md.hidden = true; if (nova) modo = "mover";
+        opcoes(); rede.mudou(); atualizar();
+        msg(nova ? (area ? `Área <b>${esc(o.nome)}</b> criada. Arraste-a pelo nome; o canto puxa para mudar o tamanho.` : "Nota criada. Arraste-a para mover; toque para editar.") : "Alteração guardada.", "ok");
+      };
+    }
+    function apagarObj(tipo, o) {
+      if (tipo === "area") rede.areas = rede.areas.filter((x) => x !== o); else rede.notas = rede.notas.filter((x) => x !== o);
+      rede.mudou(); atualizar(); msg(tipo === "area" ? `Área ${esc(o.nome)} apagada (os equipamentos ficam).` : "Nota apagada.");
+    }
 
     // ------------------------------------------------------------ painel do equipamento
     function fecharInsp() { sel = null; const i = $("#sim-insp"); i.hidden = true; i.innerHTML = ""; desenhar(); }
@@ -217,15 +530,13 @@
       aba = abaPedida || (abas.find((a) => a[0] === aba) ? aba : abas[0][0]);
       const insp = $("#sim-insp");
       insp.hidden = false;
-      insp.innerHTML = `<div class="linha entre sim-insp-cab"><div class="linha">${F.icone(T.icone, 30)}<div><b>${esc(d.nome)}</b><br><span class="suave peq">${esc(T.nome)}</span></div></div><button class="btn-copiar" data-fechar-insp>Fechar</button></div>
+      insp.innerHTML = `<div class="linha entre sim-insp-cab"><div class="linha">${F.icone(T.icone, 30)}<div><b>${esc(d.nome)}</b><br><span class="suave peq">${esc(T.nome)}</span></div></div><span class="linha sim-insp-acoes"><button class="btn-copiar" data-duplicar title="Duplicar (Ctrl+C, Ctrl+V)">Duplicar</button><button class="btn-copiar" data-fechar-insp>Fechar</button></span></div>
         <div class="abas">${abas.map(([k, n]) => `<button aria-selected="${aba === k}" data-aba="${k}">${n}</button>`).join("")}</div><div id="sim-insp-corpo"></div>`;
       const corpo = $("#sim-insp-corpo");
       if (aba === "cli") terminal(corpo, d, "ios");
       if (aba === "prompt") terminal(corpo, d, "pc");
       if (aba === "portas") corpo.innerHTML = `<div class="tabela-caixa"><table><thead><tr><th>Porta</th><th>Ligada a</th><th>Estado</th><th>Config.</th></tr></thead><tbody>${rede.portas(d).map((p) => {
-        const l = rede.linkDe(d, p), o = l ? rede.dev(l.a === d.id ? l.b : l.a) : null, i = d.eq.cfg.interfaces[p] || {};
-        const est = !l ? "sem cabo" : rede.estadoLink(l).estado === "errado" ? "cabo errado" : l.cabo === "consola" ? "consola" : i.shutdown ? "desligada" : rede.linkUp(l) ? "ativa" : "em baixo";
-        const cf = d.eq.tipo === "switch" && p !== "Console" ? (i.routed ? (i.ip ? i.ip : "roteada") : i.mode === "trunk" ? "trunk" : "VLAN " + (i.accessVlan || 1)) : (i.ip && i.ip !== "dhcp" ? i.ip + "/" + window.IOS.prefixo(i.mask) : "");
+        const l = rede.linkDe(d, p), o = l ? rede.dev(l.a === d.id ? l.b : l.a) : null, est = estadoPorta(d, p), cf = cfgPorta(d, p);
         return `<tr><td>${esc(curto(p))}</td><td>${o ? esc(o.nome) + " " + esc(curto(l.a === d.id ? l.pb : l.pa)) : "—"}</td><td><span class="chip ${est === "ativa" ? "ok" : l ? "bad" : ""}">${est}</span></td><td>${esc(cf)}</td></tr>`; }).join("")}</tbody></table></div>`;
       if (aba === "ip") formIP(corpo, d);
       if (aba === "servicos") formServicos(corpo, d);
@@ -241,9 +552,38 @@
       if (aba === "nuvem") formNuvem(corpo, d);
       insp.onclick = (e) => {
         if (e.target.closest("[data-fechar-insp]")) return fecharInsp();
+        if (e.target.closest("[data-duplicar]")) { copiar(d); return colar(); }
         const b = e.target.closest("[data-aba]"); if (b) { aba = b.dataset.aba; abrirInsp(d); }
       };
       insp.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    function estadoPorta(d, p) {
+      const l = rede.linkDe(d, p), i = d.eq.cfg.interfaces[p] || {};
+      return !l ? "sem cabo" : rede.estadoLink(l).estado === "errado" ? "cabo errado" : l.cabo === "consola" ? "consola" : i.shutdown ? "desligada" : rede.linkUp(l) ? "ativa" : "em baixo";
+    }
+    function cfgPorta(d, p) {
+      const i = d.eq.cfg.interfaces[p] || {};
+      return d.eq.tipo === "switch" && p !== "Console" && !/^(Vlan|Loopback)/.test(p) ? (i.routed ? (i.ip ? i.ip : "roteada") : i.mode === "trunk" ? "trunk" : "VLAN " + (i.accessVlan || 1)) : (i.ip && i.ip !== "dhcp" ? i.ip + "/" + window.IOS.prefixo(i.mask) : i.ip === "dhcp" ? "DHCP" : "");
+    }
+
+    // ------------------------------------------------------------ copiar e colar equipamentos (sem cabos)
+    function copiar(d) { const s = rede.exportar().devs.find((x) => x.id === d.id); copiado = s ? JSON.stringify(s) : null; }
+    function colar() {
+      if (!copiado) return;
+      const s = JSON.parse(copiado), x = lim(s.x + 9, 5, 95), y = lim(s.y + 9, 8, 90);
+      const d = rede.novoDev(s.tipo, x, y, null, { modelo: s.modelo || undefined, ap: s.ap, rw: s.rw, asa: s.asa, nuvem: s.nuvem, wlc: s.wlc });
+      if (d.eq && s.cfg) { d.eq.cfg = s.cfg; d.eq.cfg.hostname = d.nome; d.eq.startup = ""; d.eq.sim = rede.ganchos(d); }
+      if (d.pc && s.pc) {
+        Object.assign(d.pc, s.pc, { log: [], lease: null, arp: {}, mapas: {}, libertado: false });
+        if (!d.pc.dhcp) d.pc.ip = ""; // IP estático repetido daria conflito
+      }
+      if (s.srv) d.srv = s.srv;
+      if (d.rw) d.rw.wan.lease = null;
+      if (d.asa) Object.values(d.asa.ifs).forEach((i) => { i.lease = null; });
+      rede.mudou(); copiado = JSON.stringify(Object.assign(s, { x, y })); // o próximo colar fica ao lado deste
+      msg(`<b>${esc(d.nome)}</b> criado como cópia, com a mesma configuração${d.pc && !d.pc.dhcp ? " (o IP estático ficou em branco para não repetir)" : ""}. Os cabos não são copiados.`, "ok");
+      abrirInsp(d); atualizar();
     }
 
     // Separadores do painel de cada equipamento
@@ -462,13 +802,17 @@
       const prompt = () => tipo === "ios" ? d.eq.prompt() : "C:\\>";
       corpo.innerHTML = `<div class="term"><div class="consola sim-consola" id="sim-cons"></div>
         <form class="entrada" data-f="t"><label for="sim-in" id="sim-pr">${esc(prompt())}</label><input id="sim-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" aria-label="Comando"></form>
-        <div class="teclas">${tipo === "ios" ? '<button type="button" data-k="?">?</button><button type="button" data-k="tab">Tab</button>' : ""}<button type="button" data-k="up">↑</button><button type="button" data-k="down">↓</button>${tipo === "ios" ? '<button type="button" data-k="end">Ctrl+Z</button><button type="button" data-k="sh ip int br">sh ip int br</button><button type="button" data-k="sh run">show run</button>' : '<button type="button" data-k="ipconfig">ipconfig</button><button type="button" data-k="ipconfig /renew">/renew</button><button type="button" data-k="net use">net use</button><button type="button" data-k="help">help</button>'}</div></div>`;
+        <div class="teclas">${tipo === "ios" ? '<button type="button" data-k="?">?</button><button type="button" data-k="tab">Tab</button>' : ""}<button type="button" data-k="up">↑</button><button type="button" data-k="down">↓</button>${tipo === "ios" ? '<button type="button" data-k="end">Ctrl+Z</button><button type="button" data-k="sh ip int br">sh ip int br</button><button type="button" data-k="sh run">show run</button>' : '<button type="button" data-k="ipconfig">ipconfig</button><button type="button" data-k="ipconfig /renew">/renew</button><button type="button" data-k="net use">net use</button><button type="button" data-k="help">help</button>'}</div></div>
+        ${tipo === "ios" ? `<div class="sim-colar"><button type="button" class="btn peq" data-colar>Colar configuração</button>
+          <form class="secao sim-form" data-colar-caixa hidden><label>Comandos, um por linha (como colar no PuTTY)<textarea class="campo mono" rows="7" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="enable&#10;configure terminal&#10;hostname R1&#10;interface g0/0/0&#10; ip address 192.168.1.1 255.255.255.0&#10; no shutdown&#10;end"></textarea></label>
+          <div class="grelha-2"><button type="button" class="btn" data-colar-cancelar>Cancelar</button><button class="btn prim" type="submit">Executar</button></div><p class="peq" data-colar-msg></p></form></div>` : ""}`;
       const cons = corpo.querySelector("#sim-cons"), inp = corpo.querySelector("#sim-in");
       const pinta = () => { cons.innerHTML = logs[id].map((l) => l.c != null ? `<div><span class="pr">${esc(l.p)}</span><span class="in">${esc(l.c)}</span></div>${l.t ? `<div class="${l.erro ? "err" : ""}">${esc(l.t)}</div>` : ""}` : `<div>${esc(l.t)}</div>`).join(""); cons.scrollTop = cons.scrollHeight; corpo.querySelector("#sim-pr").textContent = prompt(); };
-      const correr = (linha, manter) => {
+      const correr = (linha, manter, lote) => {
         const p = prompt();
         if (tipo === "ios") {
-          const out = d.eq.executar(linha);
+          // ao colar, "enable" já em modo privilegiado não é erro (como no equipamento real)
+          const out = lote && /^\s*en(a(b(le?)?)?)?\s*$/i.test(linha) && d.eq.modo !== "user" ? "" : d.eq.executar(linha);
           if (out === "\f") logs[id] = []; else logs[id].push({ p, c: linha, t: out, erro: /% (Invalid|Incomplete|Unrecognized|Ambiguous|Bad)/.test(out) });
           rede.mudou();
           const m = linha.trim().match(/^(?:do\s+)?(?:ping|traceroute|tr|tracert)\s+(\S+)/i);
@@ -481,8 +825,25 @@
         }
         if (linha.trim() && !linha.endsWith("?")) { hist[id].push(linha); hIdx[id] = hist[id].length; }
         inp.value = manter ? linha.replace(/\?$/, "") : "";
-        pinta(); atualizar();
+        if (!lote) { pinta(); atualizar(); }
       };
+      const cx = corpo.querySelector("[data-colar-caixa]");
+      if (cx) {
+        const ta = cx.querySelector("textarea"), cm = cx.querySelector("[data-colar-msg]");
+        corpo.querySelector("[data-colar]").onclick = () => { cx.hidden = !cx.hidden; if (!cx.hidden) ta.focus({ preventScroll: true }); };
+        cx.querySelector("[data-colar-cancelar]").onclick = () => { cx.hidden = true; };
+        cx.onsubmit = (e) => {
+          e.preventDefault();
+          const ls = ta.value.replace(/\r/g, "").split("\n").filter((l) => l.trim() && !/^\s*!/.test(l));
+          if (!ls.length) { cm.textContent = "Cole ou escreva pelo menos um comando."; return; }
+          const n0 = logs[id].length;
+          ls.forEach((l) => correr(l.replace(/\s+$/, ""), false, true));
+          const erros = logs[id].slice(n0).filter((l) => l.erro).length;
+          pinta(); atualizar();
+          cm.innerHTML = `${ls.length} linha(s) executada(s)${erros ? `, <b class="sim-erro-txt">${erros} com erro</b> (a vermelho no terminal)` : ", sem erros"}.`;
+          if (!erros) ta.value = "";
+        };
+      }
       corpo.querySelector("form").onsubmit = (e) => { e.preventDefault(); correr(inp.value); };
       const hist1 = (k) => { hIdx[id] = Math.max(0, Math.min(hist[id].length, hIdx[id] + k)); inp.value = hist[id][hIdx[id]] || ""; };
       inp.addEventListener("keydown", (e) => {
@@ -504,6 +865,100 @@
       if (window.matchMedia("(min-width: 700px)").matches) inp.focus({ preventScroll: true });
     }
 
+    // ------------------------------------------------------------ guardar imagem (PNG) e relatório (.txt)
+    const hoje = () => { const d = new Date(), z = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+    function baixar(nome, blob) {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nome;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    }
+    // as cores vêm do CSS (variáveis do tema): copia os estilos calculados para cada elemento da cópia
+    const PROPS = ["fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "stroke-opacity", "opacity", "font-family", "font-size", "font-weight", "text-anchor", "paint-order", "visibility"];
+    function guardarImagem() {
+      const sel0 = sel; sel = null; caboA = null; desenhar(); // sem marcas de seleção na imagem
+      const cl = svg.cloneNode(true), orig = svg.querySelectorAll("*"), copia = cl.querySelectorAll("*");
+      orig.forEach((el, i) => { const cs = getComputedStyle(el); copia[i].setAttribute("style", PROPS.map((p) => `${p}:${cs.getPropertyValue(p)}`).join(";")); });
+      cl.querySelectorAll("[data-so-ecra], #sim-pacote, #sim-rasc").forEach((x) => x.remove());
+      const b0 = vista === "logica" ? limites() : null, vbF = svg.viewBox.baseVal;
+      const b = b0 ? { x: b0.x - 24, y: b0.y - 24, w: b0.w + 48, h: b0.h + 48 } : { x: vbF.x, y: vbF.y, w: vbF.width, h: vbF.height };
+      const k = Math.min(2, 4000 / Math.max(b.w, b.h)), cw = Math.round(b.w * k), ch = Math.round(b.h * k);
+      cl.setAttribute("viewBox", `${b.x} ${b.y} ${b.w} ${b.h}`); cl.setAttribute("width", cw); cl.setAttribute("height", ch); cl.removeAttribute("style");
+      const fundo = getComputedStyle(svg.parentNode).backgroundColor || "#ffffff";
+      cl.insertAdjacentHTML("afterbegin", `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="${fundo}"/>`);
+      sel = sel0; desenhar();
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+        c.getContext("2d").drawImage(img, 0, 0, cw, ch);
+        c.toBlob((bl) => { if (!bl) { msg("Não foi possível criar a imagem.", "erro"); return; } baixar(`topologia-${hoje()}.png`, bl); msg(`Imagem <b>topologia-${hoje()}.png</b> guardada (${vista === "fisica" ? "vista física" : "vista lógica"}).`, "ok"); }, "image/png");
+      };
+      img.onerror = () => msg("Não foi possível criar a imagem.", "erro");
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(cl));
+    }
+
+    function textoRelatorio() {
+      const L = [], pre = (m) => (m && S.mascaraOk(m) ? "/" + window.IOS.prefixo(m) : ""), col = (t, n) => String(t).padEnd(n);
+      const outro = (d, l) => { const eu = l.a === d.id; return `${rede.dev(eu ? l.b : l.a).nome} ${curto(eu ? l.pb : l.pa)}`; };
+      L.push(`RELATÓRIO DA REDE — ${new Date().toLocaleString("pt-PT")}`);
+      if (A) L.push("Atividade: " + (A.titulo || A.id));
+      const nn = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+      L.push([nn(rede.devs.length, "equipamento", "equipamentos"), nn(rede.links.length, "cabo", "cabos"), nn(rede.areas.length, "área", "áreas"), nn(rede.notas.length, "nota", "notas")].join(" · "));
+      rede.devs.forEach((d) => {
+        const loc = localDe(d), T = S.TIPOS[d.tipo];
+        L.push("", `══ ${d.nome} — ${T.nome}${d.modelo ? " " + d.modelo : ""}${loc ? " · local: " + loc.nome : ""}`);
+        if (d.eq) {
+          const c = d.eq.cfg; let semUso = 0;
+          L.push(`Hostname: ${c.hostname}`, "Interfaces:");
+          [...new Set(rede.portas(d).filter((p) => p !== "Console").concat(Object.keys(c.interfaces)))].forEach((p) => {
+            const i = c.interfaces[p] || {}, l = rede.linkDe(d, p), virt = /^(Vlan|Loopback)/.test(p) || p.includes("."), cf = cfgPorta(d, p);
+            if (!l && !virt && (!cf || cf === "VLAN 1") && !i.desc) { semUso++; return; }
+            const est = virt ? (i.shutdown ? "desligada" : d.eq.sim.ligada(p) ? "ativa" : "em baixo") : estadoPorta(d, p);
+            L.push(`  ${col(curto(p), 12)} ${col(cf || "—", 20)} ${col(est, 11)}${l ? " → " + outro(d, l) : ""}${i.desc ? ` (${i.desc})` : ""}`);
+          });
+          if (semUso) L.push(`  (+ ${semUso} porta(s) sem cabo nem configuração)`);
+          if (d.eq.tipo === "switch") L.push("VLANs: " + (Object.entries(c.vlans || {}).map(([v, n]) => `${v} ${n}`).join(", ") || "—"));
+        } else if (d.pc) {
+          const e = rede.ipEfetivo(d), c = d.pc;
+          if (!T.semIp) L.push(`IP: ${e.ip || "sem endereço"}${pre(e.mask)}  máscara ${e.mask || "—"}`, `Gateway: ${e.gw || "—"}  ·  DNS: ${e.dns || "—"}`, `DHCP: ${c.dhcp ? "sim" + (c.lease && c.lease.apipa ? " (APIPA: nenhum servidor respondeu)" : c.lease ? " (recebido de " + (c.lease.de || "?") + ")" : " (à espera)") : "não (estático)"}`);
+          if (S.temWifi(d) && c.wifi.ssid) L.push(`Wi-Fi: “${c.wifi.ssid}” — ${rede.wifi().estado[d.id] || ""}`);
+          if (d.srv) { L.push(`Serviço DHCP: ${d.srv.dhcp.on ? `ligado, a partir de ${d.srv.dhcp.inicio} ${d.srv.dhcp.mask}, gateway ${d.srv.dhcp.gw || "—"}, DNS ${d.srv.dhcp.dns || "—"}` : "desligado"}`); if (d.srv.dns.registos.length) L.push("DNS: " + d.srv.dns.registos.map((r) => `${r.nome} → ${r.ip}`).join(", ")); }
+          if (c.partilhas && c.partilhas.length) L.push("Partilhas: " + c.partilhas.map((p) => `\\\\${d.nome}\\${p.nome}`).join(", "));
+          if (d.wlc) L.push("WLANs: " + d.wlc.wlans.map((w) => `${w.ssid} (${w.seguranca})`).join(", "));
+        } else if (d.ap) L.push(`SSID: ${d.ap.ssid} · ${d.ap.seguranca === "wpa2" ? "WPA2" : "aberta"} · canal ${d.ap.canal}`);
+        else if (d.rw) { const w = rede.wanRW(d); L.push(`Internet: ${w.ip || "sem endereço"}${pre(w.mask)} gateway ${w.gw || "—"}`, `LAN: ${d.rw.lan.ip}${pre(d.rw.lan.mask)} · DHCP ${d.rw.lan.dhcp.on ? "ligado" : "desligado"}`, `Wi-Fi: ${d.rw.wifi.ssid} (${d.rw.wifi.seguranca})`); }
+        else if (d.asa) { Object.entries(d.asa.ifs).filter(([, i]) => i.nome).forEach(([n, i]) => { const e = i.modo === "dhcp" ? (i.lease || {}) : i; L.push(`  ${col(curto(n), 12)} ${col(i.nome + " (" + i.nivel + ")", 16)} ${e.ip ? e.ip + pre(e.mask) : "sem IP"}`); }); L.push(`NAT: ${d.asa.nat ? "sim" : "não"} · inspeção ICMP: ${d.asa.icmp ? "sim" : "não"}`); }
+        else if (d.nuvem) Object.entries(d.nuvem.portas).forEach(([n, p]) => L.push(`  ${col(n, 12)} ${p.ip}${pre(p.mask)}${p.dhcp ? " · DHCP" : ""}`));
+        // rotas (routers, switches L3, routers Wi-Fi e ASA)
+        if (rede.encaminha(d)) {
+          const rs = rede.tabela(d);
+          L.push("Rotas:"); rs.forEach((r) => L.push(`  ${r.tipo} ${col(r.net + pre(r.mask), 19)} ${r.via ? "via " + r.via : "ligada"}, ${curto(r.iface.iface)}`));
+          if (!rs.length) L.push("  (tabela vazia)");
+        }
+        if (d.eq) {
+          const m = { modo: d.eq.modo, ctx: d.eq.ctx }; let rc;
+          try { rc = d.eq.runningConfig(); } catch (e) { rc = "(não foi possível gerar)"; } finally { Object.assign(d.eq, m); }
+          L.push("show running-config:"); rc.split("\n").forEach((x) => L.push("  " + x));
+        }
+      });
+      if (rede.links.length) {
+        L.push("", "══ Cabos (comprimento estimado: 1 % do desenho ≈ 1 m)");
+        rede.links.forEach((l) => { const e = rede.estadoLink(l), da = rede.dev(l.a), db = rede.dev(l.b); L.push(`  ${da.nome} ${curto(l.pa)} ↔ ${db.nome} ${curto(l.pb)} · ${(S.CABOS[l.cabo] || {}).nome || l.cabo} · ${metros(l)} m · ${e.estado}${longoDemais(l) ? " · ⚠ " + AVISO_100 : ""}`); });
+      }
+      if (rede.areas.length) { L.push("", "══ Locais"); locais().forEach((x) => L.push(`  ${x.nome}: ${x.devs.map((d) => d.nome).join(", ") || "vazio"}`)); }
+      if (rede.notas.length) { L.push("", "══ Notas"); rede.notas.forEach((n) => L.push("  • " + n.texto.replace(/\n/g, " / "))); }
+      return L.join("\n");
+    }
+    function relatorio() {
+      const t = textoRelatorio(), md = $("#sim-modal"); md.hidden = false;
+      md.innerHTML = `<div class="sim-caixa sim-rel-caixa"><div class="linha entre"><b>Relatório da rede</b><button class="btn-copiar" data-fechar>Fechar</button></div>
+        <p class="peq suave">Todos os equipamentos com interfaces, endereços, VLANs, rotas e a running-config dos routers e switches.</p>
+        <pre class="sim-rel">${esc(t)}</pre>
+        <div class="grelha-2"><button class="btn" data-fechar>Fechar</button><button class="btn prim" data-baixar-rel>Baixar relatório (.txt)</button></div></div>`;
+      md.onclick = (e) => {
+        if (e.target.closest("[data-fechar]") || e.target === md) { md.hidden = true; return; }
+        if (e.target.closest("[data-baixar-rel]")) baixar(`relatorio-rede-${hoje()}.txt`, new Blob(["﻿" + t.replace(/\n/g, "\r\n")], { type: "text/plain;charset=utf-8" }));
+      };
+    }
+
     function ajuda() {
       const md = $("#sim-modal"); md.hidden = false;
       md.innerHTML = `<div class="sim-caixa"><div class="linha entre"><b>Como usar o simulador</b><button class="btn-copiar" data-fechar>Fechar</button></div>
@@ -518,20 +973,31 @@
       const b = e.target.closest("[data-s]");
       if (b) {
         const a = b.dataset.s;
-        if (a === "mover" || a === "apagar") { modo = a; menu = null; caboA = null; msg(a === "apagar" ? "Toque num equipamento ou cabo para apagar." : "Arraste para mover; toque para configurar."); }
+        // as ferramentas de desenho voltam à vista lógica
+        if (["mover", "apagar", "add", "cabo", "area", "nota"].includes(a) && vista === "fisica") { vista = "logica"; aplicarVB(); }
+        if (a === "mover" || a === "apagar") { modo = a; menu = null; caboA = null; msg(a === "apagar" ? "Toque num equipamento, cabo, área ou nota para apagar." : "Arraste para mover (no vazio desloca o desenho); toque para configurar."); }
         if (a === "add") { menu = menu === "add" ? null : "add"; }
         if (a === "cabo") { modo = "cabo"; menu = "cabo"; caboA = null; msg("Escolha o tipo de cabo e toque no primeiro equipamento."); }
+        if (a === "mais") menu = menu === "mais" ? null : "mais";
+        if (a === "area") { modo = "area"; menu = null; caboA = null; msg("<b>Área:</b> arraste no desenho para criar um retângulo (ex.: Edifício A, Sala de servidores). Um toque cria uma área de tamanho padrão."); }
+        if (a === "nota") { modo = "nota"; menu = null; caboA = null; msg("<b>Nota:</b> toque no sítio do desenho onde quer a nota."); }
+        if (a === "desfazer" || a === "refazer") { historia(a === "desfazer" ? -1 : 1); opcoes(); return; }
+        if (a === "logica" || a === "fisica") { vista = a; menu = null; caboA = null; if (a === "logica") { aplicarVB(); msg("Vista lógica: equipamentos, cabos e endereços."); } opcoes(); desenhar(); if (a === "fisica") resumoFisica(); return; }
+        if (a === "imagem") { menu = null; opcoes(); guardarImagem(); return; }
+        if (a === "relatorio") { menu = null; opcoes(); relatorio(); return; }
         if (a === "ajuda") ajuda();
         if (a === "reiniciar") {
           const md = $("#sim-modal"); md.hidden = false;
           md.innerHTML = `<div class="sim-caixa"><b>Recomeçar a atividade?</b><p class="peq">Volta à rede inicial e perde as configurações feitas.</p><div class="grelha-2"><button class="btn" data-fechar>Cancelar</button><button class="btn prim" data-confirmar>Recomeçar</button></div></div>`;
           md.onclick = (ev) => {
             if (ev.target.closest("[data-fechar]") || ev.target === md) { md.hidden = true; return; }
-            if (ev.target.closest("[data-confirmar]")) { md.hidden = true; rede = A ? S.Rede.deAtividade(A) : new S.Rede(); rede.aoMudar = () => { clearTimeout(tGuardar); tGuardar = setTimeout(() => op.aoGuardar && op.aoGuardar(rede.exportar()), 300); }; rede.aoMudar(); feito = false; Object.keys(logs).forEach((k) => delete logs[k]); fecharInsp(); atualizar(); msg("Atividade recomeçada."); }
+            if (ev.target.closest("[data-confirmar]")) { md.hidden = true; rede = A ? S.Rede.deAtividade(A) : new S.Rede(); ligarRede(); rede.aoMudar(); feito = false; Object.keys(logs).forEach((k) => delete logs[k]); fecharInsp(); atualizar(); msg("Atividade recomeçada."); }
           };
         }
         opcoes(); desenhar(); return;
       }
+      const z = e.target.closest("[data-z]");
+      if (z) { if (z.dataset.z === "ajustar") ajustar(); else zoomEm(z.dataset.z === "mais" ? 1 / 1.3 : 1.3); return; }
       const ct = e.target.closest("[data-cat]");
       if (ct) { categoria = +ct.dataset.cat; opcoes(); return; }
       const ad = e.target.closest("[data-add]");
@@ -540,9 +1006,21 @@
       if (cb) { cabo = cb.dataset.cabo; modo = "cabo"; caboA = null; opcoes(); msg(`Cabo <b>${esc(S.CABOS[cabo].nome)}</b>: toque no primeiro equipamento.`); }
     });
 
+    // atalhos de teclado (computador): Ctrl+Z / Ctrl+Y, Ctrl+C / Ctrl+V
+    const teclado = (e) => {
+      if (!raiz.isConnected || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable]")) return;
+      if (!$("#sim-modal").hidden) return;
+      const k = e.key.toLowerCase();
+      if (k === "z" || k === "y") { e.preventDefault(); historia(k === "y" || e.shiftKey ? 1 : -1); }
+      else if (k === "c" && sel && !String(window.getSelection ? window.getSelection() : "")) { const d = rede.dev(sel); if (d) { copiar(d); msg(`<b>${esc(d.nome)}</b> copiado. Ctrl+V cria uma cópia.`); } }
+      else if (k === "v" && copiado && vista === "logica") { e.preventDefault(); colar(); }
+    };
+    document.addEventListener("keydown", teclado);
+
     opcoes(); atualizar();
     if (!ler("ccna-sim-ajuda")) setTimeout(ajuda, 200);
-    return { parar() { clearTimeout(tGuardar); if (op.aoGuardar) op.aoGuardar(rede.exportar()); }, rede: () => rede };
+    return { parar() { clearTimeout(tGuardar); clearTimeout(tFoto); document.removeEventListener("keydown", teclado); if (op.aoGuardar) op.aoGuardar(rede.exportar()); }, rede: () => rede };
   }
 
   window.SimUI = { montar };

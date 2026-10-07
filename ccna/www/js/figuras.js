@@ -3,124 +3,305 @@
 (function () {
   "use strict";
 
-  // Ícones 64×64 desenhados no estilo dos diagramas de rede.
+  // Ícones 64×64: ilustrações dos equipamentos reais vistos a 3/4 (como numa foto de catálogo).
+  // Só cores sólidas e sobreposições translúcidas (sem ids/gradientes), por isso o mesmo ícone pode
+  // aparecer muitas vezes no mesmo documento. A sombra (.i-sombra) e o aro (.i-aro) mudam com o tema
+  // para que os equipamentos escuros não desapareçam no fundo escuro.
+  const n2 = (v) => +v.toFixed(2);
+  const sombra = (cx, cy, rx, ry) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry || 3}" class="i-sombra"/>`;
+  // Caixa em perspetiva oblíqua: frente (x,y,w,h), profundidade d para cima/direita.
+  function caixa(x, y, w, h, d, frente, topo, lado) {
+    const dx = d, dy = n2(d * 0.55);
+    return `<path d="M${x} ${y} l${dx} ${-dy} h${w} l${-dx} ${dy}z" fill="${topo}"/>` +
+      `<path d="M${x + w} ${y} l${dx} ${-dy} v${h} l${-dx} ${dy}z" fill="${lado}"/>` +
+      `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${frente}"/>` +
+      `<path d="M${x} ${y} h${w} l${dx} ${-dy}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width=".6"/>` +
+      `<path d="M${x} ${y + h} V${y} l${dx} ${-dy} h${w} v${h} l${-dx} ${dy}z" class="i-aro"/>`;
+  }
+  const rep = (n, f) => Array.from({ length: n }, (_, i) => f(i)).join("");
+  // ficha RJ45 vista de frente (buraco escuro com o entalhe da patilha)
+  const rj = (x, y, w, h, cor) => `<rect x="${n2(x)}" y="${n2(y)}" width="${w}" height="${h}" rx=".25" fill="${cor || "#0b0d10"}"/><rect x="${n2(x + w * 0.3)}" y="${n2(y + h * 0.72)}" width="${n2(w * 0.4)}" height="${n2(h * 0.28)}" fill="#3a4049"/>`;
+  const led = (cx, cy, r, cor) => `<circle cx="${n2(cx)}" cy="${n2(cy)}" r="${r}" fill="${cor || "#22c55e"}"/>`;
+  // grelha de portas de um switch (2 filas, grupos de 6)
+  function portasSwitch(x0, y0, cols, pw, ph, passo, porta, ledsOn) {
+    let s = "";
+    for (let c = 0; c < cols; c++) {
+      const x = x0 + c * passo + Math.floor(c / 6) * 1.1;
+      for (let l = 0; l < 2; l++) s += rj(x, y0 + l * (ph + 0.9), pw, ph, porta);
+      s += `<rect x="${n2(x + 0.3)}" y="${n2(y0 - 1.3)}" width="${n2(pw - 0.6)}" height=".6" fill="${ledsOn.includes(c) ? "#22c55e" : "#5b636d"}"/>`;
+    }
+    return s;
+  }
+  // ecrã com "papel de parede" (céu e colina)
+  const ecra = (x, y, w, h, rx) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx || 0}" fill="#2563c9"/>` +
+    `<path d="M${x} ${n2(y + h * 0.7)} q${n2(w * 0.3)} ${n2(-h * 0.35)} ${n2(w * 0.6)} ${n2(-h * 0.05)} t${n2(w * 0.4)} ${n2(-h * 0.1)} V${y + h} H${x}z" fill="#5fa5ff" opacity=".7"/>` +
+    `<path d="M${x} ${y} h${n2(w * 0.55)} l${n2(-w * 0.3)} ${h} H${x}z" fill="#fff" opacity=".1"/>`;
+
+  // ponto num quadrilátero (u ao longo da base, v para cima), para desenhar faces inclinadas
+  const quad = (A, B, C, D) => (u, v) => {
+    const l = [A[0] + (D[0] - A[0]) * v, A[1] + (D[1] - A[1]) * v], r = [B[0] + (C[0] - B[0]) * v, B[1] + (C[1] - B[1]) * v];
+    return [n2(l[0] + (r[0] - l[0]) * u), n2(l[1] + (r[1] - l[1]) * u)];
+  };
+  const poly = (pts, attrs) => `<path d="M${pts.map((p) => p.join(" ")).join(" L")}z" ${attrs}/>`;
+
   const ICONES = {
-    hub: `
-      <rect x="8" y="24" width="48" height="18" rx="3" class="i-corpo"/>
-      <g class="i-corpo-esc"><rect x="13" y="34" width="6" height="5"/><rect x="22" y="34" width="6" height="5"/><rect x="31" y="34" width="6" height="5"/><rect x="40" y="34" width="6" height="5"/></g>
-      <g class="i-seta"><path d="M14 29 h36 l-4 -3 M50 29 l-4 3" stroke="#fff" stroke-width="2" fill="none"/></g>`,
-    repetidor: `
-      <rect x="12" y="24" width="40" height="18" rx="9" class="i-corpo"/>
-      <g class="i-seta"><path d="M18 33 h28 l-5 -4 v8 z"/></g>`,
-    bridge: `
-      <rect x="10" y="26" width="44" height="16" rx="3" class="i-corpo"/>
-      <path d="M14 26 Q32 6 50 26" class="i-onda" fill="none"/>
-      <g class="i-corpo-esc"><rect x="16" y="32" width="8" height="5"/><rect x="40" y="32" width="8" height="5"/></g>`,
-    router_wifi: `
-      <rect x="8" y="34" width="48" height="14" rx="4" class="i-corpo"/>
-      <g class="i-led"><circle cx="16" cy="41" r="2"/><circle cx="23" cy="41" r="2"/></g>
-      <path d="M14 34 v-14 M50 34 v-14" class="i-onda" fill="none"/>
-      <g class="i-onda" fill="none"><path d="M26 24 Q32 18 38 24"/><path d="M21 18 Q32 8 43 18"/></g>`,
-    modem: `
-      <rect x="18" y="12" width="28" height="40" rx="5" class="i-corpo"/>
-      <g class="i-led"><circle cx="32" cy="20" r="2"/><circle cx="32" cy="27" r="2"/><circle cx="32" cy="34" r="2"/></g>
-      <rect x="24" y="42" width="16" height="5" rx="1" class="i-corpo-esc"/>`,
-    impressora: `
-      <rect x="18" y="10" width="28" height="12" class="i-ecra"/>
-      <rect x="8" y="22" width="48" height="20" rx="3" class="i-corpo"/>
-      <rect x="16" y="38" width="32" height="16" class="i-ecra"/>
-      <circle cx="49" cy="28" r="2" class="i-led"/>`,
-    smartphone: `
-      <rect x="22" y="8" width="20" height="48" rx="4" class="i-corpo"/>
-      <rect x="25" y="13" width="14" height="34" class="i-ecra"/>
-      <circle cx="32" cy="51" r="2" class="i-corpo-esc"/>`,
-    tablet: `
-      <rect x="12" y="10" width="40" height="44" rx="4" class="i-corpo"/>
-      <rect x="16" y="14" width="32" height="34" class="i-ecra"/>
-      <circle cx="32" cy="51" r="1.8" class="i-corpo-esc"/>`,
-    tv: `
-      <rect x="6" y="12" width="52" height="32" rx="3" class="i-corpo"/>
-      <rect x="10" y="16" width="44" height="24" class="i-ecra"/>
-      <path d="M24 44 h16 l4 8 h-24z" class="i-corpo-esc"/>`,
-    camara: `
-      <rect x="12" y="20" width="30" height="20" rx="4" class="i-corpo"/>
-      <circle cx="27" cy="30" r="6" class="i-ecra"/>
-      <path d="M42 26 l12 -6 v20 l-12 -6z" class="i-corpo-esc"/>
-      <rect x="22" y="40" width="6" height="12" class="i-corpo-esc"/>`,
-    lampada: `
-      <circle cx="32" cy="26" r="15" class="i-ecra"/>
-      <rect x="25" y="40" width="14" height="10" rx="2" class="i-corpo"/>
-      <g class="i-onda" fill="none"><path d="M44 12 Q50 8 54 14"/></g>`,
-    termostato: `
-      <circle cx="32" cy="32" r="22" class="i-corpo"/>
-      <circle cx="32" cy="32" r="15" class="i-ecra"/>
-      <path d="M32 32 L40 24" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`,
-    sniffer: `
-      <circle cx="26" cy="28" r="14" class="i-ecra"/>
-      <circle cx="26" cy="28" r="14" fill="none" class="i-onda"/>
-      <path d="M36 38 L52 54" class="i-onda"/>`,
-    router: `
-      <ellipse cx="32" cy="40" rx="26" ry="10" class="i-corpo-esc"/>
-      <rect x="6" y="26" width="52" height="14" class="i-corpo-esc"/>
-      <ellipse cx="32" cy="26" rx="26" ry="10" class="i-corpo"/>
-      <g class="i-seta">
-        <path d="M14 24 l8 -3 v2 h6 v2 h-6 v2z"/><path d="M50 28 l-8 3 v-2 h-6 v-2 h6 v-2z"/>
-        <path d="M29 17 l3 -4 l3 4 h-2 v4 h-2 v-4z"/><path d="M35 35 l-3 4 l-3 -4 h2 v-4 h2 v4z"/>
-      </g>`,
-    switch: `
-      <path d="M8 22 L16 14 H56 L56 42 L48 50 H8 Z" class="i-corpo-esc"/>
-      <rect x="8" y="22" width="40" height="28" class="i-corpo"/>
-      <path d="M8 22 L16 14 H56 L48 22 Z" class="i-topo"/>
-      <g class="i-seta">
-        <path d="M14 30 h16 v-3 l6 4 l-6 4 v-3 h-16z"/><path d="M42 42 h-16 v3 l-6 -4 l6 -4 v3 h16z"/>
-      </g>`,
-    switch_l3: `
-      <path d="M8 22 L16 14 H56 L56 42 L48 50 H8 Z" class="i-corpo-esc"/>
-      <rect x="8" y="22" width="40" height="28" class="i-corpo"/>
-      <path d="M8 22 L16 14 H56 L48 22 Z" class="i-topo"/>
-      <g class="i-seta">
-        <path d="M13 30 h12 v-3 l5 4 l-5 4 v-3 h-12z"/><path d="M43 42 h-12 v3 l-5 -4 l5 -4 v3 h12z"/>
-      </g>
-      <circle cx="36" cy="18" r="4" class="i-seta"/>`,
-    firewall: `
-      <rect x="8" y="16" width="48" height="36" class="i-tijolo-base"/>
-      <g class="i-tijolo">
-        <rect x="9" y="17" width="14" height="7"/><rect x="25" y="17" width="14" height="7"/><rect x="41" y="17" width="14" height="7"/>
-        <rect x="9" y="26" width="6" height="7"/><rect x="17" y="26" width="14" height="7"/><rect x="33" y="26" width="14" height="7"/><rect x="49" y="26" width="6" height="7"/>
-        <rect x="9" y="35" width="14" height="7"/><rect x="25" y="35" width="14" height="7"/><rect x="41" y="35" width="14" height="7"/>
-        <rect x="9" y="44" width="6" height="7"/><rect x="17" y="44" width="14" height="7"/><rect x="33" y="44" width="14" height="7"/><rect x="49" y="44" width="6" height="7"/>
-      </g>`,
-    ap: `
-      <path d="M10 44 Q32 30 54 44 L54 48 Q32 56 10 48 Z" class="i-corpo"/>
-      <circle cx="32" cy="45" r="2.5" class="i-led"/>
-      <g class="i-onda" fill="none">
-        <path d="M22 30 Q32 20 42 30"/><path d="M16 24 Q32 8 48 24"/>
-      </g>`,
-    wlc: `
-      <rect x="6" y="30" width="52" height="18" rx="3" class="i-corpo"/>
-      <g class="i-led"><circle cx="14" cy="39" r="2"/><circle cx="21" cy="39" r="2"/></g>
-      <rect x="30" y="36" width="22" height="6" rx="1" class="i-corpo-esc"/>
-      <g class="i-onda" fill="none"><path d="M24 22 Q32 14 40 22"/><path d="M18 17 Q32 4 46 17"/></g>`,
-    pc: `
-      <rect x="10" y="12" width="44" height="30" rx="3" class="i-corpo"/>
-      <rect x="14" y="16" width="36" height="22" class="i-ecra"/>
-      <path d="M26 42 h12 l3 8 h-18z" class="i-corpo-esc"/>
-      <rect x="18" y="50" width="28" height="3" rx="1.5" class="i-corpo-esc"/>`,
-    portatil: `
-      <rect x="14" y="14" width="36" height="26" rx="2" class="i-corpo"/>
-      <rect x="17" y="17" width="30" height="20" class="i-ecra"/>
-      <path d="M6 42 h52 l-4 6 h-44z" class="i-corpo-esc"/>`,
-    servidor: `
-      <rect x="18" y="8" width="28" height="48" rx="3" class="i-corpo"/>
-      <g class="i-corpo-esc"><rect x="22" y="14" width="20" height="5"/><rect x="22" y="23" width="20" height="5"/><rect x="22" y="32" width="20" height="5"/></g>
-      <g class="i-led"><circle cx="38" cy="47" r="2"/></g>`,
-    nuvem: `
-      <path d="M18 46 Q6 46 8 36 Q10 28 19 29 Q20 16 33 16 Q44 16 46 26 Q57 25 57 36 Q57 46 46 46 Z" class="i-nuvem"/>`,
-    telefone_ip: `
-      <rect x="14" y="20" width="36" height="30" rx="4" class="i-corpo"/>
-      <rect x="20" y="25" width="16" height="10" class="i-ecra"/>
-      <path d="M10 18 Q12 10 20 12 L22 18 Q16 20 16 26 Z" class="i-corpo-esc"/>
-      <g class="i-corpo-esc"><rect x="20" y="39" width="4" height="3"/><rect x="27" y="39" width="4" height="3"/><rect x="34" y="39" width="4" height="3"/><rect x="20" y="44" width="4" height="3"/><rect x="27" y="44" width="4" height="3"/><rect x="34" y="44" width="4" height="3"/></g>`,
+    // Hub Ethernet de secretária (caixa metálica azul, 5 portas, LEDs por porta)
+    hub: sombra(32, 46, 24) + caixa(8, 33, 42, 11, 9, "#2f62a6", "#4f82c4", "#21497f") +
+      `<rect x="10" y="35" width="7" height="1.4" fill="#d6e2f2"/>` + led(11, 40, 0.8) + led(14, 40, 0.8, "#f2a516") +
+      rep(5, (i) => rj(19.5 + i * 5.8, 37.6, 4.4, 4, "#0b0d10") + led(21.7 + i * 5.8, 35.6, 0.55, i < 3 ? "#22c55e" : "#163a68")) +
+      `<path d="M12 31.2 l6 -3.3 M16 31.2 l6 -3.3 M20 31.2 l6 -3.3" stroke="#21497f" stroke-width=".7"/>`,
+
+    // Repetidor: caixa pequena com uma porta de entrada e uma de saída
+    repetidor: sombra(31, 46, 19) + caixa(14, 33, 30, 11, 8, "#d9d4c7", "#ece8de", "#aaa496") +
+      rj(16.5, 36.5, 5, 4.6) + rj(36.5, 36.5, 5, 4.6) +
+      led(25.5, 38.8, 0.9) + led(29, 38.8, 0.9, "#f2a516") + led(32.5, 38.8, 0.9) +
+      `<path d="M24 41.8 h10" stroke="#8a8476" stroke-width=".6"/>`,
+
+    // Bridge de 2 segmentos (duas portas de cada lado, divisória ao centro)
+    bridge: sombra(32, 47, 23) + caixa(9, 33, 40, 12, 9, "#4b525c", "#69717c", "#353a41") +
+      rj(11.5, 37.5, 4.6, 4.4) + rj(17, 37.5, 4.6, 4.4) + rj(36.4, 37.5, 4.6, 4.4) + rj(41.9, 37.5, 4.6, 4.4) +
+      led(13.8, 35.4, 0.6) + led(19.3, 35.4, 0.6) + led(38.7, 35.4, 0.6) + led(44.2, 35.4, 0.6, "#f2a516") +
+      `<path d="M29 34.5 v9" stroke="#2a2e34" stroke-width=".8"/><rect x="24.5" y="35" width="3" height="1" fill="#c9ced6"/><rect x="30.5" y="35" width="3" height="1" fill="#c9ced6"/>` +
+      led(29, 40.5, 0.8, "#22c55e"),
+
+    // Router Wi-Fi doméstico (tipo Linksys WRT300N): caixa baixa preta, topo prateado, 3 antenas
+    router_wifi: sombra(33, 49, 26) +
+      rep(3, (i) => { const x = 24 + i * 14, a = [-8, 0, 8][i]; return `<g transform="rotate(${a} ${x} 33)"><rect x="${x - 1.6}" y="9" width="3.2" height="25" rx="1.6" fill="#1b1e22"/><rect x="${x - 0.9}" y="10.5" width="1" height="20" rx=".5" fill="#fff" opacity=".18"/><rect x="${x - 2.1}" y="30" width="4.2" height="3.5" rx="1" fill="#2c3036"/></g>`; }) +
+      caixa(8, 41, 42, 7, 12, "#1f2227", "#33373e", "#15171a") +
+      `<path d="M17 39.2 l9 -4.9 h20 l-9 4.9z" fill="#9aa3ae"/><path d="M17 39.2 l9 -4.9 h20" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width=".5"/>` +
+      rep(6, (i) => led(13 + i * 3.4, 44.5, 0.7, i === 0 ? "#22c55e" : "#3aa0ff")) + `<rect x="38" y="43.8" width="9" height="1.4" rx=".5" fill="#9aa3ae"/>`,
+
+    // Modem de cabo/DSL em pé (corpo branco, coluna de LEDs)
+    modem: sombra(33, 54, 14, 2.6) +
+      `<path d="M38 13 l6 -3.3 V48.2 l-6 3.3z" fill="#c4c9cf"/>` +
+      `<path d="M25 11.3 l6 -3.3 h6 a3.4 3.4 0 0 1 3 1.4 l-6 3.3 a3.4 3.4 0 0 0 -3 -1.4z" fill="#f7f8f9"/>` +
+      `<rect x="22" y="11" width="16" height="40.5" rx="4" fill="#eceef1"/>` +
+      `<rect x="28.5" y="16" width="3" height="22" rx="1.5" fill="#2b2f36"/>` +
+      led(30, 18.5, 0.95) + led(30, 23, 0.95) + led(30, 27.5, 0.95, "#3aa0ff") + led(30, 32, 0.95, "#3aa0ff") + led(30, 36, 0.95, "#f2a516") +
+      `<rect x="26" y="44" width="8" height="1.2" fill="#b9bfc7"/>` +
+      `<path d="M39.5 18 l3 -1.6 M39.5 21 l3 -1.6 M39.5 24 l3 -1.6 M39.5 27 l3 -1.6" stroke="#9aa1aa" stroke-width=".7"/>` +
+      `<rect x="22" y="11" width="16" height="40.5" rx="4" class="i-aro"/>` +
+      `<path d="M20 53 h20 l6 -3.3 v1.6 l-6 3.3 h-20z" fill="#3a3f46"/>`,
+
+    // Impressora laser de rede: bandeja de saída no topo, folha, painel e gaveta de papel
+    impressora: sombra(33, 53, 26) + caixa(8, 27, 40, 24, 12, "#e7e9ec", "#f6f7f8", "#c2c7ce") +
+      `<path d="M13 25.2 l8 -4.4 h20 l-8 4.4z" fill="#4b5159"/>` +
+      `<path d="M16 24.2 l6 -3.3 h14 l-2.5 6 h-14z" fill="#ffffff"/><path d="M18.5 25.4 h12 M20 24 h11" stroke="#9aa1aa" stroke-width=".45"/>` +
+      `<rect x="11" y="31.5" width="22" height="1.4" rx=".6" fill="#3a3f46"/>` +
+      `<rect x="35" y="29.5" width="10.5" height="5" rx=".8" fill="#3a4250"/><rect x="36" y="30.4" width="6" height="3.2" fill="#6fb2ff" opacity=".85"/>` + led(44.2, 32, 0.6) +
+      `<rect x="10.5" y="40" width="35" height="8.5" rx="1" fill="#dadde1" stroke="#aeb4bc" stroke-width=".5"/><rect x="23" y="42.4" width="10" height="1.6" rx=".8" fill="#8a9099"/>` +
+      `<rect x="10.5" y="37.6" width="35" height=".5" fill="#c4c9cf"/>`,
+
+    // Smartphone (vista a 3/4: aro metálico de lado)
+    smartphone: sombra(33, 57, 13, 2.4) +
+      `<rect x="22.6" y="6" width="22" height="48" rx="4.5" fill="#6d747e"/>` +
+      `<rect x="21" y="7" width="22" height="48" rx="4.5" fill="#15171b"/>` +
+      `<rect x="21" y="7" width="22" height="48" rx="4.5" class="i-aro"/>` +
+      ecra(22.6, 9.5, 18.8, 43, 3) +
+      rep(12, (i) => `<rect x="${n2(24.6 + (i % 3) * 5.4)}" y="${n2(15 + Math.floor(i / 3) * 6)}" width="3.8" height="3.8" rx="1" fill="${["#22c55e", "#f2a516", "#ffffff", "#ef4444", "#a78bfa", "#38bdf8"][i % 6]}" opacity=".95"/>`) +
+      `<rect x="24" y="46.5" width="16" height="4.6" rx="2" fill="#fff" opacity=".22"/>` +
+      `<rect x="28.5" y="10.6" width="7" height="1.8" rx=".9" fill="#0b0c0e"/>`,
+
+    // Tablet em modo paisagem
+    tablet: sombra(32, 54, 25, 2.6) +
+      `<rect x="7.8" y="11.8" width="50" height="38" rx="4" fill="#9aa1ab"/>` +
+      `<rect x="6" y="13" width="50" height="38" rx="4" fill="#1a1c20"/>` +
+      `<rect x="6" y="13" width="50" height="38" rx="4" class="i-aro"/>` +
+      ecra(9.5, 16.2, 43, 31.6, 1.5) +
+      rep(10, (i) => `<rect x="${n2(13 + (i % 5) * 7.6)}" y="${n2(20 + Math.floor(i / 5) * 7)}" width="4.6" height="4.6" rx="1.2" fill="${["#22c55e", "#f2a516", "#ffffff", "#ef4444", "#38bdf8"][i % 5]}" opacity=".92"/>`) +
+      led(7.8, 32, 0.6, "#3a3f46"),
+
+    // Smart TV num pedestal
+    tv: sombra(32, 54, 18, 2.4) +
+      `<path d="M20 52.5 h24 l3 -2.6 h-24z" fill="#3a3f46"/><path d="M20 52.5 h24 v1 h-24z" fill="#1f2226"/>` +
+      `<rect x="29" y="43" width="7" height="8" fill="#2a2e33"/>` +
+      `<path d="M58.5 9.4 l2.2 -1.4 v34 l-2.2 1.4z" fill="#4a5059"/>` +
+      `<rect x="3.5" y="9.4" width="55" height="34" rx="1.2" fill="#101215"/>` +
+      `<rect x="3.5" y="9.4" width="55" height="34" rx="1.2" class="i-aro"/>` +
+      `<rect x="5" y="10.9" width="52" height="30.5" fill="#1e4f9a"/>` +
+      `<path d="M5 33 q10 -9 20 -4 t18 -6 t14 3 V41.4 H5z" fill="#2f8f5b"/><path d="M5 37 q14 -6 26 -2 t26 -3 V41.4 H5z" fill="#21734a"/>` +
+      `<circle cx="44" cy="18" r="3.2" fill="#ffd166"/>` +
+      `<path d="M5 10.9 h26 l-14 30.5 H5z" fill="#fff" opacity=".08"/>` + led(31, 42.6, 0.4, "#ef4444"),
+
+    // Câmara IP tipo "bullet" num suporte de parede
+    camara: sombra(32, 52, 20, 2.4) +
+      `<rect x="50" y="17" width="7.5" height="17" rx="1.5" fill="#d7dbe0"/><rect x="50" y="17" width="7.5" height="17" rx="1.5" class="i-aro"/>` +
+      `<path d="M51 25.5 L41 31.5 L42.6 34 L52 28z" fill="#bfc5cc"/>` +
+      `<g transform="translate(30 30) rotate(16)">` +
+      `<rect x="-20" y="-7" width="34" height="14" rx="5.5" fill="#eef0f2"/>` +
+      `<path d="M-20 1 h34 v1 a5.5 5.5 0 0 1 -5.5 5 h-23 a5.5 5.5 0 0 1 -5.5 -5z" fill="#c9ced5"/>` +
+      `<rect x="-20" y="-7" width="34" height="14" rx="5.5" class="i-aro"/>` +
+      `<rect x="-24" y="-9.4" width="36" height="4.2" rx="1.8" fill="#dfe3e7"/><rect x="-24" y="-9.4" width="36" height="4.2" rx="1.8" class="i-aro"/>` +
+      `<ellipse cx="-19.5" cy="0.5" rx="2.6" ry="6" fill="#23272c"/><ellipse cx="-20.2" cy="0.5" rx="1.7" ry="3.8" fill="#07080a"/><ellipse cx="-20.6" cy="-0.8" rx=".5" ry="1" fill="#7fb2ff"/>` +
+      `<circle cx="-18.9" cy="-3.7" r=".55" fill="#7a1f1f"/><circle cx="-18.9" cy="4.7" r=".55" fill="#7a1f1f"/>` +
+      `<rect x="-14" y="-5.6" width="22" height="1.2" rx=".6" fill="#fff" opacity=".7"/></g>`,
+
+    // Lâmpada inteligente (vidro aceso, corpo branco e casquilho E27)
+    lampada: `<circle cx="32" cy="23" r="21" fill="#ffd25a" opacity=".22"/>` + sombra(32, 58, 9, 1.8) +
+      `<path d="M24.5 41 C24.5 35.5 16.5 32.5 16.5 23 A15.5 15.5 0 1 1 47.5 23 C47.5 32.5 39.5 35.5 39.5 41z" fill="#fff1bf"/>` +
+      `<path d="M24.5 41 C24.5 35.5 16.5 32.5 16.5 23 A15.5 15.5 0 1 1 47.5 23 C47.5 32.5 39.5 35.5 39.5 41z" class="i-aro"/>` +
+      `<path d="M28 38 C28 30 24 27 24 22 a8 8 0 0 1 16 0 c0 5 -4 8 -4 16z" fill="#ffe08a" opacity=".7"/>` +
+      `<ellipse cx="25" cy="17" rx="3.4" ry="5.5" transform="rotate(30 25 17)" fill="#fff" opacity=".75"/>` +
+      `<path d="M24 41 h16 v3.4 a2 2 0 0 1 -2 2 h-12 a2 2 0 0 1 -2 -2z" fill="#eceef1"/><path d="M24 41 h16 v3.4 a2 2 0 0 1 -2 2 h-12 a2 2 0 0 1 -2 -2z" class="i-aro"/>` +
+      `<rect x="25.5" y="46.4" width="13" height="7" rx="1" fill="#b9bfc6"/>` +
+      `<path d="M25.5 48.2 l13 -1 M25.5 50.4 l13 -1 M25.5 52.6 l13 -1" stroke="#7c838c" stroke-width=".8"/>` +
+      `<path d="M28 53.4 h8 l-1.5 3 h-5z" fill="#454a52"/>`,
+
+    // Termóstato inteligente redondo (aro de aço, ecrã preto com escala)
+    termostato: `<circle cx="33.4" cy="33.6" r="22" class="i-sombra"/>` +
+      `<circle cx="32" cy="31.5" r="22" fill="#c3c9d0"/>` +
+      `<path d="M13 23 A21 21 0 0 1 49 14" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2.5" stroke-linecap="round"/>` +
+      `<circle cx="32" cy="31.5" r="22" class="i-aro"/>` +
+      `<circle cx="32" cy="31.5" r="17.5" fill="#0f1215"/>` +
+      rep(31, (i) => { const a = (-225 + i * 9) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), on = i >= 6 && i <= 19;
+        return `<path d="M${n2(32 + c * 13)} ${n2(31.5 + s * 13)} L${n2(32 + c * 15.6)} ${n2(31.5 + s * 15.6)}" stroke="${on ? "#ff8a1f" : "#4b525c"}" stroke-width="${i === 19 ? 1.6 : 0.9}"/>`; }) +
+      `<text x="32" y="36" text-anchor="middle" fill="#ffffff" style="font: 800 13px system-ui, sans-serif">21</text>` +
+      `<text x="32" y="43.5" text-anchor="middle" fill="#ff8a1f" style="font: 700 4.5px system-ui, sans-serif">AQUECER</text>`,
+
+    // Analisador de rede portátil (tipo Fluke): corpo amarelo, ecrã com forma de onda, cabo RJ45
+    sniffer: sombra(32, 57, 17, 2.4) +
+      `<path d="M28.5 8 C28.5 2.5 40 2 46 6 S56 14 57 22" fill="none" stroke="#2f6fd1" stroke-width="2.2" stroke-linecap="round"/>` +
+      `<rect x="26.5" y="5.5" width="5" height="5" rx=".8" fill="#dfe6ee" stroke="#9aa6b3" stroke-width=".5"/>` +
+      `<rect x="19.5" y="8" width="30" height="47" rx="5" fill="#b8860b"/>` +
+      `<rect x="16.5" y="10" width="30" height="47" rx="5" fill="#f2b705"/>` +
+      `<rect x="16.5" y="10" width="30" height="47" rx="5" class="i-aro"/>` +
+      `<rect x="19.5" y="13.5" width="24" height="40" rx="3" fill="#3a3f46"/>` +
+      `<rect x="21.5" y="16" width="20" height="16" rx="1" fill="#0e1813"/>` +
+      `<path d="M22 27 l2 0 l1.5 -6 l2 9 l2 -7 l1.5 4 l2 -2 l1.5 3 l2 -6 l2 5 h2" fill="none" stroke="#3ee07f" stroke-width=".8"/>` +
+      rep(5, (i) => `<rect x="${23 + i * 3.6}" y="${30.6 - [3, 1.6, 2.4, 1, 2][i]}" width="2" height="${[3, 1.6, 2.4, 1, 2][i]}" fill="#38bdf8"/>`) +
+      rep(6, (i) => `<rect x="${n2(22.2 + (i % 3) * 6.4)}" y="${n2(36 + Math.floor(i / 3) * 4.6)}" width="5" height="3" rx=".8" fill="#8f98a3"/>`) +
+      `<circle cx="31.5" cy="48.5" r="2.4" fill="#22c55e"/><circle cx="31.5" cy="48.5" r="1" fill="#e9fbe9"/>`,
+
+    // Router Cisco ISR 4331: chassi preto, grelha de ventilação, NIM, portas GE, consola azul
+    router: sombra(34, 47, 28, 3) + caixa(4, 27, 47, 17, 10, "#2b2f36", "#4a515b", "#1c1f24") +
+      `<path d="M16 25.6 l6 -3.3 M20 25.6 l6 -3.3 M24 25.6 l6 -3.3 M28 25.6 l6 -3.3 M32 25.6 l6 -3.3" stroke="#2e333a" stroke-width=".7"/>` +
+      `<rect x="5.6" y="28.6" width="9" height="13.8" rx=".6" fill="#1b1e23"/>` +
+      rep(20, (i) => led(7 + (i % 4) * 2.1 + (Math.floor(i / 4) % 2) * 1.05, 30 + Math.floor(i / 4) * 2.6, 0.6, "#0a0b0d")) +
+      `<rect x="16.5" y="29" width="6" height="1.1" fill="#b9c0c8"/>` +
+      `<rect x="16.5" y="31.6" width="14" height="4.6" rx=".4" fill="#23272d" stroke="#454c55" stroke-width=".4"/>` +
+      `<rect x="16.5" y="37.4" width="14" height="4.6" rx=".4" fill="#23272d" stroke="#454c55" stroke-width=".4"/>` +
+      led(17.6, 33.9, 0.45, "#9aa3ad") + led(29.4, 33.9, 0.45, "#9aa3ad") + led(17.6, 39.7, 0.45, "#9aa3ad") + led(29.4, 39.7, 0.45, "#9aa3ad") +
+      rep(3, (i) => rj(32.4 + i * 3.8, 32.8, 3.1, 2.9) + led(33.2 + i * 3.8, 31.6, 0.4, i < 2 ? "#22c55e" : "#4b525c")) +
+      `<rect x="32.4" y="37.6" width="3.1" height="2.8" rx=".3" fill="#5cc3e8"/>` + rj(36.2, 37.6, 3.1, 2.8) +
+      `<rect x="40.2" y="38.4" width="2.6" height="1.2" rx=".3" fill="#9aa1aa"/>` +
+      `<rect x="44" y="32.6" width="5" height="3" rx=".3" fill="#6f7782"/><rect x="44.6" y="33.3" width="3.8" height="1.6" fill="#0b0d10"/>` +
+      led(45, 39, 0.75) + led(47.6, 39, 0.75) + led(45, 41.4, 0.55, "#f2a516"),
+
+    // Catalyst 2960: chassi 1U cinzento-claro, 24 portas RJ45 em 2 filas + 2 uplinks
+    switch: sombra(34, 46, 29, 3) + caixa(3, 30, 50, 13, 10, "#c9d1d9", "#e4e9ee", "#9aa6b2") +
+      `<rect x="4" y="31" width="8" height="11" rx=".5" fill="#3e5a73"/>` +
+      `<rect x="5" y="32.2" width="5" height=".9" fill="#d6e2ee"/>` +
+      led(5.8, 35.2, 0.6) + led(5.8, 37.4, 0.6) + led(5.8, 39.6, 0.6, "#f2a516") + `<rect x="8" y="38.6" width="2.6" height="2" rx=".4" fill="#20262d"/>` +
+      `<rect x="13" y="33.4" width="33.5" height="7.6" rx=".4" fill="#8794a1"/>` +
+      portasSwitch(13.5, 34.6, 12, 2.2, 2.4, 2.6, "#14181d", [0, 1, 2, 4, 5, 8, 9]) +
+      `<rect x="47.4" y="33.4" width="5" height="7.6" rx=".4" fill="#8794a1"/>` + rj(47.9, 34.6, 1.9, 2.4) + rj(50, 34.6, 1.9, 2.4) +
+      `<rect x="47.9" y="37.9" width="1.9" height="2.3" fill="#2a2f36"/><rect x="50" y="37.9" width="1.9" height="2.3" fill="#2a2f36"/>`,
+
+    // Catalyst 3650 (multicamada): chassi escuro, portas PoE+, módulo de uplinks SFP, distintivo L3
+    switch_l3: sombra(34, 47, 29, 3) + caixa(3, 29, 50, 15, 10, "#353b44", "#59616c", "#23272d") +
+      `<rect x="4.6" y="30.6" width="7" height="4.2" rx=".6" fill="#1a56d6"/>` +
+      `<text x="8.1" y="33.9" text-anchor="middle" fill="#fff" style="font: 800 3.6px system-ui, sans-serif">L3</text>` +
+      led(5.6, 37.2, 0.6) + led(8, 37.2, 0.6) + led(10.4, 37.2, 0.6, "#f2a516") + `<rect x="5" y="39.4" width="5.8" height="1" fill="#aab2bc"/>` +
+      `<rect x="13" y="32.6" width="33.5" height="8.4" rx=".4" fill="#262a30"/>` +
+      portasSwitch(13.5, 34.4, 12, 2.2, 2.6, 2.6, "#08090b", [0, 1, 3, 4, 6, 7, 10]) +
+      `<rect x="13.5" y="41.8" width="6" height=".8" fill="#f2a516"/>` +
+      `<rect x="47.2" y="31" width="5.4" height="11.6" rx=".5" fill="#1d2025"/>` +
+      rep(4, (i) => `<rect x="${n2(47.7 + (i % 2) * 2.5)}" y="${n2(32.4 + Math.floor(i / 2) * 4.6)}" width="2.1" height="3.4" fill="#a7b0ba"/><rect x="${n2(48.1 + (i % 2) * 2.5)}" y="${n2(32.9 + Math.floor(i / 2) * 4.6)}" width="1.3" height="2.4" fill="#0b0d10"/>`),
+
+    // Firewall Cisco ASA 5506-X: caixa de secretária escura, faixa laranja, grelha no topo
+    firewall: sombra(33, 49, 25, 3) + caixa(9, 33, 38, 14, 13, "#25282d", "#3b4048", "#191b1f") +
+      rep(6, (i) => `<path d="M${n2(15 + i * 5.2)} ${31.6} l${7.4} -4.1" stroke="#262a30" stroke-width="1.2" stroke-linecap="round"/>`) +
+      `<rect x="9" y="33" width="38" height="2.4" fill="#e2552d"/><rect x="9" y="35.4" width="38" height=".5" fill="#a83a1c"/>` +
+      `<rect x="12" y="38" width="7" height="1.1" fill="#b9c0c8"/>` +
+      led(13, 42.4, 0.75) + led(16, 42.4, 0.75) + led(19, 42.4, 0.75, "#f2a516") + led(22, 42.4, 0.75, "#3a4049") +
+      `<path d="M38.5 37.6 l3.5 1.2 v3 c0 2.2 -1.6 3.4 -3.5 4.2 c-1.9 -0.8 -3.5 -2 -3.5 -4.2 v-3z" fill="#e2552d"/><path d="M38.5 39.6 v4.8" stroke="#fff" stroke-width=".7"/>`,
+
+    // Ponto de acesso Cisco Aironet de teto (disco branco com LED de estado)
+    ap: sombra(32, 46, 25, 3) +
+      `<path d="M7 31 v4.5 a25 10.5 0 0 0 50 0 V31z" fill="#c6ccd3"/>` +
+      `<ellipse cx="32" cy="31" rx="25" ry="10.5" fill="#f3f5f7"/>` +
+      `<path d="M7 31 v4.5 a25 10.5 0 0 0 50 0 V31 a25 10.5 0 0 0 -50 0z" class="i-aro"/>` +
+      `<ellipse cx="32" cy="31" rx="17" ry="7" fill="none" stroke="#d8dde3" stroke-width=".9"/>` +
+      `<ellipse cx="32" cy="31.4" rx="4.4" ry="1.9" fill="#d3f5df"/><ellipse cx="32" cy="31.4" rx="2.6" ry="1.1" fill="#22c55e"/>` +
+      `<rect x="28.5" y="36" width="7" height="1" rx=".5" fill="#b9c0c8"/>` +
+      `<path d="M13 27 a25 10 0 0 1 22 -6" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>`,
+
+    // Controlador Wireless (WLC 2504) em 1U com orelhas de bastidor
+    wlc: sombra(33, 47, 28, 3) + caixa(5, 30, 46, 13, 10, "#2d3239", "#4b525c", "#1d2025") +
+      `<rect x="1.8" y="30" width="3.4" height="13" rx=".6" fill="#9aa3ad"/><circle cx="3.5" cy="33" r=".7" fill="#3a3f46"/><circle cx="3.5" cy="40" r=".7" fill="#3a3f46"/>` +
+      `<rect x="7" y="32" width="12" height="9" rx=".8" fill="#c9ced6"/>` +
+      `<g fill="none" stroke="#1a56d6" stroke-width=".9" stroke-linecap="round"><path d="M10.6 36.6 a4 4 0 0 1 4.8 0"/><path d="M9.2 35.2 a6 6 0 0 1 7.6 0"/></g>` + led(13, 38.3, 0.65, "#1a56d6") +
+      rep(4, (i) => rj(21.5 + i * 4, 34.2, 3.2, 3) + led(22.3 + i * 4, 32.8, 0.4, i < 3 ? "#22c55e" : "#4b525c")) +
+      `<rect x="38.4" y="34.2" width="3.2" height="3" rx=".3" fill="#5cc3e8"/>` +
+      led(45, 34.4, 0.75) + led(47.6, 34.4, 0.75) + led(45, 37.4, 0.75, "#f2a516") + `<rect x="21.5" y="39.4" width="15" height=".8" fill="#5b636d"/>`,
+
+    // PC de secretária: monitor, torre e teclado
+    pc: sombra(33, 55, 28, 3) +
+      caixa(43, 19, 12, 32, 6, "#2f343b", "#4a5059", "#1f2328") +
+      `<rect x="45" y="22" width="8" height="1.8" rx=".3" fill="#15181c"/><rect x="45" y="25" width="8" height="1" rx=".3" fill="#15181c"/>` +
+      `<circle cx="49" cy="31" r="1.6" fill="#9aa3ad"/><circle cx="49" cy="31" r="1.6" fill="none" stroke="#3aa0ff" stroke-width=".5"/>` +
+      `<path d="M45 42 h8 M45 44 h8 M45 46 h8 M45 48 h8" stroke="#24282d" stroke-width=".8"/>` +
+      `<path d="M18 41 h9 l1.5 3.4 h-12z" fill="#454b54"/><rect x="20.6" y="35" width="3.8" height="6.5" fill="#5b626c"/>` +
+      `<path d="M39.5 9.6 l1.6 -1 v26.4 l-1.6 1z" fill="#4a5059"/>` +
+      `<rect x="4" y="9.6" width="35.5" height="26" rx="1.2" fill="#15171b"/><rect x="4" y="9.6" width="35.5" height="26" rx="1.2" class="i-aro"/>` +
+      ecra(5.6, 11.2, 32.3, 21.4) + `<rect x="20.4" y="33.4" width="2.6" height=".7" rx=".3" fill="#5b626c"/>` +
+      `<path d="M5 53.4 h29 l4 -4.4 h-29z" fill="#d7dbe0"/><path d="M5 53.4 h29 v1.2 h-29z" fill="#9aa2ac"/><path d="M34 53.4 l4 -4.4 v1.2 l-4 4.4z" fill="#b5bcc4"/>` +
+      `<path d="M5 53.4 h29 l4 -4.4 h-29z" class="i-aro"/>` +
+      `<path d="M8.6 52.2 h25.6 M9.7 51 h25.6 M10.8 49.8 h25.6" stroke="#9aa2ac" stroke-width=".55" stroke-dasharray="1.4 .5"/>`,
+
+    // Portátil aberto
+    portatil: sombra(33, 53, 28, 3) +
+      `<path d="M18 40 L58 40 L60.5 9 L21 9z" fill="#2a2e34"/>` +
+      `<path d="M19.8 38.4 L56.4 38.4 L58.6 10.6 L22.7 10.6z" fill="#2563c9"/>` +
+      `<path d="M19.8 38.4 L45 38.4 Q46 28 58 22 L58.6 10.6 L22.7 10.6z" fill="#5fa5ff" opacity=".35"/>` +
+      `<path d="M22.7 10.6 h18 L30 38.4 h-10.2z" fill="#fff" opacity=".1"/>` +
+      `<path d="M18 40 L58 40 L60.5 9 L21 9z" class="i-aro"/>` +
+      `<path d="M6 48 h40 l12 -8 h-40z" fill="#c9ced5"/><path d="M6 48 h40 v2.4 h-40z" fill="#99a1ab"/><path d="M46 48 l12 -8 v2.4 l-12 8z" fill="#b0b7c0"/>` +
+      `<path d="M15.4 45 h30.4 l6.2 -4.2 h-30.4z" fill="#2b2f35"/>` +
+      `<path d="M17.5 44 h27 M19 43 h27 M20.5 42 h27" stroke="#59606a" stroke-width=".5" stroke-dasharray="1.6 .5"/>` +
+      `<path d="M22.2 47.4 h9.6 l2.6 -1.8 h-9.6z" fill="#b3bac3"/>` +
+      `<path d="M6 50.4 V48 l12 -8 h40 v2.4 l-12 8z" class="i-aro"/>`,
+
+    // Servidor em torre com baías de discos hot-swap
+    servidor: sombra(35, 55, 20, 3) + caixa(17, 17, 22, 37, 11, "#2b2f36", "#4a515b", "#1c1f24") +
+      `<path d="M41 16 l6 -3.3 M41 22 l6 -3.3 M41 28 l6 -3.3 M41 34 l6 -3.3 M41 40 l6 -3.3 M41 46 l6 -3.3" stroke="#2a2e34" stroke-width="1"/>` +
+      rep(8, (i) => { const x = 19 + (i % 2) * 9.4, y = 19.5 + Math.floor(i / 2) * 5.2;
+        return `<rect x="${x}" y="${n2(y)}" width="8.6" height="4.4" rx=".4" fill="#454c56"/><rect x="${x + 0.6}" y="${n2(y + 0.7)}" width="5.6" height="1" fill="#b4bcc5"/>${led(x + 7.4, y + 3.2, 0.45, i === 5 ? "#f2a516" : "#22c55e")}`; }) +
+      `<rect x="19" y="41.2" width="18" height="9.8" rx=".6" fill="#22262c"/>` +
+      `<path d="M20.5 43 h15 M20.5 45 h15 M20.5 47 h15 M20.5 49 h15" stroke="#3a4049" stroke-width=".8"/>` +
+      `<circle cx="34.8" cy="39.5" r=".9" fill="#3aa0ff"/>` + led(31.8, 39.5, 0.55),
+
+    // Internet / operador: nuvem com globo
+    nuvem: `<path d="M14 47 A9 9 0 0 1 12.6 29 A13.5 13.5 0 0 1 37.5 21.5 A10 10 0 0 1 52.5 31 A8 8 0 0 1 52 47z" fill="#e6edf5"/>` +
+      `<path d="M10 41 A9 9 0 0 0 14 47 H52 A8 8 0 0 0 59.6 41z" fill="#c7d3e0"/>` +
+      `<path d="M14 47 A9 9 0 0 1 12.6 29 A13.5 13.5 0 0 1 37.5 21.5 A10 10 0 0 1 52.5 31 A8 8 0 0 1 52 47z" fill="none" stroke="#8ea3b8" stroke-width="1.2"/>` +
+      `<path d="M15 30 A12 12 0 0 1 31 19.5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".9"/>` +
+      `<circle cx="41" cy="42" r="11" fill="#2f7fd8"/>` +
+      `<path d="M33.5 37 c3 1 4 4 2.5 6 s1 4 3.5 4.5 c1 2 -1 4 -2 4.5 M44 32 c-1 2 1 3 3 3 s3 2 2 4 c2 1 3 3 2.8 5" fill="none" stroke="#5fd18c" stroke-width="2.2" stroke-linecap="round" opacity=".85"/>` +
+      `<g fill="none" stroke="#fff" stroke-width=".8" opacity=".9"><ellipse cx="41" cy="42" rx="4.6" ry="11"/><path d="M30 42 h22 M31.6 36.5 h18.8 M31.6 47.5 h18.8 M41 31 v22"/></g>` +
+      `<circle cx="41" cy="42" r="11" fill="none" stroke="#fff" stroke-width="1.4"/>`,
+
+    // Telefone IP Cisco 7960: corpo inclinado, auscultador à esquerda, ecrã LCD e teclado
+    telefone_ip: (() => {
+      const A = [9, 50], B = [52, 50], C = [56, 21], D = [16, 21], f = quad(A, B, C, D);
+      let s = sombra(33, 52, 26, 2.6) +
+        poly([B, [56, 47.6], [59.4, 19.2], C], 'fill="#23272c"') +
+        poly([A, B, [56, 47.6], [56, 49.6], [52, 52], [9, 52]], 'fill="#1d2025"') +
+        poly([A, B, C, D], 'fill="#3d434b"') + poly([A, B, C, D], 'class="i-aro"') +
+        poly([f(0.3, 0.55), f(0.86, 0.55), f(0.86, 0.94), f(0.3, 0.94)], 'fill="#22262b"') +
+        poly([f(0.33, 0.6), f(0.83, 0.6), f(0.83, 0.9), f(0.33, 0.9)], 'fill="#b9cba8"') +
+        rep(3, (i) => poly([f(0.37, 0.84 - i * 0.07), f(0.7 - i * 0.1, 0.84 - i * 0.07), f(0.7 - i * 0.1, 0.81 - i * 0.07), f(0.37, 0.81 - i * 0.07)], 'fill="#55654a"')) +
+        rep(4, (i) => poly([f(0.9, 0.62 + i * 0.08), f(0.96, 0.62 + i * 0.08), f(0.96, 0.67 + i * 0.08), f(0.9, 0.67 + i * 0.08)], 'fill="#c3cad2"'));
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+        const u = 0.36 + c * 0.1, v = 0.08 + (3 - r) * 0.1;
+        s += poly([f(u, v), f(u + 0.075, v), f(u + 0.075, v + 0.07), f(u, v + 0.07)], 'fill="#c3cad2"');
+      }
+      s += poly([f(0.7, 0.1), f(0.85, 0.1), f(0.85, 0.17), f(0.7, 0.17)], 'fill="#e2552d"') +
+        poly([f(0.7, 0.24), f(0.85, 0.24), f(0.85, 0.4), f(0.7, 0.4)], 'fill="#8f98a3"') +
+        `<g transform="translate(15.6 34.6) rotate(-77)"><rect x="-15" y="-4.6" width="30" height="9.2" rx="4" fill="#2a2e34"/><rect x="-15" y="-4.6" width="30" height="9.2" rx="4" class="i-aro"/>` +
+        `<rect x="-11" y="-3.6" width="22" height="2" rx="1" fill="#fff" opacity=".18"/><ellipse cx="-12" cy="0" rx="2.6" ry="4" fill="#1f2226"/><ellipse cx="12" cy="0" rx="2.6" ry="4" fill="#1f2226"/></g>`;
+      return s;
+    })(),
   };
 
   function icone(tipo, tamanho) {
