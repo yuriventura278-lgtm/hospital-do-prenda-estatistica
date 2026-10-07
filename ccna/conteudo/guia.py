@@ -2,7 +2,7 @@
 
 DOMINIOS_EXAME = [
     # (domínio, peso %, módulos da app)
-    ("1.0 Network Fundamentals", 20, ["m1", "m2", "m3", "m4"]),
+    ("1.0 Network Fundamentals", 20, ["m0", "m1", "m2", "m3", "m4"]),
     ("2.0 Network Access", 20, ["m5"]),
     ("3.0 IP Connectivity", 25, ["m6"]),
     ("4.0 IP Services", 10, ["m7"]),
@@ -11,6 +11,7 @@ DOMINIOS_EXAME = [
 ]
 
 PLANO_SEMANAL = [
+    ("Semana 0", "Módulo 0 (do zero)", "Para quem nunca estudou informática: computador, história das redes, binário."),
     ("Semana 1", "Módulo 1 + Módulo 2", "Instale o Packet Tracer. Desenhe a rede de sua casa com os ícones certos."),
     ("Semana 2", "Módulo 3 (IPv4 e sub-redes)", "Desafio Sub-rede todos os dias: objetivo 10 acertos seguidos em menos de 30 s cada."),
     ("Semana 3", "Módulo 3 (VLSM e IPv6) + Módulo 4", "Faça os Laboratórios CLI 1 e 2 até não precisar de ajuda."),
@@ -102,4 +103,21 @@ SIM_REAL_RESUMO = [
     ("Riscos", "Nenhum: apague e recomece.", "Um erro corta a rede de uma empresa; use janelas de manutenção e 'reload in'."),
     ("Testes", "Modo Simulation mostra cada pacote.", "Wireshark com SPAN, ping, traceroute, logs."),
     ("Documentação", "Opcional.", "Obrigatória: diagramas, IPAM, backups e registo de alterações."),
+]
+
+# Opções do primeiro acesso
+MOTIVOS = [
+    "Passar no exame CCNA",
+    "Conseguir emprego em redes/TI",
+    "Melhorar no meu trabalho atual",
+    "Faculdade ou curso técnico",
+    "Mudar de carreira",
+    "Gerir a rede de casa ou da minha empresa",
+    "Curiosidade / gosto de tecnologia",
+]
+EXPERIENCIA = [
+    ("zero", "Nunca estudei informática", "Começa no Módulo 0, do zero absoluto."),
+    ("basico", "Uso computador, mas não sei nada de redes", "Começa no Módulo 0; pode avançar depressa."),
+    ("algum", "Já sei o básico de redes", "Pode começar no Módulo 1 e passar a prova do Módulo 0."),
+    ("trabalho", "Já trabalho na área", "Sugerimos o modo livre para ir direto ao que precisa."),
 ]

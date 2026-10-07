@@ -32,7 +32,15 @@ class TestConteudo(unittest.TestCase):
             self.assertGreaterEqual(total, 15, m["id"])
 
     def test_numeracao_dos_modulos(self):
-        self.assertEqual([m["numero"] for m in self.c["modulos"]], list(range(1, len(self.c["modulos"]) + 1)))
+        self.assertEqual([m["numero"] for m in self.c["modulos"]], list(range(0, len(self.c["modulos"]))))
+
+    def test_cada_modulo_comeca_pelo_basico(self):
+        for m in self.c["modulos"][1:]:
+            self.assertTrue(m["licoes"][0]["titulo"].startswith("Comece por aqui"), m["id"])
+
+    def test_ha_casos_reais_e_cenarios(self):
+        self.assertGreaterEqual(len(self.c["casos"]), 10)
+        self.assertTrue(all(l["cenario"] for l in self.c["labs"]))
 
 
 @unittest.skipUnless(shutil.which("node"), "Node.js não instalado")

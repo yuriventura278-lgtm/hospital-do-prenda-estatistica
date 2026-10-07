@@ -71,4 +71,14 @@ REFERENCIAS = {
     "ansible": "RED HAT. Ansible Network Automation Documentation. Disponível em: https://docs.ansible.com. Acesso em: 2026.",
     "wifi_alliance": "WI-FI ALLIANCE. WPA3 Specification. Disponível em: https://www.wi-fi.org. Acesso em: 2026.",
     "nist": "NIST. SP 800-63B: Digital Identity Guidelines – Authentication and Lifecycle Management. Gaithersburg: NIST, 2017.",
+
+    # História e computadores
+    "leiner": "LEINER, Barry M. et al. A brief history of the Internet. ACM SIGCOMM Computer Communication Review, v. 39, n. 5, p. 22-31, 2009.",
+    "isaacson": "ISAACSON, Walter. Os inovadores: uma biografia da revolução digital. São Paulo: Companhia das Letras, 2014.",
+    "cerf_kahn": "CERF, Vinton G.; KAHN, Robert E. A Protocol for Packet Network Intercommunication. IEEE Transactions on Communications, v. 22, n. 5, p. 637-648, 1974.",
+    "metcalfe": "METCALFE, Robert M.; BOGGS, David R. Ethernet: Distributed Packet Switching for Local Computer Networks. Communications of the ACM, v. 19, n. 7, p. 395-404, 1976.",
+    "berners_lee": "BERNERS-LEE, Tim. Information Management: A Proposal. Genebra: CERN, 1989.",
+    "rfc1": "CROCKER, S. RFC 1: Host Software. IETF, 1969.",
+    "tanenbaum_org": "TANENBAUM, Andrew S.; AUSTIN, Todd. Organização estruturada de computadores. 6. ed. São Paulo: Pearson, 2013.",
+    "patterson": "PATTERSON, David A.; HENNESSY, John L. Organização e projeto de computadores: a interface hardware/software. 5. ed. Rio de Janeiro: Elsevier, 2017.",
 }

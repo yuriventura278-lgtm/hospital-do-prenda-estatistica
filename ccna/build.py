@@ -54,8 +54,12 @@ def ficheiro_unico(js_conteudo: str) -> str:
     html = re.sub(r'<link rel="stylesheet" href="([^"]+)">', css, html)
     html = re.sub(r'<script src="(js/[^"]+)"></script>', js, html)
     html = re.sub(r'\s*<link rel="manifest"[^>]*>', "", html)
-    icone = base64.b64encode((WWW / "icons" / "icon.svg").read_bytes()).decode()
-    html = html.replace('href="icons/icon.svg"', f'href="data:image/svg+xml;base64,{icone}"')
+    # imagens da pasta icons/ passam a data URIs (o ficheiro único não tem pasta ao lado)
+    tipos = {".png": "image/png", ".webp": "image/webp", ".svg": "image/svg+xml"}
+    for f in (WWW / "icons").iterdir():
+        if f.suffix in tipos and f"icons/{f.name}" in html:
+            uri = f"data:{tipos[f.suffix]};base64," + base64.b64encode(f.read_bytes()).decode()
+            html = html.replace(f"icons/{f.name}", uri)
     return html
 
 

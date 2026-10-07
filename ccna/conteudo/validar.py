@@ -8,7 +8,8 @@ FIGURAS = {"router", "switch", "switch_l3", "firewall", "ap", "wlc", "pc",
            "portatil", "servidor", "nuvem", "telefone_ip", "cabo_utp",
            "cabo_fibra", "cabo_consola", "rj45_pinos", "osi", "encapsulamento",
            "handshake", "painel_switch", "painel_router", "stp",
-           "trama_ethernet", "cabecalho_ipv4", "cabecalho_ipv6", "nat", "sdn"}
+           "trama_ethernet", "cabecalho_ipv4", "cabecalho_ipv6", "nat", "sdn",
+           "computador_partes", "linha_tempo"}
 NOS_TOPOLOGIA = {"router", "switch", "switch_l3", "firewall", "ap", "wlc", "pc",
                  "portatil", "servidor", "nuvem", "telefone_ip"}
 CHECKS = {"mode", "ran", "hostname", "iface_ip", "iface_up", "iface_desc",
@@ -88,4 +89,14 @@ def validar(curso: dict) -> list[str]:
         for t in lab["tarefas"]:
             if t["check"]["t"] not in CHECKS:
                 erros.append(f"{lab['id']}: verificação desconhecida {t['check']['t']!r}")
+    for c in curso.get("casos", []):
+        if c["modulo"] not in ids:
+            erros.append(f"{c['id']}: módulo {c['modulo']!r} não existe")
+        if len(c["etapas"]) < 3:
+            erros.append(f"{c['id']}: um caso precisa de pelo menos 3 etapas")
+        for i, q in enumerate(c["etapas"]):
+            _pergunta(q, f"{c['id']} etapa #{i + 1}", erros)
+    for lab in curso["labs"]:
+        if not lab.get("cenario"):
+            erros.append(f"{lab['id']}: laboratório sem cenário real")
     return erros

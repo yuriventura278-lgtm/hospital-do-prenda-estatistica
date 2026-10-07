@@ -7,9 +7,9 @@
   --ink: #0d1925;
   --muted: #536375;
   --line: #d3dbe3;
-  --accent: #0a6c8c;
+  --accent: #1a56d6;
   --accent-ink: #ffffff;
-  --accent-soft: #dcedf3;
+  --accent-soft: #e1eafc;
   --ok: #1b8d4c;
   --ok-soft: #dcf2e5;
   --warn: #b77a06;
@@ -28,10 +28,10 @@
   --porta-in: #0b1116;
   --slot: #b6c0ca;
   --plastico: #dbe4ec;
-  --ico: #1d7ea6;
-  --ico-esc: #135c7b;
-  --ico-claro: #63b4d4;
-  --ecra: #c4e7f3;
+  --ico: #1f6fe0;
+  --ico-esc: #0e3f9e;
+  --ico-claro: #6aa8ff;
+  --ecra: #cfe0ff;
   --nuvem: #9fb2c3;
   --d1: #1f6f8b; --d2: #2b8a6e; --d3: #6a5acd; --d4: #b5651d; --d5: #8b3a62; --d6: #3d6fb6; --d7: #5c6b7a;
   --shadow: 0 1px 2px rgba(13, 25, 37, .06), 0 4px 16px rgba(13, 25, 37, .06);
@@ -44,20 +44,20 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #091017; --surface: #101a24; --surface-2: #15212d; --ink: #e2e9f0; --muted: #91a3b5; --line: #223241;
-    --accent: #48bfdf; --accent-ink: #032029; --accent-soft: #0f2c37;
+    --accent: #6ea4ff; --accent-ink: #061634; --accent-soft: #13254a;
     --ok: #3ccb7a; --ok-soft: #0f2a1c; --warn: #f0b23a; --warn-soft: #2d230d; --bad: #f07070; --bad-soft: #321616;
     --led-off: #2a3946; --chassi: #2a3744; --slot: #3a4856; --plastico: #3b4b59; --porta: #121a21;
-    --ico: #3aa6cf; --ico-esc: #1e6f90; --ico-claro: #7fcbe6; --ecra: #0f3442; --nuvem: #5d7286;
+    --ico: #4b8df0; --ico-esc: #1e4fa8; --ico-claro: #8dbbff; --ecra: #12284f; --nuvem: #5d7286;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #091017; --surface: #101a24; --surface-2: #15212d; --ink: #e2e9f0; --muted: #91a3b5; --line: #223241;
-  --accent: #48bfdf; --accent-ink: #032029; --accent-soft: #0f2c37;
+  --accent: #6ea4ff; --accent-ink: #061634; --accent-soft: #13254a;
   --ok: #3ccb7a; --ok-soft: #0f2a1c; --warn: #f0b23a; --warn-soft: #2d230d; --bad: #f07070; --bad-soft: #321616;
   --led-off: #2a3946; --chassi: #2a3744; --slot: #3a4856; --plastico: #3b4b59; --porta: #121a21;
-  --ico: #3aa6cf; --ico-esc: #1e6f90; --ico-claro: #7fcbe6; --ecra: #0f3442; --nuvem: #5d7286;
+  --ico: #4b8df0; --ico-esc: #1e4fa8; --ico-claro: #8dbbff; --ecra: #12284f; --nuvem: #5d7286;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
@@ -360,3 +360,54 @@ textarea.campo { min-height: 120px; font-family: var(--f-mono); font-size: .8rem
 .vazio > svg, .resultado > svg { width: 44px; height: 44px; color: var(--accent); }
 .ico-caixa > svg { width: 26px; height: 26px; color: var(--accent); }
 .estado-ico svg { width: 16px; height: 16px; }
+
+/* ------------------------------------------------------------ primeiro acesso */
+body.sem-nav .nav { display: none; }
+body.sem-nav main { padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
+.onboarding { display: grid; gap: 18px; }
+.ob-hero { display: grid; justify-items: center; text-align: center; gap: 10px; padding: 12px 0; }
+.ob-hero p { color: var(--muted); max-width: 40ch; }
+.passos-ob { display: flex; gap: 6px; justify-content: center; }
+.passos-ob i { width: 26px; height: 8px; border-radius: 2px; background: var(--led-off); }
+.passos-ob i.on { background: var(--led-on); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.chip-op { border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: .9rem; cursor: pointer; min-height: 40px; }
+.chip-op[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.chip-op.dia { min-width: 54px; }
+.opcao-ob[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.erro-campo { color: var(--bad); font-weight: 700; }
+.resumo-plano { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 420px) { .resumo-plano { grid-template-columns: 1fr 1fr; } .resumo-plano > div:last-child { grid-column: 1 / -1; } }
+.resumo-plano > div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
+.resumo-plano b { font-family: var(--f-display); font-stretch: 85%; font-size: 1.1rem; }
+
+/* ------------------------------------------------------------ plano diário */
+.hoje h2 { font-size: 1.15rem; margin-top: 2px; }
+.sessao { display: grid; gap: 6px; }
+.tarefa { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); text-align: left; cursor: pointer; }
+.tarefa > svg { width: 20px; height: 20px; color: var(--accent); }
+.tarefa .meio { min-width: 0; display: grid; }
+.tarefa .meio b { font-size: .92rem; line-height: 1.25; }
+.tarefa[aria-disabled="true"] { opacity: .55; }
+.dia-plano { gap: 8px; }
+details > summary { cursor: pointer; }
+
+/* ------------------------------------------------------------ módulo: o que vai aprender */
+.grelha-aprender { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 380px) { .grelha-aprender { grid-template-columns: 1fr; } }
+.tile { display: grid; gap: 6px; align-content: start; text-align: left; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; min-width: 0; }
+.tile b { font-family: var(--f-display); font-stretch: 88%; font-size: .98rem; line-height: 1.2; }
+.tile ul { margin: 0; padding-left: 1.05em; font-size: .8rem; color: var(--muted); display: grid; gap: 2px; }
+.tile.feita { border-color: var(--ok); }
+.tile.feita .rotulo { color: var(--ok); }
+.tile.extra { background: var(--surface-2); cursor: default; }
+.tile[aria-disabled="true"] { opacity: .6; }
+
+/* ------------------------------------------------------------ casos e contexto */
+.caso-cab h1 { font-size: 1.45rem; }
+.cenario { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; font-size: .92rem; }
+.contexto-sub { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: .95rem; }
+
+.marca img { border-radius: 8px; background: #fff; }
+.marca b { font-size: .78rem; line-height: 1.05; color: var(--ink); }
+.logo { display: block; width: min(260px, 70vw); height: auto; border-radius: 18px; background: #fff; }

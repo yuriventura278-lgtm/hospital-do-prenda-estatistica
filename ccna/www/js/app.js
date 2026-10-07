@@ -36,6 +36,8 @@
     fogo: '<path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z"/>',
     relogio: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    caso: '<path d="M4 7h16v12H4zM9 7V5h6v2M4 12h16M11 12v2h2v-2"/>',
+    calendario: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M14 14h2M8 18h2"/>',
     lua: '<path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/>',
   };
   const ic = (n, cls) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${cls || ""}" aria-hidden="true">${IC[n]}</svg>`;
@@ -48,7 +50,15 @@
   const CORES_AVATAR = ["#0a6c8c", "#2b8a6e", "#6a5acd", "#b5651d", "#8b3a62", "#3d6fb6"];
 
   function novoPerfil(nome) {
-    return { id: "p" + Date.now().toString(36), nome, cor: CORES_AVATAR[Math.floor(Math.random() * CORES_AVATAR.length)], xp: 0, licoes: {}, provas: {}, labs: {}, erros: [], dias: [], conquistas: {}, recordes: { subrede: 0, relampago: 0 }, criado: Date.now() };
+    return completarPerfil({ id: "p" + Date.now().toString(36), nome, cor: CORES_AVATAR[Math.floor(Math.random() * CORES_AVATAR.length)], criado: Date.now() });
+  }
+  // Garante todos os campos (também em perfis guardados por versões anteriores).
+  function completarPerfil(p) {
+    const base = { xp: 0, licoes: {}, provas: {}, labs: {}, casos: {}, erros: [], dias: [], conquistas: {}, recordes: { subrede: 0, relampago: 0 },
+      idade: null, genero: "", motivos: [], experiencia: "", onboard: false, tempo: {}, tempoLicao: {}, reforcos: {},
+      plano: { min: 30, sessoes: 1, dias: [1, 2, 3, 4, 5] }, alvo: null };
+    Object.keys(base).forEach((k) => { if (p[k] === undefined) p[k] = base[k]; });
+    return p;
   }
   let S;
   function carregar() {
@@ -57,6 +67,7 @@
       const p = novoPerfil("Estudante");
       S = { perfis: { [p.id]: p }, ativo: p.id, tema: "auto", livre: false };
     }
+    Object.values(S.perfis).forEach(completarPerfil);
   }
   function guardar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch (e) { /* armazenamento indisponível: a app funciona na mesma */ } }
   const P = () => S.perfis[S.ativo];
@@ -146,15 +157,17 @@
 
   function render() {
     if (limpar) { limpar(); limpar = null; }
+    if (!P().onboard) rota = { tela: "boasvindas" };
+    document.body.classList.toggle("sem-nav", rota.tela === "boasvindas");
     const t = rota.tela, raiz = !!RAIZ[t];
     const n = nivel(P().xp);
     const titulo = TITULOS[t] ? TITULOS[t]() : "";
-    $("#topo").innerHTML = raiz
-      ? `<div class="marca">${F.icone("router", 30)}<b>CCNA PASSO A PASSO</b></div><span style="flex:1"></span>
+    $("#topo").innerHTML = t === "boasvindas" ? `<div class="marca"><img src="icons/icon-64.png" alt="" width="34" height="34"><b>REDES DE COMPUTADORES</b></div>` : raiz
+      ? `<div class="marca"><img src="icons/icon-64.png" alt="" width="34" height="34"><b>REDES DE<br>COMPUTADORES</b></div><span style="flex:1"></span>
          <span class="xp-pilula tab-num" title="${esc(n.nome)}">${ic("estrela")} ${P().xp} XP</span>
          <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${ic("perfil")}</button>`
       : `<button class="btn-icone" data-acao="voltar" aria-label="Voltar">${ic("voltar")}</button><div class="titulo">${esc(titulo)}</div>`;
-    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", ranking: "ranking", guia: "guia" }[t];
+    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
     document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.ir === tab ? "page" : "false"));
     $("#app").innerHTML = TELAS[t]();
     if (POS[t]) POS[t]();
@@ -163,6 +176,7 @@
     modulo: () => "Módulo " + mod(rota.mid).numero, licao: () => LICOES[rota.lid].titulo, quiz: () => "Quiz · " + LICOES[rota.lid].titulo,
     prova: () => "Prova · Módulo " + mod(rota.mid).numero, relampago: () => "Quiz relâmpago", subrede: () => "Desafio sub-rede",
     labs: () => "Laboratório CLI", lab: () => labPorId(rota.id).titulo, revisao: () => "Caderno de erros", perfil: () => "Perfil e definições",
+    plano: () => "O meu plano", casos: () => "Casos reais", caso: () => casoPorId(rota.id).titulo,
   };
   const mod = (id) => MODS.find((m) => m.id === id);
   const labPorId = (id) => D.labs.find((l) => l.id === id);
@@ -189,7 +203,9 @@
         <h1>${esc(n.nome)}</h1>
         <div class="barra" role="progressbar" aria-valuenow="${Math.round(n.pct * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${n.pct * 100}%"></i></div>
         <div class="meta tab-num"><span>${p.xp} XP${n.prox ? ` · faltam ${n.prox - p.xp} para ${esc(n.proxNome)}` : ""}</span><span>${feitas}/${totalLicoes} lições</span><span>${seq} dia${seq === 1 ? "" : "s"} seguidos</span></div>
+        ${p.motivos.length ? `<span class="peq" style="opacity:.9">Objetivo: ${esc(p.motivos[0])}</span>` : ""}
       </section>
+      ${cartaoHoje()}
       ${continuar}
       <section class="secao">
         <header><h2>O seu painel</h2><span class="rotulo">cada LED é uma lição</span></header>
@@ -203,6 +219,8 @@
           <button class="acao" data-acao="ir" data-tela="subrede">${ic("calc")}<b>Desafio sub-rede</b><span>Melhor série: ${p.recordes.subrede}</span></button>
           <button class="acao" data-acao="ir" data-tela="labs">${ic("terminal")}<b>Laboratório CLI</b><span>${Object.keys(p.labs).length}/${D.labs.length} concluídos</span></button>
           <button class="acao" data-acao="ir" data-tela="revisao">${ic("caderno")}<b>Caderno de erros</b><span>${p.erros.length} pergunta${p.erros.length === 1 ? "" : "s"} para rever</span></button>
+          <button class="acao" data-acao="ir" data-tela="casos">${ic("caso")}<b>Casos reais</b><span>${Object.keys(p.casos).length}/${D.casos.length} resolvidos</span></button>
+          <button class="acao" data-acao="ir" data-tela="plano">${ic("calendario")}<b>O meu plano</b><span>${horas(p.plano.min)}/dia · ${p.plano.dias.length} dias/semana</span></button>
         </div>
       </section>
       <div class="dica">${ic("dica")}<div><b>Dica de exame.</b> ${esc(dica)}</div></div>`;
@@ -227,6 +245,8 @@
     return `<div class="secao"><span class="rotulo">Módulo ${m.numero} · ${esc(m.dominio)}</span><h1>${esc(m.titulo)}</h1><p class="suave">${esc(m.descricao)}</p>
         <div class="linha"><span class="leds">${leds(m)}</span><span class="chip tab-num">${Math.round(progressoModulo(m) * 100)}% concluído</span></div></div>
       ${aberto ? "" : `<div class="alerta">${ic("cadeado")}<div>Passe a prova do Módulo ${m.numero - 1} para desbloquear, ou ative o <b>modo livre</b> no perfil.</div></div>`}
+      ${grelhaAprender(m)}
+      <h2>Aulas</h2>
       <div class="lista">${m.licoes.map((l, i) => {
         const feita = licaoFeita(l.id), ab = licaoAberta(l), r = P().licoes[l.id];
         return `<button class="item" data-acao="licao" data-id="${l.id}" ${ab ? "" : 'aria-disabled="true"'}>
@@ -239,8 +259,22 @@
           <div class="meio"><b>Prova do módulo</b><span class="suave peq">${Math.min(15, totalPerguntas(m))} perguntas · cronometrada · aprovação ${NOTA_APROVACAO}/1000</span></div>
           ${pr ? `<span class="chip ${pr.melhor >= NOTA_APROVACAO ? "ok" : "bad"} tab-num">${pr.melhor}</span>` : ""}</button>
       </div>
-      ${labs.length ? `<section class="secao"><h2>Laboratórios deste módulo</h2><div class="lista">${labs.map(itemLab).join("")}</div></section>` : ""}`;
+      ${labs.length ? `<section class="secao"><h2>Laboratórios deste módulo</h2><div class="lista">${labs.map(itemLab).join("")}</div></section>` : ""}
+      ${D.casos.some((c) => c.modulo === m.id) ? `<section class="secao"><h2>Casos reais deste módulo</h2><div class="lista">${D.casos.filter((c) => c.modulo === m.id).map(itemCaso).join("")}</div></section>` : ""}`;
   };
+  function grelhaAprender(m) {
+    const labs = D.labs.filter((l) => l.modulo === m.id), casos = D.casos.filter((c) => c.modulo === m.id);
+    const tempo = m.licoes.reduce((a, l) => a + l.minutos + Math.ceil(l.quiz.length * 1.2), 0) + labs.length * 15 + casos.length * 10 + 15;
+    const pl = P().plano, diasMod = Math.max(1, Math.ceil(tempo / pl.min));
+    return `<section class="secao"><header><h2>O que vai aprender</h2><span class="rotulo">${horas(tempo)} · ~${diasMod} dia${diasMod > 1 ? "s" : ""} de estudo</span></header>
+      <div class="grelha-aprender">${m.licoes.map((l, i) => `<button class="tile ${licaoFeita(l.id) ? "feita" : ""}" data-acao="licao" data-id="${l.id}" ${licaoAberta(l) ? "" : 'aria-disabled="true"'}>
+        <span class="rotulo">Aula ${i + 1}${licaoFeita(l.id) ? " ✓" : ""}</span><b>${esc(l.titulo.replace(/^Comece por aqui: /, ""))}</b>
+        <ul>${l.objetivos.slice(0, 2).map((o) => `<li>${esc(o)}</li>`).join("")}</ul><span class="suave peq">${l.minutos} min · ${esc(l.nivel)}</span></button>`).join("")}
+        ${labs.length ? `<div class="tile extra"><span class="rotulo">Prática</span><b>${labs.length} laboratório${labs.length > 1 ? "s" : ""} CLI</b><ul>${labs.map((l) => `<li>${esc(l.titulo)}</li>`).join("")}</ul></div>` : ""}
+        ${casos.length ? `<div class="tile extra"><span class="rotulo">Casos reais</span><b>${casos.length} situação${casos.length > 1 ? "ões" : ""} prática${casos.length > 1 ? "s" : ""}</b><ul>${casos.map((c) => `<li>${esc(c.titulo)}</li>`).join("")}</ul></div>` : ""}
+        <div class="tile extra"><span class="rotulo">Avaliação</span><b>Prova do módulo</b><ul><li>${Math.min(15, totalPerguntas(m))} perguntas cronometradas</li><li>Aprovação ${NOTA_APROVACAO}/1000</li></ul></div>
+      </div></section>`;
+  }
   const totalPerguntas = (m) => m.licoes.reduce((a, l) => a + l.quiz.length, 0) + m.prova_extra.length;
 
   // ------------------------------------------------------------ lição
@@ -263,6 +297,7 @@
     const l = LICOES[rota.lid];
     const r = P().licoes[l.id] || (P().licoes[l.id] = {});
     if (!r.lida) { r.lida = Date.now(); guardar(); setTimeout(() => ganharXP(10, "lição aberta"), 400); }
+    else if (licaoFeita(l.id) && (r.melhor || 0) < 85 && !P().reforcos[l.id]) { P().reforcos[l.id] = Date.now(); guardar(); }
   };
   const linkar = (t) => esc(t).replace(/(https?:\/\/[^\s]+?)(\.?\s|\.?$)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>$2');
 
@@ -468,6 +503,7 @@
     const p = P();
     return `<div class="secao"><h1>Jogar e praticar</h1><p class="suave">Aprender a fazer, não só a ler. Cada jogo dá XP.</p></div>
       <div class="lista">
+        <button class="item" data-acao="ir" data-tela="casos"><div class="ico-caixa">${ic("caso")}</div><div class="meio"><b>Casos reais</b><span class="suave peq">Um cliente liga com um problema: diagnostique e resolva, como no trabalho.</span></div><span class="chip acc tab-num">${Object.keys(p.casos).length}/${D.casos.length}</span></button>
         <button class="item" data-acao="ir" data-tela="relampago"><div class="ico-caixa">${ic("raio")}</div><div class="meio"><b>Quiz relâmpago</b><span class="suave peq">Quantas acerta em 60 segundos? Perguntas dos módulos desbloqueados.</span></div><span class="chip acc tab-num">${p.recordes.relampago}</span></button>
         <button class="item" data-acao="ir" data-tela="subrede"><div class="ico-caixa">${ic("calc")}</div><div class="meio"><b>Desafio sub-rede</b><span class="suave peq">Rede, broadcast, hosts e máscaras de cabeça.</span></div><span class="chip acc tab-num">${p.recordes.subrede}</span></button>
         <button class="item" data-acao="ir" data-tela="labs"><div class="ico-caixa">${ic("terminal")}</div><div class="meio"><b>Laboratório CLI</b><span class="suave peq">Terminal Cisco IOS simulado com tarefas guiadas.</span></div><span class="chip acc tab-num">${Object.keys(p.labs).length}/${D.labs.length}</span></button>
@@ -516,6 +552,14 @@
     ["rede", "Qual é o endereço de rede?"], ["broadcast", "Qual é o endereço de broadcast?"], ["primeiro", "Qual é o primeiro host válido?"],
     ["ultimo", "Qual é o último host válido?"], ["hosts", "Quantos hosts válidos tem a sub-rede?"], ["mascara", "Qual é a máscara em decimal?"],
   ];
+  const CONTEXTOS_SUB = {
+    rede: ["O PC da receção da clínica tem o IP {ip}. Para escrever a rota no router precisa do endereço da rede.", "Numa ACL vai bloquear a rede inteira onde está o servidor {ip}."],
+    broadcast: ["No Wireshark de uma escola vê tráfego para todos os hosts da rede de {ip}. Para onde vai esse broadcast?", "Um utilizador configurou {ip} e diz que “não funciona”. Confirme se não escolheu o broadcast."],
+    primeiro: ["Vai configurar o gateway de uma VLAN nova com o primeiro IP válido da rede de {ip}.", "O router do hotel deve ficar com o primeiro endereço da rede de {ip}."],
+    ultimo: ["A impressora do escritório deve ficar com o último IP válido da rede de {ip}.", "O servidor de câmaras do armazém usa sempre o último host da rede de {ip}."],
+    hosts: ["O armazém quer saber quantos equipamentos cabem na rede de {ip} antes de comprar mais leitores.", "A escola tem de ligar uma sala de informática à rede de {ip}. Quantos PCs (incluindo o gateway) cabem?"],
+    mascara: ["O colega só lhe disse o prefixo. Para o comando ip address no router precisa da máscara de {ip}.", "O formulário do Windows pede a máscara em decimal para {ip}."],
+  };
   const n2i = (ip) => ip.split(".").reduce((a, o) => (a * 256) + (+o), 0);
   const i2n = (n) => [16777216, 65536, 256, 1].map((d) => Math.floor(n / d) % 256).join(".");
   function novoDesafio() {
@@ -529,7 +573,8 @@
     const sol = { rede: i2n(rede), broadcast: i2n(bc), primeiro: i2n(rede + 1), ultimo: i2n(bc - 1), hosts: String(bloco - 2), mascara };
     const oct = Math.floor(pref / 8), interessante = oct < 4 ? +mascara.split(".")[oct] : 255, magico = 256 - interessante;
     const explica = `/${pref} = ${mascara}. Octeto interessante: ${oct + 1}.º, número mágico 256 − ${interessante} = ${magico}. Rede ${sol.rede}, broadcast ${sol.broadcast}, hosts ${sol.primeiro} a ${sol.ultimo} (2^${32 - pref} − 2 = ${bloco - 2}).`;
-    return { ip, pref, tipo: tipo[0], pergunta: tipo[1], resposta: sol[tipo[0]], explica, inicio: Date.now() };
+    const ctxs = CONTEXTOS_SUB[tipo[0]], contexto = ctxs[Math.floor(Math.random() * ctxs.length)].replace("{ip}", `${ip}/${pref}`);
+    return { ip, pref, tipo: tipo[0], pergunta: tipo[1], contexto, resposta: sol[tipo[0]], explica, inicio: Date.now() };
   }
   function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
   let sub = null;
@@ -537,8 +582,8 @@
     if (!sub) sub = { serie: 0, d: novoDesafio() };
     const d = sub.d;
     return `<div class="linha entre"><span class="chip acc tab-num">Série: ${sub.serie}</span><span class="chip tab-num">Recorde: ${P().recordes.subrede}</span></div>
-      <div class="cartao"><span class="rotulo">Endereço</span><div style="font:800 1.9rem var(--f-mono);letter-spacing:-.02em" class="tab-num">${d.ip}/${d.pref}</div>
-        <p class="pergunta">${d.pergunta}</p>
+      <div class="cartao"><span class="rotulo">Situação real · endereço</span><div style="font:800 1.9rem var(--f-mono);letter-spacing:-.02em" class="tab-num">${d.ip}/${d.pref}</div>
+        <p class="contexto-sub">${esc(d.contexto)}</p><p class="pergunta">${d.pergunta}</p>
         <form data-form="sub" class="secao"><input class="campo mono" id="resp-sub" inputmode="decimal" autocomplete="off" placeholder="${d.tipo === "hosts" ? "ex.: 62" : "ex.: 192.168.1.64"}" ${sub.feito ? "disabled" : ""} value="${esc(sub.resp || "")}">
         ${sub.feito ? "" : `<button class="btn prim" type="submit">Verificar</button>`}</form>
         ${sub.feito ? `<div class="feedback ${sub.ok ? "ok" : "bad"}"><b>${sub.ok ? "Certo!" : "Resposta: " + d.resposta}</b><span>${esc(d.explica)}</span><span class="suave peq">${Math.round(sub.tempo / 1000)} s</span></div>
@@ -552,7 +597,7 @@
   function itemLab(lab) {
     const feito = !!P().labs[lab.id];
     return `<button class="item" data-acao="lab" data-id="${lab.id}"><div class="ico-caixa">${F.icone(lab.dispositivo, 34)}</div>
-      <div class="meio"><span class="rotulo">Módulo ${mod(lab.modulo).numero} · ${esc(lab.nivel)}</span><b>${esc(lab.titulo)}</b><span class="suave peq">${esc(lab.descricao)}</span></div>
+      <div class="meio"><span class="rotulo">Módulo ${mod(lab.modulo).numero} · ${esc(lab.nivel)}</span><b>${esc(lab.titulo)}</b><span class="suave peq">${esc(lab.cenario)}</span></div>
       <span class="estado-ico ${feito ? "ok" : "bloq"}">${feito ? ic("check") : lab.tarefas.length}</span></button>`;
   }
   TELAS.labs = function () {
@@ -568,6 +613,7 @@
     }
     const feitas = lab.tarefas.map((t) => eq.verificar(t.check));
     return `<div class="cartao"><div class="linha entre"><span class="rotulo">Tarefas · ${feitas.filter(Boolean).length}/${lab.tarefas.length}</span>${P().labs[lab.id] ? '<span class="chip ok">Concluído</span>' : ""}</div>
+        <div class="cenario"><span class="rotulo">Cenário</span><p>${esc(lab.cenario)}</p></div>
         <p class="peq">${esc(lab.descricao)}</p>
         <ul class="lab-tarefas" id="tarefas">${tarefasHTML(lab, feitas)}</ul></div>
       <div class="term"><div class="barra-term"><span class="pontos"><i></i><i></i><i></i></span><span>${esc(lab.dispositivo === "router" ? "consola · router" : "consola · switch")}</span><button class="btn-copiar" data-acao="reiniciar-lab">reiniciar</button></div>
@@ -654,6 +700,224 @@
     if (f) f.addEventListener("input", () => { filtroGloss = f.value; const pos = f.selectionStart; render(); const n = $("#filtro-gloss"); n.focus(); n.setSelectionRange(pos, pos); });
   };
 
+  // ------------------------------------------------------------ plano de estudo
+  const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const DIAS_LONGOS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+  const hojeISO = () => window.Plano.iso(new Date());
+  const minutosHoje = () => Math.round(P().tempo[hojeISO()] || 0);
+  const casoFeito = (id) => !!P().casos[id];
+  const dataPT = (d) => d.toLocaleDateString("pt-PT", { day: "numeric", month: "long", year: "numeric" });
+  const horas = (min) => min < 60 ? `${Math.round(min)} min` : `${Math.floor(min / 60)} h${Math.round(min % 60) ? " " + Math.round(min % 60) + " min" : ""}`;
+  function ctxPlano(cfgMinHoje) {
+    const p = P();
+    return {
+      modulos: MODS, labs: D.labs, casos: D.casos, licaoFeita, provaFeita, labFeito: (id) => !!p.labs[id], casoFeito,
+      nota: (id) => (p.licoes[id] || {}).melhor || 0, reforcado: (id) => !!p.reforcos[id],
+      tempoLicao: p.tempoLicao, erros: p.erros.length, minutosHoje: cfgMinHoje == null ? minutosHoje() : cfgMinHoje,
+    };
+  }
+  const calcularPlano = (cfg) => window.Plano.calcular(ctxPlano(cfg ? 0 : null), cfg || P().plano);
+
+  function acaoTarefa(t) {
+    switch (t.tipo) {
+      case "aula": case "rever": case "pratica": return `data-acao="licao" data-id="${t.l.id}"`;
+      case "quiz": return `data-acao="quiz" data-id="${t.l.id}"`;
+      case "lab": return `data-acao="lab" data-id="${t.lab.id}"`;
+      case "caso": return `data-acao="caso" data-id="${t.caso.id}"`;
+      case "revmod": return `data-acao="modulo" data-id="${t.m.id}"`;
+      case "prova": return `data-acao="prova" data-id="${t.m.id}"`;
+      default: return `data-acao="ir" data-tela="revisao"`;
+    }
+  }
+  const ICONE_TAREFA = { aula: "livro", rever: "repetir", pratica: "terminal", quiz: "estrela", lab: "terminal", caso: "caso", revmod: "repetir", prova: "medalha", erros: "caderno" };
+  const NOME_TAREFA = { aula: "Aula", rever: "Reforço", pratica: "Prática", quiz: "Quiz", lab: "Laboratório", caso: "Caso real", revmod: "Revisão", prova: "Prova", erros: "Revisão" };
+  function itemTarefa(it, bloqueia) {
+    const t = it.t;
+    const aberto = !bloqueia || (t.l ? licaoAberta(t.l) : t.m ? moduloAberto(t.m) : true);
+    return `<button class="tarefa" ${acaoTarefa(t)} ${aberto ? "" : 'aria-disabled="true"'}>${ic(ICONE_TAREFA[t.tipo])}<span class="meio"><span class="rotulo">${NOME_TAREFA[t.tipo]}${it.parte ? " · parte " + it.parte : ""}</span><b>${esc(t.tipo === "aula" ? t.titulo : t.titulo)}</b></span><span class="chip tab-num">${it.min} min</span></button>`;
+  }
+  function cartaoHoje() {
+    const p = P(), cfg = p.plano, pl = calcularPlano();
+    const feito = minutosHoje(), meta = cfg.min, diaEstudo = cfg.dias.includes(new Date().getDay());
+    const hoje = pl.dias.find((d) => d.data === hojeISO());
+    const prox = pl.dias.find((d) => d.data !== hojeISO() && d.total > 0);
+    let corpo;
+    if (!pl.lista.length) corpo = `<p>Concluiu todo o plano. Mantenha o treino com o quiz relâmpago.</p>`;
+    else if (diaEstudo && hoje && hoje.total > 0) corpo = hoje.sessoes.filter((s) => s.itens.length).map((s) => `<div class="sessao"><span class="rotulo">${esc(s.nome)} · ${s.itens.reduce((a, i) => a + i.min, 0)} min</span>${s.itens.map((i) => itemTarefa(i, true)).join("")}</div>`).join("");
+    else if (diaEstudo) corpo = `<p><b>Meta de hoje cumprida!</b> Descanse ou adiante o que vem a seguir:</p>${prox ? prox.sessoes.flatMap((s) => s.itens).slice(0, 2).map((i) => itemTarefa(i, true)).join("") : ""}`;
+    else corpo = `<p>Hoje é dia de descanso no seu plano. Próximo estudo: <b>${prox ? DIAS_LONGOS[prox.date.getDay()] : "—"}</b>.</p>${prox ? `<details><summary>Quero estudar hoje na mesma</summary>${prox.sessoes.flatMap((s) => s.itens).slice(0, 3).map((i) => itemTarefa(i, true)).join("")}</details>` : ""}`;
+    return `<section class="cartao hoje"><div class="linha entre"><div><span class="rotulo">${diaEstudo ? "Aulas de hoje" : "Hoje"} · ${DIAS_LONGOS[new Date().getDay()]}</span><h2>${diaEstudo ? `${feito} de ${meta} min estudados` : "Dia de descanso"}</h2></div><span class="chip acc">${cfg.sessoes}× ${Math.round(meta / cfg.sessoes)} min</span></div>
+      ${diaEstudo ? `<div class="barra"><i style="width:${Math.min(100, (feito / meta) * 100)}%;${feito >= meta ? "background:var(--ok)" : ""}"></i></div>` : ""}
+      ${corpo}
+      <button class="btn bloco" data-acao="ir" data-tela="plano">${ic("calendario")} Ver o meu plano completo</button></section>`;
+  }
+
+  function avisosPlano(pl) {
+    const p = P(), cfg = p.plano, av = [];
+    const r = pl.ritmo;
+    if (r.amostras >= 3 && Math.abs(r.fator - 1) > 0.15) av.push(["ritmo", r.fator > 1
+      ? `Está a precisar de cerca de ${Math.round((r.fator - 1) * 100)}% mais tempo por aula do que o previsto. As aulas seguintes já têm mais tempo no plano — é normal, cada pessoa tem o seu ritmo.`
+      : `Está a estudar cerca de ${Math.round((1 - r.fator) * 100)}% mais depressa do que o previsto. O plano encurtou o tempo das próximas aulas.`]);
+    const reforcos = pl.lista.filter((t) => t.tipo === "rever").length;
+    if (reforcos) av.push(["notas", `${reforcos} aula${reforcos > 1 ? "s" : ""} com nota abaixo de 85% ${reforcos > 1 ? "têm" : "tem"} uma revisão curta no plano, para consolidar.`]);
+    if (p.erros.length >= 5) av.push(["erros", `Tem ${p.erros.length} perguntas no caderno de erros: o plano começa com 10 minutos de revisão.`]);
+    const alvo = p.alvo ? new Date(p.alvo) : null;
+    if (alvo && pl.lista.length) {
+      const dif = Math.round((pl.fim - alvo) / 86400000);
+      if (dif > 3) {
+        const precisa = window.Plano.minutosParaAlvo(pl.totalMin, cfg, alvo);
+        av.push(["atraso", `Ao ritmo atual termina a ${dataPT(pl.fim)}, ${dif} dias depois do seu objetivo (${dataPT(alvo)}).${precisa && precisa > cfg.min ? ` Para cumprir o objetivo precisa de ${precisa} min por dia.` : ""}`,
+          precisa && precisa > cfg.min ? `<div class="grelha-2"><button class="btn peq prim" data-acao="ajustar-carga" data-id="${precisa}">Passar a ${precisa} min/dia</button><button class="btn peq" data-acao="novo-alvo">Mudar o objetivo</button></div>` : `<button class="btn peq" data-acao="novo-alvo">Aceitar a nova data</button>`]);
+      } else if (dif < -7) av.push(["adiantado", `Vai terminar ${-dif} dias antes do objetivo (${dataPT(alvo)}). Excelente ritmo!`]);
+    }
+    // consistência nos últimos 7 dias
+    let previsto = 0, real = 0;
+    for (let i = 1; i <= 7; i++) { const d = new Date(Date.now() - i * 86400000); if (cfg.dias.includes(d.getDay())) previsto += cfg.min; real += p.tempo[window.Plano.iso(d)] || 0; }
+    if (p.criado < Date.now() - 7 * 86400000 && previsto) {
+      if (real > previsto * 1.3) { const sug = Math.min(240, Math.ceil(real / cfg.dias.length / 5) * 5); av.push(["mais", `Nos últimos 7 dias estudou ${horas(real)}, mais do que o plano (${horas(previsto)}).`, `<button class="btn peq prim" data-acao="ajustar-carga" data-id="${sug}">Atualizar para ${sug} min/dia</button>`]); }
+      else if (real < previsto * 0.5) av.push(["menos", `Nos últimos 7 dias estudou ${horas(real)} de ${horas(previsto)} previstos. Se o plano está pesado, reduza os minutos ou os dias — mais vale pouco todos os dias do que muito de vez em quando.`]);
+    }
+    return av;
+  }
+
+  function formPlano(cfg, prefixo) {
+    return `<div class="secao">
+      <div><span class="rotulo">Quanto tempo por dia?</span><div class="chips">${[15, 20, 30, 45, 60, 90, 120].map((m) => `<button type="button" class="chip-op" aria-pressed="${cfg.min === m}" data-acao="${prefixo}-min" data-id="${m}">${horas(m)}</button>`).join("")}</div></div>
+      <div><span class="rotulo">Quantas vezes por dia?</span><div class="chips">${[1, 2, 3].map((n) => `<button type="button" class="chip-op" aria-pressed="${cfg.sessoes === n}" data-acao="${prefixo}-ses" data-id="${n}">${n === 1 ? "1 sessão" : n + " sessões"}</button>`).join("")}</div>
+        <p class="suave peq">${cfg.sessoes > 1 ? `${cfg.sessoes} sessões de ~${Math.round(cfg.min / cfg.sessoes)} min (${window.Plano.NOMES_SESSAO[cfg.sessoes].join(", ").toLowerCase()}).` : "Uma sessão seguida por dia."}</p></div>
+      <div><span class="rotulo">Em que dias da semana? (${cfg.dias.length} por semana)</span><div class="chips">${[1, 2, 3, 4, 5, 6, 0].map((d) => `<button type="button" class="chip-op dia" aria-pressed="${cfg.dias.includes(d)}" data-acao="${prefixo}-dia" data-id="${d}">${DIAS_SEMANA[d]}</button>`).join("")}</div></div>
+    </div>`;
+  }
+  function resumoPlano(cfg) {
+    const pl = calcularPlano(cfg);
+    const semanas = Math.max(1, Math.round((pl.fim - new Date()) / (7 * 86400000)));
+    return `<div class="resumo-plano"><div><span class="rotulo">Por semana</span><b class="tab-num">${horas(pl.semanal)}</b></div><div><span class="rotulo">Curso que falta</span><b class="tab-num">${horas(pl.totalMin)}</b></div><div><span class="rotulo">Conclusão prevista</span><b>${dataPT(pl.fim)}</b><span class="suave peq">~${semanas} semana${semanas > 1 ? "s" : ""}</span></div></div>`;
+  }
+  function alternarPlano(cfg, tipo, v) {
+    if (tipo === "min") cfg.min = +v;
+    if (tipo === "ses") cfg.sessoes = +v;
+    if (tipo === "dia") { v = +v; cfg.dias = cfg.dias.includes(v) ? cfg.dias.filter((x) => x !== v) : cfg.dias.concat(v).sort(); if (!cfg.dias.length) cfg.dias = [v]; }
+  }
+
+  TELAS.plano = function () {
+    const p = P(), pl = calcularPlano(), av = avisosPlano(pl);
+    const proximos = pl.dias.filter((d) => d.total > 0).slice(0, 14);
+    return `<div class="secao"><h1>O meu plano de estudo</h1><p class="suave">Calculado a partir do seu progresso real. Muda sozinho quando estuda mais, menos, mais devagar ou quando as notas pedem revisão.</p></div>
+      ${resumoPlano(p.plano)}
+      ${p.alvo ? `<p class="suave peq">Objetivo definido: <b>${dataPT(new Date(p.alvo))}</b></p>` : ""}
+      ${av.length ? `<section class="secao"><h2>Como o plano se adaptou a si</h2>${av.map(([k, t, b]) => `<div class="${k === "atraso" || k === "menos" ? "alerta" : "dica"}">${ic(k === "atraso" || k === "menos" ? "alerta" : "dica")}<div class="secao" style="gap:8px"><span>${t}</span>${b || ""}</div></div>`).join("")}</section>` : ""}
+      <details class="cartao"><summary><b>Alterar tempo, sessões e dias</b></summary>${formPlano(p.plano, "pl")}</details>
+      <section class="secao"><h2>Próximos dias</h2>${proximos.map((d) => `<div class="cartao plano dia-plano"><div class="linha entre"><b>${d.data === hojeISO() ? "Hoje" : DIAS_LONGOS[d.date.getDay()]}, ${d.date.toLocaleDateString("pt-PT", { day: "numeric", month: "short" })}</b><span class="chip tab-num">${Math.round(d.total)} min</span></div>
+        ${d.sessoes.filter((s) => s.itens.length).map((s) => `<div class="sessao">${p.plano.sessoes > 1 ? `<span class="rotulo">${esc(s.nome)}</span>` : ""}${s.itens.map((i) => itemTarefa(i, true)).join("")}</div>`).join("")}</div>`).join("") || '<p class="suave">Nada pendente: concluiu tudo!</p>'}</section>`;
+  };
+
+  // ------------------------------------------------------------ primeiro acesso
+  let ob = null;
+  const GENEROS = ["Feminino", "Masculino", "Outro", "Prefiro não dizer"];
+  const saudacao = (g) => g === "Feminino" ? "Bem-vinda" : g === "Masculino" ? "Bem-vindo" : "Boas-vindas";
+  function iniciarOb() { const p = P(); ob = { passo: 1, nome: p.nome === "Estudante" ? "" : p.nome, idade: p.idade || "", genero: p.genero, motivos: p.motivos.slice(), experiencia: p.experiencia, plano: JSON.parse(JSON.stringify(p.plano)), livre: false, erro: "" }; }
+  TELAS.boasvindas = function () {
+    if (!ob) iniciarOb();
+    const G = D.guia, passos = 5;
+    const pontos = `<div class="passos-ob">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= ob.passo ? "on" : ""}"></i>`).join("")}</div>`;
+    let c = "";
+    if (ob.passo === 1) c = `<div class="ob-hero"><img class="logo" src="icons/logo.webp" alt="Curso de Redes de Computadores" width="260" height="260"><p>Aprenda redes de computadores do zero até à certificação Cisco CCNA, com aulas diárias ao seu ritmo.</p></div>
+      <form data-form="ob" class="secao"><label class="rotulo" for="ob-nome">Como se chama?</label><input class="campo" id="ob-nome" maxlength="30" autocomplete="given-name" placeholder="O seu nome" value="${esc(ob.nome)}">`;
+    if (ob.passo === 2) c = `<h2>${saudacao(ob.genero)}, ${esc(ob.nome)}!</h2><p class="suave">Estas informações ajudam a adaptar o curso. Ficam só neste dispositivo.</p>
+      <form data-form="ob" class="secao"><label class="rotulo" for="ob-idade">Idade</label><input class="campo" id="ob-idade" type="number" inputmode="numeric" min="8" max="100" placeholder="Ex.: 22" value="${esc(ob.idade)}">
+      <span class="rotulo">Género</span><div class="chips">${GENEROS.map((g) => `<button type="button" class="chip-op" aria-pressed="${ob.genero === g}" data-acao="ob-genero" data-id="${g}">${g}</button>`).join("")}</div>`;
+    if (ob.passo === 3) c = `<h2>Porque quer estudar redes?</h2><p class="suave">Escolha todas as que se aplicam.</p>
+      <form data-form="ob" class="secao"><div class="chips">${G.motivos.map((m, i) => `<button type="button" class="chip-op" aria-pressed="${ob.motivos.includes(m)}" data-acao="ob-motivo" data-id="${i}">${esc(m)}</button>`).join("")}</div>
+      <span class="rotulo">O que já sabe?</span><div class="lista">${G.experiencia.map((e) => `<button type="button" class="item opcao-ob" aria-pressed="${ob.experiencia === e.id}" data-acao="ob-exp" data-id="${e.id}"><div class="meio"><b>${esc(e.nome)}</b><span class="suave peq">${esc(e.sugestao)}</span></div><span class="estado-ico ${ob.experiencia === e.id ? "ok" : "bloq"}">${ob.experiencia === e.id ? ic("check") : ""}</span></button>`).join("")}</div>`;
+    if (ob.passo === 4) {
+      const crianca = +ob.idade && +ob.idade < 15;
+      c = `<h2>O seu horário de estudo</h2><p class="suave">A carga horária adapta-se a si: escolha o que consegue cumprir com regularidade.${crianca ? " Para a sua idade recomendamos sessões curtas (15–20 min)." : ""}</p>
+      <form data-form="ob" class="secao">${formPlano(ob.plano, "ob")}${resumoPlano(ob.plano)}`;
+    }
+    if (ob.passo === 5) {
+      const pl = calcularPlano(ob.plano);
+      c = `<h2>Tudo pronto, ${esc(ob.nome)}!</h2>
+      <div class="cartao plano"><ul class="objetivos">
+        <li><b>${horas(ob.plano.min)}</b> por dia${ob.plano.sessoes > 1 ? ` em ${ob.plano.sessoes} sessões` : ""}, ${ob.plano.dias.length} dias por semana (${ob.plano.dias.map((d) => DIAS_SEMANA[d]).join(", ")}).</li>
+        <li>Conclusão prevista: <b>${dataPT(pl.fim)}</b>. Fica como o seu objetivo; o plano avisa se se atrasar.</li>
+        <li>Primeira aula: <b>${esc(MODS[0].licoes[0].titulo)}</b>.</li>
+        <li>Motivo: ${ob.motivos.length ? esc(ob.motivos.join(", ")) : "—"}.</li></ul></div>
+      <form data-form="ob" class="secao">${ob.experiencia === "algum" || ob.experiencia === "trabalho" ? `<label class="linha entre" for="ob-livre"><span><b>Modo livre</b><br><span class="suave peq">Abre todos os módulos para ir direto ao que precisa.</span></span><input type="checkbox" id="ob-livre" ${ob.livre || ob.experiencia === "trabalho" ? "checked" : ""} style="width:24px;height:24px"></label>` : ""}`;
+    }
+    return `<div class="onboarding">${pontos}${c}
+      ${ob.erro ? `<p class="erro-campo" role="alert">${esc(ob.erro)}</p>` : ""}
+      <div class="grelha-2">${ob.passo > 1 ? `<button type="button" class="btn" data-acao="ob-voltar">Voltar</button>` : "<span></span>"}<button class="btn prim" type="submit">${ob.passo === passos ? "Começar a estudar" : "Continuar"}</button></div></form></div>`;
+  };
+  // guarda o que já foi escrito antes de redesenhar o ecrã
+  function capturarOb() { const i = $("#ob-idade"), n = $("#ob-nome"); if (i) ob.idade = i.value; if (n) ob.nome = n.value; }
+  function obAvancar() {
+    ob.erro = "";
+    if (ob.passo === 1) { const v = $("#ob-nome").value.trim(); if (!v) { ob.erro = "Escreva o seu nome para continuar."; return render(); } ob.nome = v; }
+    if (ob.passo === 2) { const v = +$("#ob-idade").value; if (!v || v < 8 || v > 100) { ob.erro = "Indique uma idade entre 8 e 100 anos."; return render(); } ob.idade = v; if (!ob.genero) { ob.erro = "Escolha uma opção de género (pode escolher “Prefiro não dizer”)."; return render(); }
+      if (v < 15 && ob.plano.min > 20) ob.plano.min = 20; }
+    if (ob.passo === 3) { if (!ob.motivos.length) { ob.erro = "Escolha pelo menos um motivo."; return render(); } if (!ob.experiencia) { ob.erro = "Diga-nos o que já sabe para ajustarmos o início."; return render(); } }
+    if (ob.passo === 5) {
+      const p = P(), lv = $("#ob-livre");
+      Object.assign(p, { nome: ob.nome, idade: ob.idade, genero: ob.genero, motivos: ob.motivos, experiencia: ob.experiencia, plano: ob.plano, onboard: true });
+      if (lv) S.livre = lv.checked;
+      p.alvo = calcularPlano().fim.toISOString();
+      guardar(); ob = null; pilha = []; rota = { tela: "inicio" }; render(); window.scrollTo(0, 0);
+      toast(`${saudacao(p.genero)}, ${p.nome}!`);
+      return;
+    }
+    ob.passo++; render(); window.scrollTo(0, 0);
+  }
+
+  // ------------------------------------------------------------ casos reais
+  const casoPorId = (id) => D.casos.find((c) => c.id === id);
+  function itemCaso(c) {
+    const m = mod(c.modulo), aberto = moduloAberto(m), r = P().casos[c.id];
+    return `<button class="item" data-acao="caso" data-id="${c.id}" ${aberto ? "" : 'aria-disabled="true"'}><div class="ico-caixa">${ic("caso")}</div>
+      <div class="meio"><span class="rotulo">${esc(c.local)} · Módulo ${m.numero}</span><b>${esc(c.titulo)}</b><span class="suave peq">Papel: ${esc(c.papel)} · ${c.etapas.length} etapas · ${esc(c.nivel)}</span></div>
+      ${!aberto ? `<span class="estado-ico bloq">${ic("cadeado")}</span>` : r ? `<span class="chip ${r.melhor === 100 ? "ok" : "acc"} tab-num">${r.melhor}%</span>` : ""}</button>`;
+  }
+  TELAS.casos = function () {
+    return `<div class="secao"><h1>Casos reais</h1><p class="suave">Situações do dia a dia de um técnico de redes: um cliente liga, há um problema, e é você quem decide. Ficam disponíveis à medida que desbloqueia os módulos.</p></div>
+      <div class="lista">${D.casos.map(itemCaso).join("")}</div>`;
+  };
+  TELAS.caso = function () {
+    const c = casoPorId(rota.id);
+    const cab = `<div class="cartao caso-cab"><div class="linha"><span class="chip acc">${esc(c.local)}</span><span class="chip">Você é: ${esc(c.papel)}</span></div><h1>${esc(c.titulo)}</h1></div>`;
+    if (!moduloAberto(mod(c.modulo))) return `<div class="vazio">${ic("cadeado")}<p>Desbloqueie o Módulo ${mod(c.modulo).numero} para abrir este caso.</p></div>`;
+    if (!sessao || sessao.tipo !== "caso" || sessao.origem !== c.id) {
+      return `${cab}<section class="bloco"><span class="rotulo">A situação</span><div class="html">${c.historia}</div></section>
+        <button class="btn prim bloco" data-acao="comecar-caso" data-id="${c.id}">${ic("play")} Resolver o caso</button>`;
+    }
+    if (!sessao.fim) return `${cab}<details class="cartao plano"><summary><b>Reler a situação</b></summary><div class="html" style="margin-top:8px">${c.historia}</div></details>` + telaPerguntas();
+    const pct = Math.round(sessao.acertos / sessao.perguntas.length * 100);
+    return `${cab}<div class="cartao resultado">${estrelas(pct)}<div class="grande tab-num">${sessao.acertos}/${sessao.perguntas.length}</div>
+        ${sessao.ganho ? `<span class="chip acc">+${sessao.ganho} XP</span>` : ""}</div>
+      <div class="exemplo"><span class="rotulo">Desfecho</span><p>${esc(c.desfecho)}</p></div>
+      ${revisaoRespostas(sessao)}
+      <div class="grelha-2"><button class="btn" data-acao="comecar-caso" data-id="${c.id}">${ic("repetir")} Repetir</button><button class="btn prim" data-acao="ir" data-tela="casos">Outros casos</button></div>`;
+  };
+  function fimCaso(s) {
+    const r = P().casos[s.origem] || (P().casos[s.origem] = { melhor: 0 });
+    const pct = Math.round(s.acertos / s.perguntas.length * 100);
+    s.ganho = 0;
+    if (!r.feito && pct >= 50) { s.ganho = 30; r.feito = Date.now(); }
+    if (pct > r.melhor) r.melhor = pct;
+    guardar();
+    if (s.ganho) ganharXP(s.ganho, "caso real"); else verificarConquistas();
+  }
+
+  // ------------------------------------------------------------ tempo de estudo
+  let ultimaInteracao = Date.now();
+  ["click", "keydown", "scroll", "touchstart"].forEach((ev) => document.addEventListener(ev, () => { ultimaInteracao = Date.now(); }, { passive: true }));
+  const TELAS_ESTUDO = ["licao", "quiz", "prova", "lab", "caso", "revisao", "relampago", "subrede", "modulo"];
+  setInterval(() => {
+    if (document.visibilityState !== "visible" || Date.now() - ultimaInteracao > 120000 || !TELAS_ESTUDO.includes(rota.tela) || !P().onboard) return;
+    const p = P(), h = hojeISO();
+    p.tempo[h] = (p.tempo[h] || 0) + 0.25;
+    if (rota.lid) p.tempoLicao[rota.lid] = (p.tempoLicao[rota.lid] || 0) + 0.25;
+    if (Math.round(p.tempo[h] * 4) % 4 === 0) { marcarDia(); guardar(); }
+  }, 15000);
+
   // --- perfil
   let confirmarApagar = false, msgImport = "";
   TELAS.perfil = function () {
@@ -662,6 +926,11 @@
         <form data-form="nome" class="linha"><span class="avatar" style="background:${p.cor}">${esc(p.nome.slice(0, 1).toUpperCase())}</span>
           <input class="campo" id="nome-perfil" style="flex:1;min-width:0" value="${esc(p.nome)}" maxlength="30" aria-label="Nome"><button class="btn" type="submit">Guardar</button></form>
         <p class="suave peq tab-num">${p.xp} XP · ${esc(nivel(p.xp).nome)} · desde ${new Date(p.criado).toLocaleDateString("pt-PT")}</p></div>
+      <div class="cartao"><span class="rotulo">Os seus dados</span>
+        <form data-form="dados" class="linha"><label for="p-idade" style="flex:1">Idade</label><input class="campo" id="p-idade" type="number" min="8" max="100" style="width:110px" value="${esc(p.idade || "")}"><button class="btn" type="submit">Guardar</button></form>
+        <span class="rotulo">Género</span><div class="chips">${GENEROS.map((g) => `<button class="chip-op" aria-pressed="${p.genero === g}" data-acao="p-genero" data-id="${g}">${g}</button>`).join("")}</div>
+        <span class="rotulo">Motivos para estudar</span><div class="chips">${D.guia.motivos.map((m, i) => `<button class="chip-op" aria-pressed="${p.motivos.includes(m)}" data-acao="p-motivo" data-id="${i}">${esc(m)}</button>`).join("")}</div>
+        <div class="grelha-2"><button class="btn" data-acao="ir" data-tela="plano">${ic("calendario")} Plano de estudo</button><button class="btn" data-acao="ob-refazer">Refazer questionário</button></div></div>
       <div class="cartao"><span class="rotulo">Perfis neste dispositivo</span>
         <div class="lista">${Object.values(S.perfis).map((x) => `<button class="item" data-acao="trocar-perfil" data-id="${x.id}"><span class="avatar" style="background:${x.cor}">${esc(x.nome.slice(0, 1).toUpperCase())}</span><div class="meio"><b>${esc(x.nome)}</b><span class="suave peq tab-num">${x.xp} XP</span></div>${x.id === p.id ? '<span class="chip ok">ativo</span>' : ""}</button>`).join("")}</div>
         <form data-form="novo-perfil" class="linha"><input class="campo" id="novo-nome" style="flex:1;min-width:0" placeholder="Nome do novo perfil" maxlength="30"><button class="btn" type="submit">Adicionar</button></form></div>
@@ -676,7 +945,7 @@
       <div class="cartao ${confirmarApagar ? "confirmar" : ""}"><span class="rotulo">Recomeçar</span>
         ${confirmarApagar ? `<p><b>Apagar todo o progresso de ${esc(p.nome)}?</b> XP, notas e laboratórios voltam a zero. Não dá para desfazer.</p><div class="grelha-2"><button class="btn" data-acao="cancelar-apagar">Cancelar</button><button class="btn" style="border-color:var(--bad);color:var(--bad)" data-acao="apagar-sim">Apagar</button></div>`
           : `<button class="btn" data-acao="apagar">Apagar o progresso deste perfil</button>`}</div>
-      <div class="cartao plano"><span class="rotulo">Sobre</span><p class="peq">${D.modulos.length} módulos, ${Object.keys(LICOES).length} lições, ${D.labs.length} laboratórios. Conteúdo escrito em Python (pasta <code>ccna/conteudo</code>) e gerado com <code>python build.py</code>. Cisco, CCNA, Catalyst e Packet Tracer são marcas da Cisco Systems; esta app é material de estudo independente.</p></div>`;
+      <div class="cartao plano"><span class="rotulo">Sobre</span><img class="logo" src="icons/logo.webp" alt="Curso de Redes de Computadores" width="160" height="160" style="justify-self:center"><p class="peq">${D.modulos.length} módulos, ${Object.keys(LICOES).length} lições, ${D.labs.length} laboratórios. Conteúdo escrito em Python (pasta <code>ccna/conteudo</code>) e gerado com <code>python build.py</code>. Cisco, CCNA, Catalyst e Packet Tracer são marcas da Cisco Systems; esta app é material de estudo independente.</p></div>`;
   };
   POS.perfil = function () {
     $("#livre").addEventListener("change", (e) => { S.livre = e.target.checked; guardar(); toast(S.livre ? "Modo livre ativo" : "Modo livre desligado"); });
@@ -698,7 +967,7 @@
     ir: (el) => { if (el.dataset.tela === "relampago" || el.dataset.tela === "revisao") sessao = null; if (el.dataset.tela === "subrede") sub = null; ir(el.dataset.tela); },
     modulo: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Módulo bloqueado"); ir("modulo", { mid: el.dataset.id }); },
     licao: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Conclua a lição anterior primeiro"); ir("licao", { lid: el.dataset.id }); },
-    repetir: (el) => { const r = P().licoes[el.dataset.id]; if (r) r.repeticoes = (r.repeticoes || 0) + 1; guardar(); sessao = null; window.scrollTo({ top: 0, behavior: "smooth" }); toast("Boa revisão! Leia de novo e refaça o quiz."); },
+    repetir: (el) => { const r = P().licoes[el.dataset.id]; if (r) r.repeticoes = (r.repeticoes || 0) + 1; P().reforcos[el.dataset.id] = Date.now(); guardar(); sessao = null; window.scrollTo({ top: 0, behavior: "smooth" }); toast("Boa revisão! Leia de novo e refaça o quiz."); },
     quiz: (el) => { sessao = null; ir("quiz", { lid: el.dataset.id }); },
     "refazer-quiz": (el) => { sessao = null; ir("quiz", { lid: el.dataset.id }, true); },
     prova: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Conclua as lições do módulo primeiro"); sessao = null; ir("prova", { mid: el.dataset.id }); },
@@ -748,7 +1017,24 @@
     apagar: () => { confirmarApagar = true; render(); },
     "cancelar-apagar": () => { confirmarApagar = false; render(); },
     "apagar-sim": () => { const p = P(); const novo = novoPerfil(p.nome); novo.id = p.id; novo.cor = p.cor; S.perfis[p.id] = novo; confirmarApagar = false; guardar(); render(); toast("Progresso apagado"); },
-    "copiar-cli": (el) => { const cmds = [...el.closest(".term").querySelectorAll(".cm")].map((c) => c.textContent).filter((c) => !/^(Ligar|Abrir|Enviar|WLANs|General|Security|QoS|Apply)/.test(c)); copiar(cmds.join("\n")); },
+    caso: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Desbloqueie o módulo deste caso primeiro"); sessao = null; ir("caso", { id: el.dataset.id }); },
+    "comecar-caso": (el) => { const c = casoPorId(el.dataset.id); iniciarSessao({ tipo: "caso", origem: c.id, perguntas: c.etapas, aoTerminar: fimCaso }); render(); window.scrollTo(0, 0); },
+    "ob-voltar": () => { capturarOb(); ob.passo--; ob.erro = ""; render(); },
+    "ob-genero": (el) => { capturarOb(); ob.genero = el.dataset.id; render(); },
+    "ob-motivo": (el) => { const m = D.guia.motivos[+el.dataset.id]; ob.motivos = ob.motivos.includes(m) ? ob.motivos.filter((x) => x !== m) : ob.motivos.concat(m); render(); },
+    "ob-exp": (el) => { ob.experiencia = el.dataset.id; render(); },
+    "ob-min": (el) => { alternarPlano(ob.plano, "min", el.dataset.id); render(); },
+    "ob-ses": (el) => { alternarPlano(ob.plano, "ses", el.dataset.id); render(); },
+    "ob-dia": (el) => { alternarPlano(ob.plano, "dia", el.dataset.id); render(); },
+    "pl-min": (el) => { alternarPlano(P().plano, "min", el.dataset.id); guardar(); render(); abrirDetalhes(); },
+    "pl-ses": (el) => { alternarPlano(P().plano, "ses", el.dataset.id); guardar(); render(); abrirDetalhes(); },
+    "pl-dia": (el) => { alternarPlano(P().plano, "dia", el.dataset.id); guardar(); render(); abrirDetalhes(); },
+    "ajustar-carga": (el) => { P().plano.min = +el.dataset.id; guardar(); render(); toast(`Plano atualizado: ${horas(+el.dataset.id)} por dia`); },
+    "novo-alvo": () => { P().alvo = calcularPlano().fim.toISOString(); guardar(); render(); toast("Novo objetivo definido"); },
+    "p-genero": (el) => { P().genero = el.dataset.id; guardar(); render(); },
+    "p-motivo": (el) => { const m = D.guia.motivos[+el.dataset.id], p = P(); p.motivos = p.motivos.includes(m) ? p.motivos.filter((x) => x !== m) : p.motivos.concat(m); guardar(); render(); },
+    "ob-refazer": () => { P().onboard = false; ob = null; guardar(); render(); },
+    "copiar-cli": (el) => { const cmds = [...el.closest(".term").querySelectorAll("li")].filter((li) => /[#>]$/.test(li.querySelector(".pr").textContent.trim())).map((li) => li.querySelector(".cm").textContent); copiar(cmds.join("\n")); },
   };
 
   document.addEventListener("click", (e) => {
@@ -768,9 +1054,16 @@
     const el = e.target.closest("[data-acao]");
     if (el && ACOES[el.dataset.acao]) { e.preventDefault(); ACOES[el.dataset.acao](el); }
   });
+  function abrirDetalhes() { const d = document.querySelector("details.cartao"); if (d) d.open = true; }
   document.addEventListener("submit", (e) => {
     const f = e.target.dataset.form; if (!f) return;
     e.preventDefault();
+    if (f === "ob") return obAvancar();
+    if (f === "dados") {
+      const p = P(), idade = +$("#p-idade").value;
+      if (idade >= 8 && idade <= 100) p.idade = idade;
+      guardar(); render(); toast("Dados guardados"); return;
+    }
     if (f === "cmd") { const v = $("#resp-cmd").value; if (!v.trim()) return; responder(v); }
     if (f === "ios") executarIOS($("#ios-in").value);
     if (f === "sub") {

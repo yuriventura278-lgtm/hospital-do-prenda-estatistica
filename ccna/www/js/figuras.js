@@ -295,7 +295,36 @@
     </svg>`;
   }
 
+  function computadorPartes() {
+    const caixa = (x, y, w, h, txt, sub, cls) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" class="${cls}"/>${T(x + w / 2, y + h / 2 - 2, txt, "f-txt-claro", 'text-anchor="middle"')}${T(x + w / 2, y + h / 2 + 13, sub, "f-mini-claro", 'text-anchor="middle"')}`;
+    const seta = (x1, y1, x2, y2) => `<path d="M${x1} ${y1} L${x2} ${y2}" class="f-seta-linha" marker-end="url(#ponta3)"/>`;
+    return `<svg viewBox="0 0 520 250" class="fig"><defs><marker id="ponta3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8z" class="f-seta"/></marker></defs>
+      ${caixa(10, 95, 100, 56, "Entrada", "teclado, rato, rede", "f-h2")}
+      ${caixa(190, 20, 140, 56, "Processador", "CPU: faz as contas", "f-h3")}
+      ${caixa(190, 100, 140, 50, "Memória RAM", "trabalho do momento", "f-h4")}
+      ${caixa(190, 172, 140, 50, "Armazenamento", "SSD / disco", "f-dados")}
+      ${caixa(410, 95, 100, 56, "Saída", "ecrã, som, rede", "f-h2")}
+      ${caixa(10, 190, 100, 50, "Placa de rede", "cabo ou Wi-Fi", "f-tag")}
+      ${seta(110, 123, 188, 60)}${seta(332, 60, 408, 118)}${seta(260, 78, 260, 98)}${seta(260, 152, 260, 170)}${seta(110, 210, 188, 200)}
+      ${T(260, 245, "entrada → processamento → saída", "f-mini", 'text-anchor="middle"')}
+    </svg>`;
+  }
+
+  function linhaTempo() {
+    const ev = [[1945, "ENIAC"], [1969, "ARPANET"], [1973, "Ethernet"], [1983, "TCP/IP"], [1984, "Cisco"], [1991, "Web"], [1997, "Wi-Fi"], [2007, "Smartphones"], [2011, "Fim IPv4"], [2020, "CCNA 200-301"]];
+    const x = (a) => 20 + ((a - 1940) / 85) * 480;
+    let s = `<path d="M15 70 H505" class="f-seta-linha"/>`;
+    ev.forEach(([a, n], i) => {
+      const cima = i % 2 === 0;
+      s += `<circle cx="${x(a)}" cy="70" r="6" class="${i === ev.length - 1 ? "f-led-amb" : "f-h3"}"/>`;
+      s += `<path d="M${x(a)} ${cima ? 64 : 76} V${cima ? 44 : 96}" class="f-linha-vida"/>`;
+      s += T(x(a), cima ? 22 : 118, String(a), "f-label", 'text-anchor="middle"') + T(x(a), cima ? 36 : 132, n, "f-mini", 'text-anchor="middle"');
+    });
+    return `<svg viewBox="0 0 520 140" class="fig">${s}</svg>`;
+  }
+
   const FIGURAS = {
+    computador_partes: computadorPartes, linha_tempo: linhaTempo,
     painel_switch: painelSwitch, painel_router: painelRouter,
     cabo_utp: caboUtp, cabo_fibra: caboFibra, cabo_consola: caboConsola, rj45_pinos: rj45Pinos,
     osi, encapsulamento, handshake, trama_ethernet: trama,

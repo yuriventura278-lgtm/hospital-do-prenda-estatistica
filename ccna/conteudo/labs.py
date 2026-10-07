@@ -127,3 +127,22 @@ LABS = [
             tarefa("Aprenda os MACs com sticky", "switchport port-security mac-address sticky", {"t": "portsec_sticky", "if": "FastEthernet0/5"}),
         ], nivel="intermédio"),
 ]
+
+
+# Contexto real de cada laboratório: quem é o cliente e porque faz este trabalho.
+CENARIOS = {
+    "lab1": "Chegou um router novo para a Padaria Central. Antes de o instalar, ligue-se pela consola, dê-lhe um nome e guarde a configuração.",
+    "lab2": "A auditoria da Clínica Boa Saúde detetou que o router não tem palavras-passe. Corrija antes da próxima visita do auditor.",
+    "lab3": "O técnico da empresa trabalha à distância e precisa de gerir o router com segurança. O Telnet foi proibido pela política de segurança.",
+    "lab4": "Vai ligar o router de uma escola: a G0/0 serve a rede dos professores e a G0/1 liga ao router do operador.",
+    "lab5": "O escritório da Imobiliária Horizonte quer separar os computadores de Vendas e de TI no mesmo switch.",
+    "lab6": "A imobiliária comprou um segundo switch para o primeiro andar. Ligue-os de forma que as VLANs passem entre os dois.",
+    "lab7": "As VLANs de Vendas e TI precisam de partilhar a impressora e o servidor, mas só existe um router com uma porta livre.",
+    "lab8": "A rede de farmácias abriu uma filial. R1 (sede) tem de chegar à LAN da filial através de R2 e à Internet pelo operador.",
+    "lab9": "Com 10 filiais, as rotas estáticas tornaram-se difíceis de manter. Ative OSPF na sede.",
+    "lab10": "A cafetaria não tem servidor. O próprio router vai distribuir IPs aos computadores e ao Wi-Fi.",
+    "lab11": "O operador deu à loja um único IP público. Todos os computadores têm de sair para a Internet por ele.",
+    "lab12": "No balcão de atendimento de um banco, cada posto tem um PC e um telefone IP. Ninguém pode ligar outro equipamento à tomada.",
+}
+for _l in LABS:
+    _l["cenario"] = CENARIOS[_l["id"]]
