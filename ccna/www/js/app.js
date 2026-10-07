@@ -14,6 +14,7 @@
 
   // ------------------------------------------------------------ ícones da interface
   const IC = {
+    alvo: `<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>`,
     som: `<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>`,
     casa: '<path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     trilha: '<path d="M4 6h10M4 12h16M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="18" r="2"/>',
@@ -226,39 +227,42 @@
     else continuar = `<button class="item" data-acao="prova" data-id="${prox.m.id}"><div class="ico-caixa">${ic("medalha")}</div>
         <div class="meio"><span class="rotulo">Pronto para a prova</span><b>Prova do ${prox.m.codigo}: ${esc(prox.m.titulo)}</b><span class="suave peq">Precisa de ${NOTA_APROVACAO}/1000</span></div><span class="estado-ico atual">${ic("play")}</span></button>`;
     const dica = D.guia.dicas[new Date().getDate() % D.guia.dicas.length];
+    const anel = (pct) => { const r = 34, c = 2 * Math.PI * r; return `<svg viewBox="0 0 80 80" class="anel" aria-hidden="true"><circle cx="40" cy="40" r="${r}" class="anel-fundo"/><circle cx="40" cy="40" r="${r}" class="anel-cheio" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct)}"/></svg>`; };
     return `
       <section class="nivel">
-        <span class="rotulo" style="color:inherit;opacity:.85">Olá, ${esc(p.nome)}</span>
-        <h1>${esc(n.nome)}</h1>
-        <div class="barra" role="progressbar" aria-valuenow="${Math.round(n.pct * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${n.pct * 100}%"></i></div>
-        <div class="meta tab-num"><span>${p.xp} XP${n.prox ? ` · faltam ${n.prox - p.xp} para ${esc(n.proxNome)}` : ""}</span><span>${feitas}/${totalLicoes} lições</span><span>${seq} dia${seq === 1 ? "" : "s"} seguidos</span></div>
-        ${p.motivos.length ? `<span class="peq" style="opacity:.9">Objetivo: ${esc(p.motivos[0])}</span>` : ""}
+        <div class="nivel-topo"><div class="nivel-txt"><span class="nivel-ola">Olá, ${esc(p.nome)}</span><h1>${esc(n.nome)}</h1>
+          <span class="nivel-xp tab-num">${p.xp} XP${n.prox ? ` · faltam ${n.prox - p.xp} para ${esc(n.proxNome)}` : ""}</span></div>
+          <div class="nivel-anel">${anel(n.pct)}<b class="tab-num">${Math.round(n.pct * 100)}%</b></div></div>
+        <div class="nivel-stats tab-num"><div><b>${feitas}</b><span>de ${totalLicoes} aulas</span></div><div><b>${seq}</b><span>dia${seq === 1 ? "" : "s"} seguido${seq === 1 ? "" : "s"}</span></div><div><b>${Object.values(p.provas).filter((v) => v.melhor >= NOTA_APROVACAO).length}</b><span>provas passadas</span></div></div>
+        ${p.motivos.length ? `<span class="nivel-obj">${ic("alvo") || ""}Objetivo: ${esc(p.motivos[0])}</span>` : ""}
       </section>
       ${cartaoHoje()}
       ${continuar}
       <section class="secao">
-        <header><h2>O seu painel</h2><span class="rotulo">cada LED é um módulo</span></header>
-        <div class="painel">${D.cursos.map((c) => { const ms = MODS.filter((m) => m.curso === c.id);
-          return `<button class="fila" data-acao="trilha-curso" data-id="${c.id}" aria-label="${esc(c.titulo)}"><span class="num">${c.id === "B" ? "CCNA1" : c.id === "C" ? "CCNA2" : c.id === "D" ? "CCNA3" : c.id === "E" ? "EXTRA" : c.id === "F" ? "FINAL" : "BASE"}</span>
-            <span class="leds">${ms.map((m) => `<i class="led ${progressoModulo(m) >= 1 ? "on" : progressoModulo(m) > 0 || (proximaLicao() && proximaLicao().m === m) ? "amb" : ""}" title="${esc(m.codigo)}"></i>`).join("")}</span>
-            <span class="pct tab-num">${Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100)}%</span></button>`; }).join("")}</div>
+        <header><h2>O seu percurso</h2><span class="rotulo">6 partes · ${MODS.length} módulos</span></header>
+        <div class="percurso">${D.cursos.map((c) => { const ms = MODS.filter((m) => m.curso === c.id), pct = Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100);
+          return `<button class="cabo-curso" style="${corCurso(c.id)}" data-acao="trilha-curso" data-id="${c.id}" aria-label="${esc(c.titulo)}: ${pct}%"><span class="cabo-letra">${c.id}</span>
+            <span class="cabo-meio"><b>${esc(NOME_CURTO[c.id] || c.titulo)}</b><span class="cabo-fio"><i style="width:${Math.max(pct, 2)}%"></i></span></span><span class="cabo-pct tab-num">${pct}%</span></button>`; }).join("")}</div>
       </section>
       <section class="secao">
         <h2>Praticar</h2>
         <div class="acoes">
-          <button class="acao" data-acao="ir" data-tela="sims">${F.icone("switch", 28)}<b>Simulador de rede</b><span>${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length} práticas feitas</span></button>
-          <button class="acao" data-acao="ir" data-tela="relampago">${ic("raio")}<b>Quiz relâmpago</b><span>60 segundos, recorde ${p.recordes.relampago}</span></button>
-          <button class="acao" data-acao="ir" data-tela="subrede">${ic("calc")}<b>Desafio sub-rede</b><span>Melhor série: ${p.recordes.subrede}</span></button>
-          <button class="acao" data-acao="ir" data-tela="labs">${ic("terminal")}<b>Laboratório CLI</b><span>${Object.keys(p.labs).length}/${D.labs.length} concluídos</span></button>
-          <button class="acao" data-acao="ir" data-tela="revisao">${ic("caderno")}<b>Caderno de erros</b><span>${p.erros.length} pergunta${p.erros.length === 1 ? "" : "s"} para rever</span></button>
-          <button class="acao" data-acao="ir" data-tela="casos">${ic("caso")}<b>Casos reais</b><span>${Object.keys(p.casos).length}/${D.casos.length} resolvidos</span></button>
-          <button class="acao" data-acao="ir" data-tela="plano">${ic("calendario")}<b>O meu plano</b><span>${horas(p.plano.min)}/dia · ${p.plano.dias.length} dias/semana</span></button>
+          <button class="acao" style="--cor:var(--c-b)" data-acao="ir" data-tela="sims">${F.icone("switch", 28)}<b>Simulador de rede</b><span>${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length} práticas feitas</span></button>
+          <button class="acao" style="--cor:var(--c-a)" data-acao="ir" data-tela="relampago">${ic("raio")}<b>Quiz relâmpago</b><span>60 segundos, recorde ${p.recordes.relampago}</span></button>
+          <button class="acao" style="--cor:var(--c-c)" data-acao="ir" data-tela="subrede">${ic("calc")}<b>Desafio sub-rede</b><span>Melhor série: ${p.recordes.subrede}</span></button>
+          <button class="acao" style="--cor:var(--c-d)" data-acao="ir" data-tela="labs">${ic("terminal")}<b>Laboratório CLI</b><span>${Object.keys(p.labs).length}/${D.labs.length} concluídos</span></button>
+          <button class="acao" style="--cor:var(--c-f)" data-acao="ir" data-tela="revisao">${ic("caderno")}<b>Caderno de erros</b><span>${p.erros.length} pergunta${p.erros.length === 1 ? "" : "s"} para rever</span></button>
+          <button class="acao" style="--cor:var(--c-e)" data-acao="ir" data-tela="casos">${ic("caso")}<b>Casos reais</b><span>${Object.keys(p.casos).length}/${D.casos.length} resolvidos</span></button>
+          <button class="acao" style="--cor:var(--c-b)" data-acao="ir" data-tela="plano">${ic("calendario")}<b>O meu plano</b><span>${horas(p.plano.min)}/dia · ${p.plano.dias.length} dias/semana</span></button>
         </div>
       </section>
       <div class="dica">${ic("dica")}<div><b>Dica de exame.</b> ${esc(dica)}</div></div>`;
   };
 
   const CURSOS = D.cursos;
+  // Cada parte do curso tem a cor de um par de fios do cabo de rede
+  const corCurso = (c) => `--cor:var(--c-${String(c).toLowerCase()});--cor-suave:var(--c-${String(c).toLowerCase()}-suave)`;
+  const NOME_CURTO = { A: "Fundamentos", B: "CCNA 1 · ITN", C: "CCNA 2 · SRWE", D: "CCNA 3 · ENSA", E: "Complementares", F: "Projeto final" };
   const modsDoCurso = (c) => MODS.filter((m) => m.curso === c);
   const ativPorId = (id) => D.atividades.find((a) => a.id === id);
   const simFeito = (id) => !!(P().sims[id] && P().sims[id].feito);
@@ -270,11 +274,11 @@
       ${CURSOS.map((c) => {
         const ms = modsDoCurso(c.id), pct = Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100);
         const aberto = (prox && prox.m.curso === c.id) || rota.curso === c.id;
-        return `<details class="curso" ${aberto ? "open" : ""}><summary><div class="meio"><span class="rotulo">Parte ${c.id} · ${c.horas} h · ${ms.length} módulos</span><b>${esc(c.titulo)}</b><span class="suave peq">${esc(c.descricao)}</span>
+        return `<details class="curso" style="${corCurso(c.id)}" ${aberto ? "open" : ""}><summary><span class="curso-letra">${c.id}</span><div class="meio"><span class="rotulo">Parte ${c.id} · ${c.horas} h · ${ms.length} módulos</span><b>${esc(c.titulo)}</b><span class="suave peq">${esc(c.descricao)}</span>
           <div class="barra"><i style="width:${pct}%"></i></div></div><span class="chip ${pct === 100 ? "ok" : pct ? "acc" : ""} tab-num">${pct}%</span></summary>
           <div class="lista">${ms.map((m) => {
             const ab = moduloAberto(m), p = Math.round(progressoModulo(m) * 100);
-            return `<button class="item" data-acao="modulo" data-id="${m.id}" ${ab ? "" : 'aria-disabled="true"'}>
+            return `<button class="item item-mod" style="${corCurso(m.curso)}" data-acao="modulo" data-id="${m.id}" ${ab ? "" : 'aria-disabled="true"'}>
               <span class="codigo-mod">${esc(m.codigo)}</span>
               <div class="meio"><b>${esc(m.titulo)}</b><span class="suave peq">${m.horas} h · ${m.licoes.length} aula${m.licoes.length > 1 ? "s" : ""}${m.sim.length ? " · simulador" : ""}</span><span class="leds">${leds(m)}</span></div>
               ${ab ? `<span class="chip ${p === 100 ? "ok" : p ? "acc" : ""} tab-num">${p}%</span>` : `<span class="estado-ico bloq">${ic("cadeado")}</span>`}</button>`;
@@ -287,8 +291,9 @@
     const pr = P().provas[m.id];
     const labs = D.labs.filter((l) => l.modulo === m.id), casos = D.casos.filter((c) => c.modulo === m.id), sims = m.sim.map(ativPorId).filter(Boolean);
     const curso = CURSOS.find((c) => c.id === m.curso), ant = MODS[MODS.indexOf(m) - 1], seg = MODS[MODS.indexOf(m) + 1];
-    return `<div class="secao"><span class="rotulo">${esc(curso.titulo)}</span><h1><span class="codigo-mod grande">${esc(m.codigo)}</span> ${esc(m.titulo)}</h1>
-        <div class="linha"><span class="chip">${ic("relogio")} ${m.horas} h</span><span class="leds">${leds(m)}</span><span class="chip tab-num">${Math.round(progressoModulo(m) * 100)}% concluído</span></div></div>
+    return `<header class="banner-mod" style="${corCurso(m.curso)}"><span class="banner-curso">${esc(curso.titulo)}</span><span class="codigo-mod grande">${esc(m.codigo)}</span><h1>${esc(m.titulo)}</h1>
+        <div class="linha"><span class="chip">${ic("relogio")} ${m.horas} h</span><span class="chip">${m.licoes.length} aula${m.licoes.length > 1 ? "s" : ""}</span><span class="chip tab-num">${Math.round(progressoModulo(m) * 100)}% concluído</span></div>
+        <div class="cabo-fio"><i style="width:${Math.max(2, Math.round(progressoModulo(m) * 100))}%"></i></div></header>
       <section class="secao"><header><h2>Apresentação do módulo</h2><span class="rotulo">${Math.max(1, Math.round(m.apresentacao.video.segundos / 60))} min${ant ? " · inclui o resumo do " + esc(ant.codigo) : ""}</span></header><div id="video-modulo"></div></section>
       ${aberto ? "" : `<div class="alerta">${ic("cadeado")}<div>Passe a prova do módulo anterior (${esc(ant ? ant.codigo : "")}) para desbloquear, ou ative o <b>modo livre</b> no perfil.</div></div>`}
       <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${m.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
@@ -347,7 +352,7 @@
     if (!licaoAberta(l)) return `<div class="vazio">${ic("cadeado")}<p>Conclua a lição anterior para abrir esta.</p></div>`;
     const ant = m.licoes[l._i - 1], prox = m.licoes[l._i + 1];
     const r = P().licoes[l.id];
-    return `<article class="cab-licao"><span class="rotulo">${m.codigo} · Lição ${l._i + 1} de ${m.licoes.length}</span><h1>${esc(l.titulo)}</h1>
+    return `<article class="cab-licao" style="${corCurso(m.curso)}"><span class="rotulo"><span class="codigo-mod">${m.codigo}</span> Aula ${l._i + 1} de ${m.licoes.length}</span><h1>${esc(l.titulo)}</h1>
         <div class="linha"><span class="chip">${ic("relogio")} ${l.minutos} min</span><span class="chip acc">${esc(l.nivel)}</span>${r && r.melhor != null ? `<span class="chip ${r.melhor >= 70 ? "ok" : "warn"}">Melhor quiz: ${r.melhor}%</span>` : ""}</div>
         <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${l.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></div></article>
       <div class="cartao assistente"><div class="linha"><span class="ico-caixa">${ic("som")}</span><div class="meio"><b>Assistente de leitura</b><span class="suave peq">Lê toda a aula em voz alta, de seguida, com a voz do telemóvel. Pode ler a partir de qualquer parte (botão 🔊 em cada bloco).</span></div></div>
@@ -782,9 +787,9 @@
         <span><b>${esc(x.nome)}</b><br><span class="suave peq">${esc(nivel(x.xp).nome)} · ${Object.values(x.provas).filter((v) => v.melhor >= NOTA_APROVACAO).length}/${MODS.length} provas</span></span><b class="tab-num">${x.xp} XP</b></li>`).join("")}</ol>
       <button class="btn bloco" data-acao="perfil">Adicionar ou trocar de perfil</button>
       <section class="secao"><h2>Níveis</h2><div class="tabela-caixa"><table><tbody>${NIVEIS.map(([xp, nome], i) => `<tr${i === n.i ? ' style="background:var(--accent-soft)"' : ""}><td>${i + 1}</td><td><b>${esc(nome)}</b></td><td class="tab-num">${xp} XP</td></tr>`).join("")}</tbody></table></div></section>
-      <section class="secao"><h2>Notas das provas</h2><div class="tabela-caixa"><table><thead><tr><th>Módulo</th><th>Melhor</th><th>Tentativas</th><th>Estado</th></tr></thead><tbody>
-        ${MODS.map((m) => { const r = p.provas[m.id]; return `<tr><td>${esc(m.codigo)} · ${esc(m.titulo)}</td><td class="tab-num">${r ? r.melhor : "—"}</td><td class="tab-num">${r ? r.tentativas : 0}</td><td>${r ? (r.melhor >= NOTA_APROVACAO ? '<span class="chip ok">Aprovado</span>' : '<span class="chip bad">Repetir</span>') : '<span class="chip">Por fazer</span>'}</td></tr>`; }).join("")}
-      </tbody></table></div></section>
+      <section class="secao"><h2>Notas das provas</h2><div class="tabela-caixa" ${Object.keys(p.provas).length ? "" : "hidden"}><table><thead><tr><th>Módulo</th><th>Melhor</th><th>Tentativas</th><th>Estado</th></tr></thead><tbody>
+        ${MODS.filter((m) => p.provas[m.id]).map((m) => { const r = p.provas[m.id]; return `<tr><td>${esc(m.codigo)} · ${esc(m.titulo)}</td><td class="tab-num">${r ? r.melhor : "—"}</td><td class="tab-num">${r ? r.tentativas : 0}</td><td>${r ? (r.melhor >= NOTA_APROVACAO ? '<span class="chip ok">Aprovado</span>' : '<span class="chip bad">Repetir</span>') : '<span class="chip">Por fazer</span>'}</td></tr>`; }).join("")}
+      </tbody></table></div>${Object.keys(p.provas).length ? "" : '<p class="suave peq">Ainda não fez nenhuma prova. As notas aparecem aqui depois do primeiro teste final de módulo.</p>'}</section>
       <section class="secao"><h2>Conquistas</h2><div class="medalhas">${CONQUISTAS.map(([id, nome, desc]) => `<div class="medalha ${p.conquistas[id] ? "ganha" : ""}"><span class="m">${ic("medalha")}</span><b>${esc(nome)}</b><span class="suave">${esc(desc)}</span></div>`).join("")}</div></section>`;
   };
 

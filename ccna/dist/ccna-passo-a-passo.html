@@ -714,6 +714,178 @@ dl.gloss dd { margin: 0; line-height: 1.5; }
 .sim > *, .sim-inspetor > * { min-width: 0; }
 .sim-consola { overflow-wrap: anywhere; }
 
+/* ================================================================ DESIGN 2 — "Rede viva"
+   Identidade: azul-marinho de bastidor, cores dos pares do cabo de rede para cada parte do
+   curso (laranja, azul, verde, roxo, castanho, vermelho), luzes de estado e papel quadriculado
+   de diagrama de rede como fundo. */
+:root {
+  --bg: #eef2f8; --surface: #ffffff; --surface-2: #f3f6fb; --ink: #0b1630; --muted: #56647a; --line: #dbe2ee;
+  --accent: #1f5fe0; --accent-ink: #ffffff; --accent-soft: #e3ebfd;
+  --navy: #0b1630; --navy-2: #16295a; --navy-ink: #ffffff;
+  --c-a: #e9761b; --c-b: #1f5fe0; --c-c: #1c9a57; --c-d: #7a4fd6; --c-e: #9a6230; --c-f: #d43d4f;
+  --c-a-suave: color-mix(in srgb, var(--c-a) 13%, var(--surface)); --c-b-suave: color-mix(in srgb, var(--c-b) 12%, var(--surface));
+  --c-c-suave: color-mix(in srgb, var(--c-c) 13%, var(--surface)); --c-d-suave: color-mix(in srgb, var(--c-d) 13%, var(--surface));
+  --c-e-suave: color-mix(in srgb, var(--c-e) 14%, var(--surface)); --c-f-suave: color-mix(in srgb, var(--c-f) 12%, var(--surface));
+  --cor: var(--accent); --cor-suave: var(--accent-soft);
+  --grelha: color-mix(in srgb, #56647a 16%, transparent);
+  --shadow: 0 1px 2px rgba(11, 22, 48, .05), 0 10px 28px -12px rgba(11, 22, 48, .18);
+  --shadow-forte: 0 2px 4px rgba(11, 22, 48, .06), 0 18px 40px -16px rgba(11, 22, 48, .35);
+  --r: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #070d18; --surface: #0f1828; --surface-2: #152036; --ink: #e8eef8; --muted: #95a5bc; --line: #22314a;
+    --accent: #6c9cff; --accent-ink: #061634; --accent-soft: #14264b;
+    --navy: #050b16; --navy-2: #102044;
+    --c-a: #ff9a45; --c-b: #6c9cff; --c-c: #41d08a; --c-d: #a98bff; --c-e: #d59a62; --c-f: #ff6f80;
+    --grelha: color-mix(in srgb, #95a5bc 10%, transparent);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px -12px rgba(0, 0, 0, .6);
+    --shadow-forte: 0 2px 4px rgba(0, 0, 0, .4), 0 18px 40px -16px rgba(0, 0, 0, .8);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #070d18; --surface: #0f1828; --surface-2: #152036; --ink: #e8eef8; --muted: #95a5bc; --line: #22314a;
+  --accent: #6c9cff; --accent-ink: #061634; --accent-soft: #14264b;
+  --navy: #050b16; --navy-2: #102044;
+  --c-a: #ff9a45; --c-b: #6c9cff; --c-c: #41d08a; --c-d: #a98bff; --c-e: #d59a62; --c-f: #ff6f80;
+  --grelha: color-mix(in srgb, #95a5bc 10%, transparent);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px -12px rgba(0, 0, 0, .6);
+  --shadow-forte: 0 2px 4px rgba(0, 0, 0, .4), 0 18px 40px -16px rgba(0, 0, 0, .8);
+}
+
+body { background-color: var(--bg); background-image: radial-gradient(var(--grelha) 1px, transparent 1.2px); background-size: 24px 24px; background-attachment: fixed; }
+h1 { font-size: 1.85rem; font-weight: 800; font-stretch: 82%; letter-spacing: -.015em; }
+h2 { font-size: 1.32rem; font-weight: 800; font-stretch: 85%; }
+.rotulo { letter-spacing: .1em; }
+
+/* barra de topo: bastidor azul-marinho */
+.topo { background: var(--navy); color: var(--navy-ink); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: 0 6px 18px -10px rgba(5, 12, 30, .7); padding-block: 10px; }
+.topo .titulo { color: var(--navy-ink); }
+.topo .marca b { color: var(--navy-ink); font-size: .82rem; line-height: 1.05; }
+.topo .marca img { border-radius: 8px; background: #fff; padding: 2px; }
+.topo .btn-icone { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .18); color: var(--navy-ink); }
+.topo .btn-icone:hover { background: rgba(255, 255, 255, .16); }
+.topo .xp-pilula { background: rgba(255, 255, 255, .1); color: #ffd27a; border: 1px solid rgba(255, 210, 122, .35); }
+.topo .xp-pilula svg { width: 16px; height: 16px; }
+
+/* navegação inferior flutuante */
+.nav { left: 50%; right: auto; transform: translateX(-50%); width: min(560px, calc(100% - 20px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); padding: 6px; border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow-forte); background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.nav button { padding: 7px 0 6px; border-radius: 16px; font-size: .7rem; transition: background .2s, color .2s; }
+.nav button[aria-current="page"] { background: var(--accent); color: var(--accent-ink); box-shadow: 0 6px 14px -6px var(--accent); }
+main { padding-bottom: calc(var(--nav-h) + 44px + env(safe-area-inset-bottom, 0px)); }
+.toast { bottom: calc(var(--nav-h) + 30px + env(safe-area-inset-bottom, 0px)); border-radius: 999px; background: var(--navy); color: #fff; padding: 10px 18px; font-size: .9rem; box-shadow: var(--shadow-forte); }
+
+/* cartões, listas e botões */
+.cartao { border-color: color-mix(in srgb, var(--line) 75%, transparent); border-radius: var(--r); }
+.cartao.plano { background: var(--surface); }
+.item { border-color: color-mix(in srgb, var(--line) 75%, transparent); border-radius: 16px; box-shadow: 0 1px 2px rgba(11, 22, 48, .04); transition: transform .12s ease, box-shadow .2s, border-color .2s; }
+.item:not([aria-disabled="true"]):hover { border-color: color-mix(in srgb, var(--cor) 45%, var(--line)); box-shadow: var(--shadow); }
+.item:not([aria-disabled="true"]):active { transform: scale(.99); }
+.item .ico-caixa { background: var(--cor-suave); color: var(--cor); border-radius: 14px; }
+.btn { border-radius: 14px; transition: transform .12s ease, box-shadow .2s, background .2s; }
+.btn:not(:disabled):active { transform: scale(.98); }
+.btn.prim { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #ffffff), var(--accent)); box-shadow: 0 8px 18px -10px var(--accent); border-color: transparent; }
+.btn.prim:hover { box-shadow: 0 10px 22px -8px var(--accent); }
+.chip { border-radius: 999px; }
+.barra { border: 0; background: color-mix(in srgb, var(--muted) 16%, transparent); height: 8px; }
+.barra > i { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #22c1c3)); }
+.linha > .meio { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.estado-ico.atual { background: var(--accent); color: #fff; box-shadow: 0 0 0 4px var(--accent-soft); }
+.estado-ico.ok { box-shadow: 0 0 0 4px var(--ok-soft); }
+.dica { background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); }
+.alerta { background: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent); }
+
+/* início: herói */
+.nivel { position: relative; overflow: hidden; border-radius: 24px; padding: 20px; gap: 16px; color: #fff;
+  background: radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--c-b) 55%, transparent) 0%, transparent 60%), linear-gradient(150deg, var(--navy-2) 0%, var(--navy) 100%);
+  box-shadow: var(--shadow-forte); }
+.nivel::before { content: ""; position: absolute; inset: 0; opacity: .22; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='160' viewBox='0 0 220 160'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.2'%3E%3Cpath d='M20 30 L90 60 L160 20 M90 60 L120 130 L200 110 M90 60 L40 120 L120 130 M160 20 L200 110'/%3E%3C/g%3E%3Cg fill='%23ffffff'%3E%3Ccircle cx='20' cy='30' r='4'/%3E%3Ccircle cx='90' cy='60' r='6'/%3E%3Ccircle cx='160' cy='20' r='4'/%3E%3Ccircle cx='120' cy='130' r='5'/%3E%3Ccircle cx='200' cy='110' r='4'/%3E%3Ccircle cx='40' cy='120' r='3'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 220px 160px; background-position: right -30px top -10px; background-repeat: no-repeat; }
+.nivel > * { position: relative; }
+.nivel-topo { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+.nivel-txt { display: grid; gap: 4px; min-width: 0; }
+.nivel-ola { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: #a9c4ff; }
+.nivel h1 { font-size: 1.9rem; color: #fff; }
+.nivel-xp { font-size: .86rem; color: #d7e2ff; }
+.nivel-anel { position: relative; width: 84px; height: 84px; display: grid; place-items: center; }
+.nivel-anel b { position: absolute; font-family: var(--f-display); font-weight: 800; font-size: 1.15rem; }
+.anel { width: 84px; height: 84px; transform: rotate(-90deg); }
+.anel-fundo { fill: none; stroke: rgba(255, 255, 255, .15); stroke-width: 8; }
+.anel-cheio { fill: none; stroke: #ffd27a; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset .8s ease; }
+.nivel-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.nivel-stats > div { background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); border-radius: 14px; padding: 10px; display: grid; gap: 2px; }
+.nivel-stats b { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; line-height: 1; }
+.nivel-stats span { font-size: .72rem; color: #c3d2f5; }
+.nivel-obj { display: inline-flex; gap: 6px; align-items: center; font-size: .85rem; color: #e6edff; }
+.nivel-obj svg { width: 16px; height: 16px; flex: none; }
+
+/* percurso: cada parte é um cabo com a sua cor */
+.percurso { display: grid; gap: 8px; background: var(--surface); border: 1px solid color-mix(in srgb, var(--line) 75%, transparent); border-radius: var(--r); padding: 10px; box-shadow: var(--shadow); }
+.cabo-curso { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; border: 0; background: none; padding: 8px; border-radius: 12px; cursor: pointer; text-align: left; color: var(--ink); }
+.cabo-curso:hover { background: var(--cor-suave); }
+.cabo-letra, .curso-letra { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; color: #fff; background: var(--cor); box-shadow: 0 6px 14px -8px var(--cor); }
+.cabo-meio { display: grid; gap: 6px; min-width: 0; }
+.cabo-meio b { font-family: var(--f-display); font-stretch: 88%; font-size: .98rem; }
+.cabo-fio { height: 10px; border-radius: 99px; overflow: hidden; background: repeating-linear-gradient(135deg, var(--cor-suave) 0 6px, color-mix(in srgb, var(--cor) 22%, var(--surface)) 6px 9px); }
+.cabo-fio > i { display: block; height: 100%; border-radius: 99px; background: var(--cor); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .12); }
+.cabo-pct { font-family: var(--f-mono); font-weight: 700; font-size: .82rem; color: var(--muted); }
+
+/* praticar */
+.acao { border-radius: 18px; border-color: color-mix(in srgb, var(--line) 75%, transparent); box-shadow: 0 1px 2px rgba(11, 22, 48, .04); gap: 8px; transition: transform .12s ease, box-shadow .2s; }
+.acao:hover { box-shadow: var(--shadow); }
+.acao > svg { width: 44px; height: 44px; padding: 9px; border-radius: 13px; background: var(--cor-suave); color: var(--cor); }
+
+/* trilha */
+details.curso { border-radius: 20px; border-color: color-mix(in srgb, var(--line) 75%, transparent); box-shadow: var(--shadow); overflow: hidden; }
+details.curso > summary { grid-template-columns: auto 1fr auto; border-top: 5px solid var(--cor); }
+details.curso > summary .barra > i { background: var(--cor); }
+details.curso[open] > summary { background: linear-gradient(180deg, var(--cor-suave), transparent); }
+details.curso > .lista { background: var(--surface-2); }
+.item-mod { box-shadow: inset 4px 0 0 var(--cor), 0 1px 2px rgba(11, 22, 48, .04); }
+.codigo-mod { background: var(--cor-suave); color: var(--cor); }
+.item-mod .leds .led.on { background: var(--cor); box-shadow: none; }
+
+/* página do módulo */
+.banner-mod { display: grid; gap: 10px; padding: 18px; border-radius: 22px; background: linear-gradient(160deg, var(--cor-suave) 0%, var(--surface) 70%); border: 1px solid color-mix(in srgb, var(--cor) 25%, var(--line)); box-shadow: var(--shadow); border-top: 6px solid var(--cor); }
+.banner-mod .banner-curso { font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--cor); }
+.banner-mod .codigo-mod.grande { justify-self: start; font-size: .95rem; padding: 6px 12px; background: var(--cor); color: #fff; }
+.banner-mod h1 { font-size: 1.95rem; }
+.banner-mod .chip { background: var(--surface); }
+
+/* lição */
+.cab-licao .rotulo { display: flex; gap: 8px; align-items: center; }
+.cab-licao .codigo-mod { min-width: 0; padding: 3px 8px; font-size: .74rem; }
+.cab-licao h1 { font-size: 1.9rem; }
+.bloco h3 { font-size: 1.12rem; }
+.bloco.exemplo, .exemplo { border-left-color: var(--c-c); border-radius: 14px; }
+.assistente .linha { flex-wrap: nowrap; align-items: flex-start; }
+.assistente .ico-caixa { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
+.term { border-radius: 14px; box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .6); }
+
+/* quiz e resultados */
+.opcao { border-radius: 14px; transition: border-color .15s, background .15s, transform .1s; }
+.opcao:not(:disabled):hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.opcao .letra { border-radius: 9px; }
+.resultado .grande { background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--ink))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* boas-vindas */
+.sem-nav main { padding-top: 24px; }
+
+/* acabamentos */
+.btn.bloco { display: flex; }
+.item-mod .leds { gap: 3px; }
+.item-mod .leds .led { width: 18px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--muted) 22%, transparent); }
+.item-mod .leds .led.amb { background: color-mix(in srgb, var(--cor) 55%, var(--surface)); }
+.ob-hero { background: radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--c-b) 50%, transparent), transparent 60%), linear-gradient(150deg, var(--navy-2), var(--navy)); border-radius: 26px; padding: 22px 18px; box-shadow: var(--shadow-forte); }
+.ob-hero p { color: #d7e2ff; font-size: 1.02rem; }
+.ob-hero .logo { box-shadow: 0 16px 34px -18px rgba(0, 0, 0, .8); }
+.passos-ob i { border-radius: 99px; width: 30px; height: 6px; background: color-mix(in srgb, var(--muted) 25%, transparent); }
+.passos-ob i.on { background: var(--accent); }
+.chip-op { border-radius: 999px; }
+.chip-op[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.opcao-ob[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
 </style>
 </head>
 <body>
@@ -4687,6 +4859,7 @@ Configuration register is 0x2102
 
   // ------------------------------------------------------------ ícones da interface
   const IC = {
+    alvo: `<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>`,
     som: `<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>`,
     casa: '<path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
     trilha: '<path d="M4 6h10M4 12h16M4 18h7"/><circle cx="18" cy="6" r="2"/><circle cx="15" cy="18" r="2"/>',
@@ -4899,39 +5072,42 @@ Configuration register is 0x2102
     else continuar = `<button class="item" data-acao="prova" data-id="${prox.m.id}"><div class="ico-caixa">${ic("medalha")}</div>
         <div class="meio"><span class="rotulo">Pronto para a prova</span><b>Prova do ${prox.m.codigo}: ${esc(prox.m.titulo)}</b><span class="suave peq">Precisa de ${NOTA_APROVACAO}/1000</span></div><span class="estado-ico atual">${ic("play")}</span></button>`;
     const dica = D.guia.dicas[new Date().getDate() % D.guia.dicas.length];
+    const anel = (pct) => { const r = 34, c = 2 * Math.PI * r; return `<svg viewBox="0 0 80 80" class="anel" aria-hidden="true"><circle cx="40" cy="40" r="${r}" class="anel-fundo"/><circle cx="40" cy="40" r="${r}" class="anel-cheio" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct)}"/></svg>`; };
     return `
       <section class="nivel">
-        <span class="rotulo" style="color:inherit;opacity:.85">Olá, ${esc(p.nome)}</span>
-        <h1>${esc(n.nome)}</h1>
-        <div class="barra" role="progressbar" aria-valuenow="${Math.round(n.pct * 100)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${n.pct * 100}%"></i></div>
-        <div class="meta tab-num"><span>${p.xp} XP${n.prox ? ` · faltam ${n.prox - p.xp} para ${esc(n.proxNome)}` : ""}</span><span>${feitas}/${totalLicoes} lições</span><span>${seq} dia${seq === 1 ? "" : "s"} seguidos</span></div>
-        ${p.motivos.length ? `<span class="peq" style="opacity:.9">Objetivo: ${esc(p.motivos[0])}</span>` : ""}
+        <div class="nivel-topo"><div class="nivel-txt"><span class="nivel-ola">Olá, ${esc(p.nome)}</span><h1>${esc(n.nome)}</h1>
+          <span class="nivel-xp tab-num">${p.xp} XP${n.prox ? ` · faltam ${n.prox - p.xp} para ${esc(n.proxNome)}` : ""}</span></div>
+          <div class="nivel-anel">${anel(n.pct)}<b class="tab-num">${Math.round(n.pct * 100)}%</b></div></div>
+        <div class="nivel-stats tab-num"><div><b>${feitas}</b><span>de ${totalLicoes} aulas</span></div><div><b>${seq}</b><span>dia${seq === 1 ? "" : "s"} seguido${seq === 1 ? "" : "s"}</span></div><div><b>${Object.values(p.provas).filter((v) => v.melhor >= NOTA_APROVACAO).length}</b><span>provas passadas</span></div></div>
+        ${p.motivos.length ? `<span class="nivel-obj">${ic("alvo") || ""}Objetivo: ${esc(p.motivos[0])}</span>` : ""}
       </section>
       ${cartaoHoje()}
       ${continuar}
       <section class="secao">
-        <header><h2>O seu painel</h2><span class="rotulo">cada LED é um módulo</span></header>
-        <div class="painel">${D.cursos.map((c) => { const ms = MODS.filter((m) => m.curso === c.id);
-          return `<button class="fila" data-acao="trilha-curso" data-id="${c.id}" aria-label="${esc(c.titulo)}"><span class="num">${c.id === "B" ? "CCNA1" : c.id === "C" ? "CCNA2" : c.id === "D" ? "CCNA3" : c.id === "E" ? "EXTRA" : c.id === "F" ? "FINAL" : "BASE"}</span>
-            <span class="leds">${ms.map((m) => `<i class="led ${progressoModulo(m) >= 1 ? "on" : progressoModulo(m) > 0 || (proximaLicao() && proximaLicao().m === m) ? "amb" : ""}" title="${esc(m.codigo)}"></i>`).join("")}</span>
-            <span class="pct tab-num">${Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100)}%</span></button>`; }).join("")}</div>
+        <header><h2>O seu percurso</h2><span class="rotulo">6 partes · ${MODS.length} módulos</span></header>
+        <div class="percurso">${D.cursos.map((c) => { const ms = MODS.filter((m) => m.curso === c.id), pct = Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100);
+          return `<button class="cabo-curso" style="${corCurso(c.id)}" data-acao="trilha-curso" data-id="${c.id}" aria-label="${esc(c.titulo)}: ${pct}%"><span class="cabo-letra">${c.id}</span>
+            <span class="cabo-meio"><b>${esc(NOME_CURTO[c.id] || c.titulo)}</b><span class="cabo-fio"><i style="width:${Math.max(pct, 2)}%"></i></span></span><span class="cabo-pct tab-num">${pct}%</span></button>`; }).join("")}</div>
       </section>
       <section class="secao">
         <h2>Praticar</h2>
         <div class="acoes">
-          <button class="acao" data-acao="ir" data-tela="sims">${F.icone("switch", 28)}<b>Simulador de rede</b><span>${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length} práticas feitas</span></button>
-          <button class="acao" data-acao="ir" data-tela="relampago">${ic("raio")}<b>Quiz relâmpago</b><span>60 segundos, recorde ${p.recordes.relampago}</span></button>
-          <button class="acao" data-acao="ir" data-tela="subrede">${ic("calc")}<b>Desafio sub-rede</b><span>Melhor série: ${p.recordes.subrede}</span></button>
-          <button class="acao" data-acao="ir" data-tela="labs">${ic("terminal")}<b>Laboratório CLI</b><span>${Object.keys(p.labs).length}/${D.labs.length} concluídos</span></button>
-          <button class="acao" data-acao="ir" data-tela="revisao">${ic("caderno")}<b>Caderno de erros</b><span>${p.erros.length} pergunta${p.erros.length === 1 ? "" : "s"} para rever</span></button>
-          <button class="acao" data-acao="ir" data-tela="casos">${ic("caso")}<b>Casos reais</b><span>${Object.keys(p.casos).length}/${D.casos.length} resolvidos</span></button>
-          <button class="acao" data-acao="ir" data-tela="plano">${ic("calendario")}<b>O meu plano</b><span>${horas(p.plano.min)}/dia · ${p.plano.dias.length} dias/semana</span></button>
+          <button class="acao" style="--cor:var(--c-b)" data-acao="ir" data-tela="sims">${F.icone("switch", 28)}<b>Simulador de rede</b><span>${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length} práticas feitas</span></button>
+          <button class="acao" style="--cor:var(--c-a)" data-acao="ir" data-tela="relampago">${ic("raio")}<b>Quiz relâmpago</b><span>60 segundos, recorde ${p.recordes.relampago}</span></button>
+          <button class="acao" style="--cor:var(--c-c)" data-acao="ir" data-tela="subrede">${ic("calc")}<b>Desafio sub-rede</b><span>Melhor série: ${p.recordes.subrede}</span></button>
+          <button class="acao" style="--cor:var(--c-d)" data-acao="ir" data-tela="labs">${ic("terminal")}<b>Laboratório CLI</b><span>${Object.keys(p.labs).length}/${D.labs.length} concluídos</span></button>
+          <button class="acao" style="--cor:var(--c-f)" data-acao="ir" data-tela="revisao">${ic("caderno")}<b>Caderno de erros</b><span>${p.erros.length} pergunta${p.erros.length === 1 ? "" : "s"} para rever</span></button>
+          <button class="acao" style="--cor:var(--c-e)" data-acao="ir" data-tela="casos">${ic("caso")}<b>Casos reais</b><span>${Object.keys(p.casos).length}/${D.casos.length} resolvidos</span></button>
+          <button class="acao" style="--cor:var(--c-b)" data-acao="ir" data-tela="plano">${ic("calendario")}<b>O meu plano</b><span>${horas(p.plano.min)}/dia · ${p.plano.dias.length} dias/semana</span></button>
         </div>
       </section>
       <div class="dica">${ic("dica")}<div><b>Dica de exame.</b> ${esc(dica)}</div></div>`;
   };
 
   const CURSOS = D.cursos;
+  // Cada parte do curso tem a cor de um par de fios do cabo de rede
+  const corCurso = (c) => `--cor:var(--c-${String(c).toLowerCase()});--cor-suave:var(--c-${String(c).toLowerCase()}-suave)`;
+  const NOME_CURTO = { A: "Fundamentos", B: "CCNA 1 · ITN", C: "CCNA 2 · SRWE", D: "CCNA 3 · ENSA", E: "Complementares", F: "Projeto final" };
   const modsDoCurso = (c) => MODS.filter((m) => m.curso === c);
   const ativPorId = (id) => D.atividades.find((a) => a.id === id);
   const simFeito = (id) => !!(P().sims[id] && P().sims[id].feito);
@@ -4943,11 +5119,11 @@ Configuration register is 0x2102
       ${CURSOS.map((c) => {
         const ms = modsDoCurso(c.id), pct = Math.round(ms.reduce((a, m) => a + progressoModulo(m), 0) / ms.length * 100);
         const aberto = (prox && prox.m.curso === c.id) || rota.curso === c.id;
-        return `<details class="curso" ${aberto ? "open" : ""}><summary><div class="meio"><span class="rotulo">Parte ${c.id} · ${c.horas} h · ${ms.length} módulos</span><b>${esc(c.titulo)}</b><span class="suave peq">${esc(c.descricao)}</span>
+        return `<details class="curso" style="${corCurso(c.id)}" ${aberto ? "open" : ""}><summary><span class="curso-letra">${c.id}</span><div class="meio"><span class="rotulo">Parte ${c.id} · ${c.horas} h · ${ms.length} módulos</span><b>${esc(c.titulo)}</b><span class="suave peq">${esc(c.descricao)}</span>
           <div class="barra"><i style="width:${pct}%"></i></div></div><span class="chip ${pct === 100 ? "ok" : pct ? "acc" : ""} tab-num">${pct}%</span></summary>
           <div class="lista">${ms.map((m) => {
             const ab = moduloAberto(m), p = Math.round(progressoModulo(m) * 100);
-            return `<button class="item" data-acao="modulo" data-id="${m.id}" ${ab ? "" : 'aria-disabled="true"'}>
+            return `<button class="item item-mod" style="${corCurso(m.curso)}" data-acao="modulo" data-id="${m.id}" ${ab ? "" : 'aria-disabled="true"'}>
               <span class="codigo-mod">${esc(m.codigo)}</span>
               <div class="meio"><b>${esc(m.titulo)}</b><span class="suave peq">${m.horas} h · ${m.licoes.length} aula${m.licoes.length > 1 ? "s" : ""}${m.sim.length ? " · simulador" : ""}</span><span class="leds">${leds(m)}</span></div>
               ${ab ? `<span class="chip ${p === 100 ? "ok" : p ? "acc" : ""} tab-num">${p}%</span>` : `<span class="estado-ico bloq">${ic("cadeado")}</span>`}</button>`;
@@ -4960,8 +5136,9 @@ Configuration register is 0x2102
     const pr = P().provas[m.id];
     const labs = D.labs.filter((l) => l.modulo === m.id), casos = D.casos.filter((c) => c.modulo === m.id), sims = m.sim.map(ativPorId).filter(Boolean);
     const curso = CURSOS.find((c) => c.id === m.curso), ant = MODS[MODS.indexOf(m) - 1], seg = MODS[MODS.indexOf(m) + 1];
-    return `<div class="secao"><span class="rotulo">${esc(curso.titulo)}</span><h1><span class="codigo-mod grande">${esc(m.codigo)}</span> ${esc(m.titulo)}</h1>
-        <div class="linha"><span class="chip">${ic("relogio")} ${m.horas} h</span><span class="leds">${leds(m)}</span><span class="chip tab-num">${Math.round(progressoModulo(m) * 100)}% concluído</span></div></div>
+    return `<header class="banner-mod" style="${corCurso(m.curso)}"><span class="banner-curso">${esc(curso.titulo)}</span><span class="codigo-mod grande">${esc(m.codigo)}</span><h1>${esc(m.titulo)}</h1>
+        <div class="linha"><span class="chip">${ic("relogio")} ${m.horas} h</span><span class="chip">${m.licoes.length} aula${m.licoes.length > 1 ? "s" : ""}</span><span class="chip tab-num">${Math.round(progressoModulo(m) * 100)}% concluído</span></div>
+        <div class="cabo-fio"><i style="width:${Math.max(2, Math.round(progressoModulo(m) * 100))}%"></i></div></header>
       <section class="secao"><header><h2>Apresentação do módulo</h2><span class="rotulo">${Math.max(1, Math.round(m.apresentacao.video.segundos / 60))} min${ant ? " · inclui o resumo do " + esc(ant.codigo) : ""}</span></header><div id="video-modulo"></div></section>
       ${aberto ? "" : `<div class="alerta">${ic("cadeado")}<div>Passe a prova do módulo anterior (${esc(ant ? ant.codigo : "")}) para desbloquear, ou ative o <b>modo livre</b> no perfil.</div></div>`}
       <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${m.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>
@@ -5020,7 +5197,7 @@ Configuration register is 0x2102
     if (!licaoAberta(l)) return `<div class="vazio">${ic("cadeado")}<p>Conclua a lição anterior para abrir esta.</p></div>`;
     const ant = m.licoes[l._i - 1], prox = m.licoes[l._i + 1];
     const r = P().licoes[l.id];
-    return `<article class="cab-licao"><span class="rotulo">${m.codigo} · Lição ${l._i + 1} de ${m.licoes.length}</span><h1>${esc(l.titulo)}</h1>
+    return `<article class="cab-licao" style="${corCurso(m.curso)}"><span class="rotulo"><span class="codigo-mod">${m.codigo}</span> Aula ${l._i + 1} de ${m.licoes.length}</span><h1>${esc(l.titulo)}</h1>
         <div class="linha"><span class="chip">${ic("relogio")} ${l.minutos} min</span><span class="chip acc">${esc(l.nivel)}</span>${r && r.melhor != null ? `<span class="chip ${r.melhor >= 70 ? "ok" : "warn"}">Melhor quiz: ${r.melhor}%</span>` : ""}</div>
         <div class="cartao plano"><span class="rotulo">Objetivos</span><ul class="objetivos">${l.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></div></article>
       <div class="cartao assistente"><div class="linha"><span class="ico-caixa">${ic("som")}</span><div class="meio"><b>Assistente de leitura</b><span class="suave peq">Lê toda a aula em voz alta, de seguida, com a voz do telemóvel. Pode ler a partir de qualquer parte (botão 🔊 em cada bloco).</span></div></div>
@@ -5455,9 +5632,9 @@ Configuration register is 0x2102
         <span><b>${esc(x.nome)}</b><br><span class="suave peq">${esc(nivel(x.xp).nome)} · ${Object.values(x.provas).filter((v) => v.melhor >= NOTA_APROVACAO).length}/${MODS.length} provas</span></span><b class="tab-num">${x.xp} XP</b></li>`).join("")}</ol>
       <button class="btn bloco" data-acao="perfil">Adicionar ou trocar de perfil</button>
       <section class="secao"><h2>Níveis</h2><div class="tabela-caixa"><table><tbody>${NIVEIS.map(([xp, nome], i) => `<tr${i === n.i ? ' style="background:var(--accent-soft)"' : ""}><td>${i + 1}</td><td><b>${esc(nome)}</b></td><td class="tab-num">${xp} XP</td></tr>`).join("")}</tbody></table></div></section>
-      <section class="secao"><h2>Notas das provas</h2><div class="tabela-caixa"><table><thead><tr><th>Módulo</th><th>Melhor</th><th>Tentativas</th><th>Estado</th></tr></thead><tbody>
-        ${MODS.map((m) => { const r = p.provas[m.id]; return `<tr><td>${esc(m.codigo)} · ${esc(m.titulo)}</td><td class="tab-num">${r ? r.melhor : "—"}</td><td class="tab-num">${r ? r.tentativas : 0}</td><td>${r ? (r.melhor >= NOTA_APROVACAO ? '<span class="chip ok">Aprovado</span>' : '<span class="chip bad">Repetir</span>') : '<span class="chip">Por fazer</span>'}</td></tr>`; }).join("")}
-      </tbody></table></div></section>
+      <section class="secao"><h2>Notas das provas</h2><div class="tabela-caixa" ${Object.keys(p.provas).length ? "" : "hidden"}><table><thead><tr><th>Módulo</th><th>Melhor</th><th>Tentativas</th><th>Estado</th></tr></thead><tbody>
+        ${MODS.filter((m) => p.provas[m.id]).map((m) => { const r = p.provas[m.id]; return `<tr><td>${esc(m.codigo)} · ${esc(m.titulo)}</td><td class="tab-num">${r ? r.melhor : "—"}</td><td class="tab-num">${r ? r.tentativas : 0}</td><td>${r ? (r.melhor >= NOTA_APROVACAO ? '<span class="chip ok">Aprovado</span>' : '<span class="chip bad">Repetir</span>') : '<span class="chip">Por fazer</span>'}</td></tr>`; }).join("")}
+      </tbody></table></div>${Object.keys(p.provas).length ? "" : '<p class="suave peq">Ainda não fez nenhuma prova. As notas aparecem aqui depois do primeiro teste final de módulo.</p>'}</section>
       <section class="secao"><h2>Conquistas</h2><div class="medalhas">${CONQUISTAS.map(([id, nome, desc]) => `<div class="medalha ${p.conquistas[id] ? "ganha" : ""}"><span class="m">${ic("medalha")}</span><b>${esc(nome)}</b><span class="suave">${esc(desc)}</span></div>`).join("")}</div></section>`;
   };
 
