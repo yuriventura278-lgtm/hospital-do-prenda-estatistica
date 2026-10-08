@@ -56,3 +56,27 @@ def perguntas_de(modulos: list[dict]):
 def aplicar(modulos: list[dict]) -> None:
     for q in perguntas_de(modulos):
         _aplicar_pergunta(q)
+
+
+def validar_explicacoes(curso: dict) -> list[str]:
+    """Todas as perguntas do quiz e das provas têm explicação longa; as de escolha
+    múltipla têm um “porquê” para cada opção. Também apanha chaves órfãs (pergunta
+    reescrita sem atualizar a explicação)."""
+    erros: list[str] = []
+    textos = set()
+    for q in perguntas_de(curso["modulos"]):
+        textos.add(q["p"])
+        if not q.get("explica_longa"):
+            erros.append(f"pergunta sem explicação detalhada (conteudo/explicacoes_*.py): {q['p'][:70]!r}")
+            continue
+        if q["tipo"] == "mc":
+            porque = q.get("porque") or []
+            if len(porque) != len(q["opcoes"]):
+                erros.append(f"pergunta sem 'porque' alinhado com as opções: {q['p'][:70]!r}")
+            for o, p in zip(q["opcoes"], porque):
+                if not p:
+                    erros.append(f"opção sem explicação {o!r} na pergunta {q['p'][:60]!r}")
+    for k in EXPLICACOES:
+        if k not in textos:
+            erros.append(f"explicação de uma pergunta que já não existe: {k[:70]!r}")
+    return erros

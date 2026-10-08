@@ -50,7 +50,12 @@ def ficheiro_unico(js_conteudo: str) -> str:
     html = (WWW / "index.html").read_text(encoding="utf-8")
 
     def css(m: re.Match) -> str:
-        return "<style>\n" + (WWW / m.group(1)).read_text(encoding="utf-8") + "\n</style>"
+        caminho = WWW / m.group(1)
+        texto = caminho.read_text(encoding="utf-8")
+        # tipos de letra locais (fontes/*.woff2) passam a data URIs: o ficheiro único não tem pasta ao lado
+        texto = re.sub(r"url\(([\w.-]+\.woff2)\)", lambda u: "url(data:font/woff2;base64,"
+                       + base64.b64encode((caminho.parent / u.group(1)).read_bytes()).decode() + ")", texto)
+        return "<style>\n" + texto + "\n</style>"
 
     def js(m: re.Match) -> str:
         nome = m.group(1)

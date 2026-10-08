@@ -197,7 +197,7 @@
          <span class="xp-pilula tab-num" title="${esc(n.nome)}">${ic("estrela")} ${P().xp} XP</span>
          <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${P().foto ? avatar(P(), "topo") : ic("perfil")}</button>`
       : `<button class="btn-icone" data-acao="voltar" aria-label="Voltar">${ic("voltar")}</button><div class="titulo">${esc(titulo)}</div>`;
-    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", prof: "jogar", exercicios: "trilha", estagio: "trilha", cadernos: "jogar", caderno: "jogar", sala: "jogar", bancada: "jogar", glossario: "guia", protocolos: "guia", protocolo: "guia", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
+    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", prof: "jogar", projreais: "jogar", projreal: "jogar", exercicios: "trilha", estagio: "trilha", cadernos: "jogar", caderno: "jogar", sala: "jogar", bancada: "jogar", glossario: "guia", protocolos: "guia", protocolo: "guia", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
     document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.ir === tab ? "page" : "false"));
     $("#app").innerHTML = TELAS[t]();
     if (POS[t]) POS[t]();
@@ -210,6 +210,7 @@
     exercicios: () => "Exercícios · " + LICOES[rota.lid].titulo, glossario: () => "Glossário", protocolos: () => "Protocolos", protocolo: () => PROT[rota.id].sigla,
     cadernos: () => "Cadernos de exercícios", caderno: () => window.Exercicios.CADERNOS.find((c) => c.id === rota.id).titulo, estagio: () => "Estágio · " + mod(rota.mid).codigo,
     sala: () => "Sala de laboratório", bancada: () => "Bancada",
+    projreais: () => "Projetos reais", projreal: () => (projPorId(rota.id) || {}).titulo || "Projeto real",
   };
   const mod = (id) => MODS.find((m) => m.id === id);
   const labPorId = (id) => D.labs.find((l) => l.id === id);
@@ -250,6 +251,7 @@
       <section class="secao">
         <h2>Praticar</h2>
         <div class="acoes">
+          <button class="acao" style="--cor:var(--c-d)" data-acao="ir" data-tela="projreais">${F.icone("servidor", 28)}<b>Projetos reais</b><span>${PROJ.filter((x) => simFeito("proj:" + x.id)).length}/${PROJ.length} concluídos · do básico ao hospital</span></button>
           <button class="acao" style="--cor:var(--c-b)" data-acao="ir" data-tela="sims">${F.icone("switch", 28)}<b>Simulador de rede</b><span>${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length} práticas feitas</span></button>
           <button class="acao" style="--cor:var(--c-a)" data-acao="ir" data-tela="relampago">${ic("raio")}<b>Quiz relâmpago</b><span>60 segundos, recorde ${p.recordes.relampago}</span></button>
           <button class="acao" style="--cor:var(--c-c)" data-acao="ir" data-tela="subrede">${ic("calc")}<b>Desafio sub-rede</b><span>Melhor série: ${p.recordes.subrede}</span></button>
@@ -267,7 +269,10 @@
   const corCurso = (c) => `--cor:var(--c-${String(c).toLowerCase()});--cor-suave:var(--c-${String(c).toLowerCase()}-suave)`;
   const NOME_CURTO = { A: "Fundamentos", B: "CCNA 1 · ITN", C: "CCNA 2 · SRWE", D: "CCNA 3 · ENSA", E: "Complementares", F: "Projeto final" };
   const modsDoCurso = (c) => MODS.filter((m) => m.curso === c);
-  const ativPorId = (id) => D.atividades.find((a) => a.id === id);
+  const PROJ = D.projetos || [];
+  const projPorId = (id) => PROJ.find((p) => p.id === id);
+  // as atividades dos projetos reais têm id "proj:<id do projeto>"
+  const ativPorId = (id) => D.atividades.find((a) => a.id === id) || (/^proj:/.test(id || "") ? (projPorId(id.slice(5)) || {}).atividade : undefined);
   const simFeito = (id) => !!(P().sims[id] && P().sims[id].feito);
   const fichaFeita = (mid) => !!P().fichas[mid];
 
@@ -640,6 +645,7 @@
     const p = P();
     return `<div class="secao"><h1>Jogar e praticar</h1><p class="suave">Aprender a fazer, não só a ler. Cada jogo dá XP.</p></div>
       <div class="lista">
+        <button class="item item-destaque" data-acao="ir" data-tela="projreais"><div class="ico-caixa">${F.icone("servidor", 34)}</div><div class="meio"><b>Projetos reais</b><span class="suave peq">Do escritório ao hospital: ${PROJ.length} redes completas, passo a passo, com cada comando explicado e porquê.</span></div><span class="chip acc tab-num">${PROJ.filter((x) => simFeito("proj:" + x.id)).length}/${PROJ.length}</span></button>
         <button class="item" data-acao="ir" data-tela="sims"><div class="ico-caixa">${F.icone("switch", 34)}</div><div class="meio"><b>Simulador de rede</b><span class="suave peq">Monte e configure redes como no Packet Tracer, com atividades passo a passo.</span></div><span class="chip acc tab-num">${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length}</span></button>
         <button class="item" data-acao="ir" data-tela="sala"><div class="ico-caixa">${F.icone("pc", 34)}</div><div class="meio"><b>Sala de laboratório</b><span class="suave peq">Bancadas com equipamentos físicos: ligar cabos, cabo de consola, PuTTY, placa de rede, testador e partilha.</span></div><span class="chip acc tab-num">${Object.values(p.salaLab).filter((x) => x.feito).length}/${(window.Laboratorio ? window.Laboratorio.BANCADAS.length : 0)}</span></button>
         <button class="item" data-acao="ir" data-tela="cadernos"><div class="ico-caixa">${ic("calc")}</div><div class="meio"><b>Cadernos de exercícios</b><span class="suave peq">50 de conversão binária, 100 de sub-redes, classes e máscaras, VLSM com diagrama, OSI e portas.</span></div><span class="chip acc tab-num">${Object.values(p.cadernos).reduce((a, c) => a + Object.values(c).filter(Boolean).length, 0)}</span></button>

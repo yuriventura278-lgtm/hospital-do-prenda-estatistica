@@ -28,10 +28,12 @@ from .estagio_a import ESTAGIOS as ESTAGIOS_A
 from .estagio_b import ESTAGIOS as ESTAGIOS_B
 from .termos import preparar, protocolos_da_licao, termos_da_licao
 from .exercicios import exercicios_da_licao
+from .explicacoes import aplicar as aplicar_explicacoes
 from .narracao import leitura_da_licao, video_da_licao, video_do_modulo
 from .programa import CASOS_MODULO, CURSOS, EXTRA_MODULO, LABS_MODULO, PROGRAMA
 from .referencias import REFERENCIAS
 from .simulador import ATIVIDADES
+from .projetos import PROJETOS
 
 _ANTIGOS = [m00_do_zero.MODULO, m01_fundamentos.MODULO, m02_modelos.MODULO, m03_enderecamento.MODULO,
             m04_ios.MODULO, m05_switching.MODULO, m06_routing.MODULO, m07_servicos.MODULO,
@@ -83,6 +85,7 @@ for _c in CASOS:
 def curso() -> dict:
     """Devolve todo o curso num único dicionário pronto a exportar."""
     pre = preparar(GLOSSARIO_COMPLETO)
+    aplicar_explicacoes(MODULOS)
     for k, m in enumerate(MODULOS):
         for l in m["licoes"]:
             l["video"] = video_da_licao(l, m)
@@ -103,6 +106,7 @@ def curso() -> dict:
         "labs": LABS,
         "casos": CASOS,
         "atividades": ATIVIDADES,
+        "projetos": PROJETOS,
         "referencias": REFERENCIAS,
         "glossario": GLOSSARIO_COMPLETO,
         "protocolos": PROTOCOLOS,

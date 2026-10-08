@@ -1,8 +1,8 @@
 /* Service worker: guarda a app para funcionar sem internet.
    A cópia offline fica em dois sítios: na Cache Storage e também no IndexedDB ("ccna-offline").
    Assim, se outra app servida no mesmo endereço apagar as caches, a app continua a abrir sem internet. */
-const CACHE = "ccna-passo-a-passo-v9";
-const FICHEIROS = ["./", "index.html", "css/app.css", "js/abertura.js", "js/armazem.js", "js/conteudo.js", "js/figuras.js", "js/ios.js", "js/plano.js", "js/videoaula.js", "js/leitor.js", "js/lembretes.js", "js/simulador.js", "js/simulacao.js", "js/desafios.js", "js/simulador_ui.js", "js/exercicios.js", "js/laboratorio.js", "js/nativo.js", "js/app.js", "manifest.webmanifest", "icons/icon-64.png", "icons/icon-192.png", "icons/logo.webp", "icons/abertura.webp"];
+const CACHE = "ccna-passo-a-passo-v10";
+const FICHEIROS = ["./", "index.html", "css/app.css", "js/abertura.js", "js/armazem.js", "js/conteudo.js", "js/figuras.js", "js/ios.js", "js/plano.js", "js/videoaula.js", "js/leitor.js", "js/lembretes.js", "js/simulador.js", "js/simulacao.js", "js/desafios.js", "js/simulador_ui.js", "js/exercicios.js", "js/laboratorio.js", "js/nativo.js", "js/app.js", "manifest.webmanifest", "icons/icon-64.png", "icons/icon-192.png", "icons/logo.webp", "icons/abertura.webp", "fontes/Archivo-normal-500-800-latin-ext.woff2", "fontes/Archivo-normal-500-800-latin.woff2", "fontes/AtkinsonHyperlegible-italic-400-latin-ext.woff2", "fontes/AtkinsonHyperlegible-italic-400-latin.woff2", "fontes/AtkinsonHyperlegible-normal-400-latin-ext.woff2", "fontes/AtkinsonHyperlegible-normal-400-latin.woff2", "fontes/AtkinsonHyperlegible-normal-700-latin-ext.woff2", "fontes/AtkinsonHyperlegible-normal-700-latin.woff2", "fontes/JetBrainsMono-normal-400-latin-ext.woff2", "fontes/JetBrainsMono-normal-400-latin.woff2", "fontes/JetBrainsMono-normal-600-latin-ext.woff2", "fontes/JetBrainsMono-normal-600-latin.woff2", "fontes/JetBrainsMono-normal-700-latin-ext.woff2", "fontes/JetBrainsMono-normal-700-latin.woff2", "fontes/fontes.css"];
 
 // ------------------------------------------------------------ cópia de reserva no IndexedDB
 function bd() {

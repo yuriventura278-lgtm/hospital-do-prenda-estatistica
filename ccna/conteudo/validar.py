@@ -141,4 +141,8 @@ def validar(curso: dict) -> list[str]:
     for lab in curso["labs"]:
         if not lab.get("cenario"):
             erros.append(f"{lab['id']}: laboratório sem cenário real")
+    from .projetos import validar_projetos
+    erros += validar_projetos(curso, CHECKS_SIM, CHECKS)
+    from .explicacoes import validar_explicacoes
+    erros += validar_explicacoes(curso)
     return erros
