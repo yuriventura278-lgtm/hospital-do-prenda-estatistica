@@ -1172,6 +1172,24 @@ main { max-width: none; padding-inline: clamp(16px, 3vw, 48px); }
 .ab-passo { font-size: .85rem; color: #c9d6ff; min-height: 1.3em; }
 .ab-pct { font: 700 .85rem var(--f-mono, ui-monospace, monospace); }
 @media (prefers-reduced-motion: reduce) { .ab-peca, .ab-cheia, #abertura { transition: none; } }
+#abertura { grid-template-rows: auto 1fr auto; }
+.ab-rede { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .35; }
+.ab-saltar { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; z-index: 2; background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: 8px 16px; font: 600 .9rem var(--f-body, system-ui); cursor: pointer; }
+.ab-saltar:hover, .ab-saltar:focus-visible { background: rgba(255,255,255,.26); }
+.ab-saud { z-index: 1; font: 700 1.05rem var(--f-display, system-ui); text-align: center; padding: 6px 90px 0; color: #eaf0ff; overflow-wrap: anywhere; }
+.ab-puzzle { z-index: 1; }
+.ab-dica { margin: 2px 0 0; font-size: .88rem; line-height: 1.45; color: #dbe5ff; max-width: 38ch; min-height: 2.6em; }
+.ab-dica i { font-style: normal; font-weight: 700; color: #ffd166; }
+.ab-final { position: absolute; inset: auto 0 max(28px, env(safe-area-inset-bottom)); z-index: 3; display: grid; gap: 12px; justify-items: center; padding-inline: 16px; opacity: 0; transform: translateY(16px); transition: opacity .35s, transform .35s; }
+.ab-final.on { opacity: 1; transform: none; }
+#abertura .ab-txt { transition: opacity .3s; }
+#abertura.com-final .ab-txt { opacity: 0; }
+.ab-cart { display: grid; gap: 4px; text-align: center; background: #fff; color: #10204a; border-radius: 16px; padding: 14px 22px; width: min(420px, 100%); box-shadow: 0 12px 34px rgba(0,0,0,.35); border-top: 5px solid #e9761b; }
+.ab-cart span { font-size: .82rem; color: #4d5b80; }
+.ab-cart span:first-child { text-transform: uppercase; letter-spacing: .06em; font-weight: 700; color: #e9761b; }
+.ab-cart b { font: 800 1.05rem var(--f-display, system-ui); }
+.ab-continuar { background: #ffd166; color: #10204a; border: 0; border-radius: 999px; padding: 12px 26px; font: 800 1rem var(--f-display, system-ui); cursor: pointer; }
+@media (max-width: 420px) { .ab-saud { padding: 4px 76px 0 0; text-align: left; justify-self: start; font-size: .95rem; } }
 
 /* ---------------------------------------------------------------- projetos reais */
 .item-destaque { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: linear-gradient(135deg, var(--accent-soft), var(--surface) 70%); }
