@@ -367,7 +367,7 @@
     const CAT_CURTO = { "Routers": ["Routers", "router"], "Switches": ["Switches", "switch"], "Hubs e ligações": ["Hubs", "hub"], "Sem fios": ["Sem fios", "ap"], "Segurança": ["Segurança", "firewall"], "WAN e Internet": ["WAN", "nuvem"] };
     const FIM = "Dispositivos finais", IOT = "Casa inteligente (IoT)";
     const catsRede = () => S.CATALOGO.map((c, i) => [c, i]).filter(([[n]]) => n !== FIM && n !== IOT);
-    const GRUPOS = [["rede", "Equipamentos de rede", "Network Devices", "router"], ["fim", "Dispositivos finais", "End Devices", "pc"], ["iot", "Casa inteligente (IoT)", "Home", "lampada"], ["cabos", "Ligações", "Connections", null], ["outros", "Outros", "Miscellaneous", "sniffer"]];
+    const GRUPOS = [["rede", "Equipamentos de rede", "Network Devices", "router", "Rede"], ["fim", "Dispositivos finais", "End Devices", "pc", "Finais"], ["iot", "Casa inteligente (IoT)", "Home", "lampada", "Casa (IoT)"], ["cabos", "Ligações", "Connections", null, "Ligações"], ["outros", "Outros", "Miscellaneous", "sniffer", "Outros"]];
     const DESC_CABO = { auto: "Automático: escolhe o cabo certo (como o raio do Packet Tracer).", direto: "Direto: equipamentos diferentes (PC–switch, switch–router).", cruzado: "Cruzado: iguais (switch–switch, router–router, PC–PC, PC–router).", consola: "Consola: porta RS232 do PC → Console do router/switch.", fibra: "Fibra: portas Gigabit, longas distâncias.", serial: "Serial: liga routers pelas portas série (WAN).", coaxial: "Coaxial: modem de cabo ↔ operador.", telefone: "Telefone (RJ11): modem DSL ↔ operador." };
     let grupo = "rede";
     const icoCabo = (k, C) => `<i class="sim-cabo-ic" style="background:${C.cor};${C.tracejado ? "background-image:repeating-linear-gradient(90deg,transparent 0 4px,var(--surface) 4px 7px)" : ""}${k === "auto" ? ";background:repeating-linear-gradient(90deg,#7a8796 0 6px,#f2a516 6px 12px)" : ""}"></i>`;
@@ -386,7 +386,7 @@
         : itens.map(([t, m, n, desc]) => `<button data-add="${t}" data-modelo="${esc(m)}" title="${esc(desc)}">${F.icone(S.TIPOS[t].icone, 34)}<span>${esc(n)}</span></button>`).join("")
           + (grupo === "outros" ? `<button data-s="area"><span class="sim-mais-ic" aria-hidden="true">▭</span><span>Área (edifício, sala)</span></button><button data-s="nota"><span class="sim-mais-ic" aria-hidden="true">✎</span><span>Nota</span></button>` : "");
       const desc = grupo === "cabos" ? (modo === "cabo" ? DESC_CABO[cabo] + " Toque no primeiro equipamento e escolha a porta." : "Escolha o tipo de cabo; depois toque nos dois equipamentos e escolha as portas.") : itens.map((x) => x[2] + ": " + x[3]).join(" · ");
-      return `<div class="sim-paleta"><div class="sim-pal-grupos" role="tablist" aria-label="Grupos de equipamentos">${GRUPOS.map(([k, n, en, ic]) => `<button data-grupo="${k}" aria-pressed="${grupo === k}" title="${esc(en)}">${ic ? F.icone(ic, 26) : icoCabo("auto", S.CABOS.auto)}<span>${esc(n)}</span></button>`).join("")}</div>
+      return `<div class="sim-paleta"><div class="sim-pal-grupos" role="tablist" aria-label="Grupos de equipamentos">${GRUPOS.map(([k, n, en, ic, c]) => `<button data-grupo="${k}" aria-pressed="${grupo === k}" title="${esc(n)} (${esc(en)})" aria-label="${esc(n)}">${ic ? F.icone(ic, 26) : icoCabo("auto", S.CABOS.auto)}<span class="sim-g-l">${esc(n)}</span><span class="sim-g-c" aria-hidden="true">${esc(c)}</span></button>`).join("")}</div>
         ${cats}<div class="sim-modelos">${mods}</div><p class="peq suave sim-desc">${esc(desc)}</p></div>`;
     }
     function opcoes() {

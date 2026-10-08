@@ -116,7 +116,7 @@ class Estilos:
         self.li = ParagraphStyle("li", parent=self.corpo, leftIndent=c * 1.6, bulletIndent=c * 0.4, spaceAfter=c * 0.25)
         self.peq = ParagraphStyle("peq", parent=self.corpo, fontSize=c * 0.85, leading=c * 1.2, spaceAfter=c * 0.3,
                                   textColor=colors.HexColor(t.suave))
-        self.h1 = ParagraphStyle("h1", fontName="DejaVu-Bold", fontSize=c * 1.5, leading=c * 1.85,
+        self.h1 = ParagraphStyle("h1", fontName="DejaVu-Bold", fontSize=c * 1.3, leading=c * 1.6,
                                  textColor=colors.HexColor(t.navy), spaceBefore=c * 1.2, spaceAfter=c * 0.6)
         self.h3 = ParagraphStyle("h3", fontName="DejaVu-Bold", fontSize=c * 1.12, leading=c * 1.4,
                                  textColor=colors.HexColor(t.tinta), spaceBefore=c * 0.6, spaceAfter=c * 0.4)
@@ -367,28 +367,27 @@ class LinhasResposta(Flowable):
 
 
 class Faixa(Flowable):
-    """Faixa azul-escura do topo da capa (aula ou módulo), com a risca de 6 cores dos pares do cabo."""
+    """Faixa azul-escura (compacta) do topo da capa, com a risca de 6 cores dos pares do cabo:
+    1.ª linha: curso + código da aula; título; uma linha com o módulo e a duração."""
 
     def __init__(self, t: Tema, rotulo: str, sub: str, chip: str, titulo: str, meta: str):
         super().__init__()
         self.t = t
         claro = colors.HexColor(t.tinta) if t.imprimir else colors.white
         sua = colors.HexColor(t.suave) if t.imprimir else colors.HexColor("#a9b8d6")
-        self.p_rot = Paragraph(esc(rotulo.upper()), ParagraphStyle("fr", fontName="DejaVu-Bold", fontSize=8, leading=11,
-                                                                    textColor=sua))
-        self.p_sub = Paragraph(esc(sub), ParagraphStyle("fs", fontName="DejaVu", fontSize=10, leading=13, textColor=sua))
+        self.rotulo = rotulo.upper()
+        self.cor_sua = sua
         self.chip = chip
-        self.p_tit = Paragraph(esc(titulo), ParagraphStyle("ft", fontName="DejaVu-Bold", fontSize=23, leading=27.5,
+        self.p_tit = Paragraph(esc(titulo), ParagraphStyle("ft", fontName="DejaVu-Bold", fontSize=16, leading=19.5,
                                                             textColor=claro))
-        self.p_meta = Paragraph(meta, ParagraphStyle("fm", fontName="DejaVu", fontSize=10, leading=13, textColor=sua))
+        linha = esc(sub) + (" · " + meta if meta else "")
+        self.p_meta = Paragraph(linha, ParagraphStyle("fm", fontName="DejaVu", fontSize=8.5, leading=11, textColor=sua))
 
     def wrap(self, aw, ah):
         self.aw = aw
-        h = 16 * mm
-        for p in (self.p_rot, self.p_sub, self.p_tit, self.p_meta):
-            _, ph = p.wrap(aw, ah)
-            h += ph
-        self.h = h + 17 + 8 + 10 + 10 + 4 + 8 * mm
+        self.h_tit = self.p_tit.wrap(aw, ah)[1]
+        self.h_meta = self.p_meta.wrap(aw, ah)[1]
+        self.h = 6 * mm + 14 + 5 + self.h_tit + 3 + self.h_meta + 5 * mm
         return aw, self.h
 
     def draw(self):
@@ -396,41 +395,40 @@ class Faixa(Flowable):
         x0, larg = -MARGEM, PAG_L
         if t.imprimir:
             c.setStrokeColor(colors.black)
-            c.setLineWidth(2.5)
+            c.setLineWidth(2)
             c.line(x0 + MARGEM, 4, x0 + MARGEM + LARGURA, 4)
         else:
             c.setFillColor(colors.HexColor(t.navy))
-            c.rect(x0, 6, larg, self.h + 40, stroke=0, fill=1)
+            c.rect(x0, 4, larg, self.h + 40, stroke=0, fill=1)
             w = larg / 6
             for k, cor in enumerate(CORES_CABO):
                 c.setFillColor(colors.HexColor(cor))
-                c.rect(x0 + k * w, 0, w + 0.5, 6, stroke=0, fill=1)
-        y = self.h - 12 * mm
-        for p, extra in ((self.p_rot, 1), (self.p_sub, 8)):
-            _, ph = p.wrap(self.aw, 999)
-            p.drawOn(c, 0, y - ph)
-            y -= ph + extra
-        # chip do código
-        fs = 9
-        wch = stringWidth(self.chip, "DejaVu-Bold", fs) + 16
-        y -= 17
+                c.rect(x0 + k * w, 0, w + 0.5, 4, stroke=0, fill=1)
+        y = self.h - 6 * mm - 14
+        # 1.ª linha: curso à esquerda, chip com o código à direita
+        fs = 8
+        wch = stringWidth(self.chip, "DejaVu-Bold", fs) + 14
         if t.imprimir:
-            c.setStrokeColor(colors.black)
-            c.setLineWidth(0.8)
-            c.roundRect(0, y, wch, 17, 8.5, stroke=1, fill=0)
+            c.setStrokeColor(colors.black); c.setLineWidth(0.7)
+            c.roundRect(self.aw - wch, y, wch, 14, 7, stroke=1, fill=0)
             c.setFillColor(colors.black)
         else:
             c.setFillColor(colors.HexColor("#1f5fe0"))
-            c.roundRect(0, y, wch, 17, 8.5, stroke=0, fill=1)
+            c.roundRect(self.aw - wch, y, wch, 14, 7, stroke=0, fill=1)
             c.setFillColor(colors.white)
         c.setFont("DejaVu-Bold", fs)
-        c.drawString(8, y + 5.2, self.chip)
-        y -= 10
-        _, ph = self.p_tit.wrap(self.aw, 999)
-        self.p_tit.drawOn(c, 0, y - ph)
-        y -= ph + 10
-        _, ph = self.p_meta.wrap(self.aw, 999)
-        self.p_meta.drawOn(c, 0, y - ph)
+        c.drawString(self.aw - wch + 7, y + 4.2, self.chip)
+        rot = self.rotulo
+        maxw = self.aw - wch - 12
+        while stringWidth(rot, "DejaVu-Bold", 7) > maxw and len(rot) > 4:
+            rot = rot[:-2] + "…"
+        c.setFillColor(self.cor_sua)
+        c.setFont("DejaVu-Bold", 7)
+        c.drawString(0, y + 4.4, rot)
+        y -= 5 + self.h_tit
+        self.p_tit.drawOn(c, 0, y)
+        y -= 3 + self.h_meta
+        self.p_meta.drawOn(c, 0, y)
 
 
 # ------------------------------------------------------------------ peças de layout
