@@ -1390,6 +1390,96 @@
       ${htmlProfessor()}
       <h2>Atividades guiadas</h2><div class="lista">${D.atividades.map(itemSim).join("")}</div>`;
   };
+  // ------------------------------------------------------------ projetos reais (conteudo/projetos.py)
+  const NIVEL_PROJ = { "Básico": "A", "Intermédio": "C", "Avançado": "D", "Final": "F" };
+  const projEstado = (p) => { const st = P().sims["proj:" + p.id] || {}, t = p.etapas.length; return { feitas: st.feito ? t : Math.min(st.passos || 0, t), total: t, feito: !!st.feito }; };
+  function itemProjeto(p) {
+    const e = projEstado(p), pct = Math.round((e.feitas / e.total) * 100);
+    return `<button class="item item-proj" style="${corCurso(NIVEL_PROJ[p.nivel] || "A")}" data-acao="projreal" data-id="${p.id}">
+      <div class="ico-caixa">${F.icone(p.icone in F.ICONES ? p.icone : "router", 34)}</div>
+      <div class="meio"><span class="rotulo">${p.ordem}. ${esc(p.local)} · ${esc(p.nivel)} · ${e.total} etapas · ${esc(p.duracao)}</span><b>${esc(p.titulo)}</b><span class="suave peq">${esc(p.resumo)}</span><div class="barra"><i style="width:${pct}%"></i></div></div>
+      ${e.feito ? `<span class="estado-ico ok">${ic("check")}</span>` : `<span class="chip ${pct ? "acc" : ""} tab-num">${pct}%</span>`}</button>`;
+  }
+  TELAS.projreais = function () {
+    const feitos = PROJ.filter((p) => projEstado(p).feito).length;
+    return `<div class="secao proj-intro"><h1>Projetos reais</h1><p class="suave">Redes completas pedidas por clientes reais — um escritório, uma loja, uma biblioteca, uma clínica, um hospital, uma escola, um hotel, um banco… — do mais básico ao mais complexo.
+        Cada projeto explica <b>o que fazer</b>, <b>porquê</b>, cada comando e a razão de o usar, e <b>como verificar</b>. Depois abre no simulador e as etapas verificam-se sozinhas.</p>
+        <div class="linha"><span class="chip acc tab-num">${feitos}/${PROJ.length} concluídos</span><span class="chip">${PROJ.reduce((a, p) => a + p.etapas.length, 0)} etapas</span><span class="chip">${ic("estrela")} 150 XP por projeto</span></div></div>
+      ${Object.keys(NIVEL_PROJ).map((nv) => { const ps = PROJ.filter((p) => p.nivel === nv); return ps.length ? `<section class="secao"><header><h2>${esc(nv)}</h2><span class="rotulo">${ps.length} projeto${ps.length > 1 ? "s" : ""}</span></header><div class="lista">${ps.map(itemProjeto).join("")}</div></section>` : ""; }).join("")}`;
+  };
+  // prompt do IOS à frente de cada comando (para o principiante saber em que modo está)
+  function promptsBloco(linhas, host, inicio) {
+    let modo = inicio, h = host;
+    const sub = { "config-if": 1, "config-subif": 1, "config-if-range": 1, "config-vlan": 1, "config-line": 1, "config-router": 1, "dhcp-config": 1, "config-ext-nacl": 1, "config-std-nacl": 1 };
+    return { linhas: linhas.map((l) => {
+      const c = l.cmd, pr = h + (modo === "user" ? ">" : modo === "priv" ? "#" : `(${modo})#`);
+      if (c === "enable") modo = "priv";
+      else if (c === "configure terminal") modo = "config";
+      else if (c === "end") modo = "priv";
+      else if (c === "exit") modo = sub[modo] ? "config" : modo === "config" ? "priv" : modo;
+      else if (/^hostname /.test(c)) h = c.split(" ")[1];
+      else if (modo !== "user" && modo !== "priv") {
+        if (/^interface range /.test(c)) modo = "config-if-range";
+        else if (/^interface \S+\.\d+$/.test(c)) modo = "config-subif";
+        else if (/^interface /.test(c)) modo = "config-if";
+        else if (/^vlan \d+$/.test(c)) modo = "config-vlan";
+        else if (/^line /.test(c)) modo = "config-line";
+        else if (/^router /.test(c)) modo = "config-router";
+        else if (/^ip dhcp pool /.test(c)) modo = "dhcp-config";
+        else if (/^ip access-list extended /.test(c)) modo = "config-ext-nacl";
+        else if (/^ip access-list standard /.test(c)) modo = "config-std-nacl";
+      }
+      return Object.assign({ pr }, l);
+    }), host: h, modo };
+  }
+  function htmlEtapa(p, e, i, feita, hosts) {
+    const blocos = e.comandos.map((b) => {
+      const ini = b.linhas[0] && b.linhas[0].cmd === "enable" ? "user" : "priv";
+      const r = promptsBloco(b.linhas, hosts[b.em], ini); hosts[b.em] = r.host;
+      return `<div class="term proj-term"><div class="barra-term"><span class="pontos"><i></i><i></i><i></i></span><span>Terminal de <b>${esc(b.em)}</b></span><button class="btn-copiar" data-acao="proj-copiar">copiar comandos</button></div>
+        <ol class="passos">${r.linhas.map((l) => `<li><div class="cmdl"><span class="pr">${esc(l.pr)}</span><span class="cm">${esc(l.cmd)}</span></div>${l.explica ? `<div class="ex">${esc(l.explica)}</div>` : ""}${l.porque ? `<div class="ex porque"><b>Porquê:</b> ${esc(l.porque)}</div>` : ""}</li>`).join("")}</ol></div>`;
+    }).join("");
+    return `<details class="etapa-proj ${feita ? "feita" : ""}" data-i="${i}"${rota.aberta === i ? " open" : ""}>
+      <summary><span class="etapa-num tab-num">${feita ? ic("check") : i + 1}</span><span class="etapa-tit"><b>${esc(e.titulo)}</b><span class="suave peq">${esc(e.o_que_fazer)}</span></span></summary>
+      <div class="etapa-corpo">
+        <div class="etapa-par"><div class="etapa-caixa"><span class="rotulo">O que fazer</span><p>${esc(e.o_que_fazer)}</p></div>
+          <div class="etapa-caixa porque"><span class="rotulo">Porquê</span><p>${esc(e.porque)}</p></div></div>
+        ${blocos ? `<h4>${ic("terminal")} Comandos, o que fazem e porquê</h4>${blocos}` : ""}
+        ${e.acoes.length ? `<h4>Fora do terminal (no simulador)</h4><ol class="etapa-acoes">${e.acoes.map((a) => `<li>${esc(a.txt)}</li>`).join("")}</ol>` : ""}
+        ${e.verificar.length ? `<h4>${ic("check")} Como verificar</h4><div class="tabela-caixa"><table><thead><tr><th>Comando / teste</th><th>Resultado esperado</th></tr></thead><tbody>${e.verificar.map((v) => `<tr><td class="mono">${esc(v.como)}</td><td>${esc(v.esperado)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+        <p class="peq suave">${feita ? "Etapa verificada no simulador." : "No simulador esta etapa fica verificada automaticamente quando estiver feita."}</p>
+      </div></details>`;
+  }
+  TELAS.projreal = function () {
+    const p = projPorId(rota.id); if (!p) return `<div class="cartao"><p>Projeto não encontrado.</p></div>`;
+    const e = projEstado(p), pct = Math.round((e.feitas / e.total) * 100);
+    const hosts = {}; p.atividade.inicial.dispositivos.forEach((d) => { hosts[d.nome] = d.nomeIos || (d.cmds ? (d.cmds.find((c) => /^hostname /.test(c)) || " " + d.nome).split(" ")[1] : d.nome); });
+    const ant = PROJ[PROJ.indexOf(p) - 1], seg = PROJ[PROJ.indexOf(p) + 1];
+    return `<header class="banner-mod proj-banner" style="${corCurso(NIVEL_PROJ[p.nivel] || "A")}"><span class="banner-curso">Projeto ${p.ordem} de ${PROJ.length} · ${esc(p.nivel)}</span>
+        <div class="proj-banner-topo"><div class="proj-banner-ico">${F.icone(p.icone in F.ICONES ? p.icone : "router", 44)}</div><div><h1>${esc(p.titulo)}</h1><p class="proj-resumo">${esc(p.resumo)}</p></div></div>
+        <div class="linha"><span class="chip">${esc(p.local)}</span><span class="chip">${ic("relogio")} ${esc(p.duracao)}</span><span class="chip">${e.total} etapas</span><span class="chip tab-num">${e.feitas}/${e.total} verificadas</span></div>
+        <div class="cabo-fio"><i style="width:${Math.max(2, pct)}%"></i></div>
+        <div class="linha proj-botoes"><button class="btn prim" data-acao="proj-sim" data-id="${p.id}">${ic("play")} ${e.feitas ? "Continuar no simulador" : "Abrir no simulador"}</button><button class="btn" data-acao="proj-expandir">Abrir todas as etapas</button><button class="btn" data-acao="proj-recolher">Fechar todas</button></div></header>
+      <div class="proj-grelha">
+        <section class="cartao proj-brief"><span class="rotulo">O pedido do cliente</span><p class="proj-briefing">${esc(p.briefing)}</p>
+          <h3>Objetivos do projeto</h3><ul class="proj-obj">${p.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></section>
+        <aside class="proj-lado">
+          <figure class="fig-caixa proj-topo" style="margin:0">${F.topologia(p.topologia)}<figcaption>${esc(p.topologia.legenda)}</figcaption></figure>
+          <section class="cartao"><h3>Plano de endereçamento</h3><div class="tabela-caixa"><table><thead><tr><th>Rede / IP</th><th>VLAN</th><th>Gateway</th><th>Uso</th></tr></thead><tbody>${p.enderecos.map((x) => `<tr><td class="mono">${esc(x.rede)}</td><td class="mono">${esc(x.vlan)}</td><td class="mono">${esc(x.gateway)}</td><td>${esc(x.uso)}</td></tr>`).join("")}</tbody></table></div></section>
+          <section class="cartao"><h3>Equipamentos</h3><div class="tabela-caixa"><table><thead><tr><th>Nome</th><th>Tipo</th><th>Papel</th></tr></thead><tbody>${p.equipamentos.map((x) => `<tr><td><b>${esc(x.nome)}</b></td><td>${esc(x.tipo)}</td><td>${esc(x.papel)}</td></tr>`).join("")}</tbody></table></div></section>
+          <section class="cartao"><h3>Conhecimentos que aplica</h3><p class="peq suave">Toque para rever o módulo.</p><div class="chips proj-mods">${p.conhecimentos.map((k) => { const m = mod(k); return m ? `<button class="chip-op" data-acao="modulo" data-id="${m.id}">${esc(m.codigo)} · ${esc(m.titulo)}</button>` : ""; }).join("")}</div></section>
+        </aside>
+        <section class="proj-etapas"><header class="linha entre"><h2>Etapas, passo a passo</h2><span class="rotulo tab-num">${e.feitas}/${e.total}</span></header>
+          <div class="etapas-lista">${p.etapas.map((et, i) => htmlEtapa(p, et, i, i < e.feitas, hosts)).join("")}</div>
+          <div class="cartao proj-fim"><h3>${ic("medalha")} Objetivos atingidos?</h3><p>Abra o projeto no simulador: cada etapa acende quando a rede estiver como pedido. No fim ganha 150 XP.</p><button class="btn prim" data-acao="proj-sim" data-id="${p.id}">${ic("play")} Abrir no simulador</button></div></section>
+        <section class="proj-extra">
+          <div class="cartao"><h3>${ic("raio")} Desafio extra</h3><ul>${p.desafio_extra.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+          <div class="cartao"><h3>${ic("alerta")} Erros comuns (e como os resolver)</h3><div class="tabela-caixa"><table><thead><tr><th>Erro</th><th>Solução</th></tr></thead><tbody>${p.erros_comuns.map((x) => `<tr><td>${esc(x.erro)}</td><td>${esc(x.solucao)}</td></tr>`).join("")}</tbody></table></div></div>
+          <div class="grelha-2">${ant ? `<button class="btn" data-acao="projreal" data-id="${ant.id}">← ${esc(ant.titulo)}</button>` : "<span></span>"}${seg ? `<button class="btn" data-acao="projreal" data-id="${seg.id}">${esc(seg.titulo)} →</button>` : ""}</div>
+        </section>
+      </div>`;
+  };
+
   // ------------------------------------------------------------ projetos do simulador (com nome, para continuar depois)
   let msgProj = "";
   const dataHora = (t) => new Date(t).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -1551,6 +1641,7 @@
     if (rota.profAt) { const x = P().profImport[rota.profAt]; return `<div class="secao"><span class="rotulo">Atividade do professor</span><h1>${esc(x ? x.ativ.titulo : "")}</h1></div><div id="sim-raiz"></div>`; }
     if (rota.proj) { const x = P().projetos[rota.proj]; return `<div class="secao"><span class="rotulo">Projeto · guardado automaticamente</span><h1>${esc(x ? x.nome : "Projeto")}</h1><p class="peq suave" id="proj-guardado">${x ? "Última alteração: " + dataHora(x.alterado) : ""}</p></div><div id="sim-raiz"></div>`; }
     const a = rota.id === "livre" ? null : ativPorId(rota.id);
+    if (a && a.projeto) return `<div class="secao"><span class="rotulo">Projeto real · ${esc(projPorId(a.projeto).nivel)} · ${a.passos.length} etapas</span><h1>${esc(a.titulo)}</h1><div class="linha"><button class="btn" data-acao="projreal" data-id="${a.projeto}">Ver as etapas explicadas</button></div></div><div id="sim-raiz"></div>`;
     return `${a ? `<div class="secao"><span class="rotulo">${esc(mod(a.modulo).codigo)} · prática guiada</span><h1>${esc(a.titulo)}</h1></div>` : '<div class="secao"><h1>Modo livre</h1></div>'}<div id="sim-raiz"></div>`;
   };
   POS.sim = function () {
@@ -1588,7 +1679,7 @@
       atividade: a, estado: st.estado || null,
       aoGuardar: (e) => { const r = P().sims[chave] || (P().sims[chave] = {}); r.estado = e; guardar(); },
       aoProgresso: (n) => { const r = P().sims[chave] || (P().sims[chave] = {}); if (n > (r.passos || 0)) { r.passos = n; guardar(); } },
-      aoConcluir: () => { const r = P().sims[chave] || (P().sims[chave] = {}); if (!r.feito) { r.feito = Date.now(); guardar(); ganharXP(60, "simulador"); } },
+      aoConcluir: () => { const r = P().sims[chave] || (P().sims[chave] = {}); if (!r.feito) { r.feito = Date.now(); guardar(); ganharXP(a && a.projeto ? 150 : 60, a && a.projeto ? "projeto real concluído" : "simulador"); } },
     });
     limpar = () => { if (simLeitor) simLeitor.parar(); simLeitor = null; };
   };
@@ -1767,6 +1858,11 @@
     "cancelar-apagar": () => { confirmarApagar = false; render(); },
     "apagar-sim": () => { const p = P(); const novo = novoPerfil(p.nome); novo.id = p.id; novo.cor = p.cor; S.perfis[p.id] = novo; confirmarApagar = false; guardar(); render(); toast("Progresso apagado"); },
     sim: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Desbloqueie o módulo desta prática primeiro"); ir("sim", { id: el.dataset.id }); },
+    projreal: (el) => ir("projreal", { id: el.dataset.id }),
+    "proj-sim": (el) => ir("sim", { id: "proj:" + el.dataset.id }),
+    "proj-expandir": () => document.querySelectorAll(".etapa-proj").forEach((d) => (d.open = true)),
+    "proj-recolher": () => document.querySelectorAll(".etapa-proj").forEach((d) => (d.open = false)),
+    "proj-copiar": (el) => copiar([...el.closest(".term").querySelectorAll(".cm")].map((x) => x.textContent).join("\n")),
     "trilha-curso": (el) => ir("trilha", { curso: el.dataset.id }),
     "ficha-feita": (el) => { if (!P().fichas[el.dataset.id]) { P().fichas[el.dataset.id] = Date.now(); guardar(); ganharXP(15, "ficha de trabalho"); } render(); setTimeout(() => { const f = $("#ficha"); if (f) f.scrollIntoView(); }, 30); },
     "cabo-norma": (el) => { const j = $(".jogo-cabo"); jogoCabo = { norma: el.dataset.id, pinos: [], res: null }; if (j) j.outerHTML = htmlJogoCabo(el.dataset.id); },

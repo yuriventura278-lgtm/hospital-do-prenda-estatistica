@@ -1022,7 +1022,7 @@ main.main-sim, main:has(.sim-barra) { max-width: none; }
 .sim-palco > svg { max-height: calc(100vh - 150px); }
 @media (min-width: 1100px) {
   .sim-trab.com-insp { grid-template-columns: minmax(0, 1fr) minmax(430px, 44%); align-items: start; }
-  .sim-trab.com-insp .sim-inspetor { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 112px); max-height: calc(100vh - 124px); overflow-y: auto; }
+  .sim-trab.com-insp .sim-inspetor { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 112px); max-height: calc(100vh - 136px - var(--nav-h)); overflow-y: auto; }
 }
 .sim-inspetor.sim-jan { padding: 0; gap: 0; overflow: hidden; }
 .sim-trab.com-insp .sim-inspetor.sim-jan { overflow-y: auto; }
@@ -1047,11 +1047,16 @@ main.main-sim, main:has(.sim-barra) { max-width: none; }
 .sim-cfg-nav button[aria-current="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .sim-cfg-sel { display: none; gap: 4px; }
 .sim-cfg-pane { display: grid; gap: 12px; min-width: 0; align-content: start; }
-@container (max-width: 560px) { .sim-cfg { grid-template-columns: 1fr; } .sim-cfg-nav { display: none; } .sim-cfg-sel { display: grid; } }
+@container (max-width: 470px) { .sim-cfg { grid-template-columns: 1fr; } .sim-cfg-nav { display: none; } .sim-cfg-sel { display: grid; } }
 .sim-pt { display: grid; gap: 10px; min-width: 0; }
 .sim-pt-tit { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
 .sim-pt small, .sim-onoff small { font-weight: 600; color: var(--muted); font-size: .74em; }
-.sim-pt label, .sim-form-l { display: grid; gap: 4px; font-size: .85rem; font-weight: 700; min-width: 0; }
+.sim-pt label, .sim-form-l { display: block; font-size: .85rem; font-weight: 700; min-width: 0; }
+.sim-pt label > .campo, .sim-form-l > .campo { display: block; margin-top: 4px; }
+.sim-jan .campo { min-height: 40px; padding: 7px 10px; border-radius: 10px; font-size: .92rem; }
+.sim-jan textarea.campo { min-height: 120px; font-size: .8rem; }
+.sim-jan .btn { min-height: 40px; padding: 8px 14px; }
+.sim-jan .btn small { font-weight: 600; font-size: .72em; opacity: .75; color: inherit; }
 .sim-pt label.linha { display: flex; align-items: center; gap: 8px; }
 .sim-pt input[readonly] { background: var(--surface-2); color: var(--muted); }
 .sim-pt-caixa { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: grid; gap: 6px; margin: 0; min-width: 0; }
@@ -1115,6 +1120,10 @@ main.main-sim, main:has(.sim-barra) { max-width: none; }
 .sim-opcoes .sim-cats button { display: flex; align-items: center; gap: 5px; min-width: 0; padding: 5px 12px 5px 8px; }
 .sim-opcoes .sim-modelos button { min-height: 86px; align-content: start; }
 .sim-opcoes .sim-cabo-ic { display: block; width: 40px; height: 6px; border-radius: 3px; margin: 14px 0; }
+@media (max-width: 600px) {
+  .sim-pal-grupos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; }
+  .sim-opcoes .sim-pal-grupos button { flex-direction: column; justify-content: start; gap: 3px; padding: 6px 2px; font-size: .62rem; line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+}
 .sim-cmd-ex { margin: 1px 0 6px; font-size: .8em; color: var(--term-dim); }
 .sim-cmd-ex summary { cursor: pointer; list-style: none; color: #9fd3ff; }
 .sim-cmd-ex summary::-webkit-details-marker { display: none; }
@@ -1161,3 +1170,55 @@ main { max-width: none; padding-inline: clamp(16px, 3vw, 48px); }
 .ab-passo { font-size: .85rem; color: #c9d6ff; min-height: 1.3em; }
 .ab-pct { font: 700 .85rem var(--f-mono, ui-monospace, monospace); }
 @media (prefers-reduced-motion: reduce) { .ab-peca, .ab-cheia, #abertura { transition: none; } }
+
+/* ---------------------------------------------------------------- projetos reais */
+.item-destaque { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: linear-gradient(135deg, var(--accent-soft), var(--surface) 70%); }
+.item-proj { border-left: 5px solid var(--cor); }
+.item-proj .ico-caixa { background: var(--cor-suave); }
+.proj-intro p { max-width: 90ch; }
+.proj-banner .proj-banner-topo { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.proj-banner .proj-banner-ico { flex: none; width: 64px; height: 64px; border-radius: 16px; background: var(--surface); display: grid; place-items: center; border: 1px solid var(--line); }
+.proj-banner h1 { margin: 0; overflow-wrap: anywhere; }
+.proj-resumo { margin: 4px 0 0; color: var(--muted); }
+.proj-botoes { flex-wrap: wrap; gap: 8px; }
+.proj-grelha { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "brief" "lado" "etapas" "extra"; }
+.proj-grelha > * { min-width: 0; }
+.proj-brief { grid-area: brief; }
+.proj-lado { grid-area: lado; display: grid; gap: 14px; align-content: start; }
+.proj-etapas { grid-area: etapas; display: grid; gap: 12px; align-content: start; }
+.proj-extra { grid-area: extra; display: grid; gap: 14px; }
+.proj-briefing { font-size: 1.02rem; line-height: 1.55; margin: 0; }
+.proj-obj { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.proj-topo > svg { width: 100%; height: auto; display: block; }
+.proj-mods { display: flex; flex-wrap: wrap; gap: 6px; }
+.proj-mods .chip-op { min-height: 34px; padding: 5px 10px; font-size: .8rem; text-align: left; }
+.etapas-lista { display: grid; gap: 10px; }
+.etapa-proj { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.etapa-proj[open] { box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.etapa-proj > summary { list-style: none; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; padding: 12px 14px; cursor: pointer; }
+.etapa-proj > summary::-webkit-details-marker { display: none; }
+.etapa-proj .etapa-num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--accent-soft); color: var(--accent); }
+.etapa-proj.feita .etapa-num { background: var(--ok); color: #fff; }
+.etapa-proj .etapa-num svg { width: 18px; height: 18px; }
+.etapa-proj .etapa-tit { display: grid; gap: 2px; min-width: 0; }
+.etapa-proj[open] .etapa-tit .peq { display: none; }
+.etapa-proj:not([open]) .etapa-tit .peq { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.etapa-corpo { padding: 0 14px 14px; display: grid; gap: 12px; }
+.etapa-corpo h4 { margin: 6px 0 0; display: flex; gap: 6px; align-items: center; }
+.etapa-corpo h4 svg { width: 18px; height: 18px; }
+.etapa-par { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.etapa-caixa { border-radius: 12px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.etapa-caixa p { margin: 4px 0 0; }
+.etapa-caixa.porque { background: var(--accent-soft); border-color: transparent; }
+.etapa-acoes { margin: 0; padding-left: 1.3em; display: grid; gap: 4px; }
+.proj-term .passos .ex { color: var(--term-dim); font-family: var(--f-body, inherit); font-size: .82rem; }
+.proj-term .passos .ex.porque { color: color-mix(in srgb, var(--term-fg) 80%, var(--term-prompt)); }
+.proj-term .passos .ex.porque b { color: var(--term-prompt); }
+.proj-fim { border-style: dashed; }
+@media (min-width: 1000px) {
+  .proj-grelha { grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr); grid-template-areas: "brief lado" "etapas lado" "extra lado"; align-items: start; }
+  .proj-lado { position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+  .proj-extra { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .proj-extra > .grelha-2 { grid-column: 1 / -1; }
+}
+@media (min-width: 1600px) { .proj-grelha { grid-template-columns: minmax(0, 2fr) minmax(420px, 1fr); } }

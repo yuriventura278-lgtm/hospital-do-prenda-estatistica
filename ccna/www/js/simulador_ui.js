@@ -768,7 +768,7 @@
       aba = abaPedida && abas.includes(abaPedida) ? abaPedida : abas.includes(aba) ? aba : abaInicial(d, abas);
       const insp = $("#sim-insp");
       insp.hidden = false; trab().classList.add("com-insp");
-      const host = d.eq && d.eq.cfg.hostname !== d.nome ? ` <span class="sim-jan-host">hostname ${esc(d.eq.cfg.hostname)}</span>` : "";
+      const host = d.eq && d.eq.cfg.hostname !== d.nome && d.eq.cfg.hostname !== T.host ? ` <span class="sim-jan-host">hostname ${esc(d.eq.cfg.hostname)}</span>` : "";
       insp.innerHTML = `<div class="sim-jan-tit"><span class="sim-jan-ic">${F.icone(T.icone, 28)}</span><div class="sim-jan-nome"><b>${esc(d.nome)}</b>${host}<span class="suave peq">${esc(descDe(d).n)}</span></div>
           <span class="linha sim-insp-acoes"><button class="btn-copiar" data-duplicar title="Duplicar (Ctrl+C, Ctrl+V)">Duplicar</button><button class="sim-jan-x" data-fechar-insp aria-label="Fechar" title="Fechar">×</button></span></div>
         <div class="sim-jan-abas" role="tablist">${abas.map((k) => `<button role="tab" aria-selected="${aba === k}" data-aba="${k}">${TABS[k][0]}<small>${TABS[k][1]}</small></button>`).join("")}</div>
@@ -1448,7 +1448,7 @@
       const { id, extra } = protDoEvento(ev); if (!id) return "";
       const p = prot(id);
       return `<div class="sim-prot-card"><span class="rotulo">Protocolo</span><b>${esc(p ? p.sigla : id.toUpperCase())}${p ? ` <span class="suave peq">${esc(p.nome)}</span>` : ""}</b>
-        ${p ? `<span class="peq suave">Camada OSI ${esc(p.camada_osi)} · ${esc(p.transporte)}${p.portas && p.portas !== "—" ? " · porta " + esc(p.portas) : ""}</span>` : ""}
+        ${p ? `<span class="peq suave">Camada OSI ${esc(p.camada_osi)}${p.transporte && p.transporte !== "—" ? " · " + esc(p.transporte) : ""}${p.portas && p.portas !== "—" ? " · porta " + esc(p.portas) : ""}</span>` : ""}
         <p class="peq">${esc(resumoProt(id))}</p>
         ${extra.length ? `<p class="peq suave">Também nesta mensagem: ${extra.map((x) => `<button type="button" class="sim-saber" data-prot="${x}" title="${esc(resumoProt(x))}">${esc(siglaProt(x))}</button>`).join(" ")}</p>` : ""}
         ${p ? `<button type="button" class="btn peq" data-prot="${esc(id)}">Saber mais sobre ${esc(p.sigla)}</button>` : ""}</div>`;
