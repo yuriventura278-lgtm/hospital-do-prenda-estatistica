@@ -6,19 +6,26 @@
 (function () {
   "use strict";
   const temNotif = typeof window.Notification !== "undefined";
+  // Na app instalada (Android/iPhone feita com Capacitor) usam-se as notificações do sistema,
+  // que tocam mesmo com a app fechada.
+  const LN = () => (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) || null;
+  let permNativa = "default";
   const pad = (n) => String(n).padStart(2, "0");
   const DIAS_ICS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
   function estado() {
+    if (LN()) return permNativa;
     if (!temNotif) return "sem-suporte";
     return Notification.permission; // "default" | "granted" | "denied"
   }
   function pedirPermissao() {
+    if (LN()) return LN().requestPermissions().then((r) => (permNativa = r.display === "granted" ? "granted" : "denied")).catch(() => (permNativa = "denied"));
     if (!temNotif) return Promise.resolve("sem-suporte");
     try { const r = Notification.requestPermission(); return r && r.then ? r.catch(() => Notification.permission) : Promise.resolve(Notification.permission); }
     catch (e) { return Promise.resolve("denied"); }
   }
   function mostrar(titulo, corpo) {
+    if (LN()) return LN().schedule({ notifications: [{ id: 900 + Math.floor(Math.random() * 90), title: titulo, body: corpo, schedule: { at: new Date(Date.now() + 1000) } }] }).then(() => true).catch(() => false);
     if (estado() !== "granted") return Promise.resolve(false);
     const op = { body: corpo, icon: "icons/icon-192.png", badge: "icons/icon-64.png", tag: "ccna-estudo", renotify: true, vibrate: [120, 60, 120], data: { url: "./#inicio" } };
     const sw = navigator.serviceWorker;
@@ -27,9 +34,22 @@
   }
 
   // Verifica de 20 em 20 segundos se chegou uma hora de estudo de hoje que ainda não foi avisada.
-  let relogio = null;
+  let relogio = null, assinatura = "";
+  // App instalada: agenda uma notificação semanal por cada dia de estudo e hora escolhida
+  function agendarNativo(c, obterTexto) {
+    const ln = LN(); if (!ln) return;
+    const novo = c && c.on ? JSON.stringify([c.horas, c.dias]) : "";
+    if (novo === assinatura) return; assinatura = novo;
+    ln.getPending().then((p) => (p.notifications.length ? ln.cancel({ notifications: p.notifications.map((n) => ({ id: n.id })) }) : null)).catch(() => {}).then(() => {
+      if (!novo) return;
+      const lista = [];
+      c.horas.forEach((h, k) => { const [hh, mm] = h.split(":").map(Number), t = obterTexto(k); c.dias.forEach((d) => lista.push({ id: 100 + k * 10 + d, title: t.titulo, body: t.corpo, schedule: { on: { weekday: d + 1, hour: hh, minute: mm }, allowWhileIdle: true } })); });
+      if (lista.length) ln.schedule({ notifications: lista }).catch(() => {});
+    });
+  }
   function iniciar(obterCfg, obterTexto, aoAvisar) {
     clearInterval(relogio);
+    if (LN()) { ln0(); const v = () => agendarNativo(obterCfg(), obterTexto); v(); relogio = setInterval(v, 20000); return; }
     const verificar = () => {
       const c = obterCfg(); if (!c || !c.on || !c.horas || !c.horas.length) return;
       const agora = new Date(), hoje = agora.toISOString().slice(0, 10);
@@ -75,5 +95,7 @@
     } catch (e) { return false; }
   }
 
+  function ln0() { const ln = LN(); if (ln && ln.checkPermissions) ln.checkPermissions().then((r) => { permNativa = r.display === "granted" ? "granted" : r.display === "denied" ? "denied" : "default"; }).catch(() => {}); }
+  ln0();
   window.Lembretes = { estado, pedirPermissao, mostrar, iniciar, ics, descarregarIcs, temNotif };
 })();

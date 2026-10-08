@@ -1,0 +1,88 @@
+name: Curso de Redes — apps (Android e computador)
+
+# Constrói as apps instaláveis do Curso de Redes de Computadores a partir da pasta ccna/www
+# e publica-as numa versão (Release) do GitHub para descarregar:
+#   - Android: APK (Android 5.1 ou mais recente)
+#   - Windows: instalador .exe e versão portátil
+#   - macOS: .dmg (Intel e Apple Silicon)
+#   - Linux: AppImage e .deb
+# Não mexe em nenhum outro ficheiro do repositório.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/ccna-mobile-study-system-e1t5i0]
+    paths: ["ccna/www/**", "ccna/apps/**", ".github/workflows/curso-redes-apps.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: curso-redes-apps
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - name: Construir o APK
+        run: bash ccna/apps/android/construir.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: ccna/apps/saida/*.apk }
+
+  computador:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Copiar a app web
+        shell: bash
+        run: rm -rf ccna/apps/computador/www && cp -r ccna/www ccna/apps/computador/www
+      - name: Construir
+        shell: bash
+        working-directory: ccna/apps/computador
+        run: npm install --no-audit --no-fund && npx electron-builder --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: computador-${{ matrix.os }}
+          path: |
+            ccna/apps/computador/saida/*.exe
+            ccna/apps/computador/saida/*.dmg
+            ccna/apps/computador/saida/*.AppImage
+            ccna/apps/computador/saida/*.deb
+
+  publicar:
+    needs: [android, computador]
+    if: ${{ !cancelled() && needs.android.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: ficheiros, merge-multiple: true }
+      - run: ls -la ficheiros
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: curso-redes-v${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Curso de Redes de Computadores — versão ${{ github.run_number }}
+          make_latest: true
+          files: ficheiros/*
+          body: |
+            Apps instaláveis do Curso de Redes de Computadores (CCNA passo a passo).
+
+            - **Android** (5.1 ou mais recente): `Curso-de-Redes-Android.apk` — abra o ficheiro no telemóvel e permita "instalar apps desconhecidas".
+            - **Windows**: `Curso-de-Redes-Windows-instalador.exe` (instala) ou `Curso-de-Redes-Windows-portatil.exe` (abre sem instalar). Se o Windows avisar "aplicação não reconhecida", escolha "Mais informações" › "Executar mesmo assim".
+            - **macOS**: `Curso-de-Redes-macOS.dmg` — na 1.ª vez abra com o botão direito › Abrir.
+            - **Linux**: `Curso-de-Redes-Linux.AppImage` (dar permissão de execução) ou `.deb`.
+            - **iPhone e iPad**: abra https://yuriventura278-lgtm.github.io/hospital-do-prenda-estatistica/curso-redes/ no Safari › Partilhar › Adicionar ao ecrã principal.

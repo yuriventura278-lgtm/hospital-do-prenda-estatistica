@@ -1,0 +1,85 @@
+{
+  "name": "curso-redes-computadores",
+  "productName": "Curso de Redes de Computadores",
+  "version": "1.0.0",
+  "description": "Curso de Redes de Computadores — CCNA passo a passo",
+  "author": {
+    "name": "Curso de Redes de Computadores",
+    "email": "suporte@curso-redes.local"
+  },
+  "main": "main.js",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "31.7.7",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "ao.cursoredes.ccna",
+    "productName": "Curso de Redes de Computadores",
+    "files": [
+      "main.js",
+      "www/**/*"
+    ],
+    "directories": {
+      "output": "saida"
+    },
+    "artifactName": "Curso-de-Redes-${os}-${arch}.${ext}",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "www/icons/icon-512.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Curso-de-Redes-Windows-instalador.${ext}"
+    },
+    "portable": {
+      "artifactName": "Curso-de-Redes-Windows-portatil.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.education",
+      "icon": "www/icons/icon-512.png",
+      "artifactName": "Curso-de-Redes-macOS.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Education",
+      "icon": "www/icons/icon-512.png",
+      "artifactName": "Curso-de-Redes-Linux.${ext}"
+    },
+    "publish": null
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yuriventura278-lgtm/hospital-do-prenda-estatistica"
+  },
+  "homepage": "https://yuriventura278-lgtm.github.io/hospital-do-prenda-estatistica/curso-redes/"
+}
