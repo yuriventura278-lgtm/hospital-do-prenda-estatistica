@@ -1743,14 +1743,15 @@
       img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(cl));
     }
 
-    function textoRelatorio() {
+    function textoRelatorio(so) {
       const L = [], pre = (m) => (m && S.mascaraOk(m) ? "/" + window.IOS.prefixo(m) : ""), col = (t, n) => String(t).padEnd(n);
       const outro = (d, l) => { const eu = l.a === d.id; return `${rede.dev(eu ? l.b : l.a).nome} ${curto(eu ? l.pb : l.pa)}`; };
       L.push(`RELATÓRIO DA REDE — ${new Date().toLocaleString("pt-PT")}`);
       if (A) L.push("Atividade: " + (A.titulo || A.id));
       const nn = (n, a, b) => `${n} ${n === 1 ? a : b}`;
       L.push([nn(rede.devs.length, "equipamento", "equipamentos"), nn(rede.links.length, "cabo", "cabos"), nn(rede.areas.length, "área", "áreas"), nn(rede.notas.length, "nota", "notas")].join(" · "));
-      rede.devs.forEach((d) => {
+      if (so) L.length = 0;
+      rede.devs.filter((d) => !so || d.id === so).forEach((d) => {
         const loc = localDe(d), T = S.TIPOS[d.tipo];
         L.push("", `══ ${d.nome} — ${T.nome}${d.modelo ? " " + d.modelo : ""}${loc ? " · local: " + loc.nome : ""}`);
         if (d.eq) {
@@ -1787,6 +1788,7 @@
           L.push("show running-config:"); rc.split("\n").forEach((x) => L.push("  " + x));
         }
       });
+      if (so) return L.join("\n").replace(/^\n/, "");
       if (rede.links.length) {
         L.push("", "══ Cabos (comprimento estimado: 1 % do desenho ≈ 1 m)");
         rede.links.forEach((l) => { const e = rede.estadoLink(l), da = rede.dev(l.a), db = rede.dev(l.b); L.push(`  ${da.nome} ${curto(l.pa)} ↔ ${db.nome} ${curto(l.pb)} · ${(S.CABOS[l.cabo] || {}).nome || l.cabo} · ${metros(l)} m · ${e.estado}${longoDemais(l) ? " · ⚠ " + AVISO_100 : ""}`); });

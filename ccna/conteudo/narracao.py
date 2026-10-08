@@ -264,8 +264,8 @@ def falar(texto: str, comando: bool = False, fluido: bool = False) -> str:
     t = re.sub(r"(\d)\s?%", r"\1 por cento", t)
     t = re.sub(r"(\d)\^(\w+)", r"\1 elevado a \2", t)
     if fluido:
+        t = re.sub(r"(\d)\s?–\s?(?=\.?\d)", r"\1 a ", t)  # intervalos “.0–.63”
         t = re.sub(r"(?<![\w.])\.(\d{1,3})\b", lambda m: "ponto " + num(m.group(1)), t)  # “.128”
-        t = re.sub(r"(\d)\s?–\s?(?=\d|ponto)", r"\1 a ", t)  # intervalos “.0–.63”
         t = re.sub(r"\s*→\s*", ", portanto, ", t)
     # operadores e setas
     t = t.replace("›", ", ").replace("→", ", e depois, ").replace("↔", " e ").replace("×", " vezes ").replace("÷", " a dividir por ")
