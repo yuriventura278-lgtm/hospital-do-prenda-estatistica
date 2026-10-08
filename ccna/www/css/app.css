@@ -1015,3 +1015,38 @@ details.curso > .lista { background: var(--surface-2); }
 .sim-ok-txt { color: var(--ok); }
 .sim-env-txt { font: 700 11px ui-monospace, monospace; text-anchor: middle; }
 .sim-luz.stp { fill: #f2a516; }
+
+/* ---------------------------------------------------------------- ecrã inteiro: a informação ocupa de uma ponta à outra */
+main { max-width: none; padding-inline: clamp(16px, 3vw, 48px); }
+.bloco .html { max-width: none; }
+@media (min-width: 900px) {
+  .lista { grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); align-items: start; }
+  .grelha-aprender { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+}
+.nav { width: min(760px, calc(100% - 20px)); }
+
+/* ---------------------------------------------------------------- foto de perfil */
+.avatar { overflow: hidden; flex: none; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar.grande { width: 84px; height: 84px; font-size: 2rem; }
+.avatar.topo { width: 34px; height: 34px; font-size: .9rem; border: 2px solid rgba(255, 255, 255, .7); }
+.perfil-foto { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.perfil-foto-acoes { display: grid; gap: 6px; justify-items: start; }
+
+/* ---------------------------------------------------------------- ecrã de abertura (puzzle) */
+#abertura { position: fixed; inset: 0; z-index: 1000; color: #fff; display: grid; grid-template-rows: 1fr auto; justify-items: center; align-items: center; padding: max(24px, env(safe-area-inset-top)) 24px max(28px, env(safe-area-inset-bottom));
+  background: radial-gradient(120% 70% at 50% 0%, #1b4fd8 0%, #0a2a8a 45%, #071233 100%); transition: opacity .45s ease, transform .45s ease; }
+#abertura::after { content: ""; position: absolute; inset: 0; pointer-events: none; background-image: radial-gradient(rgba(255,255,255,.12) 1px, transparent 1.3px); background-size: 18px 18px; }
+#abertura.sair { opacity: 0; transform: scale(1.03); pointer-events: none; }
+.ab-puzzle { width: min(78vw, 56vh, 440px); aspect-ratio: 1; max-width: 100%; }
+.ab-puzzle svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.ab-peca { transition: transform .7s cubic-bezier(.2,.9,.25,1.15), opacity .5s; }
+.ab-txt { display: grid; gap: 12px; justify-items: center; text-align: center; width: min(420px, 100%); z-index: 1; }
+.ab-txt b { font: 800 1.05rem var(--f-display); font-stretch: 86%; letter-spacing: .02em; }
+.ab-barra { width: 100%; height: auto; overflow: visible; }
+.ab-vazia { fill: rgba(255,255,255,.10); stroke: rgba(255,255,255,.28); stroke-width: 1.4; }
+.ab-cheia { stroke: rgba(255,255,255,.55); stroke-width: 1.4; transition: transform .45s cubic-bezier(.2,.9,.3,1.3), opacity .3s; transform-box: fill-box; transform-origin: center; }
+.ab-cheia.fora { opacity: 0; transform: translateY(-26px) rotate(-14deg); }
+.ab-passo { font-size: .85rem; color: #c9d6ff; min-height: 1.3em; }
+.ab-pct { font: 700 .85rem var(--f-mono, ui-monospace, monospace); }
+@media (prefers-reduced-motion: reduce) { .ab-peca, .ab-cheia, #abertura { transition: none; } }

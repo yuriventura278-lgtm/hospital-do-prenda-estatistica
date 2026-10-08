@@ -195,7 +195,7 @@
     $("#topo").innerHTML = t === "boasvindas" ? `<div class="marca"><img src="icons/icon-64.png" alt="" width="34" height="34"><b>REDES DE COMPUTADORES</b></div>` : raiz
       ? `<div class="marca"><img src="icons/icon-64.png" alt="" width="34" height="34"><b>REDES DE<br>COMPUTADORES</b></div><span style="flex:1"></span>
          <span class="xp-pilula tab-num" title="${esc(n.nome)}">${ic("estrela")} ${P().xp} XP</span>
-         <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${ic("perfil")}</button>`
+         <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${P().foto ? avatar(P(), "topo") : ic("perfil")}</button>`
       : `<button class="btn-icone" data-acao="voltar" aria-label="Voltar">${ic("voltar")}</button><div class="titulo">${esc(titulo)}</div>`;
     const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", prof: "jogar", exercicios: "trilha", estagio: "trilha", cadernos: "jogar", caderno: "jogar", sala: "jogar", bancada: "jogar", glossario: "guia", protocolos: "guia", protocolo: "guia", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
     document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.ir === tab ? "page" : "false"));
@@ -797,7 +797,7 @@
     const lista = Object.values(S.perfis).sort((a, b) => b.xp - a.xp);
     const p = P(), n = nivel(p.xp);
     return `<div class="secao"><h1>Classificação</h1><p class="suave">Ranking dos perfis neste dispositivo — ideal para uma turma ou família a estudar no mesmo telemóvel ou computador.</p></div>
-      <ol class="ranking">${lista.map((x, i) => `<li class="${x.id === p.id ? "eu" : ""}"><span class="pos tab-num">${i + 1}</span><span class="avatar" style="background:${x.cor}">${esc(x.nome.slice(0, 1).toUpperCase())}</span>
+      <ol class="ranking">${lista.map((x, i) => `<li class="${x.id === p.id ? "eu" : ""}"><span class="pos tab-num">${i + 1}</span>${avatar(x)}
         <span><b>${esc(x.nome)}</b><br><span class="suave peq">${esc(nivel(x.xp).nome)} · ${Object.values(x.provas).filter((v) => v.melhor >= NOTA_APROVACAO).length}/${MODS.length} provas</span></span><b class="tab-num">${x.xp} XP</b></li>`).join("")}</ol>
       <button class="btn bloco" data-acao="perfil">Adicionar ou trocar de perfil</button>
       <section class="secao"><h2>Níveis</h2><div class="tabela-caixa"><table><tbody>${NIVEIS.map(([xp, nome], i) => `<tr${i === n.i ? ' style="background:var(--accent-soft)"' : ""}><td>${i + 1}</td><td><b>${esc(nome)}</b></td><td class="tab-num">${xp} XP</td></tr>`).join("")}</tbody></table></div></section>
@@ -1054,7 +1054,24 @@
 
   // ------------------------------------------------------------ primeiro acesso
   let ob = null;
-  const GENEROS = ["Feminino", "Masculino", "Outro", "Prefiro não dizer"];
+  const GENEROS = ["Masculino", "Feminino"];
+  // Foto de perfil (reduzida a 256×256 JPEG antes de guardar) ou a inicial do nome
+  const avatar = (x, cls) => x.foto ? `<span class="avatar ${cls || ""}"><img src="${x.foto}" alt=""></span>` : `<span class="avatar ${cls || ""}" style="background:${x.cor}">${esc(x.nome.slice(0, 1).toUpperCase())}</span>`;
+  function lerFoto(ficheiro, depois) {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const t = 256, c = document.createElement("canvas"), lado = Math.min(img.width, img.height);
+        c.width = c.height = t;
+        c.getContext("2d").drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, t, t);
+        depois(c.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => toast("Não foi possível ler essa imagem");
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(ficheiro);
+  }
   const saudacao = (g) => g === "Feminino" ? "Bem-vinda" : g === "Masculino" ? "Bem-vindo" : "Boas-vindas";
   function iniciarOb() { const p = P(); if (!p.plano.prazo && !p.onboard) Object.assign(p.plano, { prazo: "1a", fixo: "prazo", inicio: new Date().toISOString(), sessoes: 2 }); ob = { passo: 1, nome: p.nome === "Estudante" ? "" : p.nome, idade: p.idade || "", genero: p.genero, motivos: p.motivos.slice(), experiencia: p.experiencia, plano: JSON.parse(JSON.stringify(p.plano)), livre: false, erro: "" }; }
   TELAS.boasvindas = function () {
@@ -1097,7 +1114,7 @@
   function obAvancar() {
     ob.erro = "";
     if (ob.passo === 1) { const v = $("#ob-nome").value.trim(); if (!v) { ob.erro = "Escreva o seu nome para continuar."; return render(); } ob.nome = v; }
-    if (ob.passo === 2) { const v = +$("#ob-idade").value; if (!v || v < 8 || v > 100) { ob.erro = "Indique uma idade entre 8 e 100 anos."; return render(); } ob.idade = v; if (!ob.genero) { ob.erro = "Escolha uma opção de género (pode escolher “Prefiro não dizer”)."; return render(); }
+    if (ob.passo === 2) { const v = +$("#ob-idade").value; if (!v || v < 8 || v > 100) { ob.erro = "Indique uma idade entre 8 e 100 anos."; return render(); } ob.idade = v; if (!GENEROS.includes(ob.genero)) { ob.erro = "Escolha o género: masculino ou feminino."; return render(); }
       if (v < 15 && ob.plano.min > 20) ob.plano.min = 20; }
     if (ob.passo === 3) { if (!ob.motivos.length) { ob.erro = "Escolha pelo menos um motivo."; return render(); } if (!ob.experiencia) { ob.erro = "Diga-nos o que já sabe para ajustarmos o início."; return render(); } }
     if (ob.passo === 5) {
@@ -1398,6 +1415,7 @@
   document.addEventListener("change", (e) => {
     const lh = e.target.closest && e.target.closest("[data-lemb-hora]");
     if (lh && /^\d{2}:\d{2}$/.test(lh.value)) { const p = P(); horasLembrete(p)[+lh.dataset.lembHora] = lh.value; p.lembretes.feitos = {}; guardar(); toast("Hora guardada: " + lh.value); return; }
+    if (e.target.id === "p-foto" && e.target.files[0]) { lerFoto(e.target.files[0], (url) => { P().foto = url; guardar(); render(); toast("Foto de perfil guardada"); }); return; }
     if (e.target.id !== "proj-ficheiro" || !e.target.files[0]) return;
     const fr = new FileReader(); fr.onload = () => importarProjeto(String(fr.result)); fr.readAsText(e.target.files[0]);
   });
@@ -1604,8 +1622,8 @@
     const p = P();
     const blocoLembretes = cartaoLembretes(false);
     return `<div class="cartao"><span class="rotulo">Perfil ativo</span>
-        <form data-form="nome" class="linha"><span class="avatar" style="background:${p.cor}">${esc(p.nome.slice(0, 1).toUpperCase())}</span>
-          <input class="campo" id="nome-perfil" style="flex:1;min-width:0" value="${esc(p.nome)}" maxlength="30" aria-label="Nome"><button class="btn" type="submit">Guardar</button></form>
+        <div class="perfil-foto">${avatar(p, "grande")}<div class="perfil-foto-acoes"><label class="btn">${p.foto ? "Mudar a foto" : "Adicionar foto"}<input type="file" accept="image/*" id="p-foto" hidden></label>${p.foto ? '<button class="btn" data-acao="p-foto-tirar">Tirar a foto</button>' : ""}<span class="suave peq">A foto fica só neste dispositivo.</span></div></div>
+        <form data-form="nome" class="linha"><input class="campo" id="nome-perfil" style="flex:1;min-width:0" value="${esc(p.nome)}" maxlength="30" aria-label="Nome"><button class="btn" type="submit">Guardar</button></form>
         <p class="suave peq tab-num">${p.xp} XP · ${esc(nivel(p.xp).nome)} · desde ${new Date(p.criado).toLocaleDateString("pt-PT")}</p></div>
       ${blocoLembretes}
       <div class="cartao"><span class="rotulo">Os seus dados</span>
@@ -1614,11 +1632,12 @@
         <span class="rotulo">Motivos para estudar</span><div class="chips">${D.guia.motivos.map((m, i) => `<button class="chip-op" aria-pressed="${p.motivos.includes(m)}" data-acao="p-motivo" data-id="${i}">${esc(m)}</button>`).join("")}</div>
         <div class="grelha-2"><button class="btn" data-acao="ir" data-tela="plano">${ic("calendario")} Plano de estudo</button><button class="btn" data-acao="ob-refazer">Refazer questionário</button></div></div>
       <div class="cartao"><span class="rotulo">Perfis neste dispositivo</span>
-        <div class="lista">${Object.values(S.perfis).map((x) => `<button class="item" data-acao="trocar-perfil" data-id="${x.id}"><span class="avatar" style="background:${x.cor}">${esc(x.nome.slice(0, 1).toUpperCase())}</span><div class="meio"><b>${esc(x.nome)}</b><span class="suave peq tab-num">${x.xp} XP</span></div>${x.id === p.id ? '<span class="chip ok">ativo</span>' : ""}</button>`).join("")}</div>
+        <div class="lista">${Object.values(S.perfis).map((x) => `<button class="item" data-acao="trocar-perfil" data-id="${x.id}">${avatar(x)}<div class="meio"><b>${esc(x.nome)}</b><span class="suave peq tab-num">${x.xp} XP</span></div>${x.id === p.id ? '<span class="chip ok">ativo</span>' : ""}</button>`).join("")}</div>
         <form data-form="novo-perfil" class="linha"><input class="campo" id="novo-nome" style="flex:1;min-width:0" placeholder="Nome do novo perfil" maxlength="30"><button class="btn" type="submit">Adicionar</button></form></div>
       <div class="cartao"><span class="rotulo">Definições</span>
         <div class="linha entre"><span>Tema</span><span class="abas">${[["auto", "Sistema"], ["light", "Claro"], ["dark", "Escuro"]].map(([k, n]) => `<button aria-selected="${S.tema === k}" data-acao="tema" data-id="${k}">${n}</button>`).join("")}</span></div>
-        <label class="linha entre" for="livre"><span><b>Modo livre</b><br><span class="suave peq">Desbloqueia todos os módulos e lições, para quem já sabe o básico ou quer rever.</span></span><input type="checkbox" id="livre" ${S.livre ? "checked" : ""} style="width:24px;height:24px"></label></div>
+        <label class="linha entre" for="livre"><span><b>Modo livre</b><br><span class="suave peq">Desbloqueia todos os módulos e lições, para quem já sabe o básico ou quer rever.</span></span><input type="checkbox" id="livre" ${S.livre ? "checked" : ""} style="width:24px;height:24px"></label>
+        <label class="linha entre" for="abertura-on"><span><b>Ecrã de abertura</b><br><span class="suave peq">A imagem do curso a montar-se como um puzzle enquanto a app carrega.</span></span><input type="checkbox" id="abertura-on" ${!window.Abertura || window.Abertura.ligado() ? "checked" : ""} onchange="window.Abertura && window.Abertura.ligar(this.checked)" style="width:24px;height:24px"></label></div>
       <div class="cartao"><span class="rotulo">Cópia de segurança do progresso</span>
         <p class="suave peq">O progresso fica guardado neste navegador. Para passar para outro dispositivo, copie o código e cole-o lá.</p>
         <button class="btn" data-acao="exportar">Copiar código de progresso</button>
@@ -1784,6 +1803,7 @@
     "ajustar-carga": (el) => { P().plano.min = +el.dataset.id; guardar(); render(); toast(`Plano atualizado: ${horas(+el.dataset.id)} por dia`); },
     "novo-alvo": () => { P().alvo = calcularPlano().fim.toISOString(); guardar(); render(); toast("Novo objetivo definido"); },
     "p-genero": (el) => { P().genero = el.dataset.id; guardar(); render(); },
+    "p-foto-tirar": () => { delete P().foto; guardar(); render(); toast("Foto retirada"); },
     "p-motivo": (el) => { const m = D.guia.motivos[+el.dataset.id], p = P(); p.motivos = p.motivos.includes(m) ? p.motivos.filter((x) => x !== m) : p.motivos.concat(m); guardar(); render(); },
     "ob-refazer": () => { P().onboard = false; ob = null; guardar(); render(); },
     "copiar-cli": (el) => { const cmds = [...el.closest(".term").querySelectorAll("li")].filter((li) => /[#>]$/.test(li.querySelector(".pr").textContent.trim())).map((li) => li.querySelector(".cm").textContent); copiar(cmds.join("\n")); },
