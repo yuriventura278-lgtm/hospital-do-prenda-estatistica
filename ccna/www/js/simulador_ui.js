@@ -11,29 +11,47 @@
   const reduzido = () => window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const AJUDA = [
-    ["Adicionar equipamentos", "Toque em <b>+ Equipamentos</b>. Como na caixa do Packet Tracer, escolha o grupo (<b>Equipamentos de rede</b>, <b>Dispositivos finais</b>, <b>Casa inteligente</b>, <b>Ligações</b>, <b>Outros</b>), nos equipamentos de rede o tipo (Routers, Switches, Hubs, Sem fios, Segurança, WAN) e depois o modelo: ISR 4331, 1941, Catalyst 2960, 3560, access point, router Wi-Fi, ASA, PC, portátil, servidor, impressora, telefone IP…"],
-    ["Wi-Fi", "Os equipamentos sem fios não levam cabo: no access point ou no router Wi-Fi defina o SSID e a palavra-passe; no portátil, smartphone ou tablet (separador <b>Sem fios</b>) escreva o mesmo SSID e a mesma palavra-passe. A ligação aparece a tracejado roxo."],
-    ["Mover", "Com a ferramenta <b>Mover</b>, arraste o equipamento. Um toque curto abre o painel de configuração."],
-    ["Ligar cabos", "Toque em <b>Cabo</b> (ou no grupo <b>Ligações</b>) e escolha o tipo: <b>Automático</b> escolhe o cabo certo; <b>Direto</b> liga equipamentos diferentes (PC–switch, switch–router); <b>Cruzado</b> liga iguais (switch–switch, router–router, PC–router); <b>Consola</b> liga a porta RS232 do PC à porta Console. Toque no primeiro equipamento e escolha a porta (as ocupadas aparecem desativadas, ou use <b>Escolher automaticamente</b>); depois toque no segundo e escolha a porta."],
-    ["Ler as luzes", "<span class='luz ok'></span> verde: ligação a funcionar. <span class='luz baixo'></span> laranja: a porta está desligada (falta <code>no shutdown</code> no router). <span class='luz errado'></span> vermelho: cabo errado ou portas incompatíveis — toque no cabo para ver a correção."],
-    ["Configurar routers e switches", "Toque no equipamento: a janela tem os separadores do Packet Tracer — <b>Físico</b> (portas e botão de energia), <b>Configuração</b> (hostname, NVRAM, rotas estáticas, RIP, VLANs e cada interface; cada alteração mostra os <b>comandos IOS equivalentes</b>) e <b>CLI</b> (os comandos Cisco: <code>enable</code>, <code>configure terminal</code>…, com <code>?</code> e Tab). Mudar o hostname muda o nome no desenho (nas atividades guiadas o nome mantém-se e o hostname aparece por baixo)."],
-    ["Configurar PCs e servidores", "PC › <b>Ambiente de trabalho</b> › <b>Configuração IP</b>: DHCP ou Estático (a máscara aparece sozinha pela classe do IP, como no Packet Tracer). No servidor, o separador <b>Serviços</b> tem HTTP, DHCP, DNS, TFTP, NTP, AAA, EMAIL, FTP…, cada um com uma linha a explicar o protocolo."],
-    ["Testar", "PC › Ambiente de trabalho › <b>Prompt de comando</b>: <code>ping 192.168.1.1</code>, <code>tracert</code>, <code>ipconfig /all</code>, <code>ipconfig /renew</code>, <code>nslookup</code>; ou <b>Navegador web</b> com o IP ou o nome DNS do servidor. Veja o pacote a andar pelos cabos: verde chegou, vermelho falhou (e o motivo aparece no fim)."],
-    ["Desfazer, zoom e deslocar", "<b>↶</b> desfaz e <b>↷</b> refaz (até 50 passos; no computador Ctrl+Z e Ctrl+Y). Afaste ou aproxime com dois dedos, com a roda do rato ou com <b>+</b> / <b>−</b>; arraste no vazio para deslocar o desenho. <b>Ajustar</b> mostra tudo."],
-    ["Duplicar", "Com um equipamento aberto, toque em <b>Duplicar</b> (ou Ctrl+C e Ctrl+V): cria uma cópia com a mesma configuração, sem cabos. Num PC com IP estático o IP fica em branco para não repetir."],
-    ["Colar configuração", "No separador <b>CLI</b> de routers e switches, <b>Colar configuração</b> executa vários comandos de uma vez, um por linha, como no PuTTY. As linhas com erro ficam a vermelho."],
-    ["Áreas e notas", "Em <b>Mais</b>: <b>Área</b> desenha um retângulo com nome (Edifício A, Sala de servidores…); arraste-a pelo nome e mude o tamanho pelo canto. <b>Nota</b> põe um texto no desenho. Toque numa área ou nota para editar, mudar a cor ou apagar."],
-    ["Vista física", "<b>Física</b> mostra a rede por locais: cada área é um edifício ou sala, com os routers e switches num bastidor e os PCs em secretárias. Os cabos mostram o comprimento estimado; um cabo de cobre com mais de 100 m fica a vermelho."],
-    ["Imagem e relatório", "Em <b>Mais</b>: <b>Imagem</b> guarda a topologia em PNG; <b>Relatório</b> lista todos os equipamentos com interfaces, IP, VLANs, rotas e running-config, e pode ser baixado em .txt."],
-    ["Apagar e recomeçar", "Ferramenta <b>Apagar</b> e toque no equipamento ou no cabo. <b>Reiniciar</b> volta ao início da atividade."],
+    ["O ambiente", "Está organizado como o Cisco Packet Tracer: em cima as barras de ferramentas (passe o rato ou o dedo para ver o nome de cada botão), a barra <b>Lógico | Físico</b>, a área de trabalho, a barra do <b>Tempo</b> (Tempo real | Simulação) e, em baixo, a caixa dos equipamentos."],
+    ["Adicionar equipamentos", "Na caixa de baixo, à esquerda, escolha o tipo (<b>Equipamentos de rede</b>, <b>Dispositivos finais</b>, <b>Componentes</b>, <b>Ligações</b>, <b>Diversos</b>) e a subcategoria (Routers, Switches, Hubs, Sem fios, Segurança, WAN…). À direita aparecem os modelos: toque num (ISR 4331, Catalyst 2960, PC…) e depois toque no sítio da área de trabalho onde o quer pôr. <b>Adicionar num lugar livre</b> põe-no sozinho."],
+    ["Ligar cabos", "Em <b>Ligações</b> escolha o cabo: <b>Automático</b> escolhe o cabo certo; <b>Direto</b> liga equipamentos diferentes (PC–switch, switch–router); <b>Cruzado</b> liga iguais (switch–switch, router–router, PC–router); <b>Consola</b> liga a porta RS232 do PC à porta Console. Toque no primeiro equipamento e escolha a porta (as ocupadas aparecem desativadas, ou use <b>Escolher automaticamente</b>); depois toque no segundo e escolha a porta."],
+    ["Ler as luzes", "Nas pontas de cada cabo há um triângulo, como no Packet Tracer: <span class='luz ok'></span> verde: ligação a funcionar. <span class='luz errado'></span> vermelho: porta desligada (<code>shutdown</code>), equipamento desligado ou cabo errado. <span class='luz baixo'></span> laranja: porta bloqueada pelo Spanning Tree ou a negociar. Toque numa luz para ver o motivo."],
+    ["Selecionar, inspecionar e apagar", "<b>Selecionar</b>: arraste para mover; um toque abre a janela do equipamento. <b>Inspecionar</b> (lupa): mostra um resumo só de leitura (interfaces, rotas, running-config). <b>Apagar</b>: toque no equipamento, cabo, área ou nota."],
+    ["Configurar routers e switches", "A janela tem os separadores do Packet Tracer — <b>Físico</b> (portas e botão de energia), <b>Configuração</b> (hostname, NVRAM, rotas estáticas, RIP, VLANs e cada interface; cada alteração mostra os <b>comandos IOS equivalentes</b>) e <b>CLI</b> (os comandos Cisco: <code>enable</code>, <code>configure terminal</code>…, com <code>?</code> e Tab). Mudar o hostname muda o nome no desenho (nas atividades guiadas o nome mantém-se e o hostname aparece por baixo)."],
+    ["Configurar PCs e servidores", "PC › <b>Ambiente de trabalho</b> › <b>Configuração IP</b>: DHCP ou Estático (a máscara aparece sozinha pela classe do IP). No servidor, o separador <b>Serviços</b> tem HTTP, DHCP, DNS, TFTP, NTP, AAA, EMAIL, FTP…, cada um com uma linha a explicar o protocolo."],
+    ["Testar", "<b>Enviar PDU simples</b> (envelope): toque na origem e no destino e é feito um ping. Ou PC › Ambiente de trabalho › <b>Prompt de comando</b>: <code>ping</code>, <code>tracert</code>, <code>ipconfig /all</code>, <code>nslookup</code>; ou <b>Navegador web</b> com o IP ou o nome DNS do servidor."],
+    ["Tempo real e Simulação", "Na barra do Tempo, <b>Simulação</b> abre a <b>Lista de eventos</b>: cada mensagem (ARP, ICMP, DHCP, DNS, TCP) aparece cabo a cabo, com o que vai em cada camada. <b>Enviar PDU complexa</b> escolhe o tipo (ping, DHCP, DNS, HTTP, Telnet, SSH, SMB). <b>⏻</b> desliga e volta a ligar todos os equipamentos; <b>⏩</b> avança o tempo (renova o DHCP e termina a negociação das portas)."],
+    ["Desfazer, zoom e deslocar", "Desfazer e Refazer (até 50 passos; no computador Ctrl+Z e Ctrl+Y). Aproxime ou afaste com os botões, com dois dedos ou com a roda do rato; arraste no vazio para deslocar o desenho. <b>Ajustar</b> mostra tudo."],
+    ["Abrir, guardar e novo", "<b>Guardar</b> descarrega a rede num ficheiro .json; <b>Abrir</b> carrega um ficheiro desses (ou um projeto exportado). <b>Novo</b> começa uma rede vazia (pode desfazer). <b>Imagem</b> guarda um PNG e <b>Informação</b> mostra o relatório de todos os equipamentos."],
+    ["Duplicar e colar configuração", "Com um equipamento aberto, toque em <b>Duplicar</b> (ou Ctrl+C e Ctrl+V). No separador <b>CLI</b>, <b>Colar configuração</b> executa vários comandos de uma vez, um por linha."],
+    ["Áreas, notas e vista física", "<b>Desenhar retângulo</b> cria uma área (Edifício A, Sala de servidores…); <b>Nota</b> põe um texto; <b>Redimensionar</b> muda o tamanho arrastando; a <b>Paleta de desenho</b> escolhe as cores. <b>Físico</b> mostra a rede por locais, com bastidores, secretárias e o comprimento dos cabos."],
   ];
+
+  const SV = (d) => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const FERR1 = [["novo", "Novo", '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>'], ["abrir", "Abrir", '<path d="M3 7h6l2 2h10v10H3z"/>'], ["guardar", "Guardar", '<path d="M5 3h12l2 2v16H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/>'],
+    ["imagem", "Guardar imagem (PNG)", '<path d="M7 9V3h10v6M7 17H4V9h16v8h-3"/><rect x="7" y="14" width="10" height="7"/>'], ["relatorio", "Informação (relatório da rede)", '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'],
+    ["desfazer", "Desfazer (Ctrl+Z)", '<path d="M9 7 4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-3"/>'], ["refazer", "Refazer (Ctrl+Y)", '<path d="m15 7 5 5-5 5"/><path d="M20 12H9a5 5 0 0 0 0 10h3"/>'],
+    ["zmais", "Aproximar", '<circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M20 20l-4-4"/>'], ["zmenos", "Afastar", '<circle cx="11" cy="11" r="7"/><path d="M8 11h6M20 20l-4-4"/>'], ["ajustar", "Ajustar (mostrar tudo)", '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'],
+    ["paleta", "Paleta de desenho", '<path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.6 0-1.2 1-1.4 2-1.4H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3z"/><circle cx="8" cy="10" r="1.2"/><circle cx="12" cy="7" r="1.2"/><circle cx="16" cy="10" r="1.2"/>'],
+    ["ajuda", "Como usar", '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17v.5"/>']];
+  const FERR2 = [["mover", "Selecionar / mover", '<rect x="4" y="4" width="16" height="16" rx="1" stroke-dasharray="3 3"/>'], ["inspecionar", "Inspecionar", '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'],
+    ["apagar", "Apagar", '<path d="M20 5H9l-6 7 6 7h11z"/><path d="m12 9 6 6M18 9l-6 6"/>'], ["redim", "Redimensionar áreas e notas", '<path d="M4 9V4h5M20 15v5h-5M4 4l7 7M20 20l-7-7"/>'],
+    ["nota", "Nota", '<path d="M5 3h10l4 4v14H5z"/><path d="M8 10h8M8 14h8M8 18h5"/>'], ["area", "Desenhar retângulo (área)", '<rect x="4" y="6" width="16" height="12" rx="1"/>'],
+    ["pdu", "Enviar PDU simples (ping)", '<rect x="3" y="6" width="18" height="12" rx="1.5"/><path d="m3 7 9 6 9-6"/>'], ["pduc", "Enviar PDU complexa", '<rect x="3" y="8" width="16" height="11" rx="1.5"/><path d="m3 9 8 5 8-5M7 5h14v11"/>']];
+  const MENUS = [["Ficheiro", [["novo", "Novo"], ["abrir", "Abrir…"], ["guardar", "Guardar (.json)"], ["imagem", "Guardar imagem (PNG)"]]],
+    ["Editar", [["desfazer", "Desfazer"], ["refazer", "Refazer"], ["duplicar", "Duplicar o equipamento aberto"], ["apagar", "Apagar"]]],
+    ["Opções", [["paleta", "Paleta de desenho"], ["explicar", "Explicar os comandos (ℹ)"], ["legenda", "Legenda das luzes"]]],
+    ["Ver", [["zmais", "Aproximar"], ["zmenos", "Afastar"], ["ajustar", "Ajustar (mostrar tudo)"], ["logica", "Vista lógica"], ["fisica", "Vista física"]]],
+    ["Ferramentas", [["relatorio", "Relatório da rede"], ["pdu", "Enviar PDU simples"], ["pduc", "Enviar PDU complexa"], ["simul", "Modo de simulação"], ["ciclo", "Ligar/desligar todos"]]],
+    ["Ajuda", [["ajuda", "Como usar o simulador"]]]];
 
   function montar(raiz, op) {
     const A = op.atividade;
     const larg = raiz.clientWidth || window.innerWidth || 400;
     W = larg < 600 ? 620 : 1000; H = larg < 600 ? 720 : 620;
     let rede = op.estado ? S.Rede.importar(op.estado) : (A ? S.Rede.deAtividade(A) : new S.Rede());
-    let modo = "mover", cabo = "auto", sel = null, caboA = null, menu = null, aba = null, feito = false, categoria = 0;
+    let modo = "mover", cabo = "auto", sel = null, caboA = null, aba = null, feito = false;
+    let pduA = null, colocar = null, corArea = null, corNota = null; // PDU simples (origem escolhida), modelo a colocar, cores da paleta de desenho
+    const negoc = new Map(); // cabos acabados de ligar a um switch: luz laranja enquanto "negoceiam" (STP listening/learning)
     let vista = "logica", copiado = null; // vista lógica ou física; equipamento copiado (Ctrl+C)
     const vb = { x: 0, y: 0, w: W, h: H }; // zoom e deslocação: viewBox da vista lógica
     const logs = {}, hist = {}, hIdx = {};
@@ -74,27 +92,27 @@
     }
     ligarRede(); ultimo = foto();
 
-    raiz.innerHTML = `<div class="sim">
+    const ferr = (lista) => lista.map(([k, n, d]) => `<button type="button" data-s="${k}" data-dica="${esc(n)}" aria-label="${esc(n)}"${["desfazer", "refazer"].includes(k) ? " disabled" : ""}>${SV(d)}</button>`).join("");
+    raiz.innerHTML = `<div class="sim sim-pt">
       ${A ? `<div class="cartao sim-passos"><div class="linha entre"><span class="rotulo">Atividade · <span id="sim-prog"></span></span><button class="btn-copiar sim-btn-link" data-s="reiniciar">Reiniciar</button></div>
         <p class="peq">${esc(A.cenario)}</p><ol class="sim-lista" id="sim-lista"></ol></div>` : ""}
-      <div class="sim-barra" role="toolbar" aria-label="Ferramentas do simulador">
-        <button data-s="mover" aria-pressed="true">Mover</button>
-        <button data-s="add">+ Equipamentos</button>
-        <button data-s="cabo">Cabo</button>
-        <button data-s="apagar">Apagar</button>
-        <span class="sim-grupo"><button data-s="desfazer" aria-label="Desfazer" title="Desfazer (Ctrl+Z)" disabled>↶</button><button data-s="refazer" aria-label="Refazer" title="Refazer (Ctrl+Y)" disabled>↷</button></span>
-        <span class="sim-grupo sim-seg" role="group" aria-label="Vista"><button data-s="logica" aria-pressed="true">Lógica</button><button data-s="fisica" aria-pressed="false">Física</button></span>
-        <button data-s="simul" aria-pressed="false" title="Ver cada pacote, passo a passo">▶ Simulação</button>
-        <button data-s="mais" aria-pressed="false">Mais ▾</button>
-        <button data-s="ajuda" aria-label="Como usar">?</button>
-      </div>
-      <div class="sim-opcoes" id="sim-opcoes" hidden></div>
+      <div class="sim-amb">
+      <div class="sim-menus" role="menubar" aria-label="Menus">${MENUS.map(([n, it], i) => `<div class="sim-menu"><button type="button" data-menu="${i}" aria-expanded="false" aria-haspopup="true">${esc(n)}</button><div class="sim-menu-lista" role="menu" hidden>${it.map(([k, t]) => `<button type="button" role="menuitem" data-s="${k}">${esc(t)}</button>`).join("")}</div></div>`).join("")}</div>
+      <div class="sim-ferr" role="toolbar" aria-label="Ferramentas do simulador"><div class="sim-ferr-g">${ferr(FERR1)}</div><span class="sim-ferr-sep" aria-hidden="true"></span><div class="sim-ferr-g">${ferr(FERR2)}</div></div>
+      <div class="sim-vista"><span class="sim-seg2" role="group" aria-label="Vista"><button type="button" data-s="logica" aria-pressed="true">◇ Lógico</button><button type="button" data-s="fisica" aria-pressed="false">▤ Físico</button></span><span class="sim-coord" id="sim-coord" aria-hidden="true">x: 0, y: 0</span><span class="sim-esp"></span><span class="sim-raiz-txt" title="Espaço de trabalho principal">Raiz</span></div>
       <div class="sim-trab" id="sim-trab"><div class="sim-esq">
       <div class="sim-palco"><svg id="sim-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Área de trabalho da rede"></svg>
-        <div class="sim-zoom" id="sim-zoom"><button data-z="mais" aria-label="Aproximar">+</button><button data-z="menos" aria-label="Afastar">−</button><button data-z="ajustar">Ajustar</button></div>
-        <div class="sim-msg" id="sim-msg" role="status">${A ? "Comece pelo primeiro passo. Toque em ? para ver como usar." : "Modo livre: monte a rede que quiser."}</div></div>
-      <div class="sim-simul" id="sim-simul" hidden></div></div>
-      <div class="sim-inspetor sim-jan" id="sim-insp" hidden></div></div>
+        <details class="sim-legenda" id="sim-legenda" ${ler("ccna-sim-leg") === "0" ? "" : "open"}><summary>Luzes</summary><span><i class="ok"></i>ligado</span><span><i class="bad"></i>em baixo / cabo errado</span><span><i class="amb"></i>bloqueado (STP) / a negociar</span></details>
+        <div class="sim-dica" id="sim-dica" hidden></div></div>
+      <div class="sim-msg" id="sim-msg" role="status">${A ? "Comece pelo primeiro passo. Toque em ? para ver como usar." : "Modo livre: monte a rede que quiser. Escolha os equipamentos na caixa de baixo."}</div></div>
+      <div class="sim-dir" id="sim-dir"><div class="sim-simul" id="sim-simul" hidden></div>
+      <div class="sim-inspetor sim-jan" id="sim-insp" hidden></div></div></div>
+      <div class="sim-tempo"><span>Tempo:</span><b class="sim-relogio tab-num" id="sim-relogio">00:00:00</b>
+        <button type="button" data-s="ciclo" data-dica="Ligar/desligar todos os equipamentos" aria-label="Ligar/desligar todos os equipamentos">⏻</button><button type="button" data-s="avancar" data-dica="Avançar o tempo" aria-label="Avançar o tempo">⏩</button>
+        <span class="sim-seg2 sim-modo" role="group" aria-label="Modo"><button type="button" data-s="real" aria-pressed="true">⏱ Tempo real</button><button type="button" data-s="sim" aria-pressed="false">✉ Simulação</button></span></div>
+      <div class="sim-base" id="sim-base"></div>
+      <input type="file" accept=".json,application/json" id="sim-abrir" hidden>
+      </div>
       <div class="sim-modal" id="sim-modal" hidden></div>
     </div>`;
     const $ = (s) => raiz.querySelector(s);
@@ -132,6 +150,27 @@
       });
       return s;
     }
+    // luzes nas pontas dos cabos (como no Packet Tracer): verde, vermelho ou laranja
+    const ehSwitch = (d) => d && (d.tipo === "switch" || d.tipo === "switch_l3");
+    const aNegociar = (l, lado) => (negoc.get(l.id) || 0) > Date.now() && ehSwitch(rede.dev(lado === "A" ? l.a : l.b));
+    function corLuz(l, lado, est) {
+      est = est || rede.estadoLink(l);
+      if (est.estado === "errado") return "errado";
+      if (est.estado === "ok") { const st = rede.stpLed ? rede.stpLed(l) : {}; return (lado === "A" ? st.a : st.b) ? "baixo stp" : aNegociar(l, lado) ? "baixo" : "ok"; }
+      return "errado";
+    }
+    function motivoLuz(l, lado) {
+      const est = rede.estadoLink(l), d = rede.dev(lado === "A" ? l.a : l.b), o = rede.dev(lado === "A" ? l.b : l.a), p = lado === "A" ? l.pa : l.pb, po = lado === "A" ? l.pb : l.pa, c = corLuz(l, lado, est);
+      const i = d.eq ? d.eq.cfg.interfaces[p] || {} : {}, io = o.eq ? o.eq.cfg.interfaces[po] || {} : {};
+      const onde = `Luz de <b>${esc(d.nome)} ${esc(curto(p))}</b>: `;
+      if (est.estado === "errado") return [onde + `<b>vermelha</b> — cabo ${esc(S.CABOS[l.cabo].nome.toLowerCase())} errado para estas portas. Use <b>${esc(est.certo)}</b>: apague o cabo e volte a ligar.`, "erro"];
+      if (c === "baixo stp") return [onde + "<b>laranja</b> — a porta está bloqueada pelo Spanning Tree (STP) para não haver um loop entre switches. Não passa tráfego; se a outra ligação falhar, abre-se sozinha.", ""];
+      if (c === "baixo") return [onde + "<b>laranja</b> — a porta do switch está a negociar (STP: listening → learning). Fica verde daqui a pouco, ou toque em ⏩ Avançar o tempo.", ""];
+      if (c === "ok") return [onde + "<b>verde</b> — ligação a funcionar.", "ok"];
+      const porque = d.desligado ? `${esc(d.nome)} está desligado (separador Físico).` : i.shutdown ? `a interface ${esc(curto(p))} está em <code>shutdown</code>: na CLI <code>interface ${esc(p)}</code> e <code>no shutdown</code>, ou Configuração › ${esc(curto(p))} › Porta ligada.`
+        : o.desligado ? `do outro lado, ${esc(o.nome)} está desligado.` : io.shutdown ? `do outro lado, ${esc(o.nome)} ${esc(curto(po))} está em <code>shutdown</code> (falta <code>no shutdown</code>).` : "a ligação está em baixo.";
+      return [onde + "<b>vermelha</b> — " + porque, "erro"];
+    }
     function desenhar() {
       if (vista === "fisica") return desenharFisica();
       let s = desenharAreas();
@@ -139,12 +178,14 @@
         const a = pos(rede.dev(l.a)), b = pos(rede.dev(l.b)), est = rede.estadoLink(l), C = S.CABOS[l.cabo];
         s += `<g data-link="${l.id}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="transparent" stroke-width="22"/>
           <line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="sim-cabo" stroke="${C.cor}" stroke-width="${l.cabo === "consola" ? 3 : 3.5}" ${C.tracejado || l.cabo === "consola" ? 'stroke-dasharray="9 6"' : ""}/>`;
-        const stpL = est.estado === "ok" && rede.stpLed ? rede.stpLed(l) : {};
-        if (l.cabo !== "consola") [[0.2, a, b, "A"], [0.8, a, b, "B"]].forEach(([t, p, q, lado]) => {
-          const cx = p.x + (q.x - p.x) * t, cy = p.y + (q.y - p.y) * t;
-          const cor = est.estado === "errado" ? "errado" : est.estado === "ok" ? ((lado === "A" ? stpL.a : stpL.b) ? "baixo stp" : "ok") : ((lado === "A" ? est.baixoA : est.baixoB) ? "errado" : "baixo");
-          s += `<circle cx="${cx}" cy="${cy}" r="7" class="sim-luz ${cor}"/>`;
-        });
+        if (l.cabo !== "consola") {
+          const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, ux = (b.x - a.x) / len, uy = (b.y - a.y) / len, dd = Math.min(56, len * 0.3);
+          ["A", "B"].forEach((lado) => {
+            const p = lado === "A" ? a : b, sx = lado === "A" ? ux : -ux, sy = lado === "A" ? uy : -uy, cx = p.x + sx * dd, cy = p.y + sy * dd;
+            const pts = [[cx + sx * 9, cy + sy * 9], [cx - sx * 6 - sy * 8, cy - sy * 6 + sx * 8], [cx - sx * 6 + sy * 8, cy - sy * 6 - sx * 8]].map((q) => q.map((v) => v.toFixed(1)).join(",")).join(" ");
+            s += `<polygon points="${pts}" class="sim-luz ${corLuz(l, lado, est)}" data-luz="${lado}"/>`;
+          });
+        }
         if (op.portas !== false) {
           const ta = 0.24, tb = 0.76;
           s += `<text x="${a.x + (b.x - a.x) * ta}" y="${a.y + (b.y - a.y) * ta - 12}" class="sim-porta-txt">${esc(curto(l.pa))}</text><text x="${a.x + (b.x - a.x) * tb}" y="${a.y + (b.y - a.y) * tb - 12}" class="sim-porta-txt">${esc(curto(l.pb))}</text>`;
@@ -161,7 +202,7 @@
         // hostname diferente do nome mostrado (atividades guiadas ou nome repetido): aparece por baixo
         const hn = d.eq && d.eq.cfg.hostname !== d.nome && d.eq.cfg.hostname !== T.host ? d.eq.cfg.hostname : "";
         const linhas = [hn ? [hn, "sim-host"] : null, ip ? [ip, "sim-ip"] : null, d.modelo && d.eq ? [d.modelo, "sim-ip"] : null].filter(Boolean);
-        s += `<g data-dev="${d.id}" class="sim-dev ${sel === d.id ? "sel" : ""} ${caboA && caboA.d === d.id ? "origem" : ""} ${d.desligado ? "off" : ""}" transform="translate(${p.x},${p.y})">
+        s += `<g data-dev="${d.id}" class="sim-dev ${sel === d.id ? "sel" : ""} ${(caboA && caboA.d === d.id) || pduA === d.id ? "origem" : ""} ${d.desligado ? "off" : ""}" transform="translate(${p.x},${p.y})">
           <circle r="40" class="sim-halo"/><g transform="translate(-30,-30)" class="sim-dev-ic"><svg width="60" height="60" viewBox="0 0 64 64">${F.ICONES[T.icone]}</svg></g>
           <text y="48" class="sim-nome">${esc(d.nome)}</text>${linhas.map(([t, c], k) => `<text y="${66 + k * 18}" class="${c}">${c === "sim-host" ? "hostname " : ""}${esc(t)}</text>`).join("")}${d.desligado ? '<text y="-44" class="sim-off-txt">desligado</text>' : ""}</g>`;
       });
@@ -205,13 +246,13 @@
       const f = (ts) => { if (!t0) t0 = ts; const k = Math.min(1, (ts - t0) / 380), e = 1 - (1 - k) * (1 - k); g.setAttribute("transform", `translate(${x0 + (x1 - x0) * e},${y0 + (y1 - y0) * e})`); if (k < 1) requestAnimationFrame(f); };
       requestAnimationFrame(f);
     }
-    function abrirSim(on) {
+    function abrirSim(on, foco) {
       sm.aberto = on; clearInterval(sm.auto); sm.auto = null;
-      raiz.querySelector('[data-s="simul"]').setAttribute("aria-pressed", String(on));
-      const p = $("#sim-simul"); p.hidden = !on;
-      if (on) { if (!sm.pedido.de) { const h = rede.devs.find((d) => d.pc && rede.l3(d).length) || rede.devs.find((d) => d.eq); sm.pedido.de = h ? h.id : ""; } pintarSim(); msg("<b>Modo de simulação:</b> escolha a origem, o tipo e o destino e toque em Gerar. Depois avance mensagem a mensagem."); }
+      const p = $("#sim-simul"); p.hidden = !on; sm.novo = !!foco || !sm.evs.length;
+      if (on) { if (!sm.pedido.de) { const h = rede.devs.find((d) => d.pc && rede.l3(d).length) || rede.devs.find((d) => d.eq); sm.pedido.de = h ? h.id : ""; } pintarSim(); msg("<b>Modo de simulação:</b> use <b>Enviar PDU simples</b> (toque na origem e no destino) ou a PDU complexa, e avance mensagem a mensagem na Lista de eventos."); }
       else { sm.i = -1; msg("Tempo real."); }
-      desenhar();
+      layoutDir(); opcoes(); desenhar();
+      if (on && foco) { const f = p.querySelector('[name="para"]'); if (f && !f.disabled) f.focus({ preventScroll: true }); p.scrollIntoView({ block: "nearest", behavior: reduzido() ? "auto" : "smooth" }); }
     }
     function gerarSim() {
       if (!SM) return;
@@ -231,26 +272,32 @@
       const cand = rede.devs.filter((d) => d.pc || d.eq);
       const ev = sm.evs[sm.i], vs = visiveis(), nome = (id) => { const d = rede.dev(id); return d ? d.nome : "?"; };
       const cor = (t) => (t === "FALHA" ? "#c03a3a" : SM.COR[t] || "#5b6880");
-      p.innerHTML = `<div class="linha entre"><b>Modo de simulação</b><button class="btn-copiar" data-sm="fechar">Voltar ao tempo real</button></div>
+      const posI = vs.findIndex(([, i]) => i === sm.i), ult = vs.length - 1;
+      const estado = (e, n) => e.tipo === "FALHA" ? (n <= posI ? ["Falhou", "bad"] : ["À espera", ""]) : n < posI ? ["Concluído", "ok"] : n === posI ? (n === ult && sm.res && sm.res.ok ? ["Sucesso", "ok"] : ["Em curso", "acc"]) : ["À espera", ""];
+      p.innerHTML = `<div class="sim-sm-cab"><b>Painel de simulação <small>Simulation Panel</small></b><button type="button" class="btn-copiar" data-sm="fechar">Tempo real</button></div>
+        ${sm.evs.length ? `<div class="sim-sm-ctl" role="group" aria-label="Reprodução"><button type="button" class="btn" data-sm="inicio" aria-label="Recomeçar" title="Recomeçar">⏮</button><button type="button" class="btn" data-sm="ant" aria-label="Mensagem anterior" title="Anterior">◀</button><button type="button" class="btn" data-sm="auto" title="Reproduzir automaticamente">${sm.auto ? "⏸ Pausa" : "▶ Reproduzir"}</button><button type="button" class="btn prim" data-sm="seg" title="Passo seguinte (Capture / Forward)">Seguinte ⏭</button></div>` : ""}
+        <div class="rotulo">Lista de eventos <small>Event List</small></div>
+        <div class="sim-ev-tab"><table><thead><tr><th>Fire</th><th>Estado</th><th>Origem</th><th>Destino</th><th>Tipo</th><th>Cor</th><th>Tempo (s)</th></tr></thead><tbody>${vs.map(([e, k], n) => { const [et, ec] = estado(e, n); return `<tr data-sm-i="${k}" class="${k === sm.i ? "atual" : ""}" tabindex="0"><td><span class="sim-fire ${k === sm.i ? "on" : n < posI ? "feito" : ""}" aria-hidden="true">●</span></td><td><span class="sim-ev-est ${ec}">${et}</span></td><td>${esc(nome(e.de))}</td><td>${e.de === e.para ? "—" : esc(nome(e.para))}</td><td><b>${esc(e.tipo === "FALHA" ? "✗" : e.tipo)}</b></td><td><i class="sim-ev-cor" style="background:${cor(e.tipo)}"></i></td><td class="tab-num">${(n * 0.001).toFixed(3)}</td></tr>`; }).join("") || `<tr><td colspan="7" class="suave">${sm.res && !sm.res.ok ? esc(sm.res.motivo) : "Sem eventos. Toque em Enviar PDU simples (envelope) e depois na origem e no destino; um ping no Prompt de um PC também aparece aqui."}</td></tr>`}</tbody></table></div>
+        ${sm.res ? `<p class="peq ${sm.res.ok ? "sim-ok-txt" : "sim-erro-txt"}">${sm.res.ok ? "Resultado: chegou ao destino e a resposta voltou." : "Resultado: falhou — " + esc(sm.res.motivo || "")}</p>` : ""}
+        ${sm.evs.length ? `<div class="sim-sm-pdu"><span class="rotulo">Detalhes da PDU <small>PDU Information</small></span>${ev ? `<b>${esc(ev.resumo)}</b>${ev.falha ? `<p class="peq sim-erro-txt">${esc(ev.falha)}</p>` : ""}${ev.camadas.map(([c, t]) => `<div class="sim-sm-camada"><span class="rotulo">${esc(c)}</span><code>${esc(t)}</code></div>`).join("")}${cartaoProt(ev)}` : '<p class="peq suave">Toque em Seguinte para ver a primeira mensagem.</p>'}</div>` : ""}
+        <details class="sim-sm-novo" ${sm.novo ? "open" : ""}><summary><b>Enviar PDU complexa</b> <small>Create Complex PDU</small></summary>
         <form class="sim-sm-form" data-sm-form><label>Origem<select class="campo" name="de">${cand.map((d) => `<option value="${d.id}" ${sm.pedido.de === d.id ? "selected" : ""}>${esc(d.nome)}</option>`).join("")}</select></label>
           <label>O que fazer<select class="campo" name="tipo">${TIPOS_SIM.map(([k, n]) => `<option value="${k}" ${sm.pedido.tipo === k ? "selected" : ""}>${n}</option>`).join("")}</select></label>
           <label>Destino (IP, nome do equipamento ou nome DNS)<input class="campo mono" name="para" list="sim-sm-dest" value="${esc(sm.pedido.para)}" placeholder="ex.: 192.168.1.1 ou SRV" autocomplete="off" ${sm.pedido.tipo === "dhcp" ? "disabled" : ""}></label>
           <datalist id="sim-sm-dest">${rede.devs.filter((d) => rede.l3(d).length).map((d) => `<option value="${esc(d.nome)}">${esc(rede.l3(d)[0].ip)}</option>`).join("")}</datalist>
-          <button class="btn prim">Gerar</button></form>
-        <div class="chips sim-sm-filtro">${["ARP", "ICMP", "DHCP", "DNS", "TCP", "UDP"].map((t) => `<button class="chip-op" data-sm-f="${t}" aria-pressed="${sm.filtro.has(t)}" style="--c:${cor(t)}"><i></i>${t}</button>`).join("")}<button class="chip-op" data-sm="arp" title="Esquece os endereços MAC aprendidos (o próximo pacote começa com ARP)">Limpar ARP</button></div>
-        ${sm.evs.length ? `<div class="sim-sm-ctl"><button class="btn" data-sm="inicio" aria-label="Recomeçar">⏮</button><button class="btn" data-sm="ant" aria-label="Mensagem anterior">◀</button><button class="btn prim" data-sm="seg">Passo seguinte ▶</button><button class="btn" data-sm="auto">${sm.auto ? "⏸ Pausa" : "⏩ Automático"}</button></div>
-        <p class="peq ${sm.res && sm.res.ok ? "sim-ok-txt" : "sim-erro-txt"}">${sm.res ? (sm.res.ok ? "Resultado: chegou ao destino e a resposta voltou." : "Resultado: falhou — " + esc(sm.res.motivo || "")) : ""}</p>
-        <div class="sim-sm-grid"><div class="sim-sm-lista" role="list">${vs.map(([e, k]) => `<button role="listitem" class="sim-sm-ev ${k === sm.i ? "atual" : ""}" data-sm-i="${k}"><span class="tab-num">${vs.findIndex(([, i]) => i === k) + 1}</span><span>${esc(nome(e.de))}</span><span>${e.de === e.para ? "—" : esc(nome(e.para))}</span><span class="sim-sm-tipo" style="background:${cor(e.tipo)}">${esc(e.tipo === "FALHA" ? "✗" : e.tipo)}</span></button>`).join("")}</div>
-          <div class="sim-sm-pdu">${ev ? `<b>${esc(ev.resumo)}</b>${ev.falha ? `<p class="peq sim-erro-txt">${esc(ev.falha)}</p>` : ""}${ev.camadas.map(([c, t]) => `<div class="sim-sm-camada"><span class="rotulo">${esc(c)}</span><code>${esc(t)}</code></div>`).join("")}${cartaoProt(ev)}` : '<p class="peq suave">Toque em Passo seguinte para ver a primeira mensagem.</p>'}</div></div>` : `<p class="peq suave">${sm.res && !sm.res.ok ? esc(sm.res.motivo) : "Ainda não há mensagens. Em modo de simulação, um ping feito no Prompt de um PC também aparece aqui."}</p>`}`;
-      const f = p.querySelector("[data-sm-form]");
+          <button class="btn prim">Criar PDU</button></form></details>
+        <div class="chips sim-sm-filtro"><span class="rotulo">Filtros</span>${["ARP", "ICMP", "DHCP", "DNS", "TCP", "UDP"].map((t) => `<button type="button" class="chip-op" data-sm-f="${t}" aria-pressed="${sm.filtro.has(t)}" style="--c:${cor(t)}"><i></i>${t}</button>`).join("")}<button type="button" class="chip-op" data-sm="arp" title="Esquece os endereços MAC aprendidos (o próximo pacote começa com ARP)">Limpar ARP</button></div>`;
+      const f = p.querySelector("[data-sm-form]"), det = p.querySelector(".sim-sm-novo");
+      det.ontoggle = () => { sm.novo = det.open; };
       f.onchange = (e) => { if (e.target.name === "tipo") { sm.pedido.tipo = e.target.value; pintarSim(); } };
-      f.onsubmit = (e) => { e.preventDefault(); const v = Object.fromEntries(new FormData(f).entries()); sm.pedido = { de: v.de, tipo: v.tipo, para: (v.para || "").trim() }; gerarSim(); };
-      const at = p.querySelector(".sim-sm-ev.atual"); if (at) at.scrollIntoView({ block: "nearest" });
+      f.onsubmit = (e) => { e.preventDefault(); const v = Object.fromEntries(new FormData(f).entries()); sm.pedido = { de: v.de, tipo: v.tipo, para: (v.para || "").trim() }; sm.novo = false; gerarSim(); };
+      const at = p.querySelector("tr.atual"), tb = p.querySelector(".sim-ev-tab");
+      if (at && tb) tb.scrollTop = Math.max(0, at.offsetTop - tb.clientHeight / 2);
     }
     function cliqueSim(e) {
       const b = e.target.closest("[data-sm],[data-sm-f],[data-sm-i]"); if (!b) return;
       if (b.dataset.smF) { const t = b.dataset.smF; sm.filtro.has(t) ? sm.filtro.delete(t) : sm.filtro.add(t); pintarSim(); return; }
-      if (b.dataset.smI) { sm.i = +b.dataset.smI; desenhar(); moverEnvelope(); pintarSim(); return; }
+      if (b.dataset.smI != null) { sm.i = +b.dataset.smI; desenhar(); moverEnvelope(); pintarSim(); return; }
       const a = b.dataset.sm;
       if (a === "fechar") abrirSim(false);
       if (a === "seg") passoSim(1);
@@ -363,50 +410,69 @@
     function atualizar() { desenhar(); verificarPassos(); }
 
     // ------------------------------------------------------------ ferramentas
-    // Caixa de equipamentos como a do Packet Tracer (canto inferior esquerdo): grupos › categorias › modelos
+    // Caixa de equipamentos como a do Packet Tracer (em baixo): à esquerda o tipo (Device-Type Selection) e a subcategoria,
+    // à direita os modelos ou os cabos (Device-Specific Selection), com o nome do escolhido por baixo.
     const CAT_CURTO = { "Routers": ["Routers", "router"], "Switches": ["Switches", "switch"], "Hubs e ligações": ["Hubs", "hub"], "Sem fios": ["Sem fios", "ap"], "Segurança": ["Segurança", "firewall"], "WAN e Internet": ["WAN", "nuvem"] };
     const FIM = "Dispositivos finais", IOT = "Casa inteligente (IoT)";
-    const catsRede = () => S.CATALOGO.map((c, i) => [c, i]).filter(([[n]]) => n !== FIM && n !== IOT);
-    const GRUPOS = [["rede", "Equipamentos de rede", "Network Devices", "router", "Rede"], ["fim", "Dispositivos finais", "End Devices", "pc", "Finais"], ["iot", "Casa inteligente (IoT)", "Home", "lampada", "Casa (IoT)"], ["cabos", "Ligações", "Connections", null, "Ligações"], ["outros", "Outros", "Miscellaneous", "sniffer", "Outros"]];
-    const DESC_CABO = { auto: "Automático: escolhe o cabo certo (como o raio do Packet Tracer).", direto: "Direto: equipamentos diferentes (PC–switch, switch–router).", cruzado: "Cruzado: iguais (switch–switch, router–router, PC–PC, PC–router).", consola: "Consola: porta RS232 do PC → Console do router/switch.", fibra: "Fibra: portas Gigabit, longas distâncias.", serial: "Serial: liga routers pelas portas série (WAN).", coaxial: "Coaxial: modem de cabo ↔ operador.", telefone: "Telefone (RJ11): modem DSL ↔ operador." };
-    let grupo = "rede";
-    const icoCabo = (k, C) => `<i class="sim-cabo-ic" style="background:${C.cor};${C.tracejado ? "background-image:repeating-linear-gradient(90deg,transparent 0 4px,var(--surface) 4px 7px)" : ""}${k === "auto" ? ";background:repeating-linear-gradient(90deg,#7a8796 0 6px,#f2a516 6px 12px)" : ""}"></i>`;
-    function htmlPaleta() {
-      const doCat = (nome) => (S.CATALOGO.find(([n]) => n === nome) || [nome, []])[1];
-      let itens = [], cats = "";
-      if (grupo === "rede") {
-        const cr = catsRede(); if (!cr.some(([, i]) => i === categoria)) categoria = cr.length ? cr[0][1] : 0;
-        cats = `<div class="sim-cats" role="tablist" aria-label="Tipo de equipamento de rede">${cr.map(([[n], i]) => { const c = CAT_CURTO[n] || [n, null]; return `<button data-cat="${i}" aria-pressed="${i === categoria}" title="${esc(n)}">${c[1] ? F.icone(c[1], 20) : ""}<span>${esc(c[0])}</span></button>`; }).join("")}</div>`;
-        itens = S.CATALOGO[categoria][1];
-      } else if (grupo === "fim") itens = doCat(FIM).filter(([t]) => t !== "sniffer");
-      else if (grupo === "iot") itens = doCat(IOT);
-      else if (grupo === "outros") itens = S.CATALOGO.flatMap(([, it]) => it).filter(([t]) => t === "sniffer");
-      const mods = grupo === "cabos"
-        ? Object.entries(S.CABOS).map(([k, C]) => `<button data-cabo="${k}" aria-pressed="${modo === "cabo" && cabo === k}" title="${esc(DESC_CABO[k] || C.nome)}">${icoCabo(k, C)}<span>${esc(C.nome)}</span></button>`).join("")
-        : itens.map(([t, m, n, desc]) => `<button data-add="${t}" data-modelo="${esc(m)}" title="${esc(desc)}">${F.icone(S.TIPOS[t].icone, 34)}<span>${esc(n)}</span></button>`).join("")
-          + (grupo === "outros" ? `<button data-s="area"><span class="sim-mais-ic" aria-hidden="true">▭</span><span>Área (edifício, sala)</span></button><button data-s="nota"><span class="sim-mais-ic" aria-hidden="true">✎</span><span>Nota</span></button>` : "");
-      const desc = grupo === "cabos" ? (modo === "cabo" ? DESC_CABO[cabo] + " Toque no primeiro equipamento e escolha a porta." : "Escolha o tipo de cabo; depois toque nos dois equipamentos e escolha as portas.") : itens.map((x) => x[2] + ": " + x[3]).join(" · ");
-      return `<div class="sim-paleta"><div class="sim-pal-grupos" role="tablist" aria-label="Grupos de equipamentos">${GRUPOS.map(([k, n, en, ic, c]) => `<button data-grupo="${k}" aria-pressed="${grupo === k}" title="${esc(n)} (${esc(en)})" aria-label="${esc(n)}">${ic ? F.icone(ic, 26) : icoCabo("auto", S.CABOS.auto)}<span class="sim-g-l">${esc(n)}</span><span class="sim-g-c" aria-hidden="true">${esc(c)}</span></button>`).join("")}</div>
-        ${cats}<div class="sim-modelos">${mods}</div><p class="peq suave sim-desc">${esc(desc)}</p></div>`;
+    const doCat = (nome) => (S.CATALOGO.find(([n]) => n === nome) || [nome, []])[1];
+    const todosItens = () => S.CATALOGO.flatMap(([, it]) => it);
+    const CATEG = [
+      ["rede", "Equipamentos de rede", "Network Devices", "router", () => S.CATALOGO.filter(([n]) => n !== FIM && n !== IOT).map(([n, it]) => [(CAT_CURTO[n] || [n])[0], it])],
+      ["fim", "Dispositivos finais", "End Devices", "pc", () => [["Finais", doCat(FIM).filter(([t]) => t !== "sniffer")], ["Casa inteligente", doCat(IOT)]]],
+      ["comp", "Componentes", "Components", "sniffer", () => [["Componentes", todosItens().filter(([t]) => t === "sniffer")]]],
+      ["lig", "Ligações", "Connections", null, () => [["Ligações", Object.keys(S.CABOS).map((k) => ["cabo:" + k, "", S.CABOS[k].nome, DESC_CABO[k] || ""])]]],
+      ["div", "Diversos", "Miscellaneous", "nuvem", () => [["Diversos", todosItens().filter(([t]) => t === "nuvem").concat([["obj:area", "", "Área (edifício, sala)", "Retângulo com nome: um edifício, um piso ou uma sala."], ["obj:nota", "", "Nota", "Um texto no desenho."]])]]],
+    ];
+    const DESC_CABO = { auto: "Automático: a app escolhe o cabo e as portas certas (o raio do Packet Tracer).", direto: "Cobre direto: equipamentos diferentes — PC ↔ switch, switch ↔ router, router ↔ hub.", cruzado: "Cobre cruzado: equipamentos iguais — switch ↔ switch, router ↔ router, PC ↔ PC, PC ↔ router.", consola: "Consola: porta RS232 do PC → porta Console do router ou do switch (para configurar pela CLI).", fibra: "Fibra: portas Gigabit de fibra, para longas distâncias (mais de 100 m).", serial: "Série: liga dois routers pelas portas Serial (WAN). O lado DCE dá o relógio (clock rate).", coaxial: "Coaxial: modem de cabo ↔ operador (Internet por cabo).", telefone: "Telefone (RJ11): modem DSL ↔ linha telefónica do operador." };
+    let cat = "rede", sub = 0, item = null;
+    const icoCabo = (k, C, t) => `<svg viewBox="0 0 48 40" width="${t || 46}" height="${Math.round((t || 46) * 40 / 48)}" aria-hidden="true"><path d="M8 32 Q 24 4 40 32" fill="none" stroke="${k === "auto" ? "#c48a12" : C.cor}" class="sim-ic-cabo" stroke-width="3.5" stroke-linecap="round" ${C.tracejado ? 'stroke-dasharray="6 4"' : k === "consola" ? 'stroke-dasharray="2 4"' : ""}/>${k === "auto" ? '<path d="M27 4l-8 13h6l-3 13 10-16h-6z" fill="#f2a516"/>' : ""}</svg>`;
+    const icoItem = (t, tam) => t.startsWith("cabo:") ? icoCabo(t.slice(5), S.CABOS[t.slice(5)], tam) : t === "obj:area" ? `<svg viewBox="0 0 48 40" width="${tam}" height="${Math.round(tam * 40 / 48)}" aria-hidden="true"><rect x="5" y="7" width="38" height="27" rx="5" fill="#2f6fdf22" stroke="#2f6fdf" stroke-width="2.5"/><rect x="5" y="7" width="20" height="9" rx="3" fill="#2f6fdf"/></svg>`
+      : t === "obj:nota" ? `<svg viewBox="0 0 48 40" width="${tam}" height="${Math.round(tam * 40 / 48)}" aria-hidden="true"><rect x="9" y="4" width="30" height="32" rx="3" fill="#fde68a" stroke="#c9a227" stroke-width="1.5"/><path d="M14 14h20M14 20h20M14 26h13" stroke="#8a6d10" stroke-width="2"/></svg>` : F.icone(S.TIPOS[t].icone, tam);
+    const curtoMod = (n) => n.replace(/^Catalyst /, "").replace(/ \(.*\)$/, "").replace(/^Router /, "");
+    function htmlBase() {
+      const C = CATEG.find((c) => c[0] === cat) || CATEG[0], subs = C[4](); if (sub >= subs.length) sub = 0;
+      const its = subs[sub][1], chave = (x) => x[0] + "|" + x[1];
+      const at = its.find((x) => chave(x) === item) || (cat === "lig" && its.find((x) => x[0] === "cabo:" + cabo));
+      const nomeAt = at ? at[2] : "";
+      return `<div class="sim-tipos"><div class="sim-cats2" role="tablist" aria-label="Tipo de equipamento">${CATEG.map(([k, n, en, ic]) => `<button type="button" role="tab" data-cat="${k}" aria-selected="${k === cat}" data-dica="${esc(n)}" aria-label="${esc(n)}">${ic ? F.icone(ic, 30) : icoCabo("auto", S.CABOS.auto, 32)}</button>`).join("")}</div>
+          ${subs.length > 1 ? `<div class="sim-subs" role="group" aria-label="Subcategoria">${subs.map(([n], i) => `<button type="button" data-sub="${i}" aria-pressed="${i === sub}">${esc(n)}</button>`).join("")}</div>` : ""}
+          <div class="sim-nome-cat">${esc(subs.length > 1 ? subs[sub][0] : C[1])} <small>${esc(C[2])}</small></div></div>
+        <div class="sim-espec"><div class="sim-itens" role="listbox" aria-label="${esc(subs[sub][0])}">${its.map((x) => { const on = at === x && (x[0].startsWith("cabo:") ? modo === "cabo" : x[0].startsWith("obj:") ? modo === x[0].slice(4) : !!colocar); return `<button type="button" role="option" data-item="${esc(chave(x))}" aria-selected="${on}" title="${esc(x[3] || x[2])}">${icoItem(x[0], 46)}<span>${esc(curtoMod(x[2]))}</span></button>`; }).join("")}</div>
+          <div class="sim-nome-item">${at ? `<b>${esc(nomeAt)}</b>${!at[0].includes(":") ? ` <button type="button" class="btn-copiar" data-s="addlivre">Adicionar num lugar livre</button>` : ""}` : `<span class="suave">${cat === "lig" ? "Escolha um cabo" : "Escolha um modelo e toque na área de trabalho"}</span>`}</div></div>`;
+    }
+    function escolherItem(k) {
+      const C = CATEG.find((c) => c[0] === cat), x = C[4]()[sub][1].find((y) => y[0] + "|" + y[1] === k); if (!x) return;
+      item = k; caboA = null; pduA = null;
+      if (vista === "fisica") { vista = "logica"; aplicarVB(); }
+      if (x[0].startsWith("cabo:")) { cabo = x[0].slice(5); modo = "cabo"; colocar = null; msg(`Cabo <b>${esc(S.CABOS[cabo].nome)}</b>: toque no primeiro equipamento e escolha a porta.`); }
+      else if (x[0].startsWith("obj:")) { colocar = null; modo = x[0].slice(4); msg(modo === "area" ? "<b>Área:</b> arraste no desenho para criar um retângulo (ex.: Edifício A). Um toque cria uma área de tamanho padrão." : "<b>Nota:</b> toque no sítio do desenho onde quer a nota."); }
+      else { colocar = { tipo: x[0], modelo: x[1], nome: x[2] }; modo = "colocar"; msg(`<b>${esc(x[2])}</b>: toque no sítio da área de trabalho onde o quer pôr (ou em <b>Adicionar num lugar livre</b>).`); }
+      opcoes(); desenhar();
+    }
+    function por(x, y) {
+      if (!colocar) return;
+      const d = rede.novoDev(colocar.tipo, lim(x, 5, 95), lim(y, 8, 90), null, { modelo: colocar.modelo || undefined });
+      rede.mudou(); colocar = null; item = null; modo = "mover";
+      opcoes(); atualizar(); msg(`Adicionado <b>${esc(d.nome)}</b>. Arraste para mover ou toque para configurar.`, "ok");
     }
     function opcoes() {
-      const o = $("#sim-opcoes");
-      if (menu === "add") { o.hidden = false; o.innerHTML = htmlPaleta(); }
-      else if (menu === "mais") {
-        o.hidden = false;
-        o.innerHTML = [["area", "▭", "Área", "edifício, sala"], ["nota", "✎", "Nota", "texto no desenho"], ["imagem", "⤓", "Imagem", "guardar PNG"], ["relatorio", "≡", "Relatório", "todos os equipamentos"]]
-          .map(([k, ic, n, d]) => `<button data-s="${k}" ${["area", "nota"].includes(k) ? `aria-pressed="${modo === k}"` : ""}><span class="sim-mais-ic" aria-hidden="true">${ic}</span><b>${n}</b><span class="suave">${d}</span></button>`).join("");
-      }
-      else o.hidden = true;
-      o.classList.toggle("sim-mais", menu === "mais");
-      raiz.querySelectorAll("[data-s]").forEach((b) => {
+      const base = $("#sim-base"), sc = base.querySelector(".sim-itens"), x0 = sc ? sc.scrollLeft : 0;
+      base.innerHTML = htmlBase();
+      const sc2 = base.querySelector(".sim-itens"); if (sc2) sc2.scrollLeft = x0;
+      const MODOS = ["mover", "inspecionar", "apagar", "redim", "nota", "area", "pdu"];
+      raiz.querySelectorAll(".sim-ferr [data-s], .sim-vista [data-s], .sim-tempo [data-s]").forEach((b) => {
         const k = b.dataset.s;
-        if (["mover", "cabo", "apagar", "area", "nota"].includes(k)) b.setAttribute("aria-pressed", String(modo === k && vista === "logica"));
-        if (k === "add" || k === "mais") b.setAttribute("aria-pressed", String(menu === k));
+        if (MODOS.includes(k)) b.setAttribute("aria-pressed", String(modo === k && vista === "logica"));
         if (k === "logica" || k === "fisica") b.setAttribute("aria-pressed", String(vista === k));
+        if (k === "real" || k === "sim") b.setAttribute("aria-pressed", String((k === "sim") === sm.aberto));
+        if (k === "pduc") b.setAttribute("aria-pressed", String(sm.aberto));
       });
-      $("#sim-zoom").hidden = vista === "fisica";
-      svg.style.cursor = vista === "logica" && (modo === "area" || modo === "nota") ? "crosshair" : "";
+      ["zmais", "zmenos", "ajustar"].forEach((k) => { const b = raiz.querySelector(`.sim-ferr [data-s="${k}"]`); if (b) b.disabled = vista === "fisica"; });
+      const dica = $("#sim-dica");
+      dica.hidden = !(modo === "cabo" && vista === "logica");
+      if (!dica.hidden) dica.innerHTML = `<span aria-hidden="true">💡</span> ${esc(DESC_CABO[cabo] || S.CABOS[cabo].nome)} ${caboA ? "Agora toque no segundo equipamento." : "Toque no primeiro equipamento e escolha a porta."}`;
+      svg.style.cursor = vista === "logica" && ["area", "nota", "colocar", "pdu"].includes(modo) ? "crosshair" : modo === "inspecionar" ? "help" : "";
+      raiz.querySelector(".sim-amb").dataset.modo = modo;
       botoesHist();
     }
     function lugarLivre() {
@@ -441,12 +507,44 @@
       };
     }
 
+    const ipDe = (d) => ((rede.l3(d) || [])[0] || {}).ip || "";
+    // Enviar PDU simples (o envelope do Packet Tracer): origem e destino; faz um ping
+    function tocarPdu(d) {
+      if (!pduA) {
+        if (!(d.pc || d.eq)) { msg(`${esc(d.nome)} não envia pacotes: escolha um PC, servidor, router ou switch como origem.`, "erro"); return; }
+        if (!ipDe(d)) { msg(`<b>${esc(d.nome)}</b> ainda não tem endereço IP: configure-o primeiro (PC › Configuração IP, ou <code>ip address</code> no router).`, "erro"); return; }
+        pduA = d.id; desenhar(); msg(`PDU simples: origem <b>${esc(d.nome)}</b> (${esc(ipDe(d))}). Agora toque no destino.`); return;
+      }
+      const da = rede.dev(pduA); pduA = null;
+      if (!da || da === d) { desenhar(); msg("Escolha um destino diferente da origem."); return; }
+      const ip = ipDe(d);
+      if (!ip) { desenhar(); msg(`<b>${esc(d.nome)}</b> não tem endereço IP: não pode ser o destino de um ping.`, "erro"); return; }
+      if (op.aoComando) op.aoComando("ping " + ip, da);
+      if (sm.aberto) { sm.pedido = { de: da.id, tipo: "ping", para: ip }; sm.novo = false; gerarSim(); msg(`PDU simples <b>${esc(da.nome)} → ${esc(d.nome)}</b> (ICMP) criada: avance na Lista de eventos.`); return; }
+      let ok, dv;
+      if (da.pc) {
+        const r = S.promptPC(rede, da, "ping " + ip); ok = r.ok; dv = r.anim;
+        const id = da.id + "pc"; if (!logs[id]) logs[id] = [{ t: `Prompt de ${da.nome}. Escreva help para ver os comandos.\n` }];
+        logs[id].push({ p: "C:\\>", c: "ping " + ip, t: r.txt, erro: r.ok === false }); if (r.mudou) rede.mudou();
+      } else { const r = rede.pingCompleto(da, ip); ok = r.ok; dv = r.devs; }
+      atualizar(); animar(dv, ok);
+      msg(`PDU simples (ping) <b>${esc(da.nome)} → ${esc(d.nome)}</b> ${esc(ip)}: ${ok ? "<b>Sucesso</b> — a resposta voltou." : "<b>Falhou</b> — veja o caminho em Simulação ou faça <code>tracert</code>."}`, ok ? "ok" : "erro");
+    }
+    function inspecionar(d) {
+      const md = $("#sim-modal"), t = textoRelatorio(d.id); md.hidden = false;
+      md.innerHTML = `<div class="sim-caixa sim-rel-caixa"><div class="linha entre"><b>Inspecionar ${esc(d.nome)}</b><button class="btn-copiar" data-fechar>Fechar</button></div>
+        <p class="peq suave">Só leitura: interfaces, endereços, VLANs, rotas e running-config.</p><pre class="sim-rel">${esc(t)}</pre>
+        <div class="grelha-2"><button class="btn" data-fechar>Fechar</button><button class="btn prim" data-abrir-jan>Abrir a janela do equipamento</button></div></div>`;
+      md.onclick = (e) => { if (e.target.closest("[data-fechar]") || e.target === md) { md.hidden = true; return; } if (e.target.closest("[data-abrir-jan]")) { md.hidden = true; abrirInsp(d); } };
+    }
     function tocarDev(d) {
       if (vista === "fisica") return abrirInsp(d);
+      if (modo === "pdu") return tocarPdu(d);
+      if (modo === "inspecionar") return inspecionar(d);
       if (modo === "apagar") { rede.apagarDev(d); if (sel === d.id) fecharInsp(); msg(`${esc(d.nome)} apagado.`); atualizar(); return; }
       if (modo === "cabo") {
         if (!caboA) {
-          escolherPorta(d, null, null, (p) => { caboA = { d: d.id, p }; msg(`Origem: <b>${esc(d.nome)} ${p ? esc(curto(p)) : "(porta automática)"}</b>. Toque no equipamento de destino.`); desenhar(); });
+          escolherPorta(d, null, null, (p) => { caboA = { d: d.id, p }; opcoes(); msg(`Origem: <b>${esc(d.nome)} ${p ? esc(curto(p)) : "(porta automática)"}</b>. Toque no equipamento de destino.`); desenhar(); });
           return;
         }
         const da = rede.dev(caboA.d);
@@ -454,11 +552,12 @@
         const fim = (pa, pb) => {
           const l = rede.ligar(da, pa, d, pb, cabo);
           caboA = null;
+          if (ehSwitch(da) || ehSwitch(d)) { negoc.set(l.id, Date.now() + 4000); setTimeout(() => { if (raiz.isConnected) desenhar(); }, 4100); }
           const e = rede.estadoLink(l);
           msg(e.estado === "errado" ? `<b>Luz vermelha:</b> cabo ${esc(S.CABOS[l.cabo].nome.toLowerCase())} entre ${esc(da.nome)} ${esc(curto(pa))} e ${esc(d.nome)} ${esc(curto(pb))} não funciona. Aqui o cabo certo é <b>${esc(e.certo)}</b>.` :
             e.estado === "baixo" ? `Ligado ${esc(da.nome)} ${esc(curto(pa))} ↔ ${esc(d.nome)} ${esc(curto(pb))}. <b>Luz laranja/vermelha</b>: ${da.desligado || d.desligado ? "um dos equipamentos está desligado." : "falta <code>no shutdown</code> na interface do router (ou Porta ligada em Configuração)."}` :
               `Ligado ${esc(da.nome)} ${esc(curto(pa))} ↔ ${esc(d.nome)} ${esc(curto(pb))} com cabo ${esc(S.CABOS[l.cabo].nome.toLowerCase())}.`, e.estado === "errado" ? "erro" : "ok");
-          atualizar();
+          opcoes(); atualizar();
         };
         escolherPorta(d, da, caboA.p, (pb) => {
           let pa = caboA && caboA.p;
@@ -472,9 +571,10 @@
       }
       abrirInsp(d);
     }
-    function tocarLink(l) {
+    function tocarLink(l, lado) {
       const da = rede.dev(l.a), db = rede.dev(l.b), e = rede.estadoLink(l);
       if (modo === "apagar") { rede.apagarLink(l); msg("Cabo removido."); atualizar(); return; }
+      if (lado && l.cabo !== "consola") { const [t, c] = motivoLuz(l, lado); msg(t, c); return; }
       msg(`Cabo ${esc(S.CABOS[l.cabo].nome.toLowerCase())}: ${esc(da.nome)} ${esc(curto(l.pa))} ↔ ${esc(db.nome)} ${esc(curto(l.pb))}. ` +
         (e.estado === "errado" ? `<b>Errado</b> — use ${esc(e.certo)}. Apague-o e volte a ligar.` : e.estado === "baixo" ? "Uma das portas está desligada (shutdown)." : e.estado === "consola" ? "Ligação de consola para configurar." : "<b>A funcionar.</b>"), e.estado === "errado" ? "erro" : "");
     }
@@ -529,19 +629,22 @@
       const prender = () => { try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* sem captura */ } };
       if (vista === "fisica") { arr = Object.assign(base, { tipo: "toque" }); return; }
       if (modo === "area" || modo === "nota") { arr = Object.assign(base, { tipo: modo === "area" ? "desenho" : "toque" }); prender(); return; }
+      if (modo === "colocar") { arr = Object.assign(base, { tipo: "pan", vb0: Object.assign({}, vb), colocar: true }); prender(); return; }
       const g = t.closest("[data-dev]");
       if (g) { arr = Object.assign(base, { tipo: "dev", d: rede.dev(g.dataset.dev) }); if (modo === "mover") prender(); return; }
       const ga = t.closest("[data-area]"), gn = t.closest("[data-nota]");
-      if ((ga && t.closest(".sim-pega, [data-redim]")) || gn) {
-        const o = ga ? rede.areas.find((a) => a.id === ga.dataset.area) : rede.notas.find((n) => n.id === gn.dataset.nota), redim = !!t.closest("[data-redim]");
+      if ((ga && (t.closest(".sim-pega, [data-redim]") || modo === "redim")) || gn) {
+        const o = ga ? rede.areas.find((a) => a.id === ga.dataset.area) : rede.notas.find((n) => n.id === gn.dataset.nota), redim = modo === "redim" || !!t.closest("[data-redim]");
         // ao mover uma área, leva também o que está lá dentro
         const leva = ga && !redim ? [].concat(rede.devs, rede.notas, rede.areas).filter((x) => dentro(o, x)).map((x) => [x, x.x, x.y]) : [];
         arr = Object.assign(base, { tipo: ga ? "area" : "nota", o, redim, orig: Object.assign({}, o), leva });
-        if (modo === "mover") prender(); return;
+        if (modo === "mover" || modo === "redim") prender(); return;
       }
       arr = Object.assign(base, { tipo: "pan", vb0: Object.assign({}, vb) }); prender();
     });
+    const coordEl = $("#sim-coord");
     svg.addEventListener("pointermove", (ev) => {
+      if (vista === "logica" && coordEl) { const q = pSvg(ev.clientX, ev.clientY); coordEl.textContent = `x: ${Math.round(q.x)}, y: ${Math.round(q.y)}`; }
       if (toques.has(ev.pointerId)) toques.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
       if (!arr) return;
       if (arr.tipo === "pinca") {
@@ -562,7 +665,8 @@
         r.setAttribute("x", x / 100 * W); r.setAttribute("y", y / 100 * H); r.setAttribute("width", (lim(Math.max(p.x, arr.p0.x), 0, 100) - x) / 100 * W); r.setAttribute("height", (lim(Math.max(p.y, arr.p0.y), 0, 100) - y) / 100 * H);
         return;
       }
-      if (modo !== "mover" || arr.tipo === "toque") return;
+      if ((modo !== "mover" && modo !== "redim") || arr.tipo === "toque") return;
+      if (arr.tipo === "dev" && modo !== "mover") return;
       if (arr.tipo === "dev") { arr.d.x = lim(p.x, 5, 95); arr.d.y = lim(p.y, 8, 90); desenhar(); return; }
       const o = arr.o, g = arr.orig;
       if (arr.redim) { o.w = lim(g.w + dx, arr.tipo === "nota" ? 12 : 8, 100 - g.x); if (arr.tipo === "area") o.h = lim(g.h + dy, 8, 100 - g.y); }
@@ -581,7 +685,7 @@
       if (a.tipo === "toque") {
         if (a.moveu) return;
         if (vista === "fisica") { const g = a.alvo.closest("[data-dev]"); if (g) abrirInsp(rede.dev(g.dataset.dev)); return; }
-        const n = { id: novoId("n"), texto: "", x: lim(a.p0.x, 0, 84), y: lim(a.p0.y, 0, 92), w: lim(220 / W * 100, 12, 60), cor: CORES_NOTA[0][0] };
+        const n = { id: novoId("n"), texto: "", x: lim(a.p0.x, 0, 84), y: lim(a.p0.y, 0, 92), w: lim(220 / W * 100, 12, 60), cor: corNota || CORES_NOTA[0][0] };
         return editarObj("nota", n, true);
       }
       if (a.tipo === "desenho") {
@@ -589,11 +693,12 @@
         // um toque sem arrastar cria uma área de tamanho padrão
         const b = p && p.w >= 4 && p.h >= 4 ? p : { w: 40, h: 34, x: lim(a.p0.x - 20, 0, 60), y: lim(a.p0.y - 17, 0, 66) };
         const k = rede.areas.length;
-        return editarObj("area", Object.assign({ id: novoId("a"), nome: "Edifício " + String.fromCharCode(65 + (k % 26)), cor: CORES_AREA[k % CORES_AREA.length][0] }, b), true);
+        return editarObj("area", Object.assign({ id: novoId("a"), nome: "Edifício " + String.fromCharCode(65 + (k % 26)), cor: corArea || CORES_AREA[k % CORES_AREA.length][0] }, b), true);
       }
       if (a.tipo === "dev") { if (a.moveu) rede.aoMudar(); else tocarDev(a.d); return; }
       if (a.tipo === "area" || a.tipo === "nota") { if (a.moveu) { rede.aoMudar(); return; } if (modo === "apagar") apagarObj(a.tipo, a.o); else editarObj(a.tipo, a.o); return; }
-      if (!a.moveu) { const lg = a.alvo.closest("[data-link]"); if (lg) tocarLink(rede.links.find((l) => l.id === lg.dataset.link)); }
+      if (a.colocar && !a.moveu) { por(a.p0.x, a.p0.y); return; }
+      if (!a.moveu) { const lg = a.alvo.closest("[data-link]"), lz = a.alvo.closest("[data-luz]"); if (lg) tocarLink(rede.links.find((l) => l.id === lg.dataset.link), lz ? lz.dataset.luz : null); else if (modo === "pdu" && pduA) { pduA = null; desenhar(); msg("PDU cancelada. Toque na origem."); } }
     };
     svg.addEventListener("pointerup", fimToque);
     svg.addEventListener("pointercancel", fimToque);
@@ -643,7 +748,8 @@
     // não muda sozinho quando se muda o hostname (só se o aluno mudar o "Nome a mostrar").
     const sincroniza = op.sincronizarNome != null ? !!op.sincronizarNome : (!A && !op.aoComando);
     const trab = () => $("#sim-trab");
-    function fecharInsp() { sel = null; const i = $("#sim-insp"); i.hidden = true; i.innerHTML = ""; trab().classList.remove("com-insp"); desenhar(); }
+    function layoutDir() { trab().classList.toggle("com-dir", !$("#sim-insp").hidden || !$("#sim-simul").hidden); raiz.querySelector(".sim-amb").classList.toggle("com-jan", !$("#sim-insp").hidden); }
+    function fecharInsp() { sel = null; const i = $("#sim-insp"); i.hidden = true; i.innerHTML = ""; layoutDir(); desenhar(); }
 
     // --- protocolos do curso (window.CCNA.protocolos): uma linha de explicação + "Saber mais"
     let protCache = null;
@@ -767,7 +873,7 @@
       if (abaPedida && !abas.includes(abaPedida) && LEG[abaPedida]) { if (LEG[abaPedida][1]) appDesk[d.id] = LEG[abaPedida][1]; abaPedida = LEG[abaPedida][0]; }
       aba = abaPedida && abas.includes(abaPedida) ? abaPedida : abas.includes(aba) ? aba : abaInicial(d, abas);
       const insp = $("#sim-insp");
-      insp.hidden = false; trab().classList.add("com-insp");
+      insp.hidden = false; layoutDir();
       const host = d.eq && d.eq.cfg.hostname !== d.nome && d.eq.cfg.hostname !== T.host ? ` <span class="sim-jan-host">hostname ${esc(d.eq.cfg.hostname)}</span>` : "";
       insp.innerHTML = `<div class="sim-jan-tit"><span class="sim-jan-ic">${F.icone(T.icone, 28)}</span><div class="sim-jan-nome"><b>${esc(d.nome)}</b>${host}<span class="suave peq">${esc(descDe(d).n)}</span></div>
           <span class="linha sim-insp-acoes"><button class="btn-copiar" data-duplicar title="Duplicar (Ctrl+C, Ctrl+V)">Duplicar</button><button class="sim-jan-x" data-fechar-insp aria-label="Fechar" title="Fechar">×</button></span></div>
@@ -786,7 +892,7 @@
         if (e.target.closest("[data-duplicar]")) { copiar(d); return colar(); }
         const b = e.target.closest("[data-aba]"); if (b) { aba = b.dataset.aba; abrirInsp(d, aba, true); }
       };
-      if (!semScroll) insp.scrollIntoView({ block: "nearest", behavior: reduzido() ? "auto" : "smooth" });
+      if (!semScroll && getComputedStyle(insp).position !== "fixed") insp.scrollIntoView({ block: "nearest", behavior: reduzido() ? "auto" : "smooth" });
     }
     // volta a pintar a janela sem a deslocar e mantendo o foco no mesmo campo
     function repintar(d) {
@@ -846,22 +952,60 @@
         else if (d.pc && (p === "FastEthernet0" || p === "Wireless0")) { secCfg[d.id] = "if:" + p; abrirInsp(d, "config", true); }
       };
     }
+    // arranque de um equipamento (como no real: os routers e switches carregam a startup-config da NVRAM)
+    function arrancar(d) {
+      d.desligado = false;
+      if (d.eq) {
+        const h0 = d.eq.cfg.hostname;
+        if (d.eq.startup) { try { d.eq.cfg = JSON.parse(d.eq.startup); } catch (e) { /* mantém */ } }
+        d.eq.modo = "user"; d.eq.ctx = null;
+        logTerm(d).push({ t: `\nSystem Bootstrap, Version 15.1(4)M4\n${d.eq.startup ? "A carregar a startup-config da NVRAM... [OK]" : "Sem startup-config na NVRAM: mantém-se a configuração atual (no Packet Tracer perder-se-ia)."}\n\nPress RETURN to get started!\n` });
+        aposHostname(d, h0);
+      }
+    }
     function energia(d) {
       if (!d.desligado) { d.desligado = true; msg(`<b>${esc(d.nome)}</b> desligado: as ligações caíram (luzes apagadas).`); }
       else {
-        d.desligado = false;
-        if (d.eq) {
-          const h0 = d.eq.cfg.hostname;
-          if (d.eq.startup) { try { d.eq.cfg = JSON.parse(d.eq.startup); } catch (e) { /* mantém */ } }
-          d.eq.modo = "user"; d.eq.ctx = null;
-          logTerm(d).push({ t: `\nSystem Bootstrap, Version 15.1(4)M4\n${d.eq.startup ? "A carregar a startup-config da NVRAM... [OK]" : "Sem startup-config na NVRAM: mantém-se a configuração atual (no Packet Tracer perder-se-ia)."}\n\nPress RETURN to get started!\n` });
-          aposHostname(d, h0);
-        }
+        arrancar(d);
         if (d.pc && d.pc.dhcp) setTimeout(() => { rede.pedirDhcp(d); rede.mudou(); atualizar(); }, 0);
         msg(`<b>${esc(d.nome)}</b> ligado.`, "ok");
       }
       rede.mudou(); atualizar(); repintar(d);
     }
+    // barra do Tempo: ligar/desligar todos (Power Cycle Devices) e avançar o tempo (Fast Forward Time)
+    function renovarDhcp(todos) { rede.devs.filter((x) => x.pc && x.pc.dhcp && !x.desligado && (todos || !x.pc.lease || x.pc.lease.apipa)).forEach((x) => { x.pc.libertado = false; rede.pedirDhcp(x); }); }
+    function cicloEnergia() {
+      const md = $("#sim-modal"); md.hidden = false;
+      md.innerHTML = `<div class="sim-caixa"><b>Desligar e voltar a ligar todos os equipamentos?</b><p class="peq">Como no Packet Tracer (Power Cycle Devices): os routers e switches arrancam com a <b>startup-config</b> — o que não foi guardado com <code>write memory</code> (ou Configuração › NVRAM › Guardar) perde-se nos que já tinham uma startup-config. Os PCs com DHCP voltam a pedir endereço.</p>
+        <div class="grelha-2"><button class="btn" data-fechar>Cancelar</button><button class="btn prim" data-confirmar>Ligar/desligar todos</button></div></div>`;
+      md.onclick = (ev) => {
+        if (ev.target.closest("[data-fechar]") || ev.target === md) { md.hidden = true; return; }
+        if (!ev.target.closest("[data-confirmar]")) return;
+        md.hidden = true;
+        const ligados = rede.devs.filter((d) => !d.desligado);
+        ligados.forEach((d) => { d.desligado = true; });
+        ligados.forEach(arrancar);
+        if (SM && SM.limparArp) SM.limparArp(rede);
+        rede.devs.forEach((x) => { if (x.pc && x.pc.dhcp) x.pc.lease = null; });
+        renovarDhcp(true);
+        rede.links.forEach((l) => { if (ehSwitch(rede.dev(l.a)) || ehSwitch(rede.dev(l.b))) negoc.set(l.id, Date.now() + 4000); });
+        setTimeout(() => { if (raiz.isConnected) desenhar(); }, 4100);
+        rede.mudou(); atualizar(); const d = sel && rede.dev(sel); if (d) repintar(d);
+        msg(`<b>${ligados.length}</b> equipamento(s) reiniciado(s). As portas dos switches negoceiam uns segundos (luz laranja); ⏩ avança o tempo.`, "ok");
+      };
+    }
+    function avancarTempo() {
+      tempoExtra += 30; negoc.clear(); renovarDhcp(false);
+      rede.mudou(); atualizar(); relogio();
+      msg("Tempo avançado 30 s: as portas acabaram de negociar e os pedidos DHCP em falta foram repetidos.", "ok");
+    }
+    const t0Relogio = Date.now(); let tempoExtra = 0;
+    function relogio() {
+      const el = $("#sim-relogio"); if (!el) return;
+      const t = Math.floor((Date.now() - t0Relogio) / 1000) + tempoExtra, z = (n) => String(n).padStart(2, "0");
+      el.textContent = `${z(Math.floor(t / 3600))}:${z(Math.floor(t / 60) % 60)}:${z(t % 60)}`;
+    }
+    const tRelogio = setInterval(() => { if (raiz.isConnected) relogio(); else clearInterval(tRelogio); }, 1000);
 
     // ------------------------------------------------------------ navegação do separador Config/Serviços (lista à esquerda; no telemóvel vira uma lista de escolha)
     function navCfg(corpo, d, secs, mapa, pintar) {
