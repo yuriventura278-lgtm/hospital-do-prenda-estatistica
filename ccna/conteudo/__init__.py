@@ -21,6 +21,7 @@ from .licoes_novas_a import LICOES as NOVAS_A
 from .licoes_novas_b import LICOES as NOVAS_B
 from .licoes_aprofundadas import LICOES as APROFUNDADAS
 from .licoes_partilha import LICOES as PARTILHA
+from .m00_redes_base import LICOES as REDES_BASE
 from .glossario import GLOSSARIO_COMPLETO
 from .protocolos import PROTOCOLOS
 from .estagio_empresas import EMPRESAS
@@ -50,6 +51,7 @@ LICOES.update(NOVAS_A)
 LICOES.update(NOVAS_B)
 LICOES.update(APROFUNDADAS)
 LICOES.update(PARTILHA)
+LICOES.update(REDES_BASE)
 ESTAGIOS = {**ESTAGIOS_A, **ESTAGIOS_B}
 GLOS_POR_NOME = {t["termo"]: t for t in GLOSSARIO_COMPLETO}
 

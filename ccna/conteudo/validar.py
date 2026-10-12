@@ -13,7 +13,8 @@ FIGURAS = {"router", "switch", "switch_l3", "firewall", "ap", "wlc", "pc",
            "trama_ethernet", "cabecalho_ipv4", "cabecalho_ipv6", "nat", "sdn",
            "computador_partes", "linha_tempo", "conectores", "ferramentas_cabo"}
 NOS_TOPOLOGIA = {"router", "switch", "switch_l3", "firewall", "ap", "wlc", "pc",
-                 "portatil", "servidor", "nuvem", "telefone_ip"}
+                 "portatil", "servidor", "nuvem", "telefone_ip", "impressora", "smartphone", "tablet",
+                 "hub", "modem", "router_wifi", "camara"}
 CHECKS = {"mode", "ran", "hostname", "iface_ip", "iface_up", "iface_desc",
           "enable_secret", "line_login", "vty_ssh", "domain", "rsa", "user",
           "banner", "no_domain_lookup", "pwd_enc", "saved", "vlan",
