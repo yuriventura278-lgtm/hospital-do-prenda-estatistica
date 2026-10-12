@@ -233,7 +233,7 @@
       else valido = certo === l.cabo;
       if (!valido) return { estado: "errado", certo: certo === null ? "nenhum (portas incompatíveis)" : certo };
       if (l.cabo === "consola") return { estado: "consola" };
-      const baixoA = this.adminDown(da, l.pa), baixoB = this.adminDown(db, l.pb);
+      const baixoA = !!da.desligado || this.adminDown(da, l.pa), baixoB = !!db.desligado || this.adminDown(db, l.pb); // desligado = sem energia (botão do separador Físico)
       return { estado: baixoA || baixoB ? "baixo" : "ok", baixoA, baixoB };
     }
     adminDown(d, p) { if (!d.eq) return false; const i = d.eq.cfg.interfaces[p]; return !i || i.shutdown || this.errDisabled(d, p); }
@@ -310,6 +310,7 @@
     }
     // Lista as interfaces L3 ativas de um equipamento: {iface, ip, mask, porta, vlan}
     l3Base(d) {
+      if (d.desligado) return [];
       if (ehHost(d)) {
         if (TIPOS[d.tipo].semIp || (TIPOS[d.tipo].poe && !this.temEnergia(d))) return [];
         const c = this.ipEfetivo(d), porta = this.portaAtiva(d);
@@ -1096,7 +1097,7 @@
     // ---------------------------------------------------------------- guardar / carregar
     exportar() {
       return { seq: this.seq, devs: this.devs.map((d) => ({ id: d.id, tipo: d.tipo, nome: d.nome, x: d.x, y: d.y, modelo: d.modelo, cfg: d.eq ? d.eq.cfg : null, startup: d.eq ? d.eq.startup : null, pc: d.pc ? Object.assign({}, d.pc, { log: [] }) : null, srv: d.srv || null,
-        ap: d.ap, rw: d.rw, asa: d.asa, nuvem: d.nuvem, wlc: d.wlc })), links: this.links, areas: this.areas, notas: this.notas };
+        ap: d.ap, rw: d.rw, asa: d.asa, nuvem: d.nuvem, wlc: d.wlc, desligado: d.desligado || undefined })), links: this.links, areas: this.areas, notas: this.notas };
     }
     static importar(o) {
       const r = new Rede(); r.seq = o.seq || 1;
@@ -1106,6 +1107,7 @@
         if (d.eq && s.cfg) { d.eq.cfg = s.cfg; d.eq.startup = s.startup || ""; d.eq.sim = r.ganchos(d); }
         if (d.pc && s.pc) d.pc = Object.assign(d.pc, s.pc, { log: [] }, { partilhas: s.pc.partilhas || [], mapas: s.pc.mapas || {}, ficheiros: s.pc.ficheiros || d.pc.ficheiros });
         if (s.srv) d.srv = s.srv;
+        if (s.desligado) d.desligado = true;
       });
       r.links = o.links || [];
       r.areas = o.areas || []; r.notas = o.notas || [];
@@ -1160,6 +1162,25 @@
       case "ospf_viz": { const d = rede.dev(c.nome); return !!d && (rede.ospf().viz[d.id] || []).length >= c.n; }
       case "dns": { const d = rede.dev(c.nome); return !!(d && d.srv && d.srv.dns.registos.some((r) => r.nome.toLowerCase() === c.registo.toLowerCase() && ehIP(r.ip))); }
       case "srv_dhcp": { const d = rede.dev(c.nome); return !!(d && d.srv && d.srv.dhcp.on && ehIP(d.srv.dhcp.inicio)); }
+      // --- verificações dos projetos reais
+      case "nao": return !verificar(rede, c.c);
+      case "wifi_rede": { const d = rede.dev(c.nome); if (!d) return false; const rs = d.ap ? [d.ap] : d.rw ? [d.rw.wifi] : d.wlc ? d.wlc.wlans : []; return rs.some((w) => w.ssid === c.ssid && (!c.seg || w.seguranca === c.seg) && (w.seguranca === "aberta" || (w.chave || "").length >= 8)); }
+      case "wifi_ligado": { const d = rede.dev(c.nome); return !!d && /^ligado/.test(rede.wifi().estado[d.id] || ""); }
+      case "rw_lan": { const d = rede.dev(c.nome); return !!(d && d.rw && d.rw.lan.ip === c.ip && (!c.mask || d.rw.lan.mask === c.mask) && d.rw.lan.dhcp.on); }
+      case "rw_wan": { const d = rede.dev(c.nome); return !!(d && d.rw && (d.rw.wan.modo === "dhcp" ? d.rw.wan.lease && ehIP(d.rw.wan.lease.ip) : ehIP(d.rw.wan.ip))); }
+      case "hsrp": { const d = rede.dev(c.nome); return !!d && (rede.hsrp().porDev[d.id] || []).some((g) => (!c.vip || g.vip === c.vip) && (!c.grupo || String(g.grupo) === String(c.grupo)) && (!c.estado || g.estado === c.estado)); }
+      case "ec": { const a = rede.dev(c.a), b = rede.dev(c.b); return !!(a && b) && rede.etherchannels().grupos.some((g) => g.formado && ((g.a === a && g.b === b) || (g.a === b && g.b === a)) && g.membros.length >= (c.n || 2)); }
+      case "stp_raiz": { const d = rede.dev(c.nome); if (!d || !d.eq) return false; const v = c.vlan || 1, st = rede.stp(); const outros = [c.nome].concat(c.com || []).map((n) => rede.dev(n)).map((x) => x && (st.raiz[x.id] || {})[v]); return outros.every((x) => x && x.raiz === d) && (!c.pri || rede.stpPrioridade(d, v) <= c.pri); }
+      case "nat_ok": case "ligacao": case "acl_bloqueia": {
+        const d = rede.dev(c.de); if (!d) return false;
+        let ip = c.para; const alvo = rede.dev(c.para);
+        if (alvo) { const l3 = rede.l3(alvo); if (!l3.length) return false; ip = l3[0].ip; }
+        else if (!ehIP(ip)) { const r = rede.resolver(d, ip); if (!r.ip) return false; ip = r.ip; }
+        const r = c.proto && c.proto !== "icmp" ? rede.ligar4(d, ip, c.proto, +c.porta) : rede.pingCalc(d, ip);
+        if (c.t === "nat_ok") return !!(r.ok && r.nat && (!c.global || r.nat === c.global));
+        if (c.t === "ligacao") return !!r.ok;
+        return !r.ok && !!(r.acl || /ACL/.test(r.motivo || ""));
+      }
       default: return false;
     }
   }

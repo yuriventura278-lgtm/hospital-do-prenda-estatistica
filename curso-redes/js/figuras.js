@@ -303,6 +303,11 @@
       return s;
     })(),
   };
+  // Os equipamentos de bastidor (1U) são finos: em tamanho pequeno ficavam difíceis de ver.
+  // Ampliam-se um pouco (mais na altura), mantendo o desenho dentro da caixa de 64×64.
+  [["router", 1, 1.5, 36], ["switch", 1, 1.55, 37], ["switch_l3", 1, 1.5, 37], ["wlc", 1, 1.55, 37]].forEach(([k, sx, sy, cy]) => {
+    ICONES[k] = `<g transform="translate(32 ${cy}) scale(${sx} ${sy}) translate(-32 -${cy})">${ICONES[k]}</g>`;
+  });
 
   function icone(tipo, tamanho) {
     const t = tamanho || 40;

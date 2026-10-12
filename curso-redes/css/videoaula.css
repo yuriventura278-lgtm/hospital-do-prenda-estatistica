@@ -1,0 +1,86 @@
+/* Vídeo-aulas: legenda karaoke, realce que acompanha a voz, “Pare e pense”,
+   capítulos, transcrição e modo áudio. (A base do leitor está em app.css, secção .va) */
+.va-palco { position: relative; }
+.va-ponteiro { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; border: 2px solid var(--va-hi); border-radius: 10px;
+  background: rgba(255, 210, 94, .07); box-shadow: 0 0 0 4px rgba(255, 210, 94, .12); opacity: 0;
+  transition: transform .35s ease, width .35s ease, height .35s ease, opacity .25s; z-index: 1; }
+.va-ponteiro::before { content: ""; position: absolute; left: -11px; top: 50%; margin-top: -6px; border: 6px solid transparent; border-left-color: var(--va-hi); }
+.va-ponteiro.visivel { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .va-ponteiro { transition: opacity .2s; } }
+
+/* elementos sincronizados com a voz */
+.va-frases p[data-item] { color: var(--va-dim); font-size: 1.02rem; line-height: 1.5; transition: color .25s, opacity .3s; }
+.va-frases p[data-item].dito { color: #cfdcf4; }
+.va-frases p[data-item].agora { color: #fff; font-weight: 700; border-left: 0; padding-left: 0; }
+.va-revelar [data-item].por-vir { opacity: .14; }
+.va-revelar [data-item] { transition: opacity .35s; }
+.va-passo.agora .cm { border-right: 2px solid var(--va-hi); }
+.va-passo.dito .cm { color: #cfe8d6; }
+.va-tabela tr.agora td { color: #fff; background: rgba(255, 210, 94, .16); font-weight: 600; }
+.va-abertura li.dito, .va-simreal li.dito { color: #cfdcf4; }
+.va-codigo.agora pre, .va-term.agora { box-shadow: inset 0 0 0 1px rgba(255, 210, 94, .4); }
+.va-resumo { margin: 4px 0 0; padding: 8px 12px; border-radius: 10px; background: rgba(79, 141, 255, .16); color: #dfe9ff; font-weight: 600; }
+.va-resumo.agora { background: rgba(79, 141, 255, .3); color: #fff; }
+.va-ligacoes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.va-ligacoes span { font-size: .8rem; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .08); color: var(--va-dim); }
+.va-ligacoes span.agora { color: #fff; background: rgba(255, 210, 94, .2); }
+.va-pinos { margin: 0; padding-left: 1.6em; display: grid; gap: 4px; color: var(--va-dim); }
+.va-pinos li.agora { color: #fff; font-weight: 700; }
+.va-pinos i { display: inline-block; width: 26px; height: 8px; border-radius: 4px; margin-right: 8px; vertical-align: middle; background: #888; }
+.va-pinos .fio-laranja { background: #f08a24; } .va-pinos .fio-verde { background: #2fa84f; } .va-pinos .fio-azul { background: #2b6fd6; } .va-pinos .fio-castanho { background: #7a4a24; }
+.va-pinos .fio-branco-laranja { background: repeating-linear-gradient(90deg, #fff 0 5px, #f08a24 5px 10px); }
+.va-pinos .fio-branco-verde { background: repeating-linear-gradient(90deg, #fff 0 5px, #2fa84f 5px 10px); }
+.va-pinos .fio-branco-azul { background: repeating-linear-gradient(90deg, #fff 0 5px, #2b6fd6 5px 10px); }
+.va-pinos .fio-branco-castanho { background: repeating-linear-gradient(90deg, #fff 0 5px, #7a4a24 5px 10px); }
+
+/* legenda karaoke */
+.va-legenda span { transition: color .15s; color: rgba(255, 255, 255, .78); }
+.va-legenda span.dito { color: #fff; }
+.va-legenda span.agora { color: #0d1925; background: var(--va-hi); border-radius: 4px; box-shadow: 0 0 0 2px var(--va-hi); }
+
+/* Pare e pense */
+.va-pense { display: grid; gap: 12px; position: relative; }
+.va-pergunta { margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff; line-height: 1.4; overflow-wrap: anywhere; }
+.va-opcoes { display: grid; gap: 8px; }
+.va-opcoes button { text-align: left; font: inherit; color: #fff; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .22); border-radius: 10px; padding: 10px 12px; cursor: pointer; min-height: 44px; overflow-wrap: anywhere; }
+.va-opcoes button:hover { background: rgba(255, 255, 255, .14); }
+.va-opcoes button.escolhida { border-color: var(--va-hi); }
+.va-opcoes button.certa { background: rgba(60, 203, 122, .25); border-color: #3ccb7a; }
+.va-opcoes button.certa::after { content: "  ✓"; color: #3ccb7a; font-weight: 800; }
+.va-opcoes button.errada { background: rgba(255, 99, 99, .2); border-color: #ff6b6b; }
+.va-opcoes button.errada::after { content: "  ✗"; color: #ff8a8a; font-weight: 800; }
+.va-conta { justify-self: start; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 1.2rem; color: #0d1925; background: var(--va-hi); animation: va-pulso 1s ease infinite; }
+@keyframes va-pulso { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .va-conta { animation: none; } }
+.va-pense .va-cab .va-chip, .va-palco.va-pense .va-chip { background: var(--va-hi); color: #0d1925; }
+
+/* barra extra: capítulos, transcrição, modo áudio */
+.va-extra { display: flex; gap: 6px; padding: 0 10px 8px; background: #020a18; flex-wrap: wrap; }
+.va-extra button, .va-voz button, .va-retomar button { font: inherit; font-size: .8rem; font-weight: 700; color: #fff; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .2); border-radius: 999px; padding: 6px 12px; cursor: pointer; min-height: 34px; }
+.va-extra button[aria-pressed="true"], .va-voz button[aria-pressed="true"] { background: var(--va-acc); border-color: var(--va-acc); }
+.va-painel { background: #061430; max-height: 46vh; overflow-y: auto; padding: 8px 12px; border-top: 1px solid rgba(255, 255, 255, .1); }
+.va-caps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.va-caps button { width: 100%; display: grid; grid-template-columns: 3.4em minmax(0, 1fr); column-gap: 8px; text-align: left; font: inherit; color: var(--va-dim); background: none; border: 0; border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+.va-caps button b { color: #e8efff; font-weight: 600; overflow-wrap: anywhere; }
+.va-caps button small { grid-column: 2; font-size: .72rem; }
+.va-caps button.atual { background: rgba(255, 210, 94, .14); }
+.va-caps button.atual b { color: #fff; }
+.va-transc h4 { margin: 10px 0 4px; font-size: .8rem; color: var(--va-hi); text-transform: uppercase; letter-spacing: .06em; }
+.va-transc p { margin: 0; padding: 4px 6px; border-radius: 6px; color: var(--va-dim); font-size: .9rem; line-height: 1.45; cursor: pointer; overflow-wrap: anywhere; }
+.va-transc p:hover { color: #fff; }
+.va-transc p.atual { color: #fff; background: rgba(255, 210, 94, .16); }
+.va-voz { flex-wrap: wrap; }
+.va-retomar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 14px 12px; background: #020a18; color: var(--va-dim); font-size: .85rem; }
+
+/* modo áudio: sem cena animada, legenda grande (como um podcast) */
+.va.modo-audio .va-palco { height: auto; max-height: 30vh; }
+.va.modo-audio .va-corpo { display: none; }
+.va.modo-audio .va-legenda { font-size: 1.25rem; min-height: 6em; display: grid; place-content: center; }
+.va.cheio .va-painel { max-height: 30vh; }
+/* ecrãs largos: palco com altura de vídeo e letra maior; tempo numa só linha */
+.va-tempo { white-space: nowrap; min-width: 0; }
+@media (min-width: 900px) {
+  .va-palco { height: clamp(320px, 52vh, 560px); padding: 22px 32px 14px; font-size: 1.12rem; }
+  .va-palco h3 { font-size: 1.6rem; }
+  .va-abertura h2 { font-size: 2.2rem; }
+}

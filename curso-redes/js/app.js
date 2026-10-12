@@ -195,9 +195,9 @@
     $("#topo").innerHTML = t === "boasvindas" ? `<div class="marca"><img src="icons/icon-64.png" alt="" width="34" height="34"><b>REDES DE COMPUTADORES</b></div>` : raiz
       ? `<div class="marca"><img src="icons/icon-64.png" alt="" width="34" height="34"><b>REDES DE<br>COMPUTADORES</b></div><span style="flex:1"></span>
          <span class="xp-pilula tab-num" title="${esc(n.nome)}">${ic("estrela")} ${P().xp} XP</span>
-         <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${ic("perfil")}</button>`
+         <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${P().foto ? avatar(P(), "topo") : ic("perfil")}</button>`
       : `<button class="btn-icone" data-acao="voltar" aria-label="Voltar">${ic("voltar")}</button><div class="titulo">${esc(titulo)}</div>`;
-    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", prof: "jogar", exercicios: "trilha", estagio: "trilha", cadernos: "jogar", caderno: "jogar", sala: "jogar", bancada: "jogar", glossario: "guia", protocolos: "guia", protocolo: "guia", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
+    const tab = { inicio: "inicio", trilha: "trilha", modulo: "trilha", licao: "trilha", quiz: "trilha", prova: "trilha", jogar: "jogar", relampago: "jogar", subrede: "jogar", labs: "jogar", lab: "jogar", revisao: "jogar", casos: "jogar", caso: "jogar", sims: "jogar", sim: "jogar", prof: "jogar", projreais: "jogar", projreal: "jogar", exercicios: "trilha", estagio: "trilha", cadernos: "jogar", caderno: "jogar", sala: "jogar", bancada: "jogar", glossario: "guia", protocolos: "guia", protocolo: "guia", plano: "inicio", ranking: "ranking", guia: "guia" }[t];
     document.querySelectorAll(".nav button").forEach((b) => b.setAttribute("aria-current", b.dataset.ir === tab ? "page" : "false"));
     $("#app").innerHTML = TELAS[t]();
     if (POS[t]) POS[t]();
@@ -210,6 +210,7 @@
     exercicios: () => "Exercícios · " + LICOES[rota.lid].titulo, glossario: () => "Glossário", protocolos: () => "Protocolos", protocolo: () => PROT[rota.id].sigla,
     cadernos: () => "Cadernos de exercícios", caderno: () => window.Exercicios.CADERNOS.find((c) => c.id === rota.id).titulo, estagio: () => "Estágio · " + mod(rota.mid).codigo,
     sala: () => "Sala de laboratório", bancada: () => "Bancada",
+    projreais: () => "Projetos reais", projreal: () => (projPorId(rota.id) || {}).titulo || "Projeto real",
   };
   const mod = (id) => MODS.find((m) => m.id === id);
   const labPorId = (id) => D.labs.find((l) => l.id === id);
@@ -250,6 +251,7 @@
       <section class="secao">
         <h2>Praticar</h2>
         <div class="acoes">
+          <button class="acao" style="--cor:var(--c-d)" data-acao="ir" data-tela="projreais">${F.icone("servidor", 28)}<b>Projetos reais</b><span>${PROJ.filter((x) => simFeito("proj:" + x.id)).length}/${PROJ.length} concluídos · do básico ao hospital</span></button>
           <button class="acao" style="--cor:var(--c-b)" data-acao="ir" data-tela="sims">${F.icone("switch", 28)}<b>Simulador de rede</b><span>${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length} práticas feitas</span></button>
           <button class="acao" style="--cor:var(--c-a)" data-acao="ir" data-tela="relampago">${ic("raio")}<b>Quiz relâmpago</b><span>60 segundos, recorde ${p.recordes.relampago}</span></button>
           <button class="acao" style="--cor:var(--c-c)" data-acao="ir" data-tela="subrede">${ic("calc")}<b>Desafio sub-rede</b><span>Melhor série: ${p.recordes.subrede}</span></button>
@@ -267,7 +269,10 @@
   const corCurso = (c) => `--cor:var(--c-${String(c).toLowerCase()});--cor-suave:var(--c-${String(c).toLowerCase()}-suave)`;
   const NOME_CURTO = { A: "Fundamentos", B: "CCNA 1 · ITN", C: "CCNA 2 · SRWE", D: "CCNA 3 · ENSA", E: "Complementares", F: "Projeto final" };
   const modsDoCurso = (c) => MODS.filter((m) => m.curso === c);
-  const ativPorId = (id) => D.atividades.find((a) => a.id === id);
+  const PROJ = D.projetos || [];
+  const projPorId = (id) => PROJ.find((p) => p.id === id);
+  // as atividades dos projetos reais têm id "proj:<id do projeto>"
+  const ativPorId = (id) => D.atividades.find((a) => a.id === id) || (/^proj:/.test(id || "") ? (projPorId(id.slice(5)) || {}).atividade : undefined);
   const simFeito = (id) => !!(P().sims[id] && P().sims[id].feito);
   const fichaFeita = (mid) => !!P().fichas[mid];
 
@@ -640,6 +645,7 @@
     const p = P();
     return `<div class="secao"><h1>Jogar e praticar</h1><p class="suave">Aprender a fazer, não só a ler. Cada jogo dá XP.</p></div>
       <div class="lista">
+        <button class="item item-destaque" data-acao="ir" data-tela="projreais"><div class="ico-caixa">${F.icone("servidor", 34)}</div><div class="meio"><b>Projetos reais</b><span class="suave peq">Do escritório ao hospital: ${PROJ.length} redes completas, passo a passo, com cada comando explicado e porquê.</span></div><span class="chip acc tab-num">${PROJ.filter((x) => simFeito("proj:" + x.id)).length}/${PROJ.length}</span></button>
         <button class="item" data-acao="ir" data-tela="sims"><div class="ico-caixa">${F.icone("switch", 34)}</div><div class="meio"><b>Simulador de rede</b><span class="suave peq">Monte e configure redes como no Packet Tracer, com atividades passo a passo.</span></div><span class="chip acc tab-num">${Object.values(p.sims).filter((x) => x.feito).length}/${D.atividades.length}</span></button>
         <button class="item" data-acao="ir" data-tela="sala"><div class="ico-caixa">${F.icone("pc", 34)}</div><div class="meio"><b>Sala de laboratório</b><span class="suave peq">Bancadas com equipamentos físicos: ligar cabos, cabo de consola, PuTTY, placa de rede, testador e partilha.</span></div><span class="chip acc tab-num">${Object.values(p.salaLab).filter((x) => x.feito).length}/${(window.Laboratorio ? window.Laboratorio.BANCADAS.length : 0)}</span></button>
         <button class="item" data-acao="ir" data-tela="cadernos"><div class="ico-caixa">${ic("calc")}</div><div class="meio"><b>Cadernos de exercícios</b><span class="suave peq">50 de conversão binária, 100 de sub-redes, classes e máscaras, VLSM com diagrama, OSI e portas.</span></div><span class="chip acc tab-num">${Object.values(p.cadernos).reduce((a, c) => a + Object.values(c).filter(Boolean).length, 0)}</span></button>
@@ -797,7 +803,7 @@
     const lista = Object.values(S.perfis).sort((a, b) => b.xp - a.xp);
     const p = P(), n = nivel(p.xp);
     return `<div class="secao"><h1>Classificação</h1><p class="suave">Ranking dos perfis neste dispositivo — ideal para uma turma ou família a estudar no mesmo telemóvel ou computador.</p></div>
-      <ol class="ranking">${lista.map((x, i) => `<li class="${x.id === p.id ? "eu" : ""}"><span class="pos tab-num">${i + 1}</span><span class="avatar" style="background:${x.cor}">${esc(x.nome.slice(0, 1).toUpperCase())}</span>
+      <ol class="ranking">${lista.map((x, i) => `<li class="${x.id === p.id ? "eu" : ""}"><span class="pos tab-num">${i + 1}</span>${avatar(x)}
         <span><b>${esc(x.nome)}</b><br><span class="suave peq">${esc(nivel(x.xp).nome)} · ${Object.values(x.provas).filter((v) => v.melhor >= NOTA_APROVACAO).length}/${MODS.length} provas</span></span><b class="tab-num">${x.xp} XP</b></li>`).join("")}</ol>
       <button class="btn bloco" data-acao="perfil">Adicionar ou trocar de perfil</button>
       <section class="secao"><h2>Níveis</h2><div class="tabela-caixa"><table><tbody>${NIVEIS.map(([xp, nome], i) => `<tr${i === n.i ? ' style="background:var(--accent-soft)"' : ""}><td>${i + 1}</td><td><b>${esc(nome)}</b></td><td class="tab-num">${xp} XP</td></tr>`).join("")}</tbody></table></div></section>
@@ -1054,7 +1060,24 @@
 
   // ------------------------------------------------------------ primeiro acesso
   let ob = null;
-  const GENEROS = ["Feminino", "Masculino", "Outro", "Prefiro não dizer"];
+  const GENEROS = ["Masculino", "Feminino"];
+  // Foto de perfil (reduzida a 256×256 JPEG antes de guardar) ou a inicial do nome
+  const avatar = (x, cls) => x.foto ? `<span class="avatar ${cls || ""}"><img src="${x.foto}" alt=""></span>` : `<span class="avatar ${cls || ""}" style="background:${x.cor}">${esc(x.nome.slice(0, 1).toUpperCase())}</span>`;
+  function lerFoto(ficheiro, depois) {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const t = 256, c = document.createElement("canvas"), lado = Math.min(img.width, img.height);
+        c.width = c.height = t;
+        c.getContext("2d").drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, t, t);
+        depois(c.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => toast("Não foi possível ler essa imagem");
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(ficheiro);
+  }
   const saudacao = (g) => g === "Feminino" ? "Bem-vinda" : g === "Masculino" ? "Bem-vindo" : "Boas-vindas";
   function iniciarOb() { const p = P(); if (!p.plano.prazo && !p.onboard) Object.assign(p.plano, { prazo: "1a", fixo: "prazo", inicio: new Date().toISOString(), sessoes: 2 }); ob = { passo: 1, nome: p.nome === "Estudante" ? "" : p.nome, idade: p.idade || "", genero: p.genero, motivos: p.motivos.slice(), experiencia: p.experiencia, plano: JSON.parse(JSON.stringify(p.plano)), livre: false, erro: "" }; }
   TELAS.boasvindas = function () {
@@ -1097,7 +1120,7 @@
   function obAvancar() {
     ob.erro = "";
     if (ob.passo === 1) { const v = $("#ob-nome").value.trim(); if (!v) { ob.erro = "Escreva o seu nome para continuar."; return render(); } ob.nome = v; }
-    if (ob.passo === 2) { const v = +$("#ob-idade").value; if (!v || v < 8 || v > 100) { ob.erro = "Indique uma idade entre 8 e 100 anos."; return render(); } ob.idade = v; if (!ob.genero) { ob.erro = "Escolha uma opção de género (pode escolher “Prefiro não dizer”)."; return render(); }
+    if (ob.passo === 2) { const v = +$("#ob-idade").value; if (!v || v < 8 || v > 100) { ob.erro = "Indique uma idade entre 8 e 100 anos."; return render(); } ob.idade = v; if (!GENEROS.includes(ob.genero)) { ob.erro = "Escolha o género: masculino ou feminino."; return render(); }
       if (v < 15 && ob.plano.min > 20) ob.plano.min = 20; }
     if (ob.passo === 3) { if (!ob.motivos.length) { ob.erro = "Escolha pelo menos um motivo."; return render(); } if (!ob.experiencia) { ob.erro = "Diga-nos o que já sabe para ajustarmos o início."; return render(); } }
     if (ob.passo === 5) {
@@ -1367,6 +1390,96 @@
       ${htmlProfessor()}
       <h2>Atividades guiadas</h2><div class="lista">${D.atividades.map(itemSim).join("")}</div>`;
   };
+  // ------------------------------------------------------------ projetos reais (conteudo/projetos.py)
+  const NIVEL_PROJ = { "Básico": "A", "Intermédio": "C", "Avançado": "D", "Final": "F" };
+  const projEstado = (p) => { const st = P().sims["proj:" + p.id] || {}, t = p.etapas.length; return { feitas: st.feito ? t : Math.min(st.passos || 0, t), total: t, feito: !!st.feito }; };
+  function itemProjeto(p) {
+    const e = projEstado(p), pct = Math.round((e.feitas / e.total) * 100);
+    return `<button class="item item-proj" style="${corCurso(NIVEL_PROJ[p.nivel] || "A")}" data-acao="projreal" data-id="${p.id}">
+      <div class="ico-caixa">${F.icone(p.icone in F.ICONES ? p.icone : "router", 34)}</div>
+      <div class="meio"><span class="rotulo">${p.ordem}. ${esc(p.local)} · ${esc(p.nivel)} · ${e.total} etapas · ${esc(p.duracao)}</span><b>${esc(p.titulo)}</b><span class="suave peq">${esc(p.resumo)}</span><div class="barra"><i style="width:${pct}%"></i></div></div>
+      ${e.feito ? `<span class="estado-ico ok">${ic("check")}</span>` : `<span class="chip ${pct ? "acc" : ""} tab-num">${pct}%</span>`}</button>`;
+  }
+  TELAS.projreais = function () {
+    const feitos = PROJ.filter((p) => projEstado(p).feito).length;
+    return `<div class="secao proj-intro"><h1>Projetos reais</h1><p class="suave">Redes completas pedidas por clientes reais — um escritório, uma loja, uma biblioteca, uma clínica, um hospital, uma escola, um hotel, um banco… — do mais básico ao mais complexo.
+        Cada projeto explica <b>o que fazer</b>, <b>porquê</b>, cada comando e a razão de o usar, e <b>como verificar</b>. Depois abre no simulador e as etapas verificam-se sozinhas.</p>
+        <div class="linha"><span class="chip acc tab-num">${feitos}/${PROJ.length} concluídos</span><span class="chip">${PROJ.reduce((a, p) => a + p.etapas.length, 0)} etapas</span><span class="chip">${ic("estrela")} 150 XP por projeto</span></div></div>
+      ${Object.keys(NIVEL_PROJ).map((nv) => { const ps = PROJ.filter((p) => p.nivel === nv); return ps.length ? `<section class="secao"><header><h2>${esc(nv)}</h2><span class="rotulo">${ps.length} projeto${ps.length > 1 ? "s" : ""}</span></header><div class="lista">${ps.map(itemProjeto).join("")}</div></section>` : ""; }).join("")}`;
+  };
+  // prompt do IOS à frente de cada comando (para o principiante saber em que modo está)
+  function promptsBloco(linhas, host, inicio) {
+    let modo = inicio, h = host;
+    const sub = { "config-if": 1, "config-subif": 1, "config-if-range": 1, "config-vlan": 1, "config-line": 1, "config-router": 1, "dhcp-config": 1, "config-ext-nacl": 1, "config-std-nacl": 1 };
+    return { linhas: linhas.map((l) => {
+      const c = l.cmd, pr = h + (modo === "user" ? ">" : modo === "priv" ? "#" : `(${modo})#`);
+      if (c === "enable") modo = "priv";
+      else if (c === "configure terminal") modo = "config";
+      else if (c === "end") modo = "priv";
+      else if (c === "exit") modo = sub[modo] ? "config" : modo === "config" ? "priv" : modo;
+      else if (/^hostname /.test(c)) h = c.split(" ")[1];
+      else if (modo !== "user" && modo !== "priv") {
+        if (/^interface range /.test(c)) modo = "config-if-range";
+        else if (/^interface \S+\.\d+$/.test(c)) modo = "config-subif";
+        else if (/^interface /.test(c)) modo = "config-if";
+        else if (/^vlan \d+$/.test(c)) modo = "config-vlan";
+        else if (/^line /.test(c)) modo = "config-line";
+        else if (/^router /.test(c)) modo = "config-router";
+        else if (/^ip dhcp pool /.test(c)) modo = "dhcp-config";
+        else if (/^ip access-list extended /.test(c)) modo = "config-ext-nacl";
+        else if (/^ip access-list standard /.test(c)) modo = "config-std-nacl";
+      }
+      return Object.assign({ pr }, l);
+    }), host: h, modo };
+  }
+  function htmlEtapa(p, e, i, feita, hosts) {
+    const blocos = e.comandos.map((b) => {
+      const ini = b.linhas[0] && b.linhas[0].cmd === "enable" ? "user" : "priv";
+      const r = promptsBloco(b.linhas, hosts[b.em], ini); hosts[b.em] = r.host;
+      return `<div class="term proj-term"><div class="barra-term"><span class="pontos"><i></i><i></i><i></i></span><span>Terminal de <b>${esc(b.em)}</b></span><button class="btn-copiar" data-acao="proj-copiar">copiar comandos</button></div>
+        <ol class="passos">${r.linhas.map((l) => `<li><div class="cmdl"><span class="pr">${esc(l.pr)}</span><span class="cm">${esc(l.cmd)}</span></div>${l.explica ? `<div class="ex">${esc(l.explica)}</div>` : ""}${l.porque ? `<div class="ex porque"><b>Porquê:</b> ${esc(l.porque)}</div>` : ""}</li>`).join("")}</ol></div>`;
+    }).join("");
+    return `<details class="etapa-proj ${feita ? "feita" : ""}" data-i="${i}"${rota.aberta === i ? " open" : ""}>
+      <summary><span class="etapa-num tab-num">${feita ? ic("check") : i + 1}</span><span class="etapa-tit"><b>${esc(e.titulo)}</b><span class="suave peq">${esc(e.o_que_fazer)}</span></span></summary>
+      <div class="etapa-corpo">
+        <div class="etapa-par"><div class="etapa-caixa"><span class="rotulo">O que fazer</span><p>${esc(e.o_que_fazer)}</p></div>
+          <div class="etapa-caixa porque"><span class="rotulo">Porquê</span><p>${esc(e.porque)}</p></div></div>
+        ${blocos ? `<h4>${ic("terminal")} Comandos, o que fazem e porquê</h4>${blocos}` : ""}
+        ${e.acoes.length ? `<h4>Fora do terminal (no simulador)</h4><ol class="etapa-acoes">${e.acoes.map((a) => `<li>${esc(a.txt)}</li>`).join("")}</ol>` : ""}
+        ${e.verificar.length ? `<h4>${ic("check")} Como verificar</h4><div class="tabela-caixa"><table><thead><tr><th>Comando / teste</th><th>Resultado esperado</th></tr></thead><tbody>${e.verificar.map((v) => `<tr><td class="mono">${esc(v.como)}</td><td>${esc(v.esperado)}</td></tr>`).join("")}</tbody></table></div>` : ""}
+        <p class="peq suave">${feita ? "Etapa verificada no simulador." : "No simulador esta etapa fica verificada automaticamente quando estiver feita."}</p>
+      </div></details>`;
+  }
+  TELAS.projreal = function () {
+    const p = projPorId(rota.id); if (!p) return `<div class="cartao"><p>Projeto não encontrado.</p></div>`;
+    const e = projEstado(p), pct = Math.round((e.feitas / e.total) * 100);
+    const hosts = {}; p.atividade.inicial.dispositivos.forEach((d) => { hosts[d.nome] = d.nomeIos || (d.cmds ? (d.cmds.find((c) => /^hostname /.test(c)) || " " + d.nome).split(" ")[1] : d.nome); });
+    const ant = PROJ[PROJ.indexOf(p) - 1], seg = PROJ[PROJ.indexOf(p) + 1];
+    return `<header class="banner-mod proj-banner" style="${corCurso(NIVEL_PROJ[p.nivel] || "A")}"><span class="banner-curso">Projeto ${p.ordem} de ${PROJ.length} · ${esc(p.nivel)}</span>
+        <div class="proj-banner-topo"><div class="proj-banner-ico">${F.icone(p.icone in F.ICONES ? p.icone : "router", 44)}</div><div><h1>${esc(p.titulo)}</h1><p class="proj-resumo">${esc(p.resumo)}</p></div></div>
+        <div class="linha"><span class="chip">${esc(p.local)}</span><span class="chip">${ic("relogio")} ${esc(p.duracao)}</span><span class="chip">${e.total} etapas</span><span class="chip tab-num">${e.feitas}/${e.total} verificadas</span></div>
+        <div class="cabo-fio"><i style="width:${Math.max(2, pct)}%"></i></div>
+        <div class="linha proj-botoes"><button class="btn prim" data-acao="proj-sim" data-id="${p.id}">${ic("play")} ${e.feitas ? "Continuar no simulador" : "Abrir no simulador"}</button><button class="btn" data-acao="proj-expandir">Abrir todas as etapas</button><button class="btn" data-acao="proj-recolher">Fechar todas</button></div></header>
+      <div class="proj-grelha">
+        <section class="cartao proj-brief"><span class="rotulo">O pedido do cliente</span><p class="proj-briefing">${esc(p.briefing)}</p>
+          <h3>Objetivos do projeto</h3><ul class="proj-obj">${p.objetivos.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></section>
+        <aside class="proj-lado">
+          <figure class="fig-caixa proj-topo" style="margin:0">${F.topologia(p.topologia)}<figcaption>${esc(p.topologia.legenda)}</figcaption></figure>
+          <section class="cartao"><h3>Plano de endereçamento</h3><div class="tabela-caixa"><table><thead><tr><th>Rede / IP</th><th>VLAN</th><th>Gateway</th><th>Uso</th></tr></thead><tbody>${p.enderecos.map((x) => `<tr><td class="mono">${esc(x.rede)}</td><td class="mono">${esc(x.vlan)}</td><td class="mono">${esc(x.gateway)}</td><td>${esc(x.uso)}</td></tr>`).join("")}</tbody></table></div></section>
+          <section class="cartao"><h3>Equipamentos</h3><div class="tabela-caixa"><table><thead><tr><th>Nome</th><th>Tipo</th><th>Papel</th></tr></thead><tbody>${p.equipamentos.map((x) => `<tr><td><b>${esc(x.nome)}</b></td><td>${esc(x.tipo)}</td><td>${esc(x.papel)}</td></tr>`).join("")}</tbody></table></div></section>
+          <section class="cartao"><h3>Conhecimentos que aplica</h3><p class="peq suave">Toque para rever o módulo.</p><div class="chips proj-mods">${p.conhecimentos.map((k) => { const m = mod(k); return m ? `<button class="chip-op" data-acao="modulo" data-id="${m.id}">${esc(m.codigo)} · ${esc(m.titulo)}</button>` : ""; }).join("")}</div></section>
+        </aside>
+        <section class="proj-etapas"><header class="linha entre"><h2>Etapas, passo a passo</h2><span class="rotulo tab-num">${e.feitas}/${e.total}</span></header>
+          <div class="etapas-lista">${p.etapas.map((et, i) => htmlEtapa(p, et, i, i < e.feitas, hosts)).join("")}</div>
+          <div class="cartao proj-fim"><h3>${ic("medalha")} Objetivos atingidos?</h3><p>Abra o projeto no simulador: cada etapa acende quando a rede estiver como pedido. No fim ganha 150 XP.</p><button class="btn prim" data-acao="proj-sim" data-id="${p.id}">${ic("play")} Abrir no simulador</button></div></section>
+        <section class="proj-extra">
+          <div class="cartao"><h3>${ic("raio")} Desafio extra</h3><ul>${p.desafio_extra.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+          <div class="cartao"><h3>${ic("alerta")} Erros comuns (e como os resolver)</h3><div class="tabela-caixa"><table><thead><tr><th>Erro</th><th>Solução</th></tr></thead><tbody>${p.erros_comuns.map((x) => `<tr><td>${esc(x.erro)}</td><td>${esc(x.solucao)}</td></tr>`).join("")}</tbody></table></div></div>
+          <div class="grelha-2">${ant ? `<button class="btn" data-acao="projreal" data-id="${ant.id}">← ${esc(ant.titulo)}</button>` : "<span></span>"}${seg ? `<button class="btn" data-acao="projreal" data-id="${seg.id}">${esc(seg.titulo)} →</button>` : ""}</div>
+        </section>
+      </div>`;
+  };
+
   // ------------------------------------------------------------ projetos do simulador (com nome, para continuar depois)
   let msgProj = "";
   const dataHora = (t) => new Date(t).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -1398,6 +1511,7 @@
   document.addEventListener("change", (e) => {
     const lh = e.target.closest && e.target.closest("[data-lemb-hora]");
     if (lh && /^\d{2}:\d{2}$/.test(lh.value)) { const p = P(); horasLembrete(p)[+lh.dataset.lembHora] = lh.value; p.lembretes.feitos = {}; guardar(); toast("Hora guardada: " + lh.value); return; }
+    if (e.target.id === "p-foto" && e.target.files[0]) { lerFoto(e.target.files[0], (url) => { P().foto = url; guardar(); render(); toast("Foto de perfil guardada"); }); return; }
     if (e.target.id !== "proj-ficheiro" || !e.target.files[0]) return;
     const fr = new FileReader(); fr.onload = () => importarProjeto(String(fr.result)); fr.readAsText(e.target.files[0]);
   });
@@ -1527,6 +1641,7 @@
     if (rota.profAt) { const x = P().profImport[rota.profAt]; return `<div class="secao"><span class="rotulo">Atividade do professor</span><h1>${esc(x ? x.ativ.titulo : "")}</h1></div><div id="sim-raiz"></div>`; }
     if (rota.proj) { const x = P().projetos[rota.proj]; return `<div class="secao"><span class="rotulo">Projeto · guardado automaticamente</span><h1>${esc(x ? x.nome : "Projeto")}</h1><p class="peq suave" id="proj-guardado">${x ? "Última alteração: " + dataHora(x.alterado) : ""}</p></div><div id="sim-raiz"></div>`; }
     const a = rota.id === "livre" ? null : ativPorId(rota.id);
+    if (a && a.projeto) return `<div class="secao"><span class="rotulo">Projeto real · ${esc(projPorId(a.projeto).nivel)} · ${a.passos.length} etapas</span><h1>${esc(a.titulo)}</h1><div class="linha"><button class="btn" data-acao="projreal" data-id="${a.projeto}">Ver as etapas explicadas</button></div></div><div id="sim-raiz"></div>`;
     return `${a ? `<div class="secao"><span class="rotulo">${esc(mod(a.modulo).codigo)} · prática guiada</span><h1>${esc(a.titulo)}</h1></div>` : '<div class="secao"><h1>Modo livre</h1></div>'}<div id="sim-raiz"></div>`;
   };
   POS.sim = function () {
@@ -1564,7 +1679,7 @@
       atividade: a, estado: st.estado || null,
       aoGuardar: (e) => { const r = P().sims[chave] || (P().sims[chave] = {}); r.estado = e; guardar(); },
       aoProgresso: (n) => { const r = P().sims[chave] || (P().sims[chave] = {}); if (n > (r.passos || 0)) { r.passos = n; guardar(); } },
-      aoConcluir: () => { const r = P().sims[chave] || (P().sims[chave] = {}); if (!r.feito) { r.feito = Date.now(); guardar(); ganharXP(60, "simulador"); } },
+      aoConcluir: () => { const r = P().sims[chave] || (P().sims[chave] = {}); if (!r.feito) { r.feito = Date.now(); guardar(); ganharXP(a && a.projeto ? 150 : 60, a && a.projeto ? "projeto real concluído" : "simulador"); } },
     });
     limpar = () => { if (simLeitor) simLeitor.parar(); simLeitor = null; };
   };
@@ -1598,14 +1713,44 @@
     if (Math.round(p.tempo[h] * 4) % 4 === 0) { marcarDia(); guardar(); }
   }, 15000);
 
+  // --- instalar a app: ligações diretas para o ficheiro da versão mais recente (descarrega logo, sem abrir o GitHub)
+  const BAIXAR = "https://github.com/yuriventura278-lgtm/hospital-do-prenda-estatistica/releases/latest/download/";
+  const APPS = [
+    { so: "android", nome: "Android", sub: "APK · Android 5.1 ou mais recente", f: "Curso-de-Redes-Android.apk" },
+    { so: "windows", nome: "Windows", sub: "Instalador (.exe)", f: "Curso-de-Redes-Windows-instalador.exe" },
+    { so: "windows", nome: "Windows portátil", sub: "Abre sem instalar (.exe)", f: "Curso-de-Redes-Windows-portatil.exe" },
+    { so: "mac", nome: "macOS", sub: "Imagem de disco (.dmg)", f: "Curso-de-Redes-macOS.dmg" },
+    { so: "linux", nome: "Linux", sub: "AppImage", f: "Curso-de-Redes-Linux.AppImage" },
+    { so: "linux", nome: "Linux (Debian/Ubuntu)", sub: "Pacote .deb", f: "Curso-de-Redes-Linux.deb" },
+  ];
+  function meuSO() {
+    const u = navigator.userAgent || "";
+    if (/iPhone|iPad|iPod/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1)) return "ios";
+    if (/Android/.test(u)) return "android";
+    if (/Windows/.test(u)) return "windows";
+    if (/Mac OS X|Macintosh/.test(u)) return "mac";
+    if (/Linux|CrOS/.test(u)) return "linux";
+    return "";
+  }
+  function cartaoInstalar() {
+    if ((window.Nativo && window.Nativo.ativo) || location.protocol === "app:") return "";   // já é a app instalada
+    const so = meuSO(), meu = APPS.filter((a) => a.so === so), outros = APPS.filter((a) => a.so !== so);
+    const botao = (a, cls) => `<a class="btn ${cls}" href="${BAIXAR}${a.f}" rel="noopener">${ic("descarregar")} <span><b>Descarregar para ${esc(a.nome)}</b><br><span class="peq">${esc(a.sub)}</span></span></a>`;
+    const ios = `<p class="peq"><b>iPhone e iPad:</b> neste endereço, no Safari, toque em Partilhar › <b>Adicionar ao ecrã principal</b>. A app fica no ecrã e funciona sem Internet.</p>`;
+    return `<div class="cartao instalar"><span class="rotulo">Instalar a app</span>
+      ${so === "ios" ? ios : meu.length ? `<div class="${meu.length > 1 ? "grelha-2" : "instalar-um"}">${meu.map((a) => botao(a, "prim")).join("")}</div>` : ""}
+      <details${meu.length || so === "ios" ? "" : " open"}><summary class="peq">Outros sistemas</summary><div class="grelha-2">${outros.map((a) => botao(a, "")).join("")}</div>${so === "ios" ? "" : ios}</details>
+      <p class="suave peq">O ficheiro descarrega logo. Android: permita “instalar apps desconhecidas”. Windows: se avisar, “Mais informações” › “Executar mesmo assim”.</p></div>`;
+  }
+
   // --- perfil
   let confirmarApagar = false, msgImport = "";
   TELAS.perfil = function () {
     const p = P();
     const blocoLembretes = cartaoLembretes(false);
     return `<div class="cartao"><span class="rotulo">Perfil ativo</span>
-        <form data-form="nome" class="linha"><span class="avatar" style="background:${p.cor}">${esc(p.nome.slice(0, 1).toUpperCase())}</span>
-          <input class="campo" id="nome-perfil" style="flex:1;min-width:0" value="${esc(p.nome)}" maxlength="30" aria-label="Nome"><button class="btn" type="submit">Guardar</button></form>
+        <div class="perfil-foto">${avatar(p, "grande")}<div class="perfil-foto-acoes"><label class="btn">${p.foto ? "Mudar a foto" : "Adicionar foto"}<input type="file" accept="image/*" id="p-foto" hidden></label>${p.foto ? '<button class="btn" data-acao="p-foto-tirar">Tirar a foto</button>' : ""}<span class="suave peq">A foto fica só neste dispositivo.</span></div></div>
+        <form data-form="nome" class="linha"><input class="campo" id="nome-perfil" style="flex:1;min-width:0" value="${esc(p.nome)}" maxlength="30" aria-label="Nome"><button class="btn" type="submit">Guardar</button></form>
         <p class="suave peq tab-num">${p.xp} XP · ${esc(nivel(p.xp).nome)} · desde ${new Date(p.criado).toLocaleDateString("pt-PT")}</p></div>
       ${blocoLembretes}
       <div class="cartao"><span class="rotulo">Os seus dados</span>
@@ -1614,11 +1759,14 @@
         <span class="rotulo">Motivos para estudar</span><div class="chips">${D.guia.motivos.map((m, i) => `<button class="chip-op" aria-pressed="${p.motivos.includes(m)}" data-acao="p-motivo" data-id="${i}">${esc(m)}</button>`).join("")}</div>
         <div class="grelha-2"><button class="btn" data-acao="ir" data-tela="plano">${ic("calendario")} Plano de estudo</button><button class="btn" data-acao="ob-refazer">Refazer questionário</button></div></div>
       <div class="cartao"><span class="rotulo">Perfis neste dispositivo</span>
-        <div class="lista">${Object.values(S.perfis).map((x) => `<button class="item" data-acao="trocar-perfil" data-id="${x.id}"><span class="avatar" style="background:${x.cor}">${esc(x.nome.slice(0, 1).toUpperCase())}</span><div class="meio"><b>${esc(x.nome)}</b><span class="suave peq tab-num">${x.xp} XP</span></div>${x.id === p.id ? '<span class="chip ok">ativo</span>' : ""}</button>`).join("")}</div>
+        <div class="lista">${Object.values(S.perfis).map((x) => `<button class="item" data-acao="trocar-perfil" data-id="${x.id}">${avatar(x)}<div class="meio"><b>${esc(x.nome)}</b><span class="suave peq tab-num">${x.xp} XP</span></div>${x.id === p.id ? '<span class="chip ok">ativo</span>' : ""}</button>`).join("")}</div>
         <form data-form="novo-perfil" class="linha"><input class="campo" id="novo-nome" style="flex:1;min-width:0" placeholder="Nome do novo perfil" maxlength="30"><button class="btn" type="submit">Adicionar</button></form></div>
+      ${cartaoInstalar()}
       <div class="cartao"><span class="rotulo">Definições</span>
         <div class="linha entre"><span>Tema</span><span class="abas">${[["auto", "Sistema"], ["light", "Claro"], ["dark", "Escuro"]].map(([k, n]) => `<button aria-selected="${S.tema === k}" data-acao="tema" data-id="${k}">${n}</button>`).join("")}</span></div>
-        <label class="linha entre" for="livre"><span><b>Modo livre</b><br><span class="suave peq">Desbloqueia todos os módulos e lições, para quem já sabe o básico ou quer rever.</span></span><input type="checkbox" id="livre" ${S.livre ? "checked" : ""} style="width:24px;height:24px"></label></div>
+        <label class="linha entre" for="livre"><span><b>Modo livre</b><br><span class="suave peq">Desbloqueia todos os módulos e lições, para quem já sabe o básico ou quer rever.</span></span><input type="checkbox" id="livre" ${S.livre ? "checked" : ""} style="width:24px;height:24px"></label>
+        <label class="linha entre" for="abertura-on"><span><b>Ecrã de abertura</b><br><span class="suave peq">A imagem do curso a montar-se como um puzzle enquanto a app carrega.</span></span><input type="checkbox" id="abertura-on" ${!window.Abertura || window.Abertura.ligado() ? "checked" : ""} onchange="window.Abertura && window.Abertura.ligar(this.checked)" style="width:24px;height:24px"></label>
+        <label class="linha entre" for="abertura-som"><span><b>Som e vibração do encaixe</b><br><span class="suave peq">Um pequeno “clique” quando cada peça do puzzle encaixa.</span></span><input type="checkbox" id="abertura-som" ${window.Abertura && window.Abertura.temSom && window.Abertura.temSom() ? "checked" : ""} onchange="window.Abertura && window.Abertura.som && window.Abertura.som(this.checked)" style="width:24px;height:24px"></label></div>
       <div class="cartao"><span class="rotulo">Cópia de segurança do progresso</span>
         <p class="suave peq">O progresso fica guardado neste navegador. Para passar para outro dispositivo, copie o código e cole-o lá.</p>
         <button class="btn" data-acao="exportar">Copiar código de progresso</button>
@@ -1742,6 +1890,11 @@
     "cancelar-apagar": () => { confirmarApagar = false; render(); },
     "apagar-sim": () => { const p = P(); const novo = novoPerfil(p.nome); novo.id = p.id; novo.cor = p.cor; S.perfis[p.id] = novo; confirmarApagar = false; guardar(); render(); toast("Progresso apagado"); },
     sim: (el) => { if (el.getAttribute("aria-disabled") === "true") return toast("Desbloqueie o módulo desta prática primeiro"); ir("sim", { id: el.dataset.id }); },
+    projreal: (el) => ir("projreal", { id: el.dataset.id }),
+    "proj-sim": (el) => ir("sim", { id: "proj:" + el.dataset.id }),
+    "proj-expandir": () => document.querySelectorAll(".etapa-proj").forEach((d) => (d.open = true)),
+    "proj-recolher": () => document.querySelectorAll(".etapa-proj").forEach((d) => (d.open = false)),
+    "proj-copiar": (el) => copiar([...el.closest(".term").querySelectorAll(".cm")].map((x) => x.textContent).join("\n")),
     "trilha-curso": (el) => ir("trilha", { curso: el.dataset.id }),
     "ficha-feita": (el) => { if (!P().fichas[el.dataset.id]) { P().fichas[el.dataset.id] = Date.now(); guardar(); ganharXP(15, "ficha de trabalho"); } render(); setTimeout(() => { const f = $("#ficha"); if (f) f.scrollIntoView(); }, 30); },
     "cabo-norma": (el) => { const j = $(".jogo-cabo"); jogoCabo = { norma: el.dataset.id, pinos: [], res: null }; if (j) j.outerHTML = htmlJogoCabo(el.dataset.id); },
@@ -1784,6 +1937,7 @@
     "ajustar-carga": (el) => { P().plano.min = +el.dataset.id; guardar(); render(); toast(`Plano atualizado: ${horas(+el.dataset.id)} por dia`); },
     "novo-alvo": () => { P().alvo = calcularPlano().fim.toISOString(); guardar(); render(); toast("Novo objetivo definido"); },
     "p-genero": (el) => { P().genero = el.dataset.id; guardar(); render(); },
+    "p-foto-tirar": () => { delete P().foto; guardar(); render(); toast("Foto retirada"); },
     "p-motivo": (el) => { const m = D.guia.motivos[+el.dataset.id], p = P(); p.motivos = p.motivos.includes(m) ? p.motivos.filter((x) => x !== m) : p.motivos.concat(m); guardar(); render(); },
     "ob-refazer": () => { P().onboard = false; ob = null; guardar(); render(); },
     "copiar-cli": (el) => { const cmds = [...el.closest(".term").querySelectorAll("li")].filter((li) => /[#>]$/.test(li.querySelector(".pr").textContent.trim())).map((li) => li.querySelector(".cm").textContent); copiar(cmds.join("\n")); },
