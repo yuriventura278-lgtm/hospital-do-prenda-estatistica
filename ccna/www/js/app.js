@@ -1713,6 +1713,36 @@
     if (Math.round(p.tempo[h] * 4) % 4 === 0) { marcarDia(); guardar(); }
   }, 15000);
 
+  // --- instalar a app: ligações diretas para o ficheiro da versão mais recente (descarrega logo, sem abrir o GitHub)
+  const BAIXAR = "https://github.com/yuriventura278-lgtm/hospital-do-prenda-estatistica/releases/latest/download/";
+  const APPS = [
+    { so: "android", nome: "Android", sub: "APK · Android 5.1 ou mais recente", f: "Curso-de-Redes-Android.apk" },
+    { so: "windows", nome: "Windows", sub: "Instalador (.exe)", f: "Curso-de-Redes-Windows-instalador.exe" },
+    { so: "windows", nome: "Windows portátil", sub: "Abre sem instalar (.exe)", f: "Curso-de-Redes-Windows-portatil.exe" },
+    { so: "mac", nome: "macOS", sub: "Imagem de disco (.dmg)", f: "Curso-de-Redes-macOS.dmg" },
+    { so: "linux", nome: "Linux", sub: "AppImage", f: "Curso-de-Redes-Linux.AppImage" },
+    { so: "linux", nome: "Linux (Debian/Ubuntu)", sub: "Pacote .deb", f: "Curso-de-Redes-Linux.deb" },
+  ];
+  function meuSO() {
+    const u = navigator.userAgent || "";
+    if (/iPhone|iPad|iPod/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1)) return "ios";
+    if (/Android/.test(u)) return "android";
+    if (/Windows/.test(u)) return "windows";
+    if (/Mac OS X|Macintosh/.test(u)) return "mac";
+    if (/Linux|CrOS/.test(u)) return "linux";
+    return "";
+  }
+  function cartaoInstalar() {
+    if ((window.Nativo && window.Nativo.ativo) || location.protocol === "app:") return "";   // já é a app instalada
+    const so = meuSO(), meu = APPS.filter((a) => a.so === so), outros = APPS.filter((a) => a.so !== so);
+    const botao = (a, cls) => `<a class="btn ${cls}" href="${BAIXAR}${a.f}" rel="noopener">${ic("descarregar")} <span><b>Descarregar para ${esc(a.nome)}</b><br><span class="peq">${esc(a.sub)}</span></span></a>`;
+    const ios = `<p class="peq"><b>iPhone e iPad:</b> neste endereço, no Safari, toque em Partilhar › <b>Adicionar ao ecrã principal</b>. A app fica no ecrã e funciona sem Internet.</p>`;
+    return `<div class="cartao instalar"><span class="rotulo">Instalar a app</span>
+      ${so === "ios" ? ios : meu.length ? `<div class="${meu.length > 1 ? "grelha-2" : "instalar-um"}">${meu.map((a) => botao(a, "prim")).join("")}</div>` : ""}
+      <details${meu.length || so === "ios" ? "" : " open"}><summary class="peq">Outros sistemas</summary><div class="grelha-2">${outros.map((a) => botao(a, "")).join("")}</div>${so === "ios" ? "" : ios}</details>
+      <p class="suave peq">O ficheiro descarrega logo. Android: permita “instalar apps desconhecidas”. Windows: se avisar, “Mais informações” › “Executar mesmo assim”.</p></div>`;
+  }
+
   // --- perfil
   let confirmarApagar = false, msgImport = "";
   TELAS.perfil = function () {
@@ -1731,6 +1761,7 @@
       <div class="cartao"><span class="rotulo">Perfis neste dispositivo</span>
         <div class="lista">${Object.values(S.perfis).map((x) => `<button class="item" data-acao="trocar-perfil" data-id="${x.id}">${avatar(x)}<div class="meio"><b>${esc(x.nome)}</b><span class="suave peq tab-num">${x.xp} XP</span></div>${x.id === p.id ? '<span class="chip ok">ativo</span>' : ""}</button>`).join("")}</div>
         <form data-form="novo-perfil" class="linha"><input class="campo" id="novo-nome" style="flex:1;min-width:0" placeholder="Nome do novo perfil" maxlength="30"><button class="btn" type="submit">Adicionar</button></form></div>
+      ${cartaoInstalar()}
       <div class="cartao"><span class="rotulo">Definições</span>
         <div class="linha entre"><span>Tema</span><span class="abas">${[["auto", "Sistema"], ["light", "Claro"], ["dark", "Escuro"]].map(([k, n]) => `<button aria-selected="${S.tema === k}" data-acao="tema" data-id="${k}">${n}</button>`).join("")}</span></div>
         <label class="linha entre" for="livre"><span><b>Modo livre</b><br><span class="suave peq">Desbloqueia todos os módulos e lições, para quem já sabe o básico ou quer rever.</span></span><input type="checkbox" id="livre" ${S.livre ? "checked" : ""} style="width:24px;height:24px"></label>

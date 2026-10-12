@@ -87,8 +87,8 @@
       msg(dir < 0 ? "Desfeito. <b>↷</b> volta a fazer." : "Refeito.");
     }
     function botoesHist() {
-      const a = raiz.querySelector('[data-s="desfazer"]'), b = raiz.querySelector('[data-s="refazer"]');
-      if (a) a.disabled = !desf.length && !tFoto; if (b) b.disabled = !refz.length;
+      raiz.querySelectorAll('[data-s="desfazer"]').forEach((a) => { a.disabled = !desf.length && !tFoto; });
+      raiz.querySelectorAll('[data-s="refazer"]').forEach((b) => { b.disabled = !refz.length; });
     }
     ligarRede(); ultimo = foto();
 
@@ -171,6 +171,18 @@
         : o.desligado ? `do outro lado, ${esc(o.nome)} está desligado.` : io.shutdown ? `do outro lado, ${esc(o.nome)} ${esc(curto(po))} está em <code>shutdown</code> (falta <code>no shutdown</code>).` : "a ligação está em baixo.";
       return [onde + "<b>vermelha</b> — " + porque, "erro"];
     }
+    // textos por baixo do equipamento: hostname (se for diferente do nome mostrado), IP e modelo
+    function linhasDev(d) {
+      const T = S.TIPOS[d.tipo], ip = d.pc ? (rede.l3(d)[0] || {}).ip || "" : "";
+      const hn = d.eq && d.eq.cfg.hostname !== d.nome && d.eq.cfg.hostname !== T.host ? d.eq.cfg.hostname : "";
+      return [hn ? [hn, "sim-host"] : null, ip ? [ip, "sim-ip"] : null, d.modelo && d.eq ? [d.modelo, "sim-ip"] : null].filter(Boolean);
+    }
+    // distância da luz ao centro do equipamento: fora do ícone e, se o cabo sai para baixo, depois dos textos
+    function distLuz(d, uy, len) {
+      const fundo = 54 + linhasDev(d).length * 18;
+      let dd = 48; if (uy > 0.25) dd = Math.max(dd, (fundo + 12) / uy);
+      return Math.min(dd, len * 0.42, 110);
+    }
     function desenhar() {
       if (vista === "fisica") return desenharFisica();
       let s = desenharAreas();
@@ -179,16 +191,20 @@
         s += `<g data-link="${l.id}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="transparent" stroke-width="22"/>
           <line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="sim-cabo" stroke="${C.cor}" stroke-width="${l.cabo === "consola" ? 3 : 3.5}" ${C.tracejado || l.cabo === "consola" ? 'stroke-dasharray="9 6"' : ""}/>`;
         if (l.cabo !== "consola") {
-          const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, ux = (b.x - a.x) / len, uy = (b.y - a.y) / len, dd = Math.min(56, len * 0.3);
+          const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
           ["A", "B"].forEach((lado) => {
-            const p = lado === "A" ? a : b, sx = lado === "A" ? ux : -ux, sy = lado === "A" ? uy : -uy, cx = p.x + sx * dd, cy = p.y + sy * dd;
+            const p = lado === "A" ? a : b, sx = lado === "A" ? ux : -ux, sy = lado === "A" ? uy : -uy, dd = distLuz(rede.dev(lado === "A" ? l.a : l.b), sy, len), cx = p.x + sx * dd, cy = p.y + sy * dd;
             const pts = [[cx + sx * 9, cy + sy * 9], [cx - sx * 6 - sy * 8, cy - sy * 6 + sx * 8], [cx - sx * 6 + sy * 8, cy - sy * 6 - sx * 8]].map((q) => q.map((v) => v.toFixed(1)).join(",")).join(" ");
             s += `<polygon points="${pts}" class="sim-luz ${corLuz(l, lado, est)}" data-luz="${lado}"/>`;
           });
         }
         if (op.portas !== false) {
-          const ta = 0.24, tb = 0.76;
-          s += `<text x="${a.x + (b.x - a.x) * ta}" y="${a.y + (b.y - a.y) * ta - 12}" class="sim-porta-txt">${esc(curto(l.pa))}</text><text x="${a.x + (b.x - a.x) * tb}" y="${a.y + (b.y - a.y) * tb - 12}" class="sim-porta-txt">${esc(curto(l.pb))}</text>`;
+          // nome da porta junto de cada ponta, depois da luz e afastado do cabo
+          const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, ux = (b.x - a.x) / len, uy = (b.y - a.y) / len, nx = -uy, ny = ux, k = nx > 0 || (nx === 0 && ny < 0) ? 1 : -1;
+          const ponto2 = (p, sg, d) => { const dl = Math.min(distLuz(d, sg * uy, len) + 4, len * 0.45); const o = lado ? 11 : 18; return { x: p.x + sg * ux * dl + k * nx * o, y: p.y + sg * uy * dl + k * ny * o + 4 }; };
+          const lado = Math.abs(nx) > 0.5, anc = lado ? ` style="text-anchor:${k * nx > 0 ? "start" : "end"}"` : "";
+          const pA = ponto2(a, 1, rede.dev(l.a)), pB = ponto2(b, -1, rede.dev(l.b));
+          s += `<text x="${pA.x.toFixed(1)}" y="${pA.y.toFixed(1)}" class="sim-porta-txt"${anc}>${esc(curto(l.pa))}</text><text x="${pB.x.toFixed(1)}" y="${pB.y.toFixed(1)}" class="sim-porta-txt"${anc}>${esc(curto(l.pb))}</text>`;
         }
         s += "</g>";
       });
@@ -198,10 +214,7 @@
       });
       rede.devs.forEach((d) => {
         const p = pos(d), T = S.TIPOS[d.tipo];
-        const ip = d.pc ? (rede.l3(d)[0] || {}).ip || "" : "";
-        // hostname diferente do nome mostrado (atividades guiadas ou nome repetido): aparece por baixo
-        const hn = d.eq && d.eq.cfg.hostname !== d.nome && d.eq.cfg.hostname !== T.host ? d.eq.cfg.hostname : "";
-        const linhas = [hn ? [hn, "sim-host"] : null, ip ? [ip, "sim-ip"] : null, d.modelo && d.eq ? [d.modelo, "sim-ip"] : null].filter(Boolean);
+        const linhas = linhasDev(d);
         s += `<g data-dev="${d.id}" class="sim-dev ${sel === d.id ? "sel" : ""} ${(caboA && caboA.d === d.id) || pduA === d.id ? "origem" : ""} ${d.desligado ? "off" : ""}" transform="translate(${p.x},${p.y})">
           <circle r="40" class="sim-halo"/><g transform="translate(-30,-30)" class="sim-dev-ic"><svg width="60" height="60" viewBox="0 0 64 64">${F.ICONES[T.icone]}</svg></g>
           <text y="48" class="sim-nome">${esc(d.nome)}</text>${linhas.map(([t, c], k) => `<text y="${66 + k * 18}" class="${c}">${c === "sim-host" ? "hostname " : ""}${esc(t)}</text>`).join("")}${d.desligado ? '<text y="-44" class="sim-off-txt">desligado</text>' : ""}</g>`;
@@ -1819,51 +1832,109 @@
       gravar("ccna-sim-ajuda", "1");
     }
 
+    // ------------------------------------------------------------ Ficheiro: novo, abrir e guardar (.json), paleta de desenho
+    function confirmar(tit, txt, bt, fn) {
+      const md = $("#sim-modal"); md.hidden = false;
+      md.innerHTML = `<div class="sim-caixa"><b>${tit}</b><p class="peq">${txt}</p><div class="grelha-2"><button class="btn" data-fechar>Cancelar</button><button class="btn prim" data-confirmar>${bt}</button></div></div>`;
+      md.onclick = (ev) => { if (ev.target.closest("[data-fechar]") || ev.target === md) { md.hidden = true; return; } if (ev.target.closest("[data-confirmar]")) { md.hidden = true; fn(); } };
+    }
+    function trocarRede(nova, texto) {
+      rede = nova; ligarRede(); rede.aoMudar(); feito = false; caboA = null; pduA = null; colocar = null; modo = "mover";
+      Object.keys(logs).forEach((k) => delete logs[k]); Object.keys(iosLog).forEach((k) => delete iosLog[k]); negoc.clear();
+      sm.evs = []; sm.i = -1; sm.res = null; sm.pedido.de = "";
+      fecharInsp(); if (sm.aberto) pintarSim(); Object.assign(vb, { x: 0, y: 0, w: W, h: H }); aplicarVB(); opcoes(); atualizar(); msg(texto, "ok");
+    }
+    function novo() {
+      if (A) return confirmar("Recomeçar a atividade?", "Volta à rede inicial e perde as configurações feitas. Pode desfazer com Desfazer.", "Recomeçar", () => trocarRede(S.Rede.deAtividade(A), "Atividade recomeçada."));
+      confirmar("Começar uma rede nova?", "Apaga todos os equipamentos, cabos, áreas e notas deste desenho. Pode voltar atrás com <b>Desfazer</b> (Ctrl+Z).", "Nova rede", () => trocarRede(new S.Rede(), "Rede nova: escolha os equipamentos na caixa de baixo."));
+    }
+    function guardarFicheiro() {
+      const nome = (A ? A.titulo : "rede") || "rede";
+      baixar(`${nome.replace(/[^\wÀ-ú\- ]+/g, "_").trim() || "rede"}-${hoje()}.json`, new Blob([JSON.stringify({ tipo: "ccna-projeto", nome, estado: rede.exportar() })], { type: "application/json" }));
+      msg("Rede guardada num ficheiro <b>.json</b>. Para a voltar a abrir use <b>Abrir</b>.", "ok");
+    }
+    $("#sim-abrir").onchange = (e) => {
+      const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => {
+        let est = null;
+        try { const j = JSON.parse(String(rd.result).replace(/^﻿/, "")); est = j && j.estado ? j.estado : j && j.devs ? j : null; } catch (er) { est = null; }
+        if (!est || !Array.isArray(est.devs)) { msg("Este ficheiro não é uma rede do simulador (.json guardado com Guardar ou exportado de um projeto).", "erro"); return; }
+        let nova; try { nova = S.Rede.importar(est); } catch (er) { msg("Não foi possível abrir: o ficheiro está danificado.", "erro"); return; }
+        trocarRede(nova, `Rede <b>${esc(f.name)}</b> aberta: ${nova.devs.length} equipamento(s). Desfazer volta à rede anterior.`); if (vista === "logica") ajustar();
+      };
+      rd.onerror = () => msg("Não foi possível ler o ficheiro.", "erro");
+      rd.readAsText(f);
+    };
+    function paleta() {
+      const md = $("#sim-modal"); md.hidden = false;
+      const grupo = (nome, cores, at) => `<div class="sim-cores" role="radiogroup" aria-label="${nome}">${cores.map(([c, n]) => `<label title="${n}"><input type="radio" name="${nome}" value="${c}" aria-label="${n}" ${at === c ? "checked" : ""}><i style="background:${c}"></i></label>`).join("")}</div>`;
+      md.innerHTML = `<form class="sim-caixa sim-form"><div class="linha entre"><b>Paleta de desenho</b><button type="button" class="btn-copiar" data-fechar>Fechar</button></div>
+        <p class="peq suave">Cores das próximas áreas (retângulos) e notas. Para mudar uma que já existe, toque nela.</p>
+        <b class="peq">Áreas</b>${grupo("area", CORES_AREA, corArea || CORES_AREA[rede.areas.length % CORES_AREA.length][0])}<b class="peq">Notas</b>${grupo("nota", CORES_NOTA, corNota || CORES_NOTA[0][0])}
+        <div class="grelha-2"><button type="button" class="btn" data-s-area>Desenhar uma área</button><button type="button" class="btn prim" data-fechar>Feito</button></div></form>`;
+      const f = md.querySelector("form");
+      f.onchange = (e) => { if (e.target.name === "area") corArea = e.target.value; if (e.target.name === "nota") corNota = e.target.value; };
+      md.onclick = (e) => {
+        if (e.target.closest("[data-fechar]") || e.target === md) { md.hidden = true; return; }
+        if (e.target.closest("[data-s-area]")) { md.hidden = true; modo = "area"; opcoes(); msg("<b>Área:</b> arraste no desenho para criar um retângulo."); }
+      };
+    }
+    function fecharMenus(excepto) { raiz.querySelectorAll(".sim-menu").forEach((m) => { if (m === excepto) return; m.querySelector(".sim-menu-lista").hidden = true; m.querySelector("[data-menu]").setAttribute("aria-expanded", "false"); }); }
+
+    const MSG_MODO = { mover: "Selecionar: arraste para mover (no vazio desloca o desenho); toque para configurar.", apagar: "Apagar: toque num equipamento, cabo, área ou nota.", inspecionar: "Inspecionar: toque num equipamento para ver um resumo (só leitura).",
+      redim: "Redimensionar: arraste uma área ou nota para mudar o tamanho.", area: "<b>Área:</b> arraste no desenho para criar um retângulo (ex.: Edifício A, Sala de servidores). Um toque cria uma área de tamanho padrão.", nota: "<b>Nota:</b> toque no sítio do desenho onde quer a nota.",
+      pdu: "<b>PDU simples (ping):</b> toque no equipamento de origem e depois no de destino." };
     raiz.querySelector(".sim").addEventListener("click", (e) => {
       const pr = e.target.closest("[data-prot]");
       if (pr) { irProtocolo(pr.dataset.prot); return; }
+      const mn = e.target.closest("[data-menu]");
+      if (mn) { const m = mn.closest(".sim-menu"), l = m.querySelector(".sim-menu-lista"), abre = l.hidden; fecharMenus(m); l.hidden = !abre; mn.setAttribute("aria-expanded", String(abre)); return; }
+      if (!e.target.closest(".sim-menu")) fecharMenus();
       const b = e.target.closest("[data-s]");
       if (b) {
-        const a = b.dataset.s;
+        const a = b.dataset.s; fecharMenus();
         // as ferramentas de desenho voltam à vista lógica
-        if (["mover", "apagar", "add", "cabo", "area", "nota"].includes(a) && vista === "fisica") { vista = "logica"; aplicarVB(); }
-        if (a === "mover" || a === "apagar") { modo = a; menu = null; caboA = null; msg(a === "apagar" ? "Toque num equipamento, cabo, área ou nota para apagar." : "Arraste para mover (no vazio desloca o desenho); toque para configurar."); }
-        if (a === "add") { menu = menu === "add" ? null : "add"; }
-        if (a === "cabo") { modo = "cabo"; menu = "add"; grupo = "cabos"; caboA = null; msg(`Cabo <b>${esc(S.CABOS[cabo].nome)}</b>: toque no primeiro equipamento e escolha a porta (ou mude o tipo de cabo em Ligações).`); }
-        if (a === "mais") menu = menu === "mais" ? null : "mais";
+        if (MSG_MODO[a] && vista === "fisica") { vista = "logica"; aplicarVB(); }
+        if (MSG_MODO[a]) { modo = a; caboA = null; pduA = null; colocar = null; item = null; msg(MSG_MODO[a]); }
+        if (a === "pduc") { abrirSim(true, true); return; }
         if (a === "simul") { abrirSim(!sm.aberto); return; }
-        if (a === "area") { modo = "area"; menu = null; caboA = null; msg("<b>Área:</b> arraste no desenho para criar um retângulo (ex.: Edifício A, Sala de servidores). Um toque cria uma área de tamanho padrão."); }
-        if (a === "nota") { modo = "nota"; menu = null; caboA = null; msg("<b>Nota:</b> toque no sítio do desenho onde quer a nota."); }
+        if (a === "sim" || a === "real") { if ((a === "sim") !== sm.aberto) abrirSim(a === "sim"); return; }
         if (a === "desfazer" || a === "refazer") { historia(a === "desfazer" ? -1 : 1); opcoes(); return; }
-        if (a === "logica" || a === "fisica") { vista = a; menu = null; caboA = null; if (a === "logica") { aplicarVB(); msg("Vista lógica: equipamentos, cabos e endereços."); } opcoes(); desenhar(); if (a === "fisica") resumoFisica(); return; }
-        if (a === "imagem") { menu = null; opcoes(); guardarImagem(); return; }
-        if (a === "relatorio") { menu = null; opcoes(); relatorio(); return; }
+        if (a === "zmais" || a === "zmenos") { if (vista === "logica") zoomEm(a === "zmais" ? 1 / 1.3 : 1.3); return; }
+        if (a === "ajustar") { if (vista === "logica") ajustar(); return; }
+        if (a === "logica" || a === "fisica") { vista = a; caboA = null; pduA = null; if (a === "logica") { aplicarVB(); msg("Vista lógica: equipamentos, cabos e endereços."); } opcoes(); desenhar(); if (a === "fisica") resumoFisica(); return; }
+        if (a === "imagem") { guardarImagem(); return; }
+        if (a === "relatorio") { relatorio(); return; }
+        if (a === "novo") { novo(); return; }
+        if (a === "guardar") { guardarFicheiro(); return; }
+        if (a === "abrir") { $("#sim-abrir").click(); return; }
+        if (a === "paleta") { paleta(); return; }
+        if (a === "ciclo") { cicloEnergia(); return; }
+        if (a === "avancar") { avancarTempo(); return; }
+        if (a === "addlivre") { if (colocar) { const p = lugarLivre(); por(p.x, p.y); } return; }
+        if (a === "duplicar") { const d = sel && rede.dev(sel); if (d) { copiar(d); colar(); } else msg("Abra primeiro um equipamento (toque nele) para o duplicar."); return; }
+        if (a === "explicar") { gravar("ccna-sim-ex", verEx() ? "0" : "1"); msg(verEx() ? "Explicação dos comandos ligada (ℹ depois de cada comando)." : "Explicação dos comandos desligada."); const d = sel && rede.dev(sel); if (d) repintar(d); return; }
+        if (a === "legenda") { const l = $("#sim-legenda"); l.open = !l.open; gravar("ccna-sim-leg", l.open ? "1" : "0"); return; }
         if (a === "ajuda") ajuda();
-        if (a === "reiniciar") {
-          const md = $("#sim-modal"); md.hidden = false;
-          md.innerHTML = `<div class="sim-caixa"><b>Recomeçar a atividade?</b><p class="peq">Volta à rede inicial e perde as configurações feitas.</p><div class="grelha-2"><button class="btn" data-fechar>Cancelar</button><button class="btn prim" data-confirmar>Recomeçar</button></div></div>`;
-          md.onclick = (ev) => {
-            if (ev.target.closest("[data-fechar]") || ev.target === md) { md.hidden = true; return; }
-            if (ev.target.closest("[data-confirmar]")) { md.hidden = true; rede = A ? S.Rede.deAtividade(A) : new S.Rede(); ligarRede(); rede.aoMudar(); feito = false; Object.keys(logs).forEach((k) => delete logs[k]); Object.keys(iosLog).forEach((k) => delete iosLog[k]); fecharInsp(); atualizar(); msg("Atividade recomeçada."); }
-          };
-        }
+        if (a === "reiniciar") { novo(); return; }
         opcoes(); desenhar(); return;
       }
-      const z = e.target.closest("[data-z]");
-      if (z) { if (z.dataset.z === "ajustar") ajustar(); else zoomEm(z.dataset.z === "mais" ? 1 / 1.3 : 1.3); return; }
-      const gr = e.target.closest("[data-grupo]");
-      if (gr) { grupo = gr.dataset.grupo; opcoes(); return; }
       const ct = e.target.closest("[data-cat]");
-      if (ct) { categoria = +ct.dataset.cat; opcoes(); return; }
-      const ad = e.target.closest("[data-add]");
-      if (ad) { const p = lugarLivre(); const d = rede.novoDev(ad.dataset.add, p.x, p.y, null, { modelo: ad.dataset.modelo || undefined }); rede.mudou(); if (modo === "cabo" || modo === "apagar") { modo = "mover"; caboA = null; } opcoes(); msg(`Adicionado <b>${esc(d.nome)}</b>. Arraste para mover ou toque para configurar.`, "ok"); atualizar(); return; }
-      const cb = e.target.closest("[data-cabo]");
-      if (cb) { cabo = cb.dataset.cabo; modo = "cabo"; caboA = null; opcoes(); desenhar(); msg(`Cabo <b>${esc(S.CABOS[cabo].nome)}</b>: toque no primeiro equipamento e escolha a porta.`); }
+      if (ct) { cat = ct.dataset.cat; sub = 0; opcoes(); return; }
+      const sb = e.target.closest("[data-sub]");
+      if (sb) { sub = +sb.dataset.sub; opcoes(); return; }
+      const it = e.target.closest("[data-item]");
+      if (it) { escolherItem(it.dataset.item); return; }
     });
+    $("#sim-legenda").addEventListener("toggle", () => gravar("ccna-sim-leg", $("#sim-legenda").open ? "1" : "0"));
+    $("#sim-simul").addEventListener("keydown", (e) => { const tr = e.target.closest && e.target.closest("tr[data-sm-i]"); if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); tr.click(); } });
 
     // atalhos de teclado (computador): Ctrl+Z / Ctrl+Y, Ctrl+C / Ctrl+V
     const teclado = (e) => {
-      if (!raiz.isConnected || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (!raiz.isConnected) return;
+      if (e.key === "Escape" && $("#sim-modal").hidden) { fecharMenus(); if (caboA || pduA || colocar || modo !== "mover") { caboA = null; pduA = null; colocar = null; item = null; modo = "mover"; opcoes(); desenhar(); msg(MSG_MODO.mover); } return; }
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
       if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable]")) return;
       if (!$("#sim-modal").hidden) return;
       const k = e.key.toLowerCase();
@@ -1875,7 +1946,7 @@
 
     opcoes(); atualizar();
     if (!ler("ccna-sim-ajuda")) setTimeout(ajuda, 200);
-    return { parar() { if (mainEl) mainEl.classList.remove("main-sim"); clearInterval(sm.auto); clearTimeout(tGuardar); clearTimeout(tFoto); document.removeEventListener("keydown", teclado); if (op.aoGuardar) op.aoGuardar(rede.exportar()); }, rede: () => rede };
+    return { parar() { if (mainEl) mainEl.classList.remove("main-sim"); clearInterval(sm.auto); clearInterval(tRelogio); clearTimeout(tGuardar); clearTimeout(tFoto); document.removeEventListener("keydown", teclado); if (op.aoGuardar) op.aoGuardar(rede.exportar()); }, rede: () => rede };
   }
 
   window.SimUI = { montar };

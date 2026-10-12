@@ -208,7 +208,7 @@ def falar(texto: str, comando: bool = False, fluido: bool = False) -> str:
     """Converte um texto para a forma como deve ser dito em voz alta.
 
     ``fluido=True`` (vídeo-aulas e assistente de leitura): siglas com o nome das letras
-    (“tê cê pê”), IP lidos por octetos por extenso (“cento e noventa e dois ponto…”),
+    (“tê cê pê”), IP lidos por octetos (“192 ponto 168…”, sem “1 e 1”),
     prefixos por extenso (“barra vinte e seis”) e números de interfaces por extenso."""
     t = texto
     dic = COMANDOS if comando else PALAVRAS
@@ -218,7 +218,8 @@ def falar(texto: str, comando: bool = False, fluido: bool = False) -> str:
     hexa = (lambda s: " ".join(LETRAS[c] if c in LETRAS else _UNID[int(c)] for c in s.lower() if c.isalnum())) if fluido else (lambda s: _soletrar(s.lower()))
 
     def ip(m: re.Match) -> str:
-        falado = " ponto ".join(num(str(int(o))) for o in m.group(1).split("."))
+        # octetos em algarismos (a voz lê “192” como “cento e noventa e dois”), separados por “ponto”
+        falado = " ponto ".join(str(int(o)) for o in m.group(1).split("."))
         return falado + (f" barra {num(m.group(2)[1:])}" if m.group(2) else "")
 
     def ipv6(m: re.Match) -> str:
@@ -771,7 +772,7 @@ def leitura_da_licao(l: dict, termos: list[dict] | None = None, maximo: int = 23
     for b, partes in blocos:
         atual = None
         for t, f in partes:
-            if atual and len(atual["t"]) + len(t) + 1 <= maximo:
+            if atual and len(atual["t"]) + len(t) + 1 <= maximo and len(atual["f"]) + len(f) + 1 <= 2 * maximo:
                 atual["t"] += " " + t; atual["f"] += " " + f
             else:
                 atual = {"b": b, "t": t, "f": f}
