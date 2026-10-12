@@ -207,7 +207,7 @@ reg(licao(
 <li><b>Segurança</b>: protege a <b>confidencialidade</b> (só quem pode lê), a <b>integridade</b> (ninguém altera) e a <b>disponibilidade</b> (está sempre a funcionar).</li>
 </ul>"""),
         alerta("Confusões comuns: <b>Internet</b> não é o mesmo que <b>Web</b> (a Web — os sites — é só um dos serviços da Internet, ao lado do e-mail ou das videochamadas). <b>Wi-Fi</b> não é Internet: é só a forma sem fios de entrar na rede local. E o <b>switch</b> liga equipamentos da mesma rede; para sair para outra rede é preciso um <b>router</b>."),
-        dica("A seguir: no ITN 1 volta a estes temas com mais detalhe, e na A7 monta a sua primeira rede no simulador — dois PCs e um switch, numa topologia em estrela."),
+        dica("A seguir: no ITN 1 volta a estes temas com mais detalhe, e no módulo A4 monta a sua primeira rede no simulador — dois PCs e um switch, numa topologia em estrela."),
     ],
     [
         mc("A rede dos PCs de uma escola, ligados ao mesmo switch, é uma…", ["PAN", "LAN", "MAN", "WAN"], 1, "Uma área pequena (um edifício): rede local."),

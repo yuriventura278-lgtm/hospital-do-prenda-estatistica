@@ -2,58 +2,10 @@ from .base import *
 
 MODULO = modulo(
     id="m0", numero=0, icone="pc",
-    titulo="Do zero: informática, computadores e redes",
-    descricao="Para quem nunca estudou informática: o que é a informática, como surgiram os computadores, o que há dentro deles, o software, porque precisaram de comunicar, a história das redes e da Internet, e os números que as redes usam.",
+    titulo="Do zero: as redes de computadores",
+    descricao="Para quem começa do zero: porque os computadores precisaram de comunicar, a história das redes e da Internet, como a informação viaja e os números que as redes usam.",
     dominio="Base (antes do exame)",
     licoes=[
-        licao(
-            "m0l3", "O que é um computador por dentro", 15,
-            ["Explicar o que é um computador com palavras simples",
-             "Distinguir hardware e software",
-             "Conhecer as peças principais: processador, memória, armazenamento e placa de rede",
-             "Perceber que routers e switches também são computadores"],
-            [
-                texto("Uma máquina que segue instruções", """
-<p>Um <b>computador</b> é uma máquina que <b>recebe dados</b>, <b>processa-os</b> seguindo instruções e <b>devolve um resultado</b>. Este ciclo chama-se <b>entrada → processamento → saída</b>.</p>
-<p>Exemplo: escreve <code>2+2</code> na calculadora do telemóvel (entrada), o processador faz a conta (processamento) e o ecrã mostra <code>4</code> (saída).</p>
-<p>O telemóvel, o portátil, a caixa multibanco (ATM), a consola de jogos, a televisão inteligente e até o router de casa são computadores.</p>"""),
-                figura("computador_partes", "As peças principais de um computador e o caminho dos dados."),
-                tabela(["Peça", "O que faz", "Comparação do dia a dia"], [
-                    ["Processador (CPU)", "Executa as instruções e faz os cálculos", "O cozinheiro que prepara a comida"],
-                    ["Memória RAM", "Guarda o que está a ser usado agora; apaga-se ao desligar", "A bancada da cozinha: rápida, mas limpa-se no fim do dia"],
-                    ["Armazenamento (SSD/HD)", "Guarda ficheiros e programas de forma permanente", "O armário da despensa"],
-                    ["Placa de rede (NIC)", "Liga o computador à rede, por cabo ou Wi-Fi", "A porta da casa para a rua"],
-                    ["Placa-mãe", "Liga todas as peças entre si", "A cozinha onde tudo acontece"],
-                    ["Fonte de alimentação", "Fornece energia", "O gás/eletricidade do fogão"],
-                ], "Hardware: as peças que se podem tocar"),
-                texto("Software: as instruções", """
-<ul>
-<li><b>Sistema operativo</b> (SO): gere o hardware e as aplicações — Windows, Linux, macOS, Android, iOS. Nos equipamentos Cisco, o SO chama-se <b>IOS</b> (não confundir com o iOS do iPhone).</li>
-<li><b>Aplicações</b>: o browser, o WhatsApp, o Excel, os jogos.</li>
-<li><b>Firmware</b>: software gravado no próprio hardware, que arranca o equipamento.</li>
-</ul>"""),
-                exemplo("Um router também é um computador", """
-<p>Um router Cisco tem processador, memória RAM, memória <b>flash</b> (onde fica o sistema operativo IOS), <b>NVRAM</b> (onde fica a configuração guardada) e várias placas de rede (as portas). Não tem ecrã nem teclado: configura-se ligando um portátil ao cabo de consola ou por rede (SSH). Vai fazer isto no Módulo 4!</p>"""),
-                tabela(["Tipo", "Para quê", "Exemplo"], [
-                    ["Pessoal (PC/portátil)", "Uso individual", "O computador de casa"],
-                    ["Móvel", "Uso pessoal em movimento", "Telemóvel, tablet"],
-                    ["Servidor", "Presta serviços a muitos utilizadores, 24 h", "O servidor de e-mail da empresa"],
-                    ["Embebido", "Computador dentro de outro aparelho", "Router, câmara IP, impressora"],
-                    ["Supercomputador / cloud", "Cálculos enormes, milhares de máquinas", "Centros de dados das grandes empresas"],
-                ], "Tipos de computadores"),
-                dica("Quando um técnico diz <i>host</i>, quer dizer qualquer computador que usa a rede: PC, telemóvel, servidor, impressora."),
-            ],
-            [
-                mc("Qual a ordem do funcionamento de um computador?", ["Saída → entrada → processamento", "Entrada → processamento → saída", "Processamento → saída → entrada", "Entrada → saída → processamento"], 1,
-                   "Recebe dados, processa e devolve o resultado."),
-                mc("Que peça perde o conteúdo quando o computador é desligado?", ["SSD", "Disco rígido", "Memória RAM", "Flash"], 2, "A RAM é volátil."),
-                mc("Que peça liga o computador à rede?", ["Placa de rede (NIC)", "Fonte de alimentação", "Processador", "Placa gráfica"], 0, "NIC = Network Interface Card."),
-                vf("Um router é um tipo de computador.", True, "Tem processador, memória, sistema operativo e interfaces de rede."),
-                mc("Como se chama o sistema operativo dos routers e switches Cisco?", ["Android", "Windows", "IOS", "Linux Mint"], 2, "Cisco IOS (Internetwork Operating System)."),
-            ],
-            ["tanenbaum_org", "patterson", "netacad_itn"],
-        ),
-
         licao(
             "m0l6", "A história das redes e da Internet", 18,
             ["Situar no tempo as grandes invenções da informática e das redes",
@@ -207,8 +159,8 @@ MODULO = modulo(
     ],
 )
 
-# Ordem do módulo: primeiro a informática básica, depois as redes.
-from .m00_basicos import COMUNICAR, INFORMATICA, SOFTWARE, SURGIMENTO  # noqa: E402
+# Ordem do módulo: porque comunicar, depois a história, a viagem da informação e os números.
+from .m00_basicos import COMUNICAR  # noqa: E402
 
-_comp, _hist, _viagem, _numeros = MODULO["licoes"]
-MODULO["licoes"] = [INFORMATICA, SURGIMENTO, _comp, SOFTWARE, COMUNICAR, _hist, _viagem, _numeros]
+_hist, _viagem, _numeros = MODULO["licoes"]
+MODULO["licoes"] = [COMUNICAR, _hist, _viagem, _numeros]

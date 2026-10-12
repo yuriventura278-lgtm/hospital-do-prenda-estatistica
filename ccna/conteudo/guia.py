@@ -2,7 +2,7 @@
 
 DOMINIOS_EXAME = [
     # (domínio, peso %, módulos da app)
-    ("1.0 Network Fundamentals", 20, ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "itn1", "itn2", "itn3", "itn4", "itn5", "itn6", "itn9", "itn11", "itn12", "itn13", "itn14", "itn17", "ensa7", "ensa11", "ensa12"]),
+    ("1.0 Network Fundamentals", 20, ["a1", "a5", "a6", "a7", "a8", "itn1", "itn2", "itn3", "itn4", "itn5", "itn6", "itn9", "itn11", "itn12", "itn13", "itn14", "itn17", "ensa7", "ensa11", "ensa12"]),
     ("2.0 Network Access", 20, ["itn7", "srwe1", "srwe2", "srwe3", "srwe4", "srwe5", "srwe6", "srwe12", "srwe13"]),
     ("3.0 IP Connectivity", 25, ["itn8", "itn10", "srwe9", "srwe14", "srwe15", "srwe16", "ensa1", "ensa2"]),
     ("4.0 IP Services", 10, ["itn15", "srwe7", "srwe8", "ensa6", "ensa9", "ensa10"]),
@@ -110,8 +110,8 @@ MOTIVOS = [
     "Curiosidade / gosto de tecnologia",
 ]
 EXPERIENCIA = [
-    ("zero", "Nunca estudei informática", "Começa no Módulo 0, do zero absoluto."),
-    ("basico", "Uso computador, mas não sei nada de redes", "Começa no Módulo 0; pode avançar depressa."),
-    ("algum", "Já sei o básico de redes", "Pode começar no Módulo 1 e passar a prova do Módulo 0."),
+    ("zero", "Nunca estudei redes", "Começa na Parte A (A1), do zero absoluto."),
+    ("basico", "Uso computador, mas não sei nada de redes", "Começa na Parte A (A1); pode avançar depressa."),
+    ("algum", "Já sei o básico de redes", "Pode começar no ITN 1 e passar as provas da Parte A."),
     ("trabalho", "Já trabalho na área", "Sugerimos o modo livre para ir direto ao que precisa."),
 ]

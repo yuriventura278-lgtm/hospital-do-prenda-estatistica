@@ -80,11 +80,14 @@ class TestConteudo(unittest.TestCase):
         self.assertEqual(falar("100 Mbit/s"), "100 megabits por segundo")
         self.assertIn("guígabit 0 barra 0", falar("interface g0/0", comando=True))
 
-    def test_modulo_zero_comeca_pela_informatica(self):
+    def test_parte_a_comeca_pelas_redes(self):
         titulos = [l["titulo"] for m in self.c["modulos"] if m["curso"] == "A" for l in m["licoes"]]
-        self.assertEqual(titulos[0], "O que é a informática")
-        self.assertIn("Como surgiram os computadores", titulos)
+        self.assertEqual(titulos[0], "O que é uma rede de computadores")
+        self.assertIn("Tipos, topologias e equipamentos de rede", titulos)
         self.assertIn("Porque os computadores precisam de comunicar", titulos)
+        # a informática básica foi retirada do curso
+        self.assertNotIn("O que é a informática", titulos)
+        self.assertNotIn("Como surgiram os computadores", titulos)
 
 
 @unittest.skipUnless(shutil.which("node"), "Node.js não instalado")
