@@ -102,7 +102,7 @@
       <div class="sim-vista"><span class="sim-seg2" role="group" aria-label="Vista"><button type="button" data-s="logica" aria-pressed="true">◇ Lógico</button><button type="button" data-s="fisica" aria-pressed="false">▤ Físico</button></span><span class="sim-coord" id="sim-coord" aria-hidden="true">x: 0, y: 0</span><span class="sim-esp"></span><span class="sim-raiz-txt" title="Espaço de trabalho principal">Raiz</span></div>
       <div class="sim-trab" id="sim-trab"><div class="sim-esq">
       <div class="sim-palco"><svg id="sim-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Área de trabalho da rede"></svg>
-        <details class="sim-legenda" id="sim-legenda" ${ler("ccna-sim-leg") === "0" ? "" : "open"}><summary>Luzes</summary><span><i class="ok"></i>ligado</span><span><i class="bad"></i>em baixo / cabo errado</span><span><i class="amb"></i>bloqueado (STP) / a negociar</span></details>
+        <details class="sim-legenda" id="sim-legenda" ${ler("ccna-sim-leg") === "1" ? "open" : ""}><summary>Luzes</summary><span><i class="ok"></i>ligado</span><span><i class="bad"></i>em baixo / cabo errado</span><span><i class="amb"></i>bloqueado (STP) / a negociar</span></details>
         <div class="sim-dica" id="sim-dica" hidden></div></div>
       <div class="sim-msg" id="sim-msg" role="status">${A ? "Comece pelo primeiro passo. Toque em ? para ver como usar." : "Modo livre: monte a rede que quiser. Escolha os equipamentos na caixa de baixo."}</div></div>
       <div class="sim-dir" id="sim-dir"><div class="sim-simul" id="sim-simul" hidden></div>
