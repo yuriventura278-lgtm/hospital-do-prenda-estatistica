@@ -16,8 +16,8 @@ if command -v convert >/dev/null; then
 for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
   n=${d%%:*}; t=${d##*:}; dir="android/app/src/main/res/mipmap-$n"
   convert "$CCNA/www/icons/icon-512.png" -resize ${t}x${t} "$dir/ic_launcher.png"
-  convert "$CCNA/www/icons/icon-512.png" -resize ${t}x${t} "$dir/ic_launcher_round.png"
-  [ -f "$dir/ic_launcher_foreground.png" ] && convert "$CCNA/www/icons/icon-512.png" -resize ${t}x${t} -gravity center -background none -extent $((t*108/72))x$((t*108/72)) "$dir/ic_launcher_foreground.png" || true
+  convert "$CCNA/www/icons/icon-maskable-512.png" -resize ${t}x${t} "$dir/ic_launcher_round.png"
+  [ -f "$dir/ic_launcher_foreground.png" ] && convert "$CCNA/www/icons/icon-512.png" -resize ${t}x${t} -gravity center -background white -extent $((t*108/72))x$((t*108/72)) "$dir/ic_launcher_foreground.png" || true
 done
 for d in mdpi:24 hdpi:36 xhdpi:48 xxhdpi:72 xxxhdpi:96; do n=${d%%:*}; t=${d##*:}; mkdir -p "android/app/src/main/res/drawable-$n"; convert "$CCNA/www/icons/icon-192.png" -resize ${t}x${t} -alpha extract -background white -alpha shape "android/app/src/main/res/drawable-$n/ic_stat_icon.png" || true; done
 fi
