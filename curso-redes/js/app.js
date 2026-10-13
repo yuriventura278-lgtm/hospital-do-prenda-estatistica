@@ -192,8 +192,8 @@
     const t = rota.tela, raiz = !!RAIZ[t];
     const n = nivel(P().xp);
     const titulo = TITULOS[t] ? TITULOS[t]() : "";
-    $("#topo").innerHTML = t === "boasvindas" ? `<div class="marca"><img src="icons/icon-64.png" alt="" width="34" height="34"><b>REDES DE COMPUTADORES</b></div>` : raiz
-      ? `<div class="marca"><img src="icons/icon-64.png" alt="" width="34" height="34"><b>REDES DE<br>COMPUTADORES</b></div><span style="flex:1"></span>
+    $("#topo").innerHTML = t === "boasvindas" ? `<div class="marca"><img src="icons/icon-192.png" alt="" width="44" height="44"><b>REDES DE COMPUTADORES</b></div>` : raiz
+      ? `<div class="marca"><img src="icons/icon-192.png" alt="" width="44" height="44"><b>REDES DE<br>COMPUTADORES</b></div><span style="flex:1"></span>
          <span class="xp-pilula tab-num" title="${esc(n.nome)}">${ic("estrela")} ${P().xp} XP</span>
          <button class="btn-icone" data-acao="perfil" aria-label="Perfil e definições">${P().foto ? avatar(P(), "topo") : ic("perfil")}</button>`
       : `<button class="btn-icone" data-acao="voltar" aria-label="Voltar">${ic("voltar")}</button><div class="titulo">${esc(titulo)}</div>`;
