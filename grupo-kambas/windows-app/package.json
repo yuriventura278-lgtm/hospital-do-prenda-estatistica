@@ -1,0 +1,35 @@
+{
+  "name": "grupo-kambas",
+  "productName": "Grupo Kambas",
+  "version": "1.0.0",
+  "description": "Grupo Kambas — vendas, faturação, stock e relatórios",
+  "author": "Grupo Kambas",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "ao.grupokambas.gestao",
+    "productName": "Grupo Kambas",
+    "files": ["main.js", "www/**/*"],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }, { "target": "portable", "arch": ["x64"] }],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Grupo Kambas",
+      "artifactName": "GrupoKambas-Instalador.exe"
+    },
+    "portable": { "artifactName": "GrupoKambas-Portatil.exe" }
+  }
+}

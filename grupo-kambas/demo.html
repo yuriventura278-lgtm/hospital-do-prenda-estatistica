@@ -1599,6 +1599,7 @@ function conta() {
     <div class="sheet-b">
       <div class="cli-card"><div><div class="strong">${esc(u.nome)}</div><div class="cod">${u.papel === "admin" ? "Administrador" : "Vendedor"} · entra como ${esc(u.utilizador)}</div><div class="cod">${esc(extras)}</div></div></div>
       ${pode("admin") ? `<div class="toolbar"><a class="btn" href="#utilizadores">${icon("user")}Utilizadores</a><a class="btn" href="#definicoes">${icon("cog")}Definições</a></div>` : ""}
+      ${DEMO || eNativo() || navigator.userAgent.includes("Electron") ? "" : `<a class="btn" href="instalar.html" target="_blank" rel="noopener">${icon("down")}Instalar no Android, iPhone ou Windows</a>`}
       ${DEMO ? `<div class="field"><span>Ver a demonstração como</span><div class="seg" id="demo-u">${E.utilizadores.filter(x => x.ativo).map(x => `<button type="button" data-act="demo-ver" data-id="${esc(x.id)}" aria-pressed="${x.id === u.id}">${esc(x.nome)}</button>`).join("")}</div>
           <small style="color:var(--ink-3)">Mude para a vendedora para ver o sistema com permissões limitadas.</small></div>`
       : `<div class="field"><span>Mudar senha</span><div class="grid2"><input class="f" id="s-nova" type="password" autocomplete="new-password" placeholder="Nova senha (mín. 6)"><input class="f" id="s-conf" type="password" autocomplete="new-password" placeholder="Repetir a nova senha"></div></div>`}
@@ -1904,7 +1905,8 @@ function ecraLogin(msg = "") {
       <label class="field"><span>Senha</span><input class="f" id="l-senha" type="password" autocomplete="current-password" required></label>
       <div id="l-err">${msg ? `<div class="err">${esc(msg)}</div>` : ""}</div>
       <button class="btn pri big">Entrar</button>
-      <p class="cod" style="text-align:center;margin:0">Esqueceu a senha? Peça ao administrador para a mudar.</p></form>`);
+      <p class="cod" style="text-align:center;margin:0">Esqueceu a senha? Peça ao administrador para a mudar.</p>
+      ${eNativo() || navigator.userAgent.includes("Electron") ? "" : `<a class="cod" style="text-align:center" href="instalar.html" target="_blank" rel="noopener">Instalar no Android, iPhone ou Windows</a>`}</form>`);
   $("#f-login").onsubmit = async e => {
     e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true; b.textContent = "A entrar…";
     const { error } = await sb.auth.signInWithPassword({ email: emailDe($("#l-user").value), password: $("#l-senha").value });
