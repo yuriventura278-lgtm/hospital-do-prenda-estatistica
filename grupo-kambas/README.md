@@ -14,7 +14,10 @@ utilizador e sincronização entre dispositivos.
   com "Registar pagamento") e Fatura Pró-forma (PP, orçamento com validade,
   convertível em FR ou FT). Numeração própria por tipo (FR 0001, FT 0001, PP 0001).
   O documento mostra o **nome do vendedor** que o emitiu (o do utilizador com
-  sessão iniciada). PDF A5 com o desenho do bloco de faturas, WhatsApp e cópia do resumo.
+  sessão iniciada). O tipo aparece por extenso numa faixa colorida no topo
+  (verde FR, laranja FT, azul pró-forma). PDF A5 com o desenho do bloco de faturas,
+  **Imprimir** (no telemóvel Android abre a escolha de impressora ou app) e cópia do resumo.
+- **Login:** botão para ver a senha; o navegador ou o telemóvel oferece-se para guardar a senha.
 - **Vender:** catálogo com pesquisa, "Mais vendidos", item avulso, cliente
   pesquisado ou registado sem sair da venda, desconto em Kz ou %, troco em numerário.
 - **Stock:** entradas, saídas, contagem geral, alertas, histórico de movimentos.

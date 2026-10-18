@@ -308,7 +308,7 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   .sheet, .sheet.wide { width: 100%; max-height: 92vh; border-radius: 16px 16px 0 0; }
   .sheet-f { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
   .hide-m { display: none; }
-  .toast { bottom: auto; top: calc(64px + env(safe-area-inset-top, 0px)); }
+  .toast { bottom: auto; top: calc(8px + env(safe-area-inset-top, 0px)); font-size: 14px; padding: 9px 16px; }
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tabbar a[aria-current="page"] { color: var(--brand); } }
 @media (max-width: 560px) {
@@ -353,6 +353,32 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 .seg.tipo-doc { display: flex; width: 100%; flex-wrap: nowrap; flex: none; }
 .seg.tipo-doc button { flex: 1 1 0; min-width: 0; padding: 9px 4px; font-size: 13.5px; white-space: nowrap; }
 .tipo-ajuda { margin: -4px 0 0; }
+/* tipo de documento na venda: três cartões grandes */
+.tipos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tipo { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 4px 10px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink-2); text-align: center; min-width: 0; }
+.tipo b { font-family: var(--f-display); font-size: 14.5px; font-weight: 800; color: var(--ink); line-height: 1.15; overflow-wrap: anywhere; }
+.tipo small { font-size: 12.5px; }
+.tipo[aria-checked="true"].t-FR { border-color: var(--ok); background: var(--ok-bg); }
+.tipo[aria-checked="true"].t-FT { border-color: var(--warn); background: var(--warn-bg); }
+.tipo[aria-checked="true"].t-PP { border-color: var(--brand-deep); background: var(--mist); }
+.tipo[aria-checked="true"] b { color: inherit; }
+.tipo[aria-checked="true"].t-FR b, .tipo[aria-checked="true"].t-FR small { color: var(--ok); }
+.tipo[aria-checked="true"].t-FT b, .tipo[aria-checked="true"].t-FT small { color: var(--warn); }
+.tipo[aria-checked="true"].t-PP b, .tipo[aria-checked="true"].t-PP small { color: var(--brand-deep); }
+:root[data-theme="dark"] .tipo[aria-checked="true"].t-PP b, :root[data-theme="dark"] .tipo[aria-checked="true"].t-PP small { color: var(--brand); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tipo[aria-checked="true"].t-PP b, :root:not([data-theme="light"]) .tipo[aria-checked="true"].t-PP small { color: var(--brand); } }
+/* campo de senha com botão de ver */
+.senha { position: relative; display: block; }
+.senha input { padding-right: 46px; }
+.ver-senha { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); width: 38px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-3); display: grid; place-items: center; }
+.ver-senha:hover, .ver-senha[aria-pressed="true"] { color: var(--brand-deep); background: var(--mist); }
+/* fatura: faixa com o tipo por extenso (cores fixas, como papel) */
+.pp .tipo-faixa { margin: -6cqi -6cqi 0; padding: 1.8cqi 6cqi; display: flex; justify-content: space-between; align-items: baseline; gap: 2cqi 4cqi; flex-wrap: wrap; color: #fff; border-radius: 6px 6px 0 0; }
+.pp .tipo-faixa b { font-family: var(--f-display); font-weight: 800; letter-spacing: .14em; font-size: 1.05em; }
+.pp .tipo-faixa span { font-size: .82em; opacity: .95; }
+.pp .f-FR { background: #1E8A5A; } .pp .f-FT { background: #A86400; } .pp .f-PP { background: #0B6A80; } .pp .f-anulada { background: #B42318; }
+.pp .ttl .w { white-space: nowrap; text-align: right; }
+.pp .ttl .w.w-PP { font-size: 1.08em; letter-spacing: .06em; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .perms { display: flex; flex-direction: column; gap: 6px; }
 .perm { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); cursor: pointer; font-size: 14.5px; }
@@ -365,7 +391,7 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 .ct-row small { display: block; }
 .ct-row input { text-align: right; }
 .alert-list .row.click { cursor: pointer; }
-.pp .ttl .w.long { font-size: 1.45em; letter-spacing: .14em; }
+.pp .ttl .w.long { font-size: 1.3em; letter-spacing: .1em; }
 .pp .nota-pp { color: #6B8792; font-size: .9em; margin-top: 1cqi; }
 .pp .estado-pag { margin-top: 1cqi; font-family: var(--f-display); font-weight: 800; letter-spacing: .1em; color: #B42318; }
 .pp .estado-pag.pg { color: #0B6A80; }
@@ -384,11 +410,14 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 @media (max-width: 900px) { .offline-bar { margin: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); } }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@page { size: A5 portrait; margin: 6mm; }
 @media print {
   body * { visibility: hidden; }
   .paper, .paper * { visibility: visible; }
-  .paper { position: absolute; left: 0; top: 0; width: 148mm; box-shadow: none; }
-  body::before { display: none; }
+  .sheet-bg { position: absolute; inset: 0; padding: 0; display: block; background: none; }
+  .sheet, .sheet-b { max-height: none !important; overflow: visible !important; box-shadow: none; padding: 0; border-radius: 0; }
+  .paper { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body::before, .toast { display: none; }
 }
 </style>
 
@@ -436,6 +465,8 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-olho" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-olho-fechado" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10.5 10.5 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
   <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
   <symbol id="i-adj" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
 </svg>
@@ -483,6 +514,23 @@ function precoTexto(p) {
 const precoCurto = p => p.modo === "consulta" ? "Por consulta" : (p.modo === "a_partir" ? "desde " : "") + kz(p.preco);
 
 const TIPOS_DOC = { FR: "Fatura-Recibo", FT: "Fatura", PP: "Fatura Pró-forma" };
+const TITULO_DOC = { FR: "FATURA-RECIBO", FT: "FATURA", PP: "FATURA PRÓ-FORMA" };
+const COR_DOC = { FR: [30, 138, 90], FT: [168, 100, 0], PP: [11, 106, 128] };
+function significadoDoc(f) {
+  if (f.estado === "anulada") return "Documento anulado: sem valor";
+  if (f.estado === "convertida") return "Pró-forma já convertida em fatura";
+  if (f.tipo === "FR") return "Pagamento recebido: vale como fatura e recibo";
+  if (f.tipo === "FT") return f.pago ? `Paga em ${dataPt(f.pago_em)}` : "Pagamento pendente";
+  return "Orçamento: não serve de fatura nem de recibo";
+}
+/* campo de senha com botão para mostrar/esconder */
+function campoSenha(id, rotulo, auto, extra = "", nome = "") {
+  return `<label class="field"><span>${rotulo}</span><span class="senha"><input class="f" id="${id}" ${nome ? `name="${nome}"` : ""} type="password" autocomplete="${auto}" ${extra}><button type="button" class="ver-senha" data-act="ver-senha" data-alvo="${id}" aria-label="Mostrar senha" aria-pressed="false">${icon("olho")}</button></span></label>`;
+}
+/* pede ao navegador/telemóvel para guardar a senha (Chrome, Edge, Android); o Safari guarda pelo próprio formulário */
+async function guardarCredencial(utilizador, senha) {
+  try { if (window.PasswordCredential && navigator.credentials && utilizador && senha) await Promise.race([navigator.credentials.store(new window.PasswordCredential({ id: utilizador, password: senha, name: utilizador })), new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* o utilizador pode recusar */ }
+}
 const docNum = f => f.pendente ? `${f.tipo} (por enviar)` : `${f.tipo} ${nf(f.numero)}`;
 const pode = p => !!(E && E.eu && E.eu.perm && E.eu.perm[p]);
 /* documentos que este utilizador pode ver (no Supabase já vêm filtrados; na demonstração filtra-se aqui) */
@@ -1098,16 +1146,17 @@ function vFaturas() {
 function papelFatura(f) {
   const emp = E.config.empresa, formas = E.config.formas_pagamento;
   const linhas = [...f.itens]; while (linhas.length < 8) linhas.push(null);
-  const titulo = { FR: "FATURA-RECIBO", FT: "FATURA", PP: "PRÓ-FORMA" }[f.tipo];
+  const titulo = TITULO_DOC[f.tipo];
   const carimbo = f.estado === "anulada" ? "ANULADA" : f.estado === "convertida" ? "CONVERTIDA" : "";
   const pagamento = f.tipo === "PP"
     ? `<div class="fp"><div class="lb">Validade</div><div>Válida até <b>${dataPt(f.validade || "")}</b></div><div class="nota-pp">Documento de orçamento. Não serve de fatura nem de recibo.</div></div>`
     : `<div class="fp"><div class="lb">Forma de pagamento</div>${formas.map(m => `<div class="ck"><i>${m === f.forma_pagamento ? "✓" : ""}</i>${esc(m)}</div>`).join("")}
         ${f.tipo === "FT" ? `<div class="estado-pag ${f.pago ? "pg" : ""}">${f.pago ? `Paga em ${dataPt(f.pago_em)}` : "Por pagar"}</div>` : ""}</div>`;
   return `<div class="paper"><div class="pp">
+    <div class="tipo-faixa f-${carimbo ? "anulada" : f.tipo}"><b>${titulo}${carimbo ? ` · ${carimbo}` : ""}</b><span>${significadoDoc(f)}</span></div>
     <div class="hd">
       <div><img src="${LOGO_AZUL}" alt="Grupo Kambas"><div class="act">${esc(emp.actividade)}</div><div class="ct">${esc(emp.telefones)}<br>${esc(emp.email)}${emp.nif ? `<br>NIF ${esc(emp.nif)}` : ""}${emp.endereco ? `<br>${esc(emp.endereco)}` : ""}</div></div>
-      <div class="ttl"><span class="w ${f.tipo !== "FT" ? "long" : ""}">${titulo}</span><span class="n">Nº ${docNum(f)}</span>${carimbo ? `<span class="an">${carimbo}</span>` : ""}
+      <div class="ttl"><span class="w ${f.tipo !== "FT" ? "long" : ""} w-${f.tipo}">${titulo}</span><span class="n">Nº ${docNum(f)}</span>${carimbo ? `<span class="an">${carimbo}</span>` : ""}
         <div class="dt"><div class="lb">Data</div><div class="num">${dataPt(f.data)} &nbsp;${horaPt(f.data)}</div></div></div>
     </div>
     <div class="cli">
@@ -1137,8 +1186,8 @@ function verFatura(id, acabada = false) {
       ${DEMO ? `<div class="note">Na versão instalada (página web ou APK) este documento descarrega-se em PDF, com este mesmo desenho.</div>` : ""}
       ${f.pendente ? `<div class="note warn">${f.erro ? `O servidor não aceitou este documento: ${esc(f.erro)}` : "Feito sem internet. O número oficial é atribuído quando a ligação voltar; o PDF fica disponível depois disso."}</div>` : ""}</div>
     <div class="sheet-f">${f.estado === "emitida" && pode("anular") && !acabada && !f.pendente ? `<button class="btn danger" data-act="anular" data-id="${f.id}">Anular</button>` : ""}<span class="sp"></span>
-      <a class="btn" href="https://wa.me/?text=${encodeURIComponent(resumoFatura(f))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn" data-act="copiar-fatura" data-id="${f.id}">Copiar</button>
-      ${DEMO || f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}">${icon("down")}PDF</button>${eNativo() ? "" : `<button class="btn" data-act="imprimir">${icon("print")}Imprimir</button>`}`}
+      <button class="btn" data-act="copiar-fatura" data-id="${f.id}">Copiar resumo</button>
+      ${DEMO || f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}">${icon("down")}PDF</button><button class="btn" data-act="imprimir" data-id="${f.id}">${icon("print")}Imprimir</button>`}
       ${acabada ? `<button class="btn" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}${acoes.join("")}</div></div>`);
 }
 function anular(id) {
@@ -1269,8 +1318,8 @@ function carrinho() {
   const aberto = $("#cart")?.classList.contains("open");
   const numerario = venda.tipo === "FR" && venda.forma === "Numerário", troco = venda.recebido - tot;
   $("#cart").innerHTML = `
-    <div class="cart-h"><h2>Venda atual</h2><div style="display:flex;gap:6px">${venda.itens.length ? `<button class="btn sm" data-act="limpar-venda">Limpar</button>` : ""}<button class="icon-btn cart-close" data-act="fechar-carrinho" aria-label="Fechar">${icon("x")}</button></div></div>
-    <div class="seg tipo-doc" role="group" aria-label="Tipo de documento">${[["FR", "Fatura-Recibo"], ["FT", "Fatura"], ["PP", "Pró-forma"]].map(([v, t]) => `<button data-act="doc-tipo" data-v="${v}" aria-pressed="${venda.tipo === v}">${t}</button>`).join("")}</div>
+    <div class="cart-h"><h2>Nova ${{ FR: "Fatura-Recibo", FT: "Fatura", PP: "Pró-forma" }[venda.tipo]}</h2><div style="display:flex;gap:6px">${venda.itens.length ? `<button class="btn sm" data-act="limpar-venda">Limpar</button>` : ""}<button class="icon-btn cart-close" data-act="fechar-carrinho" aria-label="Fechar">${icon("x")}</button></div></div>
+    <div class="tipos" role="radiogroup" aria-label="Tipo de documento">${[["FR", "Fatura-Recibo", "Pago agora"], ["FT", "Fatura", "Paga depois"], ["PP", "Pró-forma", "Orçamento"]].map(([v, t, sub]) => `<button class="tipo t-${v}" data-act="doc-tipo" data-v="${v}" role="radio" aria-checked="${venda.tipo === v}"><b>${t}</b><small>${sub}</small></button>`).join("")}</div>
     <div class="cod tipo-ajuda">${{ FR: "Pago no acto: emite fatura e recibo no mesmo documento.", FT: "O cliente paga depois. Registe o pagamento quando receber.", PP: `Orçamento: não mexe no stock nem conta como venda. Válida ${E.config.validade_proforma || 15} dias.` }[venda.tipo]}</div>
     <div class="field"><span>1 · Cliente</span>${blocoCliente()}</div>
     <div class="field"><span>2 · Produtos e serviços</span>
@@ -1719,7 +1768,7 @@ function formUtilizador(id) {
       <label class="field"><span>Nome (aparece nas faturas)</span><input class="f" id="u-nome" value="${esc(u.nome)}" placeholder="Ex.: Maria Domingos" required></label>
       <div class="grid2">
         <label class="field"><span>Utilizador (para entrar)</span><input class="f" id="u-user" value="${esc(u.utilizador)}" ${id ? "disabled" : ""} placeholder="Ex.: maria" autocapitalize="none" spellcheck="false"><small>Letras minúsculas e números, sem espaços.</small></label>
-        <label class="field"><span>${id ? "Nova senha (opcional)" : "Senha"}</span><input class="f" id="u-senha" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" ${id ? "" : "required"}></label>
+        ${campoSenha("u-senha", id ? "Nova senha (opcional)" : "Senha", "new-password", `placeholder="Mínimo 6 caracteres" ${id ? "" : "required"}`)}
       </div>
       <div class="field"><span>Papel</span><div class="seg" id="u-papel"><button type="button" data-v="vendedor" aria-pressed="${u.papel !== "admin"}">Vendedor</button><button type="button" data-v="admin" aria-pressed="${u.papel === "admin"}">Administrador (acesso total)</button></div></div>
       <div class="field" id="u-perm-f"><span>Permissões extra do vendedor</span>
@@ -1795,7 +1844,8 @@ function conta() {
       ${DEMO || eNativo() || navigator.userAgent.includes("Electron") ? "" : `<a class="btn" href="instalar.html" target="_blank" rel="noopener">${icon("down")}Instalar no Android, iPhone ou Windows</a>`}
       ${DEMO ? `<div class="field"><span>Ver a demonstração como</span><div class="seg" id="demo-u">${E.utilizadores.filter(x => x.ativo).map(x => `<button type="button" data-act="demo-ver" data-id="${esc(x.id)}" aria-pressed="${x.id === u.id}">${esc(x.nome)}</button>`).join("")}</div>
           <small style="color:var(--ink-3)">Mude para a vendedora para ver o sistema com permissões limitadas.</small></div>`
-      : `<div class="field"><span>Mudar senha</span><div class="grid2"><input class="f" id="s-nova" type="password" autocomplete="new-password" placeholder="Nova senha (mín. 6)"><input class="f" id="s-conf" type="password" autocomplete="new-password" placeholder="Repetir a nova senha"></div></div>`}
+      : `<input type="text" name="username" autocomplete="username" value="${esc(u.utilizador)}" hidden>
+        <div class="grid2">${campoSenha("s-nova", "Nova senha", "new-password", `placeholder="Mínimo 6 caracteres"`, "new-password")}${campoSenha("s-conf", "Repetir a nova senha", "new-password")}</div>`}
       <div id="frm-err"></div>
     </div>
     <div class="sheet-f"><button type="button" class="btn danger" data-act="sair">${icon("logout")}Terminar sessão</button><span class="sp"></span><button type="button" class="btn" data-act="fechar">Fechar</button>${DEMO ? "" : `<button class="btn pri">Guardar senha</button>`}</div></form>`,
@@ -1805,6 +1855,7 @@ function conta() {
       if (a !== b) falha("As duas senhas não são iguais.");
       const { error } = await sb.auth.updateUser({ password: a });
       if (error) falha(mensagemErro(error));
+      await guardarCredencial(u.utilizador, a);
       fechar(); toast("Senha alterada");
     });
 }
@@ -1817,17 +1868,24 @@ async function jsPDFPronto() {
   if (!window.jspdf.jsPDF.API.autoTable) await carregarScript("vendor/jspdf.plugin.autotable.min.js");
   return window.jspdf.jsPDF;
 }
-async function guardarPdf(doc, nome) {
+async function guardarPdf(doc, nome, imprimir = false) {
   if (eNativo()) {
     const { Filesystem, Share } = window.Capacitor.Plugins;
     const dados = doc.output("datauristring").split(",")[1];
     const r = await Filesystem.writeFile({ path: nome, data: dados, directory: "CACHE" });
-    await Share.share({ title: nome, files: [r.uri], dialogTitle: "Partilhar ou guardar o PDF" });
+    await Share.share({ title: nome, files: [r.uri], dialogTitle: imprimir ? "Escolha a impressora ou a app de impressão" : "Partilhar ou guardar o PDF" });
   } else doc.save(nome);
+}
+/* Imprimir: no navegador e no Windows abre a janela de impressão só com o documento;
+   na APK (o Android não imprime páginas), gera o PDF e abre a escolha de impressora/app. */
+async function imprimirDoc(f) {
+  if (eNativo()) { toast("A preparar o PDF para imprimir…"); return pdfFatura(f, true); }
+  document.body.classList.add("a-imprimir");
+  setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove("a-imprimir"), 500); }, 50);
 }
 const COR = { azul: [1, 146, 184], pet: [11, 106, 128], nev: [234, 245, 248], lin: [191, 214, 222], tin: [15, 46, 58], cin: [107, 135, 146], ver: [180, 35, 24], branco: [255, 255, 255] };
 const kzPdf = n => fmt(n) + " Kz";
-async function pdfFatura(f) {
+async function pdfFatura(f, imprimir = false) {
   const jsPDF = await jsPDFPronto();
   const doc = new jsPDF({ unit: "mm", format: "a5" });
   const W = 148, m = 12, dir = W - m, emp = E.config.empresa;
@@ -1840,9 +1898,17 @@ async function pdfFatura(f) {
   rot(m, 37.5, emp.actividade, COR.cin, 5.2);
   txt(m, 41.5, emp.telefones, 6.6); txt(m, 44.8, emp.email, 6.6);
   let ye = 48.1; if (emp.nif) { txt(m, ye, "NIF " + emp.nif, 6.6); ye += 3.3; } if (emp.endereco) txt(m, ye, emp.endereco, 6.6);
-  const titulo = { FR: "FATURA-RECIBO", FT: "FATURA", PP: "PRÓ-FORMA" }[f.tipo];
-  doc.setFont("helvetica", "bold"); doc.setFontSize(f.tipo === "FT" ? 17 : 13.5); doc.setCharSpace(1); tc(COR.pet); doc.text(titulo, dir, 20, { align: "right" }); doc.setCharSpace(0);
-  dc(COR.azul); doc.setLineWidth(0.5); doc.line(dir - (f.tipo === "FT" ? 36 : 50), 22.5, dir, 22.5);
+  const titulo = TITULO_DOC[f.tipo];
+  const anulado = f.estado !== "emitida";
+  fc(anulado ? COR.ver : COR_DOC[f.tipo]); doc.rect(0, 0, W, 8.5, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setCharSpace(0.6); tc(COR.branco);
+  doc.text(titulo + (anulado ? (f.estado === "anulada" ? " · ANULADA" : " · CONVERTIDA") : ""), m, 5.6); doc.setCharSpace(0);
+  txt(W - m, 5.6, significadoDoc(f), 6.6, false, COR.branco, "right");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(f.tipo === "FT" ? 17 : f.tipo === "PP" ? 12 : 13.5); const esp = f.tipo === "PP" ? 0.5 : 1;
+  // o jsPDF não conta o espaçamento entre letras ao alinhar à direita: calcula-se à mão
+  const larg = doc.getTextWidth(titulo) + esp * (titulo.length - 1);
+  doc.setCharSpace(esp); tc(COR.pet); doc.text(titulo, dir - larg, 20); doc.setCharSpace(0);
+  dc(COR.azul); doc.setLineWidth(0.5); doc.line(dir - Math.max(larg, 36), 22.5, dir, 22.5);
   txt(dir, 29, "Nº " + docNum(f), 10, true, COR.tin, "right");
   if (f.estado !== "emitida") txt(dir, 33.5, f.estado === "anulada" ? "ANULADA" : "CONVERTIDA", 8, true, COR.ver, "right");
   rot(dir - 52, 37.5, "Data"); txt(dir - 52, 42, `${dataPt(f.data)}  ${horaPt(f.data)}`, 8);
@@ -1896,7 +1962,7 @@ async function pdfFatura(f) {
   // rodapé
   fc(COR.pet); doc.roundedRect(m, 195, W - 2 * m, 7, 1.5, 1.5, "F");
   rot(m + 4, 199.6, emp.slogan, COR.branco, 6.4); txt(dir - 4, 199.6, `${emp.contas[0].banco}  ${emp.contas[0].iban}`, 6, false, COR.branco, "right");
-  await guardarPdf(doc, `${f.tipo}_${nf(f.numero)}_Grupo_Kambas.pdf`);
+  await guardarPdf(doc, `${f.tipo}_${nf(f.numero)}_Grupo_Kambas.pdf`, imprimir);
 }
 async function pdfRelatorio(R) {
   const jsPDF = await jsPDFPronto();
@@ -2006,7 +2072,8 @@ const ACOES = {
   "anular": el => anular(el.dataset.id),
   "converter": el => converter(el.dataset.id),
   "pagar": el => pagar(el.dataset.id),
-  "imprimir": () => window.print(),
+  "imprimir": el => comEspera(el, () => imprimirDoc(byId(E.faturas, el.dataset.id))),
+  "ver-senha": el => { const i = $("#" + el.dataset.alvo); const ver = i.type === "password"; i.type = ver ? "text" : "password"; el.setAttribute("aria-pressed", ver); el.setAttribute("aria-label", ver ? "Esconder senha" : "Mostrar senha"); el.innerHTML = icon(ver ? "olho-fechado" : "olho"); i.focus(); },
   "pdf-fatura": el => comEspera(el, () => pdfFatura(byId(E.faturas, el.dataset.id))),
   "pdf-relatorio": el => comEspera(el, () => pdfRelatorio(vRelatorios.atual)),
   "f-tipo": el => { filtroF.tipo = el.dataset.v; document.querySelectorAll("#ftipo button").forEach(b => b.setAttribute("aria-pressed", b === el)); vFaturas.upd(); },
@@ -2101,10 +2168,10 @@ function ecraAuth(html) { $("#app").hidden = true; const a = $("#auth"); a.hidde
 function ecraLogin(msg = "") {
   ecraAuth(`<form id="f-login" class="auth-card" autocomplete="on">
       <h1>Entrar</h1><p class="sub">Sistema de gestão do Grupo Kambas</p>
-      <label class="field"><span>Utilizador</span><input class="f" id="l-user" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
-      <label class="field"><span>Senha</span><input class="f" id="l-senha" type="password" autocomplete="current-password" required></label>
+      <label class="field"><span>Utilizador</span><input class="f" id="l-user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+      ${campoSenha("l-senha", "Senha", "current-password", "required", "password")}
       <div id="l-err">${msg ? `<div class="err">${esc(msg)}</div>` : ""}</div>
-      <button class="btn pri big">Entrar</button>
+      <button type="submit" class="btn pri big">Entrar</button>
       <p class="cod" style="text-align:center;margin:0">Esqueceu a senha? Peça ao administrador para a mudar.</p>
       ${eNativo() || navigator.userAgent.includes("Electron") ? "" : `<a class="cod" style="text-align:center" href="instalar.html" target="_blank" rel="noopener">Instalar no Android, iPhone ou Windows</a>`}</form>`);
   $("#f-login").onsubmit = async e => {
@@ -2115,6 +2182,7 @@ function ecraLogin(msg = "") {
       const m = /invalid login/i.test(error.message) ? "Utilizador ou senha errados." : /banned/i.test(error.message) ? "Esta conta foi desativada. Fale com o administrador." : mensagemErro(error);
       $("#l-err").innerHTML = `<div class="err">${esc(m)}</div>`; return;
     }
+    await guardarCredencial($("#l-user").value.trim(), $("#l-senha").value);
     await entrarNaApp();
   };
   setTimeout(() => $("#l-user").focus(), 50);
@@ -2125,9 +2193,8 @@ function ecraConfigurar() {
       <label class="field"><span>Código de configuração</span><input class="f" id="c-cod" placeholder="KMB-XXXX-XXXX-XXXX" autocapitalize="characters" required></label>
       <label class="field"><span>O seu nome (aparece nas faturas)</span><input class="f" id="c-nome" required></label>
       <label class="field"><span>Utilizador (para entrar)</span><input class="f" id="c-user" placeholder="Ex.: yuri" autocapitalize="none" spellcheck="false" required></label>
-      <div class="grid2"><label class="field"><span>Senha</span><input class="f" id="c-s1" type="password" autocomplete="new-password" required></label>
-        <label class="field"><span>Repetir senha</span><input class="f" id="c-s2" type="password" autocomplete="new-password" required></label></div>
-      <div id="c-err"></div><button class="btn pri big">Criar administrador</button></form>`);
+      <div class="grid2">${campoSenha("c-s1", "Senha", "new-password", "required", "password")}${campoSenha("c-s2", "Repetir senha", "new-password", "required")}</div>
+      <div id="c-err"></div><button type="submit" class="btn pri big">Criar administrador</button></form>`);
   $("#f-cfg").onsubmit = async e => {
     e.preventDefault(); const b = e.target.querySelector("button"); const err = m => { $("#c-err").innerHTML = `<div class="err">${esc(m)}</div>`; b.disabled = false; b.textContent = "Criar administrador"; };
     if ($("#c-s1").value !== $("#c-s2").value) return err("As duas senhas não são iguais.");
@@ -2136,6 +2203,7 @@ function ecraConfigurar() {
       await chamarFuncao({ acao: "configurar", codigo: $("#c-cod").value, nome: $("#c-nome").value, utilizador: $("#c-user").value, senha: $("#c-s1").value });
       const { error } = await sb.auth.signInWithPassword({ email: emailDe($("#c-user").value), password: $("#c-s1").value });
       if (error) throw error;
+      await guardarCredencial($("#c-user").value.trim().toLowerCase(), $("#c-s1").value);
       await entrarNaApp(); toast("Administrador criado. Bem-vindo!");
     } catch (er) { err(mensagemErro(er)); }
   };
@@ -2173,9 +2241,9 @@ function ecraLoginDemo(msg = "") {
   ecraAuth(`<form id="f-login" class="auth-card" autocomplete="off">
       <h1>Entrar</h1><p class="sub">Demonstração: entre como <b>admin</b> (administrador) ou <b>maria</b> (vendedora), com qualquer senha.</p>
       <label class="field"><span>Utilizador</span><input class="f" id="l-user" autocapitalize="none" spellcheck="false" required></label>
-      <label class="field"><span>Senha</span><input class="f" id="l-senha" type="password" required></label>
+      ${campoSenha("l-senha", "Senha", "current-password", "required", "password")}
       <div id="l-err">${msg ? `<div class="note">${esc(msg)}</div>` : ""}</div>
-      <button class="btn pri big">Entrar</button></form>`);
+      <button type="submit" class="btn pri big">Entrar</button></form>`);
   $("#f-login").onsubmit = e => {
     e.preventDefault();
     const u = E.utilizadores.find(x => x.utilizador === $("#l-user").value.trim().toLowerCase());

@@ -307,7 +307,7 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   .sheet, .sheet.wide { width: 100%; max-height: 92vh; border-radius: 16px 16px 0 0; }
   .sheet-f { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
   .hide-m { display: none; }
-  .toast { bottom: auto; top: calc(64px + env(safe-area-inset-top, 0px)); }
+  .toast { bottom: auto; top: calc(8px + env(safe-area-inset-top, 0px)); font-size: 14px; padding: 9px 16px; }
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tabbar a[aria-current="page"] { color: var(--brand); } }
 @media (max-width: 560px) {
@@ -352,6 +352,32 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 .seg.tipo-doc { display: flex; width: 100%; flex-wrap: nowrap; flex: none; }
 .seg.tipo-doc button { flex: 1 1 0; min-width: 0; padding: 9px 4px; font-size: 13.5px; white-space: nowrap; }
 .tipo-ajuda { margin: -4px 0 0; }
+/* tipo de documento na venda: três cartões grandes */
+.tipos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tipo { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 4px 10px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink-2); text-align: center; min-width: 0; }
+.tipo b { font-family: var(--f-display); font-size: 14.5px; font-weight: 800; color: var(--ink); line-height: 1.15; overflow-wrap: anywhere; }
+.tipo small { font-size: 12.5px; }
+.tipo[aria-checked="true"].t-FR { border-color: var(--ok); background: var(--ok-bg); }
+.tipo[aria-checked="true"].t-FT { border-color: var(--warn); background: var(--warn-bg); }
+.tipo[aria-checked="true"].t-PP { border-color: var(--brand-deep); background: var(--mist); }
+.tipo[aria-checked="true"] b { color: inherit; }
+.tipo[aria-checked="true"].t-FR b, .tipo[aria-checked="true"].t-FR small { color: var(--ok); }
+.tipo[aria-checked="true"].t-FT b, .tipo[aria-checked="true"].t-FT small { color: var(--warn); }
+.tipo[aria-checked="true"].t-PP b, .tipo[aria-checked="true"].t-PP small { color: var(--brand-deep); }
+:root[data-theme="dark"] .tipo[aria-checked="true"].t-PP b, :root[data-theme="dark"] .tipo[aria-checked="true"].t-PP small { color: var(--brand); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tipo[aria-checked="true"].t-PP b, :root:not([data-theme="light"]) .tipo[aria-checked="true"].t-PP small { color: var(--brand); } }
+/* campo de senha com botão de ver */
+.senha { position: relative; display: block; }
+.senha input { padding-right: 46px; }
+.ver-senha { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); width: 38px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-3); display: grid; place-items: center; }
+.ver-senha:hover, .ver-senha[aria-pressed="true"] { color: var(--brand-deep); background: var(--mist); }
+/* fatura: faixa com o tipo por extenso (cores fixas, como papel) */
+.pp .tipo-faixa { margin: -6cqi -6cqi 0; padding: 1.8cqi 6cqi; display: flex; justify-content: space-between; align-items: baseline; gap: 2cqi 4cqi; flex-wrap: wrap; color: #fff; border-radius: 6px 6px 0 0; }
+.pp .tipo-faixa b { font-family: var(--f-display); font-weight: 800; letter-spacing: .14em; font-size: 1.05em; }
+.pp .tipo-faixa span { font-size: .82em; opacity: .95; }
+.pp .f-FR { background: #1E8A5A; } .pp .f-FT { background: #A86400; } .pp .f-PP { background: #0B6A80; } .pp .f-anulada { background: #B42318; }
+.pp .ttl .w { white-space: nowrap; text-align: right; }
+.pp .ttl .w.w-PP { font-size: 1.08em; letter-spacing: .06em; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .perms { display: flex; flex-direction: column; gap: 6px; }
 .perm { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); cursor: pointer; font-size: 14.5px; }
@@ -364,7 +390,7 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 .ct-row small { display: block; }
 .ct-row input { text-align: right; }
 .alert-list .row.click { cursor: pointer; }
-.pp .ttl .w.long { font-size: 1.45em; letter-spacing: .14em; }
+.pp .ttl .w.long { font-size: 1.3em; letter-spacing: .1em; }
 .pp .nota-pp { color: #6B8792; font-size: .9em; margin-top: 1cqi; }
 .pp .estado-pag { margin-top: 1cqi; font-family: var(--f-display); font-weight: 800; letter-spacing: .1em; color: #B42318; }
 .pp .estado-pag.pg { color: #0B6A80; }
@@ -383,11 +409,14 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 @media (max-width: 900px) { .offline-bar { margin: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); } }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@page { size: A5 portrait; margin: 6mm; }
 @media print {
   body * { visibility: hidden; }
   .paper, .paper * { visibility: visible; }
-  .paper { position: absolute; left: 0; top: 0; width: 148mm; box-shadow: none; }
-  body::before { display: none; }
+  .sheet-bg { position: absolute; inset: 0; padding: 0; display: block; background: none; }
+  .sheet, .sheet-b { max-height: none !important; overflow: visible !important; box-shadow: none; padding: 0; border-radius: 0; }
+  .paper { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body::before, .toast { display: none; }
 }
 </style>
 <!--KAMBAS_SUPABASE-->
@@ -435,6 +464,8 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-olho" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-olho-fechado" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10.5 10.5 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
   <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
   <symbol id="i-adj" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
 </svg>
