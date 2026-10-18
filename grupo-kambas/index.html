@@ -1896,12 +1896,18 @@ async function guardarPdf(doc, nome, imprimir = false) {
     }
     const r = await Filesystem.writeFile({ path: nome, data: dados, directory: "CACHE" });
     await Share.share({ title: nome, files: [r.uri], dialogTitle: imprimir ? "Escolha a impressora ou a app de impressão" : "Enviar ou abrir o PDF" });
+  } else if (window.claude && window.claude.use) {
+    // demonstração dentro do Claude: o ficheiro passa pela permissão de descarregar da página
+    const dl = await window.claude.use("downloads");
+    if (!dl) { toast("Descarregar não está disponível aqui"); return; }
+    try { await dl.save({ filename: nome, data: doc.output("blob") }); }
+    catch (e) { if (e && e.code !== "declined") toast("Não foi possível guardar o PDF"); }
   } else doc.save(nome);
 }
 /* Imprimir: no navegador e no Windows abre a janela de impressão só com o documento;
    na APK (o Android não imprime páginas), gera o PDF e abre a escolha de impressora/app. */
 async function imprimirDoc(f) {
-  if (eNativo()) { toast("A preparar o PDF para imprimir…"); return pdfFatura(f, true); }
+  if (eNativo() || (window.claude && window.claude.use)) { toast("A preparar o PDF para imprimir…"); return pdfFatura(f, true); }
   document.body.classList.add("a-imprimir");
   setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove("a-imprimir"), 500); }, 50);
 }
