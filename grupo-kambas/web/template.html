@@ -373,6 +373,15 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 @media (max-width: 560px) { .papeis { grid-template-columns: minmax(0, 1fr); } .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media print { .auth { display: none; } }
 
+/* ---------- modo offline */
+.offline-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px max(28px, env(safe-area-inset-right, 0px)) 0 max(28px, env(safe-area-inset-left, 0px)); padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: 14px; }
+.offline-bar span { flex: 1 1 260px; min-width: 0; }
+.offline-bar.a { background: var(--mist); color: var(--ink-2); }
+.offline-bar.erro { background: var(--bad-bg); color: var(--bad); }
+.pend { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.pend.erro { border-color: var(--bad); }
+@media (max-width: 900px) { .offline-bar { margin: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); } }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 @media print {
   body * { visibility: hidden; }
@@ -399,6 +408,7 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
       <button class="icon-btn av-btn" id="user-btn" data-act="conta" aria-label="A minha conta" title="A minha conta"></button>
       <button class="icon-btn sair-btn" data-act="sair" aria-label="Terminar sessão" title="Terminar sessão"><svg class="i"><use href="#i-logout"/></svg></button>
     </header>
+    <div id="offline-bar" class="offline-bar" role="status" hidden></div>
     <main id="main" aria-live="polite"></main>
   </div>
   <nav class="tabbar" id="tabbar"></nav>

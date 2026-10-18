@@ -25,6 +25,22 @@ utilizador e sincronização entre dispositivos.
   - Permissões extra que o administrador pode dar a um vendedor: ver documentos
     de todos, anular, produtos e preços, stock, relatórios.
 
+## Sem internet (modo offline)
+
+- Cada vez que os dados chegam do servidor, fica uma cópia no aparelho (IndexedDB).
+  Sem internet, o sistema abre com essa cópia e mostra "Offline".
+- **Vendas (FR, FT, pró-forma) e clientes novos** podem ser feitos sem internet:
+  ficam numa fila no aparelho e são enviados sozinhos quando a ligação volta,
+  pela ordem em que foram feitos (o cliente antes da venda que o usa).
+- O número oficial (ex.: FR 0012) é dado pelo servidor no envio, para dois
+  aparelhos nunca usarem o mesmo número. Até lá o documento aparece "por enviar".
+- Cada registo leva uma referência única: se a ligação cair a meio do envio,
+  o servidor devolve o documento já criado em vez de o duplicar. A hora gravada
+  é a hora real da venda (aceite até 7 dias para trás).
+- Stock, preços, anulações, utilizadores e definições precisam de internet.
+- A página web abre sem internet graças ao `sw.js` (service worker); a APK e o
+  programa para Windows já têm os ficheiros no aparelho.
+
 ## Como está montado
 
 | Parte | Onde |

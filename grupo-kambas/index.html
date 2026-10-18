@@ -390,6 +390,15 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 @media (max-width: 560px) { .papeis { grid-template-columns: minmax(0, 1fr); } .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media print { .auth { display: none; } }
 
+/* ---------- modo offline */
+.offline-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px max(28px, env(safe-area-inset-right, 0px)) 0 max(28px, env(safe-area-inset-left, 0px)); padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: 14px; }
+.offline-bar span { flex: 1 1 260px; min-width: 0; }
+.offline-bar.a { background: var(--mist); color: var(--ink-2); }
+.offline-bar.erro { background: var(--bad-bg); color: var(--bad); }
+.pend { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.pend.erro { border-color: var(--bad); }
+@media (max-width: 900px) { .offline-bar { margin: 12px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); } }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 @media print {
   body * { visibility: hidden; }
@@ -417,6 +426,7 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
       <button class="icon-btn av-btn" id="user-btn" data-act="conta" aria-label="A minha conta" title="A minha conta"></button>
       <button class="icon-btn sair-btn" data-act="sair" aria-label="Terminar sessão" title="Terminar sessão"><svg class="i"><use href="#i-logout"/></svg></button>
     </header>
+    <div id="offline-bar" class="offline-bar" role="status" hidden></div>
     <main id="main" aria-live="polite"></main>
   </div>
   <nav class="tabbar" id="tabbar"></nav>
@@ -476,7 +486,7 @@ const dataPt = iso => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(
 const horaPt = iso => iso ? iso.slice(11, 16) : "";
 const icon = n => `<svg class="i"><use href="#i-${n}"/></svg>`;
 const inteiro = v => { const n = parseInt(String(v).replace(/[^\d-]/g, ""), 10); return Number.isFinite(n) ? n : NaN; };
-const byId = (lista, id) => lista.find(x => x.id === Number(id));
+const byId = (lista, id) => lista.find(x => String(x.id) === String(id));
 const produto = id => byId(E.produtos, id);
 const utilizador = id => (E.utilizadores || []).find(u => u.id === id);
 const precoPara = (p, q) => (p.tier_qtd && q >= p.tier_qtd ? p.tier_preco : p.preco);
@@ -490,13 +500,14 @@ function precoTexto(p) {
 const precoCurto = p => p.modo === "consulta" ? "Por consulta" : (p.modo === "a_partir" ? "desde " : "") + kz(p.preco);
 
 const TIPOS_DOC = { FR: "Fatura-Recibo", FT: "Fatura", PP: "Fatura Pró-forma" };
-const docNum = f => `${f.tipo} ${nf(f.numero)}`;
+const docNum = f => f.pendente ? `${f.tipo} (por enviar)` : `${f.tipo} ${nf(f.numero)}`;
 const pode = p => !!(E && E.eu && E.eu.perm && E.eu.perm[p]);
 /* documentos que este utilizador pode ver (no Supabase já vêm filtrados; na demonstração filtra-se aqui) */
 const docs = () => (pode("ver_todas") || pode("relatorios")) ? E.faturas : E.faturas.filter(f => f.vendedor_id === E.eu.id);
 /* contam para faturação: FR e FT emitidas (pró-formas não) */
 const emitidas = () => docs().filter(f => f.tipo !== "PP" && f.estado === "emitida");
 function estadoDoc(f) {
+  if (f.pendente) return f.erro ? ["Não aceite", "bad"] : ["Por enviar", "warn"];
   if (f.estado === "anulada") return ["Anulada", "bad"];
   if (f.estado === "convertida") return ["Convertida", ""];
   if (f.tipo === "PP") return ["Em aberto", "brand"];
@@ -724,6 +735,169 @@ const Local = {
   },
 };
 
+/* ============================================================ modo offline: cópia local (IndexedDB) e fila de envio
+   - Cada vez que os dados chegam do servidor, fica uma cópia no aparelho ("estado", por utilizador).
+   - Sem internet, vendas (FR/FT/PP) e clientes novos entram na "fila" e são enviados quando a ligação volta.
+   - Cada registo leva uma referência única (ref_local): se a ligação cair a meio do envio, o servidor
+     devolve o documento já criado em vez de o duplicar. */
+const IDB = {
+  _db: null,
+  abrir() {
+    if (!("indexedDB" in window)) return Promise.reject(new Error("IndexedDB indisponível"));
+    return this._db ||= new Promise((ok, erro) => {
+      const r = indexedDB.open("grupo-kambas", 1);
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore("estado"); d.createObjectStore("fila", { keyPath: "id" }); };
+      r.onsuccess = () => ok(r.result); r.onerror = () => erro(r.error);
+    });
+  },
+  async pedido(loja, modo, fn) {
+    const d = await this.abrir();
+    return new Promise((ok, erro) => { const t = d.transaction(loja, modo); const r = fn(t.objectStore(loja)); t.oncomplete = () => ok(r && r.result); t.onerror = () => erro(t.error); t.onabort = () => erro(t.error); });
+  },
+  ler(loja, chave) { return this.pedido(loja, "readonly", s => s.get(chave)); },
+  todos(loja) { return this.pedido(loja, "readonly", s => s.getAll()); },
+  gravar(loja, valor, chave) { return this.pedido(loja, "readwrite", s => chave === undefined ? s.put(valor) : s.put(valor, chave)); },
+  apagar(loja, chave) { return this.pedido(loja, "readwrite", s => s.delete(chave)); },
+};
+let base = null;          // último estado vindo do servidor
+let fila = [];            // registos por enviar deste utilizador
+let offline = false, guardadoEm = null, aEnviar = false;
+const ULTIMO = "grupo-kambas-ultimo-utilizador";
+const eRede = e => /Failed to fetch|NetworkError|network|Load failed|fetch failed|ERR_INTERNET|ERR_NETWORK|timeout/i.test(String(e && (e.message || e.details) || e || "")) || !navigator.onLine;
+const novaRef = p => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+const ehTemp = id => typeof id === "string" && id.startsWith("tc-");
+
+async function guardarCopia() {
+  try { guardadoEm = isoLocal(); await IDB.gravar("estado", { base, guardadoEm }, base.eu.id); localStorage.setItem(ULTIMO, base.eu.id); } catch (e) { /* sem armazenamento local: continua só online */ }
+}
+async function carregarCopia(uid) {
+  try { const c = uid && await IDB.ler("estado", uid); if (c && c.base) { base = c.base; guardadoEm = c.guardadoEm; return true; } } catch (e) { /* sem cópia */ }
+  return false;
+}
+async function carregarFila(uid) {
+  try { fila = (await IDB.todos("fila")).filter(i => i.uid === uid).sort((a, b) => a.criado.localeCompare(b.criado) || a.id.localeCompare(b.id)); } catch (e) { fila = []; }
+}
+/* E = estado do servidor + o que está na fila (para o utilizador ver logo as vendas feitas offline) */
+function montarE() {
+  E = JSON.parse(JSON.stringify(base));
+  E.faturas = E.faturas || []; E.movimentos = E.movimentos || []; E.utilizadores = E.utilizadores || [];
+  for (const it of fila) {
+    if (it.tipo === "cliente") { E.clientes.push({ ...it.dados, id: it.tmp, ativo: true, pendente: true }); continue; }
+    const d = it.dados;
+    const cli = (d.cliente_id && E.clientes.find(c => String(c.id) === String(d.cliente_id))) || { id: null, nome: "Consumidor final", nif: "", endereco: "", telefone: "" };
+    const itens = d.itens.map((l, k) => ({ id: `${it.id}-${k}`, produto_id: l.produto_id, descricao: l.descricao, qtd: l.qtd, preco_unit: l.preco_unit, total: l.qtd * l.preco_unit }));
+    const subtotal = itens.reduce((s, l) => s + l.total, 0), data = it.criado;
+    let validade = null;
+    if (d.tipo === "PP") { const v = new Date(data.slice(0, 10) + "T12:00:00"); v.setDate(v.getDate() + (E.config.validade_proforma || 15)); validade = isoLocal(v).slice(0, 10); }
+    E.faturas.unshift({ id: it.id, pendente: true, erro: it.erro || null, tipo: d.tipo, numero: null, data, cliente_id: cli.id, cliente_nome: cli.nome, cliente_nif: cli.nif,
+      cliente_endereco: cli.endereco, cliente_telefone: cli.telefone, vendedor_id: E.eu.id, vendedor_nome: E.eu.nome, forma_pagamento: d.forma_pagamento || null,
+      subtotal, desconto: d.desconto || 0, total: subtotal - (d.desconto || 0), observacoes: d.observacoes || "", estado: "emitida", pago: d.tipo === "FR",
+      pago_em: d.tipo === "FR" ? data : null, validade, itens });
+    if (d.tipo !== "PP") itens.forEach(l => { const p = l.produto_id && E.produtos.find(x => x.id === l.produto_id); if (p && p.tipo === "produto") p.stock -= l.qtd; });
+  }
+}
+/* guarda na fila (sem internet) — validações básicas no aparelho; as regras completas correm no servidor ao enviar */
+async function enfileirar(nome, args) {
+  const agora = isoLocal();
+  let item;
+  if (nome === "guardarCliente") {
+    const d = { nome: (args[0].nome || "").trim(), nif: (args[0].nif || "").trim(), endereco: (args[0].endereco || "").trim(), telefone: (args[0].telefone || "").trim() };
+    if (!d.nome) falha("Indique o nome do cliente.");
+    const igual = d.nif && E.clientes.find(c => c.nif === d.nif);
+    if (igual) falha(`Já existe um cliente com o NIF ${d.nif}: ${igual.nome}.`);
+    d.ref_local = args[0].ref_local || novaRef("c");
+    item = { id: novaRef("f"), uid: E.eu.id, tipo: "cliente", tmp: "tc-" + d.ref_local, dados: d, criado: agora };
+  } else {
+    const d = { ...args[0] };
+    if (!d.itens || !d.itens.length) falha("Adicione pelo menos um produto ou serviço.");
+    if (d.tipo === "FR" && !d.forma_pagamento) falha("Escolha a forma de pagamento.");
+    if (d.itens.some(l => !(l.qtd > 0) || !(l.preco_unit > 0))) falha("Há itens sem quantidade ou preço.");
+    if (d.tipo !== "PP") {
+      const precisa = {}; d.itens.forEach(l => { const p = produto(l.produto_id); if (p && p.tipo === "produto") precisa[p.id] = (precisa[p.id] || 0) + l.qtd; });
+      for (const [pid, q] of Object.entries(precisa)) { const p = produto(pid); if (q > p.stock) falha(`Stock insuficiente de ${p.nome}: pediu ${q}, há ${p.stock} (stock da última sincronização).`); }
+    }
+    d.ref_local = d.ref_local || novaRef("v");
+    d.data_local = new Date().toISOString();
+    d.observacoes = `${d.observacoes || ""}\nRegistado sem internet em ${dataPt(agora)} ${horaPt(agora)}`.trim();
+    item = { id: novaRef("f"), uid: E.eu.id, tipo: "doc", dados: d, criado: agora };
+  }
+  try { await IDB.gravar("fila", item); } catch (e) { falha("Este aparelho não deixa guardar dados offline (modo privado?). Ligue-se à internet para registar."); }
+  fila.push(item);
+  montarE(); marcarSync(offline ? "off" : "a");
+  return item.tipo === "cliente" ? E.clientes.find(c => c.id === item.tmp) : E.faturas.find(f => f.id === item.id);
+}
+/* envia a fila pela ordem em que foi criada */
+async function enviarFila() {
+  if (DEMO || aEnviar || !fila.some(i => !i.erro) || !navigator.onLine) return;
+  aEnviar = true; let enviados = 0, comErro = 0;
+  try {
+    for (const it of [...fila]) {
+      if (it.erro) continue;
+      marcarSync("enviar");
+      try {
+        if (it.tipo === "cliente") {
+          const { data, error } = await sb.rpc("guardar_cliente", { d: it.dados, p_id: null });
+          if (error) throw error;
+          for (const o of fila) if (o.tipo === "doc" && o.dados.cliente_id === it.tmp) { o.dados.cliente_id = data.id; await IDB.gravar("fila", o); }
+          if (venda.cliente_id === it.tmp) venda.cliente_id = String(data.id);
+        } else {
+          const d = { ...it.dados };
+          if (ehTemp(d.cliente_id)) { const espera = fila.find(o => o.tmp === d.cliente_id); if (espera) throw new ErroNegocio(`Falta enviar primeiro o cliente ${espera.dados.nome}.`); d.cliente_id = null; }
+          const { data, error } = await sb.rpc("registar_documento", { d });
+          if (error) throw error;
+          it.enviadoComo = docNum(data);
+        }
+        await IDB.apagar("fila", it.id); fila = fila.filter(x => x !== it); enviados++;
+      } catch (e) {
+        if (eRede(e)) { offline = true; break; }
+        it.erro = mensagemErro(e); comErro++;
+        try { await IDB.gravar("fila", it); } catch (er) { /* fica só em memória */ }
+      }
+    }
+  } finally { aEnviar = false; }
+  if (enviados || comErro) {
+    try { await recarregar(); offline = false; } catch (e) { montarE(); }
+    aplicarSync(); mostrarEstado();
+    if (enviados) toast(`${enviados} registo${enviados === 1 ? "" : "s"} feito${enviados === 1 ? "" : "s"} sem internet ${enviados === 1 ? "foi enviado" : "foram enviados"}`);
+    if (comErro) toast(`${comErro} registo${comErro === 1 ? "" : "s"} não ${comErro === 1 ? "foi aceite" : "foram aceites"} pelo servidor. Veja os pendentes.`);
+  } else mostrarEstado();
+}
+function entrarOffline() { offline = true; mostrarEstado(); }
+function mostrarEstado() {
+  const bar = $("#offline-bar"); if (!bar || DEMO) return;
+  const n = fila.length, erros = fila.filter(i => i.erro).length;
+  if (offline) {
+    bar.hidden = false; bar.className = "offline-bar";
+    bar.innerHTML = `<span><b>Sem internet.</b> A mostrar os dados guardados${guardadoEm ? ` às ${horaPt(guardadoEm)} de ${dataPt(guardadoEm)}` : ""}. Vendas e clientes novos ficam guardados e são enviados quando a ligação voltar.</span>${n ? `<button class="btn sm" data-act="pendentes">${n} por enviar</button>` : ""}`;
+  } else if (n) {
+    bar.hidden = false; bar.className = "offline-bar " + (erros ? "erro" : "a");
+    bar.innerHTML = `<span>${erros ? `<b>${erros} registo${erros === 1 ? "" : "s"} não ${erros === 1 ? "foi aceite" : "foram aceites"}.</b> Veja o motivo e decida.` : `A enviar ${n} registo${n === 1 ? "" : "s"} feito${n === 1 ? "" : "s"} sem internet…`}</span><button class="btn sm" data-act="pendentes">Ver pendentes</button>`;
+  } else bar.hidden = true;
+  marcarSync(offline ? "off" : n ? "a" : "ok");
+}
+function verPendentes() {
+  abrir(`<div class="sheet"><div class="sheet-h"><h2>Por enviar</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b">${fila.length ? fila.map(it => `<div class="pend ${it.erro ? "erro" : ""}">
+        <div><b>${it.tipo === "cliente" ? `Cliente: ${esc(it.dados.nome)}` : `${TIPOS_DOC[it.dados.tipo]} · ${kz(it.dados.itens.reduce((s, l) => s + l.qtd * l.preco_unit, 0) - (it.dados.desconto || 0))}`}</b>
+        <div class="cod">Feito em ${dataPt(it.criado)} ${horaPt(it.criado)}${it.erro ? "" : " · à espera de ligação"}</div>${it.erro ? `<div class="err" style="margin-top:6px">${esc(it.erro)}</div>` : ""}</div>
+        ${it.erro ? `<div class="toolbar"><button class="btn sm" data-act="fila-tentar" data-id="${it.id}">Tentar outra vez</button><button class="btn sm danger" data-act="fila-descartar" data-id="${it.id}">Descartar</button></div>` : ""}</div>`).join("")
+      : `<div class="empty">Nada por enviar. Está tudo sincronizado.</div>`}
+      <p class="cod" style="margin:0">Os números oficiais (ex.: FR 0012) são dados pelo servidor no envio, para dois aparelhos nunca usarem o mesmo número.</p></div>
+    <div class="sheet-f"><span class="sp"></span>${navigator.onLine && fila.length ? `<button class="btn pri" data-act="fila-enviar">Enviar agora</button>` : `<button class="btn pri" data-act="fechar">Fechar</button>`}</div></div>`);
+}
+async function descartarDaFila(id) {
+  const it = fila.find(i => i.id === id); if (!it) return;
+  if (it.tipo === "cliente") for (const o of fila) if (o.tipo === "doc" && o.dados.cliente_id === it.tmp) { o.dados.cliente_id = null; o.erro = null; try { await IDB.gravar("fila", o); } catch (e) { /* memória */ } }
+  try { await IDB.apagar("fila", id); } catch (e) { /* memória */ }
+  fila = fila.filter(i => i !== it); montarE(); mostrarEstado();
+}
+setInterval(() => { if (!DEMO && E && fila.length && navigator.onLine) enviarFila(); }, 30000);
+function registarServiceWorker() {
+  if (!("serviceWorker" in navigator) || eNativo() || navigator.userAgent.includes("Electron")) return;
+  if (location.protocol !== "https:" && location.hostname !== "localhost") return;
+  navigator.serviceWorker.register("sw.js").catch(() => { /* a página funciona na mesma, só sem abrir offline */ });
+}
+
 /* ============================================================ acesso aos dados */
 const RPC = {
   registarDocumento: d => ["registar_documento", { d }],
@@ -756,27 +930,45 @@ async function chamarFuncao(corpo) {
 }
 async function recarregar() {
   const { data, error } = await sb.rpc("estado");
-  if (error) throw new ErroNegocio(mensagemErro(error));
-  E = data;
-  E.faturas = E.faturas || []; E.movimentos = E.movimentos || []; E.utilizadores = E.utilizadores || [];
+  if (error) { const er = new ErroNegocio(mensagemErro(error)); er.rede = eRede(error); throw er; }
+  base = data; base.faturas = base.faturas || []; base.movimentos = base.movimentos || []; base.utilizadores = base.utilizadores || [];
+  offline = false;
+  montarE();
+  guardarCopia();
 }
+/* sem internet só se podem registar vendas e clientes novos; o resto precisa do servidor */
+const SO_ONLINE = "Sem internet: esta operação precisa de ligação. Sem internet pode fazer vendas (FR, FT, pró-forma) e registar clientes novos.";
+const podeOffline = (nome, args) => nome === "registarDocumento" || (nome === "guardarCliente" && !args[1]);
 async function acao(nome, ...args) {
   if (DEMO) {
     const copia = JSON.stringify(E);
     try { const res = Local[nome](...args); guardarLocal(); return JSON.parse(JSON.stringify(res ?? null)); }
     catch (e) { E = JSON.parse(copia); throw e; }
   }
+  // referência única em vendas e clientes novos: se a resposta se perder, o envio repetido não duplica
+  if (podeOffline(nome, args)) args[0] = { ...args[0], ref_local: args[0].ref_local || novaRef(nome === "guardarCliente" ? "c" : "v") };
+  if (nome === "registarDocumento" && ehTemp(args[0].cliente_id) || offline || !navigator.onLine) {
+    if (!podeOffline(nome, args)) falha(SO_ONLINE);
+    return enfileirar(nome, args);
+  }
   let res;
-  if (FUNCAO_UTILIZADORES[nome]) res = await chamarFuncao(FUNCAO_UTILIZADORES[nome](...args));
-  else {
-    const [fn, params] = RPC[nome](...args);
-    const { data, error } = await sb.rpc(fn, params);
-    if (error) throw new ErroNegocio(mensagemErro(error));
-    res = data;
+  try {
+    if (FUNCAO_UTILIZADORES[nome]) res = await chamarFuncao(FUNCAO_UTILIZADORES[nome](...args));
+    else {
+      const [fn, params] = RPC[nome](...args);
+      const { data, error } = await sb.rpc(fn, params);
+      if (error) { const er = new ErroNegocio(mensagemErro(error)); er.rede = eRede(error); throw er; }
+      res = data;
+    }
+  } catch (e) {
+    if (!(e.rede || eRede(e))) throw e;
+    entrarOffline();
+    if (!podeOffline(nome, args)) falha(SO_ONLINE);
+    return enfileirar(nome, args);
   }
   marcarSync("a");
-  await recarregar();
-  marcarSync("ok");
+  try { await recarregar(); } catch (e) { if (e.rede) entrarOffline(); }
+  mostrarEstado();
   return res;
 }
 
@@ -888,7 +1080,7 @@ function tabelaFaturas(lista, curta = false) {
   const comVend = pode("ver_todas") && !curta;
   return `<div class="tbl-wrap"><table class="t"><thead><tr><th>Nº</th><th>Data</th><th>Cliente</th>${comVend ? '<th class="hide-m">Vendedor</th>' : ""}<th class="r">Total</th><th>Estado</th></tr></thead><tbody>
     ${lista.map(f => { const [et, ec] = estadoDoc(f); return `<tr class="click ${f.estado === "anulada" ? "anulada" : ""}" data-act="ver-fatura" data-id="${f.id}">
-      <td><span class="tdoc t-${f.tipo}">${f.tipo}</span> <span class="nf">${nf(f.numero)}</span></td><td class="num">${dataPt(f.data)}<div class="muted">${horaPt(f.data)}</div></td>
+      <td><span class="tdoc t-${f.tipo}">${f.tipo}</span> <span class="nf">${f.pendente ? "—" : nf(f.numero)}</span></td><td class="num">${dataPt(f.data)}<div class="muted">${horaPt(f.data)}</div></td>
       <td>${esc(f.cliente_nome)}</td>${comVend ? `<td class="hide-m muted">${esc(f.vendedor_nome)}</td>` : ""}
       <td class="r num strong val">${kz(f.total)}</td><td><span class="chip ${ec}">${et}</span></td></tr>`; }).join("")}
   </tbody></table></div>`;
@@ -953,16 +1145,17 @@ function papelFatura(f) {
 }
 function verFatura(id, acabada = false) {
   const f = byId(E.faturas, id); if (!f) return;
-  const meu = f.vendedor_id === E.eu.id || pode("ver_todas");
+  const meu = (f.vendedor_id === E.eu.id || pode("ver_todas")) && !f.pendente;
   const acoes = [];
   if (f.estado === "emitida" && f.tipo === "PP" && meu && pode("vender")) acoes.push(`<button class="btn pri" data-act="converter" data-id="${f.id}">Converter em fatura</button>`);
   if (f.estado === "emitida" && f.tipo === "FT" && !f.pago && meu) acoes.push(`<button class="btn pri" data-act="pagar" data-id="${f.id}">Registar pagamento</button>`);
   abrir(`<div class="sheet wide"><div class="sheet-h"><h2>${TIPOS_DOC[f.tipo]} ${docNum(f)}</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
     <div class="sheet-b">${papelFatura(f)}
-      ${DEMO ? `<div class="note">Na versão instalada (página web ou APK) este documento descarrega-se em PDF, com este mesmo desenho.</div>` : ""}</div>
-    <div class="sheet-f">${f.estado === "emitida" && pode("anular") && !acabada ? `<button class="btn danger" data-act="anular" data-id="${f.id}">Anular</button>` : ""}<span class="sp"></span>
+      ${DEMO ? `<div class="note">Na versão instalada (página web ou APK) este documento descarrega-se em PDF, com este mesmo desenho.</div>` : ""}
+      ${f.pendente ? `<div class="note warn">${f.erro ? `O servidor não aceitou este documento: ${esc(f.erro)}` : "Feito sem internet. O número oficial é atribuído quando a ligação voltar; o PDF fica disponível depois disso."}</div>` : ""}</div>
+    <div class="sheet-f">${f.estado === "emitida" && pode("anular") && !acabada && !f.pendente ? `<button class="btn danger" data-act="anular" data-id="${f.id}">Anular</button>` : ""}<span class="sp"></span>
       <a class="btn" href="https://wa.me/?text=${encodeURIComponent(resumoFatura(f))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn" data-act="copiar-fatura" data-id="${f.id}">Copiar</button>
-      ${DEMO ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}">${icon("down")}PDF</button>${eNativo() ? "" : `<button class="btn" data-act="imprimir">${icon("print")}Imprimir</button>`}`}
+      ${DEMO || f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}">${icon("down")}PDF</button>${eNativo() ? "" : `<button class="btn" data-act="imprimir">${icon("print")}Imprimir</button>`}`}
       ${acabada ? `<button class="btn" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}${acoes.join("")}</div></div>`);
 }
 function anular(id) {
@@ -1183,10 +1376,10 @@ async function emitir() {
   let obs = venda.obs.trim();
   if (venda.tipo === "FR" && venda.forma === "Numerário" && venda.recebido) obs = `${obs}\nRecebido: ${kz(venda.recebido)} · ${venda.recebido >= tot ? "Troco: " + kz(venda.recebido - tot) : "Falta: " + kz(tot - venda.recebido)}`.trim();
   try {
-    const f = await acao("registarDocumento", { tipo: venda.tipo, cliente_id: venda.cliente_id ? Number(venda.cliente_id) : null, forma_pagamento: venda.tipo === "FR" ? venda.forma : null, desconto: desc, observacoes: obs,
+    const f = await acao("registarDocumento", { tipo: venda.tipo, cliente_id: venda.cliente_id ? (ehTemp(venda.cliente_id) ? venda.cliente_id : Number(venda.cliente_id)) : null, forma_pagamento: venda.tipo === "FR" ? venda.forma : null, desconto: desc, observacoes: obs,
       itens: venda.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
     Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null });
-    render(); toast(`${docNum(f)} emitida`); verFatura(f.id, true);
+    render(); toast(f.pendente ? "Venda guardada neste aparelho. É enviada quando houver internet." : `${docNum(f)} emitida`); verFatura(f.id, true);
   } catch (e) { err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
 }
 
@@ -1871,7 +2064,13 @@ const ACOES = {
   "editar-utilizador": el => formUtilizador(el.dataset.id),
   "conta": () => conta(),
   "demo-ver": el => { E._eu = el.dataset.id; Local.atualizarEu(); guardarLocal(); fechar(); Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "" }); navegar(); toast(`A ver como ${E.eu.nome}`); },
-  "sair": () => confirmar("Terminar sessão?", `Vai sair da conta de <b>${esc(E.eu.nome)}</b>. Para voltar a entrar precisa do utilizador e da senha.`, "Terminar sessão", terminarSessao),
+  "sair": () => fila.length
+    ? confirmar("Há registos por enviar", `Tem <b>${fila.length}</b> registo${fila.length === 1 ? "" : "s"} feito${fila.length === 1 ? "" : "s"} sem internet que ainda não ${fila.length === 1 ? "chegou" : "chegaram"} ao servidor. Se terminar a sessão agora, perdem-se. Ligue-se à internet e espere pelo envio, ou confirme para descartar.`, "Terminar e descartar", terminarSessao)
+    : confirmar("Terminar sessão?", `Vai sair da conta de <b>${esc(E.eu.nome)}</b>. Para voltar a entrar precisa do utilizador e da senha.`, "Terminar sessão", terminarSessao),
+  "pendentes": () => verPendentes(),
+  "fila-enviar": async () => { fechar(); await enviarFila(); },
+  "fila-tentar": async el => { const it = fila.find(i => i.id === el.dataset.id); if (it) { it.erro = null; try { await IDB.gravar("fila", it); } catch (e) {} } fechar(); await enviarFila(); },
+  "fila-descartar": el => confirmar("Descartar este registo?", "Fica apagado deste aparelho e não chega ao servidor.", "Descartar", async () => { await descartarDaFila(el.dataset.id); fechar(); render(); toast("Registo descartado"); }),
   "repor": () => confirmar("Recomeçar a demonstração?", "Apaga tudo o que foi registado neste navegador e volta aos dados de exemplo.", "Recomeçar", async () => { try { localStorage.removeItem(CHAVE); } catch (e) {} Local.novo(); guardarLocal(); fechar(); navegar(); toast("Demonstração reposta"); }),
 };
 document.addEventListener("click", e => {
@@ -1887,8 +2086,9 @@ window.addEventListener("hashchange", () => { if (!E) return; $("#layer").innerH
 let pendente = false, tSync = null, canal = null;
 function marcarSync(estado) {
   const el = $("#mode"); if (!el || DEMO) return;
-  el.className = "mode " + ({ ok: "srv", a: "", off: "off" }[estado] || "");
-  el.textContent = { ok: "Sincronizado", a: "A sincronizar…", off: "Sem ligação" }[estado];
+  const n = fila.length;
+  el.className = "mode " + ({ ok: "srv", a: "", enviar: "", off: "off" }[estado] || "");
+  el.textContent = { ok: "Sincronizado", a: n ? `${n} por enviar` : "A sincronizar…", enviar: "A enviar…", off: n ? `Offline · ${n} por enviar` : "Offline" }[estado];
 }
 function aplicarSync() {
   const foco = document.activeElement;
@@ -1898,17 +2098,17 @@ function aplicarSync() {
 function agendarSync() {
   clearTimeout(tSync);
   tSync = setTimeout(async () => {
-    try { marcarSync("a"); await recarregar(); marcarSync("ok"); aplicarSync(); }
-    catch (e) { marcarSync("off"); if (/sessão/i.test(e.message)) location.reload(); }
+    try { marcarSync("a"); await recarregar(); mostrarEstado(); aplicarSync(); enviarFila(); }
+    catch (e) { if (e.rede) { entrarOffline(); return; } if (/sessão/i.test(e.message)) location.reload(); }
   }, 400);
 }
 document.addEventListener("focusout", () => { if (pendente) setTimeout(() => { if (pendente) aplicarSync(); }, 250); });
 function ligarTempoReal() {
   canal = sb.channel("kambas-dados")
     .on("postgres_changes", { event: "*", schema: "public" }, () => agendarSync())
-    .subscribe(st => { if (st === "SUBSCRIBED") marcarSync("ok"); else if (st === "CHANNEL_ERROR" || st === "TIMED_OUT") marcarSync("off"); });
-  window.addEventListener("online", agendarSync);
-  window.addEventListener("offline", () => marcarSync("off"));
+    .subscribe(st => { if (st === "SUBSCRIBED") mostrarEstado(); /* se o tempo real falhar, os dados continuam a atualizar ao voltar à aplicação */ });
+  window.addEventListener("online", () => { agendarSync(); setTimeout(enviarFila, 1500); });
+  window.addEventListener("offline", () => entrarOffline());
   document.addEventListener("visibilitychange", () => { if (!document.hidden) agendarSync(); });
 }
 
@@ -1961,13 +2161,20 @@ async function mostrarEntrada(msg) {
   try { const { data } = await sb.rpc("precisa_configurar"); if (data === true) return ecraConfigurar(); } catch (e) { /* sem rede: mostra login */ }
   ecraLogin(msg);
 }
-async function entrarNaApp() {
+async function entrarNaApp(uid) {
+  uid = uid || (await sb.auth.getSession().catch(() => ({ data: {} }))).data?.session?.user?.id || localStorage.getItem(ULTIMO);
+  await carregarFila(uid);
   try { await recarregar(); }
-  catch (e) { await sb.auth.signOut(); return mostrarEntrada(/sessão|permission/i.test(e.message) ? "A sua conta não tem acesso ativo. Fale com o administrador." : e.message); }
+  catch (e) {
+    if (e.rede && await carregarCopia(uid)) { montarE(); entrarOffline(); }
+    else if (e.rede) { $("#app").hidden = true; return ecraLogin("Sem internet e sem dados guardados neste aparelho. Ligue-se uma vez à internet para começar a usar o modo offline."); }
+    else { await sb.auth.signOut(); return mostrarEntrada(/sessão|permission/i.test(e.message) ? "A sua conta não tem acesso ativo. Fale com o administrador." : e.message); }
+  }
   $("#auth").hidden = true; $("#app").hidden = false;
-  marcarSync("ok");
+  mostrarEstado();
   if (!canal) ligarTempoReal();
   navegar();
+  enviarFila();
 }
 
 async function terminarSessao() {
@@ -1975,7 +2182,8 @@ async function terminarSessao() {
   fechar();
   if (DEMO) { E._sessao = false; guardarLocal(); history.replaceState(null, "", location.pathname + location.search); return ecraLoginDemo("Sessão terminada."); }
   try { if (canal) await sb.removeChannel(canal); await sb.auth.signOut(); } catch (e) { /* termina na mesma neste aparelho */ }
-  try { localStorage.removeItem("grupo-kambas-sessao"); } catch (e) { /* sem armazenamento */ }
+  try { localStorage.removeItem("grupo-kambas-sessao"); localStorage.removeItem(ULTIMO); } catch (e) { /* sem armazenamento */ }
+  try { await IDB.apagar("estado", E.eu.id); for (const it of fila) await IDB.apagar("fila", it.id); } catch (e) { /* nada guardado */ }
   location.hash = ""; location.reload();
 }
 function ecraLoginDemo(msg = "") {
@@ -2009,8 +2217,13 @@ function ecraLoginDemo(msg = "") {
   }
   sb = window.supabase.createClient(SUPA.url, SUPA.chave, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "grupo-kambas-sessao" } });
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT" && E) location.reload(); });
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) await entrarNaApp(); else await mostrarEntrada();
+  registarServiceWorker();
+  let session = null;
+  try { session = (await sb.auth.getSession()).data.session; } catch (e) { /* sem rede para renovar a sessão */ }
+  const ultimo = (() => { try { return localStorage.getItem(ULTIMO); } catch (e) { return null; } })();
+  if (session) await entrarNaApp(session.user.id);
+  else if (!navigator.onLine && ultimo) await entrarNaApp(ultimo);
+  else await mostrarEntrada();
 })();
 
 </script>

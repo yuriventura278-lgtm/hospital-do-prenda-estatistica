@@ -43,7 +43,8 @@ create table if not exists public.clientes (
   telefone text not null default '',
   ativo boolean not null default true,
   criado_por uuid references public.perfis(id) on delete set null,
-  criado_em timestamptz not null default now()
+  criado_em timestamptz not null default now(),
+  ref_local text unique
 );
 
 -- FR = Fatura-Recibo (paga no acto), FT = Fatura (a pagar), PP = Fatura Pró-forma
@@ -69,6 +70,7 @@ create table if not exists public.documentos (
   pago_em timestamptz,
   validade date,
   origem_id bigint references public.documentos(id) on delete set null,
+  ref_local text unique,   -- referência criada no aparelho (vendas offline: evita duplicados)
   unique (tipo, numero)
 );
 create index if not exists documentos_data_idx on public.documentos (data);
@@ -200,7 +202,20 @@ declare
   v_precisa jsonb := '{}'::jsonb; v_linhas jsonb := '[]'::jsonb;
   v_sub integer := 0; v_desconto integer; v_cli clientes;
   v_num integer; v_num_cfg jsonb; v_id bigint; v_k text; v_v jsonb; v_ref text;
+  v_data timestamptz := now(); v_ref_local text := nullif(d ->> 'ref_local', ''); v_existe bigint;
 begin
+  -- vendas feitas sem internet: a mesma referência nunca cria dois documentos
+  if v_ref_local is not null then
+    select id into v_existe from documentos where ref_local = v_ref_local;
+    if v_existe is not null then return _doc_json(v_existe); end if;
+  end if;
+  begin
+    if nullif(d ->> 'data_local', '') is not null
+       and (d ->> 'data_local')::timestamptz between now() - interval '7 days' and now() + interval '5 minutes' then
+      v_data := (d ->> 'data_local')::timestamptz;
+    end if;
+  exception when others then v_data := now();
+  end;
   if v_tipo not in ('FR', 'FT', 'PP') then perform _erro('Tipo de documento inválido.'); end if;
   if jsonb_typeof(d -> 'itens') is distinct from 'array' or jsonb_array_length(d -> 'itens') = 0 then
     perform _erro('Adicione pelo menos um produto ou serviço.');
@@ -257,13 +272,13 @@ begin
     from documentos where tipo = v_tipo;
   update config set valor = jsonb_set(valor, array[v_tipo], to_jsonb(v_num + 1)) where chave = 'numeracao';
 
-  insert into documentos (tipo, numero, cliente_id, cliente_nome, cliente_nif, cliente_endereco, cliente_telefone,
+  insert into documentos (data, ref_local, tipo, numero, cliente_id, cliente_nome, cliente_nif, cliente_endereco, cliente_telefone,
                           vendedor_id, vendedor_nome, forma_pagamento, subtotal, desconto, total, observacoes,
                           pago, pago_em, validade, origem_id)
-  values (v_tipo, v_num, v_cli.id, coalesce(v_cli.nome, 'Consumidor final'), coalesce(v_cli.nif, ''),
+  values (v_data, v_ref_local, v_tipo, v_num, v_cli.id, coalesce(v_cli.nome, 'Consumidor final'), coalesce(v_cli.nif, ''),
           coalesce(v_cli.endereco, ''), coalesce(v_cli.telefone, ''), v_eu.id, v_eu.nome, v_forma,
           v_sub, v_desconto, v_sub - v_desconto, trim(coalesce(d ->> 'observacoes', '')),
-          v_tipo = 'FR', case when v_tipo = 'FR' then now() end,
+          v_tipo = 'FR', case when v_tipo = 'FR' then v_data end,
           case when v_tipo = 'PP' then current_date + coalesce((cfg_valor('validade_proforma') #>> '{}')::integer, 15) end,
           nullif(d ->> 'origem_id', '')::bigint)
   returning id into v_id;
@@ -446,8 +461,12 @@ declare
   v_eu perfis := exigir('vender');
   v_nome text := trim(coalesce(d ->> 'nome', ''));
   v_nif text := trim(coalesce(d ->> 'nif', ''));
-  v_igual text; v_id bigint;
+  v_igual text; v_id bigint; v_ref_local text := nullif(d ->> 'ref_local', '');
 begin
+  if p_id is null and v_ref_local is not null then
+    select id into v_id from clientes where ref_local = v_ref_local;
+    if v_id is not null then return (select to_jsonb(c) from clientes c where id = v_id); end if;
+  end if;
   if v_nome = '' then perform _erro('Indique o nome do cliente.'); end if;
   if v_nif <> '' then
     select nome into v_igual from clientes where ativo and nif = v_nif and id is distinct from p_id limit 1;
@@ -458,8 +477,8 @@ begin
            telefone = trim(coalesce(d ->> 'telefone', '')) where id = p_id and ativo returning id into v_id;
     if v_id is null then perform _erro('Cliente não encontrado.'); end if;
   else
-    insert into clientes (nome, nif, endereco, telefone, criado_por)
-    values (v_nome, v_nif, trim(coalesce(d ->> 'endereco', '')), trim(coalesce(d ->> 'telefone', '')), v_eu.id)
+    insert into clientes (nome, nif, endereco, telefone, criado_por, ref_local)
+    values (v_nome, v_nif, trim(coalesce(d ->> 'endereco', '')), trim(coalesce(d ->> 'telefone', '')), v_eu.id, v_ref_local)
     returning id into v_id;
   end if;
   return (select to_jsonb(c) from clientes c where id = v_id);
@@ -579,3 +598,7 @@ language sql security definer set search_path = public, privado as $$
 $$;
 revoke execute on function public.validar_codigo_configuracao(text), public.concluir_configuracao() from public, anon, authenticated;
 grant execute on function public.validar_codigo_configuracao(text), public.concluir_configuracao() to service_role;
+
+-- ================================================================ modo offline (bases já existentes)
+alter table public.documentos add column if not exists ref_local text unique;
+alter table public.clientes add column if not exists ref_local text unique;
