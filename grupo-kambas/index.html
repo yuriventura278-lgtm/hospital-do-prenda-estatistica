@@ -1200,11 +1200,10 @@ function verFatura(id, acabada = false) {
   if (f.estado === "emitida" && f.tipo === "FT" && !f.pago && meu) acoes.push(`<button class="btn pri" data-act="pagar" data-id="${f.id}">Registar pagamento</button>`);
   abrir(`<div class="sheet wide"><div class="sheet-h"><h2>${TIPOS_DOC[f.tipo]} ${docNum(f)}</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
     <div class="sheet-b">${papelFatura(f)}
-      ${DEMO ? `<div class="note">Na versão instalada (página web ou APK) este documento descarrega-se em PDF, com este mesmo desenho.</div>` : ""}
       ${f.pendente ? `<div class="note warn">${f.erro ? `O servidor não aceitou este documento: ${esc(f.erro)}` : "Feito sem internet. O número oficial é atribuído quando a ligação voltar; o PDF fica disponível depois disso."}</div>` : ""}</div>
     <div class="sheet-f">${f.estado === "emitida" && pode("anular") && !acabada && !f.pendente ? `<button class="btn danger" data-act="anular" data-id="${f.id}">Anular</button>` : ""}<span class="sp"></span>
       <button class="btn" data-act="copiar-fatura" data-id="${f.id}">Copiar resumo</button>
-      ${DEMO || f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}">${icon("down")}PDF</button><button class="btn" data-act="imprimir" data-id="${f.id}">${icon("print")}Imprimir</button>`}
+      ${f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}">${icon("down")}PDF</button><button class="btn" data-act="imprimir" data-id="${f.id}">${icon("print")}Imprimir</button>`}
       ${acabada ? `<button class="btn" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}${acoes.join("")}</div></div>`);
 }
 function anular(id) {
@@ -1711,9 +1710,8 @@ function vRelatorios() {
       <div class="sp"></div>
       <input type="date" class="f" id="rdata" value="${rel.ref}" aria-label="Escolher data" style="width:auto">
       ${ehAtual ? "" : `<button class="btn sm" data-act="rel-hoje">Atual</button>`}
-      ${DEMO ? "" : `<button class="btn pri" data-act="pdf-relatorio">${icon("down")}Relatório PDF</button>`}
+      <button class="btn pri" data-act="pdf-relatorio">${icon("down")}Guardar PDF</button>
     </div>
-    ${DEMO ? `<div class="note">Na versão instalada (página web ou APK) o botão <b>Relatório PDF</b> descarrega este relatório, com os mesmos números.</div>` : ""}
     <section class="kpis">
       <div class="kpi hero"><span class="lab">Faturação</span><span class="val num">${fmt(r.faturacao)} <small>Kz</small></span><span class="ft">${varTxt}</span></div>
       <div class="kpi"><span class="lab">Faturas emitidas</span><span class="val num">${r.n_faturas}</span><span class="ft">recebido ${kz(r.recebido)} · por receber ${kz(r.por_receber)}</span></div>
@@ -1889,8 +1887,15 @@ async function guardarPdf(doc, nome, imprimir = false) {
   if (eNativo()) {
     const { Filesystem, Share } = window.Capacitor.Plugins;
     const dados = doc.output("datauristring").split(",")[1];
+    if (!imprimir) {
+      // guarda uma cópia em Documentos/Grupo Kambas no telemóvel
+      try {
+        await Filesystem.writeFile({ path: "Grupo Kambas/" + nome, data: dados, directory: "DOCUMENTS", recursive: true });
+        toast("PDF guardado em Documentos › Grupo Kambas");
+      } catch (e) { /* sem acesso à pasta: fica só a partilha */ }
+    }
     const r = await Filesystem.writeFile({ path: nome, data: dados, directory: "CACHE" });
-    await Share.share({ title: nome, files: [r.uri], dialogTitle: imprimir ? "Escolha a impressora ou a app de impressão" : "Partilhar ou guardar o PDF" });
+    await Share.share({ title: nome, files: [r.uri], dialogTitle: imprimir ? "Escolha a impressora ou a app de impressão" : "Enviar ou abrir o PDF" });
   } else doc.save(nome);
 }
 /* Imprimir: no navegador e no Windows abre a janela de impressão só com o documento;

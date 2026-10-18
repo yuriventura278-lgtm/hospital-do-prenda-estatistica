@@ -49,7 +49,7 @@ def logo(nome):
         return "data:image/png;base64," + base64.b64encode(f.read()).decode()
 
 
-def montar(real):
+def montar(real, embutir_pdf=False):
     with open(os.path.join(PASTA, "web", "template.html"), encoding="utf-8") as f:
         html = f.read()
     with open(os.path.join(PASTA, "web", "app.js"), encoding="utf-8") as f:
@@ -67,6 +67,10 @@ def montar(real):
     js = (js.replace("/*__SEED__*/null", json.dumps(seed, ensure_ascii=False).replace("</", "<\\/"))
             .replace('"__LOGO_AZUL__"', json.dumps(logo("logo_azul.png"))))
     ligacao = ""
+    if embutir_pdf:  # demonstração publicada sozinha (sem a pasta vendor/): PDF embutido
+        for nome in ("jspdf.umd.min.js", "jspdf.plugin.autotable.min.js"):
+            with open(os.path.join(PASTA, "vendor", nome), encoding="utf-8") as f:
+                ligacao += "<script>" + f.read() + "</script>\n"
     if real:
         ligacao = ("<script>window.KAMBAS_SUPABASE = " + json.dumps(SUPABASE) + ";</script>\n"
                    '<script src="vendor/supabase.js"></script>')
@@ -137,7 +141,7 @@ def escrever(caminho, texto):
 if __name__ == "__main__":
     args = sys.argv[1:]
     if "--demo" in args:
-        escrever(args[args.index("--demo") + 1], montar(real=False))
+        escrever(args[args.index("--demo") + 1], montar(real=False, embutir_pdf=True))
     elif "--apk" in args:
         destino = args[args.index("--apk") + 1]
         os.makedirs(destino, exist_ok=True)
