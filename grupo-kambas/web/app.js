@@ -355,7 +355,8 @@ function navegar() {
   $("#page-title").textContent = vista === "painel" && !pode("ver_todas") ? "As minhas vendas" : TITULOS[vista];
   const ini = ((E.eu.nome || "").match(/[\p{L}\d]+/gu) || ["?"]).map(s => s[0]).slice(0, 2).join("").toUpperCase();
   $("#user-btn").textContent = ini;
-  $("#rail-user").innerHTML = `<button class="ru" data-act="conta"><span class="av">${esc(ini)}</span><span><b>${esc(E.eu.nome)}</b><small>${E.eu.papel === "admin" ? "Administrador" : "Vendedor"}${DEMO ? " · demonstração" : ""}</small></span></button>`;
+  $("#rail-user").innerHTML = `<button class="ru" data-act="conta"><span class="av">${esc(ini)}</span><span><b>${esc(E.eu.nome)}</b><small>${E.eu.papel === "admin" ? "Administrador" : "Vendedor"}${DEMO ? " · demonstração" : ""}</small></span></button>
+    <button class="ru-sair" data-act="sair">${icon("logout")}Terminar sessão</button>`;
   render();
   window.scrollTo(0, 0);
 }
@@ -1170,7 +1171,7 @@ function conta() {
       : `<div class="field"><span>Mudar senha</span><div class="grid2"><input class="f" id="s-nova" type="password" autocomplete="new-password" placeholder="Nova senha (mín. 6)"><input class="f" id="s-conf" type="password" autocomplete="new-password" placeholder="Repetir a nova senha"></div></div>`}
       <div id="frm-err"></div>
     </div>
-    <div class="sheet-f">${DEMO ? "" : `<button type="button" class="btn danger" data-act="sair">Sair</button>`}<span class="sp"></span><button type="button" class="btn" data-act="fechar">Fechar</button>${DEMO ? "" : `<button class="btn pri">Guardar senha</button>`}</div></form>`,
+    <div class="sheet-f"><button type="button" class="btn danger" data-act="sair">${icon("logout")}Terminar sessão</button><span class="sp"></span><button type="button" class="btn" data-act="fechar">Fechar</button>${DEMO ? "" : `<button class="btn pri">Guardar senha</button>`}</div></form>`,
     DEMO ? null : async () => {
       const a = $("#s-nova").value, b = $("#s-conf").value;
       if (a.length < 6) falha("A senha precisa de pelo menos 6 caracteres.");
@@ -1419,7 +1420,7 @@ const ACOES = {
   "editar-utilizador": el => formUtilizador(el.dataset.id),
   "conta": () => conta(),
   "demo-ver": el => { E._eu = el.dataset.id; Local.atualizarEu(); guardarLocal(); fechar(); Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "" }); navegar(); toast(`A ver como ${E.eu.nome}`); },
-  "sair": async () => { try { await sb.auth.signOut(); } catch (e) { /* sai na mesma */ } location.hash = ""; location.reload(); },
+  "sair": () => confirmar("Terminar sessão?", `Vai sair da conta de <b>${esc(E.eu.nome)}</b>. Para voltar a entrar precisa do utilizador e da senha.`, "Terminar sessão", terminarSessao),
   "repor": () => confirmar("Recomeçar a demonstração?", "Apaga tudo o que foi registado neste navegador e volta aos dados de exemplo.", "Recomeçar", async () => { try { localStorage.removeItem(CHAVE); } catch (e) {} Local.novo(); guardarLocal(); fechar(); navegar(); toast("Demonstração reposta"); }),
 };
 document.addEventListener("click", e => {
@@ -1517,12 +1518,38 @@ async function entrarNaApp() {
   navegar();
 }
 
+async function terminarSessao() {
+  Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, recebido: 0, obs: "", cliQ: "", novoCli: null });
+  fechar();
+  if (DEMO) { E._sessao = false; guardarLocal(); history.replaceState(null, "", location.pathname + location.search); return ecraLoginDemo("Sessão terminada."); }
+  try { if (canal) await sb.removeChannel(canal); await sb.auth.signOut(); } catch (e) { /* termina na mesma neste aparelho */ }
+  try { localStorage.removeItem("grupo-kambas-sessao"); } catch (e) { /* sem armazenamento */ }
+  location.hash = ""; location.reload();
+}
+function ecraLoginDemo(msg = "") {
+  ecraAuth(`<form id="f-login" class="auth-card" autocomplete="off">
+      <h1>Entrar</h1><p class="sub">Demonstração: entre como <b>admin</b> (administrador) ou <b>maria</b> (vendedora), com qualquer senha.</p>
+      <label class="field"><span>Utilizador</span><input class="f" id="l-user" autocapitalize="none" spellcheck="false" required></label>
+      <label class="field"><span>Senha</span><input class="f" id="l-senha" type="password" required></label>
+      <div id="l-err">${msg ? `<div class="note">${esc(msg)}</div>` : ""}</div>
+      <button class="btn pri big">Entrar</button></form>`);
+  $("#f-login").onsubmit = e => {
+    e.preventDefault();
+    const u = E.utilizadores.find(x => x.utilizador === $("#l-user").value.trim().toLowerCase());
+    if (!u || !u.ativo) { $("#l-err").innerHTML = `<div class="err">Utilizador ou senha errados.</div>`; return; }
+    E._eu = u.id; E._sessao = true; Local.atualizarEu(); guardarLocal();
+    $("#auth").hidden = true; $("#app").hidden = false; navegar(); toast(`Bem-vindo, ${E.eu.nome}`);
+  };
+  setTimeout(() => $("#l-user").focus(), 50);
+}
+
 /* ============================================================ arranque */
 (async function iniciar() {
   if (DEMO) {
     $("#mode").textContent = "Demonstração";
     try { const s = localStorage.getItem(CHAVE); if (s) E = JSON.parse(s); } catch (e) { E = null; }
     if (!E || !E._seq || !E.utilizadores) { Local.novo(); guardarLocal(); }
+    if (E._sessao === false) return ecraLoginDemo();
     Local.atualizarEu();
     $("#app").hidden = false;
     navegar();
