@@ -468,7 +468,7 @@ def obter_fatura(con, fid):
 
 # ---------------------------------------------------------------- estado completo
 
-def estado(con):
+def estado(con, movimentos_todos=True):
     """Tudo o que a interface precisa, num único objeto."""
     faturas = _linhas(con.execute("SELECT * FROM faturas ORDER BY numero DESC"))
     itens = {}
@@ -481,5 +481,5 @@ def estado(con):
         "produtos": _linhas(con.execute("SELECT * FROM produtos WHERE ativo = 1 ORDER BY codigo")),
         "clientes": _linhas(con.execute("SELECT * FROM clientes WHERE ativo = 1 ORDER BY nome")),
         "faturas": faturas,
-        "movimentos": _linhas(con.execute("SELECT * FROM movimentos ORDER BY data DESC, id DESC LIMIT 500")),
+        "movimentos": _linhas(con.execute("SELECT * FROM movimentos ORDER BY data DESC, id DESC" + ("" if movimentos_todos else " LIMIT 500"))),
     }

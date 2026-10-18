@@ -119,6 +119,12 @@ textarea.f { height: auto; min-height: 64px; padding: 8px 10px; resize: vertical
 .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
 .chips button { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); padding: 6px 12px; border-radius: 99px; font-size: 13.5px; font-weight: 600; }
 .chips button[aria-pressed="true"] { background: var(--brand-deep); border-color: var(--brand-deep); color: var(--on-brand); }
+.relnav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.relt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.relt h2 { font-size: 21px; font-weight: 800; font-stretch: 108%; }
+.relt .sub { font-size: 13px; color: var(--ink-3); }
+.relnav .sp { flex: 1; }
+table.t tr.tot td { background: var(--mist); border-top: 2px solid var(--brand-deep); }
 .empty { text-align: center; color: var(--ink-3); padding: 28px 12px; }
 
 /* tabelas */
@@ -275,8 +281,8 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   .top .mode { display: none; }
   .top .icon-btn { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.2); color: #fff; }
   main { padding-block: 16px calc(96px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 16px; }
-  .tabbar { display: grid; grid-template-columns: repeat(6, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
-  .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 7px; color: var(--ink-3); text-decoration: none; font-size: 10.5px; font-weight: 600; }
+  .tabbar { display: grid; grid-template-columns: repeat(7, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+  .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 7px; color: var(--ink-3); text-decoration: none; font-size: 9.5px; font-weight: 600; letter-spacing: -.01em; }
   .tabbar a[aria-current="page"] { color: var(--brand-deep); }
   :root[data-theme="dark"] .tabbar a[aria-current="page"] { color: var(--brand); }
   .dash { grid-template-columns: minmax(0, 1fr); }
@@ -346,6 +352,9 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
   <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
   <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H4v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6h-3"/><path d="M7 14h10v7H7z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
   <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
   <symbol id="i-adj" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
 </svg>
@@ -555,9 +564,9 @@ async function acao(nome, ...args) {
 /* ============================================================ navegação */
 const VISTAS = [
   ["painel", "Painel", "home"], ["vender", "Vender", "cart"], ["faturas", "Faturas", "receipt"],
-  ["produtos", "Produtos", "tag"], ["stock", "Stock", "box"], ["clientes", "Clientes", "users"],
+  ["produtos", "Produtos", "tag"], ["stock", "Stock", "box"], ["relatorios", "Relatórios", "chart"], ["clientes", "Clientes", "users"],
 ];
-const TITULOS = { painel: "Painel", vender: "Vender", faturas: "Faturas", produtos: "Produtos & Serviços", stock: "Gestão de Stock", clientes: "Clientes", definicoes: "Definições" };
+const TITULOS = { painel: "Painel", vender: "Vender", faturas: "Faturas", produtos: "Produtos & Serviços", stock: "Gestão de Stock", relatorios: "Relatórios", clientes: "Clientes", definicoes: "Definições" };
 let vista = "painel";
 function navegar() {
   const h = location.hash.replace("#", "");
@@ -569,7 +578,7 @@ function navegar() {
   render();
   window.scrollTo(0, 0);
 }
-function render() { ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, clientes: vClientes, definicoes: vDefinicoes })[vista](); }
+function render() { ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, relatorios: vRelatorios, clientes: vClientes, definicoes: vDefinicoes })[vista](); }
 
 /* ============================================================ painel */
 function emitidas() { return E.faturas.filter(f => f.estado === "emitida"); }
@@ -618,8 +627,9 @@ function vPainel() {
       </div>
     </section>`;
 }
+function larguraGrafico(max) { const m = document.getElementById("main"); return Math.round(Math.max(340, Math.min(max, (m ? m.clientWidth : max) - 40))); }
 function grafico(dias, valores) {
-  const W = 640, H = 230, L = 46, B = 26, T = 18, R = 8;
+  const W = larguraGrafico(640), H = 230, L = 46, B = 26, T = 18, R = 8;
   const max = Math.max(...valores, 1);
   const passo = [1000, 2000, 5000, 10000, 20000, 25000, 50000, 100000, 200000, 250000, 500000, 1000000].find(s => s * 4 >= max) || Math.ceil(max / 4);
   const topo = passo * 4, bw = (W - L - R) / dias.length;
@@ -956,6 +966,161 @@ function formCliente(id, depois) {
   setTimeout(() => $("#c-nome").focus(), 50);
 }
 
+/* ============================================================ relatórios (mesma lógica de kambas/relatorios.py) */
+const TIPOS_REL = [["diario", "Diário"], ["semanal", "Semanal"], ["mensal", "Mensal"], ["trimestral", "Trimestral"], ["semestral", "Semestral"], ["anual", "Anual"]];
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const dISO = d => isoLocal(d).slice(0, 10);
+const dDe = s => { const [a, m, d] = s.split("-").map(Number); return new Date(a, m - 1, d); };
+const somaDias = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const somaMeses = (d, n) => new Date(d.getFullYear(), d.getMonth() + n, 1);
+const dm = d => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
+function periodoRel(tipo, ref) {
+  let ini, fim, titulo;
+  if (tipo === "diario") { ini = ref; fim = somaDias(ref, 1); titulo = `${dm(ref)}/${ref.getFullYear()}`; }
+  else if (tipo === "semanal") { ini = somaDias(ref, -((ref.getDay() + 6) % 7)); fim = somaDias(ini, 7); const u = somaDias(fim, -1); titulo = `${dm(ini)} a ${dm(u)}/${u.getFullYear()}`; }
+  else if (tipo === "mensal") { ini = new Date(ref.getFullYear(), ref.getMonth(), 1); fim = somaMeses(ini, 1); titulo = `${MESES[ini.getMonth()][0].toUpperCase() + MESES[ini.getMonth()].slice(1)} de ${ini.getFullYear()}`; }
+  else if (tipo === "trimestral") { const q = Math.floor(ref.getMonth() / 3); ini = new Date(ref.getFullYear(), 3 * q, 1); fim = somaMeses(ini, 3); titulo = `${q + 1}.º trimestre de ${ini.getFullYear()}`; }
+  else if (tipo === "semestral") { const s = Math.floor(ref.getMonth() / 6); ini = new Date(ref.getFullYear(), 6 * s, 1); fim = somaMeses(ini, 6); titulo = `${s + 1}.º semestre de ${ini.getFullYear()}`; }
+  else { ini = new Date(ref.getFullYear(), 0, 1); fim = new Date(ref.getFullYear() + 1, 0, 1); titulo = String(ref.getFullYear()); }
+  return { ini, fim, titulo };
+}
+function baldesRel(tipo, ini, fim) {
+  const out = [];
+  if (tipo === "diario") { for (let h = 7; h < 22; h++) out.push([pad(h) + "h", `${dISO(ini)}T${pad(h)}`, `${dISO(ini)}T${pad(h + 1)}`]); return out; }
+  if (tipo === "semanal" || tipo === "mensal") { for (let d = ini; d < fim; d = somaDias(d, 1)) out.push([dm(d), dISO(d), dISO(somaDias(d, 1))]); return out; }
+  for (let d = ini; d < fim; d = somaMeses(d, 1)) out.push([MESES[d.getMonth()].slice(0, 3), dISO(d), dISO(somaMeses(d, 1))]);
+  return out;
+}
+function calcularRelatorio(tipo, ref) {
+  const { ini, fim, titulo } = periodoRel(tipo, ref), ant = periodoRel(tipo, somaDias(ini, -1));
+  const si = dISO(ini), sf = dISO(fim);
+  const prods = {}; [...(E._removidos || []), ...E.produtos].forEach(p => prods[p.id] = p);
+  const dentro = (f, a, b) => f.data >= a && f.data < b;
+  const todas = E.faturas.filter(f => dentro(f, si, sf)), emit = todas.filter(f => f.estado === "emitida"), anul = todas.filter(f => f.estado === "anulada");
+  const soma = (l, k = "total") => l.reduce((s, x) => s + x[k], 0);
+  const anterior = soma(E.faturas.filter(f => f.estado === "emitida" && dentro(f, dISO(ant.ini), dISO(ant.fim))));
+  const faturacao = soma(emit);
+  const itens = {}, secs = {}, pags = {}, clis = {}; let vp = 0, vs = 0, qt = 0;
+  emit.forEach(f => {
+    const pg = pags[f.forma_pagamento] ||= { forma: f.forma_pagamento, n: 0, valor: 0 }; pg.n++; pg.valor += f.total;
+    const cl = clis[f.cliente_nome] ||= { nome: f.cliente_nome, n: 0, valor: 0 }; cl.n++; cl.valor += f.total;
+    f.itens.forEach(it => {
+      const p = prods[it.produto_id], k = p ? p.codigo : it.descricao;
+      const l = itens[k] ||= { codigo: p ? p.codigo : "", descricao: p ? p.nome : it.descricao, tipo: p ? p.tipo : "servico", qtd: 0, valor: 0 };
+      l.qtd += it.qtd; l.valor += it.total;
+      const sn = p ? p.seccao : "Outros", s = secs[sn] ||= { seccao: sn, qtd: 0, valor: 0 }; s.qtd += it.qtd; s.valor += it.total;
+      qt += it.qtd; if (p && p.tipo === "produto") vp += it.total; else vs += it.total;
+    });
+  });
+  const evolucao = baldesRel(tipo, ini, fim).map(([rotulo, a, b]) => { const fs = emit.filter(f => f.data >= a && f.data < b); return { rotulo, valor: soma(fs), n: fs.length }; });
+  const movs = [...E.movimentos].sort((a, b) => a.data.localeCompare(b.data) || a.id - b.id);
+  const stock = [];
+  E.produtos.filter(p => p.tipo === "produto").forEach(p => {
+    let inicial = 0, final = 0, entradas = 0, saidas = 0, teve = false;
+    movs.forEach(m => {
+      if (m.produto_id !== p.id) return;
+      if (m.data < si) { inicial = final = m.stock_final; }
+      else if (m.data < sf) { teve = true; final = m.stock_final; if (m.tipo === "entrada") entradas += m.qtd; else if (m.tipo === "saida") saidas += m.qtd; }
+    });
+    if (!teve && inicial === 0) return;
+    stock.push({ codigo: p.codigo, nome: p.nome, inicial, entradas, saidas, ajustes: final - inicial - entradas + saidas, final, stock_min: p.stock_min, preco: p.preco, valor_final: final * p.preco });
+  });
+  stock.sort((a, b) => b.saidas - a.saidas || a.codigo.localeCompare(b.codigo));
+  const ord = o => Object.values(o).sort((a, b) => b.valor - a.valor);
+  return {
+    tipo, nome: TIPOS_REL.find(t => t[0] === tipo)[1], titulo, inicio: si, fim: dISO(somaDias(fim, -1)), anterior_titulo: ant.titulo,
+    resumo: { faturacao, n_faturas: emit.length, media: emit.length ? Math.round(faturacao / emit.length) : 0, subtotal: soma(emit, "subtotal"), descontos: soma(emit, "desconto"),
+      anuladas_n: anul.length, anuladas_valor: soma(anul), itens_qtd: qt, produtos_valor: vp, servicos_valor: vs, anterior,
+      variacao: anterior ? Math.round((faturacao - anterior) / anterior * 1000) / 10 : null },
+    evolucao, pagamentos: ord(pags), seccoes: ord(secs), itens: Object.values(itens).sort((a, b) => b.valor - a.valor || a.descricao.localeCompare(b.descricao)),
+    clientes: ord(clis).slice(0, 10), stock,
+    stock_resumo: { valor: soma(stock, "valor_final"), unidades: soma(stock, "final"), entradas: soma(stock, "entradas"), saidas: soma(stock, "saidas"), alertas: stock.filter(s => s.final <= s.stock_min).length },
+    faturas: [...todas].sort((a, b) => a.numero - b.numero),
+  };
+}
+function barras(rotulos, valores, aria) {
+  const W = larguraGrafico(680), H = 230, L = 46, B = 26, T = 18, R = 8, n = rotulos.length;
+  const max = Math.max(...valores, 1);
+  const passo = [1000, 2000, 5000, 10000, 20000, 25000, 50000, 100000, 200000, 250000, 500000, 1000000, 2000000, 2500000, 5000000, 10000000].find(s => s * 4 >= max) || Math.ceil(max / 4);
+  const topo = passo * 4, bw = (W - L - R) / n, y = v => T + (H - T - B) * (1 - v / topo);
+  const k = v => v >= 1000000 ? fmt(v / 100000) / 10 + "M" : v >= 1000 ? fmt(v / 1000) + "k" : fmt(v);
+  const cada = n > 16 ? Math.ceil(n / 10) : 1, maxI = valores.indexOf(Math.max(...valores));
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(aria)}">`;
+  for (let i = 0; i <= 4; i++) { const v = passo * i; s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${k(v)}</text>`; }
+  rotulos.forEach((r, i) => {
+    const v = valores[i], x = L + i * bw + bw * .16, w = bw * .68;
+    if (v > 0) s += `<rect class="bar ${i === maxI ? "today" : ""}" x="${x}" y="${y(v)}" width="${w}" height="${y(0) - y(v)}" rx="${Math.min(3, w / 3)}"><title>${esc(r)}: ${kz(v)}</title></rect>`;
+    if (i === maxI && v > 0) s += `<text class="vlab" x="${x + w / 2}" y="${y(v) - 6}" text-anchor="middle">${k(v)}</text>`;
+    if (i % cada === 0) s += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${esc(r)}</text>`;
+  });
+  return s + "</svg>";
+}
+const rel = { tipo: "mensal", ref: null, aba: "faturacao" };
+function vRelatorios() {
+  if (!rel.ref) rel.ref = hoje();
+  const R = calcularRelatorio(rel.tipo, dDe(rel.ref)), r = R.resumo;
+  const tot = r.produtos_valor + r.servicos_valor || 1, sub = r.subtotal || 1;
+  const varTxt = r.variacao === null ? `sem vendas em ${esc(R.anterior_titulo)}` : `<b style="color:${r.variacao >= 0 ? "#9FF0C8" : "#FFB4AA"}">${r.variacao >= 0 ? "▲ +" : "▼ −"}${String(Math.abs(r.variacao)).replace(".", ",")}%</b> face a ${esc(R.anterior_titulo)}`;
+  const ehAtual = calcularPeriodoContem(R);
+  const sr = R.stock_resumo;
+  const abas = [["faturacao", "Faturação"], ["vendas", "Produtos vendidos"], ["stock", "Stock"], ["faturas", "Faturas"]];
+  $("#main").innerHTML = `
+    <div class="chips" id="rtipo">${TIPOS_REL.map(([v, t]) => `<button data-act="rel-tipo" data-v="${v}" aria-pressed="${rel.tipo === v}">${t}</button>`).join("")}</div>
+    <div class="relnav">
+      <button class="icon-btn" data-act="rel-mover" data-d="-1" aria-label="Período anterior"><svg class="i"><use href="#i-left"/></svg></button>
+      <div class="relt"><span class="eyebrow">Relatório ${esc(R.nome.toLowerCase())}</span><h2>${esc(R.titulo)}</h2><span class="sub">${dataPt(R.inicio)} a ${dataPt(R.fim)}</span></div>
+      <button class="icon-btn" data-act="rel-mover" data-d="1" aria-label="Período seguinte"><svg class="i"><use href="#i-right"/></svg></button>
+      <div class="sp"></div>
+      <input type="date" class="f" id="rdata" value="${rel.ref}" aria-label="Escolher data" style="width:auto">
+      ${ehAtual ? "" : `<button class="btn sm" data-act="rel-hoje">Atual</button>`}
+      ${API ? `<a class="btn pri" href="/relatorio.pdf?periodo=${rel.tipo}&data=${rel.ref}" target="_blank" rel="noopener">${icon("down")}Relatório PDF</a>` : ""}
+    </div>
+    ${API ? "" : `<div class="note">O <b>Relatório PDF</b> (diário, semanal, mensal, trimestral, semestral e anual) descarrega-se no sistema instalado com Python, com estes mesmos números.</div>`}
+    <section class="kpis">
+      <div class="kpi hero"><span class="lab">Faturação</span><span class="val num">${fmt(r.faturacao)} <small>Kz</small></span><span class="ft">${varTxt}</span></div>
+      <div class="kpi"><span class="lab">Faturas emitidas</span><span class="val num">${r.n_faturas}</span><span class="ft">valor médio ${kz(r.media)}</span></div>
+      <div class="kpi"><span class="lab">Itens vendidos</span><span class="val num">${fmt(r.itens_qtd)}</span><span class="ft">descontos ${kz(r.descontos)}</span></div>
+      <div class="kpi"><span class="lab">Anuladas</span><span class="val num" style="color:${r.anuladas_n ? "var(--bad)" : "inherit"}">${r.anuladas_n}</span><span class="ft">valor ${kz(r.anuladas_valor)}</span></div>
+    </section>
+    <div class="seg" id="raba" style="align-self:flex-start">${abas.map(([v, t]) => `<button data-act="rel-aba" data-v="${v}" aria-pressed="${rel.aba === v}">${t}</button>`).join("")}</div>
+    <div id="rcorpo"></div>`;
+  const corpo = {
+    faturacao: () => `
+      <div class="panel chart"><div class="panel-h"><h2>Evolução da faturação</h2><span class="sub">${{ diario: "por hora", semanal: "por dia", mensal: "por dia" }[R.tipo] || "por mês"}, em Kz</span></div>${barras(R.evolucao.map(e => e.rotulo), R.evolucao.map(e => e.valor), "Faturação por " + (R.tipo === "diario" ? "hora" : ["semanal", "mensal"].includes(R.tipo) ? "dia" : "mês"))}</div>
+      <section class="dash">
+        <div class="panel"><div class="panel-h"><h2>Por forma de pagamento</h2></div>${R.pagamentos.length ? `<div class="hbars">${R.pagamentos.map(p => `<div class="hbar"><span class="n">${esc(p.forma)} <span class="muted" style="color:var(--ink-3)">· ${p.n}</span></span><span class="num strong">${kz(p.valor)}</span><div class="track"><div class="fill" style="width:${(p.valor / (r.faturacao || 1) * 100).toFixed(1)}%"></div></div></div>`).join("")}</div>` : `<div class="empty">Sem vendas neste período.</div>`}
+          <div class="panel-h" style="margin:20px 0 6px"><h2>Produtos e serviços</h2></div>
+          <div class="split"><div style="width:${(r.produtos_valor / tot * 100).toFixed(1)}%"></div><div style="flex:1"></div></div>
+          <div class="legend"><span><i style="background:var(--brand-deep)"></i>Produtos ${kz(r.produtos_valor)}</span><span><i style="background:var(--brand);opacity:.45"></i>Serviços ${kz(r.servicos_valor)}</span></div></div>
+        <div class="panel"><div class="panel-h"><h2>Por secção do catálogo</h2></div>${R.seccoes.length ? `<div class="hbars">${R.seccoes.map(s => `<div class="hbar"><span class="n">${esc(s.seccao)}</span><span class="num strong">${kz(s.valor)}</span><div class="track"><div class="fill" style="width:${(s.valor / R.seccoes[0].valor * 100).toFixed(1)}%"></div></div></div>`).join("")}</div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>
+      </section>
+      <div class="panel"><div class="panel-h"><h2>Principais clientes</h2></div>${R.clientes.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th>Cliente</th><th class="r">Faturas</th><th class="r">Valor</th></tr></thead><tbody>${R.clientes.map(c => `<tr><td>${esc(c.nome)}</td><td class="r num">${c.n}</td><td class="r num strong">${kz(c.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>`,
+    vendas: () => `<div class="panel"><div class="panel-h"><h2>${R.itens.length} produtos e serviços vendidos</h2><span class="sub">valores antes de descontos</span></div>
+      ${R.itens.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th class="hide-m">Código</th><th>Descrição</th><th class="hide-m">Tipo</th><th class="r">Qtd.</th><th class="r">Valor</th><th class="r hide-m">%</th></tr></thead><tbody>
+        ${R.itens.map(it => `<tr><td class="cod hide-m">${esc(it.codigo)}</td><td><span class="strong">${esc(it.descricao)}</span><div class="cod">${esc(it.codigo)} · ${it.tipo === "produto" ? "Produto" : "Serviço"}</div></td><td class="hide-m">${it.tipo === "produto" ? '<span class="chip brand">Produto</span>' : '<span class="chip">Serviço</span>'}</td><td class="r num">${fmt(it.qtd)}</td><td class="r num strong">${kz(it.valor)}</td><td class="r num hide-m muted">${(it.valor / sub * 100).toFixed(1).replace(".", ",")}%</td></tr>`).join("")}
+        <tr class="tot"><td class="hide-m"></td><td class="strong">Total</td><td class="hide-m"></td><td class="r num strong">${fmt(r.itens_qtd)}</td><td class="r num strong">${kz(r.subtotal)}</td><td class="r hide-m strong">100%</td></tr>
+      </tbody></table></div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>`,
+    stock: () => `<section class="kpis">
+        <div class="kpi"><span class="lab">Valor no fim</span><span class="val num">${fmt(sr.valor)} <small>Kz</small></span><span class="ft">a preço de venda</span></div>
+        <div class="kpi"><span class="lab">Unidades no fim</span><span class="val num">${fmt(sr.unidades)}</span><span class="ft">${R.stock.length} produtos</span></div>
+        <div class="kpi"><span class="lab">Entradas / saídas</span><span class="val num"><span style="color:var(--ok)">+${fmt(sr.entradas)}</span> <small>/</small> <span style="color:var(--warn)">−${fmt(sr.saidas)}</span></span><span class="ft">unidades no período</span></div>
+        <div class="kpi"><span class="lab">No mínimo ou abaixo</span><span class="val num" style="color:var(--warn)">${sr.alertas}</span><span class="ft">no fim do período</span></div></section>
+      <div class="panel"><div class="panel-h"><h2>Movimento do stock por produto</h2><span class="sub">do início ao fim do período</span></div>
+      ${R.stock.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th>Produto</th><th class="r hide-m">Início</th><th class="r">Entradas</th><th class="r">Saídas</th><th class="r hide-m">Ajuste</th><th class="r">Fim</th><th class="r hide-m">Valor</th></tr></thead><tbody>
+        ${R.stock.map(s => { const c = s.final <= 0 ? "bad" : s.final <= s.stock_min ? "warn" : "ok"; return `<tr><td><span class="strong">${esc(s.nome)}</span><div class="cod">${s.codigo} · mín. ${s.stock_min}</div></td><td class="r num hide-m">${s.inicial}</td><td class="r num" style="color:${s.entradas ? "var(--ok)" : "var(--ink-3)"}">${s.entradas ? "+" + s.entradas : 0}</td><td class="r num" style="color:${s.saidas ? "var(--warn)" : "var(--ink-3)"}">${s.saidas ? "−" + s.saidas : 0}</td><td class="r num hide-m muted">${s.ajustes > 0 ? "+" : ""}${s.ajustes}</td><td class="r num"><span class="chip ${c}">${s.final}</span></td><td class="r num hide-m">${kz(s.valor_final)}</td></tr>`; }).join("")}
+      </tbody></table></div>` : `<div class="empty">Sem produtos em stock neste período.</div>`}</div>`,
+    faturas: () => `<div class="panel"><div class="panel-h"><h2>${R.faturas.length} faturas · ${kz(r.faturacao)}</h2><span class="sub">anuladas não contam para a faturação</span></div>${tabelaFaturas([...R.faturas].reverse())}</div>`,
+  };
+  $("#rcorpo").innerHTML = corpo[rel.aba]();
+  $("#rdata").onchange = e => { if (e.target.value) { rel.ref = e.target.value; vRelatorios(); } };
+}
+function calcularPeriodoContem(R) { const h = hoje(); return h >= R.inicio && h <= R.fim; }
+function moverRel(d) {
+  const { ini } = periodoRel(rel.tipo, dDe(rel.ref));
+  const passos = { diario: () => somaDias(ini, d), semanal: () => somaDias(ini, 7 * d), mensal: () => somaMeses(ini, d), trimestral: () => somaMeses(ini, 3 * d), semestral: () => somaMeses(ini, 6 * d), anual: () => new Date(ini.getFullYear() + d, 0, 1) };
+  rel.ref = dISO(passos[rel.tipo]()); vRelatorios();
+}
+
 /* ============================================================ definições */
 function vDefinicoes() {
   const emp = E.config.empresa, temEx = E.faturas.some(f => f.exemplo) || E.clientes.some(c => c.exemplo);
@@ -1022,6 +1187,10 @@ const ACOES = {
   "editar-produto": el => formProduto(Number(el.dataset.id)),
   "remover-produto": el => { const p = produto(el.dataset.id); confirmar(`Remover ${p.nome}?`, "Deixa de aparecer no catálogo e nas vendas. As faturas antigas continuam intactas.", "Remover", async () => { await acao("removerProduto", p.id); fechar(); render(); toast(`${p.nome} removido`); }); },
   "mov": el => formMov(el.dataset.t, el.dataset.id),
+  "rel-tipo": el => { rel.tipo = el.dataset.v; vRelatorios(); },
+  "rel-aba": el => { rel.aba = el.dataset.v; vRelatorios(); },
+  "rel-mover": el => moverRel(Number(el.dataset.d)),
+  "rel-hoje": () => { rel.ref = hoje(); vRelatorios(); },
   "novo-cliente": () => formCliente(null),
   "editar-cliente": el => formCliente(Number(el.dataset.id)),
   "remover-cliente": el => { const c = byId(E.clientes, el.dataset.id); confirmar(`Remover ${c.nome}?`, "As faturas já emitidas mantêm os dados do cliente.", "Remover", async () => { await acao("removerCliente", c.id); fechar(); render(); toast("Cliente removido"); }); },

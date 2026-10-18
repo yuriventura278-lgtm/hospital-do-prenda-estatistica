@@ -14,8 +14,9 @@ import sys
 
 from flask import Flask, Response, g, jsonify, request, send_from_directory
 
-from kambas import db
+from kambas import db, relatorios
 from kambas.pdf_fatura import gerar_pdf
+from kambas.pdf_relatorio import gerar_pdf as gerar_pdf_relatorio
 
 PASTA = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_DB = os.environ.get("KAMBAS_DB", os.path.join(PASTA, "kambas.db"))
@@ -69,7 +70,21 @@ def fatura_pdf(fid):
         "Content-Disposition": f'inline; filename="Fatura_{f["numero"]:04d}_Grupo_Kambas.pdf"'})
 
 
+@app.get("/relatorio.pdf")
+def relatorio_pdf():
+    tipo = request.args.get("periodo", "mensal")
+    rel = relatorios.relatorio(con(), tipo, request.args.get("data"))
+    pdf = gerar_pdf_relatorio(rel, db.obter_config(con())["empresa"])
+    nome = f"Relatorio_{rel['nome']}_{rel['inicio']}_Grupo_Kambas.pdf"
+    return Response(pdf, mimetype="application/pdf", headers={"Content-Disposition": f'inline; filename="{nome}"'})
+
+
 # ---------------------------------------------------------------- API
+
+@app.get("/api/relatorio")
+def api_relatorio():
+    return jsonify(relatorios.relatorio(con(), request.args.get("periodo", "mensal"), request.args.get("data")))
+
 
 @app.get("/api/estado")
 def api_estado():

@@ -14,6 +14,10 @@ Vendas, faturação e gestão de stock do **Grupo Kambas**, com o catálogo ofic
 - **Produtos & Serviços**: registar/editar itens com preço em Kz, secção, tipo
   (produto com stock ou serviço), stock mínimo.
 - **Stock**: entradas, saídas, contagens, alertas de stock baixo, histórico.
+- **Relatórios** diário, semanal, mensal, trimestral, semestral e anual:
+  faturação (com comparação ao período anterior), formas de pagamento,
+  secções, produtos e serviços vendidos, clientes, movimento do stock e
+  lista de faturas. Descarregam-se em PDF (`/relatorio.pdf?periodo=mensal&data=2026-10-18`).
 - **Clientes**, **Painel** (vendas do dia/mês, gráfico, mais vendidos) e
   **Definições** (dados da empresa, próximo nº de fatura).
 
@@ -37,6 +41,8 @@ loja na mesma rede: `KAMBAS_HOST=0.0.0.0 python app.py`.
 | `kambas/catalogo.py` | catálogo oficial, dados da empresa, exemplos |
 | `kambas/db.py` | base de dados SQLite e regras (venda, stock, anulação) |
 | `kambas/pdf_fatura.py` | PDF A5 igual ao bloco de faturas |
+| `kambas/relatorios.py` | cálculo dos relatórios por período |
+| `kambas/pdf_relatorio.py` | relatório em PDF (A4) |
 | `web/template.html` | interface (editar aqui) |
 | `construir.py` | gera `index.html` a partir do template + catálogo |
 
