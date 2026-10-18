@@ -1,53 +1,59 @@
 # Grupo Kambas — Sistema de Gestão
 
-Vendas, faturação e gestão de stock do **Grupo Kambas**, com o catálogo oficial
-(13 secções, 79 produtos e serviços, preços em kwanzas) já carregado.
+Vendas, faturação, stock e relatórios do **Grupo Kambas**, com o catálogo
+oficial (13 secções, 79 produtos e serviços, preços em kwanzas), login por
+utilizador e sincronização entre dispositivos.
+
+- **Página web:** `index.html` (publicada no GitHub Pages, pasta `grupo-kambas/`)
+- **APK Android:** release `grupo-kambas-apk` do repositório (compilada pelo GitHub Actions)
+- **Demonstração sem servidor:** `demo.html`
 
 ## O que faz
 
-- **Vender**: escolher produtos/serviços do catálogo (pesquisa com Enter,
-  atalho "Mais vendidos", itens avulsos fora do catálogo), procurar o cliente
-  por nome/NIF/telefone ou **registá-lo sem sair da venda**, forma de pagamento
-  (Transferência, Numerário com troco, TPA/Multicaixa, Visa RedotPay) e
-  desconto em Kz ou %. A fatura emitida pode ser enviada por WhatsApp. Preços "a partir de" e "por consulta" são ajustados na venda;
-  preços por quantidade (ex.: Lacoste bordada 11+ un.) aplicam-se sozinhos.
-- **Faturas**: numeradas em sequência (Nº 0001, 0002…), com o mesmo desenho do
-  bloco de faturas; PDF A5 e impressão; anulação com reposição do stock.
-- **Produtos & Serviços**: registar/editar itens com preço em Kz, secção, tipo
-  (produto com stock ou serviço), stock mínimo.
-- **Stock**: entradas, saídas, contagens, alertas de stock baixo, histórico.
-- **Relatórios** diário, semanal, mensal, trimestral, semestral e anual:
-  faturação (com comparação ao período anterior), formas de pagamento,
-  secções, produtos e serviços vendidos, clientes, movimento do stock e
-  lista de faturas. Descarregam-se em PDF (`/relatorio.pdf?periodo=mensal&data=2026-10-18`).
-- **Clientes**, **Painel** (vendas do dia/mês, gráfico, mais vendidos) e
-  **Definições** (dados da empresa, próximo nº de fatura).
+- **Documentos:** Fatura-Recibo (FR, paga no acto), Fatura (FT, a pagar,
+  com "Registar pagamento") e Fatura Pró-forma (PP, orçamento com validade,
+  convertível em FR ou FT). Numeração própria por tipo (FR 0001, FT 0001, PP 0001).
+  O documento mostra o **nome do vendedor** que o emitiu (o do utilizador com
+  sessão iniciada). PDF A5 com o desenho do bloco de faturas, WhatsApp e cópia do resumo.
+- **Vender:** catálogo com pesquisa, "Mais vendidos", item avulso, cliente
+  pesquisado ou registado sem sair da venda, desconto em Kz ou %, troco em numerário.
+- **Stock:** entradas, saídas, contagem geral, alertas, histórico de movimentos.
+- **Relatórios:** diário, semanal, mensal, trimestral, semestral e anual, em PDF.
+- **Utilizadores e permissões:**
+  - *Vendedor* — vende, emite pró-formas, regista clientes, vê só os seus documentos.
+  - *Administrador* — acesso total.
+  - Permissões extra que o administrador pode dar a um vendedor: ver documentos
+    de todos, anular, produtos e preços, stock, relatórios.
 
-## Como correr (Python)
+## Como está montado
+
+| Parte | Onde |
+|---|---|
+| Base de dados, regras de acesso (RLS) e operações de venda/stock | Supabase — `supabase/esquema.sql` |
+| Criação de utilizadores (precisa da chave de serviço) | Supabase Edge Function — `supabase/functions/utilizadores/` |
+| Catálogo inicial | `kambas/catalogo.py` → `supabase/gerar_catalogo_sql.py` |
+| Interface | `web/template.html` + `web/app.js` |
+| Montagem das páginas | `construir.py` (Python) |
+| APK | `android-app/` (Capacitor) + `.github/workflows/grupo-kambas-apk.yml` |
+
+Todas as escritas passam por funções da base de dados que verificam as
+permissões de quem está com sessão iniciada; um vendedor não consegue
+contornar as regras a partir do telemóvel.
+
+## Primeira utilização
+
+1. Abra a página ou a APK. Aparece **Configuração inicial**.
+2. Escreva o código de configuração (fornecido à parte), o seu nome,
+   utilizador e senha. Fica criado o administrador, e o código deixa de servir.
+3. Em **Stock → Contagem geral**, registe as quantidades que tem na loja.
+4. Em **Utilizadores**, crie as contas dos vendedores.
+
+## Desenvolvimento
 
 ```bash
 cd grupo-kambas
-pip install -r requirements.txt
-python app.py              # abre em http://127.0.0.1:5000
-python app.py --sem-exemplos   # começar sem as vendas de exemplo
+python construir.py          # gera index.html, demo.html e manifest
+python -m http.server 8000   # abrir http://localhost:8000/demo.html
 ```
 
-Os dados ficam em `kambas.db` (SQLite). Para usar noutros dispositivos da
-loja na mesma rede: `KAMBAS_HOST=0.0.0.0 python app.py`.
-
-## Estrutura
-
-| Ficheiro | Função |
-|---|---|
-| `app.py` | servidor Flask: API JSON e PDF das faturas |
-| `kambas/catalogo.py` | catálogo oficial, dados da empresa, exemplos |
-| `kambas/db.py` | base de dados SQLite e regras (venda, stock, anulação) |
-| `kambas/pdf_fatura.py` | PDF A5 igual ao bloco de faturas |
-| `kambas/relatorios.py` | cálculo dos relatórios por período |
-| `kambas/pdf_relatorio.py` | relatório em PDF (A4) |
-| `web/template.html` | interface (editar aqui) |
-| `construir.py` | gera `index.html` a partir do template + catálogo |
-
-Depois de mudar `web/template.html` ou o catálogo, corra `python construir.py`.
-Aberto sem servidor, o `index.html` funciona em modo demonstração (dados
-guardados no navegador).
+Depois de mudar `web/` ou o catálogo, corra `python construir.py` outra vez.
