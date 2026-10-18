@@ -5,9 +5,11 @@ Vendas, faturação e gestão de stock do **Grupo Kambas**, com o catálogo ofic
 
 ## O que faz
 
-- **Vender**: escolher produtos/serviços do catálogo, quantidades, cliente,
-  forma de pagamento (Transferência, Numerário, TPA/Multicaixa, Visa RedotPay)
-  e desconto. Preços "a partir de" e "por consulta" são ajustados na venda;
+- **Vender**: escolher produtos/serviços do catálogo (pesquisa com Enter,
+  atalho "Mais vendidos", itens avulsos fora do catálogo), procurar o cliente
+  por nome/NIF/telefone ou **registá-lo sem sair da venda**, forma de pagamento
+  (Transferência, Numerário com troco, TPA/Multicaixa, Visa RedotPay) e
+  desconto em Kz ou %. A fatura emitida pode ser enviada por WhatsApp. Preços "a partir de" e "por consulta" são ajustados na venda;
   preços por quantidade (ex.: Lacoste bordada 11+ un.) aplicam-se sozinhos.
 - **Faturas**: numeradas em sequência (Nº 0001, 0002…), com o mesmo desenho do
   bloco de faturas; PDF A5 e impressão; anulação com reposição do stock.

@@ -343,6 +343,11 @@ def guardar_cliente(con, d, cid=None):
         raise ErroNegocio("Indique o nome do cliente.")
     campos = (nome, (d.get("nif") or "").strip(), (d.get("endereco") or "").strip(),
               (d.get("telefone") or "").strip())
+    if campos[1]:
+        igual = con.execute("SELECT nome FROM clientes WHERE ativo = 1 AND nif = ? AND id IS NOT ?",
+                            (campos[1], cid)).fetchone()
+        if igual:
+            raise ErroNegocio(f"Já existe um cliente com o NIF {campos[1]}: {igual['nome']}.")
     with con:
         if cid:
             con.execute("UPDATE clientes SET nome=?, nif=?, endereco=?, telefone=? WHERE id=?", campos + (cid,))

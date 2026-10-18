@@ -181,7 +181,7 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 .tile { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 12px 12px 11px; display: flex; flex-direction: column; gap: 6px; min-height: 112px; position: relative; transition: border-color .12s, transform .12s; }
 .tile:hover:not(:disabled) { border-color: var(--brand); transform: translateY(-1px); }
 .tile:disabled { opacity: .5; cursor: not-allowed; }
-.tile .nm { font-weight: 700; font-size: 14.5px; line-height: 1.25; }
+.tile .nm { font-weight: 700; font-size: 14.5px; line-height: 1.25; padding-right: 22px; }
 .tile .ds { font-size: 12.5px; color: var(--ink-3); line-height: 1.3; }
 .tile .bt { margin-top: auto; display: flex; align-items: end; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
 .tile .pr { font-family: var(--f-display); font-weight: 800; font-size: 15px; color: var(--brand-deep); }
@@ -213,6 +213,17 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
 .pay button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 6px; font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
 .pay button[aria-pressed="true"] { border-color: var(--brand-deep); background: var(--brand-deep); color: var(--on-brand); }
 .cartbar { display: none; }
+.cli-card { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--brand); border-radius: 9px; background: var(--mist); }
+.cli-card > div { flex: 1; }
+.cli-busca { display: flex; flex-direction: column; gap: 6px; }
+.cli-res { display: flex; flex-direction: column; gap: 4px; }
+.cli-res button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; }
+.cli-res button:hover { border-color: var(--brand); }
+.cli-res button.novo { flex-direction: row; align-items: center; gap: 6px; border-style: dashed; color: var(--brand-deep); font-weight: 600; }
+.cli-novo { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--brand); border-radius: 9px; background: var(--mist); }
+.seg.mini button { padding: 2px 8px; font-size: 12px; }
+.totals .r.troco { color: var(--ok); font-weight: 700; }
+.totals .r.falta { color: var(--bad); font-weight: 700; }
 
 /* ---------- folhas (modais) */
 .sheet-bg { position: fixed; inset: 0; background: rgba(6, 28, 36, .55); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -467,6 +478,8 @@ const Local = {
   guardarCliente(d, id) {
     const nome = (d.nome || "").trim(); if (!nome) falha("Indique o nome do cliente.");
     const dados = { nome, nif: (d.nif || "").trim(), endereco: (d.endereco || "").trim(), telefone: (d.telefone || "").trim() };
+    const igual = dados.nif && E.clientes.find(c => c.nif === dados.nif && c.id !== Number(id));
+    if (igual) falha(`Já existe um cliente com o NIF ${dados.nif}: ${igual.nome}.`);
     if (id) return Object.assign(byId(E.clientes, id), dados);
     const c = { ...dados, id: ++E._seq.c, exemplo: 0, ativo: 1 }; E.clientes.push(c); return c;
   },
@@ -710,12 +723,14 @@ function papelFatura(f) {
     ${f.exemplo ? '<div class="exm">Fatura de exemplo, criada para demonstração</div>' : ""}
   </div></div>`;
 }
-function verFatura(id) {
+function verFatura(id, acabada = false) {
   const f = byId(E.faturas, id); if (!f) return;
   abrir(`<div class="sheet wide"><div class="sheet-h"><h2>Fatura Nº ${nf(f.numero)}</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
     <div class="sheet-b">${papelFatura(f)}
       ${API ? "" : `<div class="note">O PDF e a impressão ficam disponíveis no sistema instalado com Python (<b>python app.py</b>), com este mesmo desenho do bloco.</div>`}</div>
-    <div class="sheet-f">${f.estado === "emitida" ? `<button class="btn danger" data-act="anular" data-id="${f.id}">Anular fatura</button>` : ""}<span class="sp"></span>
+    <div class="sheet-f">${f.estado === "emitida" && !acabada ? `<button class="btn danger" data-act="anular" data-id="${f.id}">Anular</button>` : ""}<span class="sp"></span>
+      <a class="btn" href="https://wa.me/?text=${encodeURIComponent(resumoFatura(f))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn" data-act="copiar-fatura" data-id="${f.id}">Copiar</button>
+      ${acabada ? `<button class="btn" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}
       ${API ? `<a class="btn" href="/fatura/${f.id}.pdf" target="_blank" rel="noopener">${icon("down")}PDF</a><button class="btn pri" data-act="imprimir">${icon("print")}Imprimir</button>` : `<button class="btn pri" data-act="fechar">Fechar</button>`}</div></div>`);
 }
 function anular(id) {
@@ -728,25 +743,36 @@ function anular(id) {
 }
 
 /* ============================================================ vender */
-const venda = { itens: [], cliente_id: "", forma: "", desconto: 0, obs: "", q: "", sec: "Todas" };
+const venda = { itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", q: "", sec: "Todas", cliQ: "", novoCli: null };
+function maisVendidos() {
+  const q = {}; emitidas().forEach(f => f.itens.forEach(it => { if (it.produto_id) q[it.produto_id] = (q[it.produto_id] || 0) + 1; }));
+  return Object.entries(q).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([id]) => Number(id));
+}
 function vVender() {
-  const secs = ["Todas", ...new Set(E.produtos.map(p => p.seccao))];
+  const secs = ["Todas", "Mais vendidos", ...new Set(E.produtos.map(p => p.seccao))];
   $("#main").innerHTML = `
     <div class="pos">
       <section style="display:flex;flex-direction:column;gap:12px;min-width:0">
-        <label class="search">${icon("search")}<input id="pq" type="search" placeholder="Procurar produto ou serviço (ex.: t-shirt, quadro, carimbo)" value="${esc(venda.q)}" aria-label="Procurar"></label>
-        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${esc(s.replace(" Personalizados", "").replace(" Personalizadas", ""))}</button>`).join("")}</div>
+        <div class="toolbar"><label class="search">${icon("search")}<input id="pq" type="search" placeholder="Procurar produto ou serviço (Enter adiciona o 1.º)" value="${esc(venda.q)}" aria-label="Procurar" autocomplete="off"></label>
+          <button class="btn" data-act="avulso">${icon("plus")}Item avulso</button></div>
+        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(s.replace(" Personalizados", "").replace(" Personalizadas", ""))}</button>`).join("")}</div>
         <div class="tiles" id="ptiles"></div>
       </section>
       <aside class="panel cart" id="cart"></aside>
     </div>
     <button class="cartbar" id="cartbar" data-act="abrir-carrinho" hidden></button>`;
   $("#pq").oninput = e => { venda.q = e.target.value; tiles(); };
+  $("#pq").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const t = $("#ptiles .tile:not(:disabled)"); if (t) { adicionar(t.dataset.id); e.target.select(); } } };
   tiles(); carrinho();
 }
-function tiles() {
+function listaTiles() {
   const q = venda.q.trim().toLowerCase();
-  const l = E.produtos.filter(p => (q || venda.sec === "Todas" || p.seccao === venda.sec) && (!q || (p.nome + " " + p.descricao + " " + p.codigo + " " + p.seccao).toLowerCase().includes(q)));
+  if (q) return E.produtos.filter(p => (p.nome + " " + p.descricao + " " + p.codigo + " " + p.seccao).toLowerCase().includes(q));
+  if (venda.sec === "Mais vendidos") return maisVendidos().map(produto).filter(Boolean);
+  return E.produtos.filter(p => venda.sec === "Todas" || p.seccao === venda.sec);
+}
+function tiles() {
+  const l = listaTiles();
   const noCarrinho = {}; venda.itens.forEach(i => noCarrinho[i.produto_id] = (noCarrinho[i.produto_id] || 0) + i.qtd);
   $("#ptiles").innerHTML = l.length ? l.map(p => {
     const st = estadoStock(p), sem = st === "bad";
@@ -754,44 +780,107 @@ function tiles() {
       ${noCarrinho[p.id] ? `<span class="badge">${noCarrinho[p.id]}</span>` : ""}
       <span class="nm">${esc(p.nome)}</span>${p.descricao ? `<span class="ds">${esc(p.descricao)}</span>` : ""}
       <span class="bt"><span class="pr num">${precoTexto(p)}</span>${p.tipo === "produto" ? `<span class="chip ${st} num">${sem ? "Esgotado" : p.stock + " un."}</span>` : '<span class="chip">Serviço</span>'}</span></button>`;
-  }).join("") : `<div class="empty" style="grid-column:1/-1">Nada encontrado para “${esc(venda.q)}”.</div>`;
+  }).join("") : `<div class="empty" style="grid-column:1/-1">${venda.q ? `Nada encontrado para “${esc(venda.q)}”. Use <b>Item avulso</b> para vender algo fora do catálogo.` : "Ainda sem vendas para mostrar os mais vendidos."}</div>`;
 }
-function totaisVenda() { const sub = venda.itens.reduce((s, i) => s + (i.qtd * (i.preco_unit || 0)), 0); const desc = Math.min(Math.max(0, venda.desconto || 0), sub); return { sub, desc, tot: sub - desc }; }
+function totaisVenda() {
+  const sub = venda.itens.reduce((s, i) => s + (i.qtd * (i.preco_unit || 0)), 0);
+  const bruto = venda.descModo === "pct" ? Math.round(sub * Math.min(100, venda.desconto || 0) / 100) : (venda.desconto || 0);
+  const desc = Math.min(Math.max(0, bruto), sub);
+  return { sub, desc, tot: sub - desc };
+}
+function clienteSel() { return venda.cliente_id ? byId(E.clientes, venda.cliente_id) : null; }
+function blocoCliente() {
+  const c = clienteSel();
+  if (c) return `<div class="cli-card"><div style="min-width:0"><div class="strong">${esc(c.nome)}</div><div class="cod">${[c.nif && "NIF " + esc(c.nif), esc(c.telefone)].filter(Boolean).join(" · ") || "Sem NIF nem telefone"}</div></div>
+    <button class="btn sm" data-act="cli-editar" data-id="${c.id}">Editar</button><button class="btn sm" data-act="cli-trocar">Trocar</button></div>`;
+  if (venda.novoCli) {
+    const n = venda.novoCli;
+    return `<div class="cli-novo"><div class="eyebrow" style="font-size:10.5px">Novo cliente</div>
+      <input class="f" id="nc-nome" placeholder="Nome *" value="${esc(n.nome)}" autocomplete="off">
+      <div class="grid2" style="gap:8px"><input class="f" id="nc-nif" placeholder="NIF" value="${esc(n.nif)}" autocomplete="off"><input class="f" id="nc-tel" placeholder="Telefone" inputmode="tel" value="${esc(n.telefone)}" autocomplete="off"></div>
+      <input class="f" id="nc-end" placeholder="Endereço" value="${esc(n.endereco)}" autocomplete="off">
+      <div id="nc-err"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sm" data-act="cli-cancelar">Cancelar</button><button class="btn sm pri" data-act="cli-guardar">Guardar e usar na venda</button></div></div>`;
+  }
+  return `<div class="cli-busca"><label class="search">${icon("search")}<input id="vcliq" type="search" placeholder="Nome, NIF ou telefone do cliente" value="${esc(venda.cliQ)}" autocomplete="off" aria-label="Procurar cliente"></label>
+    <div id="vclires" class="cli-res"></div></div>`;
+}
+function resultadosCliente() {
+  const box = $("#vclires"); if (!box) return;
+  const q = venda.cliQ.trim().toLowerCase(), qd = q.replace(/\D/g, "");
+  const l = q ? E.clientes.filter(c => c.nome.toLowerCase().includes(q) || (qd.length >= 3 && (c.nif + c.telefone).replace(/\D/g, "").includes(qd)) || c.nif.toLowerCase().includes(q)).slice(0, 5) : [];
+  box.innerHTML = (q ? l.map(c => `<button data-act="cli-usar" data-id="${c.id}"><span class="strong">${esc(c.nome)}</span><span class="cod">${[c.nif && "NIF " + esc(c.nif), esc(c.telefone)].filter(Boolean).join(" · ")}</span></button>`).join("") : "")
+    + `<button class="novo" data-act="cli-novo">${icon("plus")}${q ? `Registar “${esc(venda.cliQ.trim())}” como novo cliente` : "Registar novo cliente"}</button>`
+    + (q ? "" : `<div class="cod" style="padding:4px 2px 0">Sem cliente, a fatura sai em nome de “Consumidor final”.</div>`);
+}
 function carrinho() {
   const { sub, desc, tot } = totaisVenda();
   const n = venda.itens.reduce((s, i) => s + i.qtd, 0);
   const aberto = $("#cart")?.classList.contains("open");
+  const numerario = venda.forma === "Numerário", troco = venda.recebido - tot;
   $("#cart").innerHTML = `
     <div class="cart-h"><h2>Venda atual</h2><div style="display:flex;gap:6px">${venda.itens.length ? `<button class="btn sm" data-act="limpar-venda">Limpar</button>` : ""}<button class="icon-btn cart-close" data-act="fechar-carrinho" aria-label="Fechar">${icon("x")}</button></div></div>
+    <div class="field"><span>1 · Cliente</span>${blocoCliente()}</div>
+    <div class="field"><span>2 · Produtos e serviços</span>
     ${venda.itens.length ? `<div class="lines">${venda.itens.map((it, i) => {
       const p = produto(it.produto_id); const tier = p && p.tier_qtd && it.qtd >= p.tier_qtd && it.preco_unit === p.tier_preco;
-      return `<div class="line"><div class="nm">${esc(it.descricao)}${p && p.tipo === "produto" ? `<div class="cod">${p.codigo} · ${p.stock} em stock</div>` : `<div class="cod">${p ? p.codigo + " · serviço" : ""}</div>`}</div>
+      const proxTier = p && p.tier_qtd && it.qtd < p.tier_qtd && !it.manual ? p.tier_qtd - it.qtd : 0;
+      return `<div class="line"><div class="nm">${esc(it.descricao)}<div class="cod">${p ? (p.tipo === "produto" ? `${p.codigo} · ${p.stock} em stock` : p.codigo + " · serviço") : "Item avulso"}</div></div>
         <div class="tot num">${kz(it.qtd * (it.preco_unit || 0))}</div>
         <div class="ctr"><span class="qty"><button data-act="qtd" data-i="${i}" data-d="-1" aria-label="Menos">${icon("minus")}</button><input id="q${i}" class="num" inputmode="numeric" value="${it.qtd}" data-i="${i}" aria-label="Quantidade"><button data-act="qtd" data-i="${i}" data-d="1" aria-label="Mais">${icon("plus")}</button></span>
           <label class="price-in">× <input id="pr${i}" class="num ${it.preco_unit ? "" : "need"}" inputmode="numeric" value="${it.preco_unit ? fmt(it.preco_unit) : ""}" placeholder="preço" data-i="${i}" aria-label="Preço unitário"> Kz</label>
           <button class="icon-btn" style="width:30px;height:30px;margin-left:auto" data-act="rm" data-i="${i}" aria-label="Remover">${icon("trash")}</button></div>
-        ${tier ? `<div class="hint">Preço por quantidade aplicado (${p.tier_qtd}+ un.)</div>` : ""}${p && p.modo === "consulta" && !it.preco_unit ? `<div class="hint" style="color:var(--warn)">Por consulta: indique o preço combinado</div>` : ""}${p && p.modo === "a_partir" ? `<div class="hint" style="color:var(--ink-3)">Mínimo ${kz(p.preco)}, ajuste ao pedido</div>` : ""}</div>`;
-    }).join("")}</div>` : `<div class="empty">Toque num produto ou serviço para o adicionar à venda.</div>`}
-    <label class="field"><span>Cliente</span><div style="display:flex;gap:6px"><select class="f" id="vcli"><option value="">Consumidor final</option>${E.clientes.map(c => `<option value="${c.id}" ${String(c.id) === String(venda.cliente_id) ? "selected" : ""}>${esc(c.nome)}${c.nif ? " · NIF " + esc(c.nif) : ""}</option>`).join("")}</select><button class="btn" data-act="novo-cliente-venda" aria-label="Novo cliente" title="Novo cliente">${icon("plus")}</button></div></label>
-    <div class="field"><span>Forma de pagamento</span><div class="pay">${E.config.formas_pagamento.map(m => `<button data-act="forma" data-v="${esc(m)}" aria-pressed="${venda.forma === m}">${esc(m)}</button>`).join("")}</div></div>
+        ${tier ? `<div class="hint">Preço por quantidade aplicado (${p.tier_qtd}+ un.)</div>` : ""}${proxTier && proxTier <= 5 ? `<div class="hint" style="color:var(--brand-deep)">Mais ${proxTier} un. e o preço baixa para ${kz(p.tier_preco)}</div>` : ""}${p && p.modo === "consulta" && !it.preco_unit ? `<div class="hint" style="color:var(--warn)">Por consulta: indique o preço combinado</div>` : ""}${p && p.modo === "a_partir" ? `<div class="hint" style="color:var(--ink-3)">Mínimo ${kz(p.preco)}, ajuste ao pedido</div>` : ""}</div>`;
+    }).join("")}</div>` : `<div class="empty" style="padding:16px 8px">Toque num produto ou serviço para o adicionar.</div>`}</div>
+    <div class="field"><span>3 · Pagamento</span><div class="pay">${E.config.formas_pagamento.map(m => `<button data-act="forma" data-v="${esc(m)}" aria-pressed="${venda.forma === m}">${esc(m)}</button>`).join("")}</div></div>
     <div class="totals">
       <div class="r"><span>Subtotal</span><span class="num">${kz(sub)}</span></div>
-      <div class="r"><label for="vdesc">Desconto (Kz)</label><input id="vdesc" class="num" inputmode="numeric" value="${venda.desconto ? fmt(venda.desconto) : ""}" placeholder="0"></div>
+      <div class="r"><span style="display:flex;align-items:center;gap:6px">Desconto <span class="seg mini">${[["kz", "Kz"], ["pct", "%"]].map(([v, t]) => `<button data-act="desc-modo" data-v="${v}" aria-pressed="${venda.descModo === v}">${t}</button>`).join("")}</span></span>
+        <input id="vdesc" class="num" inputmode="numeric" value="${venda.desconto ? fmt(venda.desconto) : ""}" placeholder="0" aria-label="Desconto"></div>
+      ${venda.descModo === "pct" && desc ? `<div class="r" style="font-size:13px"><span></span><span class="num">− ${kz(desc)}</span></div>` : ""}
       <div class="r grand"><span>Total</span><span class="num">${kz(tot)}</span></div>
+      ${numerario ? `<div class="r"><label for="vrec">Valor recebido</label><input id="vrec" class="num" inputmode="numeric" value="${venda.recebido ? fmt(venda.recebido) : ""}" placeholder="0"></div>
+        ${venda.recebido ? `<div class="r ${troco < 0 ? "falta" : "troco"}"><span>${troco < 0 ? "Falta receber" : "Troco"}</span><span class="num">${kz(Math.abs(troco))}</span></div>` : ""}` : ""}
     </div>
     <label class="field"><span>Observações</span><textarea class="f" id="vobs" rows="2" placeholder="Ex.: entrega em 2 dias úteis, arte enviada por WhatsApp">${esc(venda.obs)}</textarea></label>
     <div id="v-err"></div>
-    <button class="btn pri big" data-act="emitir" ${venda.itens.length ? "" : "disabled"}>${icon("receipt")}Emitir fatura Nº ${nf(E.config.proximo_numero)}</button>`;
+    <button class="btn pri big" data-act="emitir" ${venda.itens.length ? "" : "disabled"}>${icon("receipt")}Emitir fatura Nº ${nf(E.config.proximo_numero)} · ${kz(tot)}</button>`;
   if (aberto) $("#cart").classList.add("open");
   const bar = $("#cartbar");
   if (bar) { bar.hidden = !venda.itens.length || aberto; bar.innerHTML = `<span>${icon("cart")} ${n} ${n === 1 ? "item" : "itens"}</span><span class="num">${kz(tot)} · Ver venda</span>`; }
-  $("#vcli").onchange = e => venda.cliente_id = e.target.value;
+  const cq = $("#vcliq");
+  if (cq) { cq.oninput = e => { venda.cliQ = e.target.value; resultadosCliente(); }; resultadosCliente(); }
+  if (venda.novoCli) ["nome", "nif", "tel", "end"].forEach(k => { $("#nc-" + k).oninput = e => venda.novoCli[{ tel: "telefone", end: "endereco" }[k] || k] = e.target.value; });
   $("#vobs").oninput = e => venda.obs = e.target.value;
   $("#vdesc").onchange = e => { venda.desconto = inteiro(e.target.value) || 0; carrinho(); };
+  if ($("#vrec")) $("#vrec").onchange = e => { venda.recebido = inteiro(e.target.value) || 0; carrinho(); };
   venda.itens.forEach((it, i) => {
     $("#q" + i).onchange = e => mudarQtd(i, (inteiro(e.target.value) || 1) - it.qtd);
     $("#pr" + i).onchange = e => { it.preco_unit = inteiro(e.target.value) || 0; it.manual = true; carrinho(); };
   });
+}
+async function guardarClienteVenda() {
+  const d = venda.novoCli;
+  try {
+    const c = await acao("guardarCliente", d);
+    Object.assign(venda, { cliente_id: String(c.id), novoCli: null, cliQ: "" });
+    carrinho(); toast(`${c.nome} registado e escolhido para a venda`);
+  } catch (e) { $("#nc-err").innerHTML = `<div class="err">${esc(e.message)}</div>`; if (!(e instanceof ErroNegocio)) console.error(e); }
+}
+function itemAvulso() {
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>Item avulso</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><p class="note" style="margin:0">Para vender algo que não está no catálogo (ex.: um trabalho por medida). Não mexe no stock.</p>
+      <label class="field"><span>Descrição</span><input class="f" id="av-d" placeholder="Ex.: Banner 3 × 1 m com ilhós" required></label>
+      <div class="grid2"><label class="field"><span>Quantidade</span><input class="f num" id="av-q" inputmode="numeric" value="1"></label>
+        <label class="field"><span>Preço unitário (Kz)</span><input class="f num" id="av-p" inputmode="numeric" placeholder="Ex.: 15000"></label></div><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri">Adicionar à venda</button></div></form>`,
+    async () => {
+      const descricao = $("#av-d").value.trim(), qtd = inteiro($("#av-q").value), preco = inteiro($("#av-p").value);
+      if (!descricao) falha("Escreva a descrição."); if (!(qtd > 0)) falha("Quantidade inválida."); if (!(preco > 0)) falha("Indique o preço em Kz.");
+      venda.itens.push({ produto_id: null, descricao, qtd, preco_unit: preco, manual: true });
+      fechar(); carrinho(); toast(`${descricao} adicionado`);
+    });
+  setTimeout(() => $("#av-d").focus(), 50);
 }
 function mudarQtd(i, d) {
   const it = venda.itens[i], p = produto(it.produto_id);
@@ -811,13 +900,26 @@ function adicionar(id) {
   toast(`${p.nome} adicionado`);
 }
 async function emitir() {
-  const { desc } = totaisVenda();
+  const { desc, tot } = totaisVenda();
+  const err = m => { $("#v-err").innerHTML = `<div class="err">${esc(m)}</div>`; $("#v-err").scrollIntoView({ block: "nearest" }); };
+  if (venda.novoCli) return err("Termine de registar o novo cliente (ou cancele) antes de emitir.");
+  if (!venda.forma) return err("Escolha a forma de pagamento.");
+  let obs = venda.obs.trim();
+  if (venda.forma === "Numerário" && venda.recebido) obs = `${obs}\nRecebido: ${kz(venda.recebido)} · ${venda.recebido >= tot ? "Troco: " + kz(venda.recebido - tot) : "Falta: " + kz(tot - venda.recebido)}`.trim();
   try {
-    const f = await acao("registarVenda", { cliente_id: venda.cliente_id ? Number(venda.cliente_id) : null, forma_pagamento: venda.forma, desconto: desc, observacoes: venda.obs,
+    const f = await acao("registarVenda", { cliente_id: venda.cliente_id ? Number(venda.cliente_id) : null, forma_pagamento: venda.forma, desconto: desc, observacoes: obs,
       itens: venda.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
-    Object.assign(venda, { itens: [], cliente_id: "", forma: "", desconto: 0, obs: "" });
-    render(); toast(`Fatura Nº ${nf(f.numero)} emitida`); verFatura(f.id);
-  } catch (e) { $("#v-err").innerHTML = `<div class="err">${esc(e.message)}</div>`; if (!(e instanceof ErroNegocio)) console.error(e); }
+    Object.assign(venda, { itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null });
+    render(); toast(`Fatura Nº ${nf(f.numero)} emitida`); verFatura(f.id, true);
+  } catch (e) { err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
+}
+function resumoFatura(f) {
+  const emp = E.config.empresa;
+  return [`*${emp.nome}* — Fatura Nº ${nf(f.numero)}`, `Data: ${dataPt(f.data)} ${horaPt(f.data)}`, `Cliente: ${f.cliente_nome}`, "",
+    ...f.itens.map(it => `${it.qtd} × ${it.descricao} — ${kz(it.total)}`), "",
+    ...(f.desconto ? [`Subtotal: ${kz(f.subtotal)}`, `Desconto: ${kz(f.desconto)}`] : []), `*Total: ${kz(f.total)}*`, `Pagamento: ${f.forma_pagamento}`,
+    ...(f.forma_pagamento === "Transferência bancária" ? ["", ...emp.contas.slice(0, 3).map(c => `${c.banco}: ${c.iban}`), `Titular: ${emp.titular}`] : []),
+    "", emp.slogan].join("\n");
 }
 
 /* ============================================================ produtos */
@@ -1176,12 +1278,21 @@ const ACOES = {
   "add": el => adicionar(el.dataset.id),
   "qtd": el => mudarQtd(Number(el.dataset.i), Number(el.dataset.d)),
   "rm": el => { venda.itens.splice(Number(el.dataset.i), 1); carrinho(); tiles(); },
-  "forma": el => { venda.forma = el.dataset.v; document.querySelectorAll(".pay button").forEach(b => b.setAttribute("aria-pressed", b === el)); },
+  "forma": el => { venda.forma = el.dataset.v; carrinho(); if (venda.forma === "Numerário") setTimeout(() => $("#vrec")?.focus(), 30); },
   "limpar-venda": () => { venda.itens = []; venda.desconto = 0; carrinho(); tiles(); },
   "emitir": () => emitir(),
   "abrir-carrinho": () => { $("#cart").classList.add("open"); $("#cartbar").hidden = true; },
   "fechar-carrinho": () => { $("#cart").classList.remove("open"); carrinho(); },
-  "novo-cliente-venda": () => formCliente(null, c => { venda.cliente_id = String(c.id); fechar(); carrinho(); }),
+  "cli-usar": el => { Object.assign(venda, { cliente_id: el.dataset.id, cliQ: "" }); carrinho(); },
+  "cli-trocar": () => { venda.cliente_id = ""; carrinho(); setTimeout(() => $("#vcliq")?.focus(), 30); },
+  "cli-editar": el => formCliente(Number(el.dataset.id), () => { fechar(); carrinho(); }),
+  "cli-novo": () => { const q = venda.cliQ.trim(), num = q.replace(/[\s.-]/g, ""); venda.novoCli = /^\d{9}$/.test(num) ? { nome: "", nif: "", telefone: q, endereco: "" } : /^\d{9,}[A-Z]{0,2}\d*$/i.test(num) ? { nome: "", nif: q, telefone: "", endereco: "" } : { nome: q, nif: "", telefone: "", endereco: "" }; carrinho(); setTimeout(() => $(venda.novoCli.nome ? "#nc-nif" : "#nc-nome").focus(), 30); },
+  "cli-cancelar": () => { venda.novoCli = null; carrinho(); },
+  "cli-guardar": () => guardarClienteVenda(),
+  "avulso": () => itemAvulso(),
+  "desc-modo": el => { venda.descModo = el.dataset.v; carrinho(); },
+  "nova-venda": () => { fechar(); location.hash = "#vender"; setTimeout(() => $("#pq")?.focus(), 50); },
+  "copiar-fatura": async el => { const t = resumoFatura(byId(E.faturas, el.dataset.id)); try { await navigator.clipboard.writeText(t); toast("Resumo copiado"); } catch (e) { toast("Não foi possível copiar neste dispositivo"); } },
   "tipo-p": el => { filtroP.tipo = el.dataset.v; document.querySelectorAll("#xt button").forEach(b => b.setAttribute("aria-pressed", b === el)); vProdutos.upd(); },
   "novo-produto": () => formProduto(null),
   "editar-produto": el => formProduto(Number(el.dataset.id)),
