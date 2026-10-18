@@ -1,0 +1,60 @@
+name: Grupo Kambas — Windows
+
+on:
+  push:
+    branches: [ccr-fbaf189e-9ll2g5, claude/publishing-pages-r49a1s]
+    paths:
+      - "grupo-kambas/**"
+      - ".github/workflows/grupo-kambas-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: grupo-kambas-windows
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: grupo-kambas/windows-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Gerar os ficheiros da aplicação
+        run: python ../construir.py --apk www
+      - name: Instalar o Electron
+        run: npm install --no-audit --no-fund
+      - name: Criar o instalador
+        run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GrupoKambas-windows
+          path: |
+            grupo-kambas/windows-app/dist/GrupoKambas-Instalador.exe
+            grupo-kambas/windows-app/dist/GrupoKambas-Portatil.exe
+      - name: Publicar no release (link fixo)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: grupo-kambas-windows
+          name: Grupo Kambas — Windows
+          make_latest: false
+          files: |
+            grupo-kambas/windows-app/dist/GrupoKambas-Instalador.exe
+            grupo-kambas/windows-app/dist/GrupoKambas-Portatil.exe
+          body: |
+            Aplicação para Windows do sistema de gestão do Grupo Kambas.
+            - **GrupoKambas-Instalador.exe**: instala e cria atalho no ambiente de trabalho.
+            - **GrupoKambas-Portatil.exe**: abre sem instalar.
+            O Windows pode mostrar "O Windows protegeu o seu PC": carregue em "Mais informações" e depois "Executar mesmo assim".
+            Compilada a partir do commit ${{ github.sha }}.
