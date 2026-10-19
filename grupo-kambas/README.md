@@ -71,6 +71,14 @@ utilizador e sincronização entre dispositivos.
   faturas. Depois aparece "Fatura emitida" com o número, o total e o troco.
 - PDF: aviso "A gerar o PDF…" e, no fim, onde ficou o ficheiro.
 
+## Ecrã de espera e bloqueio por inatividade
+
+- **5 minutos sem mexer:** aparece o ecrã de espera com o logótipo, a hora, a data e o nome de quem está a usar. Um toque volta ao que estava (carrinho e formulários ficam como estavam).
+- **30 minutos sem mexer:** a sessão bloqueia e pede a senha de quem está a usar. O trabalho aberto não se perde. Recarregar a página ou fechar e abrir a aplicação não tira o bloqueio.
+- A senha é confirmada no aparelho (funciona sem internet) a partir de uma impressão guardada no login; se a senha foi mudada noutro aparelho, confirma no servidor.
+- Depois de 5 senhas erradas espera 30 segundos. "Entrar com outra conta" termina a sessão (avisa se há registos offline por enviar).
+- Enquanto se emite uma fatura ou gera um PDF, o tempo não conta.
+
 ## Sem internet (modo offline)
 
 - Cada vez que os dados chegam do servidor, fica uma cópia no aparelho (IndexedDB).

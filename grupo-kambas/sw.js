@@ -1,5 +1,5 @@
 // Gerado por construir.py. Guarda a aplicação no aparelho para abrir sem internet.
-const CACHE = "grupo-kambas-8a062627ed";
+const CACHE = "grupo-kambas-a0e9586e84";
 const BASE = ["./", "index.html", "instalar.html", "manifest.webmanifest", "vendor/supabase.js",
   "vendor/jspdf.umd.min.js", "vendor/jspdf.plugin.autotable.min.js", "static/icone-192.png",
   "static/icone-512.png", "static/logo_azul.png", "static/logo_branco.png"];

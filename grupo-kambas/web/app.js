@@ -55,6 +55,7 @@ function campoSenha(id, rotulo, auto, extra = "", nome = "") {
 }
 /* pede ao navegador/telemóvel para guardar a senha (Chrome, Edge, Android); o Safari guarda pelo próprio formulário */
 async function guardarCredencial(utilizador, senha) {
+  await lembrarSenhaLocal(utilizador, senha);
   try { if (window.PasswordCredential && navigator.credentials && utilizador && senha) await Promise.race([navigator.credentials.store(new window.PasswordCredential({ id: utilizador, password: senha, name: utilizador })), new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* o utilizador pode recusar */ }
 }
 const docNum = f => f.pendente ? `${f.tipo} (por enviar)` : `${f.tipo} ${nf(f.numero)}`;
@@ -678,8 +679,7 @@ function navegar() {
   $("#app").classList.toggle("compacta", vista === "vender");
   $("#page-title").textContent = vista === "painel" && !pode("ver_todas") ? "As minhas vendas" : TITULOS[vista];
   document.title = `${TITULOS[vista]} · Grupo Kambas`;
-  const ini = ((E.eu.nome || "").match(/[\p{L}\d]+/gu) || ["?"]).map(s => s[0]).slice(0, 2).join("").toUpperCase();
-  $("#user-btn").textContent = ini;
+  $("#user-btn").textContent = iniciaisDe(E.eu.nome);
   $("#rail-user").innerHTML = `<button class="ru" data-act="conta"><span class="av">${esc(ini)}</span><span><b>${esc(E.eu.nome)}</b><small>${E.eu.papel === "admin" ? "Administrador" : "Vendedor"}${DEMO ? " · demonstração" : ""}</small></span></button>
     <button class="ru-sair" data-act="sair">${icon("logout")}Terminar sessão</button>`;
   render();
@@ -2168,6 +2168,155 @@ async function comEspera(btn, fn) {
   finally { ocupado(false); if (btn.isConnected) { btn.disabled = false; btn.innerHTML = txt; } }
 }
 
+/* ============================================================ inatividade: ecrã de espera (5 min) e bloqueio com senha (30 min)
+   O ecrã de espera sai com um toque. O bloqueio pede a senha de quem está a usar; o trabalho aberto (carrinho, formulários)
+   fica como estava. A senha é confirmada contra uma impressão guardada neste aparelho (funciona sem internet) ou no servidor. */
+const INATIVO = { espera: 5 * 60e3, bloqueio: 30 * 60e3 };
+const CH_INATIVO = "grupo-kambas-inativo", CH_SENHAS = "grupo-kambas-chaves";
+const lerLS = (k, def = null) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } };
+const gravarLS = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } };
+async function impressaoSenha(senha, sal) {
+  const c = window.crypto && crypto.subtle; if (!c) return null;
+  const k = await c.importKey("raw", new TextEncoder().encode(senha), "PBKDF2", false, ["deriveBits"]);
+  const b = await c.deriveBits({ name: "PBKDF2", salt: new TextEncoder().encode(sal), iterations: 120000, hash: "SHA-256" }, k, 256);
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+async function lembrarSenhaLocal(utilizador, senha) {
+  try {
+    const u = (utilizador || "").trim().toLowerCase(); if (!u || !senha) return;
+    const sal = [...crypto.getRandomValues(new Uint8Array(12))].map(x => x.toString(16).padStart(2, "0")).join("");
+    const h = await impressaoSenha(senha, sal + u); if (!h) return;
+    gravarLS(CH_SENHAS, { ...lerLS(CH_SENHAS, {}), [u]: { sal, h } });
+  } catch (e) { /* sem crypto: confirma no servidor */ }
+}
+const Inativo = {
+  ultima: Date.now(), estado: "", ligado: false, tRel: null, falhas: 0, esperaAte: 0,
+  /* chamado depois de entrar com utilizador e senha: começa do zero */
+  reiniciar() { this.ultima = Date.now(); gravarLS(CH_INATIVO, { ultima: this.ultima, bloq: false }); },
+  ligar() {
+    const g = lerLS(CH_INATIVO, {});
+    if (g.bloq || (g.ultima && Date.now() - g.ultima >= INATIVO.bloqueio)) { this.ultima = g.ultima || Date.now(); this.bloquear(); }
+    else this.marcar();
+    if (this.ligado) return; this.ligado = true;
+    const mexeu = () => { if (!this.estado) this.marcar(); };
+    ["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll", "input"].forEach(ev => document.addEventListener(ev, mexeu, { capture: true, passive: true }));
+    setInterval(() => this.verificar(), 5000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) this.verificar(); });
+  },
+  marcar() {
+    const agora = Date.now(); const gravar = agora - this.ultima > 15000; this.ultima = agora;
+    if (gravar) gravarLS(CH_INATIVO, { ultima: agora, bloq: false });
+  },
+  verificar() {
+    if ($("#app").hidden || !E || !E.eu || this.estado === "bloq") return;
+    if (nOcupado > 0 || venda.emitindo) return this.marcar();   // a trabalhar (emitir, PDF…) não conta como parado
+    const t = Date.now() - this.ultima;
+    if (t >= INATIVO.bloqueio) this.bloquear();
+    else if (t >= INATIVO.espera && !this.estado) this.espera();
+  },
+  ecra(html, cls) {
+    let el = $("#inativo");
+    if (!el) { el = document.createElement("div"); el.id = "inativo"; document.body.appendChild(el); }
+    el.className = "inativo " + cls; el.innerHTML = html;
+    $("#app").inert = true; $("#layer").inert = true;
+    return el;
+  },
+  relogio() {
+    const d = new Date();
+    const h = $("#in-hora"), dt = $("#in-data");
+    if (h) h.textContent = d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+    if (dt) dt.textContent = dataLonga();
+  },
+  topo() {
+    return `<img class="in-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">
+      <div class="in-hora num" id="in-hora"></div><div class="in-data" id="in-data"></div>`;
+  },
+  espera() {
+    this.estado = "espera";
+    const bloqueiaAs = new Date(this.ultima + INATIVO.bloqueio).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+    const el = this.ecra(`<div class="in-centro">${this.topo()}<span class="in-slogan">Crescendo juntos sempre!</span></div>
+      <div class="in-base"><span class="in-quem"><span class="in-av">${esc(iniciaisDe(E.eu.nome))}</span><span>${esc(E.eu.nome)}</span></span>
+        <b class="in-toque">Toque para continuar</b><small>Sem atividade, a sessão bloqueia às ${bloqueiaAs}</small></div>`, "espera");
+    el.setAttribute("role", "button"); el.setAttribute("aria-label", "Ecrã de espera. Toque para continuar"); el.tabIndex = 0;
+    el.onclick = () => this.acordar();
+    el.onkeydown = () => this.acordar();
+    this.relogio(); clearInterval(this.tRel); this.tRel = setInterval(() => this.relogio(), 1000);
+    setTimeout(() => el.focus(), 30);
+  },
+  acordar() {
+    if (this.estado !== "espera") return;
+    if (Date.now() - this.ultima >= INATIVO.bloqueio) return this.bloquear();
+    this.fecharEcra(); this.marcar();
+  },
+  fecharEcra() {
+    this.estado = ""; clearInterval(this.tRel);
+    const el = $("#inativo"); if (el) { el.classList.add("sai"); setTimeout(() => el.remove(), 300); }
+    $("#app").inert = false; $("#layer").inert = false;
+  },
+  bloquear() {
+    this.estado = "bloq"; gravarLS(CH_INATIVO, { ultima: this.ultima, bloq: true });
+    const el = this.ecra(`<div class="in-centro">${this.topo()}</div>
+      <form class="in-card" id="f-bloq" autocomplete="on">
+        <div class="in-quem escuro"><span class="in-av">${esc(iniciaisDe(E.eu.nome))}</span><span><b>${esc(E.eu.nome)}</b><small>Sessão bloqueada por inatividade</small></span></div>
+        <input type="text" name="username" autocomplete="username" value="${esc(E.eu.utilizador || "")}" hidden>
+        ${campoSenha("bq-senha", "Senha", "current-password", "required", "password")}
+        <div id="bq-err"></div>
+        <button type="submit" class="btn pri big">${icon("check")}Desbloquear</button>
+        <button type="button" class="in-outra" id="bq-outra">Entrar com outra conta</button>
+      </form>`, "bloq");
+    el.removeAttribute("role"); el.removeAttribute("aria-label"); el.onclick = null; el.onkeydown = null;
+    el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "Sessão bloqueada");
+    $("#f-bloq").onsubmit = e => { e.preventDefault(); this.desbloquear(e.target.querySelector("button[type=submit]")); };
+    $("#bq-outra").onclick = () => this.outraConta();
+    this.relogio(); clearInterval(this.tRel); this.tRel = setInterval(() => this.relogio(), 1000);
+    setTimeout(() => { const i = $("#bq-senha"); if (i) i.focus(); }, 60);
+  },
+  async confirmarSenha(senha) {
+    if (DEMO) return true;   // na demonstração qualquer senha serve, como no login
+    const u = (E.eu.utilizador || "").toLowerCase();
+    const g = lerLS(CH_SENHAS, {})[u];
+    if (g) { try { if (await impressaoSenha(senha, g.sal + u) === g.h) return true; } catch (e) { /* tenta no servidor */ } }
+    if (!navigator.onLine) {
+      if (!g) throw new Error("Sem internet para confirmar a senha. Ligue-se à internet e tente de novo.");
+      return false;
+    }
+    const { error } = await sb.auth.signInWithPassword({ email: emailDe(u), password: senha });
+    if (error) { if (/invalid login/i.test(error.message)) return false; throw error; }
+    await lembrarSenhaLocal(u, senha);   // a senha pode ter mudado noutro aparelho
+    return true;
+  },
+  async desbloquear(b) {
+    const err = m => { $("#bq-err").innerHTML = m ? `<div class="err">${esc(m)}</div>` : ""; };
+    const senha = $("#bq-senha").value;
+    if (Date.now() < this.esperaAte) return err(`Muitas tentativas. Espere ${Math.ceil((this.esperaAte - Date.now()) / 1000)} segundos.`);
+    if (!senha) return err("Escreva a sua senha.");
+    const txt = b.innerHTML; b.disabled = true; b.innerHTML = `<span class="spin" aria-hidden="true"></span>A confirmar…`;
+    try {
+      if (await this.confirmarSenha(senha)) {
+        this.falhas = 0; this.fecharEcra(); this.ultima = Date.now(); gravarLS(CH_INATIVO, { ultima: this.ultima, bloq: false });
+        toast(`Bem-vindo de volta, ${E.eu.nome.split(" ")[0]}`, "ok");
+        return;
+      }
+      this.falhas++;
+      if (this.falhas >= 5) { this.esperaAte = Date.now() + 30000; this.falhas = 0; err("Senha errada 5 vezes. Espere 30 segundos."); }
+      else err("Senha errada. Tente de novo.");
+      $("#bq-senha").select();
+    } catch (e) { err(mensagemErro(e)); }
+    finally { if (b.isConnected) { b.disabled = false; b.innerHTML = txt; } }
+  },
+  outraConta() {
+    const n = fila.length;
+    const aviso = n ? `<div class="err">Há <b>${n}</b> registo${n === 1 ? "" : "s"} feito${n === 1 ? "" : "s"} sem internet ainda por enviar. Se sair agora, perde${n === 1 ? "-se" : "m-se"}.</div>` : "";
+    $("#f-bloq").innerHTML = `<h2 class="in-tit">Entrar com outra conta?</h2>
+      <p class="sub">A sessão de <b>${esc(E.eu.nome)}</b> termina neste aparelho. O que já foi enviado fica guardado no servidor.</p>${aviso}
+      <button type="button" class="btn danger big" id="bq-sair">${icon("logout")}Terminar sessão</button>
+      <button type="button" class="in-outra" id="bq-voltar">Voltar</button>`;
+    $("#bq-voltar").onclick = () => this.bloquear();
+    $("#bq-sair").onclick = () => { gravarLS(CH_INATIVO, null); this.fecharEcra(); terminarSessao(); };
+  },
+};
+const iniciaisDe = nome => ((nome || "").match(/[\p{L}\d]+/gu) || ["?"]).map(s => s[0]).slice(0, 2).join("").toUpperCase();
+
 const ACOES = {
   "fundo": (el, e) => { if (e.target === el) fechar(); },
   "fechar": () => fechar(),
@@ -2313,6 +2462,7 @@ function ecraLogin(msg = "") {
       $("#l-err").innerHTML = `<div class="err">${esc(m)}</div>`; return;
     }
     await guardarCredencial($("#l-user").value.trim(), $("#l-senha").value);
+    Inativo.reiniciar();
     await entrarNaApp();
   };
   setTimeout(() => $("#l-user").focus(), 50);
@@ -2334,6 +2484,7 @@ function ecraConfigurar() {
       const { error } = await sb.auth.signInWithPassword({ email: emailDe($("#c-user").value), password: $("#c-s1").value });
       if (error) throw error;
       await guardarCredencial($("#c-user").value.trim().toLowerCase(), $("#c-s1").value);
+      Inativo.reiniciar();
       await entrarNaApp(); toast("Administrador criado. Bem-vindo!");
     } catch (er) { err(mensagemErro(er)); }
   };
@@ -2360,6 +2511,7 @@ async function entrarNaApp(uid) {
   if (!canal) ligarTempoReal();
   navegar();
   Arranque.fim();
+  Inativo.ligar();
   enviarFila();
 }
 
@@ -2384,7 +2536,7 @@ function ecraLoginDemo(msg = "") {
     const u = E.utilizadores.find(x => x.utilizador === $("#l-user").value.trim().toLowerCase());
     if (!u || !u.ativo) { $("#l-err").innerHTML = `<div class="err">Utilizador ou senha errados.</div>`; return; }
     E._eu = u.id; E._sessao = true; Local.atualizarEu(); guardarLocal();
-    $("#auth").hidden = true; $("#app").hidden = false; navegar(); toast(`Bem-vindo, ${E.eu.nome}`);
+    $("#auth").hidden = true; $("#app").hidden = false; Inativo.reiniciar(); Inativo.ligar(); navegar(); toast(`Bem-vindo, ${E.eu.nome}`);
   };
   setTimeout(() => $("#l-user").focus(), 50);
 }
@@ -2405,6 +2557,7 @@ function ecraLoginDemo(msg = "") {
     $("#app").hidden = false;
     navegar();
     Arranque.fim();
+    Inativo.ligar();
     return;
   }
   Arranque.passo(0, "A ligar ao servidor…");
