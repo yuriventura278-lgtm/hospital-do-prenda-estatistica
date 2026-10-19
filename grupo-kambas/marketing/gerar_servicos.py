@@ -56,7 +56,7 @@ CORPO = f'''<div class="f"><div class="dots"></div><div class="ring r1"></div><d
 <p class="sub">Da impressão ao sistema de faturação: <b>soluções completas</b> para si e para a sua empresa.</p>
 <div class="grade">{cards}</div>
 <div class="rec"><div class="rt"><span class="si">{ic(I["bolt"])}</span><div><b>Recargas electrónicas</b><small>Saldo, TV, luz e água — na hora</small></div></div><div class="lgs">{logos_ops}</div></div>
-<div class="pe"><div class="cta"><span class="ci">{ic(I["tel"])}</span><div><small>Ligue ou WhatsApp</small><b>951 332 741</b><b>949 512 673</b></div></div>
+<div class="pe"><div class="cta"><span class="ci">{ic(I["tel"])}</span><div><small>Ligue ou WhatsApp</small><b>951 332 741</b></div></div>
 <div class="soc">Facebook <b>Grupo Kambas</b><br>TikTok <b>@grupo.kambas</b><div class="sl">Crescendo juntos sempre!</div></div></div>
 </div>'''
 
@@ -101,7 +101,7 @@ h1 em{{font-style:normal;margin-left:.22em;background:linear-gradient(90deg,#5FD
 .ci{{width:{z(70)};height:{z(70)};flex:none;border-radius:{z(22)};background:linear-gradient(140deg,#0B6A80,#0192B8);display:grid;place-items:center;color:#fff}}
 .ci svg{{width:{z(34)};height:{z(34)}}}
 .cta small{{display:block;white-space:nowrap;font:800 {z(17)} Archivo;letter-spacing:.18em;text-transform:uppercase;color:#0B6A80}}
-.cta b{{display:block;white-space:nowrap;font:900 {z(42)}/1.04 Archivo;font-stretch:85%}}
+.cta b{{display:block;white-space:nowrap;font:900 {z(60)}/1.04 Archivo;font-stretch:85%}}
 .soc{{text-align:right;white-space:nowrap;font-size:{z(20)};font-weight:700;color:#4E6B76;line-height:1.5}}
 .soc b{{color:#0F2E3A}}
 .soc .sl{{margin-top:{z(6)};font:800 {z(15)} Archivo;letter-spacing:.2em;text-transform:uppercase;color:#0192B8}}
@@ -119,5 +119,6 @@ SOCIAL = SOCIAL.replace("</style>", """.grade{gap:14px;margin-top:30px}.sv{min-h
 # lona: 1240×2080 (2 px/mm) = 58×100 cm + 2 cm de sangria; zona segura a 50 mm (100 px) da borda
 LONA = pagina("Serviços Grupo Kambas — lona 58×100 cm", 1240, 2080, (110, 110, 50, 110), 1.42, "@page{size:620mm 1040mm;margin:0}")
 LONA = LONA.replace("h1 em{font-style:normal;margin-left:.22em;", "h1 em{font-style:normal;display:block;")
+LONA = LONA.replace("</style>", ".cta b{font-size:76px}</style>")
 (AQUI / "flyer-servicos-lona-58x100.html").write_text(LONA)
 print("ok")
