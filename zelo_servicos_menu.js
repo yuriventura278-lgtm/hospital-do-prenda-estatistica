@@ -209,6 +209,8 @@ const SISTEMAS_LOCAIS_MENU = [
   // Só leitura: Testagem de VIH do Laboratório + Hemoterapia, cada um e a soma.
   { nome: 'Testagem de VIH Geral', file: 'testagem_vih_estatistica.html', modulo: 'sistemas_independentes', item: 'testagem_vih' },
   { nome: 'Movimento Hospitalar Geral', file: 'movimento_hospitalar_geral.html', modulo: 'sistemas_independentes', item: 'movimento_hospitalar_geral' },
+  // Modelo mensal (todos os dias) de dias de cama e dias de doente, por serviço — em branco ou já preenchido.
+  { nome: 'Recolha de Dias de Cama e Dias de Doente', file: 'recolha_dias_cama.html', modulo: 'sistemas_independentes', item: 'recolha_dias_cama' },
   { nome: 'Fluxograma do Relatório', file: 'fluxograma_relatorio.html', modulo: 'sistemas_independentes', item: 'fluxograma_relatorio' },
   { nome: 'Consumo do Firebase', file: 'consumo_firebase.html', modulo: 'sistemas_independentes', item: 'consumo_firebase' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),
