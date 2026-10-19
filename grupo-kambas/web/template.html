@@ -763,6 +763,40 @@ body.ocupado .prog-topo i { animation: corre-topo 1.1s ease-in-out infinite; }
 .cs-fica { display: inline-flex; align-items: center; gap: 4px; }
 .cs-fica b { color: var(--ok); font-family: var(--f-display); font-size: 18px; font-weight: 800; }
 .cs-atual small { flex: 1 1 100%; font-size: 13px; color: var(--ink-2); }
+/* inatividade: ecrã de espera e bloqueio */
+.inativo { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; gap: 20px; overflow-y: auto; background: linear-gradient(165deg, #0A3D4C 0%, #0B5466 55%, #0F7F9C 100%); color: #fff; padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(32px, calc(env(safe-area-inset-bottom, 0px) + 24px)) max(16px, env(safe-area-inset-left, 0px)); animation: in-entra .45s ease both; }
+.inativo.sai { opacity: 0; transition: opacity .3s ease; }
+.inativo.espera { cursor: pointer; justify-content: space-between; outline: none; }
+.inativo.bloq { justify-content: center; }
+.in-centro { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+.inativo.bloq .in-centro { flex: none; }
+.in-logo { width: 120px; margin-bottom: 10px; animation: arr-respira 3.2s ease-in-out infinite; }
+.inativo.bloq .in-logo { width: 88px; margin-bottom: 4px; }
+.in-hora { font-family: var(--f-display); font-weight: 800; font-size: clamp(64px, 18vw, 112px); line-height: 1; letter-spacing: -.02em; }
+.inativo.bloq .in-hora { font-size: 48px; }
+.in-data { font-size: 17px; font-weight: 600; color: #B8DCE6; }
+.in-slogan { margin-top: 18px; font-family: var(--f-display); font-size: 12px; font-weight: 700; letter-spacing: .26em; text-transform: uppercase; color: #8FD3E6; }
+.in-base { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.in-base small { color: #B8DCE6; font-size: 13.5px; }
+.in-toque { font-size: 17px; font-weight: 700; padding: 12px 26px; border-radius: 99px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25); animation: in-pulsa 2.4s ease-in-out infinite; }
+.in-quem { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+.in-quem > span:last-child { display: flex; flex-direction: column; text-align: left; }
+.in-quem small { font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
+.in-av { width: 40px; height: 40px; border-radius: 20px; display: grid; place-items: center; flex: none; font-family: var(--f-display); font-weight: 800; font-size: 15px; background: rgba(255,255,255,.18); color: #fff; }
+.in-quem.escuro { color: var(--ink); }
+.in-quem.escuro .in-av { width: 48px; height: 48px; border-radius: 24px; background: var(--brand-deep); font-size: 17px; }
+.in-quem.escuro b { font-family: var(--f-display); font-size: 18px; font-weight: 800; }
+.in-card { width: min(400px, 100%); background: var(--surface); color: var(--ink); border-radius: 18px; padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.in-card .btn.big { justify-content: center; }
+.in-tit { margin: 0; font-family: var(--f-display); font-size: 20px; font-weight: 800; }
+.in-card .sub { margin: 0; color: var(--ink-2); }
+.in-outra { background: none; border: 0; padding: 8px; font: 600 15px var(--f-body); color: var(--brand-deep); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+:root[data-theme="dark"] .in-outra { color: var(--brand); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .in-outra { color: var(--brand); } }
+@keyframes in-entra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes in-pulsa { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
+@media (prefers-reduced-motion: reduce) { .inativo, .in-logo, .in-toque { animation: none; } }
+@media print { .inativo { display: none !important; } }
 </style>
 <!--KAMBAS_SUPABASE-->
 <div id="arranque" class="arranque" role="status" aria-live="polite">
