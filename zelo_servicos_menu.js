@@ -211,6 +211,8 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Movimento Hospitalar Geral', file: 'movimento_hospitalar_geral.html', modulo: 'sistemas_independentes', item: 'movimento_hospitalar_geral' },
   // Modelo para preencher à mão (mês e dias 1–31) de dias de cama e dias de doente, por serviço.
   { nome: 'Recolha de Dias de Cama e Dias de Doente', file: 'recolha_dias_cama.html', modulo: 'sistemas_independentes', item: 'recolha_dias_cama' },
+  // Registo das folhas entregues (dia a dia por serviço), totais, taxa de ocupação e PDF igual à folha.
+  { nome: 'Dias de Cama e Dias de Doente', file: 'dias_cama_doente.html', modulo: 'sistemas_independentes', item: 'dias_cama_doente' },
   { nome: 'Fluxograma do Relatório', file: 'fluxograma_relatorio.html', modulo: 'sistemas_independentes', item: 'fluxograma_relatorio' },
   { nome: 'Consumo do Firebase', file: 'consumo_firebase.html', modulo: 'sistemas_independentes', item: 'consumo_firebase' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<script src="zelo_consumo.js"></script>
+<script src="zelo_espera.js?v=8"></script>
+<script defer src="zelo_cabecalho.js"></script>
+<script src="zelo_pdf.js"></script>
+<script>document.documentElement.style.visibility='hidden';</script>
+<script>window.ZELO_MODULE='sistemas_independentes';</script>
+<script>window.ZELO_SO_ADMIN=true; // Serviço de Estatística — só administradores</script>
+<script>window.ZELO_ITEM='dias_cama_doente';</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  try{
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.__fbSet = (path,val)=>set(ref(db,path),val);
+    window.__fbUpdate = (path,val)=>update(ref(db,path),val);
+    window.__fbGet = (path)=>get(ref(db,path)).then(snap=>snap.exists()?snap.val():null);
+    window.__fbListen = (path,cb)=>onValue(ref(db,path),snap=>cb(snap.exists()?snap.val():null));
+    window.__fbReady = true;
+  }catch(e){ window.__fbReady = false; }
+</script>
+<script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_pagegate_watchdog.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dias de Cama e Dias de Doente · Hospital do Prenda</title>
+<link rel="icon" type="image/png" href="icons/logo.png"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--nv:#0B2545;--bg:#F2F5FA;--sf:#fff;--br:#E3E8F0;--tx:#132033;--tx2:#4B5B70;--tx3:#8B98AA;--az:#1A56DB;--ok:#059669;--av:#D97706;--mau:#DC2626;--in:#fff;--inb:#DCE3EE;--th:#EEF2F8;--alt:#F7F9FC;--f:Inter,'Segoe UI',Arial,sans-serif}
+html[data-zelo-theme="dark"]{--nv:#E6ECF5;--bg:#0B1220;--sf:#111A2B;--br:#1F2A3D;--tx:#E6ECF5;--tx2:#AAB6C8;--tx3:#7C8AA0;--in:#0F1828;--inb:#2A3850;--th:#18233A;--alt:#0F1828}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--f);background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;width:100%;max-width:1280px;margin:0 auto;padding:20px 16px 40px}
+h2{margin:0;font-size:1.35rem;font-weight:900;color:var(--nv)}
+.sub{color:var(--tx2);font-size:.88rem;margin:4px 0 16px;line-height:1.5}
+.barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.mes{display:flex;align-items:center;gap:8px;background:var(--sf);border:1px solid var(--br);border-radius:12px;padding:6px 8px}
+.mes button{border:1px solid var(--br);background:var(--th);color:var(--tx);border-radius:8px;width:32px;height:32px;font-weight:800;cursor:pointer}
+.mes span{font-weight:800;min-width:140px;text-align:center;text-transform:capitalize}
+.bt{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border-radius:10px;border:1px solid var(--br);background:var(--sf);font:700 .82rem var(--f);color:var(--tx);cursor:pointer;text-decoration:none}
+.bt.p{background:linear-gradient(135deg,var(--az),#0D1B3E);color:#fff;border:0}
+.bt:disabled{opacity:.5;cursor:default}
+.vista{margin-left:auto;display:flex;background:var(--th);border-radius:10px;padding:3px}
+.vista button{border:0;background:none;padding:8px 14px;border-radius:8px;font:700 .82rem var(--f);color:var(--tx2);cursor:pointer}
+.vista .on{background:var(--sf);color:var(--nv);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.servs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.sv{display:flex;align-items:center;gap:8px;background:var(--sf);border:1.5px solid var(--br);border-radius:11px;padding:8px 12px;font:700 .84rem var(--f);color:var(--tx);cursor:pointer}
+.sv i{width:9px;height:9px;border-radius:50%;background:var(--tx3)}.sv.ok i{background:var(--ok)}.sv.par i{background:var(--av)}
+.sv.on{border-color:var(--az);background:rgba(26,86,219,.08);color:var(--az)}
+.sv small{font-weight:600;color:var(--tx3);font-size:.72rem}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px}
+.card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:16px 18px}
+.card h3{margin:0 0 12px;font-size:.74rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+.ident{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.ident label,.rec label{display:flex;flex-direction:column;gap:4px;font-size:.64rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3)}
+.ident input{padding:8px 10px;border:1px solid var(--inb);border-radius:9px;font:700 .95rem var(--f);width:110px;background:var(--in);color:var(--tx)}
+.dica{font-size:.74rem;color:var(--tx3);margin-left:auto}
+.metades{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th{font-size:.64rem;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);background:var(--th);padding:7px 6px;text-align:center}
+th:first-child{text-align:left;padding-left:9px}
+td{border-bottom:1px solid var(--br);padding:3px 5px;text-align:center}
+td.d{font-weight:800;color:var(--nv);text-align:left;padding-left:9px;width:66px;white-space:nowrap}
+td.d small{color:var(--tx3);font-weight:600;font-size:.68rem;margin-left:3px}
+tr.sem td{border-bottom:2px solid var(--nv)}tr.alt td{background:var(--alt)}tr.off td{opacity:.3}
+td input{width:100%;max-width:92px;padding:6px;border:1px solid var(--inb);border-radius:7px;text-align:center;font:700 .92rem var(--f);background:var(--in);color:var(--tx)}
+td input:focus,.ident input:focus,.rec input:focus{outline:2px solid var(--az);outline-offset:0;border-color:var(--az)}
+td input.vz{background:#FFFBEB;border-color:#FCD34D}
+html[data-zelo-theme="dark"] td input.vz{background:#2A2410;border-color:#7A5C10}
+td input.erro{border-color:var(--mau);background:#FEF2F2;color:var(--mau)}
+td input.pend{box-shadow:inset 0 -2px 0 var(--av)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.k{border:1px solid var(--br);border-top:3px solid var(--c,var(--nv));border-radius:12px;padding:10px 12px;min-width:0}
+.k .t{font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
+.k .v{font-size:1.45rem;font-weight:900;color:var(--c,var(--tx));font-variant-numeric:tabular-nums}
+.k .s{font-size:.7rem;color:var(--tx2)}
+.prog{height:8px;background:var(--th);border-radius:6px;overflow:hidden;margin:6px 0 4px}
+.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--av),#F59E0B);transition:width .3s}
+.prog.ok i{background:linear-gradient(90deg,var(--ok),#34D399)}
+.mini{display:flex;align-items:flex-end;gap:2px;height:70px;margin-top:8px}
+.mini b{flex:1;background:#93C5FD;border-radius:2px 2px 0 0;min-height:2px}.mini b.x{background:#FCA5A5}.mini b.n{background:var(--th)}
+.aviso{font-size:.78rem;border-radius:10px;padding:9px 11px;margin-top:10px;line-height:1.45}
+.aviso.mau{background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5}
+.aviso.av{background:#FFFBEB;color:#92400E;border:1px solid #FCD34D}
+.aviso.ok{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
+.rec label{margin-bottom:10px}
+.rec input{padding:8px 10px;border:1px solid var(--inb);border-radius:9px;font:600 .88rem var(--f);background:var(--in);color:var(--tx)}
+.estado{font-size:.74rem;color:var(--tx3);margin-top:8px}
+.res table td,.res table th{text-align:right;padding:9px 10px}
+.res td:first-child,.res th:first-child{text-align:left}
+.res tr.tot td{font-weight:900;border-top:2px solid var(--az);background:rgba(26,86,219,.07)}
+.res tr.l{cursor:pointer}.res tr.l:hover td{background:var(--alt)}
+.chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:800}
+.chip.ok{background:#D1FAE5;color:#065F46}.chip.par{background:#FEF3C7;color:#92400E}.chip.nd{background:#E2E8F0;color:#475569}
+[hidden]{display:none !important}
+@media(max-width:980px){.grid{grid-template-columns:1fr}}
+@media(max-width:640px){.metades{grid-template-columns:1fr}.vista{margin-left:0}.dica{margin-left:0}.res{overflow-x:auto}}
+</style>
+</head>
+<body>
+<main>
+  <h2>Dias de Cama e Dias de Doente</h2>
+  <div class="sub">Registo das folhas de recolha entregues pelos serviços: um mês de cada vez, dia a dia. Os totais e a taxa de ocupação são calculados sozinhos e tudo grava automaticamente.</div>
+  <div class="barra">
+    <div class="mes"><button type="button" id="mAnt" aria-label="Mês anterior">‹</button><span id="mNome"></span><button type="button" id="mSeg" aria-label="Mês seguinte">›</button></div>
+    <a class="bt" href="recolha_dias_cama.html">Folha em branco</a>
+    <button class="bt p" type="button" id="pdfMes">PDF do mês (todos os serviços)</button>
+    <div class="vista"><button type="button" class="on" data-v="reg">Registo por serviço</button><button type="button" data-v="res">Resumo do mês</button></div>
+  </div>
+  <div class="servs" id="servs"></div>
+
+  <section id="vReg">
+    <div class="grid">
+      <div class="card">
+        <h3 id="regTit"></h3>
+        <div class="ident">
+          <label>Lotação (camas)<input id="lot" inputmode="numeric" autocomplete="off"></label>
+          <button class="bt" type="button" id="encher">Dias de cama = lotação nos dias vazios</button>
+          <button class="bt" type="button" id="pdfServ">PDF deste serviço</button>
+          <span class="dica">Enter passa ao dia seguinte · grava sozinho</span>
+        </div>
+        <div class="metades"><table id="t1"></table><table id="t2"></table></div>
+        <div class="estado" id="estado"></div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <h3>Totais do mês</h3>
+          <div class="kpis">
+            <div class="k" style="--c:#1A56DB"><div class="t">Dias de cama</div><div class="v" id="kC">—</div><div class="s">soma dos dias</div></div>
+            <div class="k" style="--c:#7C3AED"><div class="t">Dias de doente</div><div class="v" id="kD">—</div><div class="s">soma dos dias</div></div>
+            <div class="k" style="--c:#059669"><div class="t">Taxa de ocupação</div><div class="v" id="kT">—</div><div class="s">doente ÷ cama × 100</div></div>
+            <div class="k" style="--c:#0891B2"><div class="t">Média de doentes</div><div class="v" id="kM">—</div><div class="s">por dia registado</div></div>
+          </div>
+          <div style="font-size:.74rem;font-weight:800;color:var(--tx2)">Dias preenchidos <span style="float:right" id="kP"></span></div>
+          <div class="prog" id="prog"><i></i></div>
+          <div class="mini" id="mini"></div>
+          <div style="font-size:.66rem;color:var(--tx3);text-align:center;margin-top:3px">ocupação por dia (vermelho: mais doentes do que camas)</div>
+          <div id="avisos"></div>
+        </div>
+        <div class="card rec">
+          <h3>Folha recebida</h3>
+          <label>Responsável pelo registo<input id="fResp" data-campo="responsavel" autocomplete="off"></label>
+          <label>Data de entrega<input id="fEnt" type="date" data-campo="entrega"></label>
+          <label>Recebido em<input id="fRecEm" type="date" data-campo="recebido"></label>
+          <label>Recebido por<input id="fRecPor" data-campo="recebidoPor" autocomplete="off"></label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="vRes" hidden>
+    <div class="card res">
+      <h3 id="resTit"></h3>
+      <table id="res"></table>
+      <div class="estado">Toque num serviço para abrir o registo dele.</div>
+    </div>
+  </section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="zelo_pdf_guardar.js?v=2"></script>
+<script src="zelo_folha_dias_cama.js?v=1"></script>
+<script>
+(function(){
+  'use strict';
+  // Os dados ficam em registos_sistemas_locais/dias_cama/<AAAA-MM>/<serviço>:
+  //   { lotacao, cama:{dia:n}, doente:{dia:n}, responsavel, entrega, recebido, recebidoPor, em, por }
+  // Cada número grava-se sozinho no seu lugar (campo a campo), por isso dois
+  // computadores podem registar ao mesmo tempo sem se apagarem. Sem internet,
+  // as alterações ficam guardadas neste computador e seguem quando voltar.
+  var BASE = 'registos_sistemas_locais/dias_cama';
+  var SERVICOS = [
+    ['medicina_homem','Medicina Homem'], ['medicina_mulher','Medicina Mulher'], ['cirurgia_geral','Cirurgia Geral'],
+    ['ortopedia','Orto-Traumatologia'], ['neurocirurgia','Neurocirurgia'], ['maxilo_facial','Maxilo-Facial'],
+    ['nefrologia','Nefrologia'], ['uci_intensivo','UCI'], ['uci_intermedio','Cuidados Intermédios']
+  ];
+  var SEM = ['dom','seg','ter','qua','qui','sex','sáb'];
+  var FD = window.ZeloFolhaDiasCama;
+  var PEND_K = 'zeloDiasCamaPendentes', CACHE_K = 'zeloDiasCamaCache_';
+  function $(id){ return document.getElementById(id); }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function num(v){ return v === null || v === undefined || v === '' || isNaN(v) ? null : Number(v); }
+  function hojeISO(){ var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+  function utilizador(){ try { return sessionStorage.getItem('zeloNome') || ''; } catch (e) { return ''; } }
+  function lerLS(k, def){ try { var v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? def : v; } catch (e) { return def; } }
+  function gravarLS(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  var agora = new Date(), estado = {
+    ym: lerLS('zeloDiasCamaMes', null) || (agora.getFullYear() + '-' + pad(agora.getMonth()+1)),
+    serv: lerLS('zeloDiasCamaServ', SERVICOS[0][0]), vista: 'reg', mes: {}, parar: null
+  };
+  if (!SERVICOS.some(function(s){ return s[0] === estado.serv; })) estado.serv = SERVICOS[0][0];
+
+  // ── alterações por enviar (sem internet ou à espera da resposta) ──
+  var pend = lerLS(PEND_K, {});
+  function caminho(ym, slug, campo){ return BASE + '/' + ym + '/' + slug + '/' + campo; }
+  function aplicar(obj, campo, v){ var p = campo.split('/'); if (p.length === 2) { obj[p[0]] = obj[p[0]] || {}; if (v == null) delete obj[p[0]][p[1]]; else obj[p[0]][p[1]] = v; } else { if (v == null) delete obj[campo]; else obj[campo] = v; } }
+  function comPendentes(ym, dadosMes){
+    var out = JSON.parse(JSON.stringify(dadosMes || {}));
+    Object.keys(pend).forEach(function(k){
+      var pre = BASE + '/' + ym + '/'; if (k.indexOf(pre) !== 0) return;
+      var r = k.slice(pre.length), i = r.indexOf('/'), slug = r.slice(0, i), campo = r.slice(i + 1);
+      out[slug] = out[slug] || {}; aplicar(out[slug], campo, pend[k].v);
+    });
+    return out;
+  }
+  var enviando = false;
+  function enviar(){
+    if (enviando || !window.__fbReady || navigator.onLine === false) return;
+    var ks = Object.keys(pend); if (!ks.length) { mostrarEstado(); return; }
+    enviando = true;
+    var lote = {}; ks.forEach(function(k){ lote[k] = pend[k]; });
+    // Um update por mês: todas as alterações pendentes numa só escrita.
+    var porMes = {};
+    ks.forEach(function(k){ var r = k.slice(BASE.length + 1), ym = r.slice(0, 7); (porMes[ym] = porMes[ym] || {})[r.slice(8)] = pend[k].v; });
+    Promise.all(Object.keys(porMes).map(function(ym){ return window.__fbUpdate(BASE + '/' + ym, porMes[ym]); }))
+      .then(function(){ ks.forEach(function(k){ if (pend[k] && pend[k].t === lote[k].t) delete pend[k]; }); gravarLS(PEND_K, pend); })
+      .catch(function(e){ console.warn('ZELO dias de cama: envio adiado', e); })
+      .then(function(){ enviando = false; mostrarEstado(); desenhar(); });
+  }
+  function guardar(slug, campos){
+    var t = Date.now(), quem = utilizador();
+    Object.keys(campos).forEach(function(c){ pend[caminho(estado.ym, slug, c)] = { v: campos[c], t: t }; });
+    pend[caminho(estado.ym, slug, 'em')] = { v: t, t: t };
+    if (quem) pend[caminho(estado.ym, slug, 'por')] = { v: quem, t: t };
+    // 1.º número da folha: regista a receção (hoje, por quem está a registar).
+    var D = dadosServ(slug);
+    if (!D.recebido && !('recebido' in campos)) pend[caminho(estado.ym, slug, 'recebido')] = { v: hojeISO(), t: t };
+    if (!D.recebidoPor && !('recebidoPor' in campos) && quem) pend[caminho(estado.ym, slug, 'recebidoPor')] = { v: quem, t: t };
+    gravarLS(PEND_K, pend);
+    desenhar(); enviar();
+  }
+  window.addEventListener('online', enviar);
+  setInterval(enviar, 15000);
+
+  // ── leitura ao vivo (só o mês aberto) ──
+  function escutar(){
+    if (estado.parar) { try { estado.parar(); } catch (e) {} estado.parar = null; }
+    var ym = estado.ym;
+    estado.mes = lerLS(CACHE_K + ym, {});
+    desenhar();
+    if (!window.__fbListen) return;
+    estado.parar = window.__fbListen(BASE + '/' + ym, function(v){
+      if (ym !== estado.ym) return;
+      estado.mes = v || {}; gravarLS(CACHE_K + ym, estado.mes); estado.carregado = true;
+      desenhar();
+    });
+  }
+  function dadosMes(){ return comPendentes(estado.ym, estado.mes); }
+  function dadosServ(slug){ return dadosMes()[slug] || {}; }
+
+  // ── desenho ──
+  function nomeMes(ym){ var p = ym.split('-'); return FD.MESES[+p[1]-1] + ' ' + p[0]; }
+  function estadoServ(slug){ var T = FD.totais(dadosServ(slug), estado.ym); return { T: T, cl: T.preenchidos >= T.dias ? 'ok' : (T.preenchidos ? 'par' : 'nd') }; }
+  function desenhar(){
+    $('mNome').textContent = nomeMes(estado.ym);
+    $('servs').innerHTML = SERVICOS.map(function(s){ var e = estadoServ(s[0]);
+      return '<button type="button" class="sv ' + e.cl + (s[0] === estado.serv && estado.vista === 'reg' ? ' on' : '') + '" data-s="' + s[0] + '"><i></i>' + esc(s[1]) + ' <small>' + e.T.preenchidos + '/' + e.T.dias + '</small></button>'; }).join('');
+    $('vReg').hidden = estado.vista !== 'reg'; $('vRes').hidden = estado.vista !== 'res';
+    Array.prototype.forEach.call(document.querySelectorAll('.vista button'), function(b){ b.classList.toggle('on', b.dataset.v === estado.vista); });
+    if (estado.vista === 'reg') desenharRegisto(); else desenharResumo();
+    mostrarEstado();
+  }
+  function desenharRegisto(){
+    var slug = estado.serv, nome = SERVICOS.filter(function(s){ return s[0] === slug; })[0][1];
+    var D = dadosServ(slug), nd = FD.diasNoMes(estado.ym), p = estado.ym.split('-');
+    $('regTit').textContent = nome + ' · ' + nomeMes(estado.ym);
+    var foco = document.activeElement, focoId = foco && foco.dataset && foco.dataset.k;
+    setVal($('lot'), D.lotacao);
+    ['fResp','fEnt','fRecEm','fRecPor'].forEach(function(id){ setVal($(id), D[$(id).dataset.campo]); });
+    function linhas(a, b){
+      var h = '<thead><tr><th>Dia</th><th>Dias de cama</th><th>Dias de doente</th></tr></thead><tbody>';
+      for (var i = a; i <= b; i++) {
+        var off = i > nd, w = new Date(+p[0], +p[1]-1, i).getDay(), cl = [];
+        if (i % 7 === 0 && i < 31) cl.push('sem'); if (Math.floor((i-1)/7) % 2) cl.push('alt'); if (off) cl.push('off');
+        var c = num((D.cama||{})[i]), o = num((D.doente||{})[i]);
+        var pc = pend[caminho(estado.ym, slug, 'cama/' + i)], po = pend[caminho(estado.ym, slug, 'doente/' + i)];
+        h += '<tr class="' + cl.join(' ') + '"><td class="d">' + pad(i) + (off ? '' : '<small>' + SEM[w] + '</small>') + '</td>' +
+          '<td><input data-k="cama/' + i + '" inputmode="numeric" autocomplete="off" ' + (off ? 'disabled' : '') + ' value="' + (c == null ? '' : c) + '" class="' + (off ? '' : (c == null ? 'vz' : '')) + (pc ? ' pend' : '') + '"></td>' +
+          '<td><input data-k="doente/' + i + '" inputmode="numeric" autocomplete="off" ' + (off ? 'disabled' : '') + ' value="' + (o == null ? '' : o) + '" class="' + (off ? '' : (o == null ? 'vz' : (c != null && o > c ? 'erro' : ''))) + (po ? ' pend' : '') + '"></td></tr>';
+      }
+      return h + '</tbody>';
+    }
+    // Não redesenhar a tabela por baixo de quem está a escrever nela.
+    if (!(focoId && $('t1').contains(foco) || focoId && $('t2').contains(foco))) {
+      $('t1').innerHTML = linhas(1, 16); $('t2').innerHTML = linhas(17, 31);
+    }
+    var T = FD.totais(D, estado.ym);
+    $('kC').textContent = T.cama == null ? '—' : T.cama;
+    $('kD').textContent = T.doente == null ? '—' : T.doente;
+    $('kT').textContent = T.taxa == null ? '—' : T.taxa.toFixed(1).replace('.', ',') + '%';
+    var nDo = 0; for (var i = 1; i <= nd; i++) if (num((D.doente||{})[i]) != null) nDo++;
+    $('kM').textContent = nDo ? (T.doente / nDo).toFixed(1).replace('.', ',') : '—';
+    $('kP').textContent = T.preenchidos + ' / ' + nd;
+    $('prog').className = 'prog' + (T.preenchidos >= nd ? ' ok' : ''); $('prog').firstChild.style.width = (T.preenchidos / nd * 100) + '%';
+    var bars = '', acima = [], vazios = [];
+    for (var j = 1; j <= nd; j++) {
+      var cc = num((D.cama||{})[j]), oo = num((D.doente||{})[j]);
+      if (cc == null || oo == null) { vazios.push(j); bars += '<b class="n"></b>'; continue; }
+      if (oo > cc) acima.push(j);
+      bars += '<b class="' + (oo > cc ? 'x' : '') + '" style="height:' + Math.max(3, Math.min(100, cc ? oo / cc * 100 : 0)) + '%" title="Dia ' + j + ': ' + oo + ' / ' + cc + '"></b>';
+    }
+    $('mini').innerHTML = bars;
+    var av = '';
+    if (acima.length) av += '<div class="aviso mau"><b>Mais doentes do que camas</b> no' + (acima.length > 1 ? 's dias ' : ' dia ') + acima.join(', ') + ' — confirme na folha.</div>';
+    if (vazios.length && vazios.length < nd) av += '<div class="aviso av"><b>' + vazios.length + ' dia' + (vazios.length > 1 ? 's' : '') + ' por preencher:</b> ' + resumirDias(vazios) + '.</div>';
+    if (!vazios.length) av += '<div class="aviso ok"><b>Folha completa.</b> Todos os dias do mês estão registados.</div>';
+    $('avisos').innerHTML = av;
+  }
+  function resumirDias(l){ var out = [], i = 0; while (i < l.length) { var j = i; while (j + 1 < l.length && l[j+1] === l[j] + 1) j++; out.push(j > i ? l[i] + ' a ' + l[j] : String(l[i])); i = j + 1; } return out.join(', '); }
+  // Soma de camas e doentes só dos dias com os dois números (para a taxa).
+  function pares(D){ var c = 0, o = 0; for (var i = 1; i <= FD.diasNoMes(estado.ym); i++) { var a = num((D.cama||{})[i]), b = num((D.doente||{})[i]); if (a != null && b != null) { c += a; o += b; } } return [c, o]; }
+  function setVal(el, v){ if (document.activeElement === el) return; el.value = v == null ? '' : v; }
+  function desenharResumo(){
+    $('resTit').textContent = nomeMes(estado.ym) + ' — todos os serviços';
+    var h = '<thead><tr><th>Serviço</th><th>Lotação</th><th>Dias de cama</th><th>Dias de doente</th><th>Taxa de ocupação</th><th>Folha</th></tr></thead><tbody>', TL = 0, TC = 0, TD = 0, PC = 0, PD = 0;
+    SERVICOS.forEach(function(s){
+      var D = dadosServ(s[0]), e = estadoServ(s[0]), T = e.T, L = num(D.lotacao);
+      if (L != null) TL += L; if (T.cama != null) TC += T.cama; if (T.doente != null) TD += T.doente;
+      var P = pares(D); PC += P[0]; PD += P[1];
+      h += '<tr class="l" data-s="' + s[0] + '"><td>' + esc(s[1]) + '</td><td>' + (L == null ? '—' : L) + '</td><td>' + (T.cama == null ? '—' : T.cama) + '</td><td>' + (T.doente == null ? '—' : T.doente) + '</td><td>' + (T.taxa == null ? '—' : T.taxa.toFixed(1).replace('.', ',') + '%') + '</td><td><span class="chip ' + e.cl + '">' + (e.cl === 'ok' ? 'Completa' : e.cl === 'par' ? 'Incompleta ' + T.preenchidos + '/' + T.dias : 'Não entregue') + '</span></td></tr>';
+    });
+    h += '<tr class="tot"><td>TOTAL DO HOSPITAL</td><td>' + (TL || '—') + '</td><td>' + (TC || '—') + '</td><td>' + (TD || '—') + '</td><td>' + (PC ? (PD / PC * 100).toFixed(1).replace('.', ',') + '%' : '—') + '</td><td></td></tr></tbody>';
+    $('res').innerHTML = h;
+  }
+  function mostrarEstado(){
+    var n = Object.keys(pend).filter(function(k){ return !/\/(em|por)$/.test(k); }).length;
+    $('estado').textContent = n ? (navigator.onLine === false ? 'Sem internet — ' + n + ' alteração(ões) guardada(s) neste computador; seguem quando a ligação voltar.' : 'A gravar…')
+      : (estado.carregado ? 'Tudo gravado.' : 'A carregar…');
+  }
+
+  // ── eventos ──
+  function lerNum(v){ v = String(v).trim(); if (v === '') return null; if (!/^\d{1,4}$/.test(v)) return undefined; return Number(v); }
+  function aoMudar(el){
+    var k = el.dataset.k, v = lerNum(el.value);
+    if (v === undefined) { el.classList.add('erro'); el.title = 'Escreva só números inteiros'; return; }
+    el.classList.remove('erro'); el.title = '';
+    var D = dadosServ(estado.serv), atual = num(k.split('/').reduce(function(o, x){ return o == null ? null : o[x]; }, D));
+    if (atual === v) return;
+    var c = {}; c[k] = v; guardar(estado.serv, c);
+  }
+  document.addEventListener('change', function(e){
+    var el = e.target;
+    if (el.dataset && el.dataset.k) return aoMudar(el);
+    if (el.id === 'lot') { var v = lerNum(el.value); if (v === undefined) { el.classList.add('erro'); return; } el.classList.remove('erro'); guardar(estado.serv, { lotacao: v }); return; }
+    if (el.dataset && el.dataset.campo) { var c = {}; c[el.dataset.campo] = el.value.trim() || null; guardar(estado.serv, c); }
+  });
+  document.addEventListener('keydown', function(e){
+    var el = e.target; if (e.key !== 'Enter' || !el.dataset || !el.dataset.k) return;
+    e.preventDefault(); aoMudar(el);
+    var p = el.dataset.k.split('/'), nd = FD.diasNoMes(estado.ym), prox = +p[1] < nd ? p[0] + '/' + (+p[1] + 1) : (p[0] === 'cama' ? 'doente/1' : null);
+    var nx = prox && document.querySelector('[data-k="' + prox + '"]'); if (nx) { nx.focus(); nx.select(); }
+  });
+  document.addEventListener('focusout', function(e){ if (e.target.dataset && e.target.dataset.k) setTimeout(function(){ var a = document.activeElement; if (!(a && a.dataset && a.dataset.k)) desenhar(); }, 50); });
+  $('servs').addEventListener('click', function(e){ var b = e.target.closest('[data-s]'); if (!b) return; estado.serv = b.dataset.s; estado.vista = 'reg'; gravarLS('zeloDiasCamaServ', estado.serv); desenhar(); });
+  $('res').addEventListener('click', function(e){ var r = e.target.closest('tr[data-s]'); if (!r) return; estado.serv = r.dataset.s; estado.vista = 'reg'; gravarLS('zeloDiasCamaServ', estado.serv); desenhar(); });
+  Array.prototype.forEach.call(document.querySelectorAll('.vista button'), function(b){ b.addEventListener('click', function(){ estado.vista = b.dataset.v; desenhar(); }); });
+  function mudarMes(n){ var p = estado.ym.split('-'), d = new Date(+p[0], +p[1]-1+n, 1); estado.ym = d.getFullYear() + '-' + pad(d.getMonth()+1); gravarLS('zeloDiasCamaMes', estado.ym); estado.carregado = false; escutar(); }
+  $('mAnt').addEventListener('click', function(){ mudarMes(-1); }); $('mSeg').addEventListener('click', function(){ mudarMes(1); });
+  $('encher').addEventListener('click', function(){
+    var D = dadosServ(estado.serv), L = num(D.lotacao);
+    if (L == null) { alert('Escreva primeiro a lotação (número de camas) do serviço.'); $('lot').focus(); return; }
+    var c = {}, n = 0; for (var i = 1; i <= FD.diasNoMes(estado.ym); i++) if (num((D.cama||{})[i]) == null) { c['cama/' + i] = L; n++; }
+    if (!n) { alert('Todos os dias já têm dias de cama.'); return; }
+    guardar(estado.serv, c);
+  });
+  // ── PDF: a mesma folha do papel, já preenchida ──
+  function semPDF(){ if (window.jspdf && window.jspdf.jsPDF && FD) return false; alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return true; }
+  $('pdfServ').addEventListener('click', function(){
+    if (semPDF()) return; var s = SERVICOS.filter(function(x){ return x[0] === estado.serv; })[0];
+    FD.pdf([{ nome: s[1], dados: dadosServ(s[0]) }], estado.ym).save('Dias_Cama_' + s[1].replace(/\s+/g, '_') + '_' + estado.ym + '.pdf');
+  });
+  $('pdfMes').addEventListener('click', function(){
+    if (semPDF()) return; var lista = SERVICOS.map(function(s){ return { nome: s[1], dados: dadosServ(s[0]) }; });
+    var d = FD.pdf(lista, estado.ym); FD.resumo(d, lista, estado.ym);
+    d.save('Dias_Cama_Todos_' + estado.ym + '.pdf');
+  });
+  window.__diasCama = { estado: estado, dadosServ: dadosServ, pend: function(){ return pend; } };
+
+  var feito = false;
+  function primeira(){ if (feito) return; feito = true; (function v(n){ if (window.__fbReady && window.__fbListen) { escutar(); enviar(); } else if (n < 40) setTimeout(function(){ v(n + 1); }, 250); else escutar(); })(0); }
+  window.addEventListener('zelo-gate-ready', primeira);
+  setTimeout(primeira, 1500);
+})();
+</script>
+<script src="zelo_servicos_menu.js?v=7"></script>
+<script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_theme.js"></script>
+<script src="zelo_assistente.js?v=8"></script>
+</body>
+</html>

@@ -74,6 +74,7 @@ tr.tot td{font-weight:900;background:rgba(26,86,219,.07);border-top:2px solid va
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="zelo_pdf_guardar.js?v=2"></script>
+<script src="zelo_folha_dias_cama.js?v=1"></script>
 <script>
 (function(){
   'use strict';
@@ -97,104 +98,11 @@ tr.tot td{font-weight:900;background:rgba(26,86,219,.07);border-top:2px solid va
         '<tr class="tot"><td>TOTAL</td><td></td><td></td></tr></tbody></table></div>';
     }).join('');
   }
-  // ── Folha impressa (A4, para preencher à mão) ──
-  // Desenhada só com contornos (pouca tinta, boa fotocópia). Os 31 dias vão em
-  // duas metades lado a lado (1–16 | 17–31) para as linhas serem altas o
-  // bastante para escrever; linha grossa no fim de cada semana (7, 14, 21, 28).
-  var MESES_C = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  function folhaPDF(lista){
-    var J = window.jspdf.jsPDF, d = new J({ unit: 'mm', format: 'a4' });
-    var Z = window.ZeloPDF || {}, W = 210, M = 12, CW = W - 2 * M;
-    var NAVY = [31, 47, 69], CINZA = [100, 116, 139], LINHA = [148, 163, 184], SUAVE = [244, 247, 251];
-    function cor(c, tipo){ d['set' + tipo + 'Color'](c[0], c[1], c[2]); }
-    function txt(t, x, y, o){ o = o || {}; d.setFont('helvetica', o.b ? 'bold' : (o.i ? 'italic' : 'normal')); d.setFontSize(o.s || 9); cor(o.c || NAVY, 'Text'); d.text(String(t), x, y, o.al ? { align: o.al } : undefined); }
-    function caixa(x, y, w, h, rot){ cor(LINHA, 'Draw'); d.setLineWidth(0.3); d.roundedRect(x, y, w, h, 1.2, 1.2, 'S'); if (rot) txt(rot.toUpperCase(), x + 2, y + 3.4, { s: 6.3, b: 1, c: CINZA }); }
-    lista.forEach(function(s, idx){
-      if (idx) d.addPage();
-      // 1) Cabeçalho em contorno, com logótipo.
-      cor(NAVY, 'Draw'); d.setLineWidth(0.6); d.roundedRect(M, 10, CW, 22, 2, 2, 'S');
-      try { if (Z.LOGO) d.addImage(Z.LOGO, 'JPEG', M + 3, 12.5, 17, 17); } catch (e) {}
-      txt('HOSPITAL DO PRENDA', M + 24, 16.2, { s: 7.5, b: 1, c: CINZA });
-      txt('Recolha de Dias de Cama e Dias de Doente', M + 24, 22.6, { s: 14.5, b: 1 });
-      txt('Serviço de Admissão e Arquivo Médico Estatístico', M + 24, 28, { s: 8.5, c: CINZA });
-      // 2) Identificação em caixas.
-      var y = 36;
-      caixa(M, y, 98, 12, 'Serviço'); txt(s[1], M + 2.5, y + 9.4, { s: 11, b: 1 });
-      caixa(M + 101, y, 40, 12, 'Ano');
-      caixa(M + 144, y, CW - 144, 12, 'Lotação (n.º de camas)');
-      // 3) Mês: marcar com X.
-      y = 52;
-      txt('MÊS', M, y + 4, { s: 6.3, b: 1, c: CINZA }); txt('(marque com X)', M, y + 7.4, { s: 6.3, c: CINZA });
-      var bx = M + 22, passo = (CW - 22) / 12;
-      MESES_C.forEach(function(m, i){
-        var x = bx + i * passo; cor(NAVY, 'Draw'); d.setLineWidth(0.35); d.rect(x, y + 1.6, 4.4, 4.4, 'S');
-        txt(m, x + 5.6, y + 5.2, { s: 8.5 });
-      });
-      // 4) Instruções curtas.
-      y = 62;
-      cor(SUAVE, 'Fill'); cor(LINHA, 'Draw'); d.setLineWidth(0.25); d.roundedRect(M, y, CW, 11, 1.2, 1.2, 'FD');
-      [['Dias de cama', 'camas disponíveis no serviço nesse dia.', 4.4], ['Dias de doente', 'doentes internados nesse dia (contagem à meia-noite).', 8.7]].forEach(function(l){
-        txt(l[0], M + 3, y + l[2], { s: 8, b: 1 }); var wl = d.getTextWidth(l[0]);
-        txt('=  ' + l[1], M + 3 + wl + 1.5, y + l[2], { s: 8 });
-      });
-      txt('Escreva um número em cada dia;', W - M - 3, y + 4.4, { s: 7.5, c: CINZA, al: 'right' });
-      txt('se não houver doentes, escreva 0.', W - M - 3, y + 8.7, { s: 7.5, c: CINZA, al: 'right' });
-      // 5) Tabela em duas metades.
-      var ty = 77, hh = 8, rh = 8.4, gap = 6, hw = (CW - gap) / 2;
-      var cols = [['Dia', 13], ['Dias de cama', 26], ['Dias de doente', 26], ['Rubrica', hw - 65]];
-      [0, 1].forEach(function(lado){
-        var x0 = M + lado * (hw + gap), ini = lado ? 17 : 1, fim = lado ? 31 : 16;
-        cor([226, 232, 240], 'Fill'); d.rect(x0, ty, hw, hh, 'F');
-        var x = x0; cols.forEach(function(c){ txt(c[0], x + c[1] / 2, ty + 5.3, { s: 7.8, b: 1, al: 'center' }); x += c[1]; });
-        for (var k = 0; k < 16; k++) {
-          var dia = ini + k, ry = ty + hh + k * rh;
-          if (dia > fim) { cor(SUAVE, 'Fill'); d.rect(x0, ry, hw, rh, 'F'); txt('—', x0 + hw / 2, ry + 5.5, { s: 8, c: LINHA, al: 'center' }); continue; }
-          if (Math.floor((dia - 1) / 7) % 2 === 1) { cor(SUAVE, 'Fill'); d.rect(x0, ry, hw, rh, 'F'); }
-          var opc = dia >= 29;
-          txt(String(dia).padStart(2, '0') + (opc ? '*' : ''), x0 + 6.5, ry + 5.6, { s: 10, b: 1, al: 'center', c: opc ? CINZA : NAVY });
-        }
-        // grelha
-        cor(LINHA, 'Draw'); d.setLineWidth(0.2);
-        for (var k2 = 1; k2 <= 16; k2++) { var ly = ty + hh + k2 * rh; d.line(x0, ly, x0 + hw, ly); }
-        var xx = x0; cols.slice(0, -1).forEach(function(c){ xx += c[1]; d.line(xx, ty, xx, ty + hh + 16 * rh); });
-        // fim de semana (7, 14, 21, 28) e contorno
-        cor(NAVY, 'Draw'); d.setLineWidth(0.6);
-        [7, 14, 21, 28].forEach(function(n){ if (n >= ini && n < fim) { var ly2 = ty + hh + (n - ini + 1) * rh; d.line(x0, ly2, x0 + hw, ly2); } });
-        d.line(x0, ty + hh, x0 + hw, ty + hh);
-        d.setLineWidth(0.5); d.rect(x0, ty, hw, hh + 16 * rh, 'S');
-      });
-      var fy = ty + hh + 16 * rh;
-      txt('* Preencha os dias 29, 30 e 31 só se o mês tiver esse dia. A linha grossa marca o fim de cada semana.', M, fy + 4.6, { s: 7.3, i: 1, c: CINZA });
-      // 6) Totais e taxa de ocupação.
-      y = fy + 8;
-      var tw = (CW - 6) / 3;
-      caixa(M, y, tw, 15, 'Total de dias de cama');
-      caixa(M + tw + 3, y, tw, 15, 'Total de dias de doente');
-      caixa(M + 2 * (tw + 3), y, tw, 15, 'Taxa de ocupação');
-      txt('%', M + 3 * tw + 6 - 3, y + 12, { s: 11, b: 1, al: 'right' });
-      txt('dias de doente ÷ dias de cama × 100', M + 2 * (tw + 3) + 2, y + 13, { s: 6.3, c: CINZA });
-      // 7) Responsável e receção na Estatística.
-      y += 20;
-      caixa(M, y, CW * 0.62, 14, 'Responsável pelo registo (nome e assinatura)');
-      caixa(M + CW * 0.62 + 3, y, CW * 0.38 - 3, 14, 'Data de entrega');
-      txt('____ / ____ / ________', M + CW * 0.62 + 3 + (CW * 0.38 - 3) / 2, y + 11, { s: 9, c: CINZA, al: 'center' });
-      y += 17;
-      cor(LINHA, 'Draw'); d.setLineDashPattern([1.2, 1], 0); d.setLineWidth(0.3); d.roundedRect(M, y, CW, 10, 1.2, 1.2, 'S'); d.setLineDashPattern([], 0);
-      txt('RESERVADO À ESTATÍSTICA', M + 2, y + 4, { s: 6.3, b: 1, c: CINZA });
-      txt('Recebido em ____ / ____ / ________     por ______________________________________', M + 2, y + 8.2, { s: 8.3, c: CINZA });
-      txt('Registado no sistema', W - M - 9, y + 8.2, { s: 8.3, c: CINZA, al: 'right' });
-      cor(NAVY, 'Draw'); d.setLineWidth(0.35); d.rect(W - M - 7, y + 4.9, 4, 4, 'S');
-      // 8) Rodapé de formulário.
-      cor(NAVY, 'Draw'); d.setLineWidth(0.4); d.line(M, 285, W - M, 285);
-      txt('Hospital do Prenda · Serviço de Admissão e Arquivo Médico Estatístico', M, 289.5, { s: 7.3, c: CINZA });
-      txt('Uma folha por serviço e por mês', W - M, 289.5, { s: 7.3, c: CINZA, al: 'right' });
-    });
-    return d;
-  }
-  window.__recolhaFolhaPDF = folhaPDF;
+  // A folha (desenho) está em zelo_folha_dias_cama.js, partilhada com «Dias de Cama e Dias de Doente».
+  window.__recolhaFolhaPDF = function(lista){ return ZeloFolhaDiasCama.pdf(lista.map(function(s){ return { nome: s[1] }; })); };
   function pdf(){
     if (!(window.jspdf && window.jspdf.jsPDF)) { alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return; }
-    var lista = escolhidos(), doc = folhaPDF(lista);
+    var lista = escolhidos(), doc = window.__recolhaFolhaPDF(lista);
     doc.save('Recolha_Dias_Cama_' + ($('servico').value === 'todos' ? 'Todos' : lista[0][1].replace(/\s+/g,'_')) + '.pdf');
   }
   $('servico').addEventListener('change', mostrar);
@@ -202,7 +110,7 @@ tr.tot td{font-weight:900;background:rgba(26,86,219,.07);border-top:2px solid va
   mostrar();
 })();
 </script>
-<script src="zelo_servicos_menu.js?v=6"></script>
+<script src="zelo_servicos_menu.js?v=7"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>
 <script src="zelo_assistente.js?v=8"></script>
