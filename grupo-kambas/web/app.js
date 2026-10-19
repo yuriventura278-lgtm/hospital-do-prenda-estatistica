@@ -75,11 +75,14 @@ const PERMISSOES = [
   ["ver_todas", "Ver documentos de todos os vendedores"],
   ["anular", "Anular documentos"],
   ["produtos", "Registar produtos e alterar preços"],
-  ["stock", "Gerir stock (entradas e contagens)"],
+  ["stock", "Gerir stock e saldos de recarga"],
   ["relatorios", "Ver relatórios e faturação"],
 ];
 const PERM_CHAVES = ["vender", "ver_todas", "anular", "produtos", "stock", "relatorios", "admin"];
 
+const OPERADORES_BASE = [["UNITEL", "Unitel", "Telemóvel", "Número de telefone"], ["AFRICELL", "Africell", "Telemóvel", "Número de telefone"],
+  ["ZAP", "ZAP", "Televisão", "Nº do cartão ZAP"], ["DSTV", "DStv", "Televisão", "Nº do cartão (smartcard)"],
+  ["EDEL", "EDEL", "Energia", "Nº do contador"], ["EPAL", "EPAL", "Água", "Nº do contador / cliente"]];
 class ErroNegocio extends Error {}
 const falha = m => { throw new ErroNegocio(m); };
 
@@ -99,7 +102,10 @@ const Local = {
             { id: "u2", nome: "Maria (vendedora)", utilizador: "maria", papel: "vendedor", permissoes: {}, ativo: true },
           ], _eu: "u1" };
     this.atualizarEu();
+    this.semearOperadores();
     const d7 = this.dia(7, "08:00");
+    [[10000, 9500], [5000, 4800], [20000, 19000], [15000, 14250], [8000, 7600], [4000, 3800]]
+      .forEach(([v, c], k) => this.moverSaldo(E.operadores[k].id, "carga", v, c, `Saldo carregado: pago ${fmt(c)} Kz`, "", d7));
     SEED.produtos.forEach(s => {
       const p = { ...s, id: ++E._seq.p, stock: 0, ativo: true };
       E.produtos.push(p);
@@ -116,6 +122,60 @@ const Local = {
       }, this.dia(dias, `${pad(10 + n % 7)}:${pad((n * 13) % 60)}`));
     });
     E._eu = "u1"; this.atualizarEu();
+    // duas recargas de exemplo
+    this.registarDocumento({ tipo: "FR", forma_pagamento: E.config.formas_pagamento[0], itens: [{ operador_id: E.operadores[0].id, referencia: "923 456 789", qtd: 1, preco_unit: 1000 }] }, this.dia(2, "15:40"));
+    this.registarDocumento({ tipo: "FR", forma_pagamento: E.config.formas_pagamento[0], itens: [{ operador_id: E.operadores[2].id, referencia: "4012 3456", qtd: 1, preco_unit: 5000 }] }, this.dia(1, "11:20"));
+  },
+  semearOperadores() {
+    E._seq.o = E._seq.o || 0; E._seq.ms = E._seq.ms || 0;
+    E.operadores = OPERADORES_BASE.map(([codigo, nome, categoria, referencia], k) => ({ id: ++E._seq.o, codigo, nome, categoria, referencia, saldo: 0, custo: 0, saldo_min: 2000, ordem: k + 1, ativo: true }));
+    E.movimentos_saldo = [];
+  },
+  /* igual a _mover_saldo do servidor: devolve o custo do movimento */
+  moverSaldo(opId, tipo, valor, custo, motivo, ref = "", data = null) {
+    const o = byId(E.operadores, opId) || falha("Operador não encontrado.");
+    let c, delta;
+    if (tipo === "venda") {
+      if (-valor > o.saldo) falha(`Saldo ${o.nome} insuficiente: pediu ${-valor} Kz, há ${o.saldo} Kz.`);
+      c = o.saldo > 0 ? Math.round(o.custo * (-valor) / o.saldo) : 0;
+      o.saldo += valor; o.custo = Math.max(0, o.custo - c); delta = valor;
+    } else if (tipo === "carga" || tipo === "anulacao") {
+      c = custo || 0; o.saldo += valor; o.custo += c; delta = valor;
+    } else {
+      const novoCusto = o.saldo > 0 ? Math.round(o.custo * valor / o.saldo) : 0;
+      delta = valor - o.saldo; c = novoCusto - o.custo; o.saldo = valor; o.custo = novoCusto;
+    }
+    E.movimentos_saldo.push({ id: ++E._seq.ms, data: data || isoLocal(), operador_id: o.id, tipo, valor: delta, custo: Math.abs(c), saldo_final: o.saldo, motivo: motivo || "", ref, utilizador_id: E.eu.id });
+    return c;
+  },
+  carregarSaldo(d) {
+    this.exigir("stock");
+    const o = byId(E.operadores, d.operador_id) || falha("Escolha o operador.");
+    const valor = inteiro(d.valor), pago = d.pago === "" || d.pago == null ? valor : inteiro(d.pago);
+    if (!(valor > 0)) falha("Indique o saldo recebido em Kz.");
+    if (!(pago > 0)) falha("Indique quanto pagou em Kz.");
+    if (pago > valor * 2) falha("O valor pago parece demasiado alto para este saldo. Verifique.");
+    this.moverSaldo(o.id, "carga", valor, pago, (d.motivo || "").trim() || `Saldo carregado: pago ${fmt(pago)} Kz`);
+    return o;
+  },
+  ajustarSaldo(d) {
+    this.exigir("stock");
+    const o = byId(E.operadores, d.operador_id) || falha("Escolha o operador.");
+    const novo = inteiro(d.saldo);
+    if (Number.isNaN(novo) || novo < 0) falha("Indique o saldo certo em Kz (0 ou mais).");
+    if (novo === o.saldo) falha("O saldo já é esse.");
+    this.moverSaldo(o.id, "ajuste", novo, null, (d.motivo || "").trim() || "Correção do saldo");
+    return o;
+  },
+  guardarOperador(d, id) {
+    this.exigir("stock");
+    const nome = (d.nome || "").trim(); if (!nome) falha("Indique o nome do operador.");
+    const saldo_min = d.saldo_min === "" || d.saldo_min == null ? 2000 : inteiro(d.saldo_min);
+    if (Number.isNaN(saldo_min) || saldo_min < 0) falha("Saldo mínimo inválido.");
+    if (id) { const o = byId(E.operadores, id) || falha("Operador não encontrado."); return Object.assign(o, { nome, categoria: (d.categoria || "").trim() || o.categoria, referencia: (d.referencia || "").trim() || o.referencia, saldo_min }); }
+    let codigo = nome.replace(/[^A-Za-z0-9]/g, "").toUpperCase() || "OP"; while (E.operadores.some(o => o.codigo === codigo)) codigo += "2";
+    const o = { id: ++E._seq.o, codigo, nome, categoria: (d.categoria || "").trim() || "Outros", referencia: (d.referencia || "").trim() || "Referência", saldo: 0, custo: 0, saldo_min, ordem: E.operadores.length + 1, ativo: true };
+    E.operadores.push(o); return o;
   },
   atualizarEu() { const u = E.utilizadores.find(x => x.id === E._eu); E.eu = { id: u.id, nome: u.nome, utilizador: u.utilizador, papel: u.papel, perm: permDe(u) }; },
   exigir(p) { if (!E.eu.perm[p]) falha("Não tem permissão para esta operação. Peça ao administrador."); return E.eu; },
@@ -132,19 +192,27 @@ const Local = {
     if (!d.itens || !d.itens.length) falha("Adicione pelo menos um produto ou serviço.");
     if (forma && !E.config.formas_pagamento.includes(forma)) falha("Forma de pagamento inválida.");
     if (tipo === "FR" && !forma) falha("Escolha a forma de pagamento.");
-    const precisa = {}, linhas = [];
+    const precisa = {}, saldoPrec = {}, linhas = [];
     for (const it of d.itens) {
       const p = it.produto_id ? produto(it.produto_id) : null;
       if (it.produto_id && !p) falha("Produto não encontrado.");
-      const qtd = inteiro(it.qtd), preco = inteiro(it.preco_unit), descricao = (it.descricao || p?.nome || "").trim();
+      const qtd = inteiro(it.qtd), preco = inteiro(it.preco_unit);
+      let descricao = (it.descricao || p?.nome || "").trim(), op = null, referencia = "";
+      if (it.operador_id) {
+        op = byId(E.operadores, it.operador_id) || falha("Operador de recarga não encontrado.");
+        referencia = String(it.referencia || "").trim().slice(0, 40);
+        descricao = `Recarga ${op.nome}${referencia ? " — " + referencia : ""}`;
+        if (qtd > 0 && preco > 0) saldoPrec[op.id] = (saldoPrec[op.id] || 0) + qtd * preco;
+      }
       if (!descricao) falha("Item sem descrição.");
       if (!(qtd > 0)) falha(`Quantidade inválida em '${descricao}'.`);
       if (!(preco > 0)) falha(`Indique o preço de '${descricao}'.`);
       if (p && p.modo === "a_partir" && preco < p.preco) falha(`'${p.nome}' custa a partir de ${p.preco} Kz.`);
       if (p && p.tipo === "produto") precisa[p.id] = (precisa[p.id] || 0) + qtd;
-      linhas.push({ produto_id: p ? p.id : null, descricao, qtd, preco_unit: preco, total: qtd * preco });
+      linhas.push({ produto_id: p ? p.id : null, operador_id: op ? op.id : null, referencia, descricao, qtd, preco_unit: preco, total: qtd * preco, custo: 0 });
     }
     if (tipo !== "PP") for (const [pid, q] of Object.entries(precisa)) { const p = produto(pid); if (q > p.stock) falha(`Stock insuficiente de ${p.nome}: pediu ${q}, há ${p.stock}.`); }
+    if (tipo !== "PP") for (const [oid, v] of Object.entries(saldoPrec)) { const o = byId(E.operadores, oid); if (v > o.saldo) falha(`Saldo ${o.nome} insuficiente: a venda pede ${v} Kz, há ${o.saldo} Kz.`); }
     const subtotal = linhas.reduce((s, l) => s + l.total, 0);
     const desconto = d.desconto ? inteiro(d.desconto) : 0;
     if (Number.isNaN(desconto) || desconto < 0 || desconto > subtotal) falha("O desconto tem de estar entre 0 e o subtotal.");
@@ -160,6 +228,7 @@ const Local = {
       itens: linhas.map(l => ({ ...l, id: ++E._seq.i })) };
     E.faturas.push(f);
     if (tipo !== "PP") linhas.forEach(l => { if (precisa[l.produto_id]) this.mover(l.produto_id, "saida", l.qtd, "Venda", docNum(f), data); });
+    if (tipo !== "PP") f.itens.forEach(l => { if (l.operador_id) l.custo = this.moverSaldo(l.operador_id, "venda", -l.total, null, "Venda", docNum(f), data); });
     E.config.numeracao[tipo] = numero + 1;
     return f;
   },
@@ -169,6 +238,7 @@ const Local = {
     const f = byId(E.faturas, id) || falha("Documento não encontrado.");
     if (f.estado !== "emitida") falha("Este documento já não está ativo (anulado ou convertido).");
     if (f.tipo !== "PP") f.itens.forEach(it => { const p = produto(it.produto_id); if (p && p.tipo === "produto") this.mover(p.id, "entrada", it.qtd, "Documento anulado", docNum(f)); });
+    if (f.tipo !== "PP") f.itens.forEach(it => { if (it.operador_id) this.moverSaldo(it.operador_id, "anulacao", it.total, it.custo || 0, "Documento anulado", docNum(f)); });
     f.estado = "anulada";
     f.observacoes = `${f.observacoes}\n${motivo.trim() ? "ANULADA: " + motivo.trim() : "ANULADA"}`.trim();
     return f;
@@ -182,7 +252,7 @@ const Local = {
     if (!["FR", "FT"].includes(tipo)) falha("Escolha Fatura-Recibo ou Fatura.");
     const novo = this.registarDocumento({ tipo, forma_pagamento: forma, cliente_id: pp.cliente_id, desconto: pp.desconto, origem_id: pp.id,
       observacoes: `${pp.observacoes}\nReferente à pró-forma ${docNum(pp)}`.trim(),
-      itens: pp.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
+      itens: pp.itens.map(i => ({ produto_id: i.produto_id, operador_id: i.operador_id || null, referencia: i.referencia || "", descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
     pp.estado = "convertida"; pp.observacoes = `${pp.observacoes}\nConvertida em ${docNum(novo)}`.trim();
     return novo;
   },
@@ -338,11 +408,12 @@ async function carregarFila(uid) {
 function montarE() {
   E = JSON.parse(JSON.stringify(base));
   E.faturas = E.faturas || []; E.movimentos = E.movimentos || []; E.utilizadores = E.utilizadores || [];
+  E.operadores = E.operadores || []; E.movimentos_saldo = E.movimentos_saldo || [];
   for (const it of fila) {
     if (it.tipo === "cliente") { E.clientes.push({ ...it.dados, id: it.tmp, ativo: true, pendente: true }); continue; }
     const d = it.dados;
     const cli = (d.cliente_id && E.clientes.find(c => String(c.id) === String(d.cliente_id))) || { id: null, nome: "Consumidor final", nif: "", endereco: "", telefone: "" };
-    const itens = d.itens.map((l, k) => ({ id: `${it.id}-${k}`, produto_id: l.produto_id, descricao: l.descricao, qtd: l.qtd, preco_unit: l.preco_unit, total: l.qtd * l.preco_unit }));
+    const itens = d.itens.map((l, k) => ({ id: `${it.id}-${k}`, produto_id: l.produto_id, operador_id: l.operador_id || null, referencia: l.referencia || "", descricao: l.descricao, qtd: l.qtd, preco_unit: l.preco_unit, total: l.qtd * l.preco_unit }));
     const subtotal = itens.reduce((s, l) => s + l.total, 0), data = it.criado;
     let validade = null;
     if (d.tipo === "PP") { const v = new Date(data.slice(0, 10) + "T12:00:00"); v.setDate(v.getDate() + (E.config.validade_proforma || 15)); validade = isoLocal(v).slice(0, 10); }
@@ -351,6 +422,7 @@ function montarE() {
       subtotal, desconto: d.desconto || 0, total: subtotal - (d.desconto || 0), observacoes: d.observacoes || "", estado: "emitida", pago: d.tipo === "FR",
       pago_em: d.tipo === "FR" ? data : null, validade, itens });
     if (d.tipo !== "PP") itens.forEach(l => { const p = l.produto_id && E.produtos.find(x => x.id === l.produto_id); if (p && p.tipo === "produto") p.stock -= l.qtd; });
+    if (d.tipo !== "PP") itens.forEach(l => { const o = l.operador_id && E.operadores.find(x => x.id === l.operador_id); if (o) o.saldo -= l.total; });
   }
 }
 /* guarda na fila (sem internet) — validações básicas no aparelho; as regras completas correm no servidor ao enviar */
@@ -372,6 +444,8 @@ async function enfileirar(nome, args) {
     if (d.tipo !== "PP") {
       const precisa = {}; d.itens.forEach(l => { const p = produto(l.produto_id); if (p && p.tipo === "produto") precisa[p.id] = (precisa[p.id] || 0) + l.qtd; });
       for (const [pid, q] of Object.entries(precisa)) { const p = produto(pid); if (q > p.stock) falha(`Stock insuficiente de ${p.nome}: pediu ${q}, há ${p.stock} (stock da última sincronização).`); }
+      const sp = {}; d.itens.forEach(l => { if (l.operador_id) sp[l.operador_id] = (sp[l.operador_id] || 0) + l.qtd * l.preco_unit; });
+      for (const [oid, v] of Object.entries(sp)) { const o = byId(E.operadores, oid); if (o && v > o.saldo) falha(`Saldo ${o.nome} insuficiente: pede ${v} Kz, há ${o.saldo} Kz (saldo da última sincronização).`); }
     }
     d.ref_local = d.ref_local || novaRef("v");
     d.data_local = new Date().toISOString();
@@ -468,6 +542,9 @@ const RPC = {
   guardarCliente: (d, id) => ["guardar_cliente", { d, p_id: id || null }],
   removerCliente: id => ["remover_cliente", { p_id: id }],
   guardarConfig: d => ["guardar_config", { d }],
+  carregarSaldo: d => ["carregar_saldo", { d }],
+  ajustarSaldo: d => ["ajustar_saldo", { d }],
+  guardarOperador: (d, id) => ["guardar_operador", { d, p_id: id || null }],
 };
 const FUNCAO_UTILIZADORES = { criarUtilizador: d => ({ acao: "criar", ...d }), atualizarUtilizador: d => ({ acao: "atualizar", ...d }) };
 function mensagemErro(e) {
@@ -509,6 +586,7 @@ async function acao(nome, ...args) {
     return enfileirar(nome, args);
   }
   let res;
+  ocupado(true);
   try {
     if (FUNCAO_UTILIZADORES[nome]) res = await chamarFuncao(FUNCAO_UTILIZADORES[nome](...args));
     else {
@@ -518,13 +596,14 @@ async function acao(nome, ...args) {
       res = data;
     }
   } catch (e) {
+    ocupado(false);
     if (!(e.rede || eRede(e))) throw e;
     entrarOffline();
     if (!podeOffline(nome, args)) falha(SO_ONLINE);
     return enfileirar(nome, args);
   }
   marcarSync("a");
-  try { await recarregar(); } catch (e) { if (e.rede) entrarOffline(); }
+  try { await recarregar(); } catch (e) { if (e.rede) entrarOffline(); } finally { ocupado(false); }
   mostrarEstado();
   return res;
 }
@@ -536,12 +615,13 @@ const VISTAS = [
   ["faturas", "Documentos", "receipt", () => true],
   ["produtos", "Produtos", "tag", () => true],
   ["stock", "Stock", "box", () => pode("stock")],
+  ["saldos", "Saldos", "wallet", () => pode("stock")],
   ["relatorios", "Relatórios", "chart", () => pode("relatorios")],
   ["clientes", "Clientes", "users", () => true],
   ["utilizadores", "Utilizadores", "user", () => pode("admin")],
   ["definicoes", "Definições", "cog", () => pode("admin")],
 ];
-const TITULOS = { painel: "Início", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
+const TITULOS = { painel: "Início", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", saldos: "Saldos de recarga", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
 let vista = "painel";
 function navegar() {
   const h = location.hash.replace("#", "");
@@ -577,7 +657,7 @@ function menuMais() {
 }
 function render() {
   pendente = false;
-  ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, relatorios: vRelatorios, clientes: vClientes, utilizadores: vUtilizadores, definicoes: vDefinicoes })[vista]();
+  ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, saldos: vSaldos, relatorios: vRelatorios, clientes: vClientes, utilizadores: vUtilizadores, definicoes: vDefinicoes })[vista]();
 }
 
 /* ============================================================ painel */
@@ -610,7 +690,8 @@ function vPainel() {
   const dias = [...Array(nd)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - nd + 1 + i); return isoLocal(d).slice(0, 10); });
   const porDia = dias.map(d => soma(fs.filter(f => diaDe(f.data) === d)));
   const rank = {};
-  doMes.forEach(f => f.itens.forEach(it => { rank[it.descricao] = (rank[it.descricao] || 0) + it.total; }));
+  doMes.forEach(f => f.itens.forEach(it => { const k = it.operador_id ? `Recargas ${operador(it.operador_id)?.nome || ""}`.trim() : it.descricao; rank[k] = (rank[k] || 0) + it.total; }));
+  const saldoBaixo = pode("stock") ? (E.operadores || []).filter(o => opEstado(o) !== "ok") : [];
   const top = Object.entries(rank).sort((a, b) => b[1] - a[1]).slice(0, 5), maxTop = top.length ? top[0][1] : 1;
   const ultimos = [...docs()].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 5);
   const semStock = pode("stock") && E.produtos.filter(p => p.tipo === "produto").every(p => p.stock === 0);
@@ -629,6 +710,8 @@ function vPainel() {
       <button class="btn sm" data-act="${meu(f) ? "pagar" : "ver-fatura"}" data-id="${f.id}">${meu(f) ? "Receber" : "Ver"}</button></div>`),
     alertas.length ? `<div class="aten"><span class="aic bad">${icon("box")}</span><span class="atx"><b>${alertas.length} produto${alertas.length === 1 ? "" : "s"} com stock baixo</b><small>${esc(alertas[0].nome)}: ${alertas[0].stock <= 0 ? "esgotado" : "só " + alertas[0].stock + " un."}</small></span>
       <a class="btn sm" href="#stock">Repor</a></div>` : "",
+    ...saldoBaixo.slice(0, 3).map(o => `<div class="aten"><span class="aic ${opEstado(o)}">${opIcon(o)}</span><span class="atx"><b>Saldo ${esc(o.nome)} ${o.saldo <= 0 ? "esgotado" : "baixo"}</b><small>Restam ${kz(o.saldo)}</small></span>
+      <button class="btn sm" data-act="carregar-saldo" data-id="${o.id}">Carregar</button></div>`),
     ppAbertas.length ? `<div class="aten"><span class="aic brand">${icon("receipt")}</span><span class="atx"><b>${ppAbertas.length} pró-forma${ppAbertas.length === 1 ? "" : "s"} em aberto</b><small>${kz(soma(ppAbertas))} orçados</small></span>
       <a class="btn sm" href="#faturas" data-act="ver-abertas">Ver</a></div>` : "",
   ].filter(Boolean);
@@ -764,12 +847,12 @@ function verFatura(id, acabada = false) {
   if (f.estado === "emitida" && f.tipo === "PP" && meu && pode("vender")) acoes.push(`<button class="btn pri" data-act="converter" data-id="${f.id}">Converter em fatura</button>`);
   if (f.estado === "emitida" && f.tipo === "FT" && !f.pago && meu) acoes.push(`<button class="btn pri" data-act="pagar" data-id="${f.id}">Registar pagamento</button>`);
   abrir(`<div class="sheet wide"><div class="sheet-h"><h2>${TIPOS_DOC[f.tipo]} ${docNum(f)}</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
-    <div class="sheet-b">${papelFatura(f)}
+    <div class="sheet-b">${acabada ? cabecalhoEmitida(f, typeof acabada === "object" ? acabada : {}) : ""}${papelFatura(f)}
       ${f.pendente ? `<div class="note warn">${f.erro ? `O servidor não aceitou este documento: ${esc(f.erro)}` : "Feito sem internet. O número oficial é atribuído quando a ligação voltar; o PDF fica disponível depois disso."}</div>` : ""}</div>
     <div class="sheet-f">${f.estado === "emitida" && pode("anular") && !acabada && !f.pendente ? `<button class="btn danger" data-act="anular" data-id="${f.id}">Anular</button>` : ""}<span class="sp"></span>
       <button class="btn" data-act="copiar-fatura" data-id="${f.id}">Copiar resumo</button>
-      ${f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}">${icon("down")}PDF</button><button class="btn" data-act="imprimir" data-id="${f.id}">${icon("print")}Imprimir</button>`}
-      ${acabada ? `<button class="btn" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}${acoes.join("")}</div></div>`);
+      ${f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}" data-espera="A gerar PDF…">${icon("down")}PDF</button><button class="btn" data-act="imprimir" data-id="${f.id}" data-espera="A preparar…">${icon("print")}Imprimir</button>`}
+      ${acabada ? acoes.join("").replaceAll('class="btn pri"', 'class="btn"') : acoes.join("")}${acabada ? `<button class="btn pri" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}</div></div>`);
 }
 function anular(id) {
   const f = byId(E.faturas, id);
@@ -833,7 +916,7 @@ function gravarPref(k, v) { try { localStorage.setItem("kambas-" + k, v); } catc
 const NOME_SEC = s => s.replace(" Personalizados", "").replace(" Personalizadas", "");
 function vVender() {
   const contagem = {}; E.produtos.forEach(p => contagem[p.seccao] = (contagem[p.seccao] || 0) + 1);
-  const secs = ["Todas", "Mais vendidos", ...Object.keys(contagem)];
+  const secs = ["Todas", "Mais vendidos", "Recargas", ...Object.keys(contagem)];
   venda.vista = venda.vista || lerPref("vista-catalogo", "grelha");
   $("#main").innerHTML = `
     <div class="pos">
@@ -841,7 +924,7 @@ function vVender() {
         <div class="toolbar"><label class="search big">${icon("search")}<input id="pq" type="search" placeholder="Procurar no catálogo" value="${esc(venda.q)}" aria-label="Procurar" autocomplete="off"></label>
           <div class="seg vista-cat" role="group" aria-label="Mostrar catálogo em">${[["grelha", "Grelha"], ["lista", "Lista"]].map(([v, t]) => `<button data-act="vista-cat" data-v="${v}" aria-pressed="${venda.vista === v}">${t}</button>`).join("")}</div>
           <button class="btn" data-act="avulso" aria-label="Item avulso (fora do catálogo)">${icon("plus")}<span><span class="so-pc">Item </span>avulso</span></button></div>
-        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(NOME_SEC(s))}${s === "Todas" ? ` <span class="cnt">${E.produtos.length}</span>` : contagem[s] ? ` <span class="cnt">${contagem[s]}</span>` : ""}</button>`).join("")}</div>
+        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(NOME_SEC(s))}${s === "Todas" ? ` <span class="cnt">${E.produtos.length}</span>` : s === "Recargas" ? ` <span class="cnt">${(E.operadores || []).length}</span>` : contagem[s] ? ` <span class="cnt">${contagem[s]}</span>` : ""}</button>`).join("")}</div>
         <div id="ptiles"></div>
       </section>
       <aside class="cart" id="cart" aria-label="Venda atual"></aside>
@@ -871,20 +954,26 @@ function tileHtml(p, qtd) {
     <span class="ta">${acao}</span></div>`;
 }
 function tiles() {
-  const l = listaTiles(), q = venda.q.trim();
+  const q = venda.q.trim();
+  if (venda.sec === "Recargas" && !q) { $("#ptiles").innerHTML = `<h3 class="sec-h">Recargas · escolha o operador</h3>${opGrade(E.operadores || [])}`; return; }
+  const l = venda.sec === "Recargas" ? E.produtos.filter(p => (p.nome + " " + p.descricao + " " + p.codigo + " " + p.seccao).toLowerCase().includes(q.toLowerCase())) : listaTiles();
+  const opsQ = q ? (E.operadores || []).filter(o => (o.nome + " " + o.categoria + " recarga saldo").toLowerCase().includes(q.toLowerCase())) : [];
+  const topoOps = opsQ.length ? `<h3 class="sec-h">Recargas</h3>${opGrade(opsQ)}` : "";
   const noCarrinho = {}; venda.itens.forEach(i => { if (i.produto_id) noCarrinho[i.produto_id] = (noCarrinho[i.produto_id] || 0) + i.qtd; });
   const lista = venda.vista === "lista" || matchMedia("(max-width: 900px)").matches;
   const cls = `tiles ${lista ? "lista" : ""}`;
   const grade = ps => `<div class="${cls}">${ps.map(p => tileHtml(p, noCarrinho[p.id])).join("")}</div>`;
+  if (!l.length && topoOps) { $("#ptiles").innerHTML = topoOps; return; }
   if (!l.length) {
     $("#ptiles").innerHTML = `<div class="empty">${q ? `Nada encontrado para “${esc(q)}”. Use <b>Item avulso</b> para vender algo fora do catálogo.` : "Ainda sem vendas para mostrar os mais vendidos."}</div>`;
     return;
   }
-  if (q || venda.sec !== "Todas") { $("#ptiles").innerHTML = (q ? `<h3 class="sec-h">${l.length} resultado${l.length === 1 ? "" : "s"}</h3>` : "") + grade(l); return; }
+  if (q || venda.sec !== "Todas") { $("#ptiles").innerHTML = topoOps + (q ? `<h3 class="sec-h">${l.length} resultado${l.length === 1 ? "" : "s"}</h3>` : "") + grade(l); return; }
   // "Todas": mais vendidos no topo e o catálogo agrupado por secção
   const mv = maisVendidos().map(produto).filter(Boolean).slice(0, 8);
   const grupos = {}; l.forEach(p => (grupos[p.seccao] = grupos[p.seccao] || []).push(p));
   $("#ptiles").innerHTML = (mv.length ? `<h3 class="sec-h">Mais vendidos</h3><div class="mvs">${mv.map(p => `<button class="mv ${noCarrinho[p.id] ? "in" : ""}" data-act="add" data-id="${p.id}"><b>${esc(p.nome)}</b><span class="num">${precoCurto(p)}</span>${noCarrinho[p.id] ? `<span class="badge">${noCarrinho[p.id]}</span>` : ""}</button>`).join("")}</div>` : "")
+    + ((E.operadores || []).length ? `<h3 class="sec-h">Recargas <span>· ${(E.operadores || []).length}</span></h3>${opGrade(E.operadores)}` : "")
     + Object.entries(grupos).map(([s, ps]) => `<h3 class="sec-h">${esc(s)} <span>· ${ps.length}</span></h3>${grade(ps)}`).join("");
 }
 function totaisVenda() {
@@ -936,6 +1025,10 @@ function carrinho() {
       <div class="field"><span>Cliente</span>${blocoCliente()}</div>
       <div class="field"><span>${n ? `${n} ${n === 1 ? "item" : "itens"}` : "Itens"}</span>
       ${venda.itens.length ? `<div class="lines">${venda.itens.map((it, i) => {
+        if (it.operador_id) { const o = operador(it.operador_id) || { nome: "?", categoria: "" }; return `<div class="line rec"><div class="nm"><span class="rec-t"><span class="opi sm">${opIcon(o)}</span>Recarga ${esc(o.nome)}</span>
+          <div class="cod">${it.referencia ? esc(it.referencia) + " · " : ""}saldo ${esc(o.nome)}: ${kz(o.saldo)}</div></div>
+          <div class="tot num">${kz(it.preco_unit * it.qtd)}</div>
+          <div class="ctr"><button type="button" class="btn sm" data-act="recarga" data-id="${o.id}">${icon("plus")}Outra recarga</button><button class="icon-btn rm-btn" data-act="rm" data-i="${i}" aria-label="Remover recarga ${esc(o.nome)}">${icon("trash")}</button></div></div>`; }
         const p = produto(it.produto_id); const tier = p && p.tier_qtd && it.qtd >= p.tier_qtd && it.preco_unit === p.tier_preco;
         const proxTier = p && p.tier_qtd && it.qtd < p.tier_qtd && !it.manual ? p.tier_qtd - it.qtd : 0;
         return `<div class="line"><div class="nm">${esc(it.descricao)}<div class="cod">${p ? (p.tipo === "produto" ? `${p.codigo} · ${p.stock} em stock` : p.codigo + " · serviço") : "Item avulso"}</div></div>
@@ -974,6 +1067,7 @@ function carrinho() {
   if ($("#vdesc")) $("#vdesc").onchange = e => { venda.desconto = inteiro(e.target.value) || 0; carrinho(); };
   if ($("#vrec")) $("#vrec").onchange = e => { venda.recebido = inteiro(e.target.value) || 0; carrinho(); };
   venda.itens.forEach((it, i) => {
+    if (it.operador_id) return;
     $("#q" + i).onchange = e => mudarQtd(i, (inteiro(e.target.value) || 1) - it.qtd);
     $("#pr" + i).onchange = e => { it.preco_unit = inteiro(e.target.value) || 0; it.manual = true; carrinho(); };
   });
@@ -1018,18 +1112,167 @@ function adicionar(id) {
   carrinho(); tiles();
 }
 async function emitir() {
+  if (venda.emitindo) return;   // dois toques nunca criam duas faturas
   const { desc, tot } = totaisVenda();
   const err = m => { $("#v-err").innerHTML = `<div class="err">${esc(m)}</div>`; $("#v-err").scrollIntoView({ block: "nearest" }); };
   if (venda.novoCli) return err("Termine de registar o novo cliente (ou cancele) antes de emitir.");
   if (venda.tipo === "FR" && !venda.forma) return err("Escolha a forma de pagamento.");
   let obs = venda.obs.trim();
   if (venda.tipo === "FR" && venda.forma === "Numerário" && venda.recebido) obs = `${obs}\nRecebido: ${kz(venda.recebido)} · ${venda.recebido >= tot ? "Troco: " + kz(venda.recebido - tot) : "Falta: " + kz(tot - venda.recebido)}`.trim();
+  venda.emitindo = true;
+  const info = { forma: venda.tipo === "FR" ? venda.forma : null, recebido: venda.recebido };
+  const btn = $("[data-act=emitir]");
+  if (btn) { btn.disabled = true; btn.classList.add("a-emitir"); btn.innerHTML = `<span class="spin" aria-hidden="true"></span>A emitir…<span class="bprog"><i></i></span>`; }
+  ocupado(true);
   try {
     const f = await acao("registarDocumento", { tipo: venda.tipo, cliente_id: venda.cliente_id ? (ehTemp(venda.cliente_id) ? venda.cliente_id : Number(venda.cliente_id)) : null, forma_pagamento: venda.tipo === "FR" ? venda.forma : null, desconto: desc, observacoes: obs,
-      itens: venda.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
+      itens: venda.itens.map(i => ({ produto_id: i.produto_id, operador_id: i.operador_id || null, referencia: i.referencia || "", descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
     Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null, extras: { desc: false, obs: false } });
-    render(); toast(f.pendente ? "Venda guardada neste aparelho. É enviada quando houver internet." : `${docNum(f)} emitida`); verFatura(f.id, true);
-  } catch (e) { err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
+    venda.emitindo = false; ocupado(false);
+    render(); verFatura(f.id, info);
+  } catch (e) { venda.emitindo = false; ocupado(false); carrinho(); err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
+}
+/* cabeçalho animado depois de emitir: número, total e troco */
+function cabecalhoEmitida(f, info = {}) {
+  const n = f.itens.reduce((s, i) => s + i.qtd, 0), pend = f.pendente;
+  const troco = info.forma === "Numerário" && info.recebido >= f.total ? info.recebido - f.total : null;
+  const lab = pend ? "Venda guardada neste aparelho" : `${TIPOS_DOC[f.tipo]} emitida`;
+  const totLab = f.tipo === "FR" ? `Pago${f.forma_pagamento ? " · " + esc(f.forma_pagamento) : ""}` : f.tipo === "FT" ? "A pagar" : "Orçamento";
+  return `<div class="emitida e-${pend ? "pend" : f.tipo}" role="status">
+    <span class="em-circ">${pend ? icon("wallet") : `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="em-visto" d="M5 12.5l4.5 4.5L19 7.5"/></svg>`}</span>
+    <span class="em-tx"><small>${lab}</small><b>${pend ? "Por enviar" : docNum(f)}</b><span>${esc(f.cliente_nome)} · ${n} ${n === 1 ? "item" : "itens"}</span></span>
+    <span class="em-tot"><small>${totLab}</small><b class="num">${kz(f.total)}</b>${troco !== null ? `<span>Troco <b class="num">${kz(troco)}</b></span>` : ""}</span></div>
+    ${pend ? `<p class="cod" style="margin:-4px 0 0">É enviada sozinha quando houver internet; o número oficial vem do servidor.</p>` : ""}`;
+}
+
+/* ============================================================ recargas e saldos */
+const ICON_CAT = { "Telemóvel": "phone", "Televisão": "tv", "Energia": "bolt", "Água": "drop" };
+const opIcon = o => icon(ICON_CAT[o.categoria] || "wallet");
+const operador = id => (E.operadores || []).find(o => String(o.id) === String(id));
+const opEstado = o => o.saldo <= 0 ? "bad" : o.saldo < (o.saldo_min || 0) ? "warn" : "ok";
+const noCarrinhoOp = id => venda.itens.filter(i => String(i.operador_id) === String(id)).reduce((s, i) => s + i.qtd * i.preco_unit, 0);
+function opCard(o) {
+  const livre = o.saldo - (venda.tipo === "PP" ? 0 : noCarrinhoOp(o.id)), n = venda.itens.filter(i => String(i.operador_id) === String(o.id)).length;
+  const st = livre <= 0 ? "bad" : livre < (o.saldo_min || 0) ? "warn" : "ok";
+  return `<button class="opc s-${st}" data-act="recarga" data-id="${o.id}" aria-label="Vender recarga ${esc(o.nome)}, saldo ${kz(livre)}">
+    <span class="opi">${opIcon(o)}</span><span class="opt"><b>${esc(o.nome)}</b><small>${esc(o.categoria)}</small></span>
+    <span class="ops-s"><small>Saldo</small><b class="num">${kz(Math.max(0, livre))}</b></span>${n ? `<span class="badge">${n}</span>` : ""}</button>`;
+}
+const opGrade = ops => ops.length ? `<div class="ops">${ops.map(opCard).join("")}</div>` : `<div class="empty">Sem operadores de recarga.</div>`;
+function formRecarga(id) {
+  const o = operador(id); if (!o) return;
+  const pp = venda.tipo === "PP", usado = pp ? 0 : noCarrinhoOp(o.id), livre = o.saldo - usado;
+  const rapidos = ["Telemóvel"].includes(o.categoria) ? [500, 1000, 2000, 5000, 10000] : [2000, 5000, 10000, 20000, 50000];
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2 class="rc-h"><span class="opi">${opIcon(o)}</span>Recarga ${esc(o.nome)}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b">
+      <div class="rc-saldo s-${livre <= 0 ? "bad" : livre < o.saldo_min ? "warn" : "ok"}"><span>Saldo ${esc(o.nome)} disponível</span><b class="num">${kz(livre)}</b>
+        <small id="rc-fica">${pp ? "Pró-forma: o saldo só sai quando for convertida em fatura." : usado ? `Já há ${kz(usado)} desta operadora nesta venda.` : "Escolha o valor da recarga."}</small></div>
+      <div class="field"><span>Valor da recarga (Kz)</span>
+        <div class="rc-rapidos">${rapidos.map(v => `<button type="button" data-act="rc-valor" data-v="${v}" ${!pp && v > livre ? "disabled" : ""}>${fmt(v)}</button>`).join("")}</div>
+        <input class="f num rc-in" id="rc-valor" inputmode="numeric" placeholder="Outro valor" autocomplete="off" required></div>
+      <label class="field"><span>${esc(o.referencia)} <em class="opc-l">(opcional)</em></span><input class="f" id="rc-ref" inputmode="${o.categoria === "Telemóvel" ? "tel" : "text"}" maxlength="40" autocomplete="off" placeholder="${o.categoria === "Telemóvel" ? "Ex.: 923 456 789" : ""}"></label>
+      <div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A adicionar…">${icon("plus")}Adicionar à venda</button></div></form>`,
+    async () => {
+      const v = inteiro($("#rc-valor").value);
+      if (!(v > 0)) falha("Indique o valor da recarga em Kz.");
+      if (!pp && v > livre) falha(`Saldo ${o.nome} insuficiente: há ${kz(livre)}.`);
+      const referencia = $("#rc-ref").value.trim();
+      venda.itens.push({ produto_id: null, operador_id: o.id, referencia, descricao: `Recarga ${o.nome}${referencia ? " — " + referencia : ""}`, qtd: 1, preco_unit: v, manual: true });
+      fechar(); carrinho(); tiles(); toast(`Recarga ${o.nome} de ${kz(v)} adicionada`, "ok");
+    });
+  const atualizar = () => {
+    const v = inteiro($("#rc-valor").value) || 0;
+    document.querySelectorAll(".rc-rapidos button").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === v));
+    if (!pp && v) $("#rc-fica").innerHTML = v > livre ? `<strong style="color:var(--bad)">Falta saldo: há ${kz(livre)}.</strong>` : `Depois desta recarga fica <strong>${kz(livre - v)}</strong>.`;
+  };
+  $("#rc-valor").oninput = atualizar;
+  setTimeout(() => $("#rc-valor").focus(), 50);
+}
+
+/* página Saldos (quem gere stock) */
+const filtroS = { op: "todos" };
+function resumoSaldos(desde) {
+  const r = {}; (E.operadores || []).forEach(o => r[o.id] = { vendido: 0, custo: 0, n: 0, carregado: 0, pago: 0 });
+  (E.movimentos_saldo || []).forEach(m => {
+    const x = r[m.operador_id]; if (!x || m.data < desde) return;
+    if (m.tipo === "venda") { x.vendido += -m.valor; x.custo += m.custo; x.n++; }
+    else if (m.tipo === "anulacao") { x.vendido -= m.valor; x.custo -= m.custo; x.n--; }
+    else if (m.tipo === "carga") { x.carregado += m.valor; x.pago += m.custo; }
+  });
+  Object.values(r).forEach(x => x.lucro = x.vendido - x.custo);
+  return r;
+}
+function vSaldos() {
+  const ops = E.operadores || [], mes = hoje().slice(0, 7) + "-01", r = resumoSaldos(mes);
+  const tot = k => Object.values(r).reduce((s, x) => s + x[k], 0);
+  const saldoTotal = ops.reduce((s, o) => s + o.saldo, 0), custoTotal = ops.reduce((s, o) => s + o.custo, 0);
+  const movs = (E.movimentos_saldo || []).filter(m => filtroS.op === "todos" || String(m.operador_id) === filtroS.op)
+    .sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id).slice(0, 80);
+  const TIPO_MOV = { carga: ["Carga", "ok"], venda: ["Venda", "brand"], anulacao: ["Anulação", "warn"], ajuste: ["Correção", ""] };
+  $("#main").innerHTML = `
+    <section class="kpis">
+      <div class="kpi hero"><span class="lab">Saldo disponível</span><span class="val num">${fmt(saldoTotal)} <small>Kz</small></span><span class="ft">em ${ops.length} operador${ops.length === 1 ? "" : "es"} · custou ${kz(custoTotal)}</span></div>
+      <div class="kpi"><span class="lab">Recargas vendidas este mês</span><span class="val num">${fmt(tot("vendido"))} <small>Kz</small></span><span class="ft">${tot("n")} recarga${tot("n") === 1 ? "" : "s"}</span></div>
+      <div class="kpi"><span class="lab">Lucro das recargas este mês</span><span class="val num" style="color:var(--ok)">${fmt(tot("lucro"))} <small>Kz</small></span><span class="ft">${tot("vendido") ? ((tot("lucro") / tot("vendido")) * 100).toFixed(1).replace(".", ",") + "% do vendido" : "sem vendas"}</span></div>
+      <div class="kpi"><span class="lab">Investido este mês</span><span class="val num">${fmt(tot("pago"))} <small>Kz</small></span><span class="ft">${kz(tot("carregado"))} de saldo recebido</span></div>
+    </section>
+    <div class="panel"><div class="panel-h"><h2>Operadores</h2><div class="toolbar"><button class="btn sm" data-act="novo-operador">${icon("plus")}Novo operador</button><button class="btn sm pri" data-act="carregar-saldo">${icon("in")}Carregar saldo</button></div></div>
+      <div class="sgrid">${ops.map(o => { const x = r[o.id], st = opEstado(o); return `<div class="scard s-${st}">
+        <div class="sc-top"><span class="opi">${opIcon(o)}</span><span class="opt"><b>${esc(o.nome)}</b><small>${esc(o.categoria)}</small></span><button class="icon-btn" data-act="editar-operador" data-id="${o.id}" aria-label="Editar ${esc(o.nome)}">${icon("adj")}</button></div>
+        <div class="sc-saldo"><small>Saldo disponível</small><b class="num">${kz(o.saldo)}</b>${st !== "ok" ? `<span class="chip ${st}">${st === "bad" ? "Sem saldo" : "Saldo baixo"}</span>` : ""}</div>
+        <div class="sc-mini"><span>Vendido no mês<b class="num">${kz(x.vendido)}</b></span><span>Lucro no mês<b class="num" style="color:var(--ok)">${kz(x.lucro)}</b></span></div>
+        <div class="sc-acoes"><button class="btn sm" data-act="ajustar-saldo" data-id="${o.id}">Corrigir</button><button class="btn sm pri" data-act="carregar-saldo" data-id="${o.id}">${icon("plus")}Carregar</button></div></div>`; }).join("")}</div></div>
+    <div class="panel"><div class="panel-h"><h2>Histórico de saldos</h2>
+      <select class="f" id="s-op" aria-label="Operador" style="width:auto"><option value="todos">Todos os operadores</option>${ops.map(o => `<option value="${o.id}" ${filtroS.op === String(o.id) ? "selected" : ""}>${esc(o.nome)}</option>`).join("")}</select></div>
+      ${movs.length ? `<div class="dlist">${movs.map(m => { const o = operador(m.operador_id) || { nome: "—", categoria: "" }, [tt, tc] = TIPO_MOV[m.tipo] || [m.tipo, ""]; return `<div class="drow est">
+        <span class="opi sm">${opIcon(o)}</span>
+        <span class="dmeio"><b>${esc(o.nome)} · <span class="chip ${tc}">${tt}</span></b><small>${dataPt(m.data)} ${horaPt(m.data)}${m.ref ? " · " + esc(m.ref) : ""}${m.motivo && m.motivo !== "Venda" ? " · " + esc(m.motivo) : ""}</small></span>
+        <span class="dfim"><b class="num" style="color:${m.valor >= 0 ? "var(--ok)" : "var(--ink)"}">${m.valor >= 0 ? "+" : "−"} ${kz(Math.abs(m.valor))}</b><small class="num">saldo ${kz(m.saldo_final)}</small></span></div>`; }).join("")}</div>` : `<div class="empty">Ainda não há movimentos de saldo.</div>`}</div>`;
+  $("#s-op").onchange = e => { filtroS.op = e.target.value; vSaldos(); };
+}
+function formCarga(id) {
+  const ops = E.operadores || [], o0 = operador(id) || ops[0];
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>Carregar saldo</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><div class="field"><span>Operador</span><div class="seg wrap" id="cs-op">${ops.map(o => `<button type="button" data-v="${o.id}" aria-pressed="${o === o0}">${esc(o.nome)}</button>`).join("")}</div></div>
+      <div class="grid2"><label class="field"><span>Saldo recebido (Kz)</span><input class="f num" id="cs-valor" inputmode="numeric" placeholder="Ex.: 10000" required></label>
+        <label class="field"><span>Quanto pagou (Kz)</span><input class="f num" id="cs-pago" inputmode="numeric" placeholder="Igual ao saldo"></label></div>
+      <div class="note" id="cs-prev">Se o operador lhe dá desconto (ex.: paga 9.500 e recebe 10.000), escreva o valor pago: a diferença é o seu lucro.</div>
+      <label class="field"><span>Nota (opcional)</span><input class="f" id="cs-mot" placeholder="Ex.: comprado no agente da Mutamba"></label><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A carregar…">Carregar saldo</button></div></form>`,
+    async () => {
+      const opId = Number($("#cs-op [aria-pressed=true]").dataset.v);
+      const o = await acao("carregarSaldo", { operador_id: opId, valor: inteiro($("#cs-valor").value), pago: $("#cs-pago").value.trim() ? inteiro($("#cs-pago").value) : "", motivo: $("#cs-mot").value });
+      fechar(); render(); toast(`${o.nome}: saldo ${kz(o.saldo)}`, "ok");
+    });
+  ligarEscolha("#cs-op");
+  const prev = () => {
+    const v = inteiro($("#cs-valor").value) || 0, p = $("#cs-pago").value.trim() ? inteiro($("#cs-pago").value) || 0 : v;
+    if (v && p) $("#cs-prev").innerHTML = p < v ? `Lucro previsto ao vender este saldo: <b style="color:var(--ok)">${kz(v - p)}</b> (${((v - p) / v * 100).toFixed(1).replace(".", ",")}%).` : p > v ? `<b style="color:var(--warn)">Pagou mais do que o saldo recebido: estas recargas dão prejuízo.</b>` : "Sem desconto: estas recargas não dão lucro.";
+  };
+  $("#cs-valor").oninput = prev; $("#cs-pago").oninput = prev;
+  setTimeout(() => $("#cs-valor").focus(), 50);
+}
+function formAjusteSaldo(id) {
+  const o = operador(id); if (!o) return;
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>Corrigir saldo ${esc(o.nome)}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><p class="note" style="margin:0">Use quando o saldo no telemóvel/agente não bate com o do sistema. O sistema mostra <b>${kz(o.saldo)}</b>.</p>
+      <label class="field"><span>Saldo certo agora (Kz)</span><input class="f num" id="as-saldo" inputmode="numeric" value="${o.saldo}" required></label>
+      <label class="field"><span>Motivo</span><input class="f" id="as-mot" placeholder="Ex.: recarga falhada devolvida"></label><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A corrigir…">Corrigir saldo</button></div></form>`,
+    async () => { const r = await acao("ajustarSaldo", { operador_id: o.id, saldo: inteiro($("#as-saldo").value), motivo: $("#as-mot").value }); fechar(); render(); toast(`${r.nome}: saldo ${kz(r.saldo)}`, "ok"); });
+  setTimeout(() => $("#as-saldo").select(), 50);
+}
+function formOperador(id) {
+  const o = id ? operador(id) : { nome: "", categoria: "Telemóvel", referencia: "Número de telefone", saldo_min: 2000 };
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>${id ? "Editar " + esc(o.nome) : "Novo operador de recarga"}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><label class="field"><span>Nome</span><input class="f" id="op-nome" value="${esc(o.nome)}" required placeholder="Ex.: Movicel"></label>
+      <div class="grid2"><label class="field"><span>Tipo</span><select class="f" id="op-cat">${["Telemóvel", "Televisão", "Energia", "Água", "Outros"].map(c => `<option ${c === o.categoria ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+        <label class="field"><span>Avisar abaixo de (Kz)</span><input class="f num" id="op-min" inputmode="numeric" value="${o.saldo_min}"></label></div>
+      <label class="field"><span>O que pedir ao cliente</span><input class="f" id="op-ref" value="${esc(o.referencia)}" placeholder="Ex.: Número de telefone"></label><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri">Guardar</button></div></form>`,
+    async () => { await acao("guardarOperador", { nome: $("#op-nome").value, categoria: $("#op-cat").value, referencia: $("#op-ref").value, saldo_min: $("#op-min").value }, id || null); fechar(); render(); toast("Operador guardado", "ok"); });
+  setTimeout(() => $("#op-nome").focus(), 50);
 }
 
 /* ============================================================ produtos */
@@ -1234,13 +1477,20 @@ function calcularRelatorio(tipo, ref) {
   const soma = (l, k = "total") => l.reduce((s, x) => s + x[k], 0);
   const anterior = soma(base.filter(f => f.estado === "emitida" && dentro(f, dISO(ant.ini), dISO(ant.fim))));
   const faturacao = soma(emit);
-  const itens = {}, secs = {}, pags = {}, clis = {}, vends = {}; let vp = 0, vs = 0, qt = 0;
+  const itens = {}, secs = {}, pags = {}, clis = {}, vends = {}, recs = {}; let vp = 0, vs = 0, qt = 0;
   emit.forEach(f => {
     const fp = f.pago ? f.forma_pagamento : "Por pagar";
     const pg = pags[fp] ||= { forma: fp, n: 0, valor: 0 }; pg.n++; pg.valor += f.total;
     const vd = vends[f.vendedor_nome || "—"] ||= { nome: f.vendedor_nome || "—", n: 0, valor: 0 }; vd.n++; vd.valor += f.total;
     const cl = clis[f.cliente_nome] ||= { nome: f.cliente_nome, n: 0, valor: 0 }; cl.n++; cl.valor += f.total;
     f.itens.forEach(it => {
+      if (it.operador_id) {
+        const o = operador(it.operador_id), nome = o ? o.nome : it.descricao.replace(/^Recarga /, "").split(" — ")[0];
+        const rc = recs[nome] ||= { nome, n: 0, valor: 0, custo: 0 }; rc.n += it.qtd; rc.valor += it.total; rc.custo += it.custo || 0;
+        const l = itens["REC-" + nome] ||= { codigo: "", descricao: "Recargas " + nome, tipo: "recarga", qtd: 0, valor: 0 }; l.qtd += it.qtd; l.valor += it.total;
+        const s = secs["Recargas"] ||= { seccao: "Recargas", qtd: 0, valor: 0 }; s.qtd += it.qtd; s.valor += it.total;
+        qt += it.qtd; vs += it.total; return;
+      }
       const p = prods[it.produto_id], k = p ? p.codigo : it.descricao;
       const l = itens[k] ||= { codigo: p ? p.codigo : "", descricao: p ? p.nome : it.descricao, tipo: p ? p.tipo : "servico", qtd: 0, valor: 0 };
       l.qtd += it.qtd; l.valor += it.total;
@@ -1272,6 +1522,7 @@ function calcularRelatorio(tipo, ref) {
       variacao: anterior ? Math.round((faturacao - anterior) / anterior * 1000) / 10 : null },
     evolucao, pagamentos: ord(pags), seccoes: ord(secs), itens: Object.values(itens).sort((a, b) => b.valor - a.valor || a.descricao.localeCompare(b.descricao)),
     clientes: ord(clis).slice(0, 10), vendedores: ord(vends), stock,
+    recargas: ord(recs).map(x => ({ ...x, lucro: x.valor - x.custo })),
     stock_resumo: { valor: soma(stock, "valor_final"), unidades: soma(stock, "final"), entradas: soma(stock, "entradas"), saidas: soma(stock, "saidas"), alertas: stock.filter(s => s.final <= s.stock_min).length },
     faturas: [...todas].sort((a, b) => a.numero - b.numero),
   };
@@ -1311,7 +1562,7 @@ function vRelatorios() {
       <div class="sp"></div>
       <input type="date" class="f" id="rdata" value="${rel.ref}" aria-label="Escolher data" style="width:auto">
       ${ehAtual ? "" : `<button class="btn sm" data-act="rel-hoje">Atual</button>`}
-      <button class="btn pri" data-act="pdf-relatorio">${icon("down")}Guardar PDF</button>
+      <button class="btn pri" data-act="pdf-relatorio" data-espera="A gerar PDF…">${icon("down")}Guardar PDF</button>
     </div>
     <section class="kpis">
       <div class="kpi hero"><span class="lab">Faturação</span><span class="val num">${fmt(r.faturacao)} <small>Kz</small></span><span class="ft">${varTxt}</span></div>
@@ -1331,11 +1582,12 @@ function vRelatorios() {
           <div class="legend"><span><i style="background:var(--brand-deep)"></i>Produtos ${kz(r.produtos_valor)}</span><span><i style="background:var(--brand);opacity:.45"></i>Serviços ${kz(r.servicos_valor)}</span></div></div>
         <div class="panel"><div class="panel-h"><h2>Por secção do catálogo</h2></div>${R.seccoes.length ? `<div class="hbars">${R.seccoes.map(s => `<div class="hbar"><span class="n">${esc(s.seccao)}</span><span class="num strong">${kz(s.valor)}</span><div class="track"><div class="fill" style="width:${(s.valor / R.seccoes[0].valor * 100).toFixed(1)}%"></div></div></div>`).join("")}</div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>
       </section>
+      ${R.recargas.length ? `<div class="panel"><div class="panel-h"><h2>Recargas</h2><span class="sub">lucro = valor vendido − custo do saldo</span></div><div class="tbl-wrap"><table class="t"><thead><tr><th>Operador</th><th class="r">Recargas</th><th class="r">Vendido</th><th class="r">Lucro</th></tr></thead><tbody>${R.recargas.map(x => `<tr><td>${esc(x.nome)}</td><td class="r num">${x.n}</td><td class="r num">${kz(x.valor)}</td><td class="r num strong" style="color:var(--ok)">${kz(x.lucro)}</td></tr>`).join("")}</tbody><tfoot><tr><td class="strong">Total</td><td class="r num">${R.recargas.reduce((s, x) => s + x.n, 0)}</td><td class="r num strong">${kz(R.recargas.reduce((s, x) => s + x.valor, 0))}</td><td class="r num strong" style="color:var(--ok)">${kz(R.recargas.reduce((s, x) => s + x.lucro, 0))}</td></tr></tfoot></table></div></div>` : ""}
       ${R.vendedores.length > 1 || pode("ver_todas") ? `<div class="panel"><div class="panel-h"><h2>Por vendedor</h2></div>${R.vendedores.length ? `<div class="hbars">${R.vendedores.map(v => `<div class="hbar"><span class="n">${esc(v.nome)} <span style="color:var(--ink-3)">· ${v.n}</span></span><span class="num strong">${kz(v.valor)}</span><div class="track"><div class="fill" style="width:${(v.valor / (R.vendedores[0].valor || 1) * 100).toFixed(1)}%"></div></div></div>`).join("")}</div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>` : ""}
       <div class="panel"><div class="panel-h"><h2>Principais clientes</h2></div>${R.clientes.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th>Cliente</th><th class="r">Faturas</th><th class="r">Valor</th></tr></thead><tbody>${R.clientes.map(c => `<tr><td>${esc(c.nome)}</td><td class="r num">${c.n}</td><td class="r num strong">${kz(c.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>`,
     vendas: () => `<div class="panel"><div class="panel-h"><h2>${R.itens.length} produtos e serviços vendidos</h2><span class="sub">valores antes de descontos</span></div>
       ${R.itens.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th class="hide-m">Código</th><th>Descrição</th><th class="hide-m">Tipo</th><th class="r">Qtd.</th><th class="r">Valor</th><th class="r hide-m">%</th></tr></thead><tbody>
-        ${R.itens.map(it => `<tr><td class="cod hide-m">${esc(it.codigo)}</td><td><span class="strong">${esc(it.descricao)}</span><div class="cod">${esc(it.codigo)} · ${it.tipo === "produto" ? "Produto" : "Serviço"}</div></td><td class="hide-m">${it.tipo === "produto" ? '<span class="chip brand">Produto</span>' : '<span class="chip">Serviço</span>'}</td><td class="r num">${fmt(it.qtd)}</td><td class="r num strong">${kz(it.valor)}</td><td class="r num hide-m muted">${(it.valor / sub * 100).toFixed(1).replace(".", ",")}%</td></tr>`).join("")}
+        ${R.itens.map(it => `<tr><td class="cod hide-m">${esc(it.codigo)}</td><td><span class="strong">${esc(it.descricao)}</span><div class="cod">${it.codigo ? esc(it.codigo) + " · " : ""}${it.tipo === "produto" ? "Produto" : it.tipo === "recarga" ? "Recarga" : "Serviço"}</div></td><td class="hide-m">${it.tipo === "produto" ? '<span class="chip brand">Produto</span>' : it.tipo === "recarga" ? '<span class="chip ok">Recarga</span>' : '<span class="chip">Serviço</span>'}</td><td class="r num">${fmt(it.qtd)}</td><td class="r num strong">${kz(it.valor)}</td><td class="r num hide-m muted">${(it.valor / sub * 100).toFixed(1).replace(".", ",")}%</td></tr>`).join("")}
         <tr class="tot"><td class="hide-m"></td><td class="strong">Total</td><td class="hide-m"></td><td class="r num strong">${fmt(r.itens_qtd)}</td><td class="r num strong">${kz(r.subtotal)}</td><td class="r hide-m strong">100%</td></tr>
       </tbody></table></div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>`,
     stock: () => `<section class="kpis">
@@ -1492,23 +1744,24 @@ async function guardarPdf(doc, nome, imprimir = false) {
       // guarda uma cópia em Documentos/Grupo Kambas no telemóvel
       try {
         await Filesystem.writeFile({ path: "Grupo Kambas/" + nome, data: dados, directory: "DOCUMENTS", recursive: true });
-        toast("PDF guardado em Documentos › Grupo Kambas");
+        toast("PDF guardado", "ok", "Documentos › Grupo Kambas › " + nome);
       } catch (e) { /* sem acesso à pasta: fica só a partilha */ }
     }
     const r = await Filesystem.writeFile({ path: nome, data: dados, directory: "CACHE" });
+    if (imprimir) fecharToast();
     await Share.share({ title: nome, files: [r.uri], dialogTitle: imprimir ? "Escolha a impressora ou a app de impressão" : "Enviar ou abrir o PDF" });
   } else if (window.claude && window.claude.use) {
     // demonstração dentro do Claude: o ficheiro passa pela permissão de descarregar da página
     const dl = await window.claude.use("downloads");
-    if (!dl) { toast("Descarregar não está disponível aqui"); return; }
-    try { await dl.save({ filename: nome, data: doc.output("blob") }); }
-    catch (e) { if (e && e.code !== "declined") toast("Não foi possível guardar o PDF"); }
-  } else doc.save(nome);
+    if (!dl) { toast("Descarregar não está disponível aqui", "erro"); return; }
+    try { await dl.save({ filename: nome, data: doc.output("blob") }); toast("PDF guardado", "ok", nome); }
+    catch (e) { if (e && e.code !== "declined") toast("Não foi possível guardar o PDF", "erro"); else fecharToast(); }
+  } else { doc.save(nome); toast("PDF descarregado", "ok", nome); }
 }
 /* Imprimir: no navegador e no Windows abre a janela de impressão só com o documento;
    na APK (o Android não imprime páginas), gera o PDF e abre a escolha de impressora/app. */
 async function imprimirDoc(f) {
-  if (eNativo() || (window.claude && window.claude.use)) { toast("A preparar o PDF para imprimir…"); return pdfFatura(f, true); }
+  if (eNativo() || (window.claude && window.claude.use)) { toast("A preparar para imprimir…", "prog"); return pdfFatura(f, true); }
   document.body.classList.add("a-imprimir");
   setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove("a-imprimir"), 500); }, 50);
 }
@@ -1651,12 +1904,17 @@ async function pdfRelatorio(R) {
   y += gh + 10;
   secao("Por forma de pagamento");
   tabela(["FORMA DE PAGAMENTO", "Nº", "VALOR"], R.pagamentos.map(p => [p.forma, p.n, kzPdf(p.valor)]), { cols: { 1: { halign: "right" }, 2: { halign: "right" } } });
+  if (R.recargas.length) {
+    secao("Recargas (lucro = valor vendido − custo do saldo)");
+    tabela(["OPERADOR", "RECARGAS", "VENDIDO", "LUCRO"], R.recargas.map(x => [x.nome, x.n, kzPdf(x.valor), kzPdf(x.lucro)]),
+      { cols: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } }, foot: ["Total", R.recargas.reduce((s, x) => s + x.n, 0), kzPdf(R.recargas.reduce((s, x) => s + x.valor, 0)), kzPdf(R.recargas.reduce((s, x) => s + x.lucro, 0))] });
+  }
   if (R.vendedores.length) { secao("Por vendedor"); tabela(["VENDEDOR", "DOCUMENTOS", "VALOR"], R.vendedores.map(v => [v.nome, v.n, kzPdf(v.valor)]), { cols: { 1: { halign: "right" }, 2: { halign: "right" } } }); }
   secao("Por secção do catálogo");
   tabela(["SECÇÃO", "QTD.", "VALOR"], R.seccoes.map(s => [s.seccao, s.qtd, kzPdf(s.valor)]), { cols: { 1: { halign: "right" }, 2: { halign: "right" } } });
   secao("Vendas por produto e serviço");
   const sub = r.subtotal || 1;
-  tabela(["CÓD.", "DESCRIÇÃO", "TIPO", "QTD.", "VALOR", "%"], R.itens.map(it => [it.codigo, it.descricao, it.tipo === "produto" ? "Produto" : "Serviço", it.qtd, kzPdf(it.valor), (it.valor / sub * 100).toFixed(1).replace(".", ",") + "%"]),
+  tabela(["CÓD.", "DESCRIÇÃO", "TIPO", "QTD.", "VALOR", "%"], R.itens.map(it => [it.codigo, it.descricao, it.tipo === "produto" ? "Produto" : it.tipo === "recarga" ? "Recarga" : "Serviço", it.qtd, kzPdf(it.valor), (it.valor / sub * 100).toFixed(1).replace(".", ",") + "%"]),
     { cols: { 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } }, foot: R.itens.length ? ["", "Total (antes de descontos)", "", r.itens_qtd, kzPdf(r.subtotal), "100%"] : null });
   if (R.stock.length) {
     secao("Stock de produtos");
@@ -1677,9 +1935,11 @@ function abrir(html, aoSubmeter) {
   $("#layer").innerHTML = `<div class="sheet-bg" data-act="fundo">${html}</div>`;
   const frm = $("#frm");
   if (frm && aoSubmeter) frm.onsubmit = async e => {
-    e.preventDefault(); const b = frm.querySelector("button.pri"); if (b) b.disabled = true;
+    e.preventDefault(); const b = frm.querySelector("button.pri"); if (b && b.disabled) return;
+    const txt = b ? b.innerHTML : ""; if (b) { b.disabled = true; b.innerHTML = `<span class="spin" aria-hidden="true"></span>${esc(b.dataset.espera || "A guardar…")}`; }
+    if (!DEMO) ocupado(true);
     try { await aoSubmeter(); } catch (er) { const el = $("#frm-err"); if (el) el.innerHTML = `<div class="err">${esc(mensagemErro(er))}</div>`; if (!(er instanceof ErroNegocio)) console.error(er); }
-    finally { if (b && b.isConnected) b.disabled = false; }
+    finally { if (!DEMO) ocupado(false); if (b && b.isConnected) { b.disabled = false; b.innerHTML = txt; } }
   };
 }
 function fechar() { $("#layer").innerHTML = ""; if (pendente) aplicarSync(); }
@@ -1688,10 +1948,43 @@ function confirmar(titulo, texto, botao, fn) {
     <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri">${esc(botao)}</button></div></form>`, fn);
 }
 let tToast;
-function toast(m) { let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); } t.textContent = m; t.hidden = false; clearTimeout(tToast); tToast = setTimeout(() => t.hidden = true, 2800); }
+/* aviso: tipo "" (simples), "ok" (feito), "erro" ou "prog" (a decorrer, fica até ao próximo aviso) */
+function toast(m, tipo = "", sub = "") {
+  let t = $(".toast"); if (!t) { t = document.createElement("div"); t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.className = "toast" + (tipo ? " t-" + tipo : "");
+  t.innerHTML = (tipo === "ok" ? `<span class="ti">${icon("check")}</span>` : tipo === "erro" ? `<span class="ti">!</span>` : tipo === "prog" ? `<span class="ti"><span class="spin"></span></span>` : "")
+    + `<span class="tt"><b></b>${sub ? "<small></small>" : ""}</span>` + (tipo === "prog" ? `<span class="tbar"><i></i></span>` : "");
+  t.querySelector("b").textContent = m; if (sub) t.querySelector("small").textContent = sub;
+  t.hidden = false; clearTimeout(tToast);
+  if (tipo !== "prog") tToast = setTimeout(() => t.hidden = true, tipo === "erro" ? 4500 : 2800);
+}
+function fecharToast() { const t = $(".toast"); if (t) t.hidden = true; }
+/* linha fina no topo enquanto há trabalho a decorrer */
+let nOcupado = 0;
+function ocupado(on) { nOcupado = Math.max(0, nOcupado + (on ? 1 : -1)); document.body.classList.toggle("ocupado", nOcupado > 0); }
+/* ecrã de arranque: barra de progresso com as etapas reais da entrada */
+const Arranque = {
+  passos: [["Ligação", 16], ["Conta", 40], ["Catálogo", 70], ["Vendas", 90]], inicio: Date.now(), feito: false,
+  passo(i, texto) {
+    if (!$("#arranque") || this.feito) return;
+    $("#arr-txt").textContent = texto; this.pct(this.passos[i][1]);
+    $("#arr-passos").innerHTML = this.passos.map(([n], k) => `<span class="${k < i ? "ok" : k === i ? "agora" : ""}">${k < i ? icon("check") : "<i></i>"}${n}</span>`).join("");
+  },
+  pct(v) { $("#arr-fill").style.width = v + "%"; $("#arr-pct").textContent = Math.round(v) + "%"; $("#arr-barra").setAttribute("aria-valuenow", Math.round(v)); },
+  async fim() {
+    const el = $("#arranque"); if (!el || this.feito) return; this.feito = true;
+    this.pct(100); $("#arr-txt").textContent = "Pronto";
+    $("#arr-passos").innerHTML = this.passos.map(([n]) => `<span class="ok">${icon("check")}${n}</span>`).join("");
+    await new Promise(r => setTimeout(r, Math.max(250, 900 - (Date.now() - this.inicio))));   // não pisca nem atrasa
+    el.classList.add("sai"); setTimeout(() => el.remove(), 450);
+  },
+};
 async function comEspera(btn, fn) {
-  const txt = btn.innerHTML; btn.disabled = true; btn.innerHTML = "A preparar…";
-  try { await fn(); } catch (e) { toast(mensagemErro(e)); console.error(e); } finally { btn.disabled = false; btn.innerHTML = txt; }
+  if (btn.disabled) return;
+  const txt = btn.innerHTML; btn.disabled = true; btn.innerHTML = `<span class="spin" aria-hidden="true"></span>${esc(btn.dataset.espera || "A preparar…")}`;
+  ocupado(true);
+  try { await fn(); } catch (e) { toast(mensagemErro(e), "erro"); console.error(e); }
+  finally { ocupado(false); if (btn.isConnected) { btn.disabled = false; btn.innerHTML = txt; } }
 }
 
 const ACOES = {
@@ -1703,8 +1996,8 @@ const ACOES = {
   "pagar": el => pagar(el.dataset.id),
   "imprimir": el => comEspera(el, () => imprimirDoc(byId(E.faturas, el.dataset.id))),
   "ver-senha": el => { const i = $("#" + el.dataset.alvo); const ver = i.type === "password"; i.type = ver ? "text" : "password"; el.setAttribute("aria-pressed", ver); el.setAttribute("aria-label", ver ? "Esconder senha" : "Mostrar senha"); el.innerHTML = icon(ver ? "olho-fechado" : "olho"); i.focus(); },
-  "pdf-fatura": el => comEspera(el, () => pdfFatura(byId(E.faturas, el.dataset.id))),
-  "pdf-relatorio": el => comEspera(el, () => pdfRelatorio(vRelatorios.atual)),
+  "pdf-fatura": el => comEspera(el, async () => { const f = byId(E.faturas, el.dataset.id); toast(`A gerar o PDF da ${docNum(f)}…`, "prog"); await pdfFatura(f); }),
+  "pdf-relatorio": el => comEspera(el, async () => { toast(`A gerar o relatório ${vRelatorios.atual.nome.toLowerCase()}…`, "prog"); await new Promise(r => setTimeout(r, 30)); await pdfRelatorio(vRelatorios.atual); }),
   "f-tipo": el => { filtroF.tipo = el.dataset.v; document.querySelectorAll("#ftipo button").forEach(b => b.setAttribute("aria-pressed", b === el)); vFaturas.upd(); },
   "doc-tipo": el => { venda.tipo = el.dataset.v; carrinho(); tiles(); },
   "sec": el => { venda.sec = el.dataset.v; document.querySelectorAll("#psec button").forEach(b => b.setAttribute("aria-pressed", b === el)); tiles(); },
@@ -1723,6 +2016,12 @@ const ACOES = {
   "ir-proforma": () => { venda.tipo = "PP"; if (location.hash === "#vender") render(); else location.hash = "#vender"; },
   "ver-abertas": () => { filtroF.estado = "aberto"; if (location.hash === "#faturas") render(); else location.hash = "#faturas"; },
   "mais": () => menuMais(),
+  "recarga": el => formRecarga(el.dataset.id),
+  "rc-valor": el => { $("#rc-valor").value = el.dataset.v; $("#rc-valor").dispatchEvent(new Event("input")); },
+  "carregar-saldo": el => formCarga(el.dataset.id),
+  "ajustar-saldo": el => formAjusteSaldo(el.dataset.id),
+  "editar-operador": el => formOperador(el.dataset.id),
+  "novo-operador": () => formOperador(null),
   "emitir": () => emitir(),
   "abrir-carrinho": () => { $("#cart").classList.add("open"); $("#cartbar").hidden = true; },
   "fechar-carrinho": () => { $("#cart").classList.remove("open"); carrinho(); },
@@ -1803,7 +2102,7 @@ function ligarTempoReal() {
 
 /* ============================================================ entrar / configuração inicial */
 const emailDe = u => u.includes("@") ? u.trim() : `${u.trim().toLowerCase()}@${DOMINIO_LOGIN}`;
-function ecraAuth(html) { $("#app").hidden = true; const a = $("#auth"); a.hidden = false; a.innerHTML = `<div class="auth-box"><img class="auth-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">${html}</div><p class="auth-pe">Crescendo juntos sempre!</p>`; }
+function ecraAuth(html) { ocupado(false); Arranque.fim(); $("#app").hidden = true; const a = $("#auth"); a.hidden = false; a.innerHTML = `<div class="auth-box"><img class="auth-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">${html}</div><p class="auth-pe">Crescendo juntos sempre!</p>`; }
 function ecraLogin(msg = "") {
   ecraAuth(`<form id="f-login" class="auth-card" autocomplete="on">
       <h1>Entrar</h1><p class="sub">Sistema de gestão do Grupo Kambas</p>
@@ -1854,16 +2153,21 @@ async function mostrarEntrada(msg) {
 async function entrarNaApp(uid) {
   uid = uid || (await sb.auth.getSession().catch(() => ({ data: {} }))).data?.session?.user?.id || localStorage.getItem(ULTIMO);
   await carregarFila(uid);
+  Arranque.passo(2, "A carregar catálogo, preços e vendas…");
+  ocupado(true);
   try { await recarregar(); }
   catch (e) {
     if (e.rede && await carregarCopia(uid)) { montarE(); entrarOffline(); }
     else if (e.rede) { $("#app").hidden = true; return ecraLogin("Sem internet e sem dados guardados neste aparelho. Ligue-se uma vez à internet para começar a usar o modo offline."); }
     else { await sb.auth.signOut(); return mostrarEntrada(/sessão|permission/i.test(e.message) ? "A sua conta não tem acesso ativo. Fale com o administrador." : e.message); }
   }
+  ocupado(false);
+  Arranque.passo(3, "A preparar as vendas…");
   $("#auth").hidden = true; $("#app").hidden = false;
   mostrarEstado();
   if (!canal) ligarTempoReal();
   navegar();
+  Arranque.fim();
   enviarFila();
 }
 
@@ -1895,21 +2199,28 @@ function ecraLoginDemo(msg = "") {
 
 /* ============================================================ arranque */
 (async function iniciar() {
+  Arranque.passo(0, "A iniciar…");
   if (DEMO) {
+    Arranque.passo(2, "A carregar catálogo e preços…");
     $("#mode").textContent = "Demonstração";
     try { const s = localStorage.getItem(CHAVE); if (s) E = JSON.parse(s); } catch (e) { E = null; }
+    if (E && !E.operadores) { Local.semearOperadores(); guardarLocal(); }   // demonstração guardada antes das recargas
     if (!E || !E._seq || !E.utilizadores) { Local.novo(); guardarLocal(); }
     if (E._sessao === false) return ecraLoginDemo();
     Local.atualizarEu();
+    Arranque.passo(3, "A preparar as vendas…");
     $("#app").hidden = false;
     navegar();
+    Arranque.fim();
     return;
   }
+  Arranque.passo(0, "A ligar ao servidor…");
   sb = window.supabase.createClient(SUPA.url, SUPA.chave, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "grupo-kambas-sessao" } });
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT" && E) location.reload(); });
   registarServiceWorker();
   let session = null;
   try { session = (await sb.auth.getSession()).data.session; } catch (e) { /* sem rede para renovar a sessão */ }
+  Arranque.passo(1, "A verificar a sua conta…");
   const ultimo = (() => { try { return localStorage.getItem(ULTIMO); } catch (e) { return null; } })();
   if (session) await entrarNaApp(session.user.id);
   else if (!navigator.onLine && ultimo) await entrarNaApp(ultimo);

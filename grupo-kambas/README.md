@@ -27,6 +27,14 @@ utilizador e sincronização entre dispositivos.
   precisa, troco em numerário. O total e o botão Emitir ficam sempre visíveis.
   No telemóvel: barra "Continuar" com o total e ecrã de finalizar venda; barra de
   baixo com Vender ao centro e o resto em "Mais".
+- **Recargas (Unitel, Africell, ZAP, DStv, EDEL, EPAL):** cada operador tem um saldo
+  em Kz. Em **Saldos**, "Carregar saldo" regista o saldo recebido e quanto se pagou
+  (ex.: pagar 9.500 e receber 10.000). Na venda, separador **Recargas**: escolhe-se o
+  operador, o valor (botões rápidos ou outro valor) e, se quiser, o número do
+  cliente (telefone, cartão ou contador). Não se vende acima do saldo; anular
+  devolve o saldo; a pró-forma só tira saldo quando é convertida. O lucro de cada
+  recarga é o valor vendido menos o custo desse saldo (média do que se pagou) e
+  aparece em Saldos e nos relatórios. Aviso de saldo baixo no Início.
 - **Stock:** entradas, saídas, contagem geral, alertas, histórico de movimentos.
 - **Relatórios:** diário, semanal, mensal, trimestral, semestral e anual, em PDF.
 - **Utilizadores e permissões:**
@@ -35,11 +43,21 @@ utilizador e sincronização entre dispositivos.
   - Permissões extra que o administrador pode dar a um vendedor: ver documentos
     de todos, anular, produtos e preços, stock, relatórios.
 
+## Progresso e espera
+
+- Ao entrar: ecrã com o logótipo e uma barra de progresso com as etapas reais
+  (ligação, conta, catálogo, vendas).
+- Enquanto o servidor responde: linha fina no topo; botões mostram o que estão a
+  fazer ("A guardar…", "A gerar PDF…").
+- **Emitir** bloqueia ao primeiro toque ("A emitir…"): dois toques nunca criam duas
+  faturas. Depois aparece "Fatura emitida" com o número, o total e o troco.
+- PDF: aviso "A gerar o PDF…" e, no fim, onde ficou o ficheiro.
+
 ## Sem internet (modo offline)
 
 - Cada vez que os dados chegam do servidor, fica uma cópia no aparelho (IndexedDB).
   Sem internet, o sistema abre com essa cópia e mostra "Offline".
-- **Vendas (FR, FT, pró-forma) e clientes novos** podem ser feitos sem internet:
+- **Vendas (FR, FT, pró-forma, recargas) e clientes novos** podem ser feitos sem internet:
   ficam numa fila no aparelho e são enviados sozinhos quando a ligação volta,
   pela ordem em que foram feitos (o cliente antes da venda que o usa).
 - O número oficial (ex.: FR 0012) é dado pelo servidor no envio, para dois

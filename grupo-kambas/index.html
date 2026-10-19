@@ -628,9 +628,138 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   :root[data-theme="dark"] .tabbar > button.on { color: var(--brand); }
 }
 @media (max-width: 900px) and (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tabbar > button.on, :root:not([data-theme="light"]) .ini-topo + .kpis .kpi.hero .lab, :root:not([data-theme="light"]) .atalho .ai { color: var(--brand); } }
+/* ---------- recargas e saldos */
+.opi { width: 40px; height: 40px; border-radius: 12px; background: var(--mist); color: var(--brand-deep); display: grid; place-items: center; flex: none; }
+.opi svg.i { width: 22px; height: 22px; }
+.opi.sm { width: 32px; height: 32px; border-radius: 10px; }
+.opi.sm svg.i { width: 18px; height: 18px; }
+.ops { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.opc { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "i t" "s s"; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); text-align: left; color: var(--ink); }
+.opc:hover { border-color: var(--brand); }
+.opc .opi { grid-area: i; }
+.opt { grid-area: t; display: flex; flex-direction: column; min-width: 0; }
+.opt b { font-size: 15.5px; } .opt small { font-size: 12.5px; color: var(--ink-2); }
+.ops-s { grid-area: s; display: flex; justify-content: space-between; align-items: baseline; padding-top: 8px; border-top: 1px dashed var(--line); }
+.ops-s small { font-size: 12.5px; color: var(--ink-2); }
+.ops-s b { font-family: var(--f-display); font-weight: 800; font-size: 16px; color: var(--ok); }
+.opc.s-warn .ops-s b { color: var(--warn); } .opc.s-bad .ops-s b { color: var(--bad); }
+.opc .badge { position: absolute; top: 8px; right: 8px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--brand-deep); color: var(--on-brand); font-size: 12px; font-weight: 700; display: grid; place-items: center; padding: 0 6px; }
+.rc-h { display: flex; align-items: center; gap: 10px; }
+.rc-saldo { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 14px; background: var(--ok-bg); }
+.rc-saldo span { font-size: 13.5px; color: var(--ink-2); font-weight: 600; }
+.rc-saldo b { font-family: var(--f-display); font-size: 28px; font-weight: 800; color: var(--ok); }
+.rc-saldo.s-warn { background: var(--warn-bg); } .rc-saldo.s-warn b { color: var(--warn); }
+.rc-saldo.s-bad { background: var(--bad-bg); } .rc-saldo.s-bad b { color: var(--bad); }
+.rc-saldo small { font-size: 13.5px; color: var(--ink-2); }
+.rc-rapidos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.rc-rapidos button { height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-family: var(--f-display); font-weight: 800; font-size: 14px; color: var(--ink); }
+.rc-rapidos button[aria-pressed="true"] { background: var(--brand-deep); border-color: var(--brand-deep); color: var(--on-brand); }
+.rc-rapidos button:disabled { opacity: .4; }
+.rc-in { margin-top: 8px; font-size: 18px; height: 48px; text-align: right; }
+.opc-l { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--ink-3); }
+.line.rec .nm { display: flex; flex-direction: column; gap: 2px; }
+.rec-t { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.seg.wrap { flex-wrap: wrap; }
+.sgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.scard { border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.scard.s-warn { border-color: var(--warn); } .scard.s-bad { border-color: var(--bad); }
+.sc-top { display: flex; align-items: center; gap: 10px; }
+.sc-top .opt { flex: 1; }
+.sc-top .icon-btn { width: 34px; height: 34px; }
+.sc-saldo { display: flex; flex-direction: column; gap: 2px; }
+.sc-saldo small { font-size: 12.5px; color: var(--ink-2); }
+.sc-saldo b { font-family: var(--f-display); font-size: 26px; font-weight: 800; }
+.sc-saldo .chip { align-self: flex-start; }
+.sc-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 0 0; border-top: 1px solid var(--line); }
+.sc-mini span { display: flex; flex-direction: column; font-size: 12.5px; color: var(--ink-2); }
+.sc-mini b { font-family: var(--f-display); font-size: 15px; font-weight: 800; color: var(--ink); }
+.sc-acoes { display: flex; gap: 8px; justify-content: flex-end; }
+.drow.est { cursor: default; }
+.drow.est:hover { background: transparent; }
+.dfim small { font-size: 12.5px; color: var(--ink-2); }
+:root[data-theme="dark"] .opi { color: var(--brand); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .opi { color: var(--brand); } }
+@media (max-width: 560px) { .ops { grid-template-columns: repeat(2, minmax(0, 1fr)); } .opc { padding: 10px; } .rc-rapidos { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* ---------- progresso e espera */
+.arranque { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; background: linear-gradient(165deg, #0A3D4C 0%, #0B5466 55%, #0F7F9C 100%); color: #fff; padding: max(24px, env(safe-area-inset-top, 0px)) 32px max(48px, calc(env(safe-area-inset-bottom, 0px) + 32px)); transition: opacity .4s ease, visibility .4s; }
+.arranque.sai { opacity: 0; visibility: hidden; }
+.arr-centro { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+.arr-logo { width: 168px; animation: arr-respira 2.4s ease-in-out infinite; }
+.arr-slogan { font-family: var(--f-display); font-size: 12px; font-weight: 700; letter-spacing: .26em; text-transform: uppercase; color: #B8DCE6; }
+.arr-base { width: min(420px, 100%); display: flex; flex-direction: column; gap: 12px; }
+.arr-linha { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 15px; }
+#arr-pct { font-family: var(--f-display); font-weight: 800; color: #8FD3E6; }
+.arr-barra { height: 8px; border-radius: 4px; background: rgba(255,255,255,.16); overflow: hidden; }
+.arr-fill { position: relative; height: 100%; width: 0; border-radius: 4px; background: linear-gradient(90deg, #2FB6DA, #9FE4F5); transition: width .7s cubic-bezier(.4,0,.2,1); overflow: hidden; }
+.arr-fill i { position: absolute; top: 0; bottom: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); animation: arr-brilho 1.4s ease-in-out infinite; }
+.arr-passos { display: flex; justify-content: space-between; gap: 6px; margin-top: 4px; }
+.arr-passos span { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #8FB9C5; }
+.arr-passos span i { width: 10px; height: 10px; border-radius: 5px; border: 2px solid currentColor; box-sizing: border-box; }
+.arr-passos span.agora { color: #fff; font-weight: 700; }
+.arr-passos span.agora i { background: #2FB6DA; border-color: #2FB6DA; box-shadow: 0 0 0 4px rgba(47,182,218,.25); }
+.arr-passos span.ok { color: #D4ECF2; }
+.arr-passos span.ok svg.i { width: 15px; height: 15px; color: #5BD69A; stroke-width: 2.8; }
+@keyframes arr-respira { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+@keyframes arr-brilho { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+.prog-topo { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 80; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.prog-topo i { position: absolute; top: 0; bottom: 0; width: 35%; left: -35%; background: #2FB6DA; border-radius: 2px; }
+body.ocupado .prog-topo { opacity: 1; }
+body.ocupado .prog-topo i { animation: corre-topo 1.1s ease-in-out infinite; }
+@keyframes corre-topo { 0% { left: -35%; } 100% { left: 100%; } }
+.spin { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid currentColor; border-top-color: transparent; opacity: .9; animation: roda .8s linear infinite; flex: none; }
+@keyframes roda { to { transform: rotate(360deg); } }
+.emitir-btn.a-emitir { position: relative; overflow: hidden; opacity: 1; cursor: progress; }
+.emitir-btn .bprog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,.2); overflow: hidden; }
+.emitir-btn .bprog i { position: absolute; top: 0; bottom: 0; width: 35%; background: #fff; animation: corre-topo 1.1s ease-in-out infinite; }
+/* avisos com ícone */
+.toast { display: flex; align-items: center; gap: 10px; text-align: left; }
+.toast .ti { width: 28px; height: 28px; border-radius: 14px; display: grid; place-items: center; flex: none; font-weight: 800; }
+.toast.t-ok .ti { background: #1E8A5A; color: #fff; }
+.toast.t-ok .ti svg.i { width: 16px; height: 16px; stroke-width: 3; }
+.toast.t-erro .ti { background: #B42318; color: #fff; }
+.toast.t-prog { flex-wrap: wrap; min-width: min(320px, 86vw); }
+.toast.t-prog .ti { color: #8FD3E6; }
+.toast .tt { display: flex; flex-direction: column; min-width: 0; }
+.toast .tt b { font-weight: 600; }
+.toast .tt small { font-size: 12.5px; opacity: .8; overflow-wrap: anywhere; }
+.toast .tbar { flex: 1 1 100%; height: 5px; border-radius: 3px; background: rgba(255,255,255,.15); overflow: hidden; position: relative; }
+.toast .tbar i { position: absolute; top: 0; bottom: 0; width: 40%; background: #2FB6DA; border-radius: 3px; animation: corre-topo 1.1s ease-in-out infinite; }
+/* fatura emitida */
+.emitida { isolation: isolate; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: var(--ok-bg); }
+.emitida.e-FT { background: var(--warn-bg); } .emitida.e-PP, .emitida.e-pend { background: var(--mist); }
+.em-circ { position: relative; width: 56px; height: 56px; border-radius: 28px; background: #1E8A5A; color: #fff; display: grid; place-items: center; box-shadow: 0 8px 22px rgba(30,138,90,.35); animation: em-surge .55s cubic-bezier(.3,1.4,.5,1) both; }
+.e-FT .em-circ { background: #A86400; box-shadow: 0 8px 22px rgba(168,100,0,.3); } .e-PP .em-circ, .e-pend .em-circ { background: #0B6A80; box-shadow: 0 8px 22px rgba(11,106,128,.3); }
+.em-circ::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; z-index: -1; animation: em-onda 1.6s .3s ease-out 2; }
+.em-circ svg { width: 30px; height: 30px; fill: none; stroke: #fff; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+.em-circ svg.i { width: 26px; height: 26px; stroke-width: 2; }
+.em-visto { stroke-dasharray: 40; stroke-dashoffset: 40; animation: em-traco .45s .35s ease-out forwards; }
+.em-tx { display: flex; flex-direction: column; min-width: 0; }
+.em-tx small { font-family: var(--f-display); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ok); }
+.e-FT .em-tx small { color: var(--warn); } .e-PP .em-tx small, .e-pend .em-tx small { color: var(--brand-deep); }
+.em-tx b { font-family: var(--f-display); font-size: 24px; font-weight: 800; line-height: 1.15; }
+.em-tx > span { font-size: 14px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.em-tot { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+.em-tot small { font-size: 12.5px; color: var(--ink-2); }
+.em-tot > b { font-family: var(--f-display); font-size: 22px; font-weight: 800; }
+.em-tot span { font-size: 13.5px; color: var(--ink-2); } .em-tot span b { color: var(--ok); }
+@keyframes em-surge { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes em-traco { to { stroke-dashoffset: 0; } }
+@keyframes em-onda { 0% { transform: scale(1); opacity: .45; } 100% { transform: scale(1.7); opacity: 0; } }
+@media (max-width: 560px) { .emitida { grid-template-columns: auto minmax(0, 1fr); } .em-tot { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: baseline; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(15,46,58,.1); } }
+@media (prefers-reduced-motion: reduce) { .arr-logo, .arr-fill i, .em-circ, .em-circ::after, .spin, body.ocupado .prog-topo i, .toast .tbar i, .emitir-btn .bprog i { animation: none; } .em-visto { stroke-dashoffset: 0; } .spin { border-top-color: currentColor; opacity: .5; } }
+@media print { .arranque, .prog-topo, .emitida { display: none !important; } }
 </style>
 <script>window.KAMBAS_SUPABASE = {"url": "https://dwrggcybmkcjdlgellya.supabase.co", "chave": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cmdnY3libWtjamRsZ2VsbHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNTA3NTksImV4cCI6MjEwNzkyNjc1OX0.AYBuHyLGV24MoX5qR2R3MZkSue_ESoFah7SnaUoVrog"};</script>
 <script src="vendor/supabase.js"></script>
+<div id="arranque" class="arranque" role="status" aria-live="polite">
+  <div class="arr-centro"><img class="arr-logo" src="data:image/png;base64,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" alt="Grupo Kambas"><span class="arr-slogan">Crescendo juntos sempre!</span></div>
+  <div class="arr-base">
+    <div class="arr-linha"><span id="arr-txt">A iniciar…</span><span id="arr-pct" class="num">0%</span></div>
+    <div class="arr-barra" id="arr-barra" role="progressbar" aria-label="A entrar no sistema" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="arr-fill" id="arr-fill"><i></i></div></div>
+    <div class="arr-passos" id="arr-passos"><span class="agora"><i></i>Ligação</span><span><i></i>Conta</span><span><i></i>Catálogo</span><span><i></i>Vendas</span></div>
+  </div>
+</div>
+<div class="prog-topo" aria-hidden="true"><i></i></div>
 <div id="auth" class="auth" hidden></div>
 <div class="app" id="app" hidden>
   <aside class="rail">
@@ -679,6 +808,11 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   <symbol id="i-olho-fechado" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10.5 10.5 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-tv" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="13" rx="2"/><path d="M8 21h8M9 2.5l3 2.5 3-2.5"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12z"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6.5 7 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10 12 3 12 3z"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11"/><path d="M16 13.5h2"/></symbol>
   <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
   <symbol id="i-adj" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
 </svg>
@@ -761,11 +895,14 @@ const PERMISSOES = [
   ["ver_todas", "Ver documentos de todos os vendedores"],
   ["anular", "Anular documentos"],
   ["produtos", "Registar produtos e alterar preços"],
-  ["stock", "Gerir stock (entradas e contagens)"],
+  ["stock", "Gerir stock e saldos de recarga"],
   ["relatorios", "Ver relatórios e faturação"],
 ];
 const PERM_CHAVES = ["vender", "ver_todas", "anular", "produtos", "stock", "relatorios", "admin"];
 
+const OPERADORES_BASE = [["UNITEL", "Unitel", "Telemóvel", "Número de telefone"], ["AFRICELL", "Africell", "Telemóvel", "Número de telefone"],
+  ["ZAP", "ZAP", "Televisão", "Nº do cartão ZAP"], ["DSTV", "DStv", "Televisão", "Nº do cartão (smartcard)"],
+  ["EDEL", "EDEL", "Energia", "Nº do contador"], ["EPAL", "EPAL", "Água", "Nº do contador / cliente"]];
 class ErroNegocio extends Error {}
 const falha = m => { throw new ErroNegocio(m); };
 
@@ -785,7 +922,10 @@ const Local = {
             { id: "u2", nome: "Maria (vendedora)", utilizador: "maria", papel: "vendedor", permissoes: {}, ativo: true },
           ], _eu: "u1" };
     this.atualizarEu();
+    this.semearOperadores();
     const d7 = this.dia(7, "08:00");
+    [[10000, 9500], [5000, 4800], [20000, 19000], [15000, 14250], [8000, 7600], [4000, 3800]]
+      .forEach(([v, c], k) => this.moverSaldo(E.operadores[k].id, "carga", v, c, `Saldo carregado: pago ${fmt(c)} Kz`, "", d7));
     SEED.produtos.forEach(s => {
       const p = { ...s, id: ++E._seq.p, stock: 0, ativo: true };
       E.produtos.push(p);
@@ -802,6 +942,60 @@ const Local = {
       }, this.dia(dias, `${pad(10 + n % 7)}:${pad((n * 13) % 60)}`));
     });
     E._eu = "u1"; this.atualizarEu();
+    // duas recargas de exemplo
+    this.registarDocumento({ tipo: "FR", forma_pagamento: E.config.formas_pagamento[0], itens: [{ operador_id: E.operadores[0].id, referencia: "923 456 789", qtd: 1, preco_unit: 1000 }] }, this.dia(2, "15:40"));
+    this.registarDocumento({ tipo: "FR", forma_pagamento: E.config.formas_pagamento[0], itens: [{ operador_id: E.operadores[2].id, referencia: "4012 3456", qtd: 1, preco_unit: 5000 }] }, this.dia(1, "11:20"));
+  },
+  semearOperadores() {
+    E._seq.o = E._seq.o || 0; E._seq.ms = E._seq.ms || 0;
+    E.operadores = OPERADORES_BASE.map(([codigo, nome, categoria, referencia], k) => ({ id: ++E._seq.o, codigo, nome, categoria, referencia, saldo: 0, custo: 0, saldo_min: 2000, ordem: k + 1, ativo: true }));
+    E.movimentos_saldo = [];
+  },
+  /* igual a _mover_saldo do servidor: devolve o custo do movimento */
+  moverSaldo(opId, tipo, valor, custo, motivo, ref = "", data = null) {
+    const o = byId(E.operadores, opId) || falha("Operador não encontrado.");
+    let c, delta;
+    if (tipo === "venda") {
+      if (-valor > o.saldo) falha(`Saldo ${o.nome} insuficiente: pediu ${-valor} Kz, há ${o.saldo} Kz.`);
+      c = o.saldo > 0 ? Math.round(o.custo * (-valor) / o.saldo) : 0;
+      o.saldo += valor; o.custo = Math.max(0, o.custo - c); delta = valor;
+    } else if (tipo === "carga" || tipo === "anulacao") {
+      c = custo || 0; o.saldo += valor; o.custo += c; delta = valor;
+    } else {
+      const novoCusto = o.saldo > 0 ? Math.round(o.custo * valor / o.saldo) : 0;
+      delta = valor - o.saldo; c = novoCusto - o.custo; o.saldo = valor; o.custo = novoCusto;
+    }
+    E.movimentos_saldo.push({ id: ++E._seq.ms, data: data || isoLocal(), operador_id: o.id, tipo, valor: delta, custo: Math.abs(c), saldo_final: o.saldo, motivo: motivo || "", ref, utilizador_id: E.eu.id });
+    return c;
+  },
+  carregarSaldo(d) {
+    this.exigir("stock");
+    const o = byId(E.operadores, d.operador_id) || falha("Escolha o operador.");
+    const valor = inteiro(d.valor), pago = d.pago === "" || d.pago == null ? valor : inteiro(d.pago);
+    if (!(valor > 0)) falha("Indique o saldo recebido em Kz.");
+    if (!(pago > 0)) falha("Indique quanto pagou em Kz.");
+    if (pago > valor * 2) falha("O valor pago parece demasiado alto para este saldo. Verifique.");
+    this.moverSaldo(o.id, "carga", valor, pago, (d.motivo || "").trim() || `Saldo carregado: pago ${fmt(pago)} Kz`);
+    return o;
+  },
+  ajustarSaldo(d) {
+    this.exigir("stock");
+    const o = byId(E.operadores, d.operador_id) || falha("Escolha o operador.");
+    const novo = inteiro(d.saldo);
+    if (Number.isNaN(novo) || novo < 0) falha("Indique o saldo certo em Kz (0 ou mais).");
+    if (novo === o.saldo) falha("O saldo já é esse.");
+    this.moverSaldo(o.id, "ajuste", novo, null, (d.motivo || "").trim() || "Correção do saldo");
+    return o;
+  },
+  guardarOperador(d, id) {
+    this.exigir("stock");
+    const nome = (d.nome || "").trim(); if (!nome) falha("Indique o nome do operador.");
+    const saldo_min = d.saldo_min === "" || d.saldo_min == null ? 2000 : inteiro(d.saldo_min);
+    if (Number.isNaN(saldo_min) || saldo_min < 0) falha("Saldo mínimo inválido.");
+    if (id) { const o = byId(E.operadores, id) || falha("Operador não encontrado."); return Object.assign(o, { nome, categoria: (d.categoria || "").trim() || o.categoria, referencia: (d.referencia || "").trim() || o.referencia, saldo_min }); }
+    let codigo = nome.replace(/[^A-Za-z0-9]/g, "").toUpperCase() || "OP"; while (E.operadores.some(o => o.codigo === codigo)) codigo += "2";
+    const o = { id: ++E._seq.o, codigo, nome, categoria: (d.categoria || "").trim() || "Outros", referencia: (d.referencia || "").trim() || "Referência", saldo: 0, custo: 0, saldo_min, ordem: E.operadores.length + 1, ativo: true };
+    E.operadores.push(o); return o;
   },
   atualizarEu() { const u = E.utilizadores.find(x => x.id === E._eu); E.eu = { id: u.id, nome: u.nome, utilizador: u.utilizador, papel: u.papel, perm: permDe(u) }; },
   exigir(p) { if (!E.eu.perm[p]) falha("Não tem permissão para esta operação. Peça ao administrador."); return E.eu; },
@@ -818,19 +1012,27 @@ const Local = {
     if (!d.itens || !d.itens.length) falha("Adicione pelo menos um produto ou serviço.");
     if (forma && !E.config.formas_pagamento.includes(forma)) falha("Forma de pagamento inválida.");
     if (tipo === "FR" && !forma) falha("Escolha a forma de pagamento.");
-    const precisa = {}, linhas = [];
+    const precisa = {}, saldoPrec = {}, linhas = [];
     for (const it of d.itens) {
       const p = it.produto_id ? produto(it.produto_id) : null;
       if (it.produto_id && !p) falha("Produto não encontrado.");
-      const qtd = inteiro(it.qtd), preco = inteiro(it.preco_unit), descricao = (it.descricao || p?.nome || "").trim();
+      const qtd = inteiro(it.qtd), preco = inteiro(it.preco_unit);
+      let descricao = (it.descricao || p?.nome || "").trim(), op = null, referencia = "";
+      if (it.operador_id) {
+        op = byId(E.operadores, it.operador_id) || falha("Operador de recarga não encontrado.");
+        referencia = String(it.referencia || "").trim().slice(0, 40);
+        descricao = `Recarga ${op.nome}${referencia ? " — " + referencia : ""}`;
+        if (qtd > 0 && preco > 0) saldoPrec[op.id] = (saldoPrec[op.id] || 0) + qtd * preco;
+      }
       if (!descricao) falha("Item sem descrição.");
       if (!(qtd > 0)) falha(`Quantidade inválida em '${descricao}'.`);
       if (!(preco > 0)) falha(`Indique o preço de '${descricao}'.`);
       if (p && p.modo === "a_partir" && preco < p.preco) falha(`'${p.nome}' custa a partir de ${p.preco} Kz.`);
       if (p && p.tipo === "produto") precisa[p.id] = (precisa[p.id] || 0) + qtd;
-      linhas.push({ produto_id: p ? p.id : null, descricao, qtd, preco_unit: preco, total: qtd * preco });
+      linhas.push({ produto_id: p ? p.id : null, operador_id: op ? op.id : null, referencia, descricao, qtd, preco_unit: preco, total: qtd * preco, custo: 0 });
     }
     if (tipo !== "PP") for (const [pid, q] of Object.entries(precisa)) { const p = produto(pid); if (q > p.stock) falha(`Stock insuficiente de ${p.nome}: pediu ${q}, há ${p.stock}.`); }
+    if (tipo !== "PP") for (const [oid, v] of Object.entries(saldoPrec)) { const o = byId(E.operadores, oid); if (v > o.saldo) falha(`Saldo ${o.nome} insuficiente: a venda pede ${v} Kz, há ${o.saldo} Kz.`); }
     const subtotal = linhas.reduce((s, l) => s + l.total, 0);
     const desconto = d.desconto ? inteiro(d.desconto) : 0;
     if (Number.isNaN(desconto) || desconto < 0 || desconto > subtotal) falha("O desconto tem de estar entre 0 e o subtotal.");
@@ -846,6 +1048,7 @@ const Local = {
       itens: linhas.map(l => ({ ...l, id: ++E._seq.i })) };
     E.faturas.push(f);
     if (tipo !== "PP") linhas.forEach(l => { if (precisa[l.produto_id]) this.mover(l.produto_id, "saida", l.qtd, "Venda", docNum(f), data); });
+    if (tipo !== "PP") f.itens.forEach(l => { if (l.operador_id) l.custo = this.moverSaldo(l.operador_id, "venda", -l.total, null, "Venda", docNum(f), data); });
     E.config.numeracao[tipo] = numero + 1;
     return f;
   },
@@ -855,6 +1058,7 @@ const Local = {
     const f = byId(E.faturas, id) || falha("Documento não encontrado.");
     if (f.estado !== "emitida") falha("Este documento já não está ativo (anulado ou convertido).");
     if (f.tipo !== "PP") f.itens.forEach(it => { const p = produto(it.produto_id); if (p && p.tipo === "produto") this.mover(p.id, "entrada", it.qtd, "Documento anulado", docNum(f)); });
+    if (f.tipo !== "PP") f.itens.forEach(it => { if (it.operador_id) this.moverSaldo(it.operador_id, "anulacao", it.total, it.custo || 0, "Documento anulado", docNum(f)); });
     f.estado = "anulada";
     f.observacoes = `${f.observacoes}\n${motivo.trim() ? "ANULADA: " + motivo.trim() : "ANULADA"}`.trim();
     return f;
@@ -868,7 +1072,7 @@ const Local = {
     if (!["FR", "FT"].includes(tipo)) falha("Escolha Fatura-Recibo ou Fatura.");
     const novo = this.registarDocumento({ tipo, forma_pagamento: forma, cliente_id: pp.cliente_id, desconto: pp.desconto, origem_id: pp.id,
       observacoes: `${pp.observacoes}\nReferente à pró-forma ${docNum(pp)}`.trim(),
-      itens: pp.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
+      itens: pp.itens.map(i => ({ produto_id: i.produto_id, operador_id: i.operador_id || null, referencia: i.referencia || "", descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
     pp.estado = "convertida"; pp.observacoes = `${pp.observacoes}\nConvertida em ${docNum(novo)}`.trim();
     return novo;
   },
@@ -1024,11 +1228,12 @@ async function carregarFila(uid) {
 function montarE() {
   E = JSON.parse(JSON.stringify(base));
   E.faturas = E.faturas || []; E.movimentos = E.movimentos || []; E.utilizadores = E.utilizadores || [];
+  E.operadores = E.operadores || []; E.movimentos_saldo = E.movimentos_saldo || [];
   for (const it of fila) {
     if (it.tipo === "cliente") { E.clientes.push({ ...it.dados, id: it.tmp, ativo: true, pendente: true }); continue; }
     const d = it.dados;
     const cli = (d.cliente_id && E.clientes.find(c => String(c.id) === String(d.cliente_id))) || { id: null, nome: "Consumidor final", nif: "", endereco: "", telefone: "" };
-    const itens = d.itens.map((l, k) => ({ id: `${it.id}-${k}`, produto_id: l.produto_id, descricao: l.descricao, qtd: l.qtd, preco_unit: l.preco_unit, total: l.qtd * l.preco_unit }));
+    const itens = d.itens.map((l, k) => ({ id: `${it.id}-${k}`, produto_id: l.produto_id, operador_id: l.operador_id || null, referencia: l.referencia || "", descricao: l.descricao, qtd: l.qtd, preco_unit: l.preco_unit, total: l.qtd * l.preco_unit }));
     const subtotal = itens.reduce((s, l) => s + l.total, 0), data = it.criado;
     let validade = null;
     if (d.tipo === "PP") { const v = new Date(data.slice(0, 10) + "T12:00:00"); v.setDate(v.getDate() + (E.config.validade_proforma || 15)); validade = isoLocal(v).slice(0, 10); }
@@ -1037,6 +1242,7 @@ function montarE() {
       subtotal, desconto: d.desconto || 0, total: subtotal - (d.desconto || 0), observacoes: d.observacoes || "", estado: "emitida", pago: d.tipo === "FR",
       pago_em: d.tipo === "FR" ? data : null, validade, itens });
     if (d.tipo !== "PP") itens.forEach(l => { const p = l.produto_id && E.produtos.find(x => x.id === l.produto_id); if (p && p.tipo === "produto") p.stock -= l.qtd; });
+    if (d.tipo !== "PP") itens.forEach(l => { const o = l.operador_id && E.operadores.find(x => x.id === l.operador_id); if (o) o.saldo -= l.total; });
   }
 }
 /* guarda na fila (sem internet) — validações básicas no aparelho; as regras completas correm no servidor ao enviar */
@@ -1058,6 +1264,8 @@ async function enfileirar(nome, args) {
     if (d.tipo !== "PP") {
       const precisa = {}; d.itens.forEach(l => { const p = produto(l.produto_id); if (p && p.tipo === "produto") precisa[p.id] = (precisa[p.id] || 0) + l.qtd; });
       for (const [pid, q] of Object.entries(precisa)) { const p = produto(pid); if (q > p.stock) falha(`Stock insuficiente de ${p.nome}: pediu ${q}, há ${p.stock} (stock da última sincronização).`); }
+      const sp = {}; d.itens.forEach(l => { if (l.operador_id) sp[l.operador_id] = (sp[l.operador_id] || 0) + l.qtd * l.preco_unit; });
+      for (const [oid, v] of Object.entries(sp)) { const o = byId(E.operadores, oid); if (o && v > o.saldo) falha(`Saldo ${o.nome} insuficiente: pede ${v} Kz, há ${o.saldo} Kz (saldo da última sincronização).`); }
     }
     d.ref_local = d.ref_local || novaRef("v");
     d.data_local = new Date().toISOString();
@@ -1154,6 +1362,9 @@ const RPC = {
   guardarCliente: (d, id) => ["guardar_cliente", { d, p_id: id || null }],
   removerCliente: id => ["remover_cliente", { p_id: id }],
   guardarConfig: d => ["guardar_config", { d }],
+  carregarSaldo: d => ["carregar_saldo", { d }],
+  ajustarSaldo: d => ["ajustar_saldo", { d }],
+  guardarOperador: (d, id) => ["guardar_operador", { d, p_id: id || null }],
 };
 const FUNCAO_UTILIZADORES = { criarUtilizador: d => ({ acao: "criar", ...d }), atualizarUtilizador: d => ({ acao: "atualizar", ...d }) };
 function mensagemErro(e) {
@@ -1195,6 +1406,7 @@ async function acao(nome, ...args) {
     return enfileirar(nome, args);
   }
   let res;
+  ocupado(true);
   try {
     if (FUNCAO_UTILIZADORES[nome]) res = await chamarFuncao(FUNCAO_UTILIZADORES[nome](...args));
     else {
@@ -1204,13 +1416,14 @@ async function acao(nome, ...args) {
       res = data;
     }
   } catch (e) {
+    ocupado(false);
     if (!(e.rede || eRede(e))) throw e;
     entrarOffline();
     if (!podeOffline(nome, args)) falha(SO_ONLINE);
     return enfileirar(nome, args);
   }
   marcarSync("a");
-  try { await recarregar(); } catch (e) { if (e.rede) entrarOffline(); }
+  try { await recarregar(); } catch (e) { if (e.rede) entrarOffline(); } finally { ocupado(false); }
   mostrarEstado();
   return res;
 }
@@ -1222,12 +1435,13 @@ const VISTAS = [
   ["faturas", "Documentos", "receipt", () => true],
   ["produtos", "Produtos", "tag", () => true],
   ["stock", "Stock", "box", () => pode("stock")],
+  ["saldos", "Saldos", "wallet", () => pode("stock")],
   ["relatorios", "Relatórios", "chart", () => pode("relatorios")],
   ["clientes", "Clientes", "users", () => true],
   ["utilizadores", "Utilizadores", "user", () => pode("admin")],
   ["definicoes", "Definições", "cog", () => pode("admin")],
 ];
-const TITULOS = { painel: "Início", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
+const TITULOS = { painel: "Início", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", saldos: "Saldos de recarga", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
 let vista = "painel";
 function navegar() {
   const h = location.hash.replace("#", "");
@@ -1263,7 +1477,7 @@ function menuMais() {
 }
 function render() {
   pendente = false;
-  ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, relatorios: vRelatorios, clientes: vClientes, utilizadores: vUtilizadores, definicoes: vDefinicoes })[vista]();
+  ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, saldos: vSaldos, relatorios: vRelatorios, clientes: vClientes, utilizadores: vUtilizadores, definicoes: vDefinicoes })[vista]();
 }
 
 /* ============================================================ painel */
@@ -1296,7 +1510,8 @@ function vPainel() {
   const dias = [...Array(nd)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - nd + 1 + i); return isoLocal(d).slice(0, 10); });
   const porDia = dias.map(d => soma(fs.filter(f => diaDe(f.data) === d)));
   const rank = {};
-  doMes.forEach(f => f.itens.forEach(it => { rank[it.descricao] = (rank[it.descricao] || 0) + it.total; }));
+  doMes.forEach(f => f.itens.forEach(it => { const k = it.operador_id ? `Recargas ${operador(it.operador_id)?.nome || ""}`.trim() : it.descricao; rank[k] = (rank[k] || 0) + it.total; }));
+  const saldoBaixo = pode("stock") ? (E.operadores || []).filter(o => opEstado(o) !== "ok") : [];
   const top = Object.entries(rank).sort((a, b) => b[1] - a[1]).slice(0, 5), maxTop = top.length ? top[0][1] : 1;
   const ultimos = [...docs()].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 5);
   const semStock = pode("stock") && E.produtos.filter(p => p.tipo === "produto").every(p => p.stock === 0);
@@ -1315,6 +1530,8 @@ function vPainel() {
       <button class="btn sm" data-act="${meu(f) ? "pagar" : "ver-fatura"}" data-id="${f.id}">${meu(f) ? "Receber" : "Ver"}</button></div>`),
     alertas.length ? `<div class="aten"><span class="aic bad">${icon("box")}</span><span class="atx"><b>${alertas.length} produto${alertas.length === 1 ? "" : "s"} com stock baixo</b><small>${esc(alertas[0].nome)}: ${alertas[0].stock <= 0 ? "esgotado" : "só " + alertas[0].stock + " un."}</small></span>
       <a class="btn sm" href="#stock">Repor</a></div>` : "",
+    ...saldoBaixo.slice(0, 3).map(o => `<div class="aten"><span class="aic ${opEstado(o)}">${opIcon(o)}</span><span class="atx"><b>Saldo ${esc(o.nome)} ${o.saldo <= 0 ? "esgotado" : "baixo"}</b><small>Restam ${kz(o.saldo)}</small></span>
+      <button class="btn sm" data-act="carregar-saldo" data-id="${o.id}">Carregar</button></div>`),
     ppAbertas.length ? `<div class="aten"><span class="aic brand">${icon("receipt")}</span><span class="atx"><b>${ppAbertas.length} pró-forma${ppAbertas.length === 1 ? "" : "s"} em aberto</b><small>${kz(soma(ppAbertas))} orçados</small></span>
       <a class="btn sm" href="#faturas" data-act="ver-abertas">Ver</a></div>` : "",
   ].filter(Boolean);
@@ -1450,12 +1667,12 @@ function verFatura(id, acabada = false) {
   if (f.estado === "emitida" && f.tipo === "PP" && meu && pode("vender")) acoes.push(`<button class="btn pri" data-act="converter" data-id="${f.id}">Converter em fatura</button>`);
   if (f.estado === "emitida" && f.tipo === "FT" && !f.pago && meu) acoes.push(`<button class="btn pri" data-act="pagar" data-id="${f.id}">Registar pagamento</button>`);
   abrir(`<div class="sheet wide"><div class="sheet-h"><h2>${TIPOS_DOC[f.tipo]} ${docNum(f)}</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
-    <div class="sheet-b">${papelFatura(f)}
+    <div class="sheet-b">${acabada ? cabecalhoEmitida(f, typeof acabada === "object" ? acabada : {}) : ""}${papelFatura(f)}
       ${f.pendente ? `<div class="note warn">${f.erro ? `O servidor não aceitou este documento: ${esc(f.erro)}` : "Feito sem internet. O número oficial é atribuído quando a ligação voltar; o PDF fica disponível depois disso."}</div>` : ""}</div>
     <div class="sheet-f">${f.estado === "emitida" && pode("anular") && !acabada && !f.pendente ? `<button class="btn danger" data-act="anular" data-id="${f.id}">Anular</button>` : ""}<span class="sp"></span>
       <button class="btn" data-act="copiar-fatura" data-id="${f.id}">Copiar resumo</button>
-      ${f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}">${icon("down")}PDF</button><button class="btn" data-act="imprimir" data-id="${f.id}">${icon("print")}Imprimir</button>`}
-      ${acabada ? `<button class="btn" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}${acoes.join("")}</div></div>`);
+      ${f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}" data-espera="A gerar PDF…">${icon("down")}PDF</button><button class="btn" data-act="imprimir" data-id="${f.id}" data-espera="A preparar…">${icon("print")}Imprimir</button>`}
+      ${acabada ? acoes.join("").replaceAll('class="btn pri"', 'class="btn"') : acoes.join("")}${acabada ? `<button class="btn pri" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}</div></div>`);
 }
 function anular(id) {
   const f = byId(E.faturas, id);
@@ -1519,7 +1736,7 @@ function gravarPref(k, v) { try { localStorage.setItem("kambas-" + k, v); } catc
 const NOME_SEC = s => s.replace(" Personalizados", "").replace(" Personalizadas", "");
 function vVender() {
   const contagem = {}; E.produtos.forEach(p => contagem[p.seccao] = (contagem[p.seccao] || 0) + 1);
-  const secs = ["Todas", "Mais vendidos", ...Object.keys(contagem)];
+  const secs = ["Todas", "Mais vendidos", "Recargas", ...Object.keys(contagem)];
   venda.vista = venda.vista || lerPref("vista-catalogo", "grelha");
   $("#main").innerHTML = `
     <div class="pos">
@@ -1527,7 +1744,7 @@ function vVender() {
         <div class="toolbar"><label class="search big">${icon("search")}<input id="pq" type="search" placeholder="Procurar no catálogo" value="${esc(venda.q)}" aria-label="Procurar" autocomplete="off"></label>
           <div class="seg vista-cat" role="group" aria-label="Mostrar catálogo em">${[["grelha", "Grelha"], ["lista", "Lista"]].map(([v, t]) => `<button data-act="vista-cat" data-v="${v}" aria-pressed="${venda.vista === v}">${t}</button>`).join("")}</div>
           <button class="btn" data-act="avulso" aria-label="Item avulso (fora do catálogo)">${icon("plus")}<span><span class="so-pc">Item </span>avulso</span></button></div>
-        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(NOME_SEC(s))}${s === "Todas" ? ` <span class="cnt">${E.produtos.length}</span>` : contagem[s] ? ` <span class="cnt">${contagem[s]}</span>` : ""}</button>`).join("")}</div>
+        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(NOME_SEC(s))}${s === "Todas" ? ` <span class="cnt">${E.produtos.length}</span>` : s === "Recargas" ? ` <span class="cnt">${(E.operadores || []).length}</span>` : contagem[s] ? ` <span class="cnt">${contagem[s]}</span>` : ""}</button>`).join("")}</div>
         <div id="ptiles"></div>
       </section>
       <aside class="cart" id="cart" aria-label="Venda atual"></aside>
@@ -1557,20 +1774,26 @@ function tileHtml(p, qtd) {
     <span class="ta">${acao}</span></div>`;
 }
 function tiles() {
-  const l = listaTiles(), q = venda.q.trim();
+  const q = venda.q.trim();
+  if (venda.sec === "Recargas" && !q) { $("#ptiles").innerHTML = `<h3 class="sec-h">Recargas · escolha o operador</h3>${opGrade(E.operadores || [])}`; return; }
+  const l = venda.sec === "Recargas" ? E.produtos.filter(p => (p.nome + " " + p.descricao + " " + p.codigo + " " + p.seccao).toLowerCase().includes(q.toLowerCase())) : listaTiles();
+  const opsQ = q ? (E.operadores || []).filter(o => (o.nome + " " + o.categoria + " recarga saldo").toLowerCase().includes(q.toLowerCase())) : [];
+  const topoOps = opsQ.length ? `<h3 class="sec-h">Recargas</h3>${opGrade(opsQ)}` : "";
   const noCarrinho = {}; venda.itens.forEach(i => { if (i.produto_id) noCarrinho[i.produto_id] = (noCarrinho[i.produto_id] || 0) + i.qtd; });
   const lista = venda.vista === "lista" || matchMedia("(max-width: 900px)").matches;
   const cls = `tiles ${lista ? "lista" : ""}`;
   const grade = ps => `<div class="${cls}">${ps.map(p => tileHtml(p, noCarrinho[p.id])).join("")}</div>`;
+  if (!l.length && topoOps) { $("#ptiles").innerHTML = topoOps; return; }
   if (!l.length) {
     $("#ptiles").innerHTML = `<div class="empty">${q ? `Nada encontrado para “${esc(q)}”. Use <b>Item avulso</b> para vender algo fora do catálogo.` : "Ainda sem vendas para mostrar os mais vendidos."}</div>`;
     return;
   }
-  if (q || venda.sec !== "Todas") { $("#ptiles").innerHTML = (q ? `<h3 class="sec-h">${l.length} resultado${l.length === 1 ? "" : "s"}</h3>` : "") + grade(l); return; }
+  if (q || venda.sec !== "Todas") { $("#ptiles").innerHTML = topoOps + (q ? `<h3 class="sec-h">${l.length} resultado${l.length === 1 ? "" : "s"}</h3>` : "") + grade(l); return; }
   // "Todas": mais vendidos no topo e o catálogo agrupado por secção
   const mv = maisVendidos().map(produto).filter(Boolean).slice(0, 8);
   const grupos = {}; l.forEach(p => (grupos[p.seccao] = grupos[p.seccao] || []).push(p));
   $("#ptiles").innerHTML = (mv.length ? `<h3 class="sec-h">Mais vendidos</h3><div class="mvs">${mv.map(p => `<button class="mv ${noCarrinho[p.id] ? "in" : ""}" data-act="add" data-id="${p.id}"><b>${esc(p.nome)}</b><span class="num">${precoCurto(p)}</span>${noCarrinho[p.id] ? `<span class="badge">${noCarrinho[p.id]}</span>` : ""}</button>`).join("")}</div>` : "")
+    + ((E.operadores || []).length ? `<h3 class="sec-h">Recargas <span>· ${(E.operadores || []).length}</span></h3>${opGrade(E.operadores)}` : "")
     + Object.entries(grupos).map(([s, ps]) => `<h3 class="sec-h">${esc(s)} <span>· ${ps.length}</span></h3>${grade(ps)}`).join("");
 }
 function totaisVenda() {
@@ -1622,6 +1845,10 @@ function carrinho() {
       <div class="field"><span>Cliente</span>${blocoCliente()}</div>
       <div class="field"><span>${n ? `${n} ${n === 1 ? "item" : "itens"}` : "Itens"}</span>
       ${venda.itens.length ? `<div class="lines">${venda.itens.map((it, i) => {
+        if (it.operador_id) { const o = operador(it.operador_id) || { nome: "?", categoria: "" }; return `<div class="line rec"><div class="nm"><span class="rec-t"><span class="opi sm">${opIcon(o)}</span>Recarga ${esc(o.nome)}</span>
+          <div class="cod">${it.referencia ? esc(it.referencia) + " · " : ""}saldo ${esc(o.nome)}: ${kz(o.saldo)}</div></div>
+          <div class="tot num">${kz(it.preco_unit * it.qtd)}</div>
+          <div class="ctr"><button type="button" class="btn sm" data-act="recarga" data-id="${o.id}">${icon("plus")}Outra recarga</button><button class="icon-btn rm-btn" data-act="rm" data-i="${i}" aria-label="Remover recarga ${esc(o.nome)}">${icon("trash")}</button></div></div>`; }
         const p = produto(it.produto_id); const tier = p && p.tier_qtd && it.qtd >= p.tier_qtd && it.preco_unit === p.tier_preco;
         const proxTier = p && p.tier_qtd && it.qtd < p.tier_qtd && !it.manual ? p.tier_qtd - it.qtd : 0;
         return `<div class="line"><div class="nm">${esc(it.descricao)}<div class="cod">${p ? (p.tipo === "produto" ? `${p.codigo} · ${p.stock} em stock` : p.codigo + " · serviço") : "Item avulso"}</div></div>
@@ -1660,6 +1887,7 @@ function carrinho() {
   if ($("#vdesc")) $("#vdesc").onchange = e => { venda.desconto = inteiro(e.target.value) || 0; carrinho(); };
   if ($("#vrec")) $("#vrec").onchange = e => { venda.recebido = inteiro(e.target.value) || 0; carrinho(); };
   venda.itens.forEach((it, i) => {
+    if (it.operador_id) return;
     $("#q" + i).onchange = e => mudarQtd(i, (inteiro(e.target.value) || 1) - it.qtd);
     $("#pr" + i).onchange = e => { it.preco_unit = inteiro(e.target.value) || 0; it.manual = true; carrinho(); };
   });
@@ -1704,18 +1932,167 @@ function adicionar(id) {
   carrinho(); tiles();
 }
 async function emitir() {
+  if (venda.emitindo) return;   // dois toques nunca criam duas faturas
   const { desc, tot } = totaisVenda();
   const err = m => { $("#v-err").innerHTML = `<div class="err">${esc(m)}</div>`; $("#v-err").scrollIntoView({ block: "nearest" }); };
   if (venda.novoCli) return err("Termine de registar o novo cliente (ou cancele) antes de emitir.");
   if (venda.tipo === "FR" && !venda.forma) return err("Escolha a forma de pagamento.");
   let obs = venda.obs.trim();
   if (venda.tipo === "FR" && venda.forma === "Numerário" && venda.recebido) obs = `${obs}\nRecebido: ${kz(venda.recebido)} · ${venda.recebido >= tot ? "Troco: " + kz(venda.recebido - tot) : "Falta: " + kz(tot - venda.recebido)}`.trim();
+  venda.emitindo = true;
+  const info = { forma: venda.tipo === "FR" ? venda.forma : null, recebido: venda.recebido };
+  const btn = $("[data-act=emitir]");
+  if (btn) { btn.disabled = true; btn.classList.add("a-emitir"); btn.innerHTML = `<span class="spin" aria-hidden="true"></span>A emitir…<span class="bprog"><i></i></span>`; }
+  ocupado(true);
   try {
     const f = await acao("registarDocumento", { tipo: venda.tipo, cliente_id: venda.cliente_id ? (ehTemp(venda.cliente_id) ? venda.cliente_id : Number(venda.cliente_id)) : null, forma_pagamento: venda.tipo === "FR" ? venda.forma : null, desconto: desc, observacoes: obs,
-      itens: venda.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
+      itens: venda.itens.map(i => ({ produto_id: i.produto_id, operador_id: i.operador_id || null, referencia: i.referencia || "", descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
     Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null, extras: { desc: false, obs: false } });
-    render(); toast(f.pendente ? "Venda guardada neste aparelho. É enviada quando houver internet." : `${docNum(f)} emitida`); verFatura(f.id, true);
-  } catch (e) { err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
+    venda.emitindo = false; ocupado(false);
+    render(); verFatura(f.id, info);
+  } catch (e) { venda.emitindo = false; ocupado(false); carrinho(); err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
+}
+/* cabeçalho animado depois de emitir: número, total e troco */
+function cabecalhoEmitida(f, info = {}) {
+  const n = f.itens.reduce((s, i) => s + i.qtd, 0), pend = f.pendente;
+  const troco = info.forma === "Numerário" && info.recebido >= f.total ? info.recebido - f.total : null;
+  const lab = pend ? "Venda guardada neste aparelho" : `${TIPOS_DOC[f.tipo]} emitida`;
+  const totLab = f.tipo === "FR" ? `Pago${f.forma_pagamento ? " · " + esc(f.forma_pagamento) : ""}` : f.tipo === "FT" ? "A pagar" : "Orçamento";
+  return `<div class="emitida e-${pend ? "pend" : f.tipo}" role="status">
+    <span class="em-circ">${pend ? icon("wallet") : `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="em-visto" d="M5 12.5l4.5 4.5L19 7.5"/></svg>`}</span>
+    <span class="em-tx"><small>${lab}</small><b>${pend ? "Por enviar" : docNum(f)}</b><span>${esc(f.cliente_nome)} · ${n} ${n === 1 ? "item" : "itens"}</span></span>
+    <span class="em-tot"><small>${totLab}</small><b class="num">${kz(f.total)}</b>${troco !== null ? `<span>Troco <b class="num">${kz(troco)}</b></span>` : ""}</span></div>
+    ${pend ? `<p class="cod" style="margin:-4px 0 0">É enviada sozinha quando houver internet; o número oficial vem do servidor.</p>` : ""}`;
+}
+
+/* ============================================================ recargas e saldos */
+const ICON_CAT = { "Telemóvel": "phone", "Televisão": "tv", "Energia": "bolt", "Água": "drop" };
+const opIcon = o => icon(ICON_CAT[o.categoria] || "wallet");
+const operador = id => (E.operadores || []).find(o => String(o.id) === String(id));
+const opEstado = o => o.saldo <= 0 ? "bad" : o.saldo < (o.saldo_min || 0) ? "warn" : "ok";
+const noCarrinhoOp = id => venda.itens.filter(i => String(i.operador_id) === String(id)).reduce((s, i) => s + i.qtd * i.preco_unit, 0);
+function opCard(o) {
+  const livre = o.saldo - (venda.tipo === "PP" ? 0 : noCarrinhoOp(o.id)), n = venda.itens.filter(i => String(i.operador_id) === String(o.id)).length;
+  const st = livre <= 0 ? "bad" : livre < (o.saldo_min || 0) ? "warn" : "ok";
+  return `<button class="opc s-${st}" data-act="recarga" data-id="${o.id}" aria-label="Vender recarga ${esc(o.nome)}, saldo ${kz(livre)}">
+    <span class="opi">${opIcon(o)}</span><span class="opt"><b>${esc(o.nome)}</b><small>${esc(o.categoria)}</small></span>
+    <span class="ops-s"><small>Saldo</small><b class="num">${kz(Math.max(0, livre))}</b></span>${n ? `<span class="badge">${n}</span>` : ""}</button>`;
+}
+const opGrade = ops => ops.length ? `<div class="ops">${ops.map(opCard).join("")}</div>` : `<div class="empty">Sem operadores de recarga.</div>`;
+function formRecarga(id) {
+  const o = operador(id); if (!o) return;
+  const pp = venda.tipo === "PP", usado = pp ? 0 : noCarrinhoOp(o.id), livre = o.saldo - usado;
+  const rapidos = ["Telemóvel"].includes(o.categoria) ? [500, 1000, 2000, 5000, 10000] : [2000, 5000, 10000, 20000, 50000];
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2 class="rc-h"><span class="opi">${opIcon(o)}</span>Recarga ${esc(o.nome)}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b">
+      <div class="rc-saldo s-${livre <= 0 ? "bad" : livre < o.saldo_min ? "warn" : "ok"}"><span>Saldo ${esc(o.nome)} disponível</span><b class="num">${kz(livre)}</b>
+        <small id="rc-fica">${pp ? "Pró-forma: o saldo só sai quando for convertida em fatura." : usado ? `Já há ${kz(usado)} desta operadora nesta venda.` : "Escolha o valor da recarga."}</small></div>
+      <div class="field"><span>Valor da recarga (Kz)</span>
+        <div class="rc-rapidos">${rapidos.map(v => `<button type="button" data-act="rc-valor" data-v="${v}" ${!pp && v > livre ? "disabled" : ""}>${fmt(v)}</button>`).join("")}</div>
+        <input class="f num rc-in" id="rc-valor" inputmode="numeric" placeholder="Outro valor" autocomplete="off" required></div>
+      <label class="field"><span>${esc(o.referencia)} <em class="opc-l">(opcional)</em></span><input class="f" id="rc-ref" inputmode="${o.categoria === "Telemóvel" ? "tel" : "text"}" maxlength="40" autocomplete="off" placeholder="${o.categoria === "Telemóvel" ? "Ex.: 923 456 789" : ""}"></label>
+      <div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A adicionar…">${icon("plus")}Adicionar à venda</button></div></form>`,
+    async () => {
+      const v = inteiro($("#rc-valor").value);
+      if (!(v > 0)) falha("Indique o valor da recarga em Kz.");
+      if (!pp && v > livre) falha(`Saldo ${o.nome} insuficiente: há ${kz(livre)}.`);
+      const referencia = $("#rc-ref").value.trim();
+      venda.itens.push({ produto_id: null, operador_id: o.id, referencia, descricao: `Recarga ${o.nome}${referencia ? " — " + referencia : ""}`, qtd: 1, preco_unit: v, manual: true });
+      fechar(); carrinho(); tiles(); toast(`Recarga ${o.nome} de ${kz(v)} adicionada`, "ok");
+    });
+  const atualizar = () => {
+    const v = inteiro($("#rc-valor").value) || 0;
+    document.querySelectorAll(".rc-rapidos button").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === v));
+    if (!pp && v) $("#rc-fica").innerHTML = v > livre ? `<strong style="color:var(--bad)">Falta saldo: há ${kz(livre)}.</strong>` : `Depois desta recarga fica <strong>${kz(livre - v)}</strong>.`;
+  };
+  $("#rc-valor").oninput = atualizar;
+  setTimeout(() => $("#rc-valor").focus(), 50);
+}
+
+/* página Saldos (quem gere stock) */
+const filtroS = { op: "todos" };
+function resumoSaldos(desde) {
+  const r = {}; (E.operadores || []).forEach(o => r[o.id] = { vendido: 0, custo: 0, n: 0, carregado: 0, pago: 0 });
+  (E.movimentos_saldo || []).forEach(m => {
+    const x = r[m.operador_id]; if (!x || m.data < desde) return;
+    if (m.tipo === "venda") { x.vendido += -m.valor; x.custo += m.custo; x.n++; }
+    else if (m.tipo === "anulacao") { x.vendido -= m.valor; x.custo -= m.custo; x.n--; }
+    else if (m.tipo === "carga") { x.carregado += m.valor; x.pago += m.custo; }
+  });
+  Object.values(r).forEach(x => x.lucro = x.vendido - x.custo);
+  return r;
+}
+function vSaldos() {
+  const ops = E.operadores || [], mes = hoje().slice(0, 7) + "-01", r = resumoSaldos(mes);
+  const tot = k => Object.values(r).reduce((s, x) => s + x[k], 0);
+  const saldoTotal = ops.reduce((s, o) => s + o.saldo, 0), custoTotal = ops.reduce((s, o) => s + o.custo, 0);
+  const movs = (E.movimentos_saldo || []).filter(m => filtroS.op === "todos" || String(m.operador_id) === filtroS.op)
+    .sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id).slice(0, 80);
+  const TIPO_MOV = { carga: ["Carga", "ok"], venda: ["Venda", "brand"], anulacao: ["Anulação", "warn"], ajuste: ["Correção", ""] };
+  $("#main").innerHTML = `
+    <section class="kpis">
+      <div class="kpi hero"><span class="lab">Saldo disponível</span><span class="val num">${fmt(saldoTotal)} <small>Kz</small></span><span class="ft">em ${ops.length} operador${ops.length === 1 ? "" : "es"} · custou ${kz(custoTotal)}</span></div>
+      <div class="kpi"><span class="lab">Recargas vendidas este mês</span><span class="val num">${fmt(tot("vendido"))} <small>Kz</small></span><span class="ft">${tot("n")} recarga${tot("n") === 1 ? "" : "s"}</span></div>
+      <div class="kpi"><span class="lab">Lucro das recargas este mês</span><span class="val num" style="color:var(--ok)">${fmt(tot("lucro"))} <small>Kz</small></span><span class="ft">${tot("vendido") ? ((tot("lucro") / tot("vendido")) * 100).toFixed(1).replace(".", ",") + "% do vendido" : "sem vendas"}</span></div>
+      <div class="kpi"><span class="lab">Investido este mês</span><span class="val num">${fmt(tot("pago"))} <small>Kz</small></span><span class="ft">${kz(tot("carregado"))} de saldo recebido</span></div>
+    </section>
+    <div class="panel"><div class="panel-h"><h2>Operadores</h2><div class="toolbar"><button class="btn sm" data-act="novo-operador">${icon("plus")}Novo operador</button><button class="btn sm pri" data-act="carregar-saldo">${icon("in")}Carregar saldo</button></div></div>
+      <div class="sgrid">${ops.map(o => { const x = r[o.id], st = opEstado(o); return `<div class="scard s-${st}">
+        <div class="sc-top"><span class="opi">${opIcon(o)}</span><span class="opt"><b>${esc(o.nome)}</b><small>${esc(o.categoria)}</small></span><button class="icon-btn" data-act="editar-operador" data-id="${o.id}" aria-label="Editar ${esc(o.nome)}">${icon("adj")}</button></div>
+        <div class="sc-saldo"><small>Saldo disponível</small><b class="num">${kz(o.saldo)}</b>${st !== "ok" ? `<span class="chip ${st}">${st === "bad" ? "Sem saldo" : "Saldo baixo"}</span>` : ""}</div>
+        <div class="sc-mini"><span>Vendido no mês<b class="num">${kz(x.vendido)}</b></span><span>Lucro no mês<b class="num" style="color:var(--ok)">${kz(x.lucro)}</b></span></div>
+        <div class="sc-acoes"><button class="btn sm" data-act="ajustar-saldo" data-id="${o.id}">Corrigir</button><button class="btn sm pri" data-act="carregar-saldo" data-id="${o.id}">${icon("plus")}Carregar</button></div></div>`; }).join("")}</div></div>
+    <div class="panel"><div class="panel-h"><h2>Histórico de saldos</h2>
+      <select class="f" id="s-op" aria-label="Operador" style="width:auto"><option value="todos">Todos os operadores</option>${ops.map(o => `<option value="${o.id}" ${filtroS.op === String(o.id) ? "selected" : ""}>${esc(o.nome)}</option>`).join("")}</select></div>
+      ${movs.length ? `<div class="dlist">${movs.map(m => { const o = operador(m.operador_id) || { nome: "—", categoria: "" }, [tt, tc] = TIPO_MOV[m.tipo] || [m.tipo, ""]; return `<div class="drow est">
+        <span class="opi sm">${opIcon(o)}</span>
+        <span class="dmeio"><b>${esc(o.nome)} · <span class="chip ${tc}">${tt}</span></b><small>${dataPt(m.data)} ${horaPt(m.data)}${m.ref ? " · " + esc(m.ref) : ""}${m.motivo && m.motivo !== "Venda" ? " · " + esc(m.motivo) : ""}</small></span>
+        <span class="dfim"><b class="num" style="color:${m.valor >= 0 ? "var(--ok)" : "var(--ink)"}">${m.valor >= 0 ? "+" : "−"} ${kz(Math.abs(m.valor))}</b><small class="num">saldo ${kz(m.saldo_final)}</small></span></div>`; }).join("")}</div>` : `<div class="empty">Ainda não há movimentos de saldo.</div>`}</div>`;
+  $("#s-op").onchange = e => { filtroS.op = e.target.value; vSaldos(); };
+}
+function formCarga(id) {
+  const ops = E.operadores || [], o0 = operador(id) || ops[0];
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>Carregar saldo</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><div class="field"><span>Operador</span><div class="seg wrap" id="cs-op">${ops.map(o => `<button type="button" data-v="${o.id}" aria-pressed="${o === o0}">${esc(o.nome)}</button>`).join("")}</div></div>
+      <div class="grid2"><label class="field"><span>Saldo recebido (Kz)</span><input class="f num" id="cs-valor" inputmode="numeric" placeholder="Ex.: 10000" required></label>
+        <label class="field"><span>Quanto pagou (Kz)</span><input class="f num" id="cs-pago" inputmode="numeric" placeholder="Igual ao saldo"></label></div>
+      <div class="note" id="cs-prev">Se o operador lhe dá desconto (ex.: paga 9.500 e recebe 10.000), escreva o valor pago: a diferença é o seu lucro.</div>
+      <label class="field"><span>Nota (opcional)</span><input class="f" id="cs-mot" placeholder="Ex.: comprado no agente da Mutamba"></label><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A carregar…">Carregar saldo</button></div></form>`,
+    async () => {
+      const opId = Number($("#cs-op [aria-pressed=true]").dataset.v);
+      const o = await acao("carregarSaldo", { operador_id: opId, valor: inteiro($("#cs-valor").value), pago: $("#cs-pago").value.trim() ? inteiro($("#cs-pago").value) : "", motivo: $("#cs-mot").value });
+      fechar(); render(); toast(`${o.nome}: saldo ${kz(o.saldo)}`, "ok");
+    });
+  ligarEscolha("#cs-op");
+  const prev = () => {
+    const v = inteiro($("#cs-valor").value) || 0, p = $("#cs-pago").value.trim() ? inteiro($("#cs-pago").value) || 0 : v;
+    if (v && p) $("#cs-prev").innerHTML = p < v ? `Lucro previsto ao vender este saldo: <b style="color:var(--ok)">${kz(v - p)}</b> (${((v - p) / v * 100).toFixed(1).replace(".", ",")}%).` : p > v ? `<b style="color:var(--warn)">Pagou mais do que o saldo recebido: estas recargas dão prejuízo.</b>` : "Sem desconto: estas recargas não dão lucro.";
+  };
+  $("#cs-valor").oninput = prev; $("#cs-pago").oninput = prev;
+  setTimeout(() => $("#cs-valor").focus(), 50);
+}
+function formAjusteSaldo(id) {
+  const o = operador(id); if (!o) return;
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>Corrigir saldo ${esc(o.nome)}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><p class="note" style="margin:0">Use quando o saldo no telemóvel/agente não bate com o do sistema. O sistema mostra <b>${kz(o.saldo)}</b>.</p>
+      <label class="field"><span>Saldo certo agora (Kz)</span><input class="f num" id="as-saldo" inputmode="numeric" value="${o.saldo}" required></label>
+      <label class="field"><span>Motivo</span><input class="f" id="as-mot" placeholder="Ex.: recarga falhada devolvida"></label><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A corrigir…">Corrigir saldo</button></div></form>`,
+    async () => { const r = await acao("ajustarSaldo", { operador_id: o.id, saldo: inteiro($("#as-saldo").value), motivo: $("#as-mot").value }); fechar(); render(); toast(`${r.nome}: saldo ${kz(r.saldo)}`, "ok"); });
+  setTimeout(() => $("#as-saldo").select(), 50);
+}
+function formOperador(id) {
+  const o = id ? operador(id) : { nome: "", categoria: "Telemóvel", referencia: "Número de telefone", saldo_min: 2000 };
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>${id ? "Editar " + esc(o.nome) : "Novo operador de recarga"}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><label class="field"><span>Nome</span><input class="f" id="op-nome" value="${esc(o.nome)}" required placeholder="Ex.: Movicel"></label>
+      <div class="grid2"><label class="field"><span>Tipo</span><select class="f" id="op-cat">${["Telemóvel", "Televisão", "Energia", "Água", "Outros"].map(c => `<option ${c === o.categoria ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+        <label class="field"><span>Avisar abaixo de (Kz)</span><input class="f num" id="op-min" inputmode="numeric" value="${o.saldo_min}"></label></div>
+      <label class="field"><span>O que pedir ao cliente</span><input class="f" id="op-ref" value="${esc(o.referencia)}" placeholder="Ex.: Número de telefone"></label><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri">Guardar</button></div></form>`,
+    async () => { await acao("guardarOperador", { nome: $("#op-nome").value, categoria: $("#op-cat").value, referencia: $("#op-ref").value, saldo_min: $("#op-min").value }, id || null); fechar(); render(); toast("Operador guardado", "ok"); });
+  setTimeout(() => $("#op-nome").focus(), 50);
 }
 
 /* ============================================================ produtos */
@@ -1920,13 +2297,20 @@ function calcularRelatorio(tipo, ref) {
   const soma = (l, k = "total") => l.reduce((s, x) => s + x[k], 0);
   const anterior = soma(base.filter(f => f.estado === "emitida" && dentro(f, dISO(ant.ini), dISO(ant.fim))));
   const faturacao = soma(emit);
-  const itens = {}, secs = {}, pags = {}, clis = {}, vends = {}; let vp = 0, vs = 0, qt = 0;
+  const itens = {}, secs = {}, pags = {}, clis = {}, vends = {}, recs = {}; let vp = 0, vs = 0, qt = 0;
   emit.forEach(f => {
     const fp = f.pago ? f.forma_pagamento : "Por pagar";
     const pg = pags[fp] ||= { forma: fp, n: 0, valor: 0 }; pg.n++; pg.valor += f.total;
     const vd = vends[f.vendedor_nome || "—"] ||= { nome: f.vendedor_nome || "—", n: 0, valor: 0 }; vd.n++; vd.valor += f.total;
     const cl = clis[f.cliente_nome] ||= { nome: f.cliente_nome, n: 0, valor: 0 }; cl.n++; cl.valor += f.total;
     f.itens.forEach(it => {
+      if (it.operador_id) {
+        const o = operador(it.operador_id), nome = o ? o.nome : it.descricao.replace(/^Recarga /, "").split(" — ")[0];
+        const rc = recs[nome] ||= { nome, n: 0, valor: 0, custo: 0 }; rc.n += it.qtd; rc.valor += it.total; rc.custo += it.custo || 0;
+        const l = itens["REC-" + nome] ||= { codigo: "", descricao: "Recargas " + nome, tipo: "recarga", qtd: 0, valor: 0 }; l.qtd += it.qtd; l.valor += it.total;
+        const s = secs["Recargas"] ||= { seccao: "Recargas", qtd: 0, valor: 0 }; s.qtd += it.qtd; s.valor += it.total;
+        qt += it.qtd; vs += it.total; return;
+      }
       const p = prods[it.produto_id], k = p ? p.codigo : it.descricao;
       const l = itens[k] ||= { codigo: p ? p.codigo : "", descricao: p ? p.nome : it.descricao, tipo: p ? p.tipo : "servico", qtd: 0, valor: 0 };
       l.qtd += it.qtd; l.valor += it.total;
@@ -1958,6 +2342,7 @@ function calcularRelatorio(tipo, ref) {
       variacao: anterior ? Math.round((faturacao - anterior) / anterior * 1000) / 10 : null },
     evolucao, pagamentos: ord(pags), seccoes: ord(secs), itens: Object.values(itens).sort((a, b) => b.valor - a.valor || a.descricao.localeCompare(b.descricao)),
     clientes: ord(clis).slice(0, 10), vendedores: ord(vends), stock,
+    recargas: ord(recs).map(x => ({ ...x, lucro: x.valor - x.custo })),
     stock_resumo: { valor: soma(stock, "valor_final"), unidades: soma(stock, "final"), entradas: soma(stock, "entradas"), saidas: soma(stock, "saidas"), alertas: stock.filter(s => s.final <= s.stock_min).length },
     faturas: [...todas].sort((a, b) => a.numero - b.numero),
   };
@@ -1997,7 +2382,7 @@ function vRelatorios() {
       <div class="sp"></div>
       <input type="date" class="f" id="rdata" value="${rel.ref}" aria-label="Escolher data" style="width:auto">
       ${ehAtual ? "" : `<button class="btn sm" data-act="rel-hoje">Atual</button>`}
-      <button class="btn pri" data-act="pdf-relatorio">${icon("down")}Guardar PDF</button>
+      <button class="btn pri" data-act="pdf-relatorio" data-espera="A gerar PDF…">${icon("down")}Guardar PDF</button>
     </div>
     <section class="kpis">
       <div class="kpi hero"><span class="lab">Faturação</span><span class="val num">${fmt(r.faturacao)} <small>Kz</small></span><span class="ft">${varTxt}</span></div>
@@ -2017,11 +2402,12 @@ function vRelatorios() {
           <div class="legend"><span><i style="background:var(--brand-deep)"></i>Produtos ${kz(r.produtos_valor)}</span><span><i style="background:var(--brand);opacity:.45"></i>Serviços ${kz(r.servicos_valor)}</span></div></div>
         <div class="panel"><div class="panel-h"><h2>Por secção do catálogo</h2></div>${R.seccoes.length ? `<div class="hbars">${R.seccoes.map(s => `<div class="hbar"><span class="n">${esc(s.seccao)}</span><span class="num strong">${kz(s.valor)}</span><div class="track"><div class="fill" style="width:${(s.valor / R.seccoes[0].valor * 100).toFixed(1)}%"></div></div></div>`).join("")}</div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>
       </section>
+      ${R.recargas.length ? `<div class="panel"><div class="panel-h"><h2>Recargas</h2><span class="sub">lucro = valor vendido − custo do saldo</span></div><div class="tbl-wrap"><table class="t"><thead><tr><th>Operador</th><th class="r">Recargas</th><th class="r">Vendido</th><th class="r">Lucro</th></tr></thead><tbody>${R.recargas.map(x => `<tr><td>${esc(x.nome)}</td><td class="r num">${x.n}</td><td class="r num">${kz(x.valor)}</td><td class="r num strong" style="color:var(--ok)">${kz(x.lucro)}</td></tr>`).join("")}</tbody><tfoot><tr><td class="strong">Total</td><td class="r num">${R.recargas.reduce((s, x) => s + x.n, 0)}</td><td class="r num strong">${kz(R.recargas.reduce((s, x) => s + x.valor, 0))}</td><td class="r num strong" style="color:var(--ok)">${kz(R.recargas.reduce((s, x) => s + x.lucro, 0))}</td></tr></tfoot></table></div></div>` : ""}
       ${R.vendedores.length > 1 || pode("ver_todas") ? `<div class="panel"><div class="panel-h"><h2>Por vendedor</h2></div>${R.vendedores.length ? `<div class="hbars">${R.vendedores.map(v => `<div class="hbar"><span class="n">${esc(v.nome)} <span style="color:var(--ink-3)">· ${v.n}</span></span><span class="num strong">${kz(v.valor)}</span><div class="track"><div class="fill" style="width:${(v.valor / (R.vendedores[0].valor || 1) * 100).toFixed(1)}%"></div></div></div>`).join("")}</div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>` : ""}
       <div class="panel"><div class="panel-h"><h2>Principais clientes</h2></div>${R.clientes.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th>Cliente</th><th class="r">Faturas</th><th class="r">Valor</th></tr></thead><tbody>${R.clientes.map(c => `<tr><td>${esc(c.nome)}</td><td class="r num">${c.n}</td><td class="r num strong">${kz(c.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>`,
     vendas: () => `<div class="panel"><div class="panel-h"><h2>${R.itens.length} produtos e serviços vendidos</h2><span class="sub">valores antes de descontos</span></div>
       ${R.itens.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th class="hide-m">Código</th><th>Descrição</th><th class="hide-m">Tipo</th><th class="r">Qtd.</th><th class="r">Valor</th><th class="r hide-m">%</th></tr></thead><tbody>
-        ${R.itens.map(it => `<tr><td class="cod hide-m">${esc(it.codigo)}</td><td><span class="strong">${esc(it.descricao)}</span><div class="cod">${esc(it.codigo)} · ${it.tipo === "produto" ? "Produto" : "Serviço"}</div></td><td class="hide-m">${it.tipo === "produto" ? '<span class="chip brand">Produto</span>' : '<span class="chip">Serviço</span>'}</td><td class="r num">${fmt(it.qtd)}</td><td class="r num strong">${kz(it.valor)}</td><td class="r num hide-m muted">${(it.valor / sub * 100).toFixed(1).replace(".", ",")}%</td></tr>`).join("")}
+        ${R.itens.map(it => `<tr><td class="cod hide-m">${esc(it.codigo)}</td><td><span class="strong">${esc(it.descricao)}</span><div class="cod">${it.codigo ? esc(it.codigo) + " · " : ""}${it.tipo === "produto" ? "Produto" : it.tipo === "recarga" ? "Recarga" : "Serviço"}</div></td><td class="hide-m">${it.tipo === "produto" ? '<span class="chip brand">Produto</span>' : it.tipo === "recarga" ? '<span class="chip ok">Recarga</span>' : '<span class="chip">Serviço</span>'}</td><td class="r num">${fmt(it.qtd)}</td><td class="r num strong">${kz(it.valor)}</td><td class="r num hide-m muted">${(it.valor / sub * 100).toFixed(1).replace(".", ",")}%</td></tr>`).join("")}
         <tr class="tot"><td class="hide-m"></td><td class="strong">Total</td><td class="hide-m"></td><td class="r num strong">${fmt(r.itens_qtd)}</td><td class="r num strong">${kz(r.subtotal)}</td><td class="r hide-m strong">100%</td></tr>
       </tbody></table></div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>`,
     stock: () => `<section class="kpis">
@@ -2178,23 +2564,24 @@ async function guardarPdf(doc, nome, imprimir = false) {
       // guarda uma cópia em Documentos/Grupo Kambas no telemóvel
       try {
         await Filesystem.writeFile({ path: "Grupo Kambas/" + nome, data: dados, directory: "DOCUMENTS", recursive: true });
-        toast("PDF guardado em Documentos › Grupo Kambas");
+        toast("PDF guardado", "ok", "Documentos › Grupo Kambas › " + nome);
       } catch (e) { /* sem acesso à pasta: fica só a partilha */ }
     }
     const r = await Filesystem.writeFile({ path: nome, data: dados, directory: "CACHE" });
+    if (imprimir) fecharToast();
     await Share.share({ title: nome, files: [r.uri], dialogTitle: imprimir ? "Escolha a impressora ou a app de impressão" : "Enviar ou abrir o PDF" });
   } else if (window.claude && window.claude.use) {
     // demonstração dentro do Claude: o ficheiro passa pela permissão de descarregar da página
     const dl = await window.claude.use("downloads");
-    if (!dl) { toast("Descarregar não está disponível aqui"); return; }
-    try { await dl.save({ filename: nome, data: doc.output("blob") }); }
-    catch (e) { if (e && e.code !== "declined") toast("Não foi possível guardar o PDF"); }
-  } else doc.save(nome);
+    if (!dl) { toast("Descarregar não está disponível aqui", "erro"); return; }
+    try { await dl.save({ filename: nome, data: doc.output("blob") }); toast("PDF guardado", "ok", nome); }
+    catch (e) { if (e && e.code !== "declined") toast("Não foi possível guardar o PDF", "erro"); else fecharToast(); }
+  } else { doc.save(nome); toast("PDF descarregado", "ok", nome); }
 }
 /* Imprimir: no navegador e no Windows abre a janela de impressão só com o documento;
    na APK (o Android não imprime páginas), gera o PDF e abre a escolha de impressora/app. */
 async function imprimirDoc(f) {
-  if (eNativo() || (window.claude && window.claude.use)) { toast("A preparar o PDF para imprimir…"); return pdfFatura(f, true); }
+  if (eNativo() || (window.claude && window.claude.use)) { toast("A preparar para imprimir…", "prog"); return pdfFatura(f, true); }
   document.body.classList.add("a-imprimir");
   setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove("a-imprimir"), 500); }, 50);
 }
@@ -2337,12 +2724,17 @@ async function pdfRelatorio(R) {
   y += gh + 10;
   secao("Por forma de pagamento");
   tabela(["FORMA DE PAGAMENTO", "Nº", "VALOR"], R.pagamentos.map(p => [p.forma, p.n, kzPdf(p.valor)]), { cols: { 1: { halign: "right" }, 2: { halign: "right" } } });
+  if (R.recargas.length) {
+    secao("Recargas (lucro = valor vendido − custo do saldo)");
+    tabela(["OPERADOR", "RECARGAS", "VENDIDO", "LUCRO"], R.recargas.map(x => [x.nome, x.n, kzPdf(x.valor), kzPdf(x.lucro)]),
+      { cols: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } }, foot: ["Total", R.recargas.reduce((s, x) => s + x.n, 0), kzPdf(R.recargas.reduce((s, x) => s + x.valor, 0)), kzPdf(R.recargas.reduce((s, x) => s + x.lucro, 0))] });
+  }
   if (R.vendedores.length) { secao("Por vendedor"); tabela(["VENDEDOR", "DOCUMENTOS", "VALOR"], R.vendedores.map(v => [v.nome, v.n, kzPdf(v.valor)]), { cols: { 1: { halign: "right" }, 2: { halign: "right" } } }); }
   secao("Por secção do catálogo");
   tabela(["SECÇÃO", "QTD.", "VALOR"], R.seccoes.map(s => [s.seccao, s.qtd, kzPdf(s.valor)]), { cols: { 1: { halign: "right" }, 2: { halign: "right" } } });
   secao("Vendas por produto e serviço");
   const sub = r.subtotal || 1;
-  tabela(["CÓD.", "DESCRIÇÃO", "TIPO", "QTD.", "VALOR", "%"], R.itens.map(it => [it.codigo, it.descricao, it.tipo === "produto" ? "Produto" : "Serviço", it.qtd, kzPdf(it.valor), (it.valor / sub * 100).toFixed(1).replace(".", ",") + "%"]),
+  tabela(["CÓD.", "DESCRIÇÃO", "TIPO", "QTD.", "VALOR", "%"], R.itens.map(it => [it.codigo, it.descricao, it.tipo === "produto" ? "Produto" : it.tipo === "recarga" ? "Recarga" : "Serviço", it.qtd, kzPdf(it.valor), (it.valor / sub * 100).toFixed(1).replace(".", ",") + "%"]),
     { cols: { 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } }, foot: R.itens.length ? ["", "Total (antes de descontos)", "", r.itens_qtd, kzPdf(r.subtotal), "100%"] : null });
   if (R.stock.length) {
     secao("Stock de produtos");
@@ -2363,9 +2755,11 @@ function abrir(html, aoSubmeter) {
   $("#layer").innerHTML = `<div class="sheet-bg" data-act="fundo">${html}</div>`;
   const frm = $("#frm");
   if (frm && aoSubmeter) frm.onsubmit = async e => {
-    e.preventDefault(); const b = frm.querySelector("button.pri"); if (b) b.disabled = true;
+    e.preventDefault(); const b = frm.querySelector("button.pri"); if (b && b.disabled) return;
+    const txt = b ? b.innerHTML : ""; if (b) { b.disabled = true; b.innerHTML = `<span class="spin" aria-hidden="true"></span>${esc(b.dataset.espera || "A guardar…")}`; }
+    if (!DEMO) ocupado(true);
     try { await aoSubmeter(); } catch (er) { const el = $("#frm-err"); if (el) el.innerHTML = `<div class="err">${esc(mensagemErro(er))}</div>`; if (!(er instanceof ErroNegocio)) console.error(er); }
-    finally { if (b && b.isConnected) b.disabled = false; }
+    finally { if (!DEMO) ocupado(false); if (b && b.isConnected) { b.disabled = false; b.innerHTML = txt; } }
   };
 }
 function fechar() { $("#layer").innerHTML = ""; if (pendente) aplicarSync(); }
@@ -2374,10 +2768,43 @@ function confirmar(titulo, texto, botao, fn) {
     <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri">${esc(botao)}</button></div></form>`, fn);
 }
 let tToast;
-function toast(m) { let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); } t.textContent = m; t.hidden = false; clearTimeout(tToast); tToast = setTimeout(() => t.hidden = true, 2800); }
+/* aviso: tipo "" (simples), "ok" (feito), "erro" ou "prog" (a decorrer, fica até ao próximo aviso) */
+function toast(m, tipo = "", sub = "") {
+  let t = $(".toast"); if (!t) { t = document.createElement("div"); t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.className = "toast" + (tipo ? " t-" + tipo : "");
+  t.innerHTML = (tipo === "ok" ? `<span class="ti">${icon("check")}</span>` : tipo === "erro" ? `<span class="ti">!</span>` : tipo === "prog" ? `<span class="ti"><span class="spin"></span></span>` : "")
+    + `<span class="tt"><b></b>${sub ? "<small></small>" : ""}</span>` + (tipo === "prog" ? `<span class="tbar"><i></i></span>` : "");
+  t.querySelector("b").textContent = m; if (sub) t.querySelector("small").textContent = sub;
+  t.hidden = false; clearTimeout(tToast);
+  if (tipo !== "prog") tToast = setTimeout(() => t.hidden = true, tipo === "erro" ? 4500 : 2800);
+}
+function fecharToast() { const t = $(".toast"); if (t) t.hidden = true; }
+/* linha fina no topo enquanto há trabalho a decorrer */
+let nOcupado = 0;
+function ocupado(on) { nOcupado = Math.max(0, nOcupado + (on ? 1 : -1)); document.body.classList.toggle("ocupado", nOcupado > 0); }
+/* ecrã de arranque: barra de progresso com as etapas reais da entrada */
+const Arranque = {
+  passos: [["Ligação", 16], ["Conta", 40], ["Catálogo", 70], ["Vendas", 90]], inicio: Date.now(), feito: false,
+  passo(i, texto) {
+    if (!$("#arranque") || this.feito) return;
+    $("#arr-txt").textContent = texto; this.pct(this.passos[i][1]);
+    $("#arr-passos").innerHTML = this.passos.map(([n], k) => `<span class="${k < i ? "ok" : k === i ? "agora" : ""}">${k < i ? icon("check") : "<i></i>"}${n}</span>`).join("");
+  },
+  pct(v) { $("#arr-fill").style.width = v + "%"; $("#arr-pct").textContent = Math.round(v) + "%"; $("#arr-barra").setAttribute("aria-valuenow", Math.round(v)); },
+  async fim() {
+    const el = $("#arranque"); if (!el || this.feito) return; this.feito = true;
+    this.pct(100); $("#arr-txt").textContent = "Pronto";
+    $("#arr-passos").innerHTML = this.passos.map(([n]) => `<span class="ok">${icon("check")}${n}</span>`).join("");
+    await new Promise(r => setTimeout(r, Math.max(250, 900 - (Date.now() - this.inicio))));   // não pisca nem atrasa
+    el.classList.add("sai"); setTimeout(() => el.remove(), 450);
+  },
+};
 async function comEspera(btn, fn) {
-  const txt = btn.innerHTML; btn.disabled = true; btn.innerHTML = "A preparar…";
-  try { await fn(); } catch (e) { toast(mensagemErro(e)); console.error(e); } finally { btn.disabled = false; btn.innerHTML = txt; }
+  if (btn.disabled) return;
+  const txt = btn.innerHTML; btn.disabled = true; btn.innerHTML = `<span class="spin" aria-hidden="true"></span>${esc(btn.dataset.espera || "A preparar…")}`;
+  ocupado(true);
+  try { await fn(); } catch (e) { toast(mensagemErro(e), "erro"); console.error(e); }
+  finally { ocupado(false); if (btn.isConnected) { btn.disabled = false; btn.innerHTML = txt; } }
 }
 
 const ACOES = {
@@ -2389,8 +2816,8 @@ const ACOES = {
   "pagar": el => pagar(el.dataset.id),
   "imprimir": el => comEspera(el, () => imprimirDoc(byId(E.faturas, el.dataset.id))),
   "ver-senha": el => { const i = $("#" + el.dataset.alvo); const ver = i.type === "password"; i.type = ver ? "text" : "password"; el.setAttribute("aria-pressed", ver); el.setAttribute("aria-label", ver ? "Esconder senha" : "Mostrar senha"); el.innerHTML = icon(ver ? "olho-fechado" : "olho"); i.focus(); },
-  "pdf-fatura": el => comEspera(el, () => pdfFatura(byId(E.faturas, el.dataset.id))),
-  "pdf-relatorio": el => comEspera(el, () => pdfRelatorio(vRelatorios.atual)),
+  "pdf-fatura": el => comEspera(el, async () => { const f = byId(E.faturas, el.dataset.id); toast(`A gerar o PDF da ${docNum(f)}…`, "prog"); await pdfFatura(f); }),
+  "pdf-relatorio": el => comEspera(el, async () => { toast(`A gerar o relatório ${vRelatorios.atual.nome.toLowerCase()}…`, "prog"); await new Promise(r => setTimeout(r, 30)); await pdfRelatorio(vRelatorios.atual); }),
   "f-tipo": el => { filtroF.tipo = el.dataset.v; document.querySelectorAll("#ftipo button").forEach(b => b.setAttribute("aria-pressed", b === el)); vFaturas.upd(); },
   "doc-tipo": el => { venda.tipo = el.dataset.v; carrinho(); tiles(); },
   "sec": el => { venda.sec = el.dataset.v; document.querySelectorAll("#psec button").forEach(b => b.setAttribute("aria-pressed", b === el)); tiles(); },
@@ -2409,6 +2836,12 @@ const ACOES = {
   "ir-proforma": () => { venda.tipo = "PP"; if (location.hash === "#vender") render(); else location.hash = "#vender"; },
   "ver-abertas": () => { filtroF.estado = "aberto"; if (location.hash === "#faturas") render(); else location.hash = "#faturas"; },
   "mais": () => menuMais(),
+  "recarga": el => formRecarga(el.dataset.id),
+  "rc-valor": el => { $("#rc-valor").value = el.dataset.v; $("#rc-valor").dispatchEvent(new Event("input")); },
+  "carregar-saldo": el => formCarga(el.dataset.id),
+  "ajustar-saldo": el => formAjusteSaldo(el.dataset.id),
+  "editar-operador": el => formOperador(el.dataset.id),
+  "novo-operador": () => formOperador(null),
   "emitir": () => emitir(),
   "abrir-carrinho": () => { $("#cart").classList.add("open"); $("#cartbar").hidden = true; },
   "fechar-carrinho": () => { $("#cart").classList.remove("open"); carrinho(); },
@@ -2489,7 +2922,7 @@ function ligarTempoReal() {
 
 /* ============================================================ entrar / configuração inicial */
 const emailDe = u => u.includes("@") ? u.trim() : `${u.trim().toLowerCase()}@${DOMINIO_LOGIN}`;
-function ecraAuth(html) { $("#app").hidden = true; const a = $("#auth"); a.hidden = false; a.innerHTML = `<div class="auth-box"><img class="auth-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">${html}</div><p class="auth-pe">Crescendo juntos sempre!</p>`; }
+function ecraAuth(html) { ocupado(false); Arranque.fim(); $("#app").hidden = true; const a = $("#auth"); a.hidden = false; a.innerHTML = `<div class="auth-box"><img class="auth-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">${html}</div><p class="auth-pe">Crescendo juntos sempre!</p>`; }
 function ecraLogin(msg = "") {
   ecraAuth(`<form id="f-login" class="auth-card" autocomplete="on">
       <h1>Entrar</h1><p class="sub">Sistema de gestão do Grupo Kambas</p>
@@ -2540,16 +2973,21 @@ async function mostrarEntrada(msg) {
 async function entrarNaApp(uid) {
   uid = uid || (await sb.auth.getSession().catch(() => ({ data: {} }))).data?.session?.user?.id || localStorage.getItem(ULTIMO);
   await carregarFila(uid);
+  Arranque.passo(2, "A carregar catálogo, preços e vendas…");
+  ocupado(true);
   try { await recarregar(); }
   catch (e) {
     if (e.rede && await carregarCopia(uid)) { montarE(); entrarOffline(); }
     else if (e.rede) { $("#app").hidden = true; return ecraLogin("Sem internet e sem dados guardados neste aparelho. Ligue-se uma vez à internet para começar a usar o modo offline."); }
     else { await sb.auth.signOut(); return mostrarEntrada(/sessão|permission/i.test(e.message) ? "A sua conta não tem acesso ativo. Fale com o administrador." : e.message); }
   }
+  ocupado(false);
+  Arranque.passo(3, "A preparar as vendas…");
   $("#auth").hidden = true; $("#app").hidden = false;
   mostrarEstado();
   if (!canal) ligarTempoReal();
   navegar();
+  Arranque.fim();
   enviarFila();
 }
 
@@ -2581,21 +3019,28 @@ function ecraLoginDemo(msg = "") {
 
 /* ============================================================ arranque */
 (async function iniciar() {
+  Arranque.passo(0, "A iniciar…");
   if (DEMO) {
+    Arranque.passo(2, "A carregar catálogo e preços…");
     $("#mode").textContent = "Demonstração";
     try { const s = localStorage.getItem(CHAVE); if (s) E = JSON.parse(s); } catch (e) { E = null; }
+    if (E && !E.operadores) { Local.semearOperadores(); guardarLocal(); }   // demonstração guardada antes das recargas
     if (!E || !E._seq || !E.utilizadores) { Local.novo(); guardarLocal(); }
     if (E._sessao === false) return ecraLoginDemo();
     Local.atualizarEu();
+    Arranque.passo(3, "A preparar as vendas…");
     $("#app").hidden = false;
     navegar();
+    Arranque.fim();
     return;
   }
+  Arranque.passo(0, "A ligar ao servidor…");
   sb = window.supabase.createClient(SUPA.url, SUPA.chave, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "grupo-kambas-sessao" } });
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT" && E) location.reload(); });
   registarServiceWorker();
   let session = null;
   try { session = (await sb.auth.getSession()).data.session; } catch (e) { /* sem rede para renovar a sessão */ }
+  Arranque.passo(1, "A verificar a sua conta…");
   const ultimo = (() => { try { return localStorage.getItem(ULTIMO); } catch (e) { return null; } })();
   if (session) await entrarNaApp(session.user.id);
   else if (!navigator.onLine && ultimo) await entrarNaApp(ultimo);
