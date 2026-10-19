@@ -680,7 +680,7 @@ function navegar() {
   $("#page-title").textContent = vista === "painel" && !pode("ver_todas") ? "As minhas vendas" : TITULOS[vista];
   document.title = `${TITULOS[vista]} · Grupo Kambas`;
   $("#user-btn").textContent = iniciaisDe(E.eu.nome);
-  $("#rail-user").innerHTML = `<button class="ru" data-act="conta"><span class="av">${esc(ini)}</span><span><b>${esc(E.eu.nome)}</b><small>${E.eu.papel === "admin" ? "Administrador" : "Vendedor"}${DEMO ? " · demonstração" : ""}</small></span></button>
+  $("#rail-user").innerHTML = `<button class="ru" data-act="conta"><span class="av">${esc(iniciaisDe(E.eu.nome))}</span><span><b>${esc(E.eu.nome)}</b><small>${E.eu.papel === "admin" ? "Administrador" : "Vendedor"}${DEMO ? " · demonstração" : ""}</small></span></button>
     <button class="ru-sair" data-act="sair">${icon("logout")}Terminar sessão</button>`;
   render();
   window.scrollTo(0, 0);
