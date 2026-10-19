@@ -62,15 +62,12 @@ tr.tot td{font-weight:900;background:rgba(26,86,219,.07);border-top:2px solid va
 <body>
 <main>
   <h2>Recolha de Dias de Cama e Dias de Doente</h2>
-  <div class="sub">Modelo mensal para cada serviço: <b>todos os dias do mês</b>, com o número de <b>dias de cama</b> (camas disponíveis no dia) e de <b>dias de doente</b> (doentes internados no dia), e os totais do mês. Imprima em branco para preencher à mão, ou já preenchido com o que está no Movimento Hospitalar.</div>
+  <div class="sub">Modelo para cada serviço, para preencher à mão: o <b>mês</b>, e em <b>todos os dias</b> (1 a 31) os <b>dias de cama</b> (camas disponíveis no dia) e os <b>dias de doente</b> (doentes internados no dia), com os totais no fim. Nos meses com menos de 31 dias, os dias a mais ficam em branco.</div>
   <div class="card">
     <div class="ctl">
-      <label>Mês<input type="month" id="mes"></label>
       <label>Serviço<select id="servico"></select></label>
-      <label class="chk"><input type="checkbox" id="preencher"> Preencher com os dados do Movimento</label>
       <div class="acoes"><button class="btn" id="pdf" type="button">Baixar PDF</button></div>
     </div>
-    <div class="nota" id="estado"></div>
   </div>
   <div class="folhas" id="folhas"></div>
 </main>
@@ -80,104 +77,58 @@ tr.tot td{font-weight:900;background:rgba(26,86,219,.07);border-top:2px solid va
 <script>
 (function(){
   'use strict';
-  // Serviços com Movimento Hospitalar (cada um preenche o seu).
+  // Serviços com Movimento Hospitalar (cada um preenche o seu à mão).
   var SERVICOS = [
     ['medicina_homem','Medicina Homem'], ['medicina_mulher','Medicina Mulher'], ['cirurgia_geral','Cirurgia Geral'],
     ['ortopedia','Orto-Traumatologia'], ['neurocirurgia','Neurocirurgia'], ['maxilo_facial','Maxilo-Facial'],
     ['nefrologia','Nefrologia'], ['uci_intensivo','UCI'], ['uci_intermedio','Cuidados Intermédios']
   ];
-  var MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-  var SEM = ['dom','seg','ter','qua','qui','sex','sáb'];
-  var cache = {};
+  var DIAS = 31;
   function $(id){ return document.getElementById(id); }
   function pad(n){ return String(n).padStart(2,'0'); }
   function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function num(v){ return v == null || v === '' || isNaN(v) ? null : Number(v); }
-  var hoje = new Date();
-  $('mes').value = hoje.getFullYear() + '-' + pad(hoje.getMonth()+1);
   $('servico').innerHTML = '<option value="todos">Todos os serviços (uma folha cada)</option>' + SERVICOS.map(function(s){ return '<option value="' + s[0] + '">' + esc(s[1]) + '</option>'; }).join('');
   function escolhidos(){ var v = $('servico').value; return SERVICOS.filter(function(s){ return v === 'todos' || s[0] === v; }); }
-  function info(ym){ var p = ym.split('-'); return { ano: +p[0], mes: +p[1], dias: new Date(+p[0], +p[1], 0).getDate(), nome: MESES[+p[1]-1] + ' de ' + p[0] }; }
-  function esperar(){ return new Promise(function(r){ var n=0; (function v(){ if (window.__fbReady && window.__fbGet) return r(true); if (++n > 60) return r(false); setTimeout(v, 250); })(); }); }
-
-  // Lê só o mês escolhido e a lotação de cada serviço (pouco consumo).
-  async function dados(slug, ym){
-    var k = slug + '|' + ym; if (cache[k]) return cache[k];
-    var base = 'registos_movimento/' + slug + '/snapshot/';
-    var r = await Promise.all([window.__fbGet(base + ym).catch(function(){ return null; }), window.__fbGet(base + '__capacity').catch(function(){ return null; })]);
-    var m = r[0] || {};
-    return (cache[k] = { cama: m.dia_cama || [], doente: m.dia_doente || [], camas: num(r[1]) });
-  }
-  async function linhas(){
-    var ym = $('mes').value, I = info(ym), pre = $('preencher').checked, out = [];
-    if (pre && !(await esperar())) { $('estado').textContent = 'Sem ligação ao Firebase — o modelo sai em branco.'; pre = false; }
-    for (var s of escolhidos()) {
-      var d = pre ? await dados(s[0], ym) : { cama: [], doente: [], camas: null };
-      var rows = [], tc = 0, td = 0, temC = false, temD = false;
-      for (var i = 1; i <= I.dias; i++) {
-        var w = new Date(I.ano, I.mes - 1, i).getDay(), c = num(d.cama[i-1]), o = num(d.doente[i-1]);
-        if (c != null) { tc += c; temC = true; } if (o != null) { td += o; temD = true; }
-        rows.push({ dia: i, sem: SEM[w], fds: w === 0 || w === 6, cama: c, doente: o });
-      }
-      out.push({ slug: s[0], nome: s[1], camas: d.camas, rows: rows, tc: temC ? tc : null, td: temD ? td : null });
-    }
-    return { I: I, folhas: out, pre: pre };
-  }
-  function v(x){ return x == null ? '' : String(x); }
-  async function mostrar(){
-    $('estado').textContent = $('preencher').checked ? 'A ler o Movimento…' : '';
-    var L = await linhas();
-    if (L.pre) $('estado').textContent = 'Preenchido com o que está registado no Movimento Hospitalar de ' + L.I.nome + '. Os dias em branco ainda não foram registados.';
-    else if (!$('preencher').checked) $('estado').textContent = 'Modelo em branco para preencher à mão.';
-    $('folhas').innerHTML = L.folhas.map(function(f){
-      return '<div class="card folha"><h3>' + esc(f.nome) + '</h3><div class="m">' + esc(L.I.nome) + (f.camas ? ' · ' + f.camas + ' camas' : '') + '</div>' +
-        '<table><thead><tr><th>Dia</th><th>Dias de cama</th><th>Dias de doente</th></tr></thead><tbody>' +
-        f.rows.map(function(r){ return '<tr><td class="' + (r.fds ? 'fds' : '') + '">' + pad(r.dia) + ' ' + r.sem + '</td><td>' + v(r.cama) + '</td><td>' + v(r.doente) + '</td></tr>'; }).join('') +
-        '<tr class="tot"><td>TOTAL</td><td>' + v(f.tc) + '</td><td>' + v(f.td) + '</td></tr></tbody></table></div>';
+  function mostrar(){
+    var linhas = ''; for (var i = 1; i <= DIAS; i++) linhas += '<tr><td>' + pad(i) + '</td><td></td><td></td></tr>';
+    $('folhas').innerHTML = escolhidos().map(function(s){
+      return '<div class="card folha"><h3>' + esc(s[1]) + '</h3><div class="m">Mês: ____________ &nbsp; Ano: ________</div>' +
+        '<table><thead><tr><th>Dia</th><th>Dias de cama</th><th>Dias de doente</th></tr></thead><tbody>' + linhas +
+        '<tr class="tot"><td>TOTAL</td><td></td><td></td></tr></tbody></table></div>';
     }).join('');
   }
-  async function pdf(){
+  function pdf(){
     var Z = window.ZeloPDF;
     if (!Z || !(window.jspdf && window.jspdf.jsPDF)) { alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return; }
-    var L = await linhas(), doc = Z.novo();
-    L.folhas.forEach(function(f, idx){
+    var doc = Z.novo(), lista = escolhidos();
+    lista.forEach(function(s, idx){
       if (idx) doc.addPage();
-      var y = Z.cabecalho(doc, 'Recolha de Dias de Cama e Dias de Doente', f.nome + ' · ' + L.I.nome);
+      var y = Z.cabecalho(doc, 'Recolha de Dias de Cama e Dias de Doente', s[1]);
       doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(40);
-      doc.text('Serviço: ' + f.nome, 14, y); doc.text('Mês: ' + L.I.nome, 90, y);
-      doc.text('Lotação: ' + (f.camas ? f.camas + ' camas' : '________'), 150, y);
-      var corpo = f.rows.map(function(r){ return [pad(r.dia), r.sem, v(r.cama), v(r.doente), ''] ; });
-      corpo.push(['TOTAL', '', v(f.tc), v(f.td), '']);
+      doc.text('Serviço: ' + s[1], 14, y); doc.text('Mês: ________________', 82, y); doc.text('Ano: __________', 150, y);
+      var corpo = []; for (var i = 1; i <= DIAS; i++) corpo.push([pad(i), '', '', '']);
+      corpo.push(['TOTAL', '', '', '']);
       doc.autoTable({
         startY: y + 4, margin: { left: 14, right: 14, bottom: 22 },
-        head: [['Dia', 'Dia da semana', 'Dias de cama', 'Dias de doente', 'Rubrica']],
+        head: [['Dia', 'Dias de cama', 'Dias de doente', 'Rubrica']],
         body: corpo, theme: 'grid',
         styles: { fontSize: 8.5, cellPadding: 1.15, halign: 'center', valign: 'middle', minCellHeight: 5.6 },
         headStyles: { fillColor: [11, 37, 69], textColor: 255, fontStyle: 'bold' },
-        columnStyles: { 0: { cellWidth: 16 }, 1: { cellWidth: 30 }, 2: { cellWidth: 40 }, 3: { cellWidth: 40 } },
-        didParseCell: function(c){
-          if (c.section !== 'body') return;
-          if (c.row.index === f.rows.length) { c.cell.styles.fontStyle = 'bold'; c.cell.styles.fillColor = [226, 232, 240]; }
-          else if (/^(sáb|dom)$/.test(corpo[c.row.index][1])) c.cell.styles.fillColor = [241, 245, 249];
-        },
+        columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 48 }, 2: { cellWidth: 48 } },
+        didParseCell: function(c){ if (c.section === 'body' && c.row.index === DIAS) { c.cell.styles.fontStyle = 'bold'; c.cell.styles.fillColor = [226, 232, 240]; } },
         pageBreak: 'avoid'
       });
       var fy = doc.lastAutoTable.finalY + 9;
       doc.setFontSize(9.5); doc.setTextColor(40);
       doc.text('Responsável pelo registo: ______________________________', 14, fy);
       doc.text('Data: ____/____/______', 150, fy);
-      doc.text('Enfermeiro(a)-chefe: ______________________________', 14, fy + 8);
     });
     Z.rodape(doc);
-    var nome = 'Recolha_Dias_Cama_' + ($('servico').value === 'todos' ? 'Todos' : L.folhas[0].nome.replace(/\s+/g,'_')) + '_' + $('mes').value + '.pdf';
-    doc.save(nome);
+    doc.save('Recolha_Dias_Cama_' + ($('servico').value === 'todos' ? 'Todos' : lista[0][1].replace(/\s+/g,'_')) + '.pdf');
   }
-  ['mes','servico','preencher'].forEach(function(id){ $(id).addEventListener('change', mostrar); });
+  $('servico').addEventListener('change', mostrar);
   $('pdf').addEventListener('click', pdf);
-  var feito = false;
-  function primeira(){ if (feito) return; feito = true; mostrar(); }
-  window.addEventListener('zelo-gate-ready', primeira);
-  setTimeout(primeira, 1500);
+  mostrar();
 })();
 </script>
 <script src="zelo_servicos_menu.js?v=6"></script>
