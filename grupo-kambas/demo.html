@@ -1526,6 +1526,7 @@ function menuMais() {
   const outras = vis.filter(v => !ids.includes(v[0]));
   abrir(`<div class="sheet"><div class="sheet-h"><h2>Mais</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
     <div class="sheet-b"><nav class="mais-lista">${outras.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}<span>${nome}</span>${icon("right")}</a>`).join("")}
+      <button data-act="pdf-coordenadas" data-espera="A gerar PDF…">${icon("wallet")}<span>Coordenadas bancárias<small>PDF para enviar aos clientes</small></span>${icon("down")}</button>
       <button data-act="conta">${icon("user")}<span>A minha conta<small>${esc(E.eu.nome)}</small></span>${icon("right")}</button></nav></div>
     <div class="sheet-f"><button class="btn danger" data-act="sair">${icon("logout")}Terminar sessão</button></div></div>`);
 }
@@ -2569,6 +2570,7 @@ function formUtilizador(id) {
 }
 
 /* ============================================================ definições (só administrador) */
+let bancoAlterado = false;
 function linhaConta(c = { banco: "", iban: "" }) {
   return `<div class="conta-l"><input class="f" data-k="banco" value="${esc(c.banco)}" placeholder="Banco (ex.: BFA)" aria-label="Banco" maxlength="60">
     <input class="f num" data-k="iban" value="${esc(c.iban)}" placeholder="IBAN ou número" aria-label="IBAN ou número da conta" maxlength="60">
@@ -2600,7 +2602,9 @@ function vDefinicoes() {
           ${campo("b-tit", "Titular das contas", emp.titular, "required")}
           <div class="field"><span>Contas</span><div id="b-contas" class="contas">${(emp.contas || []).map(linhaConta).join("")}</div>
             <button type="button" class="btn sm" data-act="conta-nova" style="align-self:flex-start;margin-top:8px">${icon("plus")}Acrescentar conta</button></div>
-          <div id="banco-err"></div><div><button class="btn pri" data-espera="A guardar…">Guardar coordenadas</button></div></form>
+          <div id="banco-err"></div><div class="toolbar"><button class="btn pri" data-espera="A guardar…">Guardar coordenadas</button>
+            <button type="button" class="btn" data-act="pdf-coordenadas" data-espera="A gerar PDF…">${icon("down")}PDF para enviar aos clientes</button></div>
+          <small style="color:var(--ink-3)">O PDF leva o logótipo, as contas, o titular, os contactos, a localização e as redes sociais.</small></form>
         <form class="panel" id="frm-num" style="display:flex;flex-direction:column;gap:12px"><div class="panel-h" style="margin:0"><h2>Numeração dos documentos</h2></div>
           <div class="grid3"><label class="field"><span>Próxima FR</span><input class="f num" id="n-FR" inputmode="numeric" value="${n.FR}"></label>
             <label class="field"><span>Próxima FT</span><input class="f num" id="n-FT" inputmode="numeric" value="${n.FT}"></label>
@@ -2627,6 +2631,7 @@ function vDefinicoes() {
     return { telefones: $("#c-tel").value.trim(), email: $("#c-mail").value.trim(), endereco: $("#c-end").value.trim(), localizacao: $("#c-loc").value.trim(), mapa,
       facebook: $("#c-fb").value.trim(), tiktok: $("#c-tt").value.trim(), instagram: $("#c-ig").value.trim() };
   }, "Contactos guardados");
+  bancoAlterado = false; $("#frm-banco").addEventListener("input", () => bancoAlterado = true);
   ligar("#frm-banco", "#banco-err", () => ({ titular: $("#b-tit").value.trim(),
     contas: [...document.querySelectorAll("#b-contas .conta-l")].map(l => ({ banco: l.querySelector("[data-k=banco]").value.trim(), iban: l.querySelector("[data-k=iban]").value.trim() })).filter(c => c.banco || c.iban) }), "Coordenadas bancárias guardadas");
   $("#frm-num").onsubmit = async e => {
@@ -2646,7 +2651,7 @@ function conta() {
   abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>A minha conta</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
     <div class="sheet-b">
       <div class="cli-card"><div><div class="strong">${esc(u.nome)}</div><div class="cod">${u.papel === "admin" ? "Administrador" : "Vendedor"} · entra como ${esc(u.utilizador)}</div><div class="cod">${esc(extras)}</div></div></div>
-      ${pode("admin") ? `<div class="toolbar"><a class="btn" href="#utilizadores">${icon("user")}Utilizadores</a><a class="btn" href="#definicoes">${icon("cog")}Definições</a></div>` : ""}
+      <div class="toolbar"><button type="button" class="btn" data-act="pdf-coordenadas" data-espera="A gerar PDF…">${icon("down")}Coordenadas bancárias (PDF)</button>${pode("admin") ? `<a class="btn" href="#utilizadores">${icon("user")}Utilizadores</a><a class="btn" href="#definicoes">${icon("cog")}Definições</a>` : ""}</div>
       ${DEMO || eNativo() || navigator.userAgent.includes("Electron") ? "" : `<a class="btn" href="instalar.html" target="_blank" rel="noopener">${icon("down")}Instalar no Android, iPhone ou Windows</a>`}
       ${DEMO ? `<div class="field"><span>Ver a demonstração como</span><div class="seg" id="demo-u">${E.utilizadores.filter(x => x.ativo).map(x => `<button type="button" data-act="demo-ver" data-id="${esc(x.id)}" aria-pressed="${x.id === u.id}">${esc(x.nome)}</button>`).join("")}</div>
           <small style="color:var(--ink-3)">Mude para a vendedora para ver o sistema com permissões limitadas.</small></div>`
@@ -2695,6 +2700,80 @@ async function guardarPdf(doc, nome, imprimir = false) {
     try { await dl.save({ filename: nome, data: doc.output("blob") }); toast("PDF guardado", "ok", nome); }
     catch (e) { if (e && e.code !== "declined") toast("Não foi possível guardar o PDF", "erro"); else fecharToast(); }
   } else { doc.save(nome); toast("PDF descarregado", "ok", nome); }
+}
+/* PDF das coordenadas bancárias e contactos da empresa, para enviar aos clientes */
+async function pdfCoordenadas() {
+  const jsPDF = await jsPDFPronto();
+  const doc = new jsPDF({ unit: "mm", format: "a5" });
+  const W = 148, H = 210, m = 13, emp = E.config.empresa, contas = emp.contas || [];
+  const tc = c => doc.setTextColor(...c), fc = c => doc.setFillColor(...c), dc = c => doc.setDrawColor(...c);
+  const txt = (x, y, t, s = 8, b = false, c = COR.tin, al = "left") => { doc.setFont("helvetica", b ? "bold" : "normal"); doc.setFontSize(s); tc(c); doc.text(String(t ?? ""), x, y, { align: al }); };
+  const rot = (x, y, t, c = COR.azul, s = 6.4, al = "left") => { doc.setFont("helvetica", "bold"); doc.setFontSize(s); doc.setCharSpace(0.4); tc(c); doc.text(String(t).toUpperCase(), x, y, { align: al }); doc.setCharSpace(0); };
+  const corta = (t, sz, larg, b = false) => { t = String(t ?? ""); doc.setFont("helvetica", b ? "bold" : "normal"); doc.setFontSize(sz); if (doc.getTextWidth(t) <= larg) return t; while (t && doc.getTextWidth(t + "...") > larg) t = t.slice(0, -1); return t + "..."; };
+  // o jsPDF não conta o espaçamento entre letras ao alinhar: calcula-se a largura à mão
+  const espacado = (t, x, yy, sz, cs, cor, al = "left") => {
+    t = String(t ?? ""); doc.setFont("helvetica", "bold"); doc.setFontSize(sz);
+    const w = doc.getTextWidth(t) + cs * Math.max(0, t.length - 1);
+    doc.setCharSpace(cs); tc(cor); doc.text(t, al === "center" ? x - w / 2 : al === "right" ? x - w : x, yy); doc.setCharSpace(0);
+  };
+  doc.setProperties({ title: `Coordenadas bancárias — ${emp.nome}` });
+  // cabeçalho: faixa petróleo com o logótipo branco
+  fc([10, 61, 76]); doc.rect(0, 0, W, 42, "F");
+  fc([15, 127, 156]); doc.rect(0, 39, W, 3, "F");
+  const logo = $(".rail .logo")?.src;
+  if (logo && logo.startsWith("data:")) doc.addImage(logo, "PNG", W / 2 - 14, 6, 28, 21.8); else txt(W / 2, 20, emp.nome, 18, true, COR.branco, "center");
+  espacado(String(emp.actividade || "").toUpperCase(), W / 2, 34, 6.4, 0.8, [184, 220, 230], "center");
+  // título
+  let y = 53;
+  espacado("COORDENADAS BANCÁRIAS", W / 2, y, 13, 1.2, COR.pet, "center");
+  dc(COR.azul); doc.setLineWidth(0.6); doc.line(W / 2 - 14, y + 3, W / 2 + 14, y + 3);
+  txt(W / 2, y + 8.5, "Para pagamentos por transferência bancária", 7.4, false, COR.cin, "center");
+  // titular
+  y += 15;
+  fc([230, 243, 247]); doc.roundedRect(m, y, W - 2 * m, 13, 2.5, 2.5, "F");
+  rot(m + 5, y + 5, "Titular das contas", COR.cin, 5.8); txt(m + 5, y + 10, corta(emp.titular, 10, W - 2 * m - 10, true), 10, true, COR.tin);
+  // contas
+  y += 17;
+  const n = contas.length, hc = n > 6 ? 8.6 : n > 4 ? 10.5 : 12;
+  contas.forEach(c => {
+    dc(COR.lin); doc.setLineWidth(0.3); fc(COR.branco); doc.roundedRect(m, y, W - 2 * m, hc, 2.5, 2.5, "FD");
+    fc(COR.azul); doc.roundedRect(m, y, 2.2, hc, 1, 1, "F");
+    txt(m + 6, y + hc / 2 + (n > 6 ? 1.2 : -0.6), corta(c.banco, 8.6, 46, true), 8.6, true, COR.pet);
+    if (n <= 6) rot(m + 6, y + hc / 2 + 3.6, String(c.iban).replace(/\D/g, "").length >= 21 ? "IBAN" : "Número / ID", COR.cin, 5.2);
+    const sz = n > 6 ? 8.4 : n > 4 ? 9.2 : 10.2;
+    espacado(corta(c.iban, sz, W - 2 * m - 62, true), W - m - 5, y + hc / 2 + 1.4, sz, 0.2, COR.tin, "right");
+    y += hc + (n > 6 ? 1.6 : 2.5);
+  });
+  // contactos e localização (duas colunas); se não couber, vão para uma segunda página
+  const nTel = String(emp.telefones || "").split(/\s*[·|,;\/]\s*/).filter(Boolean).length;
+  const nRedes = [emp.facebook, emp.tiktok, emp.instagram].filter(Boolean).length;
+  const altEsq = nTel * 4.4 + (emp.email ? 4.4 : 0) + (nRedes ? 7.1 + nRedes * 4.2 : 0);
+  const altDir = 4 * [emp.endereco, emp.localizacao].filter(Boolean).length * 2 + (emp.mapa ? 4.6 : 0) + 4;
+  if (y + 13.5 + Math.max(altEsq, altDir) > H - 16) { doc.addPage(); y = 14; }
+  y += 2; dc(COR.lin); doc.setLineWidth(0.2); doc.line(m, y, W - m, y); y += 6.5;
+  const c1 = m, c2 = W / 2 + 3, larg = W / 2 - m - 5;
+  rot(c1, y, "Contactos"); rot(c2, y, "Localização");
+  let ya = y + 5, yb = y + 5;
+  String(emp.telefones || "").split(/\s*[·|,;\/]\s*/).filter(Boolean).forEach(t => { txt(c1, ya, "Tel. " + t, 8.4, true); ya += 4.4; });
+  if (emp.email) { txt(c1, ya, corta(emp.email, 7.8, larg), 7.8); ya += 4.4; }
+  const redes = [["Facebook", emp.facebook], ["TikTok", emp.tiktok], ["Instagram", emp.instagram]].filter(([, v]) => v);
+  if (redes.length) {
+    ya += 2.5; rot(c1, ya, "Redes sociais"); ya += 4.6;
+    redes.forEach(([r, v]) => { txt(c1, ya, r, 7, false, COR.cin); txt(c1 + 15, ya, corta(v, 7.8, larg - 15, true), 7.8, true, COR.pet); ya += 4.2; });
+  }
+  const linhasLoc = [emp.endereco, emp.localizacao].filter(Boolean);
+  linhasLoc.forEach(l => { doc.setFont("helvetica", "normal"); doc.setFontSize(7.8); doc.splitTextToSize(l, larg).slice(0, 3).forEach(t => { txt(c2, yb, t, 7.8); yb += 3.8; }); yb += 0.8; });
+  if (!linhasLoc.length) { txt(c2, yb, "Luanda, Angola", 7.8); yb += 4.4; }
+  if (emp.mapa) { doc.setFont("helvetica", "bold"); doc.setFontSize(7.8); tc(COR.azul); doc.textWithLink("Ver no mapa  ›", c2, yb + 0.6, { url: emp.mapa }); yb += 4.6; }
+  y = Math.max(ya, yb) + 3;
+  // rodapé em todas as páginas
+  for (let pgn = 1; pgn <= doc.internal.getNumberOfPages(); pgn++) {
+    doc.setPage(pgn);
+    fc([10, 61, 76]); doc.rect(0, H - 14, W, 14, "F");
+    espacado(String(emp.slogan || "").toUpperCase(), W / 2, H - 7.6, 8, 1, COR.branco, "center");
+    txt(W / 2, H - 3.6, `${emp.nome}${emp.nif ? " · NIF " + emp.nif : ""} · atualizado em ${dataPt(hoje())}`, 6, false, [184, 220, 230], "center");
+  }
+  await guardarPdf(doc, `Coordenadas_Bancarias_${String(emp.nome || "Empresa").replace(/\s+/g, "_")}.pdf`);
 }
 /* Imprimir: no navegador e no Windows abre a janela de impressão só com o documento;
    na APK (o Android não imprime páginas), gera o PDF e abre a escolha de impressora/app. */
@@ -2977,9 +3056,13 @@ const ACOES = {
   "novo-produto": () => formProduto(null),
   "sec-p": el => { filtroP.sec = el.dataset.v; document.querySelectorAll("#xsec [data-act=sec-p]").forEach(b => b.setAttribute("aria-pressed", b === el)); vProdutos.upd(); },
   "gerir-seccoes": () => gerirSeccoes(),
-  "conta-nova": () => { $("#b-contas").insertAdjacentHTML("beforeend", linhaConta()); $("#b-contas .conta-l:last-child input").focus(); },
-  "conta-remover": el => el.closest(".conta-l").remove(),
-  "conta-subir": el => { const l = el.closest(".conta-l"); l.parentNode.prepend(l); toast("Esta conta passa a aparecer no rodapé da fatura (guarde para confirmar)."); },
+  "pdf-coordenadas": el => {
+    if ($("#frm-banco") && bancoAlterado) return toast("Guarde primeiro as coordenadas alteradas e depois gere o PDF.", "erro");
+    comEspera(el, async () => { toast("A gerar o PDF das coordenadas…", "prog"); await pdfCoordenadas(); });
+  },
+  "conta-nova": () => { bancoAlterado = true; $("#b-contas").insertAdjacentHTML("beforeend", linhaConta()); $("#b-contas .conta-l:last-child input").focus(); },
+  "conta-remover": el => { bancoAlterado = true; el.closest(".conta-l").remove(); },
+  "conta-subir": el => { bancoAlterado = true; const l = el.closest(".conta-l"); l.parentNode.prepend(l); toast("Esta conta passa a aparecer no rodapé da fatura (guarde para confirmar)."); },
   "nova-seccao": () => gerirSeccoes(),
   "remover-seccao": el => { const nome = el.dataset.v; confirmar(`Remover a secção ${nome}?`, "A secção está vazia. Pode criá-la de novo mais tarde.", "Remover", async () => { await acao("guardarSeccao", nome, true); if (filtroP.sec === nome) filtroP.sec = "Todas"; gerirSeccoes(); render(); toast(`Secção ${nome} removida`, "ok"); }); },
   "editar-produto": el => formProduto(Number(el.dataset.id)),

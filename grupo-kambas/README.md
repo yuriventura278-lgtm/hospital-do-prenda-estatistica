@@ -57,6 +57,9 @@ utilizador e sincronização entre dispositivos.
   do mapa, Facebook, TikTok e Instagram. Aparecem na fatura e no PDF.
 - Coordenadas bancárias: titular e contas (acrescentar, editar, remover, pôr em
   primeiro). A primeira conta aparece no rodapé da fatura.
+- **PDF das coordenadas bancárias** para enviar aos clientes (Definições, "A minha
+  conta" ou menu Mais; também os vendedores): logótipo, titular, contas, contactos,
+  localização com link do mapa e redes sociais.
 
 ## Progresso e espera
 
