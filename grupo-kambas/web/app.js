@@ -50,8 +50,8 @@ function significadoDoc(f) {
   return "Orçamento: não serve de fatura nem de recibo";
 }
 /* campo de senha com botão para mostrar/esconder */
-function campoSenha(id, rotulo, auto, extra = "", nome = "") {
-  return `<label class="field"><span>${rotulo}</span><span class="senha"><input class="f" id="${id}" ${nome ? `name="${nome}"` : ""} type="password" autocomplete="${auto}" ${extra}><button type="button" class="ver-senha" data-act="ver-senha" data-alvo="${id}" aria-label="Mostrar senha" aria-pressed="false">${icon("olho")}</button></span></label>`;
+function campoSenha(id, rotulo, auto, extra = "", nome = "", ic = "") {
+  return `<label class="field"><span>${rotulo}</span><span class="senha${ic ? " com-ic" : ""}">${ic ? icon(ic) : ""}<input class="f" id="${id}" ${nome ? `name="${nome}"` : ""} type="password" autocomplete="${auto}" ${extra}><button type="button" class="ver-senha" data-act="ver-senha" data-alvo="${id}" aria-label="Mostrar senha" aria-pressed="false">${icon("olho")}</button></span></label>`;
 }
 /* pede ao navegador/telemóvel para guardar a senha (Chrome, Edge, Android); o Safari guarda pelo próprio formulário */
 async function guardarCredencial(utilizador, senha) {
@@ -2217,26 +2217,28 @@ const Inativo = {
   ecra(html, cls) {
     let el = $("#inativo");
     if (!el) { el = document.createElement("div"); el.id = "inativo"; document.body.appendChild(el); }
-    el.className = "inativo " + cls; el.innerHTML = html;
+    el.className = "inativo " + cls; el.innerHTML = CENA + html;
     $("#app").inert = true; $("#layer").inert = true;
     return el;
   },
   relogio() {
     const d = new Date();
-    const h = $("#in-hora"), dt = $("#in-data");
-    if (h) h.textContent = d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+    const h = $("#in-hora"), dt = $("#in-data"), sg = $("#in-seg");
+    if (h) h.innerHTML = d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" }).replace(":", `<span class="in-dois">:</span>`);
+    if (sg) sg.textContent = String(d.getSeconds()).padStart(2, "0");
     if (dt) dt.textContent = dataLonga();
   },
   topo() {
     return `<img class="in-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">
-      <div class="in-hora num" id="in-hora"></div><div class="in-data" id="in-data"></div>`;
+      <div class="in-relogio"><div class="in-hora num" id="in-hora"></div><span class="in-seg num" id="in-seg"></span></div><div class="in-data" id="in-data"></div>`;
   },
   espera() {
     this.estado = "espera";
     const bloqueiaAs = new Date(this.ultima + INATIVO.bloqueio).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
     const el = this.ecra(`<div class="in-centro">${this.topo()}<span class="in-slogan">Crescendo juntos sempre!</span></div>
-      <div class="in-base"><span class="in-quem"><span class="in-av">${esc(iniciaisDe(E.eu.nome))}</span><span>${esc(E.eu.nome)}</span></span>
-        <b class="in-toque">Toque para continuar</b><small>Sem atividade, a sessão bloqueia às ${bloqueiaAs}</small></div>`, "espera");
+      <div class="in-base">
+        <div class="in-vidro"><span class="in-av anel">${esc(iniciaisDe(E.eu.nome))}</span><span class="in-nome"><b>${esc(E.eu.nome)}</b><small>Bloqueia às ${bloqueiaAs} sem atividade</small></span></div>
+        <b class="in-toque"><span class="in-dedo" aria-hidden="true"></span>Toque para continuar</b></div>`, "espera");
     el.setAttribute("role", "button"); el.setAttribute("aria-label", "Ecrã de espera. Toque para continuar"); el.tabIndex = 0;
     el.onclick = () => this.acordar();
     el.onkeydown = () => this.acordar();
@@ -2257,12 +2259,13 @@ const Inativo = {
     this.estado = "bloq"; gravarLS(CH_INATIVO, { ultima: this.ultima, bloq: true });
     const el = this.ecra(`<div class="in-centro">${this.topo()}</div>
       <form class="in-card" id="f-bloq" autocomplete="on">
-        <div class="in-quem escuro"><span class="in-av">${esc(iniciaisDe(E.eu.nome))}</span><span><b>${esc(E.eu.nome)}</b><small>Sessão bloqueada por inatividade</small></span></div>
+        <div class="in-perfil"><span class="in-av grande anel">${esc(iniciaisDe(E.eu.nome))}<i>${icon("cadeado")}</i></span>
+          <h2>${saudacao()}, ${esc(E.eu.nome.split(" ")[0])}</h2><small>Sessão bloqueada por inatividade. Escreva a sua senha para continuar.</small></div>
         <input type="text" name="username" autocomplete="username" value="${esc(E.eu.utilizador || "")}" hidden>
-        ${campoSenha("bq-senha", "Senha", "current-password", "required", "password")}
+        ${campoSenha("bq-senha", "Senha", "current-password", 'required placeholder="A sua senha"', "password", "cadeado")}
         <div id="bq-err"></div>
-        <button type="submit" class="btn pri big">${icon("check")}Desbloquear</button>
-        <button type="button" class="in-outra" id="bq-outra">Entrar com outra conta</button>
+        <button type="submit" class="btn pri big auth-btn">Desbloquear${icon("right")}</button>
+        <button type="button" class="in-outra" id="bq-outra">Não é ${esc(E.eu.nome.split(" ")[0])}? Entrar com outra conta</button>
       </form>`, "bloq");
     el.removeAttribute("role"); el.removeAttribute("aria-label"); el.onclick = null; el.onkeydown = null;
     el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "Sessão bloqueada");
@@ -2443,21 +2446,36 @@ function ligarTempoReal() {
 
 /* ============================================================ entrar / configuração inicial */
 const emailDe = u => u.includes("@") ? u.trim() : `${u.trim().toLowerCase()}@${DOMINIO_LOGIN}`;
-function ecraAuth(html) { ocupado(false); Arranque.fim(); $("#app").hidden = true; const a = $("#auth"); a.hidden = false; a.innerHTML = `<div class="auth-box"><img class="auth-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">${html}</div><p class="auth-pe">Crescendo juntos sempre!</p>`; }
+const CENA = `<div class="cena" aria-hidden="true"><i></i><i></i><i></i><b></b></div>`;
+function ecraAuth(html) {
+  ocupado(false); Arranque.fim(); $("#app").hidden = true; const a = $("#auth"); a.hidden = false;
+  const destaques = [["receipt", "Faturas FR, FT e pró-formas"], ["box", "Stock e produtos em Kz"], ["phone", "Recargas Unitel, Africell, ZAP…"], ["chart", "Relatórios e PDF"]];
+  a.innerHTML = `${CENA}<div class="auth-grid">
+    <section class="auth-marca">
+      <img class="auth-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">
+      <h2 class="auth-slogan">Crescendo juntos sempre!</h2>
+      <p class="auth-desc">Vendas, faturação, stock e recargas num só lugar, em todos os aparelhos.</p>
+      <ul class="auth-dest">${destaques.map(([i, t]) => `<li><span>${icon(i)}</span>${t}</li>`).join("")}</ul>
+    </section>
+    <div class="auth-box">${html}</div>
+  </div>
+  <p class="auth-pe">© ${new Date().getFullYear()} Grupo Kambas · Crescendo juntos sempre!</p>`;
+}
+const campoUser = (extra = "") => `<label class="field"><span>Utilizador</span><span class="com-ic">${icon("user")}<input class="f" id="l-user" autocapitalize="none" spellcheck="false" required ${extra}></span></label>`;
 function ecraLogin(msg = "") {
   ecraAuth(`<form id="f-login" class="auth-card" autocomplete="on">
-      <h1>Entrar</h1><p class="sub">Sistema de gestão do Grupo Kambas</p>
-      <label class="field"><span>Utilizador</span><input class="f" id="l-user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
-      ${campoSenha("l-senha", "Senha", "current-password", "required", "password")}
+      <span class="auth-ola">${saudacao()} 👋</span><h1>Entrar na sua conta</h1><p class="sub">Use o utilizador e a senha que o administrador lhe deu.</p>
+      ${campoUser('name="username" autocomplete="username" placeholder="Ex.: maria"')}
+      ${campoSenha("l-senha", "Senha", "current-password", 'required placeholder="A sua senha"', "password", "cadeado")}
       <div id="l-err">${msg ? `<div class="err">${esc(msg)}</div>` : ""}</div>
-      <button type="submit" class="btn pri big">Entrar</button>
+      <button type="submit" class="btn pri big auth-btn">Entrar${icon("right")}</button>
       <p class="cod" style="text-align:center;margin:0">Esqueceu a senha? Peça ao administrador para a mudar.</p>
       ${eNativo() || navigator.userAgent.includes("Electron") ? "" : `<a class="cod" style="text-align:center" href="instalar.html" target="_blank" rel="noopener">Instalar no Android, iPhone ou Windows</a>`}</form>`);
   $("#f-login").onsubmit = async e => {
-    e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true; b.textContent = "A entrar…";
+    e.preventDefault(); const b = e.target.querySelector("button[type=submit]"); b.disabled = true; b.innerHTML = `<span class="spin" aria-hidden="true"></span>A entrar…`;
     const { error } = await sb.auth.signInWithPassword({ email: emailDe($("#l-user").value), password: $("#l-senha").value });
     if (error) {
-      b.disabled = false; b.textContent = "Entrar";
+      b.disabled = false; b.innerHTML = `Entrar${icon("right")}`;
       const m = /invalid login/i.test(error.message) ? "Utilizador ou senha errados." : /banned/i.test(error.message) ? "Esta conta foi desativada. Fale com o administrador." : mensagemErro(error);
       $("#l-err").innerHTML = `<div class="err">${esc(m)}</div>`; return;
     }
@@ -2526,11 +2544,11 @@ async function terminarSessao() {
 }
 function ecraLoginDemo(msg = "") {
   ecraAuth(`<form id="f-login" class="auth-card" autocomplete="off">
-      <h1>Entrar</h1><p class="sub">Demonstração: entre como <b>admin</b> (administrador) ou <b>maria</b> (vendedora), com qualquer senha.</p>
-      <label class="field"><span>Utilizador</span><input class="f" id="l-user" autocapitalize="none" spellcheck="false" required></label>
-      ${campoSenha("l-senha", "Senha", "current-password", "required", "password")}
+      <span class="auth-ola">${saudacao()} 👋</span><h1>Entrar na sua conta</h1><p class="sub">Demonstração: entre como <b>admin</b> (administrador) ou <b>maria</b> (vendedora), com qualquer senha.</p>
+      ${campoUser('placeholder="admin ou maria"')}
+      ${campoSenha("l-senha", "Senha", "current-password", 'required placeholder="Qualquer senha"', "password", "cadeado")}
       <div id="l-err">${msg ? `<div class="note">${esc(msg)}</div>` : ""}</div>
-      <button type="submit" class="btn pri big">Entrar</button></form>`);
+      <button type="submit" class="btn pri big auth-btn">Entrar${icon("right")}</button></form>`);
   $("#f-login").onsubmit = e => {
     e.preventDefault();
     const u = E.utilizadores.find(x => x.utilizador === $("#l-user").value.trim().toLowerCase());
