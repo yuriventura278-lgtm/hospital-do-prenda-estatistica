@@ -21,6 +21,7 @@ def abrir(p, html, w, h, escala):
     pg = b.new_page(viewport={"width": w, "height": h}, device_scale_factor=escala)
     pg.goto(pathlib.Path(html).resolve().as_uri()); pg.wait_for_load_state("networkidle")
     pg.evaluate("document.fonts.ready"); pg.wait_for_timeout(800)
+    if pg.evaluate("!!document.querySelector('script')"): pg.wait_for_selector("body[data-pronto]")
     return pg
 
 
@@ -32,7 +33,7 @@ def social(html, nome):
     print("feito:", f"{nome}.png", f"{nome}.pdf")
 
 
-def lona(html, nome, larg_mm=620, alt_mm=1040, dpi=150):
+def lona(html, nome, larg_mm=620, alt_mm=1040, dpi=150, tif=True):
     w, h = 1240, 2080                       # 2 px por mm no desenho
     px = round(larg_mm / 25.4 * dpi)
     with tempfile.TemporaryDirectory() as t, sync_playwright() as p:
@@ -47,7 +48,7 @@ def lona(html, nome, larg_mm=620, alt_mm=1040, dpi=150):
         im = Image.open(f"{t}/rgb.png").convert("RGB")
         cmyk = ImageCms.getOpenProfile(str(ICC))
         tr = ImageCms.buildTransform(ImageCms.createProfile("sRGB"), cmyk, "RGB", "CMYK", renderingIntent=ImageCms.Intent.PERCEPTUAL)
-        ImageCms.applyTransform(im, tr).save(f"{nome}-CMYK-{dpi}dpi.tif", compression="tiff_lzw", dpi=(dpi, dpi), icc_profile=cmyk.tobytes())
+        if tif: ImageCms.applyTransform(im, tr).save(f"{nome}-CMYK-{dpi}dpi.tif", compression="tiff_lzw", dpi=(dpi, dpi), icc_profile=cmyk.tobytes())
         im.resize((im.width // 4, im.height // 4), Image.LANCZOS).save(f"{nome}-previsualizacao.jpg", quality=88)
     print("feito:", f"{nome}-CMYK.pdf", f"{nome}-CMYK-{dpi}dpi.tif", f"{nome}-previsualizacao.jpg")
 
