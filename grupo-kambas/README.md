@@ -35,6 +35,13 @@ utilizador e sincronização entre dispositivos.
   devolve o saldo; a pró-forma só tira saldo quando é convertida. O lucro de cada
   recarga é o valor vendido menos o custo desse saldo (média do que se pagou) e
   aparece em Saldos e nos relatórios. Aviso de saldo baixo no Início.
+  Pode carregar o mesmo operador quantas vezes quiser no mês: cada carregamento
+  soma ao saldo, e Saldos mostra quanto e quantas vezes carregou.
+- **Produtos e secções:** registar, editar e remover produtos e serviços (botão em
+  cada linha). Secções com contagem, incluindo **Electrodomésticos**, **CCTV &
+  Segurança** e **Material de Papelaria**; "Nova secção" cria qualquer outra, com um
+  código próprio usado nos códigos dos produtos (ex.: CCTV → CS01). Uma secção só
+  se remove quando está vazia.
 - **Stock:** entradas, saídas, contagem geral, alertas, histórico de movimentos.
 - **Relatórios:** diário, semanal, mensal, trimestral, semestral e anual, em PDF.
 - **Utilizadores e permissões:**
@@ -42,6 +49,14 @@ utilizador e sincronização entre dispositivos.
   - *Administrador* — acesso total.
   - Permissões extra que o administrador pode dar a um vendedor: ver documentos
     de todos, anular, produtos e preços, stock, relatórios.
+
+## Dados da empresa (Definições, só administrador)
+
+- Nome, NIF, actividade e slogan.
+- Contactos e localização: telefones, e-mail, endereço, ponto de referência, link
+  do mapa, Facebook, TikTok e Instagram. Aparecem na fatura e no PDF.
+- Coordenadas bancárias: titular e contas (acrescentar, editar, remover, pôr em
+  primeiro). A primeira conta aparece no rodapé da fatura.
 
 ## Progresso e espera
 

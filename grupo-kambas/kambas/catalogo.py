@@ -46,6 +46,9 @@ SECCOES = [
     ("DS", "Design & Serviços Digitais"),
     ("IC", "Importação, Câmbio & Formações"),
     ("TP", "Tráfego Pago"),
+    ("EL", "Electrodomésticos"),
+    ("CS", "CCTV & Segurança"),
+    ("MP", "Material de Papelaria"),
 ]
 
 P, S = "produto", "servico"

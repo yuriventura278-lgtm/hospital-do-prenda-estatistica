@@ -83,6 +83,7 @@ const PERM_CHAVES = ["vender", "ver_todas", "anular", "produtos", "stock", "rela
 const OPERADORES_BASE = [["UNITEL", "Unitel", "Telemóvel", "Número de telefone"], ["AFRICELL", "Africell", "Telemóvel", "Número de telefone"],
   ["ZAP", "ZAP", "Televisão", "Nº do cartão ZAP"], ["DSTV", "DStv", "Televisão", "Nº do cartão (smartcard)"],
   ["EDEL", "EDEL", "Energia", "Nº do contador"], ["EPAL", "EPAL", "Água", "Nº do contador / cliente"]];
+const SECCOES_NOVAS = ["Electrodomésticos", "CCTV & Segurança", "Material de Papelaria"];
 class ErroNegocio extends Error {}
 const falha = m => { throw new ErroNegocio(m); };
 
@@ -305,14 +306,40 @@ const Local = {
     if (id) {
       const a = produto(id) || falha("Produto não encontrado.");
       if (a.tipo === "produto" && tipo === "servico" && a.stock > 0) falha("Este produto ainda tem stock. Faça uma contagem para 0 antes de o mudar para serviço.");
+      this.garantirSeccao(seccao);
       return Object.assign(a, dados);
     }
-    const sec = (E.config.seccoes_cod.find(([, n]) => n === seccao) || ["GK"])[0];
+    const sec = this.garantirSeccao(seccao);
     let n = 1; while (E.produtos.some(x => x.codigo === sec + pad(n))) n++;
     const novo = { ...dados, id: ++E._seq.p, codigo: sec + pad(n), stock: 0, ativo: true };
     E.produtos.push(novo);
     if (ini) this.mover(novo.id, "entrada", ini, "Stock inicial");
     return novo;
+  },
+  /* igual a _garantir_seccao do servidor: devolve o código de 2 letras da secção, criando-a se faltar */
+  garantirSeccao(nome) {
+    nome = (nome || "").trim(); if (!nome) return "GK";
+    const c = E.config.seccoes_cod.find(([, n]) => n.toLowerCase() === nome.toLowerCase()); if (c) return c[0];
+    let pal = nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+    const longas = pal.filter(w => w.length > 2); if (longas.length) pal = longas;
+    const base = pal.length >= 2 ? pal[0][0] + pal[1][0] : pal.length === 1 ? (pal[0] + "X").slice(0, 2) : "GK";
+    let cod = base, n = 1; while (E.config.seccoes_cod.some(([x]) => x === cod)) cod = base[0] + n++;
+    if (!E.config.seccoes.some(x => x.toLowerCase() === nome.toLowerCase())) E.config.seccoes.push(nome);
+    E.config.seccoes_cod.push([cod, nome]); return cod;
+  },
+  guardarSeccao(nome, remover) {
+    this.exigir("produtos");
+    nome = (nome || "").trim(); if (!nome) falha("Indique o nome da secção.");
+    if (nome.length > 60) falha("O nome da secção é demasiado longo (máx. 60 letras).");
+    if (remover) {
+      const n = E.produtos.filter(p => p.seccao === nome).length;
+      if (n) falha(`A secção '${nome}' ainda tem ${n} item(ns). Mude-os de secção ou remova-os primeiro.`);
+      E.config.seccoes = E.config.seccoes.filter(x => x !== nome); E.config.seccoes_cod = E.config.seccoes_cod.filter(([, x]) => x !== nome);
+    } else {
+      if (E.config.seccoes.some(x => x.toLowerCase() === nome.toLowerCase())) falha(`Já existe a secção '${nome}'.`);
+      this.garantirSeccao(nome);
+    }
+    return { seccoes: E.config.seccoes, seccoes_cod: E.config.seccoes_cod };
   },
   removerProduto(id) { this.exigir("produtos"); const p = produto(id); E.produtos = E.produtos.filter(x => x !== p); (E._removidos ||= []).push(p); },
   guardarCliente(d, id) {
@@ -327,7 +354,17 @@ const Local = {
   removerCliente(id) { this.exigir("admin"); E.clientes = E.clientes.filter(c => c.id !== Number(id)); },
   guardarConfig(d) {
     this.exigir("admin");
-    if (d.empresa) E.config.empresa = { ...E.config.empresa, ...d.empresa };
+    if (d.empresa) {
+      const e = d.empresa;
+      if ("nome" in e && !String(e.nome || "").trim()) falha("Indique o nome da empresa.");
+      if ("contas" in e) {
+        if (!Array.isArray(e.contas) || !e.contas.length) falha("Indique pelo menos uma conta bancária.");
+        if (e.contas.length > 10) falha("No máximo 10 contas.");
+        if (e.contas.some(c => !String(c.banco || "").trim() || !String(c.iban || "").trim())) falha("Cada conta precisa do banco e do IBAN (ou número).");
+      }
+      if ("titular" in e && !String(e.titular || "").trim()) falha("Indique o titular das contas.");
+      E.config.empresa = { ...E.config.empresa, ...e };
+    }
     if (d.numeracao) for (const [k, v] of Object.entries(d.numeracao)) {
       const n = inteiro(v), maior = Math.max(0, ...E.faturas.filter(f => f.tipo === k).map(f => f.numero));
       if (!(n > maior)) falha(`O próximo número de ${k} tem de ser maior que ${nf(maior)}.`);
@@ -543,6 +580,7 @@ const RPC = {
   removerCliente: id => ["remover_cliente", { p_id: id }],
   guardarConfig: d => ["guardar_config", { d }],
   carregarSaldo: d => ["carregar_saldo", { d }],
+  guardarSeccao: (nome, remover) => ["guardar_seccao", { p_nome: nome, p_remover: !!remover }],
   ajustarSaldo: d => ["ajustar_saldo", { d }],
   guardarOperador: (d, id) => ["guardar_operador", { d, p_id: id || null }],
 };
@@ -820,7 +858,7 @@ function papelFatura(f) {
   return `<div class="paper"><div class="pp">
     <div class="tipo-faixa f-${carimbo ? "anulada" : f.tipo}"><b>${titulo}${carimbo ? ` · ${carimbo}` : ""}</b><span>${significadoDoc(f)}</span></div>
     <div class="hd">
-      <div><img src="${LOGO_AZUL}" alt="Grupo Kambas"><div class="act">${esc(emp.actividade)}</div><div class="ct">${esc(emp.telefones)}<br>${esc(emp.email)}${emp.nif ? `<br>NIF ${esc(emp.nif)}` : ""}${emp.endereco ? `<br>${esc(emp.endereco)}` : ""}</div></div>
+      <div><img src="${LOGO_AZUL}" alt="Grupo Kambas"><div class="act">${esc(emp.actividade)}</div><div class="ct">${esc(emp.telefones)}<br>${esc(emp.email)}${emp.nif ? `<br>NIF ${esc(emp.nif)}` : ""}${emp.endereco ? `<br>${esc(emp.endereco)}` : ""}${emp.localizacao ? `<br>${esc(emp.localizacao)}` : ""}</div></div>
       <div class="ttl"><span class="w ${f.tipo !== "FT" ? "long" : ""} w-${f.tipo}">${titulo}</span><span class="n">Nº ${docNum(f)}</span>${carimbo ? `<span class="an">${carimbo}</span>` : ""}
         <div class="dt"><div class="lb">Data</div><div class="num">${dataPt(f.data)} &nbsp;${horaPt(f.data)}</div></div></div>
     </div>
@@ -837,7 +875,7 @@ function papelFatura(f) {
     </div>
     <div class="obs"><div class="lb">Observações</div><div>${esc(f.observacoes)}</div></div>
     <div class="sig"><div><span class="vend">${esc(f.vendedor_nome)}</span>O vendedor / carimbo</div></div>
-    <div class="ft"><b>${esc(emp.slogan)}</b><span class="num">${esc(emp.contas[0].banco)} &nbsp;${esc(emp.contas[0].iban)}</span></div>
+    <div class="ft"><b>${esc(emp.slogan)}</b><span class="num">${emp.contas && emp.contas[0] ? `${esc(emp.contas[0].banco)} &nbsp;${esc(emp.contas[0].iban)}` : ""}</span></div>
   </div></div>`;
 }
 function verFatura(id, acabada = false) {
@@ -901,7 +939,7 @@ function resumoFatura(f) {
     ...f.itens.map(it => `${it.qtd} × ${it.descricao} — ${kz(it.total)}`), "",
     ...(f.desconto ? [`Subtotal: ${kz(f.subtotal)}`, `Desconto: ${kz(f.desconto)}`] : []), `*Total: ${kz(f.total)}*`,
     f.tipo === "PP" ? `Pró-forma válida até ${dataPt(f.validade || "")}` : f.tipo === "FT" && !f.pago ? "Por pagar" : `Pagamento: ${f.forma_pagamento || ""}`,
-    ...((f.tipo !== "FR" && !f.pago) || f.forma_pagamento === "Transferência bancária" ? ["", ...emp.contas.slice(0, 3).map(c => `${c.banco}: ${c.iban}`), `Titular: ${emp.titular}`] : []),
+    ...((f.tipo !== "FR" && !f.pago) || f.forma_pagamento === "Transferência bancária" ? ["", ...(emp.contas || []).slice(0, 3).map(c => `${c.banco}: ${c.iban}`), `Titular: ${emp.titular}`] : []),
     "", emp.slogan].join("\n");
 }
 
@@ -1191,14 +1229,14 @@ function formRecarga(id) {
 }
 
 /* página Saldos (quem gere stock) */
-const filtroS = { op: "todos" };
+const filtroS = { op: "todos", tipo: "todos" };
 function resumoSaldos(desde) {
-  const r = {}; (E.operadores || []).forEach(o => r[o.id] = { vendido: 0, custo: 0, n: 0, carregado: 0, pago: 0 });
+  const r = {}; (E.operadores || []).forEach(o => r[o.id] = { vendido: 0, custo: 0, n: 0, carregado: 0, pago: 0, nCargas: 0 });
   (E.movimentos_saldo || []).forEach(m => {
     const x = r[m.operador_id]; if (!x || m.data < desde) return;
     if (m.tipo === "venda") { x.vendido += -m.valor; x.custo += m.custo; x.n++; }
     else if (m.tipo === "anulacao") { x.vendido -= m.valor; x.custo -= m.custo; x.n--; }
-    else if (m.tipo === "carga") { x.carregado += m.valor; x.pago += m.custo; }
+    else if (m.tipo === "carga") { x.carregado += m.valor; x.pago += m.custo; x.nCargas++; }
   });
   Object.values(r).forEach(x => x.lucro = x.vendido - x.custo);
   return r;
@@ -1207,7 +1245,7 @@ function vSaldos() {
   const ops = E.operadores || [], mes = hoje().slice(0, 7) + "-01", r = resumoSaldos(mes);
   const tot = k => Object.values(r).reduce((s, x) => s + x[k], 0);
   const saldoTotal = ops.reduce((s, o) => s + o.saldo, 0), custoTotal = ops.reduce((s, o) => s + o.custo, 0);
-  const movs = (E.movimentos_saldo || []).filter(m => filtroS.op === "todos" || String(m.operador_id) === filtroS.op)
+  const movs = (E.movimentos_saldo || []).filter(m => (filtroS.op === "todos" || String(m.operador_id) === filtroS.op) && (filtroS.tipo === "todos" || m.tipo === filtroS.tipo))
     .sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id).slice(0, 80);
   const TIPO_MOV = { carga: ["Carga", "ok"], venda: ["Venda", "brand"], anulacao: ["Anulação", "warn"], ajuste: ["Correção", ""] };
   $("#main").innerHTML = `
@@ -1215,21 +1253,24 @@ function vSaldos() {
       <div class="kpi hero"><span class="lab">Saldo disponível</span><span class="val num">${fmt(saldoTotal)} <small>Kz</small></span><span class="ft">em ${ops.length} operador${ops.length === 1 ? "" : "es"} · custou ${kz(custoTotal)}</span></div>
       <div class="kpi"><span class="lab">Recargas vendidas este mês</span><span class="val num">${fmt(tot("vendido"))} <small>Kz</small></span><span class="ft">${tot("n")} recarga${tot("n") === 1 ? "" : "s"}</span></div>
       <div class="kpi"><span class="lab">Lucro das recargas este mês</span><span class="val num" style="color:var(--ok)">${fmt(tot("lucro"))} <small>Kz</small></span><span class="ft">${tot("vendido") ? ((tot("lucro") / tot("vendido")) * 100).toFixed(1).replace(".", ",") + "% do vendido" : "sem vendas"}</span></div>
-      <div class="kpi"><span class="lab">Investido este mês</span><span class="val num">${fmt(tot("pago"))} <small>Kz</small></span><span class="ft">${kz(tot("carregado"))} de saldo recebido</span></div>
+      <div class="kpi"><span class="lab">Investido este mês</span><span class="val num">${fmt(tot("pago"))} <small>Kz</small></span><span class="ft">${tot("nCargas")} carregamento${tot("nCargas") === 1 ? "" : "s"} · ${kz(tot("carregado"))} de saldo recebido</span></div>
     </section>
     <div class="panel"><div class="panel-h"><h2>Operadores</h2><div class="toolbar"><button class="btn sm" data-act="novo-operador">${icon("plus")}Novo operador</button><button class="btn sm pri" data-act="carregar-saldo">${icon("in")}Carregar saldo</button></div></div>
       <div class="sgrid">${ops.map(o => { const x = r[o.id], st = opEstado(o); return `<div class="scard s-${st}">
         <div class="sc-top"><span class="opi">${opIcon(o)}</span><span class="opt"><b>${esc(o.nome)}</b><small>${esc(o.categoria)}</small></span><button class="icon-btn" data-act="editar-operador" data-id="${o.id}" aria-label="Editar ${esc(o.nome)}">${icon("adj")}</button></div>
         <div class="sc-saldo"><small>Saldo disponível</small><b class="num">${kz(o.saldo)}</b>${st !== "ok" ? `<span class="chip ${st}">${st === "bad" ? "Sem saldo" : "Saldo baixo"}</span>` : ""}</div>
-        <div class="sc-mini"><span>Vendido no mês<b class="num">${kz(x.vendido)}</b></span><span>Lucro no mês<b class="num" style="color:var(--ok)">${kz(x.lucro)}</b></span></div>
+        <div class="sc-mini"><span>Vendido no mês<b class="num">${kz(x.vendido)}</b></span><span>Lucro no mês<b class="num" style="color:var(--ok)">${kz(x.lucro)}</b></span>
+          <span class="sc-cargas">Carregado no mês<b class="num">${kz(x.carregado)}</b><small>${x.nCargas} carregamento${x.nCargas === 1 ? "" : "s"}</small></span></div>
         <div class="sc-acoes"><button class="btn sm" data-act="ajustar-saldo" data-id="${o.id}">Corrigir</button><button class="btn sm pri" data-act="carregar-saldo" data-id="${o.id}">${icon("plus")}Carregar</button></div></div>`; }).join("")}</div></div>
     <div class="panel"><div class="panel-h"><h2>Histórico de saldos</h2>
-      <select class="f" id="s-op" aria-label="Operador" style="width:auto"><option value="todos">Todos os operadores</option>${ops.map(o => `<option value="${o.id}" ${filtroS.op === String(o.id) ? "selected" : ""}>${esc(o.nome)}</option>`).join("")}</select></div>
+      <div class="toolbar"><select class="f" id="s-op" aria-label="Operador" style="width:auto"><option value="todos">Todos os operadores</option>${ops.map(o => `<option value="${o.id}" ${filtroS.op === String(o.id) ? "selected" : ""}>${esc(o.nome)}</option>`).join("")}</select>
+        <select class="f" id="s-tipo" aria-label="Tipo de movimento" style="width:auto">${[["todos", "Todos os movimentos"], ["carga", "Carregamentos"], ["venda", "Vendas"], ["anulacao", "Anulações"], ["ajuste", "Correções"]].map(([v, t]) => `<option value="${v}" ${filtroS.tipo === v ? "selected" : ""}>${t}</option>`).join("")}</select></div></div>
       ${movs.length ? `<div class="dlist">${movs.map(m => { const o = operador(m.operador_id) || { nome: "—", categoria: "" }, [tt, tc] = TIPO_MOV[m.tipo] || [m.tipo, ""]; return `<div class="drow est">
         <span class="opi sm">${opIcon(o)}</span>
         <span class="dmeio"><b>${esc(o.nome)} · <span class="chip ${tc}">${tt}</span></b><small>${dataPt(m.data)} ${horaPt(m.data)}${m.ref ? " · " + esc(m.ref) : ""}${m.motivo && m.motivo !== "Venda" ? " · " + esc(m.motivo) : ""}</small></span>
         <span class="dfim"><b class="num" style="color:${m.valor >= 0 ? "var(--ok)" : "var(--ink)"}">${m.valor >= 0 ? "+" : "−"} ${kz(Math.abs(m.valor))}</b><small class="num">saldo ${kz(m.saldo_final)}</small></span></div>`; }).join("")}</div>` : `<div class="empty">Ainda não há movimentos de saldo.</div>`}</div>`;
   $("#s-op").onchange = e => { filtroS.op = e.target.value; vSaldos(); };
+  $("#s-tipo").onchange = e => { filtroS.tipo = e.target.value; vSaldos(); };
 }
 function formCarga(id) {
   const ops = E.operadores || [], o0 = operador(id) || ops[0];
@@ -1237,6 +1278,7 @@ function formCarga(id) {
     <div class="sheet-b"><div class="field"><span>Operador</span><div class="seg wrap" id="cs-op">${ops.map(o => `<button type="button" data-v="${o.id}" aria-pressed="${o === o0}">${esc(o.nome)}</button>`).join("")}</div></div>
       <div class="grid2"><label class="field"><span>Saldo recebido (Kz)</span><input class="f num" id="cs-valor" inputmode="numeric" placeholder="Ex.: 10000" required></label>
         <label class="field"><span>Quanto pagou (Kz)</span><input class="f num" id="cs-pago" inputmode="numeric" placeholder="Igual ao saldo"></label></div>
+      <div class="cs-atual" id="cs-atual"></div>
       <div class="note" id="cs-prev">Se o operador lhe dá desconto (ex.: paga 9.500 e recebe 10.000), escreva o valor pago: a diferença é o seu lucro.</div>
       <label class="field"><span>Nota (opcional)</span><input class="f" id="cs-mot" placeholder="Ex.: comprado no agente da Mutamba"></label><div id="frm-err"></div></div>
     <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A carregar…">Carregar saldo</button></div></form>`,
@@ -1248,9 +1290,12 @@ function formCarga(id) {
   ligarEscolha("#cs-op");
   const prev = () => {
     const v = inteiro($("#cs-valor").value) || 0, p = $("#cs-pago").value.trim() ? inteiro($("#cs-pago").value) || 0 : v;
+    const o = operador($("#cs-op [aria-pressed=true]").dataset.v), x = resumoSaldos(hoje().slice(0, 7) + "-01")[o.id] || { nCargas: 0, carregado: 0 };
+    $("#cs-atual").innerHTML = `<span>Saldo ${esc(o.nome)} agora</span><b class="num">${kz(o.saldo)}</b>${v ? `<span class="cs-fica">${icon("right")}fica <b class="num">${kz(o.saldo + v)}</b></span>` : ""}
+      <small>Pode carregar quantas vezes quiser: cada carregamento soma ao saldo. Este mês: ${x.nCargas} carregamento${x.nCargas === 1 ? "" : "s"} (${kz(x.carregado)}).</small>`;
     if (v && p) $("#cs-prev").innerHTML = p < v ? `Lucro previsto ao vender este saldo: <b style="color:var(--ok)">${kz(v - p)}</b> (${((v - p) / v * 100).toFixed(1).replace(".", ",")}%).` : p > v ? `<b style="color:var(--warn)">Pagou mais do que o saldo recebido: estas recargas dão prejuízo.</b>` : "Sem desconto: estas recargas não dão lucro.";
   };
-  $("#cs-valor").oninput = prev; $("#cs-pago").oninput = prev;
+  $("#cs-valor").oninput = prev; $("#cs-pago").oninput = prev; $("#cs-op").addEventListener("change", prev); prev();
   setTimeout(() => $("#cs-valor").focus(), 50);
 }
 function formAjusteSaldo(id) {
@@ -1277,42 +1322,64 @@ function formOperador(id) {
 
 /* ============================================================ produtos */
 const filtroP = { q: "", sec: "Todas", tipo: "todos" };
+/* secções do catálogo: as da configuração (mesmo vazias) e as que os produtos usam */
+function todasSeccoes() { return [...new Set([...(E.config.seccoes || []), ...E.produtos.map(p => p.seccao)])]; }
 function vProdutos() {
-  const secs = ["Todas", ...new Set(E.produtos.map(p => p.seccao))];
+  const secs = todasSeccoes(), conta = {}; E.produtos.forEach(p => conta[p.seccao] = (conta[p.seccao] || 0) + 1);
+  if (filtroP.sec !== "Todas" && !secs.includes(filtroP.sec)) filtroP.sec = "Todas";
   $("#main").innerHTML = `
     <div class="toolbar">
       <label class="search">${icon("search")}<input id="xq" type="search" placeholder="Procurar por nome ou código" value="${esc(filtroP.q)}" aria-label="Procurar produtos"></label>
-      <select class="f" id="xs" aria-label="Secção">${secs.map(s => `<option ${s === filtroP.sec ? "selected" : ""}>${esc(s)}</option>`).join("")}</select>
       <div class="seg" id="xt">${[["todos", "Todos"], ["produto", "Produtos"], ["servico", "Serviços"]].map(([v, t]) => `<button data-act="tipo-p" data-v="${v}" aria-pressed="${filtroP.tipo === v}">${t}</button>`).join("")}</div>
-      ${pode("produtos") ? `<button class="btn pri" data-act="novo-produto">${icon("plus")}Registar produto</button>` : ""}
+      ${pode("produtos") ? `<button class="btn" data-act="gerir-seccoes">${icon("adj")}Secções</button><button class="btn pri" data-act="novo-produto">${icon("plus")}Registar produto</button>` : ""}
     </div>
+    <div class="chips" id="xsec">${["Todas", ...secs].map(x => `<button data-act="sec-p" data-v="${esc(x)}" aria-pressed="${x === filtroP.sec}">${esc(NOME_SEC(x))} <span class="cnt">${x === "Todas" ? E.produtos.length : conta[x] || 0}</span></button>`).join("")}${pode("produtos") ? `<button class="chip-nova" data-act="nova-seccao">${icon("plus")}Nova secção</button>` : ""}</div>
     <div class="panel"><div class="panel-h"><h2 id="x-res"></h2><span class="sub">Preços em kwanzas (Kz).${pode("produtos") ? " Toque numa linha para editar." : ""}</span></div><div id="x-lista"></div></div>`;
   const upd = () => {
-    filtroP.q = $("#xq").value; filtroP.sec = $("#xs").value;
+    filtroP.q = $("#xq").value;
     const q = filtroP.q.trim().toLowerCase();
     const l = E.produtos.filter(p => (filtroP.sec === "Todas" || p.seccao === filtroP.sec) && (filtroP.tipo === "todos" || p.tipo === filtroP.tipo) && (!q || (p.nome + " " + p.codigo + " " + p.descricao).toLowerCase().includes(q)));
-    $("#x-res").textContent = `${l.length} ${l.length === 1 ? "item" : "itens"} no catálogo`;
-    $("#x-lista").innerHTML = l.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th class="hide-m">Código</th><th>Nome</th><th class="hide-m">Secção</th><th class="hide-m">Tipo</th><th class="r">Preço</th><th class="r">Stock</th></tr></thead><tbody>
+    $("#x-res").textContent = filtroP.sec === "Todas" ? `${l.length} ${l.length === 1 ? "item" : "itens"} no catálogo` : `${filtroP.sec} · ${l.length} ${l.length === 1 ? "item" : "itens"}`;
+    $("#x-lista").innerHTML = l.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th class="hide-m">Código</th><th>Nome</th><th class="hide-m">Secção</th><th class="hide-m">Tipo</th><th class="r">Preço</th><th class="r">Stock</th>${pode("produtos") ? '<th class="r"><span class="sr">Ações</span></th>' : ""}</tr></thead><tbody>
       ${l.map(p => `<tr ${pode("produtos") ? `class="click" data-act="editar-produto" data-id="${p.id}"` : ""}><td class="cod hide-m">${p.codigo}</td>
         <td><span class="strong">${esc(p.nome)}</span>${p.descricao ? `<div class="muted">${esc(p.descricao)}</div>` : ""}<div class="cod">${p.codigo} · ${p.tipo === "produto" ? "Produto" : "Serviço"}</div>${p.tier_qtd ? `<div class="muted" style="color:var(--ok)">${p.tier_qtd}+ un.: ${kz(p.tier_preco)}</div>` : ""}</td>
         <td class="hide-m muted">${esc(p.seccao)}</td>
         <td class="hide-m">${p.tipo === "produto" ? '<span class="chip brand">Produto</span>' : '<span class="chip">Serviço</span>'}</td>
         <td class="r num strong" style="white-space:nowrap">${precoCurto(p)}</td>
-        <td class="r num">${p.tipo === "produto" ? `<span class="chip ${estadoStock(p)}">${p.stock}</span>` : '<span class="muted">—</span>'}</td></tr>`).join("")}
-    </tbody></table></div>` : `<div class="empty">Nenhum item encontrado.</div>`;
+        <td class="r num">${p.tipo === "produto" ? `<span class="chip ${estadoStock(p)}">${p.stock}</span>` : '<span class="muted">—</span>'}</td>
+        ${pode("produtos") ? `<td class="r acoes-l"><button class="icon-btn hide-m" data-act="editar-produto" data-id="${p.id}" aria-label="Editar ${esc(p.nome)}">${icon("adj")}</button><button class="icon-btn perigo" data-act="remover-produto" data-id="${p.id}" aria-label="Remover ${esc(p.nome)}">${icon("trash")}</button></td>` : ""}</tr>`).join("")}
+    </tbody></table></div>` : filtroP.sec !== "Todas" && !q && !(conta[filtroP.sec] > 0)
+      ? `<div class="empty">Ainda não há itens em <b>${esc(filtroP.sec)}</b>.${pode("produtos") ? `<div style="margin-top:12px"><button class="btn pri" data-act="novo-produto">${icon("plus")}Registar o primeiro</button></div>` : ""}</div>`
+      : `<div class="empty">Nenhum item encontrado.</div>`;
   };
-  $("#xq").oninput = upd; $("#xs").onchange = upd; upd();
+  $("#xq").oninput = upd; upd();
   vProdutos.upd = upd;
+}
+function gerirSeccoes() {
+  const conta = {}; E.produtos.forEach(p => conta[p.seccao] = (conta[p.seccao] || 0) + 1);
+  const cod = Object.fromEntries((E.config.seccoes_cod || []).map(([c, n]) => [n, c]));
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>Secções do catálogo</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b">
+      <div class="field"><span>Nova secção</span><div class="nova-sec"><input class="f" id="ns-nome" placeholder="Ex.: Electrodomésticos, CCTV, Papelaria" maxlength="60" autocomplete="off"><button class="btn pri" data-espera="A criar…">${icon("plus")}Criar</button></div>
+        <small style="color:var(--ink-3)">Cada secção recebe um código (ex.: Electrodomésticos → EL) usado nos códigos dos produtos.</small></div>
+      <div id="frm-err"></div>
+      <div class="sec-lista">${todasSeccoes().map(x => `<div class="sec-l"><span class="sec-cod">${esc(cod[x] || "—")}</span><span class="sec-n"><b>${esc(x)}</b><small>${conta[x] || 0} ${conta[x] === 1 ? "item" : "itens"}</small></span>
+        ${conta[x] ? `<span class="cod">tem itens</span>` : `<button type="button" class="icon-btn perigo" data-act="remover-seccao" data-v="${esc(x)}" aria-label="Remover a secção ${esc(x)}">${icon("trash")}</button>`}</div>`).join("")}</div>
+    </div>
+    <div class="sheet-f"><span class="sp"></span><button type="button" class="btn" data-act="fechar">Fechar</button></div></form>`,
+    async () => { const nome = $("#ns-nome").value.trim(); await acao("guardarSeccao", nome, false); gerirSeccoes(); render(); toast(`Secção ${nome} criada`, "ok"); });
+  setTimeout(() => $("#ns-nome")?.focus(), 50);
 }
 function formProduto(id) {
   const p = id ? produto(id) : { nome: "", descricao: "", seccao: filtroP.sec !== "Todas" ? filtroP.sec : E.config.seccoes[0], tipo: "produto", modo: "fixo", preco: "", tier_qtd: "", tier_preco: "", stock: "", stock_min: 5 };
-  const secs = [...new Set([...E.config.seccoes, ...E.produtos.map(x => x.seccao)])];
+  const secs = todasSeccoes();
   abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>${id ? "Editar " + esc(p.codigo) : "Registar produto ou serviço"}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
     <div class="sheet-b">
       <label class="field"><span>Nome</span><input class="f" id="p-nome" value="${esc(p.nome)}" placeholder="Ex.: Caneca personalizada" required></label>
       <label class="field"><span>Descrição</span><input class="f" id="p-desc" value="${esc(p.descricao)}" placeholder="Ex.: Com o nosso material"></label>
       <div class="grid2">
-        <label class="field"><span>Secção do catálogo</span><input class="f" id="p-sec" list="secs" value="${esc(p.seccao)}"><datalist id="secs">${secs.map(s => `<option value="${esc(s)}">`).join("")}</datalist></label>
+        <label class="field"><span>Secção do catálogo</span><select class="f" id="p-sec">${secs.map(x => `<option ${x === p.seccao ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__nova">+ Nova secção…</option></select>
+          <input class="f" id="p-sec-nova" placeholder="Nome da nova secção (ex.: Electrodomésticos)" aria-label="Nome da nova secção" maxlength="60" hidden style="margin-top:8px"></label>
         <div class="field"><span>Tipo</span><div class="seg" id="p-tipo">${[["produto", "Produto (com stock)"], ["servico", "Serviço"]].map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${p.tipo === v}">${t}</button>`).join("")}</div></div>
       </div>
       <div class="grid2">
@@ -1332,7 +1399,9 @@ function formProduto(id) {
     <div class="sheet-f">${id ? `<button type="button" class="btn danger" data-act="remover-produto" data-id="${id}">${icon("trash")}Remover</button>` : ""}<span class="sp"></span><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri">${id ? "Guardar alterações" : "Registar"}</button></div></form>`,
     async () => {
       const g = s => $(s)?.value ?? "";
-      const d = { nome: g("#p-nome"), descricao: g("#p-desc"), seccao: g("#p-sec"), tipo: $("#p-tipo [aria-pressed=true]").dataset.v, modo: $("#p-modo [aria-pressed=true]").dataset.v,
+      const seccao = g("#p-sec") === "__nova" ? g("#p-sec-nova").trim() : g("#p-sec");
+      if (!seccao) falha("Escreva o nome da nova secção.");
+      const d = { nome: g("#p-nome"), descricao: g("#p-desc"), seccao, tipo: $("#p-tipo [aria-pressed=true]").dataset.v, modo: $("#p-modo [aria-pressed=true]").dataset.v,
         preco: inteiro(g("#p-preco")) || 0, tier_qtd: inteiro(g("#p-tq")) || "", tier_preco: inteiro(g("#p-tp")) || "", stock: inteiro(g("#p-stock")) || 0, stock_min: inteiro(g("#p-min")) || 0 };
       const r = await acao("guardarProduto", d, id);
       fechar(); render(); toast(id ? "Alterações guardadas" : `${r.nome} registado (${r.codigo})`);
@@ -1342,6 +1411,7 @@ function formProduto(id) {
     $("#p-stock-g").hidden = tipo !== "produto"; $("#p-preco-f").hidden = modo === "consulta";
   };
   ["#p-tipo", "#p-modo"].forEach(s => $(s).addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; $(s).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); sync(); }));
+  $("#p-sec").onchange = e => { const nova = e.target.value === "__nova"; $("#p-sec-nova").hidden = !nova; if (nova) $("#p-sec-nova").focus(); };
   sync(); setTimeout(() => $("#p-nome").focus(), 50);
 }
 
@@ -1663,18 +1733,38 @@ function formUtilizador(id) {
 }
 
 /* ============================================================ definições (só administrador) */
+function linhaConta(c = { banco: "", iban: "" }) {
+  return `<div class="conta-l"><input class="f" data-k="banco" value="${esc(c.banco)}" placeholder="Banco (ex.: BFA)" aria-label="Banco" maxlength="60">
+    <input class="f num" data-k="iban" value="${esc(c.iban)}" placeholder="IBAN ou número" aria-label="IBAN ou número da conta" maxlength="60">
+    <button type="button" class="icon-btn" data-act="conta-subir" aria-label="Pôr em primeiro (aparece no rodapé da fatura)" title="Pôr em primeiro">${icon("up")}</button>
+    <button type="button" class="icon-btn perigo" data-act="conta-remover" aria-label="Remover esta conta">${icon("trash")}</button></div>`;
+}
 function vDefinicoes() {
   const emp = E.config.empresa, n = E.config.numeracao;
+  const campo = (id, rot, v, extra = "") => `<label class="field"><span>${rot}</span><input class="f" id="${id}" value="${esc(v || "")}" ${extra}></label>`;
   $("#main").innerHTML = `
     <div class="dash">
-      <form class="panel" id="frm-emp" style="display:flex;flex-direction:column;gap:14px"><div class="panel-h" style="margin:0"><h2>Dados da empresa nos documentos</h2></div>
-        <div class="grid2"><label class="field"><span>Nome</span><input class="f" id="e-nome" value="${esc(emp.nome)}"></label><label class="field"><span>NIF da empresa</span><input class="f" id="e-nif" value="${esc(emp.nif)}" placeholder="Por preencher"></label></div>
-        <label class="field"><span>Actividade</span><input class="f" id="e-act" value="${esc(emp.actividade)}"></label>
-        <label class="field"><span>Endereço</span><input class="f" id="e-end" value="${esc(emp.endereco || "")}" placeholder="Ex.: Luanda, Viana"></label>
-        <div class="grid2"><label class="field"><span>Telefones</span><input class="f" id="e-tel" value="${esc(emp.telefones)}"></label><label class="field"><span>E-mail</span><input class="f" id="e-mail" value="${esc(emp.email)}"></label></div>
-        <label class="field"><span>Slogan (rodapé)</span><input class="f" id="e-slo" value="${esc(emp.slogan)}"></label>
-        <div id="emp-err"></div><div><button class="btn pri">Guardar dados</button></div></form>
       <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+        <form class="panel form-p" id="frm-emp"><div class="panel-h" style="margin:0"><h2>Dados da empresa nos documentos</h2></div>
+          <div class="grid2">${campo("e-nome", "Nome", emp.nome, "required")}${campo("e-nif", "NIF da empresa", emp.nif, 'placeholder="Por preencher"')}</div>
+          ${campo("e-act", "Actividade", emp.actividade)}
+          ${campo("e-slo", "Slogan (rodapé)", emp.slogan)}
+          <div id="emp-err"></div><div><button class="btn pri" data-espera="A guardar…">Guardar dados</button></div></form>
+        <form class="panel form-p" id="frm-cont"><div class="panel-h" style="margin:0"><h2>Contactos e localização</h2><span class="sub">aparecem nas faturas e PDF</span></div>
+          <div class="grid2">${campo("c-tel", "Telefones", emp.telefones, 'placeholder="Ex.: 951 332 741 · 949 512 673"')}${campo("c-mail", "E-mail", emp.email, 'type="email"')}</div>
+          ${campo("c-end", "Endereço", emp.endereco, 'placeholder="Ex.: Rua da Missão, nº 12, Luanda"')}
+          ${campo("c-loc", "Ponto de referência / bairro", emp.localizacao, 'placeholder="Ex.: Viana, junto ao mercado do Km 30"')}
+          <label class="field"><span>Link do mapa (Google Maps)</span><input class="f" id="c-mapa" value="${esc(emp.mapa || "")}" inputmode="url" placeholder="https://maps.app.goo.gl/…"></label>
+          ${emp.mapa ? `<a class="btn sm" href="${esc(emp.mapa)}" target="_blank" rel="noopener" style="align-self:flex-start">Ver no mapa</a>` : ""}
+          <div class="grid3">${campo("c-fb", "Facebook", emp.facebook)}${campo("c-tt", "TikTok", emp.tiktok)}${campo("c-ig", "Instagram", emp.instagram)}</div>
+          <div id="cont-err"></div><div><button class="btn pri" data-espera="A guardar…">Guardar contactos</button></div></form>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+        <form class="panel form-p" id="frm-banco"><div class="panel-h" style="margin:0"><h2>Coordenadas bancárias</h2><span class="sub">a primeira aparece no rodapé da fatura</span></div>
+          ${campo("b-tit", "Titular das contas", emp.titular, "required")}
+          <div class="field"><span>Contas</span><div id="b-contas" class="contas">${(emp.contas || []).map(linhaConta).join("")}</div>
+            <button type="button" class="btn sm" data-act="conta-nova" style="align-self:flex-start;margin-top:8px">${icon("plus")}Acrescentar conta</button></div>
+          <div id="banco-err"></div><div><button class="btn pri" data-espera="A guardar…">Guardar coordenadas</button></div></form>
         <form class="panel" id="frm-num" style="display:flex;flex-direction:column;gap:12px"><div class="panel-h" style="margin:0"><h2>Numeração dos documentos</h2></div>
           <div class="grid3"><label class="field"><span>Próxima FR</span><input class="f num" id="n-FR" inputmode="numeric" value="${n.FR}"></label>
             <label class="field"><span>Próxima FT</span><input class="f num" id="n-FT" inputmode="numeric" value="${n.FT}"></label>
@@ -1682,15 +1772,27 @@ function vDefinicoes() {
           <small style="color:var(--ink-3)">Use para continuar a sequência do bloco em papel (ex.: se o bloco vai na 0057, ponha 58).</small>
           <label class="field"><span>Validade das pró-formas (dias)</span><input class="f num" id="n-val" inputmode="numeric" value="${E.config.validade_proforma || 15}"></label>
           <div id="num-err"></div><div><button class="btn pri">Guardar</button></div></form>
-        <div class="panel"><div class="panel-h"><h2>Contas para pagamento</h2></div>
-          <div class="alert-list">${emp.contas.map(c => `<div class="row"><span>${esc(c.banco)}</span><span class="num cod" style="font-size:13px">${esc(c.iban)}</span></div>`).join("")}</div>
-          <p class="note" style="margin:12px 0 0">Titular: ${esc(emp.titular)}</p></div>
         <div class="panel"><div class="panel-h"><h2>Dados e sincronização</h2></div>
           <p style="margin:0 0 12px;color:var(--ink-2)">${DEMO ? "Modo de demonstração: os dados ficam só neste navegador." : "Os dados ficam no servidor e aparecem em todos os dispositivos (telemóveis, computadores e APK) logo que mudam."}</p>
           ${DEMO ? `<button class="btn danger" data-act="repor">Recomeçar a demonstração</button>` : ""}</div>
       </div>
     </div>`;
-  $("#frm-emp").onsubmit = async e => { e.preventDefault(); try { await acao("guardarConfig", { empresa: { nome: $("#e-nome").value, nif: $("#e-nif").value, actividade: $("#e-act").value, endereco: $("#e-end").value, telefones: $("#e-tel").value, email: $("#e-mail").value, slogan: $("#e-slo").value } }); toast("Dados da empresa guardados"); } catch (er) { $("#emp-err").innerHTML = `<div class="err">${esc(er.message)}</div>`; } };
+  /* guarda um formulário com indicador no botão e aviso no fim */
+  const ligar = (frm, errSel, dados, msg) => { $(frm).onsubmit = async e => {
+    e.preventDefault(); const b = $(frm + " button.pri"); if (b.disabled) return;
+    const txt = b.innerHTML; b.disabled = true; b.innerHTML = `<span class="spin" aria-hidden="true"></span>${esc(b.dataset.espera || "A guardar…")}`; $(errSel).innerHTML = "";
+    try { await acao("guardarConfig", { empresa: dados() }); toast(msg, "ok"); render(); }
+    catch (er) { $(errSel).innerHTML = `<div class="err">${esc(mensagemErro(er))}</div>`; if (b.isConnected) { b.disabled = false; b.innerHTML = txt; } }
+  }; };
+  ligar("#frm-emp", "#emp-err", () => ({ nome: $("#e-nome").value.trim(), nif: $("#e-nif").value.trim(), actividade: $("#e-act").value.trim(), slogan: $("#e-slo").value.trim() }), "Dados da empresa guardados");
+  ligar("#frm-cont", "#cont-err", () => {
+    const mapa = $("#c-mapa").value.trim();
+    if (mapa && !/^https?:\/\//i.test(mapa)) falha("O link do mapa tem de começar por https://");
+    return { telefones: $("#c-tel").value.trim(), email: $("#c-mail").value.trim(), endereco: $("#c-end").value.trim(), localizacao: $("#c-loc").value.trim(), mapa,
+      facebook: $("#c-fb").value.trim(), tiktok: $("#c-tt").value.trim(), instagram: $("#c-ig").value.trim() };
+  }, "Contactos guardados");
+  ligar("#frm-banco", "#banco-err", () => ({ titular: $("#b-tit").value.trim(),
+    contas: [...document.querySelectorAll("#b-contas .conta-l")].map(l => ({ banco: l.querySelector("[data-k=banco]").value.trim(), iban: l.querySelector("[data-k=iban]").value.trim() })).filter(c => c.banco || c.iban) }), "Coordenadas bancárias guardadas");
   $("#frm-num").onsubmit = async e => {
     e.preventDefault();
     try {
@@ -1779,7 +1881,7 @@ async function pdfFatura(f, imprimir = false) {
   doc.addImage(LOGO_AZUL, "PNG", m, 12, 27, 21);
   rot(m, 37.5, emp.actividade, COR.cin, 5.2);
   txt(m, 41.5, emp.telefones, 6.6); txt(m, 44.8, emp.email, 6.6);
-  let ye = 48.1; if (emp.nif) { txt(m, ye, "NIF " + emp.nif, 6.6); ye += 3.3; } if (emp.endereco) txt(m, ye, emp.endereco, 6.6);
+  let ye = 48.1; if (emp.nif) { txt(m, ye, "NIF " + emp.nif, 6.6); ye += 3.3; } if (emp.endereco) { txt(m, ye, emp.endereco, 6.6); ye += 3.3; } if (emp.localizacao) txt(m, ye, emp.localizacao, 6.6);
   const titulo = TITULO_DOC[f.tipo];
   const anulado = f.estado !== "emitida";
   fc(anulado ? COR.ver : COR_DOC[f.tipo]); doc.rect(0, 0, W, 8.5, "F");
@@ -1843,7 +1945,7 @@ async function pdfFatura(f, imprimir = false) {
   txt(m, 186, f.vendedor_nome, 8.5, true); dc(COR.lin); doc.line(m, 188, m + 60, 188); rot(m, 191, "O vendedor / carimbo", COR.cin, 5.4);
   // rodapé
   fc(COR.pet); doc.roundedRect(m, 195, W - 2 * m, 7, 1.5, 1.5, "F");
-  rot(m + 4, 199.6, emp.slogan, COR.branco, 6.4); txt(dir - 4, 199.6, `${emp.contas[0].banco}  ${emp.contas[0].iban}`, 6, false, COR.branco, "right");
+  rot(m + 4, 199.6, emp.slogan, COR.branco, 6.4); if (emp.contas && emp.contas[0]) txt(dir - 4, 199.6, `${emp.contas[0].banco}  ${emp.contas[0].iban}`, 6, false, COR.branco, "right");
   await guardarPdf(doc, `${f.tipo}_${nf(f.numero)}_Grupo_Kambas.pdf`, imprimir);
 }
 async function pdfRelatorio(R) {
@@ -2037,8 +2139,15 @@ const ACOES = {
   "copiar-fatura": async el => { const t = resumoFatura(byId(E.faturas, el.dataset.id)); try { await navigator.clipboard.writeText(t); toast("Resumo copiado"); } catch (e) { toast("Não foi possível copiar neste dispositivo"); } },
   "tipo-p": el => { filtroP.tipo = el.dataset.v; document.querySelectorAll("#xt button").forEach(b => b.setAttribute("aria-pressed", b === el)); vProdutos.upd(); },
   "novo-produto": () => formProduto(null),
+  "sec-p": el => { filtroP.sec = el.dataset.v; document.querySelectorAll("#xsec [data-act=sec-p]").forEach(b => b.setAttribute("aria-pressed", b === el)); vProdutos.upd(); },
+  "gerir-seccoes": () => gerirSeccoes(),
+  "conta-nova": () => { $("#b-contas").insertAdjacentHTML("beforeend", linhaConta()); $("#b-contas .conta-l:last-child input").focus(); },
+  "conta-remover": el => el.closest(".conta-l").remove(),
+  "conta-subir": el => { const l = el.closest(".conta-l"); l.parentNode.prepend(l); toast("Esta conta passa a aparecer no rodapé da fatura (guarde para confirmar)."); },
+  "nova-seccao": () => gerirSeccoes(),
+  "remover-seccao": el => { const nome = el.dataset.v; confirmar(`Remover a secção ${nome}?`, "A secção está vazia. Pode criá-la de novo mais tarde.", "Remover", async () => { await acao("guardarSeccao", nome, true); if (filtroP.sec === nome) filtroP.sec = "Todas"; gerirSeccoes(); render(); toast(`Secção ${nome} removida`, "ok"); }); },
   "editar-produto": el => formProduto(Number(el.dataset.id)),
-  "remover-produto": el => { const p = produto(el.dataset.id); confirmar(`Remover ${p.nome}?`, "Deixa de aparecer no catálogo e nas vendas. Os documentos antigos continuam intactos.", "Remover", async () => { await acao("removerProduto", p.id); fechar(); render(); toast(`${p.nome} removido`); }); },
+  "remover-produto": el => { const p = produto(el.dataset.id); confirmar(`Remover ${p.nome}?`, "Deixa de aparecer no catálogo e nas vendas. Os documentos antigos continuam intactos.", "Remover", async () => { await acao("removerProduto", p.id); fechar(); render(); toast(`${p.nome} removido`, "ok"); }); },
   "mov": el => formMov(el.dataset.t, el.dataset.id),
   "contagem": () => formContagem(),
   "rel-tipo": el => { rel.tipo = el.dataset.v; vRelatorios(); },
@@ -2205,6 +2314,7 @@ function ecraLoginDemo(msg = "") {
     $("#mode").textContent = "Demonstração";
     try { const s = localStorage.getItem(CHAVE); if (s) E = JSON.parse(s); } catch (e) { E = null; }
     if (E && !E.operadores) { Local.semearOperadores(); guardarLocal(); }   // demonstração guardada antes das recargas
+    if (E && E.config && !E._secNovas) { SECCOES_NOVAS.forEach(x => Local.garantirSeccao(x)); E._secNovas = true; guardarLocal(); }
     if (!E || !E._seq || !E.utilizadores) { Local.novo(); guardarLocal(); }
     if (E._sessao === false) return ecraLoginDemo();
     Local.atualizarEu();

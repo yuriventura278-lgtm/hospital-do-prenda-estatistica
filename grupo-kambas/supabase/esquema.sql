@@ -451,6 +451,7 @@ begin
   if v_modo <> 'consulta' and v_preco = 0 then perform _erro('Indique o preço em Kz (ou escolha ''por consulta'').'); end if;
   if (v_tq is null) <> (v_tp is null) then perform _erro('Para preço por quantidade, indique a quantidade mínima e o preço.'); end if;
   if v_tipo = 'servico' then v_min := 0; v_ini := 0; end if;
+  v_pref := _garantir_seccao(v_seccao);   -- secção nova (ex.: CCTV & Segurança) fica criada com o seu código
 
   if p_id is not null then
     select * into v_atual from produtos where id = p_id for update;
@@ -462,7 +463,6 @@ begin
            preco = v_preco, modo = v_modo, tier_qtd = v_tq, tier_preco = v_tp, stock_min = v_min where id = p_id;
     v_id := p_id;
   else
-    v_pref := coalesce((select e ->> 0 from jsonb_array_elements(cfg_valor('seccoes_cod')) e where e ->> 1 = v_seccao), 'GK');
     while exists (select 1 from produtos where codigo = v_pref || lpad(v_n::text, 2, '0')) loop v_n := v_n + 1; end loop;
     v_cod := v_pref || lpad(v_n::text, 2, '0');
     insert into produtos (codigo, nome, descricao, seccao, tipo, preco, modo, tier_qtd, tier_preco, stock_min)
@@ -524,6 +524,19 @@ declare v_k text; v_n integer; v_maior integer;
 begin
   perform exigir('admin');
   if d ? 'empresa' then
+    if jsonb_typeof(d -> 'empresa') is distinct from 'object' then perform _erro('Dados da empresa inválidos.'); end if;
+    if (d -> 'empresa') ? 'nome' and trim(coalesce(d -> 'empresa' ->> 'nome', '')) = '' then perform _erro('Indique o nome da empresa.'); end if;
+    if (d -> 'empresa') ? 'contas' then
+      if jsonb_typeof(d -> 'empresa' -> 'contas') is distinct from 'array' or jsonb_array_length(d -> 'empresa' -> 'contas') = 0 then
+        perform _erro('Indique pelo menos uma conta bancária.');
+      end if;
+      if jsonb_array_length(d -> 'empresa' -> 'contas') > 10 then perform _erro('No máximo 10 contas.'); end if;
+      if exists (select 1 from jsonb_array_elements(d -> 'empresa' -> 'contas') c
+                 where trim(coalesce(c ->> 'banco', '')) = '' or trim(coalesce(c ->> 'iban', '')) = '') then
+        perform _erro('Cada conta precisa do banco e do IBAN (ou número).');
+      end if;
+    end if;
+    if (d -> 'empresa') ? 'titular' and trim(coalesce(d -> 'empresa' ->> 'titular', '')) = '' then perform _erro('Indique o titular das contas.'); end if;
     update config set valor = valor || (d -> 'empresa') where chave = 'empresa';
   end if;
   if d ? 'numeracao' then
@@ -791,3 +804,60 @@ begin
     end if;
   end loop;
 end $$;
+
+-- ================================================================ secções do catálogo
+-- Cada secção tem um código de 2 letras usado nos códigos dos produtos (ex.: Electrodomésticos → EL01).
+create or replace function public._garantir_seccao(p_nome text) returns text
+language plpgsql security definer set search_path = public as $$
+declare v_nome text := trim(coalesce(p_nome, '')); v_cod text; v_base text; v_n integer := 1; v_pal text[]; v_long text[];
+begin
+  if v_nome = '' then return 'GK'; end if;
+  select e ->> 0 into v_cod from jsonb_array_elements(coalesce(cfg_valor('seccoes_cod'), '[]'::jsonb)) e where lower(e ->> 1) = lower(v_nome) limit 1;
+  if v_cod is not null then return v_cod; end if;
+  v_pal := array_remove(regexp_split_to_array(translate(upper(v_nome), 'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ', 'AAAAAEEEEIIIIOOOOOUUUUC'), '[^A-Z0-9]+'), '');
+  select array_agg(w) into v_long from unnest(v_pal) w where length(w) > 2;   -- ignora "de", "e", "a"…
+  if coalesce(array_length(v_long, 1), 0) > 0 then v_pal := v_long; end if;
+  v_base := case when coalesce(array_length(v_pal, 1), 0) >= 2 then left(v_pal[1], 1) || left(v_pal[2], 1)
+                 when coalesce(array_length(v_pal, 1), 0) = 1 then left(v_pal[1] || 'X', 2) else 'GK' end;
+  v_cod := v_base;
+  while exists (select 1 from jsonb_array_elements(coalesce(cfg_valor('seccoes_cod'), '[]'::jsonb)) e where e ->> 0 = v_cod) loop
+    v_cod := left(v_base, 1) || v_n; v_n := v_n + 1;
+  end loop;
+  insert into config values ('seccoes', '[]'::jsonb) on conflict (chave) do nothing;
+  insert into config values ('seccoes_cod', '[]'::jsonb) on conflict (chave) do nothing;
+  if not exists (select 1 from jsonb_array_elements(cfg_valor('seccoes')) e where lower(e #>> '{}') = lower(v_nome)) then
+    update config set valor = valor || jsonb_build_array(v_nome) where chave = 'seccoes';
+  end if;
+  update config set valor = valor || jsonb_build_array(jsonb_build_array(v_cod, v_nome)) where chave = 'seccoes_cod';
+  return v_cod;
+end $$;
+
+create or replace function public.guardar_seccao(p_nome text, p_remover boolean default false) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_nome text := trim(coalesce(p_nome, '')); v_n integer;
+begin
+  perform exigir('produtos');
+  if v_nome = '' then perform _erro('Indique o nome da secção.'); end if;
+  if length(v_nome) > 60 then perform _erro('O nome da secção é demasiado longo (máx. 60 letras).'); end if;
+  if p_remover then
+    select count(*) into v_n from produtos where ativo and seccao = v_nome;
+    if v_n > 0 then
+      perform _erro(format('A secção ''%s'' ainda tem %s item(ns). Mude-os de secção ou remova-os primeiro.', v_nome, v_n));
+    end if;
+    update config set valor = coalesce((select jsonb_agg(e) from jsonb_array_elements(valor) e where e #>> '{}' <> v_nome), '[]'::jsonb) where chave = 'seccoes';
+    update config set valor = coalesce((select jsonb_agg(e) from jsonb_array_elements(valor) e where e ->> 1 <> v_nome), '[]'::jsonb) where chave = 'seccoes_cod';
+  else
+    if exists (select 1 from jsonb_array_elements(coalesce(cfg_valor('seccoes'), '[]'::jsonb)) e where lower(e #>> '{}') = lower(v_nome)) then
+      perform _erro(format('Já existe a secção ''%s''.', v_nome));
+    end if;
+    perform _garantir_seccao(v_nome);
+  end if;
+  return jsonb_build_object('seccoes', cfg_valor('seccoes'), 'seccoes_cod', cfg_valor('seccoes_cod'));
+end $$;
+
+revoke execute on function public._garantir_seccao(text) from public, anon, authenticated;
+revoke execute on function public.guardar_seccao(text, boolean) from public, anon;
+grant execute on function public.guardar_seccao(text, boolean) to authenticated;
+
+-- secções novas pedidas pela loja
+select public._garantir_seccao(s) from unnest(array['Electrodomésticos', 'CCTV & Segurança', 'Material de Papelaria']) s;
