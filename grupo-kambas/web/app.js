@@ -531,7 +531,7 @@ async function acao(nome, ...args) {
 
 /* ============================================================ navegação (só mostra o que o utilizador pode usar) */
 const VISTAS = [
-  ["painel", "Painel", "home", () => true],
+  ["painel", "Início", "home", () => true],
   ["vender", "Vender", "cart", () => pode("vender")],
   ["faturas", "Documentos", "receipt", () => true],
   ["produtos", "Produtos", "tag", () => true],
@@ -541,17 +541,25 @@ const VISTAS = [
   ["utilizadores", "Utilizadores", "user", () => pode("admin")],
   ["definicoes", "Definições", "cog", () => pode("admin")],
 ];
-const TITULOS = { painel: "Painel", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
+const TITULOS = { painel: "Início", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
 let vista = "painel";
 function navegar() {
   const h = location.hash.replace("#", "");
   const vis = VISTAS.filter(v => v[3]());
   vista = vis.some(v => v[0] === h) ? h : "painel";
   $("#rail-nav").innerHTML = vis.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}${nome}</a>`).join("");
-  const tabs = vis.filter(v => !["utilizadores", "definicoes"].includes(v[0])).slice(0, 7);
-  $("#tabbar").style.gridTemplateColumns = `repeat(${tabs.length}, 1fr)`;
-  $("#tabbar").innerHTML = tabs.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}${nome}</a>`).join("");
+  // telemóvel: Início, Documentos, [Vender ao centro], Stock ou Clientes, Mais
+  const ids = ["painel", "faturas", "vender", pode("stock") ? "stock" : "clientes"].filter(id => vis.some(v => v[0] === id));
+  const naBarra = ids.map(id => vis.find(v => v[0] === id));
+  const noMais = vis.filter(v => !ids.includes(v[0]));
+  $("#tabbar").style.gridTemplateColumns = `repeat(${naBarra.length + 1}, minmax(0, 1fr))`;
+  $("#tabbar").innerHTML = naBarra.map(([id, nome, ic]) => id === "vender"
+      ? `<a href="#vender" class="tab-vender" ${vista === "vender" ? 'aria-current="page"' : ""}><span class="tv">${icon("plus")}</span>Vender</a>`
+      : `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}${nome}</a>`).join("")
+    + `<button data-act="mais" class="${noMais.some(v => v[0] === vista) ? "on" : ""}" aria-label="Mais opções">${icon("menu")}Mais</button>`;
+  $("#app").classList.toggle("compacta", vista === "vender");
   $("#page-title").textContent = vista === "painel" && !pode("ver_todas") ? "As minhas vendas" : TITULOS[vista];
+  document.title = `${TITULOS[vista]} · Grupo Kambas`;
   const ini = ((E.eu.nome || "").match(/[\p{L}\d]+/gu) || ["?"]).map(s => s[0]).slice(0, 2).join("").toUpperCase();
   $("#user-btn").textContent = ini;
   $("#rail-user").innerHTML = `<button class="ru" data-act="conta"><span class="av">${esc(ini)}</span><span><b>${esc(E.eu.nome)}</b><small>${E.eu.papel === "admin" ? "Administrador" : "Vendedor"}${DEMO ? " · demonstração" : ""}</small></span></button>
@@ -559,56 +567,102 @@ function navegar() {
   render();
   window.scrollTo(0, 0);
 }
+function menuMais() {
+  const vis = VISTAS.filter(v => v[3]()), ids = ["painel", "faturas", "vender", pode("stock") ? "stock" : "clientes"];
+  const outras = vis.filter(v => !ids.includes(v[0]));
+  abrir(`<div class="sheet"><div class="sheet-h"><h2>Mais</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><nav class="mais-lista">${outras.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}<span>${nome}</span>${icon("right")}</a>`).join("")}
+      <button data-act="conta">${icon("user")}<span>A minha conta<small>${esc(E.eu.nome)}</small></span>${icon("right")}</button></nav></div>
+    <div class="sheet-f"><button class="btn danger" data-act="sair">${icon("logout")}Terminar sessão</button></div></div>`);
+}
 function render() {
   pendente = false;
   ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, relatorios: vRelatorios, clientes: vClientes, utilizadores: vUtilizadores, definicoes: vDefinicoes })[vista]();
 }
 
 /* ============================================================ painel */
+const ini = { dias: 7 };
+function saudacao() { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 19 ? "Boa tarde" : "Boa noite"; }
+function dataLonga() { const s = new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" }); return s.charAt(0).toUpperCase() + s.slice(1); }
+function quando(iso) {
+  const d = diaDe(iso), h = hoje(), o = new Date(); o.setDate(o.getDate() - 1);
+  return (d === h ? "hoje" : d === isoLocal(o).slice(0, 10) ? "ontem" : dataPt(iso).slice(0, 5)) + ", " + horaPt(iso);
+}
+/* lista de documentos em cartões: no telemóvel não sai do ecrã */
+function listaDocs(lista) {
+  if (!lista.length) return `<div class="empty">Ainda não há documentos.</div>`;
+  return `<div class="dlist">${lista.map(f => { const [et, ec] = estadoDoc(f); return `<button class="drow ${f.estado === "anulada" ? "anulada" : ""}" data-act="ver-fatura" data-id="${f.id}">
+    <span class="dtipo t-${f.tipo}">${f.tipo}</span>
+    <span class="dmeio"><b>${esc(f.cliente_nome)}</b><small>${docNum(f)} · ${quando(f.data)}</small></span>
+    <span class="dfim"><b class="num">${kz(f.total)}</b><span class="chip ${ec}">${et}</span></span></button>`; }).join("")}</div>`;
+}
 function vPainel() {
   const fs = emitidas(), h = hoje(), mes = h.slice(0, 7);
-  const deHoje = fs.filter(f => diaDe(f.data) === h), doMes = fs.filter(f => f.data.startsWith(mes));
+  const o = new Date(); o.setDate(o.getDate() - 1); const ontem = isoLocal(o).slice(0, 10);
   const soma = l => l.reduce((s, f) => s + f.total, 0);
+  const deHoje = fs.filter(f => diaDe(f.data) === h), deOntem = fs.filter(f => diaDe(f.data) === ontem), doMes = fs.filter(f => f.data.startsWith(mes));
+  const vHoje = soma(deHoje), vOntem = soma(deOntem);
+  const variacao = vOntem ? Math.round((vHoje - vOntem) / vOntem * 100) : null;
   const porReceber = fs.filter(f => f.tipo === "FT" && !f.pago);
   const ppAbertas = docs().filter(f => f.tipo === "PP" && f.estado === "emitida");
-  const alertas = E.produtos.filter(p => estadoStock(p) && estadoStock(p) !== "ok").sort((a, b) => a.stock - b.stock);
-  const dias = [...Array(14)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 13 + i); return isoLocal(d).slice(0, 10); });
+  const alertas = pode("stock") ? E.produtos.filter(p => estadoStock(p) && estadoStock(p) !== "ok").sort((a, b) => a.stock - b.stock) : [];
+  const nd = ini.dias;
+  const dias = [...Array(nd)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - nd + 1 + i); return isoLocal(d).slice(0, 10); });
   const porDia = dias.map(d => soma(fs.filter(f => diaDe(f.data) === d)));
-  const rank = {}; let vProd = 0, vServ = 0;
-  doMes.forEach(f => f.itens.forEach(it => {
-    const p = produto(it.produto_id);
-    rank[it.descricao] = (rank[it.descricao] || 0) + it.total;
-    if (p && p.tipo === "produto") vProd += it.total; else vServ += it.total;
-  }));
-  const top = Object.entries(rank).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const maxTop = top.length ? top[0][1] : 1, tot = vProd + vServ || 1;
-  const ultimos = [...docs()].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 6);
+  const rank = {};
+  doMes.forEach(f => f.itens.forEach(it => { rank[it.descricao] = (rank[it.descricao] || 0) + it.total; }));
+  const top = Object.entries(rank).sort((a, b) => b[1] - a[1]).slice(0, 5), maxTop = top.length ? top[0][1] : 1;
+  const ultimos = [...docs()].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 5);
   const semStock = pode("stock") && E.produtos.filter(p => p.tipo === "produto").every(p => p.stock === 0);
+  const nome = (E.eu.nome || "").split(/\s+/)[0];
+  const meu = f => f.vendedor_id === E.eu.id || pode("ver_todas");
+
+  const atalhos = [
+    pode("vender") && `<button class="atalho" data-act="ir-proforma"><span class="ai">${icon("receipt")}</span><span>Pró-forma</span></button>`,
+    `<button class="atalho" data-act="novo-cliente"><span class="ai">${icon("users")}</span><span>Novo cliente</span></button>`,
+    pode("stock") && `<button class="atalho" data-act="mov" data-t="entrada"><span class="ai">${icon("box")}</span><span>Entrada de stock</span></button>`,
+    pode("relatorios") ? `<a class="atalho" href="#relatorios"><span class="ai">${icon("chart")}</span><span>Relatório</span></a>` : `<a class="atalho" href="#faturas"><span class="ai">${icon("receipt")}</span><span>Documentos</span></a>`,
+  ].filter(Boolean);
+
+  const atencao = [
+    ...porReceber.slice(0, 3).map(f => `<div class="aten"><span class="aic warn">${icon("receipt")}</span><span class="atx"><b>${docNum(f)} por pagar</b><small>${esc(f.cliente_nome)} · ${kz(f.total)}</small></span>
+      <button class="btn sm" data-act="${meu(f) ? "pagar" : "ver-fatura"}" data-id="${f.id}">${meu(f) ? "Receber" : "Ver"}</button></div>`),
+    alertas.length ? `<div class="aten"><span class="aic bad">${icon("box")}</span><span class="atx"><b>${alertas.length} produto${alertas.length === 1 ? "" : "s"} com stock baixo</b><small>${esc(alertas[0].nome)}: ${alertas[0].stock <= 0 ? "esgotado" : "só " + alertas[0].stock + " un."}</small></span>
+      <a class="btn sm" href="#stock">Repor</a></div>` : "",
+    ppAbertas.length ? `<div class="aten"><span class="aic brand">${icon("receipt")}</span><span class="atx"><b>${ppAbertas.length} pró-forma${ppAbertas.length === 1 ? "" : "s"} em aberto</b><small>${kz(soma(ppAbertas))} orçados</small></span>
+      <a class="btn sm" href="#faturas" data-act="ver-abertas">Ver</a></div>` : "",
+  ].filter(Boolean);
+
   $("#main").innerHTML = `
-    ${DEMO ? `<div class="note">Modo de demonstração: dados de exemplo, guardados só neste navegador. Toque no seu nome para <b>ver como vendedor</b> e experimentar as permissões.</div>` : ""}
-    ${semStock ? `<div class="note warn">Ainda não há stock registado. Vá a <a href="#stock">Stock</a> e faça a <b>contagem inicial</b> para poder vender os produtos.</div>` : ""}
-    <section class="kpis">
-      <div class="kpi hero"><span class="lab">Vendas de hoje</span><span class="val num">${fmt(soma(deHoje))} <small>Kz</small></span><span class="ft">${deHoje.length} documento${deHoje.length === 1 ? "" : "s"}</span></div>
-      <div class="kpi"><span class="lab">Este mês</span><span class="val num">${fmt(soma(doMes))} <small>Kz</small></span><span class="ft">${doMes.length} faturas · média ${kz(doMes.length ? soma(doMes) / doMes.length : 0)}</span></div>
-      <div class="kpi"><span class="lab">Por receber</span><span class="val num" style="color:${porReceber.length ? "var(--warn)" : "inherit"}">${fmt(soma(porReceber))} <small>Kz</small></span><span class="ft">${porReceber.length} fatura${porReceber.length === 1 ? "" : "s"} por pagar</span></div>
-      ${pode("stock") ? `<div class="kpi"><span class="lab">Alertas de stock</span><span class="val num" style="color:${alertas.length ? "var(--warn)" : "var(--ok)"}">${alertas.length}</span><span class="ft">${alertas.filter(p => p.stock <= 0).length} esgotado(s)</span></div>`
-        : `<div class="kpi"><span class="lab">Pró-formas em aberto</span><span class="val num">${ppAbertas.length}</span><span class="ft">${kz(soma(ppAbertas))}</span></div>`}
-    </section>
-    <section class="dash">
-      <div class="panel chart"><div class="panel-h"><h2>Vendas dos últimos 14 dias</h2><span class="sub">em Kz, sem pró-formas</span></div>${grafico(dias, porDia)}</div>
-      <div class="panel"><div class="panel-h"><h2>Produtos e serviços</h2><span class="sub">receita do mês</span></div>
-        <div class="split"><div style="width:${(vProd / tot * 100).toFixed(1)}%"></div><div style="flex:1"></div></div>
-        <div class="legend"><span><i style="background:var(--brand-deep)"></i>Produtos ${kz(vProd)}</span><span><i style="background:var(--brand);opacity:.45"></i>Serviços ${kz(vServ)}</span></div>
-        <div class="panel-h" style="margin:18px 0 10px"><h2>Mais vendidos</h2><span class="sub">este mês</span></div>
-        <div class="hbars">${top.length ? top.map(([n, v]) => `<div class="hbar"><span class="n">${esc(n)}</span><span class="num strong">${kz(v)}</span><div class="track"><div class="fill" style="width:${(v / maxTop * 100).toFixed(1)}%"></div></div></div>`).join("") : `<div class="empty">Ainda sem vendas este mês.</div>`}</div>
+    <section class="ini-topo">
+      <div class="saud"><span>${dataLonga()}</span><h2>${saudacao()}${nome ? ", " + esc(nome) : ""}</h2></div>
+      <div class="ini-acoes">
+        ${pode("vender") ? `<button class="btn" data-act="ir-proforma">Nova pró-forma</button>` : ""}
+        ${pode("stock") ? `<button class="btn" data-act="mov" data-t="entrada">Entrada de stock</button>` : ""}
+        ${pode("vender") ? `<a class="btn pri" href="#vender">${icon("plus")}Nova venda</a>` : ""}
       </div>
     </section>
+    <section class="kpis">
+      <div class="kpi hero"><span class="lab">${pode("ver_todas") ? "Vendas de hoje" : "As minhas vendas de hoje"}</span><span class="val num">${fmt(vHoje)} <small>Kz</small></span>
+        <span class="ft">${deHoje.length} documento${deHoje.length === 1 ? "" : "s"}${variacao === null ? "" : ` · <b class="${variacao >= 0 ? "sobe" : "desce"}">${variacao >= 0 ? "▲" : "▼"} ${Math.abs(variacao)}%</b> face a ontem`}</span>
+        ${pode("vender") ? `<a class="btn pri big kpi-venda" href="#vender">${icon("plus")}Nova venda</a>` : ""}</div>
+      <div class="kpi"><span class="lab">Este mês</span><span class="val num">${fmt(soma(doMes))} <small>Kz</small></span><span class="ft">${doMes.length} faturas · média ${kz(doMes.length ? soma(doMes) / doMes.length : 0)}</span></div>
+      <div class="kpi"><span class="lab">Por receber</span><span class="val num" style="color:${porReceber.length ? "var(--warn)" : "inherit"}">${fmt(soma(porReceber))} <small>Kz</small></span><span class="ft">${porReceber.length} fatura${porReceber.length === 1 ? "" : "s"} por pagar</span></div>
+      ${pode("stock") ? `<div class="kpi k4"><span class="lab">Stock baixo</span><span class="val num" style="color:${alertas.length ? "var(--bad)" : "var(--ok)"}">${alertas.length} <small>produto${alertas.length === 1 ? "" : "s"}</small></span><span class="ft">${alertas.filter(p => p.stock <= 0).length ? alertas.filter(p => p.stock <= 0).length + " esgotado(s)" : "nenhum esgotado"}</span></div>`
+        : `<div class="kpi k4"><span class="lab">Pró-formas em aberto</span><span class="val num">${ppAbertas.length}</span><span class="ft">${kz(soma(ppAbertas))}</span></div>`}
+    </section>
+    <nav class="atalhos" aria-label="Atalhos">${atalhos.join("")}</nav>
+    ${DEMO ? `<div class="note">Modo de demonstração: dados de exemplo, guardados só neste navegador. Toque no seu nome para <b>ver como vendedor</b> e experimentar as permissões.</div>` : ""}
+    ${semStock ? `<div class="note warn">Ainda não há stock registado. Vá a <a href="#stock">Stock</a> e faça a <b>contagem inicial</b> para poder vender os produtos.</div>` : ""}
     <section class="dash">
-      <div class="panel"><div class="panel-h"><h2>Últimos documentos</h2><a class="btn sm" href="#faturas">Ver todos</a></div>${tabelaFaturas(ultimos, true)}</div>
-      ${pode("stock") ? `<div class="panel"><div class="panel-h"><h2>Reposição de stock</h2><a class="btn sm" href="#stock">Gerir stock</a></div>
-        <div class="alert-list">${alertas.length ? alertas.slice(0, 7).map(p => `<div class="row"><span>${esc(p.nome)}<br><span class="cod">${p.codigo} · mínimo ${p.stock_min}</span></span><span class="chip ${estadoStock(p)} num">${p.stock} un.</span></div>`).join("") : `<div class="empty">Todo o stock está acima do mínimo.</div>`}</div></div>`
-      : `<div class="panel"><div class="panel-h"><h2>Pró-formas em aberto</h2></div>
-        <div class="alert-list">${ppAbertas.length ? ppAbertas.slice(0, 7).map(f => `<div class="row click" data-act="ver-fatura" data-id="${f.id}"><span>${esc(f.cliente_nome)}<br><span class="cod">${docNum(f)} · válida até ${dataPt(f.validade || "")}</span></span><span class="num strong">${kz(f.total)}</span></div>`).join("") : `<div class="empty">Nenhuma pró-forma em aberto.</div>`}</div></div>`}
+      <div class="panel chart"><div class="panel-h"><h2>Vendas</h2><div class="seg" role="group" aria-label="Período do gráfico">${[[7, "7 dias"], [14, "14 dias"], [30, "30 dias"]].map(([v, t]) => `<button data-act="ini-dias" data-v="${v}" aria-pressed="${nd === v}">${t}</button>`).join("")}</div></div>${grafico(dias, porDia)}</div>
+      <div class="panel"><div class="panel-h"><h2>Precisa de atenção</h2></div>
+        ${atencao.length ? `<div class="atens">${atencao.join("")}</div>` : `<div class="empty ok-txt">${icon("check")}Tudo em dia. Nada por pagar${pode("stock") ? " nem stock baixo" : ""}.</div>`}</div>
+    </section>
+    <section class="dash">
+      <div class="panel"><div class="panel-h"><h2>Últimos documentos</h2><a class="btn sm" href="#faturas">Ver todos</a></div>${listaDocs(ultimos)}</div>
+      <div class="panel"><div class="panel-h"><h2>Mais vendidos</h2><span class="sub">este mês</span></div>
+        <div class="hbars">${top.length ? top.map(([n, v]) => `<div class="hbar"><span class="n">${esc(n)}</span><span class="num strong">${kz(v)}</span><div class="track"><div class="fill" style="width:${(v / maxTop * 100).toFixed(1)}%"></div></div></div>`).join("") : `<div class="empty">Ainda sem vendas este mês.</div>`}</div></div>
     </section>`;
 }
 function larguraGrafico(max) { const m = document.getElementById("main"); return Math.round(Math.max(340, Math.min(max, (m ? m.clientWidth : max) - 40))); }
@@ -619,14 +673,16 @@ function grafico(dias, valores) {
   const topo = passo * 4, bw = (W - L - R) / dias.length;
   const y = v => T + (H - T - B) * (1 - v / topo);
   const k = v => v >= 1000 ? fmt(v / 1000) + "k" : fmt(v);
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vendas por dia nos últimos 14 dias">`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vendas por dia nos últimos ${dias.length} dias">`;
   for (let i = 0; i <= 4; i++) { const v = passo * i; s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${k(v)}</text>`; }
   const hj = hoje();
   dias.forEach((d, i) => {
     const v = valores[i], x = L + i * bw + bw * .18, w = bw * .64;
     if (v > 0) s += `<rect class="bar ${d === hj ? "today" : ""}" x="${x}" y="${y(v)}" width="${w}" height="${y(0) - y(v)}" rx="3"/>`;
     if (d === hj && v > 0) s += `<text class="vlab" x="${x + w / 2}" y="${y(v) - 6}" text-anchor="middle">${k(v)}</text>`;
-    if (i % 2 === 1 || d === hj) s += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${d === hj ? "Hoje" : d.slice(8, 10) + "/" + d.slice(5, 7)}</text>`;
+    const n = dias.length, mostra = n <= 7 || (n <= 14 ? i % 2 === 1 : (n - 1 - i) % 5 === 0) || d === hj;
+    const rot = d === hj ? "Hoje" : n <= 7 ? ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][new Date(d + "T12:00").getDay()] : d.slice(8, 10) + "/" + d.slice(5, 7);
+    if (mostra) s += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${rot}</text>`;
   });
   return s + "</svg>";
 }
@@ -772,21 +828,27 @@ function maisVendidos() {
   const q = {}; emitidas().forEach(f => f.itens.forEach(it => { if (it.produto_id) q[it.produto_id] = (q[it.produto_id] || 0) + 1; }));
   return Object.entries(q).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([id]) => Number(id));
 }
+function lerPref(k, def) { try { return localStorage.getItem("kambas-" + k) || def; } catch (e) { return def; } }
+function gravarPref(k, v) { try { localStorage.setItem("kambas-" + k, v); } catch (e) { /* sem armazenamento */ } }
+const NOME_SEC = s => s.replace(" Personalizados", "").replace(" Personalizadas", "");
 function vVender() {
-  const secs = ["Todas", "Mais vendidos", ...new Set(E.produtos.map(p => p.seccao))];
+  const contagem = {}; E.produtos.forEach(p => contagem[p.seccao] = (contagem[p.seccao] || 0) + 1);
+  const secs = ["Todas", "Mais vendidos", ...Object.keys(contagem)];
+  venda.vista = venda.vista || lerPref("vista-catalogo", "grelha");
   $("#main").innerHTML = `
     <div class="pos">
-      <section style="display:flex;flex-direction:column;gap:12px;min-width:0">
-        <div class="toolbar"><label class="search">${icon("search")}<input id="pq" type="search" placeholder="Procurar produto ou serviço (Enter adiciona o 1.º)" value="${esc(venda.q)}" aria-label="Procurar" autocomplete="off"></label>
-          <button class="btn" data-act="avulso">${icon("plus")}Item avulso</button></div>
-        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(s.replace(" Personalizados", "").replace(" Personalizadas", ""))}</button>`).join("")}</div>
-        <div class="tiles" id="ptiles"></div>
+      <section class="cat">
+        <div class="toolbar"><label class="search big">${icon("search")}<input id="pq" type="search" placeholder="Procurar no catálogo" value="${esc(venda.q)}" aria-label="Procurar" autocomplete="off"></label>
+          <div class="seg vista-cat" role="group" aria-label="Mostrar catálogo em">${[["grelha", "Grelha"], ["lista", "Lista"]].map(([v, t]) => `<button data-act="vista-cat" data-v="${v}" aria-pressed="${venda.vista === v}">${t}</button>`).join("")}</div>
+          <button class="btn" data-act="avulso" aria-label="Item avulso (fora do catálogo)">${icon("plus")}<span><span class="so-pc">Item </span>avulso</span></button></div>
+        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(NOME_SEC(s))}${s === "Todas" ? ` <span class="cnt">${E.produtos.length}</span>` : contagem[s] ? ` <span class="cnt">${contagem[s]}</span>` : ""}</button>`).join("")}</div>
+        <div id="ptiles"></div>
       </section>
-      <aside class="panel cart" id="cart"></aside>
+      <aside class="cart" id="cart" aria-label="Venda atual"></aside>
     </div>
     <button class="cartbar" id="cartbar" data-act="abrir-carrinho" hidden></button>`;
   $("#pq").oninput = e => { venda.q = e.target.value; tiles(); };
-  $("#pq").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const t = $("#ptiles .tile:not(:disabled)"); if (t) { adicionar(t.dataset.id); e.target.select(); } } };
+  $("#pq").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const t = $("#ptiles .tile:not(.sem)"); if (t) { adicionar(t.dataset.id); toast(`${produto(t.dataset.id)?.nome || "Item"} adicionado`); e.target.select(); } } };
   tiles(); carrinho();
 }
 function listaTiles() {
@@ -795,16 +857,35 @@ function listaTiles() {
   if (venda.sec === "Mais vendidos") return maisVendidos().map(produto).filter(Boolean);
   return E.produtos.filter(p => venda.sec === "Todas" || p.seccao === venda.sec);
 }
+function tileHtml(p, qtd) {
+  const st = estadoStock(p), sem = st === "bad" && venda.tipo !== "PP";
+  const info = p.tipo === "produto"
+    ? `<span class="ds ${sem ? "bad" : st === "warn" ? "warn" : ""}">${sem ? "Esgotado" : st === "warn" ? `Só ${p.stock} em stock` : `${p.stock} em stock`}</span>`
+    : `<span class="ds">${esc(p.descricao || "Serviço")}</span>`;
+  const acao = qtd
+    ? `<span class="stepper"><button data-act="tqtd" data-id="${p.id}" data-d="-1" aria-label="Tirar um de ${esc(p.nome)}">${icon(qtd === 1 ? "trash" : "minus")}</button><b class="num" aria-live="polite">${qtd}</b><button data-act="tqtd" data-id="${p.id}" data-d="1" aria-label="Mais um de ${esc(p.nome)}">${icon("plus")}</button></span>`
+    : sem ? "" : `<button class="add" data-act="add" data-id="${p.id}" aria-label="Adicionar ${esc(p.nome)}">${icon("plus")}</button>`;
+  return `<div class="tile ${qtd ? "in" : ""} ${sem ? "sem" : ""}" data-act="add" data-id="${p.id}">
+    <span class="nm">${esc(p.nome)}</span>
+    <span class="sub"><b class="pr num ${p.modo === "consulta" ? "consulta" : ""}">${precoCurto(p)}</b>${info}</span>
+    <span class="ta">${acao}</span></div>`;
+}
 function tiles() {
-  const l = listaTiles();
-  const noCarrinho = {}; venda.itens.forEach(i => noCarrinho[i.produto_id] = (noCarrinho[i.produto_id] || 0) + i.qtd);
-  $("#ptiles").innerHTML = l.length ? l.map(p => {
-    const st = estadoStock(p), sem = st === "bad" && venda.tipo !== "PP";
-    return `<button class="tile" data-act="add" data-id="${p.id}" ${sem ? "disabled" : ""}>
-      ${noCarrinho[p.id] ? `<span class="badge">${noCarrinho[p.id]}</span>` : ""}
-      <span class="nm">${esc(p.nome)}</span>${p.descricao ? `<span class="ds">${esc(p.descricao)}</span>` : ""}
-      <span class="bt"><span class="pr num">${precoTexto(p)}</span>${p.tipo === "produto" ? `<span class="chip ${st} num">${sem ? "Esgotado" : p.stock + " un."}</span>` : '<span class="chip">Serviço</span>'}</span></button>`;
-  }).join("") : `<div class="empty" style="grid-column:1/-1">${venda.q ? `Nada encontrado para “${esc(venda.q)}”. Use <b>Item avulso</b> para vender algo fora do catálogo.` : "Ainda sem vendas para mostrar os mais vendidos."}</div>`;
+  const l = listaTiles(), q = venda.q.trim();
+  const noCarrinho = {}; venda.itens.forEach(i => { if (i.produto_id) noCarrinho[i.produto_id] = (noCarrinho[i.produto_id] || 0) + i.qtd; });
+  const lista = venda.vista === "lista" || matchMedia("(max-width: 900px)").matches;
+  const cls = `tiles ${lista ? "lista" : ""}`;
+  const grade = ps => `<div class="${cls}">${ps.map(p => tileHtml(p, noCarrinho[p.id])).join("")}</div>`;
+  if (!l.length) {
+    $("#ptiles").innerHTML = `<div class="empty">${q ? `Nada encontrado para “${esc(q)}”. Use <b>Item avulso</b> para vender algo fora do catálogo.` : "Ainda sem vendas para mostrar os mais vendidos."}</div>`;
+    return;
+  }
+  if (q || venda.sec !== "Todas") { $("#ptiles").innerHTML = (q ? `<h3 class="sec-h">${l.length} resultado${l.length === 1 ? "" : "s"}</h3>` : "") + grade(l); return; }
+  // "Todas": mais vendidos no topo e o catálogo agrupado por secção
+  const mv = maisVendidos().map(produto).filter(Boolean).slice(0, 8);
+  const grupos = {}; l.forEach(p => (grupos[p.seccao] = grupos[p.seccao] || []).push(p));
+  $("#ptiles").innerHTML = (mv.length ? `<h3 class="sec-h">Mais vendidos</h3><div class="mvs">${mv.map(p => `<button class="mv ${noCarrinho[p.id] ? "in" : ""}" data-act="add" data-id="${p.id}"><b>${esc(p.nome)}</b><span class="num">${precoCurto(p)}</span>${noCarrinho[p.id] ? `<span class="badge">${noCarrinho[p.id]}</span>` : ""}</button>`).join("")}</div>` : "")
+    + Object.entries(grupos).map(([s, ps]) => `<h3 class="sec-h">${esc(s)} <span>· ${ps.length}</span></h3>${grade(ps)}`).join("");
 }
 function totaisVenda() {
   const sub = venda.itens.reduce((s, i) => s + (i.qtd * (i.preco_unit || 0)), 0);
@@ -815,7 +896,7 @@ function totaisVenda() {
 function clienteSel() { return venda.cliente_id ? byId(E.clientes, venda.cliente_id) : null; }
 function blocoCliente() {
   const c = clienteSel();
-  if (c) return `<div class="cli-card"><div style="min-width:0"><div class="strong">${esc(c.nome)}</div><div class="cod">${[c.nif && "NIF " + esc(c.nif), esc(c.telefone)].filter(Boolean).join(" · ") || "Sem NIF nem telefone"}</div></div>
+  if (c) return `<div class="cli-card"><span class="cav">${esc(((c.nome || "").match(/[\p{L}\d]+/gu) || ["?"]).map(x => x[0]).slice(0, 2).join("").toUpperCase())}</span><div style="min-width:0"><div class="strong">${esc(c.nome)}</div><div class="cod">${[c.nif && "NIF " + esc(c.nif), esc(c.telefone)].filter(Boolean).join(" · ") || "Sem NIF nem telefone"}</div></div>
     <button class="btn sm" data-act="cli-editar" data-id="${c.id}">Editar</button><button class="btn sm" data-act="cli-trocar">Trocar</button></div>`;
   if (venda.novoCli) {
     const n = venda.novoCli;
@@ -842,43 +923,55 @@ function carrinho() {
   const n = venda.itens.reduce((s, i) => s + i.qtd, 0);
   const aberto = $("#cart")?.classList.contains("open");
   const numerario = venda.tipo === "FR" && venda.forma === "Numerário", troco = venda.recebido - tot;
+  const nomeTipo = { FR: "Fatura-Recibo", FT: "Fatura", PP: "Pró-forma" }[venda.tipo];
+  venda.extras = venda.extras || { desc: false, obs: false };
+  const verDesc = venda.extras.desc || venda.desconto, verObs = venda.extras.obs || venda.obs;
   $("#cart").innerHTML = `
-    <div class="cart-h"><h2>Nova ${{ FR: "Fatura-Recibo", FT: "Fatura", PP: "Pró-forma" }[venda.tipo]}</h2><div style="display:flex;gap:6px">${venda.itens.length ? `<button class="btn sm" data-act="limpar-venda">Limpar</button>` : ""}<button class="icon-btn cart-close" data-act="fechar-carrinho" aria-label="Fechar">${icon("x")}</button></div></div>
-    <div class="tipos" role="radiogroup" aria-label="Tipo de documento">${[["FR", "Fatura-Recibo", "Pago agora"], ["FT", "Fatura", "Paga depois"], ["PP", "Pró-forma", "Orçamento"]].map(([v, t, sub]) => `<button class="tipo t-${v}" data-act="doc-tipo" data-v="${v}" role="radio" aria-checked="${venda.tipo === v}"><b>${t}</b><small>${sub}</small></button>`).join("")}</div>
-    <div class="cod tipo-ajuda">${{ FR: "Pago no acto: emite fatura e recibo no mesmo documento.", FT: "O cliente paga depois. Registe o pagamento quando receber.", PP: `Orçamento: não mexe no stock nem conta como venda. Válida ${E.config.validade_proforma || 15} dias.` }[venda.tipo]}</div>
-    <div class="field"><span>1 · Cliente</span>${blocoCliente()}</div>
-    <div class="field"><span>2 · Produtos e serviços</span>
-    ${venda.itens.length ? `<div class="lines">${venda.itens.map((it, i) => {
-      const p = produto(it.produto_id); const tier = p && p.tier_qtd && it.qtd >= p.tier_qtd && it.preco_unit === p.tier_preco;
-      const proxTier = p && p.tier_qtd && it.qtd < p.tier_qtd && !it.manual ? p.tier_qtd - it.qtd : 0;
-      return `<div class="line"><div class="nm">${esc(it.descricao)}<div class="cod">${p ? (p.tipo === "produto" ? `${p.codigo} · ${p.stock} em stock` : p.codigo + " · serviço") : "Item avulso"}</div></div>
-        <div class="tot num">${kz(it.qtd * (it.preco_unit || 0))}</div>
-        <div class="ctr"><span class="qty"><button data-act="qtd" data-i="${i}" data-d="-1" aria-label="Menos">${icon("minus")}</button><input id="q${i}" class="num" inputmode="numeric" value="${it.qtd}" data-i="${i}" aria-label="Quantidade"><button data-act="qtd" data-i="${i}" data-d="1" aria-label="Mais">${icon("plus")}</button></span>
-          <label class="price-in">× <input id="pr${i}" class="num ${it.preco_unit ? "" : "need"}" inputmode="numeric" value="${it.preco_unit ? fmt(it.preco_unit) : ""}" placeholder="preço" data-i="${i}" aria-label="Preço unitário"> Kz</label>
-          <button class="icon-btn" style="width:30px;height:30px;margin-left:auto" data-act="rm" data-i="${i}" aria-label="Remover">${icon("trash")}</button></div>
-        ${tier ? `<div class="hint">Preço por quantidade aplicado (${p.tier_qtd}+ un.)</div>` : ""}${proxTier && proxTier <= 5 ? `<div class="hint" style="color:var(--brand-deep)">Mais ${proxTier} un. e o preço baixa para ${kz(p.tier_preco)}</div>` : ""}${p && p.modo === "consulta" && !it.preco_unit ? `<div class="hint" style="color:var(--warn)">Por consulta: indique o preço combinado</div>` : ""}${p && p.modo === "a_partir" ? `<div class="hint" style="color:var(--ink-3)">Mínimo ${kz(p.preco)}, ajuste ao pedido</div>` : ""}</div>`;
-    }).join("")}</div>` : `<div class="empty" style="padding:16px 8px">Toque num produto ou serviço para o adicionar.</div>`}</div>
-    ${venda.tipo === "FR" ? `<div class="field"><span>3 · Pagamento</span><div class="pay">${E.config.formas_pagamento.map(m => `<button data-act="forma" data-v="${esc(m)}" aria-pressed="${venda.forma === m}">${esc(m)}</button>`).join("")}</div></div>` : ""}
-    <div class="totals">
-      <div class="r"><span>Subtotal</span><span class="num">${kz(sub)}</span></div>
-      <div class="r"><span style="display:flex;align-items:center;gap:6px">Desconto <span class="seg mini">${[["kz", "Kz"], ["pct", "%"]].map(([v, t]) => `<button data-act="desc-modo" data-v="${v}" aria-pressed="${venda.descModo === v}">${t}</button>`).join("")}</span></span>
-        <input id="vdesc" class="num" inputmode="numeric" value="${venda.desconto ? fmt(venda.desconto) : ""}" placeholder="0" aria-label="Desconto"></div>
-      ${venda.descModo === "pct" && desc ? `<div class="r" style="font-size:13px"><span></span><span class="num">− ${kz(desc)}</span></div>` : ""}
-      <div class="r grand"><span>Total</span><span class="num">${kz(tot)}</span></div>
-      ${numerario ? `<div class="r"><label for="vrec">Valor recebido</label><input id="vrec" class="num" inputmode="numeric" value="${venda.recebido ? fmt(venda.recebido) : ""}" placeholder="0"></div>
-        ${venda.recebido ? `<div class="r ${troco < 0 ? "falta" : "troco"}"><span>${troco < 0 ? "Falta receber" : "Troco"}</span><span class="num">${kz(Math.abs(troco))}</span></div>` : ""}` : ""}
+    <div class="cart-h"><button class="icon-btn cart-close" data-act="fechar-carrinho" aria-label="Voltar ao catálogo">${icon("left")}</button>
+      <h2>Nova ${nomeTipo}</h2>${venda.itens.length ? `<button class="btn sm ghost-bad" data-act="limpar-venda">Limpar</button>` : ""}</div>
+    <div class="cart-b">
+      <div class="field"><span>Documento</span>
+        <div class="tipos" role="radiogroup" aria-label="Tipo de documento">${[["FR", "Fatura-Recibo", "Pago agora"], ["FT", "Fatura", "Paga depois"], ["PP", "Pró-forma", "Orçamento"]].map(([v, t, s]) => `<button class="tipo t-${v}" data-act="doc-tipo" data-v="${v}" role="radio" aria-checked="${venda.tipo === v}"><b>${t}</b><small>${s}</small></button>`).join("")}</div>
+        <div class="cod tipo-ajuda">${{ FR: "Pago no acto: emite fatura e recibo no mesmo documento.", FT: "O cliente paga depois. Registe o pagamento quando receber.", PP: `Orçamento: não mexe no stock nem conta como venda. Válida ${E.config.validade_proforma || 15} dias.` }[venda.tipo]}</div></div>
+      <div class="field"><span>Cliente</span>${blocoCliente()}</div>
+      <div class="field"><span>${n ? `${n} ${n === 1 ? "item" : "itens"}` : "Itens"}</span>
+      ${venda.itens.length ? `<div class="lines">${venda.itens.map((it, i) => {
+        const p = produto(it.produto_id); const tier = p && p.tier_qtd && it.qtd >= p.tier_qtd && it.preco_unit === p.tier_preco;
+        const proxTier = p && p.tier_qtd && it.qtd < p.tier_qtd && !it.manual ? p.tier_qtd - it.qtd : 0;
+        return `<div class="line"><div class="nm">${esc(it.descricao)}<div class="cod">${p ? (p.tipo === "produto" ? `${p.codigo} · ${p.stock} em stock` : p.codigo + " · serviço") : "Item avulso"}</div></div>
+          <div class="tot num">${kz(it.qtd * (it.preco_unit || 0))}</div>
+          <div class="ctr"><span class="qty"><button data-act="qtd" data-i="${i}" data-d="-1" aria-label="Menos">${icon("minus")}</button><input id="q${i}" class="num" inputmode="numeric" value="${it.qtd}" data-i="${i}" aria-label="Quantidade"><button data-act="qtd" data-i="${i}" data-d="1" aria-label="Mais">${icon("plus")}</button></span>
+            <label class="price-in">× <input id="pr${i}" class="num ${it.preco_unit ? "" : "need"}" inputmode="numeric" value="${it.preco_unit ? fmt(it.preco_unit) : ""}" placeholder="preço" data-i="${i}" aria-label="Preço unitário"> Kz</label>
+            <button class="icon-btn rm-btn" data-act="rm" data-i="${i}" aria-label="Remover ${esc(it.descricao)}">${icon("trash")}</button></div>
+          ${tier ? `<div class="hint">Preço por quantidade aplicado (${p.tier_qtd}+ un.)</div>` : ""}${proxTier && proxTier <= 5 ? `<div class="hint" style="color:var(--brand-deep)">Mais ${proxTier} un. e o preço baixa para ${kz(p.tier_preco)}</div>` : ""}${p && p.modo === "consulta" && !it.preco_unit ? `<div class="hint" style="color:var(--warn)">Por consulta: indique o preço combinado</div>` : ""}${p && p.modo === "a_partir" ? `<div class="hint" style="color:var(--ink-3)">Mínimo ${kz(p.preco)}, ajuste ao pedido</div>` : ""}</div>`;
+      }).join("")}</div>` : `<div class="empty vazio-cart">${icon("cart")}<span>Toque no <b>+</b> de um produto ou serviço para o adicionar.</span></div>`}</div>
+      <div class="extras">
+        ${verDesc ? `<div class="extra"><span class="ex-l">Desconto <span class="seg mini">${[["kz", "Kz"], ["pct", "%"]].map(([v, t]) => `<button data-act="desc-modo" data-v="${v}" aria-pressed="${venda.descModo === v}">${t}</button>`).join("")}</span></span>
+          <input id="vdesc" class="f num" inputmode="numeric" value="${venda.desconto ? fmt(venda.desconto) : ""}" placeholder="0" aria-label="Desconto">${desc ? `<span class="ex-v num">− ${kz(desc)}</span>` : ""}</div>` : `<button class="btn-extra" data-act="ver-extra" data-v="desc">${icon("plus")}Desconto</button>`}
+        ${verObs ? `<label class="extra col"><span class="ex-l">Observação</span><textarea class="f" id="vobs" rows="2" placeholder="Ex.: entrega em 2 dias úteis, arte enviada por WhatsApp">${esc(venda.obs)}</textarea></label>` : `<button class="btn-extra" data-act="ver-extra" data-v="obs">${icon("plus")}Observação</button>`}
+      </div>
+      ${venda.tipo === "FR" ? `<div class="field"><span>Pagamento</span><div class="pay">${E.config.formas_pagamento.map(m => `<button data-act="forma" data-v="${esc(m)}" aria-pressed="${venda.forma === m}">${esc(m)}</button>`).join("")}</div>
+        ${numerario ? `<div class="receb"><label for="vrec">Recebido</label><input id="vrec" class="f num" inputmode="numeric" value="${venda.recebido ? fmt(venda.recebido) : ""}" placeholder="0">
+          ${venda.recebido ? `<span class="${troco < 0 ? "falta" : "troco"}">${troco < 0 ? "Falta" : "Troco"} <b class="num">${kz(Math.abs(troco))}</b></span>` : ""}</div>` : ""}</div>` : ""}
+      <div id="v-err"></div>
     </div>
-    <label class="field"><span>Observações</span><textarea class="f" id="vobs" rows="2" placeholder="Ex.: entrega em 2 dias úteis, arte enviada por WhatsApp">${esc(venda.obs)}</textarea></label>
-    <div id="v-err"></div>
-    <button class="btn pri big" data-act="emitir" ${venda.itens.length ? "" : "disabled"}>${icon("receipt")}Emitir ${venda.tipo === "PP" ? "pró-forma" : venda.tipo === "FT" ? "fatura" : "fatura-recibo"} ${venda.tipo} ${nf(E.config.numeracao[venda.tipo] || 1)} · ${kz(tot)}</button>`;
+    <div class="cart-f">
+      ${desc ? `<div class="sub-l"><span>Subtotal ${kz(sub)}</span><span>Desconto − ${kz(desc)}</span></div>` : ""}
+      <div class="tot-l"><span>Total${n ? ` · ${n} ${n === 1 ? "item" : "itens"}` : ""}</span><b class="num">${kz(tot)}</b></div>
+      <button class="btn big emitir-btn e-${venda.tipo}" data-act="emitir" ${venda.itens.length ? "" : "disabled"}>${icon("check")}Emitir ${nomeTipo} <span class="en">${venda.tipo} ${nf(E.config.numeracao[venda.tipo] || 1)}</span></button>
+    </div>`;
   if (aberto) $("#cart").classList.add("open");
   const bar = $("#cartbar");
-  if (bar) { bar.hidden = !venda.itens.length || aberto; bar.innerHTML = `<span>${icon("cart")} ${n} ${n === 1 ? "item" : "itens"}</span><span class="num">${kz(tot)} · Ver venda</span>`; }
+  if (bar) {
+    bar.hidden = !venda.itens.length || aberto;
+    bar.innerHTML = `<span class="cb-n num">${n}</span><span class="cb-t"><small>${n} ${n === 1 ? "item" : "itens"} · ${nomeTipo}</small><b class="num">${kz(tot)}</b></span><span class="cb-go">Continuar${icon("right")}</span>`;
+    bar.setAttribute("aria-label", `Ver venda: ${n} ${n === 1 ? "item" : "itens"}, ${kz(tot)}`);
+  }
   const cq = $("#vcliq");
   if (cq) { cq.oninput = e => { venda.cliQ = e.target.value; resultadosCliente(); }; resultadosCliente(); }
   if (venda.novoCli) ["nome", "nif", "tel", "end"].forEach(k => { $("#nc-" + k).oninput = e => venda.novoCli[{ tel: "telefone", end: "endereco" }[k] || k] = e.target.value; });
-  $("#vobs").oninput = e => venda.obs = e.target.value;
-  $("#vdesc").onchange = e => { venda.desconto = inteiro(e.target.value) || 0; carrinho(); };
+  if ($("#vobs")) $("#vobs").oninput = e => venda.obs = e.target.value;
+  if ($("#vdesc")) $("#vdesc").onchange = e => { venda.desconto = inteiro(e.target.value) || 0; carrinho(); };
   if ($("#vrec")) $("#vrec").onchange = e => { venda.recebido = inteiro(e.target.value) || 0; carrinho(); };
   venda.itens.forEach((it, i) => {
     $("#q" + i).onchange = e => mudarQtd(i, (inteiro(e.target.value) || 1) - it.qtd);
@@ -923,7 +1016,6 @@ function adicionar(id) {
   if (p.tipo === "produto" && p.stock <= 0 && venda.tipo !== "PP") return toast("Produto esgotado");
   venda.itens.push({ produto_id: p.id, descricao: p.nome, qtd: 1, preco_unit: p.modo === "consulta" ? 0 : precoPara(p, 1), manual: false });
   carrinho(); tiles();
-  toast(`${p.nome} adicionado`);
 }
 async function emitir() {
   const { desc, tot } = totaisVenda();
@@ -935,7 +1027,7 @@ async function emitir() {
   try {
     const f = await acao("registarDocumento", { tipo: venda.tipo, cliente_id: venda.cliente_id ? (ehTemp(venda.cliente_id) ? venda.cliente_id : Number(venda.cliente_id)) : null, forma_pagamento: venda.tipo === "FR" ? venda.forma : null, desconto: desc, observacoes: obs,
       itens: venda.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
-    Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null });
+    Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null, extras: { desc: false, obs: false } });
     render(); toast(f.pendente ? "Venda guardada neste aparelho. É enviada quando houver internet." : `${docNum(f)} emitida`); verFatura(f.id, true);
   } catch (e) { err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
 }
@@ -1620,7 +1712,17 @@ const ACOES = {
   "qtd": el => mudarQtd(Number(el.dataset.i), Number(el.dataset.d)),
   "rm": el => { venda.itens.splice(Number(el.dataset.i), 1); carrinho(); tiles(); },
   "forma": el => { venda.forma = el.dataset.v; carrinho(); if (venda.forma === "Numerário") setTimeout(() => $("#vrec")?.focus(), 30); },
-  "limpar-venda": () => { venda.itens = []; venda.desconto = 0; carrinho(); tiles(); },
+  "limpar-venda": () => { venda.itens = []; venda.desconto = 0; venda.extras = { desc: false, obs: false }; carrinho(); tiles(); },
+  "tqtd": el => {
+    const i = venda.itens.findIndex(x => String(x.produto_id) === String(el.dataset.id)); if (i < 0) return;
+    if (Number(el.dataset.d) < 0 && venda.itens[i].qtd <= 1) { venda.itens.splice(i, 1); carrinho(); tiles(); } else mudarQtd(i, Number(el.dataset.d));
+  },
+  "vista-cat": el => { venda.vista = el.dataset.v; gravarPref("vista-catalogo", venda.vista); document.querySelectorAll(".vista-cat button").forEach(b => b.setAttribute("aria-pressed", b === el)); tiles(); },
+  "ver-extra": el => { venda.extras = venda.extras || {}; venda.extras[el.dataset.v] = true; carrinho(); setTimeout(() => $(el.dataset.v === "desc" ? "#vdesc" : "#vobs")?.focus(), 30); },
+  "ini-dias": el => { ini.dias = Number(el.dataset.v); vPainel(); },
+  "ir-proforma": () => { venda.tipo = "PP"; if (location.hash === "#vender") render(); else location.hash = "#vender"; },
+  "ver-abertas": () => { filtroF.estado = "aberto"; if (location.hash === "#faturas") render(); else location.hash = "#faturas"; },
+  "mais": () => menuMais(),
   "emitir": () => emitir(),
   "abrir-carrinho": () => { $("#cart").classList.add("open"); $("#cartbar").hidden = true; },
   "fechar-carrinho": () => { $("#cart").classList.remove("open"); carrinho(); },

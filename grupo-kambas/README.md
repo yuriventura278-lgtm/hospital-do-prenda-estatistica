@@ -18,8 +18,15 @@ utilizador e sincronização entre dispositivos.
   (verde FR, laranja FT, azul pró-forma). PDF A5 com o desenho do bloco de faturas,
   **Imprimir** (no telemóvel Android abre a escolha de impressora ou app) e cópia do resumo.
 - **Login:** botão para ver a senha; o navegador ou o telemóvel oferece-se para guardar a senha.
-- **Vender:** catálogo com pesquisa, "Mais vendidos", item avulso, cliente
-  pesquisado ou registado sem sair da venda, desconto em Kz ou %, troco em numerário.
+- **Início:** saudação, vendas de hoje comparadas com ontem, botão "Nova venda",
+  atalhos, caixa "Precisa de atenção" (faturas por pagar, stock baixo, pró-formas
+  em aberto), gráfico de 7, 14 ou 30 dias, últimos documentos e mais vendidos.
+- **Vender:** catálogo agrupado por secção (grelha ou lista), "Mais vendidos" no
+  topo, botão **+** e quantidade **− 1 +** no próprio artigo, item avulso, cliente
+  pesquisado ou registado sem sair da venda, desconto e observação só quando
+  precisa, troco em numerário. O total e o botão Emitir ficam sempre visíveis.
+  No telemóvel: barra "Continuar" com o total e ecrã de finalizar venda; barra de
+  baixo com Vender ao centro e o resto em "Mais".
 - **Stock:** entradas, saídas, contagem geral, alertas, histórico de movimentos.
 - **Relatórios:** diário, semanal, mensal, trimestral, semestral e anual, em PDF.
 - **Utilizadores e permissões:**

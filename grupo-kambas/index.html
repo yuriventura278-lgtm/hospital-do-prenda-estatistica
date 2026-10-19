@@ -435,6 +435,199 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   .paper { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body::before, .toast { display: none; }
 }
+/* =================================================================== novo design: início, vender, navegação */
+/* ---------- início */
+.ini-topo { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.saud { display: flex; flex-direction: column; gap: 2px; flex: 1 1 260px; min-width: 0; }
+.saud span { color: var(--ink-2); font-size: 15px; }
+.saud h2 { font-size: 28px; font-weight: 800; font-stretch: 105%; line-height: 1.15; }
+.ini-acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+.ini-acoes .btn { height: 44px; }
+.kpi.hero .sobe { color: #9FF0C8; } .kpi.hero .desce { color: #FFC2B8; }
+.kpi-venda, .atalhos { display: none; }
+.atens { display: flex; flex-direction: column; gap: 8px; }
+.aten { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); }
+.aic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none; }
+.aic.warn { background: var(--warn-bg); color: var(--warn); } .aic.bad { background: var(--bad-bg); color: var(--bad); } .aic.brand { background: var(--mist); color: var(--brand-deep); }
+.atx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.atx b { font-size: 15px; } .atx small { font-size: 13.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ok-txt { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ok); }
+.panel-h .seg button { padding: 5px 10px; font-size: 13px; }
+.dlist { display: flex; flex-direction: column; }
+.drow { display: flex; align-items: center; gap: 12px; padding: 11px 6px; border: 0; border-bottom: 1px solid var(--line); background: transparent; text-align: left; color: var(--ink); width: 100%; border-radius: 0; }
+.drow:last-child { border-bottom: 0; }
+.drow:hover { background: var(--mist); }
+.drow.anulada .dmeio b, .drow.anulada .dfim b { text-decoration: line-through; color: var(--ink-3); }
+.dtipo { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: 13px; flex: none; }
+.dtipo.t-FR { background: var(--ok-bg); color: var(--ok); } .dtipo.t-FT { background: var(--warn-bg); color: var(--warn); } .dtipo.t-PP { background: var(--mist); color: var(--brand-deep); }
+.dmeio { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dmeio b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dmeio small { font-size: 13px; color: var(--ink-2); }
+.dfim { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: none; }
+.dfim b { font-family: var(--f-display); font-weight: 800; font-size: 15px; }
+/* ---------- vender: catálogo */
+.cat { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.search.big input { height: 48px; border-radius: 12px; font-size: 16px; border: 2px solid var(--line); padding-left: 40px; }
+.search.big input:focus { border-color: var(--brand); outline: none; }
+.search.big svg { left: 14px; width: 20px; height: 20px; }
+.cat .toolbar .btn { height: 48px; border-radius: 12px; }
+.vista-cat { border-radius: 12px; }
+.vista-cat button { height: 46px; padding: 0 14px; }
+.chips button { padding: 8px 14px; font-size: 14px; }
+.chips .cnt { opacity: .7; }
+.sec-h { font-family: var(--f-display); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--brand-deep); margin: 10px 0 8px; }
+.sec-h span { color: var(--ink-3); }
+#ptiles { display: flex; flex-direction: column; }
+#ptiles > .sec-h:first-child { margin-top: 0; }
+.mvs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.mv { position: relative; flex: 0 0 158px; min-height: 80px; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; text-align: left; color: var(--ink); }
+.mv:hover { border-color: var(--brand); }
+.mv b { font-size: 14px; line-height: 1.25; padding-right: 22px; }
+.mv .num { font-family: var(--f-display); font-weight: 800; color: var(--brand-deep); }
+.mv.in { border-color: var(--brand-deep); box-shadow: inset 0 0 0 1px var(--brand-deep); }
+.mv .badge { position: absolute; top: 8px; right: 8px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--brand-deep); color: var(--on-brand); font-size: 12px; font-weight: 700; display: grid; place-items: center; padding: 0 6px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.tile { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nm nm" "sub ta"; align-items: end; gap: 8px; min-height: 124px; padding: 13px; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; cursor: pointer; transform: none; text-align: left; }
+.tile:hover:not(.sem) { border-color: var(--brand); transform: none; }
+.tile .nm { grid-area: nm; align-self: start; padding-right: 0; font-weight: 700; font-size: 15px; line-height: 1.25; }
+.tile .sub { grid-area: sub; display: flex; flex-direction: column-reverse; gap: 2px; min-width: 0; }
+.tile .pr { font-family: var(--f-display); font-weight: 800; font-size: 17px; color: var(--brand-deep); white-space: nowrap; }
+.tile .pr.consulta { font-size: 14.5px; color: var(--warn); }
+.tile .ds { font-size: 13px; color: var(--ink-2); line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.tile .ds.warn { color: var(--warn); font-weight: 600; } .tile .ds.bad { color: var(--bad); font-weight: 600; }
+.tile .ta { grid-area: ta; display: flex; }
+.tile.in { border: 2px solid var(--brand-deep); padding: 12px; }
+.tile.sem { opacity: .55; cursor: not-allowed; }
+.add { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--brand-deep); display: grid; place-items: center; }
+.add:hover { background: var(--brand-deep); color: var(--on-brand); border-color: var(--brand-deep); }
+.add svg.i, .stepper svg.i { width: 20px; height: 20px; stroke-width: 2.4; }
+.stepper { display: inline-flex; align-items: center; background: var(--brand-deep); color: #fff; border-radius: 12px; }
+.stepper button { width: 40px; height: 44px; border: 0; background: transparent; color: inherit; display: grid; place-items: center; }
+.stepper b { min-width: 18px; text-align: center; font-family: var(--f-display); font-weight: 800; font-size: 16px; }
+.tiles.lista { grid-template-columns: minmax(0, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.tiles.lista .tile { grid-template-areas: "nm ta" "sub ta"; align-items: center; min-height: 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 10px 12px; gap: 2px 12px; }
+.tiles.lista .tile:last-child { border-bottom: 0; }
+.tiles.lista .tile.in { background: var(--mist); border: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; }
+.tiles.lista .tile.in:last-child { border-bottom: 0; }
+.tiles.lista .sub { flex-direction: row; align-items: baseline; gap: 6px; }
+.tiles.lista .pr { font-size: 15px; color: var(--ink); }
+.tiles.lista .ds { -webkit-line-clamp: 1; }
+.tiles.lista .ds::before { content: "· "; }
+/* cartão já na venda (grelha): os botões de quantidade numa linha própria, sem tapar o preço */
+.tiles:not(.lista) .tile.in { grid-template-areas: "nm nm" "sub sub" "ta ta"; }
+.tiles:not(.lista) .tile.in .stepper { width: 100%; justify-content: space-between; }
+.tipo-ajuda { margin: 6px 0 0; }
+/* ---------- vender: venda atual */
+.cart { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 0; max-height: calc(100vh - 96px); overflow: hidden; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.cart-h { display: flex; align-items: center; gap: 8px; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
+.cart-h h2 { flex: 1; font-size: 18px; font-weight: 800; letter-spacing: .01em; }
+.ghost-bad { border-color: transparent; color: var(--bad); background: transparent; }
+.cart-b { flex: 1 1 auto; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.cart-f { padding: 14px 18px 16px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.sub-l { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--ink-2); }
+.tot-l { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.tot-l span { color: var(--ink-2); font-size: 15px; }
+.tot-l b { font-family: var(--f-display); font-weight: 800; font-size: 28px; }
+.emitir-btn { height: 56px; border: 0; color: #fff; font-size: 17px; border-radius: 14px; }
+.emitir-btn svg.i { width: 22px; height: 22px; stroke-width: 2.4; }
+.emitir-btn .en { opacity: .85; font-weight: 600; font-size: 14px; }
+.e-FR { background: #1E8A5A; } .e-FT { background: #A86400; } .e-PP { background: #0B6A80; }
+.emitir-btn:hover { filter: brightness(1.08); border: 0; }
+.vazio-cart { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 8px; }
+.vazio-cart svg.i { width: 30px; height: 30px; }
+.extras { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-extra { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border: 1px dashed var(--line); border-radius: 10px; background: transparent; color: var(--brand-deep); font-weight: 700; font-size: 14px; }
+.btn-extra:hover { border-color: var(--brand); }
+.extra { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.extra.col { flex-direction: column; align-items: stretch; gap: 6px; }
+.ex-l { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-2); font-weight: 600; flex: 1; }
+.extra #vdesc { width: 120px; text-align: right; }
+.ex-v { font-size: 13.5px; color: var(--ok); font-weight: 700; }
+.pay { gap: 8px; }
+.pay button { min-height: 48px; border-radius: 12px; font-size: 14.5px; color: var(--ink); }
+.pay button[aria-pressed="true"] { background: var(--mist); color: var(--brand-deep); border: 2px solid var(--brand-deep); }
+.receb { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 10px 12px; background: var(--bg); border-radius: 12px; flex-wrap: wrap; }
+.receb label { flex: 1; font-size: 15px; }
+.receb input { width: 120px; text-align: right; }
+.receb .troco { color: var(--ok); font-weight: 700; } .receb .falta { color: var(--bad); font-weight: 700; }
+.cli-card { border-radius: 12px; padding: 10px 12px; gap: 10px; }
+.cav { width: 38px; height: 38px; border-radius: 19px; background: var(--surface); color: var(--brand-deep); display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: 13px; flex: none; }
+.rm-btn { width: 34px; height: 34px; margin-left: auto; }
+/* ---------- menu "Mais" */
+.mais-lista { display: flex; flex-direction: column; }
+.mais-lista a, .mais-lista button { display: flex; align-items: center; gap: 14px; padding: 14px 4px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); text-decoration: none; font-size: 16px; font-weight: 600; text-align: left; width: 100%; }
+.mais-lista span { flex: 1; display: flex; flex-direction: column; }
+.mais-lista small { font-size: 13px; color: var(--ink-2); font-weight: 400; }
+.mais-lista svg.i { width: 22px; height: 22px; color: var(--brand-deep); }
+.mais-lista svg.i:last-child { width: 18px; height: 18px; color: var(--ink-3); }
+.tabbar > button { font: inherit; }
+/* tema escuro: azul mais claro onde o petróleo fica escuro demais */
+:root[data-theme="dark"] .sec-h, :root[data-theme="dark"] .tile .pr, :root[data-theme="dark"] .mv .num, :root[data-theme="dark"] .btn-extra, :root[data-theme="dark"] .add, :root[data-theme="dark"] .cav, :root[data-theme="dark"] .mais-lista svg.i, :root[data-theme="dark"] .dtipo.t-PP, :root[data-theme="dark"] .aic.brand { color: var(--brand); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sec-h, :root:not([data-theme="light"]) .tile .pr, :root:not([data-theme="light"]) .mv .num, :root:not([data-theme="light"]) .btn-extra, :root:not([data-theme="light"]) .add, :root:not([data-theme="light"]) .cav, :root:not([data-theme="light"]) .mais-lista svg.i, :root:not([data-theme="light"]) .dtipo.t-PP, :root:not([data-theme="light"]) .aic.brand { color: var(--brand); } }
+:root[data-theme="dark"] .tiles.lista .pr { color: var(--ink); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tiles.lista .pr { color: var(--ink); } }
+/* ---------- computador: menu compacto enquanto se vende */
+@media (min-width: 901px) {
+  .app.compacta { grid-template-columns: 88px minmax(0, 1fr); }
+  .app.compacta .rail { padding: 18px 8px; gap: 16px; align-items: center; }
+  .app.compacta .rail .logo { width: 54px; }
+  .app.compacta .rail nav { align-items: center; }
+  .app.compacta .rail a { flex-direction: column; gap: 3px; padding: 8px 2px; font-size: 11px; width: 72px; text-align: center; box-shadow: none; }
+  .app.compacta .rail a svg.i { width: 21px; height: 21px; }
+  .app.compacta .rail-user { width: 100%; }
+  .app.compacta .ru > span:last-child, .app.compacta .slogan { display: none; }
+  .app.compacta .ru { justify-content: center; padding: 6px; }
+  .app.compacta .ru-sair { font-size: 0; gap: 0; padding: 9px; }
+  .app.compacta .pos { grid-template-columns: minmax(0, 1fr) 400px; }
+}
+@media (min-width: 901px) and (max-width: 1100px) { .app.compacta .pos { grid-template-columns: minmax(0, 1fr) 360px; } }
+/* ---------- telemóvel */
+@media (max-width: 900px) {
+  .top { background: var(--band-1); }
+  .ini-topo { background: var(--band-1); margin: -16px calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 6px max(16px, env(safe-area-inset-right, 0px)) 76px max(16px, env(safe-area-inset-left, 0px)); }
+  .saud span { color: #B8DCE6; } .saud h2 { color: #fff; font-size: 25px; }
+  .ini-acoes { display: none; }
+  .ini-topo + .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: -82px; position: relative; z-index: 1; gap: 10px; }
+  .ini-topo + .kpis .kpi.hero { grid-column: 1 / -1; background: var(--surface); color: var(--ink); border: 0; box-shadow: 0 10px 30px rgba(10,61,76,.16); border-radius: 18px; padding: 18px; }
+  .ini-topo + .kpis .kpi.hero .lab { color: var(--brand-deep); } .ini-topo + .kpis .kpi.hero .ft, .ini-topo + .kpis .kpi.hero .val small { color: var(--ink-2); }
+  .ini-topo + .kpis .sobe { color: var(--ok); } .ini-topo + .kpis .desce { color: var(--bad); }
+  .ini-topo + .kpis .kpi.hero .val { font-size: 32px; }
+  .kpi-venda { display: flex; margin-top: 12px; height: 54px; border-radius: 14px; font-size: 17px; }
+  .kpi-venda svg.i { width: 22px; height: 22px; stroke-width: 2.4; }
+  .kpi.k4 { display: none; }
+  .atalhos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .atalho { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; text-align: center; padding: 2px 0; line-height: 1.2; }
+  .atalho .ai { width: 54px; height: 54px; border-radius: 16px; background: var(--mist); color: var(--brand-deep); display: grid; place-items: center; }
+  .atalho .ai svg.i { width: 24px; height: 24px; }
+  .vista-cat { display: none; }
+  .so-pc { display: none; }
+  .cat .toolbar { flex-wrap: nowrap; }
+  .cat .toolbar .btn { padding: 0 12px; }
+  .cart { display: none; position: fixed; inset: 0; max-height: none; height: 100%; border-radius: 0; border: 0; z-index: 60; box-shadow: none; padding: 0; }
+  .cart.open { display: flex; }
+  .cart-h { padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); }
+  .cart-h .icon-btn { width: 44px; height: 44px; border-radius: 12px; }
+  .cart-close { display: inline-grid; }
+  .cart-b { padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); }
+  .cart-f { padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); box-shadow: 0 -8px 24px rgba(10,61,76,.08); }
+  .cartbar { left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); height: 64px; border-radius: 18px; background: var(--band-1); padding: 0 8px 0 14px; gap: 12px; justify-content: flex-start; box-shadow: 0 10px 28px rgba(10,61,76,.35); }
+  .cb-n { width: 34px; height: 34px; border-radius: 17px; background: #2FB6DA; color: #0A3D4C; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; flex: none; }
+  .cb-t { display: flex; flex-direction: column; flex: 1; min-width: 0; text-align: left; line-height: 1.2; }
+  .cb-t small { font-size: 12.5px; color: #B8DCE6; font-weight: 600; }
+  .cb-t b { font-family: var(--f-display); font-size: 19px; font-weight: 800; color: #fff; }
+  .cb-go { height: 48px; padding: 0 10px 0 16px; border-radius: 12px; background: #fff; color: #0A3D4C; display: flex; align-items: center; gap: 4px; font-family: var(--f-display); font-weight: 800; font-size: 15.5px; }
+  .app.compacta main { padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px)); }
+  .tabbar { align-items: end; }
+  .tabbar a, .tabbar > button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 0 8px; color: var(--ink-3); text-decoration: none; font-size: 11.5px; font-weight: 600; border: 0; background: transparent; letter-spacing: 0; }
+  .tabbar a[aria-current="page"], .tabbar > button.on { color: var(--brand-deep); font-weight: 700; }
+  .tabbar svg.i { width: 23px; height: 23px; }
+  .tabbar .tab-vender { color: var(--ink); margin-top: -24px; }
+  .tabbar .tab-vender[aria-current="page"] { color: var(--brand-deep); }
+  .tv { width: 56px; height: 56px; border-radius: 28px; background: var(--brand-deep); color: #fff; display: grid; place-items: center; border: 4px solid var(--surface); box-shadow: 0 6px 16px rgba(11,106,128,.35); }
+  .tabbar .tv svg.i { width: 26px; height: 26px; stroke-width: 2.4; }
+  :root[data-theme="dark"] .tabbar > button.on { color: var(--brand); }
+}
+@media (max-width: 900px) and (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tabbar > button.on, :root:not([data-theme="light"]) .ini-topo + .kpis .kpi.hero .lab, :root:not([data-theme="light"]) .atalho .ai { color: var(--brand); } }
 </style>
 <script>window.KAMBAS_SUPABASE = {"url": "https://dwrggcybmkcjdlgellya.supabase.co", "chave": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3cmdnY3libWtjamRsZ2VsbHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNTA3NTksImV4cCI6MjEwNzkyNjc1OX0.AYBuHyLGV24MoX5qR2R3MZkSue_ESoFah7SnaUoVrog"};</script>
 <script src="vendor/supabase.js"></script>
@@ -484,6 +677,8 @@ table.t .muted { color: var(--ink-3); font-size: 13px; }
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
   <symbol id="i-olho" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-olho-fechado" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10.5 10.5 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></symbol>
   <symbol id="i-adj" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
 </svg>
@@ -1022,7 +1217,7 @@ async function acao(nome, ...args) {
 
 /* ============================================================ navegação (só mostra o que o utilizador pode usar) */
 const VISTAS = [
-  ["painel", "Painel", "home", () => true],
+  ["painel", "Início", "home", () => true],
   ["vender", "Vender", "cart", () => pode("vender")],
   ["faturas", "Documentos", "receipt", () => true],
   ["produtos", "Produtos", "tag", () => true],
@@ -1032,17 +1227,25 @@ const VISTAS = [
   ["utilizadores", "Utilizadores", "user", () => pode("admin")],
   ["definicoes", "Definições", "cog", () => pode("admin")],
 ];
-const TITULOS = { painel: "Painel", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
+const TITULOS = { painel: "Início", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
 let vista = "painel";
 function navegar() {
   const h = location.hash.replace("#", "");
   const vis = VISTAS.filter(v => v[3]());
   vista = vis.some(v => v[0] === h) ? h : "painel";
   $("#rail-nav").innerHTML = vis.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}${nome}</a>`).join("");
-  const tabs = vis.filter(v => !["utilizadores", "definicoes"].includes(v[0])).slice(0, 7);
-  $("#tabbar").style.gridTemplateColumns = `repeat(${tabs.length}, 1fr)`;
-  $("#tabbar").innerHTML = tabs.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}${nome}</a>`).join("");
+  // telemóvel: Início, Documentos, [Vender ao centro], Stock ou Clientes, Mais
+  const ids = ["painel", "faturas", "vender", pode("stock") ? "stock" : "clientes"].filter(id => vis.some(v => v[0] === id));
+  const naBarra = ids.map(id => vis.find(v => v[0] === id));
+  const noMais = vis.filter(v => !ids.includes(v[0]));
+  $("#tabbar").style.gridTemplateColumns = `repeat(${naBarra.length + 1}, minmax(0, 1fr))`;
+  $("#tabbar").innerHTML = naBarra.map(([id, nome, ic]) => id === "vender"
+      ? `<a href="#vender" class="tab-vender" ${vista === "vender" ? 'aria-current="page"' : ""}><span class="tv">${icon("plus")}</span>Vender</a>`
+      : `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}${nome}</a>`).join("")
+    + `<button data-act="mais" class="${noMais.some(v => v[0] === vista) ? "on" : ""}" aria-label="Mais opções">${icon("menu")}Mais</button>`;
+  $("#app").classList.toggle("compacta", vista === "vender");
   $("#page-title").textContent = vista === "painel" && !pode("ver_todas") ? "As minhas vendas" : TITULOS[vista];
+  document.title = `${TITULOS[vista]} · Grupo Kambas`;
   const ini = ((E.eu.nome || "").match(/[\p{L}\d]+/gu) || ["?"]).map(s => s[0]).slice(0, 2).join("").toUpperCase();
   $("#user-btn").textContent = ini;
   $("#rail-user").innerHTML = `<button class="ru" data-act="conta"><span class="av">${esc(ini)}</span><span><b>${esc(E.eu.nome)}</b><small>${E.eu.papel === "admin" ? "Administrador" : "Vendedor"}${DEMO ? " · demonstração" : ""}</small></span></button>
@@ -1050,56 +1253,102 @@ function navegar() {
   render();
   window.scrollTo(0, 0);
 }
+function menuMais() {
+  const vis = VISTAS.filter(v => v[3]()), ids = ["painel", "faturas", "vender", pode("stock") ? "stock" : "clientes"];
+  const outras = vis.filter(v => !ids.includes(v[0]));
+  abrir(`<div class="sheet"><div class="sheet-h"><h2>Mais</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><nav class="mais-lista">${outras.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}<span>${nome}</span>${icon("right")}</a>`).join("")}
+      <button data-act="conta">${icon("user")}<span>A minha conta<small>${esc(E.eu.nome)}</small></span>${icon("right")}</button></nav></div>
+    <div class="sheet-f"><button class="btn danger" data-act="sair">${icon("logout")}Terminar sessão</button></div></div>`);
+}
 function render() {
   pendente = false;
   ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, relatorios: vRelatorios, clientes: vClientes, utilizadores: vUtilizadores, definicoes: vDefinicoes })[vista]();
 }
 
 /* ============================================================ painel */
+const ini = { dias: 7 };
+function saudacao() { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 19 ? "Boa tarde" : "Boa noite"; }
+function dataLonga() { const s = new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" }); return s.charAt(0).toUpperCase() + s.slice(1); }
+function quando(iso) {
+  const d = diaDe(iso), h = hoje(), o = new Date(); o.setDate(o.getDate() - 1);
+  return (d === h ? "hoje" : d === isoLocal(o).slice(0, 10) ? "ontem" : dataPt(iso).slice(0, 5)) + ", " + horaPt(iso);
+}
+/* lista de documentos em cartões: no telemóvel não sai do ecrã */
+function listaDocs(lista) {
+  if (!lista.length) return `<div class="empty">Ainda não há documentos.</div>`;
+  return `<div class="dlist">${lista.map(f => { const [et, ec] = estadoDoc(f); return `<button class="drow ${f.estado === "anulada" ? "anulada" : ""}" data-act="ver-fatura" data-id="${f.id}">
+    <span class="dtipo t-${f.tipo}">${f.tipo}</span>
+    <span class="dmeio"><b>${esc(f.cliente_nome)}</b><small>${docNum(f)} · ${quando(f.data)}</small></span>
+    <span class="dfim"><b class="num">${kz(f.total)}</b><span class="chip ${ec}">${et}</span></span></button>`; }).join("")}</div>`;
+}
 function vPainel() {
   const fs = emitidas(), h = hoje(), mes = h.slice(0, 7);
-  const deHoje = fs.filter(f => diaDe(f.data) === h), doMes = fs.filter(f => f.data.startsWith(mes));
+  const o = new Date(); o.setDate(o.getDate() - 1); const ontem = isoLocal(o).slice(0, 10);
   const soma = l => l.reduce((s, f) => s + f.total, 0);
+  const deHoje = fs.filter(f => diaDe(f.data) === h), deOntem = fs.filter(f => diaDe(f.data) === ontem), doMes = fs.filter(f => f.data.startsWith(mes));
+  const vHoje = soma(deHoje), vOntem = soma(deOntem);
+  const variacao = vOntem ? Math.round((vHoje - vOntem) / vOntem * 100) : null;
   const porReceber = fs.filter(f => f.tipo === "FT" && !f.pago);
   const ppAbertas = docs().filter(f => f.tipo === "PP" && f.estado === "emitida");
-  const alertas = E.produtos.filter(p => estadoStock(p) && estadoStock(p) !== "ok").sort((a, b) => a.stock - b.stock);
-  const dias = [...Array(14)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 13 + i); return isoLocal(d).slice(0, 10); });
+  const alertas = pode("stock") ? E.produtos.filter(p => estadoStock(p) && estadoStock(p) !== "ok").sort((a, b) => a.stock - b.stock) : [];
+  const nd = ini.dias;
+  const dias = [...Array(nd)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - nd + 1 + i); return isoLocal(d).slice(0, 10); });
   const porDia = dias.map(d => soma(fs.filter(f => diaDe(f.data) === d)));
-  const rank = {}; let vProd = 0, vServ = 0;
-  doMes.forEach(f => f.itens.forEach(it => {
-    const p = produto(it.produto_id);
-    rank[it.descricao] = (rank[it.descricao] || 0) + it.total;
-    if (p && p.tipo === "produto") vProd += it.total; else vServ += it.total;
-  }));
-  const top = Object.entries(rank).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const maxTop = top.length ? top[0][1] : 1, tot = vProd + vServ || 1;
-  const ultimos = [...docs()].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 6);
+  const rank = {};
+  doMes.forEach(f => f.itens.forEach(it => { rank[it.descricao] = (rank[it.descricao] || 0) + it.total; }));
+  const top = Object.entries(rank).sort((a, b) => b[1] - a[1]).slice(0, 5), maxTop = top.length ? top[0][1] : 1;
+  const ultimos = [...docs()].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 5);
   const semStock = pode("stock") && E.produtos.filter(p => p.tipo === "produto").every(p => p.stock === 0);
+  const nome = (E.eu.nome || "").split(/\s+/)[0];
+  const meu = f => f.vendedor_id === E.eu.id || pode("ver_todas");
+
+  const atalhos = [
+    pode("vender") && `<button class="atalho" data-act="ir-proforma"><span class="ai">${icon("receipt")}</span><span>Pró-forma</span></button>`,
+    `<button class="atalho" data-act="novo-cliente"><span class="ai">${icon("users")}</span><span>Novo cliente</span></button>`,
+    pode("stock") && `<button class="atalho" data-act="mov" data-t="entrada"><span class="ai">${icon("box")}</span><span>Entrada de stock</span></button>`,
+    pode("relatorios") ? `<a class="atalho" href="#relatorios"><span class="ai">${icon("chart")}</span><span>Relatório</span></a>` : `<a class="atalho" href="#faturas"><span class="ai">${icon("receipt")}</span><span>Documentos</span></a>`,
+  ].filter(Boolean);
+
+  const atencao = [
+    ...porReceber.slice(0, 3).map(f => `<div class="aten"><span class="aic warn">${icon("receipt")}</span><span class="atx"><b>${docNum(f)} por pagar</b><small>${esc(f.cliente_nome)} · ${kz(f.total)}</small></span>
+      <button class="btn sm" data-act="${meu(f) ? "pagar" : "ver-fatura"}" data-id="${f.id}">${meu(f) ? "Receber" : "Ver"}</button></div>`),
+    alertas.length ? `<div class="aten"><span class="aic bad">${icon("box")}</span><span class="atx"><b>${alertas.length} produto${alertas.length === 1 ? "" : "s"} com stock baixo</b><small>${esc(alertas[0].nome)}: ${alertas[0].stock <= 0 ? "esgotado" : "só " + alertas[0].stock + " un."}</small></span>
+      <a class="btn sm" href="#stock">Repor</a></div>` : "",
+    ppAbertas.length ? `<div class="aten"><span class="aic brand">${icon("receipt")}</span><span class="atx"><b>${ppAbertas.length} pró-forma${ppAbertas.length === 1 ? "" : "s"} em aberto</b><small>${kz(soma(ppAbertas))} orçados</small></span>
+      <a class="btn sm" href="#faturas" data-act="ver-abertas">Ver</a></div>` : "",
+  ].filter(Boolean);
+
   $("#main").innerHTML = `
-    ${DEMO ? `<div class="note">Modo de demonstração: dados de exemplo, guardados só neste navegador. Toque no seu nome para <b>ver como vendedor</b> e experimentar as permissões.</div>` : ""}
-    ${semStock ? `<div class="note warn">Ainda não há stock registado. Vá a <a href="#stock">Stock</a> e faça a <b>contagem inicial</b> para poder vender os produtos.</div>` : ""}
-    <section class="kpis">
-      <div class="kpi hero"><span class="lab">Vendas de hoje</span><span class="val num">${fmt(soma(deHoje))} <small>Kz</small></span><span class="ft">${deHoje.length} documento${deHoje.length === 1 ? "" : "s"}</span></div>
-      <div class="kpi"><span class="lab">Este mês</span><span class="val num">${fmt(soma(doMes))} <small>Kz</small></span><span class="ft">${doMes.length} faturas · média ${kz(doMes.length ? soma(doMes) / doMes.length : 0)}</span></div>
-      <div class="kpi"><span class="lab">Por receber</span><span class="val num" style="color:${porReceber.length ? "var(--warn)" : "inherit"}">${fmt(soma(porReceber))} <small>Kz</small></span><span class="ft">${porReceber.length} fatura${porReceber.length === 1 ? "" : "s"} por pagar</span></div>
-      ${pode("stock") ? `<div class="kpi"><span class="lab">Alertas de stock</span><span class="val num" style="color:${alertas.length ? "var(--warn)" : "var(--ok)"}">${alertas.length}</span><span class="ft">${alertas.filter(p => p.stock <= 0).length} esgotado(s)</span></div>`
-        : `<div class="kpi"><span class="lab">Pró-formas em aberto</span><span class="val num">${ppAbertas.length}</span><span class="ft">${kz(soma(ppAbertas))}</span></div>`}
-    </section>
-    <section class="dash">
-      <div class="panel chart"><div class="panel-h"><h2>Vendas dos últimos 14 dias</h2><span class="sub">em Kz, sem pró-formas</span></div>${grafico(dias, porDia)}</div>
-      <div class="panel"><div class="panel-h"><h2>Produtos e serviços</h2><span class="sub">receita do mês</span></div>
-        <div class="split"><div style="width:${(vProd / tot * 100).toFixed(1)}%"></div><div style="flex:1"></div></div>
-        <div class="legend"><span><i style="background:var(--brand-deep)"></i>Produtos ${kz(vProd)}</span><span><i style="background:var(--brand);opacity:.45"></i>Serviços ${kz(vServ)}</span></div>
-        <div class="panel-h" style="margin:18px 0 10px"><h2>Mais vendidos</h2><span class="sub">este mês</span></div>
-        <div class="hbars">${top.length ? top.map(([n, v]) => `<div class="hbar"><span class="n">${esc(n)}</span><span class="num strong">${kz(v)}</span><div class="track"><div class="fill" style="width:${(v / maxTop * 100).toFixed(1)}%"></div></div></div>`).join("") : `<div class="empty">Ainda sem vendas este mês.</div>`}</div>
+    <section class="ini-topo">
+      <div class="saud"><span>${dataLonga()}</span><h2>${saudacao()}${nome ? ", " + esc(nome) : ""}</h2></div>
+      <div class="ini-acoes">
+        ${pode("vender") ? `<button class="btn" data-act="ir-proforma">Nova pró-forma</button>` : ""}
+        ${pode("stock") ? `<button class="btn" data-act="mov" data-t="entrada">Entrada de stock</button>` : ""}
+        ${pode("vender") ? `<a class="btn pri" href="#vender">${icon("plus")}Nova venda</a>` : ""}
       </div>
     </section>
+    <section class="kpis">
+      <div class="kpi hero"><span class="lab">${pode("ver_todas") ? "Vendas de hoje" : "As minhas vendas de hoje"}</span><span class="val num">${fmt(vHoje)} <small>Kz</small></span>
+        <span class="ft">${deHoje.length} documento${deHoje.length === 1 ? "" : "s"}${variacao === null ? "" : ` · <b class="${variacao >= 0 ? "sobe" : "desce"}">${variacao >= 0 ? "▲" : "▼"} ${Math.abs(variacao)}%</b> face a ontem`}</span>
+        ${pode("vender") ? `<a class="btn pri big kpi-venda" href="#vender">${icon("plus")}Nova venda</a>` : ""}</div>
+      <div class="kpi"><span class="lab">Este mês</span><span class="val num">${fmt(soma(doMes))} <small>Kz</small></span><span class="ft">${doMes.length} faturas · média ${kz(doMes.length ? soma(doMes) / doMes.length : 0)}</span></div>
+      <div class="kpi"><span class="lab">Por receber</span><span class="val num" style="color:${porReceber.length ? "var(--warn)" : "inherit"}">${fmt(soma(porReceber))} <small>Kz</small></span><span class="ft">${porReceber.length} fatura${porReceber.length === 1 ? "" : "s"} por pagar</span></div>
+      ${pode("stock") ? `<div class="kpi k4"><span class="lab">Stock baixo</span><span class="val num" style="color:${alertas.length ? "var(--bad)" : "var(--ok)"}">${alertas.length} <small>produto${alertas.length === 1 ? "" : "s"}</small></span><span class="ft">${alertas.filter(p => p.stock <= 0).length ? alertas.filter(p => p.stock <= 0).length + " esgotado(s)" : "nenhum esgotado"}</span></div>`
+        : `<div class="kpi k4"><span class="lab">Pró-formas em aberto</span><span class="val num">${ppAbertas.length}</span><span class="ft">${kz(soma(ppAbertas))}</span></div>`}
+    </section>
+    <nav class="atalhos" aria-label="Atalhos">${atalhos.join("")}</nav>
+    ${DEMO ? `<div class="note">Modo de demonstração: dados de exemplo, guardados só neste navegador. Toque no seu nome para <b>ver como vendedor</b> e experimentar as permissões.</div>` : ""}
+    ${semStock ? `<div class="note warn">Ainda não há stock registado. Vá a <a href="#stock">Stock</a> e faça a <b>contagem inicial</b> para poder vender os produtos.</div>` : ""}
     <section class="dash">
-      <div class="panel"><div class="panel-h"><h2>Últimos documentos</h2><a class="btn sm" href="#faturas">Ver todos</a></div>${tabelaFaturas(ultimos, true)}</div>
-      ${pode("stock") ? `<div class="panel"><div class="panel-h"><h2>Reposição de stock</h2><a class="btn sm" href="#stock">Gerir stock</a></div>
-        <div class="alert-list">${alertas.length ? alertas.slice(0, 7).map(p => `<div class="row"><span>${esc(p.nome)}<br><span class="cod">${p.codigo} · mínimo ${p.stock_min}</span></span><span class="chip ${estadoStock(p)} num">${p.stock} un.</span></div>`).join("") : `<div class="empty">Todo o stock está acima do mínimo.</div>`}</div></div>`
-      : `<div class="panel"><div class="panel-h"><h2>Pró-formas em aberto</h2></div>
-        <div class="alert-list">${ppAbertas.length ? ppAbertas.slice(0, 7).map(f => `<div class="row click" data-act="ver-fatura" data-id="${f.id}"><span>${esc(f.cliente_nome)}<br><span class="cod">${docNum(f)} · válida até ${dataPt(f.validade || "")}</span></span><span class="num strong">${kz(f.total)}</span></div>`).join("") : `<div class="empty">Nenhuma pró-forma em aberto.</div>`}</div></div>`}
+      <div class="panel chart"><div class="panel-h"><h2>Vendas</h2><div class="seg" role="group" aria-label="Período do gráfico">${[[7, "7 dias"], [14, "14 dias"], [30, "30 dias"]].map(([v, t]) => `<button data-act="ini-dias" data-v="${v}" aria-pressed="${nd === v}">${t}</button>`).join("")}</div></div>${grafico(dias, porDia)}</div>
+      <div class="panel"><div class="panel-h"><h2>Precisa de atenção</h2></div>
+        ${atencao.length ? `<div class="atens">${atencao.join("")}</div>` : `<div class="empty ok-txt">${icon("check")}Tudo em dia. Nada por pagar${pode("stock") ? " nem stock baixo" : ""}.</div>`}</div>
+    </section>
+    <section class="dash">
+      <div class="panel"><div class="panel-h"><h2>Últimos documentos</h2><a class="btn sm" href="#faturas">Ver todos</a></div>${listaDocs(ultimos)}</div>
+      <div class="panel"><div class="panel-h"><h2>Mais vendidos</h2><span class="sub">este mês</span></div>
+        <div class="hbars">${top.length ? top.map(([n, v]) => `<div class="hbar"><span class="n">${esc(n)}</span><span class="num strong">${kz(v)}</span><div class="track"><div class="fill" style="width:${(v / maxTop * 100).toFixed(1)}%"></div></div></div>`).join("") : `<div class="empty">Ainda sem vendas este mês.</div>`}</div></div>
     </section>`;
 }
 function larguraGrafico(max) { const m = document.getElementById("main"); return Math.round(Math.max(340, Math.min(max, (m ? m.clientWidth : max) - 40))); }
@@ -1110,14 +1359,16 @@ function grafico(dias, valores) {
   const topo = passo * 4, bw = (W - L - R) / dias.length;
   const y = v => T + (H - T - B) * (1 - v / topo);
   const k = v => v >= 1000 ? fmt(v / 1000) + "k" : fmt(v);
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vendas por dia nos últimos 14 dias">`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vendas por dia nos últimos ${dias.length} dias">`;
   for (let i = 0; i <= 4; i++) { const v = passo * i; s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${k(v)}</text>`; }
   const hj = hoje();
   dias.forEach((d, i) => {
     const v = valores[i], x = L + i * bw + bw * .18, w = bw * .64;
     if (v > 0) s += `<rect class="bar ${d === hj ? "today" : ""}" x="${x}" y="${y(v)}" width="${w}" height="${y(0) - y(v)}" rx="3"/>`;
     if (d === hj && v > 0) s += `<text class="vlab" x="${x + w / 2}" y="${y(v) - 6}" text-anchor="middle">${k(v)}</text>`;
-    if (i % 2 === 1 || d === hj) s += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${d === hj ? "Hoje" : d.slice(8, 10) + "/" + d.slice(5, 7)}</text>`;
+    const n = dias.length, mostra = n <= 7 || (n <= 14 ? i % 2 === 1 : (n - 1 - i) % 5 === 0) || d === hj;
+    const rot = d === hj ? "Hoje" : n <= 7 ? ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][new Date(d + "T12:00").getDay()] : d.slice(8, 10) + "/" + d.slice(5, 7);
+    if (mostra) s += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${rot}</text>`;
   });
   return s + "</svg>";
 }
@@ -1263,21 +1514,27 @@ function maisVendidos() {
   const q = {}; emitidas().forEach(f => f.itens.forEach(it => { if (it.produto_id) q[it.produto_id] = (q[it.produto_id] || 0) + 1; }));
   return Object.entries(q).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([id]) => Number(id));
 }
+function lerPref(k, def) { try { return localStorage.getItem("kambas-" + k) || def; } catch (e) { return def; } }
+function gravarPref(k, v) { try { localStorage.setItem("kambas-" + k, v); } catch (e) { /* sem armazenamento */ } }
+const NOME_SEC = s => s.replace(" Personalizados", "").replace(" Personalizadas", "");
 function vVender() {
-  const secs = ["Todas", "Mais vendidos", ...new Set(E.produtos.map(p => p.seccao))];
+  const contagem = {}; E.produtos.forEach(p => contagem[p.seccao] = (contagem[p.seccao] || 0) + 1);
+  const secs = ["Todas", "Mais vendidos", ...Object.keys(contagem)];
+  venda.vista = venda.vista || lerPref("vista-catalogo", "grelha");
   $("#main").innerHTML = `
     <div class="pos">
-      <section style="display:flex;flex-direction:column;gap:12px;min-width:0">
-        <div class="toolbar"><label class="search">${icon("search")}<input id="pq" type="search" placeholder="Procurar produto ou serviço (Enter adiciona o 1.º)" value="${esc(venda.q)}" aria-label="Procurar" autocomplete="off"></label>
-          <button class="btn" data-act="avulso">${icon("plus")}Item avulso</button></div>
-        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(s.replace(" Personalizados", "").replace(" Personalizadas", ""))}</button>`).join("")}</div>
-        <div class="tiles" id="ptiles"></div>
+      <section class="cat">
+        <div class="toolbar"><label class="search big">${icon("search")}<input id="pq" type="search" placeholder="Procurar no catálogo" value="${esc(venda.q)}" aria-label="Procurar" autocomplete="off"></label>
+          <div class="seg vista-cat" role="group" aria-label="Mostrar catálogo em">${[["grelha", "Grelha"], ["lista", "Lista"]].map(([v, t]) => `<button data-act="vista-cat" data-v="${v}" aria-pressed="${venda.vista === v}">${t}</button>`).join("")}</div>
+          <button class="btn" data-act="avulso" aria-label="Item avulso (fora do catálogo)">${icon("plus")}<span><span class="so-pc">Item </span>avulso</span></button></div>
+        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(NOME_SEC(s))}${s === "Todas" ? ` <span class="cnt">${E.produtos.length}</span>` : contagem[s] ? ` <span class="cnt">${contagem[s]}</span>` : ""}</button>`).join("")}</div>
+        <div id="ptiles"></div>
       </section>
-      <aside class="panel cart" id="cart"></aside>
+      <aside class="cart" id="cart" aria-label="Venda atual"></aside>
     </div>
     <button class="cartbar" id="cartbar" data-act="abrir-carrinho" hidden></button>`;
   $("#pq").oninput = e => { venda.q = e.target.value; tiles(); };
-  $("#pq").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const t = $("#ptiles .tile:not(:disabled)"); if (t) { adicionar(t.dataset.id); e.target.select(); } } };
+  $("#pq").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const t = $("#ptiles .tile:not(.sem)"); if (t) { adicionar(t.dataset.id); toast(`${produto(t.dataset.id)?.nome || "Item"} adicionado`); e.target.select(); } } };
   tiles(); carrinho();
 }
 function listaTiles() {
@@ -1286,16 +1543,35 @@ function listaTiles() {
   if (venda.sec === "Mais vendidos") return maisVendidos().map(produto).filter(Boolean);
   return E.produtos.filter(p => venda.sec === "Todas" || p.seccao === venda.sec);
 }
+function tileHtml(p, qtd) {
+  const st = estadoStock(p), sem = st === "bad" && venda.tipo !== "PP";
+  const info = p.tipo === "produto"
+    ? `<span class="ds ${sem ? "bad" : st === "warn" ? "warn" : ""}">${sem ? "Esgotado" : st === "warn" ? `Só ${p.stock} em stock` : `${p.stock} em stock`}</span>`
+    : `<span class="ds">${esc(p.descricao || "Serviço")}</span>`;
+  const acao = qtd
+    ? `<span class="stepper"><button data-act="tqtd" data-id="${p.id}" data-d="-1" aria-label="Tirar um de ${esc(p.nome)}">${icon(qtd === 1 ? "trash" : "minus")}</button><b class="num" aria-live="polite">${qtd}</b><button data-act="tqtd" data-id="${p.id}" data-d="1" aria-label="Mais um de ${esc(p.nome)}">${icon("plus")}</button></span>`
+    : sem ? "" : `<button class="add" data-act="add" data-id="${p.id}" aria-label="Adicionar ${esc(p.nome)}">${icon("plus")}</button>`;
+  return `<div class="tile ${qtd ? "in" : ""} ${sem ? "sem" : ""}" data-act="add" data-id="${p.id}">
+    <span class="nm">${esc(p.nome)}</span>
+    <span class="sub"><b class="pr num ${p.modo === "consulta" ? "consulta" : ""}">${precoCurto(p)}</b>${info}</span>
+    <span class="ta">${acao}</span></div>`;
+}
 function tiles() {
-  const l = listaTiles();
-  const noCarrinho = {}; venda.itens.forEach(i => noCarrinho[i.produto_id] = (noCarrinho[i.produto_id] || 0) + i.qtd);
-  $("#ptiles").innerHTML = l.length ? l.map(p => {
-    const st = estadoStock(p), sem = st === "bad" && venda.tipo !== "PP";
-    return `<button class="tile" data-act="add" data-id="${p.id}" ${sem ? "disabled" : ""}>
-      ${noCarrinho[p.id] ? `<span class="badge">${noCarrinho[p.id]}</span>` : ""}
-      <span class="nm">${esc(p.nome)}</span>${p.descricao ? `<span class="ds">${esc(p.descricao)}</span>` : ""}
-      <span class="bt"><span class="pr num">${precoTexto(p)}</span>${p.tipo === "produto" ? `<span class="chip ${st} num">${sem ? "Esgotado" : p.stock + " un."}</span>` : '<span class="chip">Serviço</span>'}</span></button>`;
-  }).join("") : `<div class="empty" style="grid-column:1/-1">${venda.q ? `Nada encontrado para “${esc(venda.q)}”. Use <b>Item avulso</b> para vender algo fora do catálogo.` : "Ainda sem vendas para mostrar os mais vendidos."}</div>`;
+  const l = listaTiles(), q = venda.q.trim();
+  const noCarrinho = {}; venda.itens.forEach(i => { if (i.produto_id) noCarrinho[i.produto_id] = (noCarrinho[i.produto_id] || 0) + i.qtd; });
+  const lista = venda.vista === "lista" || matchMedia("(max-width: 900px)").matches;
+  const cls = `tiles ${lista ? "lista" : ""}`;
+  const grade = ps => `<div class="${cls}">${ps.map(p => tileHtml(p, noCarrinho[p.id])).join("")}</div>`;
+  if (!l.length) {
+    $("#ptiles").innerHTML = `<div class="empty">${q ? `Nada encontrado para “${esc(q)}”. Use <b>Item avulso</b> para vender algo fora do catálogo.` : "Ainda sem vendas para mostrar os mais vendidos."}</div>`;
+    return;
+  }
+  if (q || venda.sec !== "Todas") { $("#ptiles").innerHTML = (q ? `<h3 class="sec-h">${l.length} resultado${l.length === 1 ? "" : "s"}</h3>` : "") + grade(l); return; }
+  // "Todas": mais vendidos no topo e o catálogo agrupado por secção
+  const mv = maisVendidos().map(produto).filter(Boolean).slice(0, 8);
+  const grupos = {}; l.forEach(p => (grupos[p.seccao] = grupos[p.seccao] || []).push(p));
+  $("#ptiles").innerHTML = (mv.length ? `<h3 class="sec-h">Mais vendidos</h3><div class="mvs">${mv.map(p => `<button class="mv ${noCarrinho[p.id] ? "in" : ""}" data-act="add" data-id="${p.id}"><b>${esc(p.nome)}</b><span class="num">${precoCurto(p)}</span>${noCarrinho[p.id] ? `<span class="badge">${noCarrinho[p.id]}</span>` : ""}</button>`).join("")}</div>` : "")
+    + Object.entries(grupos).map(([s, ps]) => `<h3 class="sec-h">${esc(s)} <span>· ${ps.length}</span></h3>${grade(ps)}`).join("");
 }
 function totaisVenda() {
   const sub = venda.itens.reduce((s, i) => s + (i.qtd * (i.preco_unit || 0)), 0);
@@ -1306,7 +1582,7 @@ function totaisVenda() {
 function clienteSel() { return venda.cliente_id ? byId(E.clientes, venda.cliente_id) : null; }
 function blocoCliente() {
   const c = clienteSel();
-  if (c) return `<div class="cli-card"><div style="min-width:0"><div class="strong">${esc(c.nome)}</div><div class="cod">${[c.nif && "NIF " + esc(c.nif), esc(c.telefone)].filter(Boolean).join(" · ") || "Sem NIF nem telefone"}</div></div>
+  if (c) return `<div class="cli-card"><span class="cav">${esc(((c.nome || "").match(/[\p{L}\d]+/gu) || ["?"]).map(x => x[0]).slice(0, 2).join("").toUpperCase())}</span><div style="min-width:0"><div class="strong">${esc(c.nome)}</div><div class="cod">${[c.nif && "NIF " + esc(c.nif), esc(c.telefone)].filter(Boolean).join(" · ") || "Sem NIF nem telefone"}</div></div>
     <button class="btn sm" data-act="cli-editar" data-id="${c.id}">Editar</button><button class="btn sm" data-act="cli-trocar">Trocar</button></div>`;
   if (venda.novoCli) {
     const n = venda.novoCli;
@@ -1333,43 +1609,55 @@ function carrinho() {
   const n = venda.itens.reduce((s, i) => s + i.qtd, 0);
   const aberto = $("#cart")?.classList.contains("open");
   const numerario = venda.tipo === "FR" && venda.forma === "Numerário", troco = venda.recebido - tot;
+  const nomeTipo = { FR: "Fatura-Recibo", FT: "Fatura", PP: "Pró-forma" }[venda.tipo];
+  venda.extras = venda.extras || { desc: false, obs: false };
+  const verDesc = venda.extras.desc || venda.desconto, verObs = venda.extras.obs || venda.obs;
   $("#cart").innerHTML = `
-    <div class="cart-h"><h2>Nova ${{ FR: "Fatura-Recibo", FT: "Fatura", PP: "Pró-forma" }[venda.tipo]}</h2><div style="display:flex;gap:6px">${venda.itens.length ? `<button class="btn sm" data-act="limpar-venda">Limpar</button>` : ""}<button class="icon-btn cart-close" data-act="fechar-carrinho" aria-label="Fechar">${icon("x")}</button></div></div>
-    <div class="tipos" role="radiogroup" aria-label="Tipo de documento">${[["FR", "Fatura-Recibo", "Pago agora"], ["FT", "Fatura", "Paga depois"], ["PP", "Pró-forma", "Orçamento"]].map(([v, t, sub]) => `<button class="tipo t-${v}" data-act="doc-tipo" data-v="${v}" role="radio" aria-checked="${venda.tipo === v}"><b>${t}</b><small>${sub}</small></button>`).join("")}</div>
-    <div class="cod tipo-ajuda">${{ FR: "Pago no acto: emite fatura e recibo no mesmo documento.", FT: "O cliente paga depois. Registe o pagamento quando receber.", PP: `Orçamento: não mexe no stock nem conta como venda. Válida ${E.config.validade_proforma || 15} dias.` }[venda.tipo]}</div>
-    <div class="field"><span>1 · Cliente</span>${blocoCliente()}</div>
-    <div class="field"><span>2 · Produtos e serviços</span>
-    ${venda.itens.length ? `<div class="lines">${venda.itens.map((it, i) => {
-      const p = produto(it.produto_id); const tier = p && p.tier_qtd && it.qtd >= p.tier_qtd && it.preco_unit === p.tier_preco;
-      const proxTier = p && p.tier_qtd && it.qtd < p.tier_qtd && !it.manual ? p.tier_qtd - it.qtd : 0;
-      return `<div class="line"><div class="nm">${esc(it.descricao)}<div class="cod">${p ? (p.tipo === "produto" ? `${p.codigo} · ${p.stock} em stock` : p.codigo + " · serviço") : "Item avulso"}</div></div>
-        <div class="tot num">${kz(it.qtd * (it.preco_unit || 0))}</div>
-        <div class="ctr"><span class="qty"><button data-act="qtd" data-i="${i}" data-d="-1" aria-label="Menos">${icon("minus")}</button><input id="q${i}" class="num" inputmode="numeric" value="${it.qtd}" data-i="${i}" aria-label="Quantidade"><button data-act="qtd" data-i="${i}" data-d="1" aria-label="Mais">${icon("plus")}</button></span>
-          <label class="price-in">× <input id="pr${i}" class="num ${it.preco_unit ? "" : "need"}" inputmode="numeric" value="${it.preco_unit ? fmt(it.preco_unit) : ""}" placeholder="preço" data-i="${i}" aria-label="Preço unitário"> Kz</label>
-          <button class="icon-btn" style="width:30px;height:30px;margin-left:auto" data-act="rm" data-i="${i}" aria-label="Remover">${icon("trash")}</button></div>
-        ${tier ? `<div class="hint">Preço por quantidade aplicado (${p.tier_qtd}+ un.)</div>` : ""}${proxTier && proxTier <= 5 ? `<div class="hint" style="color:var(--brand-deep)">Mais ${proxTier} un. e o preço baixa para ${kz(p.tier_preco)}</div>` : ""}${p && p.modo === "consulta" && !it.preco_unit ? `<div class="hint" style="color:var(--warn)">Por consulta: indique o preço combinado</div>` : ""}${p && p.modo === "a_partir" ? `<div class="hint" style="color:var(--ink-3)">Mínimo ${kz(p.preco)}, ajuste ao pedido</div>` : ""}</div>`;
-    }).join("")}</div>` : `<div class="empty" style="padding:16px 8px">Toque num produto ou serviço para o adicionar.</div>`}</div>
-    ${venda.tipo === "FR" ? `<div class="field"><span>3 · Pagamento</span><div class="pay">${E.config.formas_pagamento.map(m => `<button data-act="forma" data-v="${esc(m)}" aria-pressed="${venda.forma === m}">${esc(m)}</button>`).join("")}</div></div>` : ""}
-    <div class="totals">
-      <div class="r"><span>Subtotal</span><span class="num">${kz(sub)}</span></div>
-      <div class="r"><span style="display:flex;align-items:center;gap:6px">Desconto <span class="seg mini">${[["kz", "Kz"], ["pct", "%"]].map(([v, t]) => `<button data-act="desc-modo" data-v="${v}" aria-pressed="${venda.descModo === v}">${t}</button>`).join("")}</span></span>
-        <input id="vdesc" class="num" inputmode="numeric" value="${venda.desconto ? fmt(venda.desconto) : ""}" placeholder="0" aria-label="Desconto"></div>
-      ${venda.descModo === "pct" && desc ? `<div class="r" style="font-size:13px"><span></span><span class="num">− ${kz(desc)}</span></div>` : ""}
-      <div class="r grand"><span>Total</span><span class="num">${kz(tot)}</span></div>
-      ${numerario ? `<div class="r"><label for="vrec">Valor recebido</label><input id="vrec" class="num" inputmode="numeric" value="${venda.recebido ? fmt(venda.recebido) : ""}" placeholder="0"></div>
-        ${venda.recebido ? `<div class="r ${troco < 0 ? "falta" : "troco"}"><span>${troco < 0 ? "Falta receber" : "Troco"}</span><span class="num">${kz(Math.abs(troco))}</span></div>` : ""}` : ""}
+    <div class="cart-h"><button class="icon-btn cart-close" data-act="fechar-carrinho" aria-label="Voltar ao catálogo">${icon("left")}</button>
+      <h2>Nova ${nomeTipo}</h2>${venda.itens.length ? `<button class="btn sm ghost-bad" data-act="limpar-venda">Limpar</button>` : ""}</div>
+    <div class="cart-b">
+      <div class="field"><span>Documento</span>
+        <div class="tipos" role="radiogroup" aria-label="Tipo de documento">${[["FR", "Fatura-Recibo", "Pago agora"], ["FT", "Fatura", "Paga depois"], ["PP", "Pró-forma", "Orçamento"]].map(([v, t, s]) => `<button class="tipo t-${v}" data-act="doc-tipo" data-v="${v}" role="radio" aria-checked="${venda.tipo === v}"><b>${t}</b><small>${s}</small></button>`).join("")}</div>
+        <div class="cod tipo-ajuda">${{ FR: "Pago no acto: emite fatura e recibo no mesmo documento.", FT: "O cliente paga depois. Registe o pagamento quando receber.", PP: `Orçamento: não mexe no stock nem conta como venda. Válida ${E.config.validade_proforma || 15} dias.` }[venda.tipo]}</div></div>
+      <div class="field"><span>Cliente</span>${blocoCliente()}</div>
+      <div class="field"><span>${n ? `${n} ${n === 1 ? "item" : "itens"}` : "Itens"}</span>
+      ${venda.itens.length ? `<div class="lines">${venda.itens.map((it, i) => {
+        const p = produto(it.produto_id); const tier = p && p.tier_qtd && it.qtd >= p.tier_qtd && it.preco_unit === p.tier_preco;
+        const proxTier = p && p.tier_qtd && it.qtd < p.tier_qtd && !it.manual ? p.tier_qtd - it.qtd : 0;
+        return `<div class="line"><div class="nm">${esc(it.descricao)}<div class="cod">${p ? (p.tipo === "produto" ? `${p.codigo} · ${p.stock} em stock` : p.codigo + " · serviço") : "Item avulso"}</div></div>
+          <div class="tot num">${kz(it.qtd * (it.preco_unit || 0))}</div>
+          <div class="ctr"><span class="qty"><button data-act="qtd" data-i="${i}" data-d="-1" aria-label="Menos">${icon("minus")}</button><input id="q${i}" class="num" inputmode="numeric" value="${it.qtd}" data-i="${i}" aria-label="Quantidade"><button data-act="qtd" data-i="${i}" data-d="1" aria-label="Mais">${icon("plus")}</button></span>
+            <label class="price-in">× <input id="pr${i}" class="num ${it.preco_unit ? "" : "need"}" inputmode="numeric" value="${it.preco_unit ? fmt(it.preco_unit) : ""}" placeholder="preço" data-i="${i}" aria-label="Preço unitário"> Kz</label>
+            <button class="icon-btn rm-btn" data-act="rm" data-i="${i}" aria-label="Remover ${esc(it.descricao)}">${icon("trash")}</button></div>
+          ${tier ? `<div class="hint">Preço por quantidade aplicado (${p.tier_qtd}+ un.)</div>` : ""}${proxTier && proxTier <= 5 ? `<div class="hint" style="color:var(--brand-deep)">Mais ${proxTier} un. e o preço baixa para ${kz(p.tier_preco)}</div>` : ""}${p && p.modo === "consulta" && !it.preco_unit ? `<div class="hint" style="color:var(--warn)">Por consulta: indique o preço combinado</div>` : ""}${p && p.modo === "a_partir" ? `<div class="hint" style="color:var(--ink-3)">Mínimo ${kz(p.preco)}, ajuste ao pedido</div>` : ""}</div>`;
+      }).join("")}</div>` : `<div class="empty vazio-cart">${icon("cart")}<span>Toque no <b>+</b> de um produto ou serviço para o adicionar.</span></div>`}</div>
+      <div class="extras">
+        ${verDesc ? `<div class="extra"><span class="ex-l">Desconto <span class="seg mini">${[["kz", "Kz"], ["pct", "%"]].map(([v, t]) => `<button data-act="desc-modo" data-v="${v}" aria-pressed="${venda.descModo === v}">${t}</button>`).join("")}</span></span>
+          <input id="vdesc" class="f num" inputmode="numeric" value="${venda.desconto ? fmt(venda.desconto) : ""}" placeholder="0" aria-label="Desconto">${desc ? `<span class="ex-v num">− ${kz(desc)}</span>` : ""}</div>` : `<button class="btn-extra" data-act="ver-extra" data-v="desc">${icon("plus")}Desconto</button>`}
+        ${verObs ? `<label class="extra col"><span class="ex-l">Observação</span><textarea class="f" id="vobs" rows="2" placeholder="Ex.: entrega em 2 dias úteis, arte enviada por WhatsApp">${esc(venda.obs)}</textarea></label>` : `<button class="btn-extra" data-act="ver-extra" data-v="obs">${icon("plus")}Observação</button>`}
+      </div>
+      ${venda.tipo === "FR" ? `<div class="field"><span>Pagamento</span><div class="pay">${E.config.formas_pagamento.map(m => `<button data-act="forma" data-v="${esc(m)}" aria-pressed="${venda.forma === m}">${esc(m)}</button>`).join("")}</div>
+        ${numerario ? `<div class="receb"><label for="vrec">Recebido</label><input id="vrec" class="f num" inputmode="numeric" value="${venda.recebido ? fmt(venda.recebido) : ""}" placeholder="0">
+          ${venda.recebido ? `<span class="${troco < 0 ? "falta" : "troco"}">${troco < 0 ? "Falta" : "Troco"} <b class="num">${kz(Math.abs(troco))}</b></span>` : ""}</div>` : ""}</div>` : ""}
+      <div id="v-err"></div>
     </div>
-    <label class="field"><span>Observações</span><textarea class="f" id="vobs" rows="2" placeholder="Ex.: entrega em 2 dias úteis, arte enviada por WhatsApp">${esc(venda.obs)}</textarea></label>
-    <div id="v-err"></div>
-    <button class="btn pri big" data-act="emitir" ${venda.itens.length ? "" : "disabled"}>${icon("receipt")}Emitir ${venda.tipo === "PP" ? "pró-forma" : venda.tipo === "FT" ? "fatura" : "fatura-recibo"} ${venda.tipo} ${nf(E.config.numeracao[venda.tipo] || 1)} · ${kz(tot)}</button>`;
+    <div class="cart-f">
+      ${desc ? `<div class="sub-l"><span>Subtotal ${kz(sub)}</span><span>Desconto − ${kz(desc)}</span></div>` : ""}
+      <div class="tot-l"><span>Total${n ? ` · ${n} ${n === 1 ? "item" : "itens"}` : ""}</span><b class="num">${kz(tot)}</b></div>
+      <button class="btn big emitir-btn e-${venda.tipo}" data-act="emitir" ${venda.itens.length ? "" : "disabled"}>${icon("check")}Emitir ${nomeTipo} <span class="en">${venda.tipo} ${nf(E.config.numeracao[venda.tipo] || 1)}</span></button>
+    </div>`;
   if (aberto) $("#cart").classList.add("open");
   const bar = $("#cartbar");
-  if (bar) { bar.hidden = !venda.itens.length || aberto; bar.innerHTML = `<span>${icon("cart")} ${n} ${n === 1 ? "item" : "itens"}</span><span class="num">${kz(tot)} · Ver venda</span>`; }
+  if (bar) {
+    bar.hidden = !venda.itens.length || aberto;
+    bar.innerHTML = `<span class="cb-n num">${n}</span><span class="cb-t"><small>${n} ${n === 1 ? "item" : "itens"} · ${nomeTipo}</small><b class="num">${kz(tot)}</b></span><span class="cb-go">Continuar${icon("right")}</span>`;
+    bar.setAttribute("aria-label", `Ver venda: ${n} ${n === 1 ? "item" : "itens"}, ${kz(tot)}`);
+  }
   const cq = $("#vcliq");
   if (cq) { cq.oninput = e => { venda.cliQ = e.target.value; resultadosCliente(); }; resultadosCliente(); }
   if (venda.novoCli) ["nome", "nif", "tel", "end"].forEach(k => { $("#nc-" + k).oninput = e => venda.novoCli[{ tel: "telefone", end: "endereco" }[k] || k] = e.target.value; });
-  $("#vobs").oninput = e => venda.obs = e.target.value;
-  $("#vdesc").onchange = e => { venda.desconto = inteiro(e.target.value) || 0; carrinho(); };
+  if ($("#vobs")) $("#vobs").oninput = e => venda.obs = e.target.value;
+  if ($("#vdesc")) $("#vdesc").onchange = e => { venda.desconto = inteiro(e.target.value) || 0; carrinho(); };
   if ($("#vrec")) $("#vrec").onchange = e => { venda.recebido = inteiro(e.target.value) || 0; carrinho(); };
   venda.itens.forEach((it, i) => {
     $("#q" + i).onchange = e => mudarQtd(i, (inteiro(e.target.value) || 1) - it.qtd);
@@ -1414,7 +1702,6 @@ function adicionar(id) {
   if (p.tipo === "produto" && p.stock <= 0 && venda.tipo !== "PP") return toast("Produto esgotado");
   venda.itens.push({ produto_id: p.id, descricao: p.nome, qtd: 1, preco_unit: p.modo === "consulta" ? 0 : precoPara(p, 1), manual: false });
   carrinho(); tiles();
-  toast(`${p.nome} adicionado`);
 }
 async function emitir() {
   const { desc, tot } = totaisVenda();
@@ -1426,7 +1713,7 @@ async function emitir() {
   try {
     const f = await acao("registarDocumento", { tipo: venda.tipo, cliente_id: venda.cliente_id ? (ehTemp(venda.cliente_id) ? venda.cliente_id : Number(venda.cliente_id)) : null, forma_pagamento: venda.tipo === "FR" ? venda.forma : null, desconto: desc, observacoes: obs,
       itens: venda.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
-    Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null });
+    Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null, extras: { desc: false, obs: false } });
     render(); toast(f.pendente ? "Venda guardada neste aparelho. É enviada quando houver internet." : `${docNum(f)} emitida`); verFatura(f.id, true);
   } catch (e) { err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
 }
@@ -2111,7 +2398,17 @@ const ACOES = {
   "qtd": el => mudarQtd(Number(el.dataset.i), Number(el.dataset.d)),
   "rm": el => { venda.itens.splice(Number(el.dataset.i), 1); carrinho(); tiles(); },
   "forma": el => { venda.forma = el.dataset.v; carrinho(); if (venda.forma === "Numerário") setTimeout(() => $("#vrec")?.focus(), 30); },
-  "limpar-venda": () => { venda.itens = []; venda.desconto = 0; carrinho(); tiles(); },
+  "limpar-venda": () => { venda.itens = []; venda.desconto = 0; venda.extras = { desc: false, obs: false }; carrinho(); tiles(); },
+  "tqtd": el => {
+    const i = venda.itens.findIndex(x => String(x.produto_id) === String(el.dataset.id)); if (i < 0) return;
+    if (Number(el.dataset.d) < 0 && venda.itens[i].qtd <= 1) { venda.itens.splice(i, 1); carrinho(); tiles(); } else mudarQtd(i, Number(el.dataset.d));
+  },
+  "vista-cat": el => { venda.vista = el.dataset.v; gravarPref("vista-catalogo", venda.vista); document.querySelectorAll(".vista-cat button").forEach(b => b.setAttribute("aria-pressed", b === el)); tiles(); },
+  "ver-extra": el => { venda.extras = venda.extras || {}; venda.extras[el.dataset.v] = true; carrinho(); setTimeout(() => $(el.dataset.v === "desc" ? "#vdesc" : "#vobs")?.focus(), 30); },
+  "ini-dias": el => { ini.dias = Number(el.dataset.v); vPainel(); },
+  "ir-proforma": () => { venda.tipo = "PP"; if (location.hash === "#vender") render(); else location.hash = "#vender"; },
+  "ver-abertas": () => { filtroF.estado = "aberto"; if (location.hash === "#faturas") render(); else location.hash = "#faturas"; },
+  "mais": () => menuMais(),
   "emitir": () => emitir(),
   "abrir-carrinho": () => { $("#cart").classList.add("open"); $("#cartbar").hidden = true; },
   "fechar-carrinho": () => { $("#cart").classList.remove("open"); carrinho(); },
