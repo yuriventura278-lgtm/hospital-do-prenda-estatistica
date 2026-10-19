@@ -14,9 +14,34 @@ utilizador e sincronização entre dispositivos.
   com "Registar pagamento") e Fatura Pró-forma (PP, orçamento com validade,
   convertível em FR ou FT). Numeração própria por tipo (FR 0001, FT 0001, PP 0001).
   O documento mostra o **nome do vendedor** que o emitiu (o do utilizador com
-  sessão iniciada). PDF A5 com o desenho do bloco de faturas, WhatsApp e cópia do resumo.
-- **Vender:** catálogo com pesquisa, "Mais vendidos", item avulso, cliente
-  pesquisado ou registado sem sair da venda, desconto em Kz ou %, troco em numerário.
+  sessão iniciada). O tipo aparece por extenso numa faixa colorida no topo
+  (verde FR, laranja FT, azul pró-forma). PDF A5 com o desenho do bloco de faturas,
+  **Imprimir** (no telemóvel Android abre a escolha de impressora ou app) e cópia do resumo.
+- **Login:** botão para ver a senha; o navegador ou o telemóvel oferece-se para guardar a senha.
+- **Início:** saudação, vendas de hoje comparadas com ontem, botão "Nova venda",
+  atalhos, caixa "Precisa de atenção" (faturas por pagar, stock baixo, pró-formas
+  em aberto), gráfico de 7, 14 ou 30 dias, últimos documentos e mais vendidos.
+- **Vender:** catálogo agrupado por secção (grelha ou lista), "Mais vendidos" no
+  topo, botão **+** e quantidade **− 1 +** no próprio artigo, item avulso, cliente
+  pesquisado ou registado sem sair da venda, desconto e observação só quando
+  precisa, troco em numerário. O total e o botão Emitir ficam sempre visíveis.
+  No telemóvel: barra "Continuar" com o total e ecrã de finalizar venda; barra de
+  baixo com Vender ao centro e o resto em "Mais".
+- **Recargas (Unitel, Africell, ZAP, DStv, EDEL, EPAL):** cada operador tem um saldo
+  em Kz. Em **Saldos**, "Carregar saldo" regista o saldo recebido e quanto se pagou
+  (ex.: pagar 9.500 e receber 10.000). Na venda, separador **Recargas**: escolhe-se o
+  operador, o valor (botões rápidos ou outro valor) e, se quiser, o número do
+  cliente (telefone, cartão ou contador). Não se vende acima do saldo; anular
+  devolve o saldo; a pró-forma só tira saldo quando é convertida. O lucro de cada
+  recarga é o valor vendido menos o custo desse saldo (média do que se pagou) e
+  aparece em Saldos e nos relatórios. Aviso de saldo baixo no Início.
+  Pode carregar o mesmo operador quantas vezes quiser no mês: cada carregamento
+  soma ao saldo, e Saldos mostra quanto e quantas vezes carregou.
+- **Produtos e secções:** registar, editar e remover produtos e serviços (botão em
+  cada linha). Secções com contagem, incluindo **Electrodomésticos**, **CCTV &
+  Segurança** e **Material de Papelaria**; "Nova secção" cria qualquer outra, com um
+  código próprio usado nos códigos dos produtos (ex.: CCTV → CS01). Uma secção só
+  se remove quando está vazia.
 - **Stock:** entradas, saídas, contagem geral, alertas, histórico de movimentos.
 - **Relatórios:** diário, semanal, mensal, trimestral, semestral e anual, em PDF.
 - **Utilizadores e permissões:**
@@ -25,11 +50,32 @@ utilizador e sincronização entre dispositivos.
   - Permissões extra que o administrador pode dar a um vendedor: ver documentos
     de todos, anular, produtos e preços, stock, relatórios.
 
+## Dados da empresa (Definições, só administrador)
+
+- Nome, NIF, actividade e slogan.
+- Contactos e localização: telefones, e-mail, endereço, ponto de referência, link
+  do mapa, Facebook, TikTok e Instagram. Aparecem na fatura e no PDF.
+- Coordenadas bancárias: titular e contas (acrescentar, editar, remover, pôr em
+  primeiro). A primeira conta aparece no rodapé da fatura.
+- **PDF das coordenadas bancárias** para enviar aos clientes (Definições, "A minha
+  conta" ou menu Mais; também os vendedores): logótipo, titular, contas, contactos,
+  localização com link do mapa e redes sociais.
+
+## Progresso e espera
+
+- Ao entrar: ecrã com o logótipo e uma barra de progresso com as etapas reais
+  (ligação, conta, catálogo, vendas).
+- Enquanto o servidor responde: linha fina no topo; botões mostram o que estão a
+  fazer ("A guardar…", "A gerar PDF…").
+- **Emitir** bloqueia ao primeiro toque ("A emitir…"): dois toques nunca criam duas
+  faturas. Depois aparece "Fatura emitida" com o número, o total e o troco.
+- PDF: aviso "A gerar o PDF…" e, no fim, onde ficou o ficheiro.
+
 ## Sem internet (modo offline)
 
 - Cada vez que os dados chegam do servidor, fica uma cópia no aparelho (IndexedDB).
   Sem internet, o sistema abre com essa cópia e mostra "Offline".
-- **Vendas (FR, FT, pró-forma) e clientes novos** podem ser feitos sem internet:
+- **Vendas (FR, FT, pró-forma, recargas) e clientes novos** podem ser feitos sem internet:
   ficam numa fila no aparelho e são enviados sozinhos quando a ligação volta,
   pela ordem em que foram feitos (o cliente antes da venda que o usa).
 - O número oficial (ex.: FR 0012) é dado pelo servidor no envio, para dois

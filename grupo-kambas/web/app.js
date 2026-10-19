@@ -40,6 +40,23 @@ function precoTexto(p) {
 const precoCurto = p => p.modo === "consulta" ? "Por consulta" : (p.modo === "a_partir" ? "desde " : "") + kz(p.preco);
 
 const TIPOS_DOC = { FR: "Fatura-Recibo", FT: "Fatura", PP: "Fatura Pró-forma" };
+const TITULO_DOC = { FR: "FATURA-RECIBO", FT: "FATURA", PP: "FATURA PRÓ-FORMA" };
+const COR_DOC = { FR: [30, 138, 90], FT: [168, 100, 0], PP: [11, 106, 128] };
+function significadoDoc(f) {
+  if (f.estado === "anulada") return "Documento anulado: sem valor";
+  if (f.estado === "convertida") return "Pró-forma já convertida em fatura";
+  if (f.tipo === "FR") return "Pagamento recebido: vale como fatura e recibo";
+  if (f.tipo === "FT") return f.pago ? `Paga em ${dataPt(f.pago_em)}` : "Pagamento pendente";
+  return "Orçamento: não serve de fatura nem de recibo";
+}
+/* campo de senha com botão para mostrar/esconder */
+function campoSenha(id, rotulo, auto, extra = "", nome = "") {
+  return `<label class="field"><span>${rotulo}</span><span class="senha"><input class="f" id="${id}" ${nome ? `name="${nome}"` : ""} type="password" autocomplete="${auto}" ${extra}><button type="button" class="ver-senha" data-act="ver-senha" data-alvo="${id}" aria-label="Mostrar senha" aria-pressed="false">${icon("olho")}</button></span></label>`;
+}
+/* pede ao navegador/telemóvel para guardar a senha (Chrome, Edge, Android); o Safari guarda pelo próprio formulário */
+async function guardarCredencial(utilizador, senha) {
+  try { if (window.PasswordCredential && navigator.credentials && utilizador && senha) await Promise.race([navigator.credentials.store(new window.PasswordCredential({ id: utilizador, password: senha, name: utilizador })), new Promise(r => setTimeout(r, 1500))]); } catch (e) { /* o utilizador pode recusar */ }
+}
 const docNum = f => f.pendente ? `${f.tipo} (por enviar)` : `${f.tipo} ${nf(f.numero)}`;
 const pode = p => !!(E && E.eu && E.eu.perm && E.eu.perm[p]);
 /* documentos que este utilizador pode ver (no Supabase já vêm filtrados; na demonstração filtra-se aqui) */
@@ -58,11 +75,15 @@ const PERMISSOES = [
   ["ver_todas", "Ver documentos de todos os vendedores"],
   ["anular", "Anular documentos"],
   ["produtos", "Registar produtos e alterar preços"],
-  ["stock", "Gerir stock (entradas e contagens)"],
+  ["stock", "Gerir stock e saldos de recarga"],
   ["relatorios", "Ver relatórios e faturação"],
 ];
 const PERM_CHAVES = ["vender", "ver_todas", "anular", "produtos", "stock", "relatorios", "admin"];
 
+const OPERADORES_BASE = [["UNITEL", "Unitel", "Telemóvel", "Número de telefone"], ["AFRICELL", "Africell", "Telemóvel", "Número de telefone"],
+  ["ZAP", "ZAP", "Televisão", "Nº do cartão ZAP"], ["DSTV", "DStv", "Televisão", "Nº do cartão (smartcard)"],
+  ["EDEL", "EDEL", "Energia", "Nº do contador"], ["EPAL", "EPAL", "Água", "Nº do contador / cliente"]];
+const SECCOES_NOVAS = ["Electrodomésticos", "CCTV & Segurança", "Material de Papelaria"];
 class ErroNegocio extends Error {}
 const falha = m => { throw new ErroNegocio(m); };
 
@@ -82,7 +103,10 @@ const Local = {
             { id: "u2", nome: "Maria (vendedora)", utilizador: "maria", papel: "vendedor", permissoes: {}, ativo: true },
           ], _eu: "u1" };
     this.atualizarEu();
+    this.semearOperadores();
     const d7 = this.dia(7, "08:00");
+    [[10000, 9500], [5000, 4800], [20000, 19000], [15000, 14250], [8000, 7600], [4000, 3800]]
+      .forEach(([v, c], k) => this.moverSaldo(E.operadores[k].id, "carga", v, c, `Saldo carregado: pago ${fmt(c)} Kz`, "", d7));
     SEED.produtos.forEach(s => {
       const p = { ...s, id: ++E._seq.p, stock: 0, ativo: true };
       E.produtos.push(p);
@@ -99,6 +123,60 @@ const Local = {
       }, this.dia(dias, `${pad(10 + n % 7)}:${pad((n * 13) % 60)}`));
     });
     E._eu = "u1"; this.atualizarEu();
+    // duas recargas de exemplo
+    this.registarDocumento({ tipo: "FR", forma_pagamento: E.config.formas_pagamento[0], itens: [{ operador_id: E.operadores[0].id, referencia: "923 456 789", qtd: 1, preco_unit: 1000 }] }, this.dia(2, "15:40"));
+    this.registarDocumento({ tipo: "FR", forma_pagamento: E.config.formas_pagamento[0], itens: [{ operador_id: E.operadores[2].id, referencia: "4012 3456", qtd: 1, preco_unit: 5000 }] }, this.dia(1, "11:20"));
+  },
+  semearOperadores() {
+    E._seq.o = E._seq.o || 0; E._seq.ms = E._seq.ms || 0;
+    E.operadores = OPERADORES_BASE.map(([codigo, nome, categoria, referencia], k) => ({ id: ++E._seq.o, codigo, nome, categoria, referencia, saldo: 0, custo: 0, saldo_min: 2000, ordem: k + 1, ativo: true }));
+    E.movimentos_saldo = [];
+  },
+  /* igual a _mover_saldo do servidor: devolve o custo do movimento */
+  moverSaldo(opId, tipo, valor, custo, motivo, ref = "", data = null) {
+    const o = byId(E.operadores, opId) || falha("Operador não encontrado.");
+    let c, delta;
+    if (tipo === "venda") {
+      if (-valor > o.saldo) falha(`Saldo ${o.nome} insuficiente: pediu ${-valor} Kz, há ${o.saldo} Kz.`);
+      c = o.saldo > 0 ? Math.round(o.custo * (-valor) / o.saldo) : 0;
+      o.saldo += valor; o.custo = Math.max(0, o.custo - c); delta = valor;
+    } else if (tipo === "carga" || tipo === "anulacao") {
+      c = custo || 0; o.saldo += valor; o.custo += c; delta = valor;
+    } else {
+      const novoCusto = o.saldo > 0 ? Math.round(o.custo * valor / o.saldo) : 0;
+      delta = valor - o.saldo; c = novoCusto - o.custo; o.saldo = valor; o.custo = novoCusto;
+    }
+    E.movimentos_saldo.push({ id: ++E._seq.ms, data: data || isoLocal(), operador_id: o.id, tipo, valor: delta, custo: Math.abs(c), saldo_final: o.saldo, motivo: motivo || "", ref, utilizador_id: E.eu.id });
+    return c;
+  },
+  carregarSaldo(d) {
+    this.exigir("stock");
+    const o = byId(E.operadores, d.operador_id) || falha("Escolha o operador.");
+    const valor = inteiro(d.valor), pago = d.pago === "" || d.pago == null ? valor : inteiro(d.pago);
+    if (!(valor > 0)) falha("Indique o saldo recebido em Kz.");
+    if (!(pago > 0)) falha("Indique quanto pagou em Kz.");
+    if (pago > valor * 2) falha("O valor pago parece demasiado alto para este saldo. Verifique.");
+    this.moverSaldo(o.id, "carga", valor, pago, (d.motivo || "").trim() || `Saldo carregado: pago ${fmt(pago)} Kz`);
+    return o;
+  },
+  ajustarSaldo(d) {
+    this.exigir("stock");
+    const o = byId(E.operadores, d.operador_id) || falha("Escolha o operador.");
+    const novo = inteiro(d.saldo);
+    if (Number.isNaN(novo) || novo < 0) falha("Indique o saldo certo em Kz (0 ou mais).");
+    if (novo === o.saldo) falha("O saldo já é esse.");
+    this.moverSaldo(o.id, "ajuste", novo, null, (d.motivo || "").trim() || "Correção do saldo");
+    return o;
+  },
+  guardarOperador(d, id) {
+    this.exigir("stock");
+    const nome = (d.nome || "").trim(); if (!nome) falha("Indique o nome do operador.");
+    const saldo_min = d.saldo_min === "" || d.saldo_min == null ? 2000 : inteiro(d.saldo_min);
+    if (Number.isNaN(saldo_min) || saldo_min < 0) falha("Saldo mínimo inválido.");
+    if (id) { const o = byId(E.operadores, id) || falha("Operador não encontrado."); return Object.assign(o, { nome, categoria: (d.categoria || "").trim() || o.categoria, referencia: (d.referencia || "").trim() || o.referencia, saldo_min }); }
+    let codigo = nome.replace(/[^A-Za-z0-9]/g, "").toUpperCase() || "OP"; while (E.operadores.some(o => o.codigo === codigo)) codigo += "2";
+    const o = { id: ++E._seq.o, codigo, nome, categoria: (d.categoria || "").trim() || "Outros", referencia: (d.referencia || "").trim() || "Referência", saldo: 0, custo: 0, saldo_min, ordem: E.operadores.length + 1, ativo: true };
+    E.operadores.push(o); return o;
   },
   atualizarEu() { const u = E.utilizadores.find(x => x.id === E._eu); E.eu = { id: u.id, nome: u.nome, utilizador: u.utilizador, papel: u.papel, perm: permDe(u) }; },
   exigir(p) { if (!E.eu.perm[p]) falha("Não tem permissão para esta operação. Peça ao administrador."); return E.eu; },
@@ -115,19 +193,27 @@ const Local = {
     if (!d.itens || !d.itens.length) falha("Adicione pelo menos um produto ou serviço.");
     if (forma && !E.config.formas_pagamento.includes(forma)) falha("Forma de pagamento inválida.");
     if (tipo === "FR" && !forma) falha("Escolha a forma de pagamento.");
-    const precisa = {}, linhas = [];
+    const precisa = {}, saldoPrec = {}, linhas = [];
     for (const it of d.itens) {
       const p = it.produto_id ? produto(it.produto_id) : null;
       if (it.produto_id && !p) falha("Produto não encontrado.");
-      const qtd = inteiro(it.qtd), preco = inteiro(it.preco_unit), descricao = (it.descricao || p?.nome || "").trim();
+      const qtd = inteiro(it.qtd), preco = inteiro(it.preco_unit);
+      let descricao = (it.descricao || p?.nome || "").trim(), op = null, referencia = "";
+      if (it.operador_id) {
+        op = byId(E.operadores, it.operador_id) || falha("Operador de recarga não encontrado.");
+        referencia = String(it.referencia || "").trim().slice(0, 40);
+        descricao = `Recarga ${op.nome}${referencia ? " — " + referencia : ""}`;
+        if (qtd > 0 && preco > 0) saldoPrec[op.id] = (saldoPrec[op.id] || 0) + qtd * preco;
+      }
       if (!descricao) falha("Item sem descrição.");
       if (!(qtd > 0)) falha(`Quantidade inválida em '${descricao}'.`);
       if (!(preco > 0)) falha(`Indique o preço de '${descricao}'.`);
       if (p && p.modo === "a_partir" && preco < p.preco) falha(`'${p.nome}' custa a partir de ${p.preco} Kz.`);
       if (p && p.tipo === "produto") precisa[p.id] = (precisa[p.id] || 0) + qtd;
-      linhas.push({ produto_id: p ? p.id : null, descricao, qtd, preco_unit: preco, total: qtd * preco });
+      linhas.push({ produto_id: p ? p.id : null, operador_id: op ? op.id : null, referencia, descricao, qtd, preco_unit: preco, total: qtd * preco, custo: 0 });
     }
     if (tipo !== "PP") for (const [pid, q] of Object.entries(precisa)) { const p = produto(pid); if (q > p.stock) falha(`Stock insuficiente de ${p.nome}: pediu ${q}, há ${p.stock}.`); }
+    if (tipo !== "PP") for (const [oid, v] of Object.entries(saldoPrec)) { const o = byId(E.operadores, oid); if (v > o.saldo) falha(`Saldo ${o.nome} insuficiente: a venda pede ${v} Kz, há ${o.saldo} Kz.`); }
     const subtotal = linhas.reduce((s, l) => s + l.total, 0);
     const desconto = d.desconto ? inteiro(d.desconto) : 0;
     if (Number.isNaN(desconto) || desconto < 0 || desconto > subtotal) falha("O desconto tem de estar entre 0 e o subtotal.");
@@ -143,6 +229,7 @@ const Local = {
       itens: linhas.map(l => ({ ...l, id: ++E._seq.i })) };
     E.faturas.push(f);
     if (tipo !== "PP") linhas.forEach(l => { if (precisa[l.produto_id]) this.mover(l.produto_id, "saida", l.qtd, "Venda", docNum(f), data); });
+    if (tipo !== "PP") f.itens.forEach(l => { if (l.operador_id) l.custo = this.moverSaldo(l.operador_id, "venda", -l.total, null, "Venda", docNum(f), data); });
     E.config.numeracao[tipo] = numero + 1;
     return f;
   },
@@ -152,6 +239,7 @@ const Local = {
     const f = byId(E.faturas, id) || falha("Documento não encontrado.");
     if (f.estado !== "emitida") falha("Este documento já não está ativo (anulado ou convertido).");
     if (f.tipo !== "PP") f.itens.forEach(it => { const p = produto(it.produto_id); if (p && p.tipo === "produto") this.mover(p.id, "entrada", it.qtd, "Documento anulado", docNum(f)); });
+    if (f.tipo !== "PP") f.itens.forEach(it => { if (it.operador_id) this.moverSaldo(it.operador_id, "anulacao", it.total, it.custo || 0, "Documento anulado", docNum(f)); });
     f.estado = "anulada";
     f.observacoes = `${f.observacoes}\n${motivo.trim() ? "ANULADA: " + motivo.trim() : "ANULADA"}`.trim();
     return f;
@@ -165,7 +253,7 @@ const Local = {
     if (!["FR", "FT"].includes(tipo)) falha("Escolha Fatura-Recibo ou Fatura.");
     const novo = this.registarDocumento({ tipo, forma_pagamento: forma, cliente_id: pp.cliente_id, desconto: pp.desconto, origem_id: pp.id,
       observacoes: `${pp.observacoes}\nReferente à pró-forma ${docNum(pp)}`.trim(),
-      itens: pp.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
+      itens: pp.itens.map(i => ({ produto_id: i.produto_id, operador_id: i.operador_id || null, referencia: i.referencia || "", descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
     pp.estado = "convertida"; pp.observacoes = `${pp.observacoes}\nConvertida em ${docNum(novo)}`.trim();
     return novo;
   },
@@ -218,14 +306,40 @@ const Local = {
     if (id) {
       const a = produto(id) || falha("Produto não encontrado.");
       if (a.tipo === "produto" && tipo === "servico" && a.stock > 0) falha("Este produto ainda tem stock. Faça uma contagem para 0 antes de o mudar para serviço.");
+      this.garantirSeccao(seccao);
       return Object.assign(a, dados);
     }
-    const sec = (E.config.seccoes_cod.find(([, n]) => n === seccao) || ["GK"])[0];
+    const sec = this.garantirSeccao(seccao);
     let n = 1; while (E.produtos.some(x => x.codigo === sec + pad(n))) n++;
     const novo = { ...dados, id: ++E._seq.p, codigo: sec + pad(n), stock: 0, ativo: true };
     E.produtos.push(novo);
     if (ini) this.mover(novo.id, "entrada", ini, "Stock inicial");
     return novo;
+  },
+  /* igual a _garantir_seccao do servidor: devolve o código de 2 letras da secção, criando-a se faltar */
+  garantirSeccao(nome) {
+    nome = (nome || "").trim(); if (!nome) return "GK";
+    const c = E.config.seccoes_cod.find(([, n]) => n.toLowerCase() === nome.toLowerCase()); if (c) return c[0];
+    let pal = nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+    const longas = pal.filter(w => w.length > 2); if (longas.length) pal = longas;
+    const base = pal.length >= 2 ? pal[0][0] + pal[1][0] : pal.length === 1 ? (pal[0] + "X").slice(0, 2) : "GK";
+    let cod = base, n = 1; while (E.config.seccoes_cod.some(([x]) => x === cod)) cod = base[0] + n++;
+    if (!E.config.seccoes.some(x => x.toLowerCase() === nome.toLowerCase())) E.config.seccoes.push(nome);
+    E.config.seccoes_cod.push([cod, nome]); return cod;
+  },
+  guardarSeccao(nome, remover) {
+    this.exigir("produtos");
+    nome = (nome || "").trim(); if (!nome) falha("Indique o nome da secção.");
+    if (nome.length > 60) falha("O nome da secção é demasiado longo (máx. 60 letras).");
+    if (remover) {
+      const n = E.produtos.filter(p => p.seccao === nome).length;
+      if (n) falha(`A secção '${nome}' ainda tem ${n} item(ns). Mude-os de secção ou remova-os primeiro.`);
+      E.config.seccoes = E.config.seccoes.filter(x => x !== nome); E.config.seccoes_cod = E.config.seccoes_cod.filter(([, x]) => x !== nome);
+    } else {
+      if (E.config.seccoes.some(x => x.toLowerCase() === nome.toLowerCase())) falha(`Já existe a secção '${nome}'.`);
+      this.garantirSeccao(nome);
+    }
+    return { seccoes: E.config.seccoes, seccoes_cod: E.config.seccoes_cod };
   },
   removerProduto(id) { this.exigir("produtos"); const p = produto(id); E.produtos = E.produtos.filter(x => x !== p); (E._removidos ||= []).push(p); },
   guardarCliente(d, id) {
@@ -240,7 +354,17 @@ const Local = {
   removerCliente(id) { this.exigir("admin"); E.clientes = E.clientes.filter(c => c.id !== Number(id)); },
   guardarConfig(d) {
     this.exigir("admin");
-    if (d.empresa) E.config.empresa = { ...E.config.empresa, ...d.empresa };
+    if (d.empresa) {
+      const e = d.empresa;
+      if ("nome" in e && !String(e.nome || "").trim()) falha("Indique o nome da empresa.");
+      if ("contas" in e) {
+        if (!Array.isArray(e.contas) || !e.contas.length) falha("Indique pelo menos uma conta bancária.");
+        if (e.contas.length > 10) falha("No máximo 10 contas.");
+        if (e.contas.some(c => !String(c.banco || "").trim() || !String(c.iban || "").trim())) falha("Cada conta precisa do banco e do IBAN (ou número).");
+      }
+      if ("titular" in e && !String(e.titular || "").trim()) falha("Indique o titular das contas.");
+      E.config.empresa = { ...E.config.empresa, ...e };
+    }
     if (d.numeracao) for (const [k, v] of Object.entries(d.numeracao)) {
       const n = inteiro(v), maior = Math.max(0, ...E.faturas.filter(f => f.tipo === k).map(f => f.numero));
       if (!(n > maior)) falha(`O próximo número de ${k} tem de ser maior que ${nf(maior)}.`);
@@ -321,11 +445,12 @@ async function carregarFila(uid) {
 function montarE() {
   E = JSON.parse(JSON.stringify(base));
   E.faturas = E.faturas || []; E.movimentos = E.movimentos || []; E.utilizadores = E.utilizadores || [];
+  E.operadores = E.operadores || []; E.movimentos_saldo = E.movimentos_saldo || [];
   for (const it of fila) {
     if (it.tipo === "cliente") { E.clientes.push({ ...it.dados, id: it.tmp, ativo: true, pendente: true }); continue; }
     const d = it.dados;
     const cli = (d.cliente_id && E.clientes.find(c => String(c.id) === String(d.cliente_id))) || { id: null, nome: "Consumidor final", nif: "", endereco: "", telefone: "" };
-    const itens = d.itens.map((l, k) => ({ id: `${it.id}-${k}`, produto_id: l.produto_id, descricao: l.descricao, qtd: l.qtd, preco_unit: l.preco_unit, total: l.qtd * l.preco_unit }));
+    const itens = d.itens.map((l, k) => ({ id: `${it.id}-${k}`, produto_id: l.produto_id, operador_id: l.operador_id || null, referencia: l.referencia || "", descricao: l.descricao, qtd: l.qtd, preco_unit: l.preco_unit, total: l.qtd * l.preco_unit }));
     const subtotal = itens.reduce((s, l) => s + l.total, 0), data = it.criado;
     let validade = null;
     if (d.tipo === "PP") { const v = new Date(data.slice(0, 10) + "T12:00:00"); v.setDate(v.getDate() + (E.config.validade_proforma || 15)); validade = isoLocal(v).slice(0, 10); }
@@ -334,6 +459,7 @@ function montarE() {
       subtotal, desconto: d.desconto || 0, total: subtotal - (d.desconto || 0), observacoes: d.observacoes || "", estado: "emitida", pago: d.tipo === "FR",
       pago_em: d.tipo === "FR" ? data : null, validade, itens });
     if (d.tipo !== "PP") itens.forEach(l => { const p = l.produto_id && E.produtos.find(x => x.id === l.produto_id); if (p && p.tipo === "produto") p.stock -= l.qtd; });
+    if (d.tipo !== "PP") itens.forEach(l => { const o = l.operador_id && E.operadores.find(x => x.id === l.operador_id); if (o) o.saldo -= l.total; });
   }
 }
 /* guarda na fila (sem internet) — validações básicas no aparelho; as regras completas correm no servidor ao enviar */
@@ -355,6 +481,8 @@ async function enfileirar(nome, args) {
     if (d.tipo !== "PP") {
       const precisa = {}; d.itens.forEach(l => { const p = produto(l.produto_id); if (p && p.tipo === "produto") precisa[p.id] = (precisa[p.id] || 0) + l.qtd; });
       for (const [pid, q] of Object.entries(precisa)) { const p = produto(pid); if (q > p.stock) falha(`Stock insuficiente de ${p.nome}: pediu ${q}, há ${p.stock} (stock da última sincronização).`); }
+      const sp = {}; d.itens.forEach(l => { if (l.operador_id) sp[l.operador_id] = (sp[l.operador_id] || 0) + l.qtd * l.preco_unit; });
+      for (const [oid, v] of Object.entries(sp)) { const o = byId(E.operadores, oid); if (o && v > o.saldo) falha(`Saldo ${o.nome} insuficiente: pede ${v} Kz, há ${o.saldo} Kz (saldo da última sincronização).`); }
     }
     d.ref_local = d.ref_local || novaRef("v");
     d.data_local = new Date().toISOString();
@@ -451,6 +579,10 @@ const RPC = {
   guardarCliente: (d, id) => ["guardar_cliente", { d, p_id: id || null }],
   removerCliente: id => ["remover_cliente", { p_id: id }],
   guardarConfig: d => ["guardar_config", { d }],
+  carregarSaldo: d => ["carregar_saldo", { d }],
+  guardarSeccao: (nome, remover) => ["guardar_seccao", { p_nome: nome, p_remover: !!remover }],
+  ajustarSaldo: d => ["ajustar_saldo", { d }],
+  guardarOperador: (d, id) => ["guardar_operador", { d, p_id: id || null }],
 };
 const FUNCAO_UTILIZADORES = { criarUtilizador: d => ({ acao: "criar", ...d }), atualizarUtilizador: d => ({ acao: "atualizar", ...d }) };
 function mensagemErro(e) {
@@ -492,6 +624,7 @@ async function acao(nome, ...args) {
     return enfileirar(nome, args);
   }
   let res;
+  ocupado(true);
   try {
     if (FUNCAO_UTILIZADORES[nome]) res = await chamarFuncao(FUNCAO_UTILIZADORES[nome](...args));
     else {
@@ -501,40 +634,50 @@ async function acao(nome, ...args) {
       res = data;
     }
   } catch (e) {
+    ocupado(false);
     if (!(e.rede || eRede(e))) throw e;
     entrarOffline();
     if (!podeOffline(nome, args)) falha(SO_ONLINE);
     return enfileirar(nome, args);
   }
   marcarSync("a");
-  try { await recarregar(); } catch (e) { if (e.rede) entrarOffline(); }
+  try { await recarregar(); } catch (e) { if (e.rede) entrarOffline(); } finally { ocupado(false); }
   mostrarEstado();
   return res;
 }
 
 /* ============================================================ navegação (só mostra o que o utilizador pode usar) */
 const VISTAS = [
-  ["painel", "Painel", "home", () => true],
+  ["painel", "Início", "home", () => true],
   ["vender", "Vender", "cart", () => pode("vender")],
   ["faturas", "Documentos", "receipt", () => true],
   ["produtos", "Produtos", "tag", () => true],
   ["stock", "Stock", "box", () => pode("stock")],
+  ["saldos", "Saldos", "wallet", () => pode("stock")],
   ["relatorios", "Relatórios", "chart", () => pode("relatorios")],
   ["clientes", "Clientes", "users", () => true],
   ["utilizadores", "Utilizadores", "user", () => pode("admin")],
   ["definicoes", "Definições", "cog", () => pode("admin")],
 ];
-const TITULOS = { painel: "Painel", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
+const TITULOS = { painel: "Início", vender: "Vender", faturas: "Documentos", produtos: "Produtos & Serviços", stock: "Gestão de Stock", saldos: "Saldos de recarga", relatorios: "Relatórios", clientes: "Clientes", utilizadores: "Utilizadores", definicoes: "Definições" };
 let vista = "painel";
 function navegar() {
   const h = location.hash.replace("#", "");
   const vis = VISTAS.filter(v => v[3]());
   vista = vis.some(v => v[0] === h) ? h : "painel";
   $("#rail-nav").innerHTML = vis.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}${nome}</a>`).join("");
-  const tabs = vis.filter(v => !["utilizadores", "definicoes"].includes(v[0])).slice(0, 7);
-  $("#tabbar").style.gridTemplateColumns = `repeat(${tabs.length}, 1fr)`;
-  $("#tabbar").innerHTML = tabs.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}${nome}</a>`).join("");
+  // telemóvel: Início, Documentos, [Vender ao centro], Stock ou Clientes, Mais
+  const ids = ["painel", "faturas", "vender", pode("stock") ? "stock" : "clientes"].filter(id => vis.some(v => v[0] === id));
+  const naBarra = ids.map(id => vis.find(v => v[0] === id));
+  const noMais = vis.filter(v => !ids.includes(v[0]));
+  $("#tabbar").style.gridTemplateColumns = `repeat(${naBarra.length + 1}, minmax(0, 1fr))`;
+  $("#tabbar").innerHTML = naBarra.map(([id, nome, ic]) => id === "vender"
+      ? `<a href="#vender" class="tab-vender" ${vista === "vender" ? 'aria-current="page"' : ""}><span class="tv">${icon("plus")}</span>Vender</a>`
+      : `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}${nome}</a>`).join("")
+    + `<button data-act="mais" class="${noMais.some(v => v[0] === vista) ? "on" : ""}" aria-label="Mais opções">${icon("menu")}Mais</button>`;
+  $("#app").classList.toggle("compacta", vista === "vender");
   $("#page-title").textContent = vista === "painel" && !pode("ver_todas") ? "As minhas vendas" : TITULOS[vista];
+  document.title = `${TITULOS[vista]} · Grupo Kambas`;
   const ini = ((E.eu.nome || "").match(/[\p{L}\d]+/gu) || ["?"]).map(s => s[0]).slice(0, 2).join("").toUpperCase();
   $("#user-btn").textContent = ini;
   $("#rail-user").innerHTML = `<button class="ru" data-act="conta"><span class="av">${esc(ini)}</span><span><b>${esc(E.eu.nome)}</b><small>${E.eu.papel === "admin" ? "Administrador" : "Vendedor"}${DEMO ? " · demonstração" : ""}</small></span></button>
@@ -542,56 +685,106 @@ function navegar() {
   render();
   window.scrollTo(0, 0);
 }
+function menuMais() {
+  const vis = VISTAS.filter(v => v[3]()), ids = ["painel", "faturas", "vender", pode("stock") ? "stock" : "clientes"];
+  const outras = vis.filter(v => !ids.includes(v[0]));
+  abrir(`<div class="sheet"><div class="sheet-h"><h2>Mais</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><nav class="mais-lista">${outras.map(([id, nome, ic]) => `<a href="#${id}" ${id === vista ? 'aria-current="page"' : ""}>${icon(ic)}<span>${nome}</span>${icon("right")}</a>`).join("")}
+      <button data-act="pdf-coordenadas" data-espera="A gerar PDF…">${icon("wallet")}<span>Coordenadas bancárias<small>PDF para enviar aos clientes</small></span>${icon("down")}</button>
+      <button data-act="conta">${icon("user")}<span>A minha conta<small>${esc(E.eu.nome)}</small></span>${icon("right")}</button></nav></div>
+    <div class="sheet-f"><button class="btn danger" data-act="sair">${icon("logout")}Terminar sessão</button></div></div>`);
+}
 function render() {
   pendente = false;
-  ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, relatorios: vRelatorios, clientes: vClientes, utilizadores: vUtilizadores, definicoes: vDefinicoes })[vista]();
+  ({ painel: vPainel, vender: vVender, faturas: vFaturas, produtos: vProdutos, stock: vStock, saldos: vSaldos, relatorios: vRelatorios, clientes: vClientes, utilizadores: vUtilizadores, definicoes: vDefinicoes })[vista]();
 }
 
 /* ============================================================ painel */
+const ini = { dias: 7 };
+function saudacao() { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 19 ? "Boa tarde" : "Boa noite"; }
+function dataLonga() { const s = new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" }); return s.charAt(0).toUpperCase() + s.slice(1); }
+function quando(iso) {
+  const d = diaDe(iso), h = hoje(), o = new Date(); o.setDate(o.getDate() - 1);
+  return (d === h ? "hoje" : d === isoLocal(o).slice(0, 10) ? "ontem" : dataPt(iso).slice(0, 5)) + ", " + horaPt(iso);
+}
+/* lista de documentos em cartões: no telemóvel não sai do ecrã */
+function listaDocs(lista) {
+  if (!lista.length) return `<div class="empty">Ainda não há documentos.</div>`;
+  return `<div class="dlist">${lista.map(f => { const [et, ec] = estadoDoc(f); return `<button class="drow ${f.estado === "anulada" ? "anulada" : ""}" data-act="ver-fatura" data-id="${f.id}">
+    <span class="dtipo t-${f.tipo}">${f.tipo}</span>
+    <span class="dmeio"><b>${esc(f.cliente_nome)}</b><small>${docNum(f)} · ${quando(f.data)}</small></span>
+    <span class="dfim"><b class="num">${kz(f.total)}</b><span class="chip ${ec}">${et}</span></span></button>`; }).join("")}</div>`;
+}
 function vPainel() {
   const fs = emitidas(), h = hoje(), mes = h.slice(0, 7);
-  const deHoje = fs.filter(f => diaDe(f.data) === h), doMes = fs.filter(f => f.data.startsWith(mes));
+  const o = new Date(); o.setDate(o.getDate() - 1); const ontem = isoLocal(o).slice(0, 10);
   const soma = l => l.reduce((s, f) => s + f.total, 0);
+  const deHoje = fs.filter(f => diaDe(f.data) === h), deOntem = fs.filter(f => diaDe(f.data) === ontem), doMes = fs.filter(f => f.data.startsWith(mes));
+  const vHoje = soma(deHoje), vOntem = soma(deOntem);
+  const variacao = vOntem ? Math.round((vHoje - vOntem) / vOntem * 100) : null;
   const porReceber = fs.filter(f => f.tipo === "FT" && !f.pago);
   const ppAbertas = docs().filter(f => f.tipo === "PP" && f.estado === "emitida");
-  const alertas = E.produtos.filter(p => estadoStock(p) && estadoStock(p) !== "ok").sort((a, b) => a.stock - b.stock);
-  const dias = [...Array(14)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 13 + i); return isoLocal(d).slice(0, 10); });
+  const alertas = pode("stock") ? E.produtos.filter(p => estadoStock(p) && estadoStock(p) !== "ok").sort((a, b) => a.stock - b.stock) : [];
+  const nd = ini.dias;
+  const dias = [...Array(nd)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - nd + 1 + i); return isoLocal(d).slice(0, 10); });
   const porDia = dias.map(d => soma(fs.filter(f => diaDe(f.data) === d)));
-  const rank = {}; let vProd = 0, vServ = 0;
-  doMes.forEach(f => f.itens.forEach(it => {
-    const p = produto(it.produto_id);
-    rank[it.descricao] = (rank[it.descricao] || 0) + it.total;
-    if (p && p.tipo === "produto") vProd += it.total; else vServ += it.total;
-  }));
-  const top = Object.entries(rank).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const maxTop = top.length ? top[0][1] : 1, tot = vProd + vServ || 1;
-  const ultimos = [...docs()].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 6);
+  const rank = {};
+  doMes.forEach(f => f.itens.forEach(it => { const k = it.operador_id ? `Recargas ${operador(it.operador_id)?.nome || ""}`.trim() : it.descricao; rank[k] = (rank[k] || 0) + it.total; }));
+  const saldoBaixo = pode("stock") ? (E.operadores || []).filter(o => opEstado(o) !== "ok") : [];
+  const top = Object.entries(rank).sort((a, b) => b[1] - a[1]).slice(0, 5), maxTop = top.length ? top[0][1] : 1;
+  const ultimos = [...docs()].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 5);
   const semStock = pode("stock") && E.produtos.filter(p => p.tipo === "produto").every(p => p.stock === 0);
+  const nome = (E.eu.nome || "").split(/\s+/)[0];
+  const meu = f => f.vendedor_id === E.eu.id || pode("ver_todas");
+
+  const atalhos = [
+    pode("vender") && `<button class="atalho" data-act="ir-proforma"><span class="ai">${icon("receipt")}</span><span>Pró-forma</span></button>`,
+    `<button class="atalho" data-act="novo-cliente"><span class="ai">${icon("users")}</span><span>Novo cliente</span></button>`,
+    pode("stock") && `<button class="atalho" data-act="mov" data-t="entrada"><span class="ai">${icon("box")}</span><span>Entrada de stock</span></button>`,
+    pode("relatorios") ? `<a class="atalho" href="#relatorios"><span class="ai">${icon("chart")}</span><span>Relatório</span></a>` : `<a class="atalho" href="#faturas"><span class="ai">${icon("receipt")}</span><span>Documentos</span></a>`,
+  ].filter(Boolean);
+
+  const atencao = [
+    ...porReceber.slice(0, 3).map(f => `<div class="aten"><span class="aic warn">${icon("receipt")}</span><span class="atx"><b>${docNum(f)} por pagar</b><small>${esc(f.cliente_nome)} · ${kz(f.total)}</small></span>
+      <button class="btn sm" data-act="${meu(f) ? "pagar" : "ver-fatura"}" data-id="${f.id}">${meu(f) ? "Receber" : "Ver"}</button></div>`),
+    alertas.length ? `<div class="aten"><span class="aic bad">${icon("box")}</span><span class="atx"><b>${alertas.length} produto${alertas.length === 1 ? "" : "s"} com stock baixo</b><small>${esc(alertas[0].nome)}: ${alertas[0].stock <= 0 ? "esgotado" : "só " + alertas[0].stock + " un."}</small></span>
+      <a class="btn sm" href="#stock">Repor</a></div>` : "",
+    ...saldoBaixo.slice(0, 3).map(o => `<div class="aten"><span class="aic ${opEstado(o)}">${opIcon(o)}</span><span class="atx"><b>Saldo ${esc(o.nome)} ${o.saldo <= 0 ? "esgotado" : "baixo"}</b><small>Restam ${kz(o.saldo)}</small></span>
+      <button class="btn sm" data-act="carregar-saldo" data-id="${o.id}">Carregar</button></div>`),
+    ppAbertas.length ? `<div class="aten"><span class="aic brand">${icon("receipt")}</span><span class="atx"><b>${ppAbertas.length} pró-forma${ppAbertas.length === 1 ? "" : "s"} em aberto</b><small>${kz(soma(ppAbertas))} orçados</small></span>
+      <a class="btn sm" href="#faturas" data-act="ver-abertas">Ver</a></div>` : "",
+  ].filter(Boolean);
+
   $("#main").innerHTML = `
-    ${DEMO ? `<div class="note">Modo de demonstração: dados de exemplo, guardados só neste navegador. Toque no seu nome para <b>ver como vendedor</b> e experimentar as permissões.</div>` : ""}
-    ${semStock ? `<div class="note warn">Ainda não há stock registado. Vá a <a href="#stock">Stock</a> e faça a <b>contagem inicial</b> para poder vender os produtos.</div>` : ""}
-    <section class="kpis">
-      <div class="kpi hero"><span class="lab">Vendas de hoje</span><span class="val num">${fmt(soma(deHoje))} <small>Kz</small></span><span class="ft">${deHoje.length} documento${deHoje.length === 1 ? "" : "s"}</span></div>
-      <div class="kpi"><span class="lab">Este mês</span><span class="val num">${fmt(soma(doMes))} <small>Kz</small></span><span class="ft">${doMes.length} faturas · média ${kz(doMes.length ? soma(doMes) / doMes.length : 0)}</span></div>
-      <div class="kpi"><span class="lab">Por receber</span><span class="val num" style="color:${porReceber.length ? "var(--warn)" : "inherit"}">${fmt(soma(porReceber))} <small>Kz</small></span><span class="ft">${porReceber.length} fatura${porReceber.length === 1 ? "" : "s"} por pagar</span></div>
-      ${pode("stock") ? `<div class="kpi"><span class="lab">Alertas de stock</span><span class="val num" style="color:${alertas.length ? "var(--warn)" : "var(--ok)"}">${alertas.length}</span><span class="ft">${alertas.filter(p => p.stock <= 0).length} esgotado(s)</span></div>`
-        : `<div class="kpi"><span class="lab">Pró-formas em aberto</span><span class="val num">${ppAbertas.length}</span><span class="ft">${kz(soma(ppAbertas))}</span></div>`}
-    </section>
-    <section class="dash">
-      <div class="panel chart"><div class="panel-h"><h2>Vendas dos últimos 14 dias</h2><span class="sub">em Kz, sem pró-formas</span></div>${grafico(dias, porDia)}</div>
-      <div class="panel"><div class="panel-h"><h2>Produtos e serviços</h2><span class="sub">receita do mês</span></div>
-        <div class="split"><div style="width:${(vProd / tot * 100).toFixed(1)}%"></div><div style="flex:1"></div></div>
-        <div class="legend"><span><i style="background:var(--brand-deep)"></i>Produtos ${kz(vProd)}</span><span><i style="background:var(--brand);opacity:.45"></i>Serviços ${kz(vServ)}</span></div>
-        <div class="panel-h" style="margin:18px 0 10px"><h2>Mais vendidos</h2><span class="sub">este mês</span></div>
-        <div class="hbars">${top.length ? top.map(([n, v]) => `<div class="hbar"><span class="n">${esc(n)}</span><span class="num strong">${kz(v)}</span><div class="track"><div class="fill" style="width:${(v / maxTop * 100).toFixed(1)}%"></div></div></div>`).join("") : `<div class="empty">Ainda sem vendas este mês.</div>`}</div>
+    <section class="ini-topo">
+      <div class="saud"><span>${dataLonga()}</span><h2>${saudacao()}${nome ? ", " + esc(nome) : ""}</h2></div>
+      <div class="ini-acoes">
+        ${pode("vender") ? `<button class="btn" data-act="ir-proforma">Nova pró-forma</button>` : ""}
+        ${pode("stock") ? `<button class="btn" data-act="mov" data-t="entrada">Entrada de stock</button>` : ""}
+        ${pode("vender") ? `<a class="btn pri" href="#vender">${icon("plus")}Nova venda</a>` : ""}
       </div>
     </section>
+    <section class="kpis">
+      <div class="kpi hero"><span class="lab">${pode("ver_todas") ? "Vendas de hoje" : "As minhas vendas de hoje"}</span><span class="val num">${fmt(vHoje)} <small>Kz</small></span>
+        <span class="ft">${deHoje.length} documento${deHoje.length === 1 ? "" : "s"}${variacao === null ? "" : ` · <b class="${variacao >= 0 ? "sobe" : "desce"}">${variacao >= 0 ? "▲" : "▼"} ${Math.abs(variacao)}%</b> face a ontem`}</span>
+        ${pode("vender") ? `<a class="btn pri big kpi-venda" href="#vender">${icon("plus")}Nova venda</a>` : ""}</div>
+      <div class="kpi"><span class="lab">Este mês</span><span class="val num">${fmt(soma(doMes))} <small>Kz</small></span><span class="ft">${doMes.length} faturas · média ${kz(doMes.length ? soma(doMes) / doMes.length : 0)}</span></div>
+      <div class="kpi"><span class="lab">Por receber</span><span class="val num" style="color:${porReceber.length ? "var(--warn)" : "inherit"}">${fmt(soma(porReceber))} <small>Kz</small></span><span class="ft">${porReceber.length} fatura${porReceber.length === 1 ? "" : "s"} por pagar</span></div>
+      ${pode("stock") ? `<div class="kpi k4"><span class="lab">Stock baixo</span><span class="val num" style="color:${alertas.length ? "var(--bad)" : "var(--ok)"}">${alertas.length} <small>produto${alertas.length === 1 ? "" : "s"}</small></span><span class="ft">${alertas.filter(p => p.stock <= 0).length ? alertas.filter(p => p.stock <= 0).length + " esgotado(s)" : "nenhum esgotado"}</span></div>`
+        : `<div class="kpi k4"><span class="lab">Pró-formas em aberto</span><span class="val num">${ppAbertas.length}</span><span class="ft">${kz(soma(ppAbertas))}</span></div>`}
+    </section>
+    <nav class="atalhos" aria-label="Atalhos">${atalhos.join("")}</nav>
+    ${DEMO ? `<div class="note">Modo de demonstração: dados de exemplo, guardados só neste navegador. Toque no seu nome para <b>ver como vendedor</b> e experimentar as permissões.</div>` : ""}
+    ${semStock ? `<div class="note warn">Ainda não há stock registado. Vá a <a href="#stock">Stock</a> e faça a <b>contagem inicial</b> para poder vender os produtos.</div>` : ""}
     <section class="dash">
-      <div class="panel"><div class="panel-h"><h2>Últimos documentos</h2><a class="btn sm" href="#faturas">Ver todos</a></div>${tabelaFaturas(ultimos, true)}</div>
-      ${pode("stock") ? `<div class="panel"><div class="panel-h"><h2>Reposição de stock</h2><a class="btn sm" href="#stock">Gerir stock</a></div>
-        <div class="alert-list">${alertas.length ? alertas.slice(0, 7).map(p => `<div class="row"><span>${esc(p.nome)}<br><span class="cod">${p.codigo} · mínimo ${p.stock_min}</span></span><span class="chip ${estadoStock(p)} num">${p.stock} un.</span></div>`).join("") : `<div class="empty">Todo o stock está acima do mínimo.</div>`}</div></div>`
-      : `<div class="panel"><div class="panel-h"><h2>Pró-formas em aberto</h2></div>
-        <div class="alert-list">${ppAbertas.length ? ppAbertas.slice(0, 7).map(f => `<div class="row click" data-act="ver-fatura" data-id="${f.id}"><span>${esc(f.cliente_nome)}<br><span class="cod">${docNum(f)} · válida até ${dataPt(f.validade || "")}</span></span><span class="num strong">${kz(f.total)}</span></div>`).join("") : `<div class="empty">Nenhuma pró-forma em aberto.</div>`}</div></div>`}
+      <div class="panel chart"><div class="panel-h"><h2>Vendas</h2><div class="seg" role="group" aria-label="Período do gráfico">${[[7, "7 dias"], [14, "14 dias"], [30, "30 dias"]].map(([v, t]) => `<button data-act="ini-dias" data-v="${v}" aria-pressed="${nd === v}">${t}</button>`).join("")}</div></div>${grafico(dias, porDia)}</div>
+      <div class="panel"><div class="panel-h"><h2>Precisa de atenção</h2></div>
+        ${atencao.length ? `<div class="atens">${atencao.join("")}</div>` : `<div class="empty ok-txt">${icon("check")}Tudo em dia. Nada por pagar${pode("stock") ? " nem stock baixo" : ""}.</div>`}</div>
+    </section>
+    <section class="dash">
+      <div class="panel"><div class="panel-h"><h2>Últimos documentos</h2><a class="btn sm" href="#faturas">Ver todos</a></div>${listaDocs(ultimos)}</div>
+      <div class="panel"><div class="panel-h"><h2>Mais vendidos</h2><span class="sub">este mês</span></div>
+        <div class="hbars">${top.length ? top.map(([n, v]) => `<div class="hbar"><span class="n">${esc(n)}</span><span class="num strong">${kz(v)}</span><div class="track"><div class="fill" style="width:${(v / maxTop * 100).toFixed(1)}%"></div></div></div>`).join("") : `<div class="empty">Ainda sem vendas este mês.</div>`}</div></div>
     </section>`;
 }
 function larguraGrafico(max) { const m = document.getElementById("main"); return Math.round(Math.max(340, Math.min(max, (m ? m.clientWidth : max) - 40))); }
@@ -602,14 +795,16 @@ function grafico(dias, valores) {
   const topo = passo * 4, bw = (W - L - R) / dias.length;
   const y = v => T + (H - T - B) * (1 - v / topo);
   const k = v => v >= 1000 ? fmt(v / 1000) + "k" : fmt(v);
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vendas por dia nos últimos 14 dias">`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vendas por dia nos últimos ${dias.length} dias">`;
   for (let i = 0; i <= 4; i++) { const v = passo * i; s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${k(v)}</text>`; }
   const hj = hoje();
   dias.forEach((d, i) => {
     const v = valores[i], x = L + i * bw + bw * .18, w = bw * .64;
     if (v > 0) s += `<rect class="bar ${d === hj ? "today" : ""}" x="${x}" y="${y(v)}" width="${w}" height="${y(0) - y(v)}" rx="3"/>`;
     if (d === hj && v > 0) s += `<text class="vlab" x="${x + w / 2}" y="${y(v) - 6}" text-anchor="middle">${k(v)}</text>`;
-    if (i % 2 === 1 || d === hj) s += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${d === hj ? "Hoje" : d.slice(8, 10) + "/" + d.slice(5, 7)}</text>`;
+    const n = dias.length, mostra = n <= 7 || (n <= 14 ? i % 2 === 1 : (n - 1 - i) % 5 === 0) || d === hj;
+    const rot = d === hj ? "Hoje" : n <= 7 ? ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][new Date(d + "T12:00").getDay()] : d.slice(8, 10) + "/" + d.slice(5, 7);
+    if (mostra) s += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${rot}</text>`;
   });
   return s + "</svg>";
 }
@@ -655,16 +850,17 @@ function vFaturas() {
 function papelFatura(f) {
   const emp = E.config.empresa, formas = E.config.formas_pagamento;
   const linhas = [...f.itens]; while (linhas.length < 8) linhas.push(null);
-  const titulo = { FR: "FATURA-RECIBO", FT: "FATURA", PP: "PRÓ-FORMA" }[f.tipo];
+  const titulo = TITULO_DOC[f.tipo];
   const carimbo = f.estado === "anulada" ? "ANULADA" : f.estado === "convertida" ? "CONVERTIDA" : "";
   const pagamento = f.tipo === "PP"
     ? `<div class="fp"><div class="lb">Validade</div><div>Válida até <b>${dataPt(f.validade || "")}</b></div><div class="nota-pp">Documento de orçamento. Não serve de fatura nem de recibo.</div></div>`
     : `<div class="fp"><div class="lb">Forma de pagamento</div>${formas.map(m => `<div class="ck"><i>${m === f.forma_pagamento ? "✓" : ""}</i>${esc(m)}</div>`).join("")}
         ${f.tipo === "FT" ? `<div class="estado-pag ${f.pago ? "pg" : ""}">${f.pago ? `Paga em ${dataPt(f.pago_em)}` : "Por pagar"}</div>` : ""}</div>`;
   return `<div class="paper"><div class="pp">
+    <div class="tipo-faixa f-${carimbo ? "anulada" : f.tipo}"><b>${titulo}${carimbo ? ` · ${carimbo}` : ""}</b><span>${significadoDoc(f)}</span></div>
     <div class="hd">
-      <div><img src="${LOGO_AZUL}" alt="Grupo Kambas"><div class="act">${esc(emp.actividade)}</div><div class="ct">${esc(emp.telefones)}<br>${esc(emp.email)}${emp.nif ? `<br>NIF ${esc(emp.nif)}` : ""}${emp.endereco ? `<br>${esc(emp.endereco)}` : ""}</div></div>
-      <div class="ttl"><span class="w ${f.tipo !== "FT" ? "long" : ""}">${titulo}</span><span class="n">Nº ${docNum(f)}</span>${carimbo ? `<span class="an">${carimbo}</span>` : ""}
+      <div><img src="${LOGO_AZUL}" alt="Grupo Kambas"><div class="act">${esc(emp.actividade)}</div><div class="ct">${esc(emp.telefones)}<br>${esc(emp.email)}${emp.nif ? `<br>NIF ${esc(emp.nif)}` : ""}${emp.endereco ? `<br>${esc(emp.endereco)}` : ""}${emp.localizacao ? `<br>${esc(emp.localizacao)}` : ""}</div></div>
+      <div class="ttl"><span class="w ${f.tipo !== "FT" ? "long" : ""} w-${f.tipo}">${titulo}</span><span class="n">Nº ${docNum(f)}</span>${carimbo ? `<span class="an">${carimbo}</span>` : ""}
         <div class="dt"><div class="lb">Data</div><div class="num">${dataPt(f.data)} &nbsp;${horaPt(f.data)}</div></div></div>
     </div>
     <div class="cli">
@@ -680,7 +876,7 @@ function papelFatura(f) {
     </div>
     <div class="obs"><div class="lb">Observações</div><div>${esc(f.observacoes)}</div></div>
     <div class="sig"><div><span class="vend">${esc(f.vendedor_nome)}</span>O vendedor / carimbo</div></div>
-    <div class="ft"><b>${esc(emp.slogan)}</b><span class="num">${esc(emp.contas[0].banco)} &nbsp;${esc(emp.contas[0].iban)}</span></div>
+    <div class="ft"><b>${esc(emp.slogan)}</b><span class="num">${emp.contas && emp.contas[0] ? `${esc(emp.contas[0].banco)} &nbsp;${esc(emp.contas[0].iban)}` : ""}</span></div>
   </div></div>`;
 }
 function verFatura(id, acabada = false) {
@@ -690,13 +886,12 @@ function verFatura(id, acabada = false) {
   if (f.estado === "emitida" && f.tipo === "PP" && meu && pode("vender")) acoes.push(`<button class="btn pri" data-act="converter" data-id="${f.id}">Converter em fatura</button>`);
   if (f.estado === "emitida" && f.tipo === "FT" && !f.pago && meu) acoes.push(`<button class="btn pri" data-act="pagar" data-id="${f.id}">Registar pagamento</button>`);
   abrir(`<div class="sheet wide"><div class="sheet-h"><h2>${TIPOS_DOC[f.tipo]} ${docNum(f)}</h2><button class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
-    <div class="sheet-b">${papelFatura(f)}
-      ${DEMO ? `<div class="note">Na versão instalada (página web ou APK) este documento descarrega-se em PDF, com este mesmo desenho.</div>` : ""}
+    <div class="sheet-b">${acabada ? cabecalhoEmitida(f, typeof acabada === "object" ? acabada : {}) : ""}${papelFatura(f)}
       ${f.pendente ? `<div class="note warn">${f.erro ? `O servidor não aceitou este documento: ${esc(f.erro)}` : "Feito sem internet. O número oficial é atribuído quando a ligação voltar; o PDF fica disponível depois disso."}</div>` : ""}</div>
     <div class="sheet-f">${f.estado === "emitida" && pode("anular") && !acabada && !f.pendente ? `<button class="btn danger" data-act="anular" data-id="${f.id}">Anular</button>` : ""}<span class="sp"></span>
-      <a class="btn" href="https://wa.me/?text=${encodeURIComponent(resumoFatura(f))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn" data-act="copiar-fatura" data-id="${f.id}">Copiar</button>
-      ${DEMO || f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}">${icon("down")}PDF</button>${eNativo() ? "" : `<button class="btn" data-act="imprimir">${icon("print")}Imprimir</button>`}`}
-      ${acabada ? `<button class="btn" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}${acoes.join("")}</div></div>`);
+      <button class="btn" data-act="copiar-fatura" data-id="${f.id}">Copiar resumo</button>
+      ${f.pendente ? "" : `<button class="btn" data-act="pdf-fatura" data-id="${f.id}" data-espera="A gerar PDF…">${icon("down")}PDF</button><button class="btn" data-act="imprimir" data-id="${f.id}" data-espera="A preparar…">${icon("print")}Imprimir</button>`}
+      ${acabada ? acoes.join("").replaceAll('class="btn pri"', 'class="btn"') : acoes.join("")}${acabada ? `<button class="btn pri" data-act="nova-venda">${icon("plus")}Nova venda</button>` : ""}</div></div>`);
 }
 function anular(id) {
   const f = byId(E.faturas, id);
@@ -745,7 +940,7 @@ function resumoFatura(f) {
     ...f.itens.map(it => `${it.qtd} × ${it.descricao} — ${kz(it.total)}`), "",
     ...(f.desconto ? [`Subtotal: ${kz(f.subtotal)}`, `Desconto: ${kz(f.desconto)}`] : []), `*Total: ${kz(f.total)}*`,
     f.tipo === "PP" ? `Pró-forma válida até ${dataPt(f.validade || "")}` : f.tipo === "FT" && !f.pago ? "Por pagar" : `Pagamento: ${f.forma_pagamento || ""}`,
-    ...((f.tipo !== "FR" && !f.pago) || f.forma_pagamento === "Transferência bancária" ? ["", ...emp.contas.slice(0, 3).map(c => `${c.banco}: ${c.iban}`), `Titular: ${emp.titular}`] : []),
+    ...((f.tipo !== "FR" && !f.pago) || f.forma_pagamento === "Transferência bancária" ? ["", ...(emp.contas || []).slice(0, 3).map(c => `${c.banco}: ${c.iban}`), `Titular: ${emp.titular}`] : []),
     "", emp.slogan].join("\n");
 }
 
@@ -755,21 +950,27 @@ function maisVendidos() {
   const q = {}; emitidas().forEach(f => f.itens.forEach(it => { if (it.produto_id) q[it.produto_id] = (q[it.produto_id] || 0) + 1; }));
   return Object.entries(q).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([id]) => Number(id));
 }
+function lerPref(k, def) { try { return localStorage.getItem("kambas-" + k) || def; } catch (e) { return def; } }
+function gravarPref(k, v) { try { localStorage.setItem("kambas-" + k, v); } catch (e) { /* sem armazenamento */ } }
+const NOME_SEC = s => s.replace(" Personalizados", "").replace(" Personalizadas", "");
 function vVender() {
-  const secs = ["Todas", "Mais vendidos", ...new Set(E.produtos.map(p => p.seccao))];
+  const contagem = {}; E.produtos.forEach(p => contagem[p.seccao] = (contagem[p.seccao] || 0) + 1);
+  const secs = ["Todas", "Mais vendidos", "Recargas", ...Object.keys(contagem)];
+  venda.vista = venda.vista || lerPref("vista-catalogo", "grelha");
   $("#main").innerHTML = `
     <div class="pos">
-      <section style="display:flex;flex-direction:column;gap:12px;min-width:0">
-        <div class="toolbar"><label class="search">${icon("search")}<input id="pq" type="search" placeholder="Procurar produto ou serviço (Enter adiciona o 1.º)" value="${esc(venda.q)}" aria-label="Procurar" autocomplete="off"></label>
-          <button class="btn" data-act="avulso">${icon("plus")}Item avulso</button></div>
-        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(s.replace(" Personalizados", "").replace(" Personalizadas", ""))}</button>`).join("")}</div>
-        <div class="tiles" id="ptiles"></div>
+      <section class="cat">
+        <div class="toolbar"><label class="search big">${icon("search")}<input id="pq" type="search" placeholder="Procurar no catálogo" value="${esc(venda.q)}" aria-label="Procurar" autocomplete="off"></label>
+          <div class="seg vista-cat" role="group" aria-label="Mostrar catálogo em">${[["grelha", "Grelha"], ["lista", "Lista"]].map(([v, t]) => `<button data-act="vista-cat" data-v="${v}" aria-pressed="${venda.vista === v}">${t}</button>`).join("")}</div>
+          <button class="btn" data-act="avulso" aria-label="Item avulso (fora do catálogo)">${icon("plus")}<span><span class="so-pc">Item </span>avulso</span></button></div>
+        <div class="chips" id="psec">${secs.map(s => `<button data-act="sec" data-v="${esc(s)}" aria-pressed="${s === venda.sec}">${s === "Mais vendidos" ? "★ " : ""}${esc(NOME_SEC(s))}${s === "Todas" ? ` <span class="cnt">${E.produtos.length}</span>` : s === "Recargas" ? ` <span class="cnt">${(E.operadores || []).length}</span>` : contagem[s] ? ` <span class="cnt">${contagem[s]}</span>` : ""}</button>`).join("")}</div>
+        <div id="ptiles"></div>
       </section>
-      <aside class="panel cart" id="cart"></aside>
+      <aside class="cart" id="cart" aria-label="Venda atual"></aside>
     </div>
     <button class="cartbar" id="cartbar" data-act="abrir-carrinho" hidden></button>`;
   $("#pq").oninput = e => { venda.q = e.target.value; tiles(); };
-  $("#pq").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const t = $("#ptiles .tile:not(:disabled)"); if (t) { adicionar(t.dataset.id); e.target.select(); } } };
+  $("#pq").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const t = $("#ptiles .tile:not(.sem)"); if (t) { adicionar(t.dataset.id); toast(`${produto(t.dataset.id)?.nome || "Item"} adicionado`); e.target.select(); } } };
   tiles(); carrinho();
 }
 function listaTiles() {
@@ -778,16 +979,41 @@ function listaTiles() {
   if (venda.sec === "Mais vendidos") return maisVendidos().map(produto).filter(Boolean);
   return E.produtos.filter(p => venda.sec === "Todas" || p.seccao === venda.sec);
 }
+function tileHtml(p, qtd) {
+  const st = estadoStock(p), sem = st === "bad" && venda.tipo !== "PP";
+  const info = p.tipo === "produto"
+    ? `<span class="ds ${sem ? "bad" : st === "warn" ? "warn" : ""}">${sem ? "Esgotado" : st === "warn" ? `Só ${p.stock} em stock` : `${p.stock} em stock`}</span>`
+    : `<span class="ds">${esc(p.descricao || "Serviço")}</span>`;
+  const acao = qtd
+    ? `<span class="stepper"><button data-act="tqtd" data-id="${p.id}" data-d="-1" aria-label="Tirar um de ${esc(p.nome)}">${icon(qtd === 1 ? "trash" : "minus")}</button><b class="num" aria-live="polite">${qtd}</b><button data-act="tqtd" data-id="${p.id}" data-d="1" aria-label="Mais um de ${esc(p.nome)}">${icon("plus")}</button></span>`
+    : sem ? "" : `<button class="add" data-act="add" data-id="${p.id}" aria-label="Adicionar ${esc(p.nome)}">${icon("plus")}</button>`;
+  return `<div class="tile ${qtd ? "in" : ""} ${sem ? "sem" : ""}" data-act="add" data-id="${p.id}">
+    <span class="nm">${esc(p.nome)}</span>
+    <span class="sub"><b class="pr num ${p.modo === "consulta" ? "consulta" : ""}">${precoCurto(p)}</b>${info}</span>
+    <span class="ta">${acao}</span></div>`;
+}
 function tiles() {
-  const l = listaTiles();
-  const noCarrinho = {}; venda.itens.forEach(i => noCarrinho[i.produto_id] = (noCarrinho[i.produto_id] || 0) + i.qtd);
-  $("#ptiles").innerHTML = l.length ? l.map(p => {
-    const st = estadoStock(p), sem = st === "bad" && venda.tipo !== "PP";
-    return `<button class="tile" data-act="add" data-id="${p.id}" ${sem ? "disabled" : ""}>
-      ${noCarrinho[p.id] ? `<span class="badge">${noCarrinho[p.id]}</span>` : ""}
-      <span class="nm">${esc(p.nome)}</span>${p.descricao ? `<span class="ds">${esc(p.descricao)}</span>` : ""}
-      <span class="bt"><span class="pr num">${precoTexto(p)}</span>${p.tipo === "produto" ? `<span class="chip ${st} num">${sem ? "Esgotado" : p.stock + " un."}</span>` : '<span class="chip">Serviço</span>'}</span></button>`;
-  }).join("") : `<div class="empty" style="grid-column:1/-1">${venda.q ? `Nada encontrado para “${esc(venda.q)}”. Use <b>Item avulso</b> para vender algo fora do catálogo.` : "Ainda sem vendas para mostrar os mais vendidos."}</div>`;
+  const q = venda.q.trim();
+  if (venda.sec === "Recargas" && !q) { $("#ptiles").innerHTML = `<h3 class="sec-h">Recargas · escolha o operador</h3>${opGrade(E.operadores || [])}`; return; }
+  const l = venda.sec === "Recargas" ? E.produtos.filter(p => (p.nome + " " + p.descricao + " " + p.codigo + " " + p.seccao).toLowerCase().includes(q.toLowerCase())) : listaTiles();
+  const opsQ = q ? (E.operadores || []).filter(o => (o.nome + " " + o.categoria + " recarga saldo").toLowerCase().includes(q.toLowerCase())) : [];
+  const topoOps = opsQ.length ? `<h3 class="sec-h">Recargas</h3>${opGrade(opsQ)}` : "";
+  const noCarrinho = {}; venda.itens.forEach(i => { if (i.produto_id) noCarrinho[i.produto_id] = (noCarrinho[i.produto_id] || 0) + i.qtd; });
+  const lista = venda.vista === "lista" || matchMedia("(max-width: 900px)").matches;
+  const cls = `tiles ${lista ? "lista" : ""}`;
+  const grade = ps => `<div class="${cls}">${ps.map(p => tileHtml(p, noCarrinho[p.id])).join("")}</div>`;
+  if (!l.length && topoOps) { $("#ptiles").innerHTML = topoOps; return; }
+  if (!l.length) {
+    $("#ptiles").innerHTML = `<div class="empty">${q ? `Nada encontrado para “${esc(q)}”. Use <b>Item avulso</b> para vender algo fora do catálogo.` : "Ainda sem vendas para mostrar os mais vendidos."}</div>`;
+    return;
+  }
+  if (q || venda.sec !== "Todas") { $("#ptiles").innerHTML = topoOps + (q ? `<h3 class="sec-h">${l.length} resultado${l.length === 1 ? "" : "s"}</h3>` : "") + grade(l); return; }
+  // "Todas": mais vendidos no topo e o catálogo agrupado por secção
+  const mv = maisVendidos().map(produto).filter(Boolean).slice(0, 8);
+  const grupos = {}; l.forEach(p => (grupos[p.seccao] = grupos[p.seccao] || []).push(p));
+  $("#ptiles").innerHTML = (mv.length ? `<h3 class="sec-h">Mais vendidos</h3><div class="mvs">${mv.map(p => `<button class="mv ${noCarrinho[p.id] ? "in" : ""}" data-act="add" data-id="${p.id}"><b>${esc(p.nome)}</b><span class="num">${precoCurto(p)}</span>${noCarrinho[p.id] ? `<span class="badge">${noCarrinho[p.id]}</span>` : ""}</button>`).join("")}</div>` : "")
+    + ((E.operadores || []).length ? `<h3 class="sec-h">Recargas <span>· ${(E.operadores || []).length}</span></h3>${opGrade(E.operadores)}` : "")
+    + Object.entries(grupos).map(([s, ps]) => `<h3 class="sec-h">${esc(s)} <span>· ${ps.length}</span></h3>${grade(ps)}`).join("");
 }
 function totaisVenda() {
   const sub = venda.itens.reduce((s, i) => s + (i.qtd * (i.preco_unit || 0)), 0);
@@ -798,7 +1024,7 @@ function totaisVenda() {
 function clienteSel() { return venda.cliente_id ? byId(E.clientes, venda.cliente_id) : null; }
 function blocoCliente() {
   const c = clienteSel();
-  if (c) return `<div class="cli-card"><div style="min-width:0"><div class="strong">${esc(c.nome)}</div><div class="cod">${[c.nif && "NIF " + esc(c.nif), esc(c.telefone)].filter(Boolean).join(" · ") || "Sem NIF nem telefone"}</div></div>
+  if (c) return `<div class="cli-card"><span class="cav">${esc(((c.nome || "").match(/[\p{L}\d]+/gu) || ["?"]).map(x => x[0]).slice(0, 2).join("").toUpperCase())}</span><div style="min-width:0"><div class="strong">${esc(c.nome)}</div><div class="cod">${[c.nif && "NIF " + esc(c.nif), esc(c.telefone)].filter(Boolean).join(" · ") || "Sem NIF nem telefone"}</div></div>
     <button class="btn sm" data-act="cli-editar" data-id="${c.id}">Editar</button><button class="btn sm" data-act="cli-trocar">Trocar</button></div>`;
   if (venda.novoCli) {
     const n = venda.novoCli;
@@ -825,45 +1051,62 @@ function carrinho() {
   const n = venda.itens.reduce((s, i) => s + i.qtd, 0);
   const aberto = $("#cart")?.classList.contains("open");
   const numerario = venda.tipo === "FR" && venda.forma === "Numerário", troco = venda.recebido - tot;
+  const nomeTipo = { FR: "Fatura-Recibo", FT: "Fatura", PP: "Pró-forma" }[venda.tipo];
+  venda.extras = venda.extras || { desc: false, obs: false };
+  const verDesc = venda.extras.desc || venda.desconto, verObs = venda.extras.obs || venda.obs;
   $("#cart").innerHTML = `
-    <div class="cart-h"><h2>Venda atual</h2><div style="display:flex;gap:6px">${venda.itens.length ? `<button class="btn sm" data-act="limpar-venda">Limpar</button>` : ""}<button class="icon-btn cart-close" data-act="fechar-carrinho" aria-label="Fechar">${icon("x")}</button></div></div>
-    <div class="seg tipo-doc" role="group" aria-label="Tipo de documento">${[["FR", "Fatura-Recibo"], ["FT", "Fatura"], ["PP", "Pró-forma"]].map(([v, t]) => `<button data-act="doc-tipo" data-v="${v}" aria-pressed="${venda.tipo === v}">${t}</button>`).join("")}</div>
-    <div class="cod tipo-ajuda">${{ FR: "Pago no acto: emite fatura e recibo no mesmo documento.", FT: "O cliente paga depois. Registe o pagamento quando receber.", PP: `Orçamento: não mexe no stock nem conta como venda. Válida ${E.config.validade_proforma || 15} dias.` }[venda.tipo]}</div>
-    <div class="field"><span>1 · Cliente</span>${blocoCliente()}</div>
-    <div class="field"><span>2 · Produtos e serviços</span>
-    ${venda.itens.length ? `<div class="lines">${venda.itens.map((it, i) => {
-      const p = produto(it.produto_id); const tier = p && p.tier_qtd && it.qtd >= p.tier_qtd && it.preco_unit === p.tier_preco;
-      const proxTier = p && p.tier_qtd && it.qtd < p.tier_qtd && !it.manual ? p.tier_qtd - it.qtd : 0;
-      return `<div class="line"><div class="nm">${esc(it.descricao)}<div class="cod">${p ? (p.tipo === "produto" ? `${p.codigo} · ${p.stock} em stock` : p.codigo + " · serviço") : "Item avulso"}</div></div>
-        <div class="tot num">${kz(it.qtd * (it.preco_unit || 0))}</div>
-        <div class="ctr"><span class="qty"><button data-act="qtd" data-i="${i}" data-d="-1" aria-label="Menos">${icon("minus")}</button><input id="q${i}" class="num" inputmode="numeric" value="${it.qtd}" data-i="${i}" aria-label="Quantidade"><button data-act="qtd" data-i="${i}" data-d="1" aria-label="Mais">${icon("plus")}</button></span>
-          <label class="price-in">× <input id="pr${i}" class="num ${it.preco_unit ? "" : "need"}" inputmode="numeric" value="${it.preco_unit ? fmt(it.preco_unit) : ""}" placeholder="preço" data-i="${i}" aria-label="Preço unitário"> Kz</label>
-          <button class="icon-btn" style="width:30px;height:30px;margin-left:auto" data-act="rm" data-i="${i}" aria-label="Remover">${icon("trash")}</button></div>
-        ${tier ? `<div class="hint">Preço por quantidade aplicado (${p.tier_qtd}+ un.)</div>` : ""}${proxTier && proxTier <= 5 ? `<div class="hint" style="color:var(--brand-deep)">Mais ${proxTier} un. e o preço baixa para ${kz(p.tier_preco)}</div>` : ""}${p && p.modo === "consulta" && !it.preco_unit ? `<div class="hint" style="color:var(--warn)">Por consulta: indique o preço combinado</div>` : ""}${p && p.modo === "a_partir" ? `<div class="hint" style="color:var(--ink-3)">Mínimo ${kz(p.preco)}, ajuste ao pedido</div>` : ""}</div>`;
-    }).join("")}</div>` : `<div class="empty" style="padding:16px 8px">Toque num produto ou serviço para o adicionar.</div>`}</div>
-    ${venda.tipo === "FR" ? `<div class="field"><span>3 · Pagamento</span><div class="pay">${E.config.formas_pagamento.map(m => `<button data-act="forma" data-v="${esc(m)}" aria-pressed="${venda.forma === m}">${esc(m)}</button>`).join("")}</div></div>` : ""}
-    <div class="totals">
-      <div class="r"><span>Subtotal</span><span class="num">${kz(sub)}</span></div>
-      <div class="r"><span style="display:flex;align-items:center;gap:6px">Desconto <span class="seg mini">${[["kz", "Kz"], ["pct", "%"]].map(([v, t]) => `<button data-act="desc-modo" data-v="${v}" aria-pressed="${venda.descModo === v}">${t}</button>`).join("")}</span></span>
-        <input id="vdesc" class="num" inputmode="numeric" value="${venda.desconto ? fmt(venda.desconto) : ""}" placeholder="0" aria-label="Desconto"></div>
-      ${venda.descModo === "pct" && desc ? `<div class="r" style="font-size:13px"><span></span><span class="num">− ${kz(desc)}</span></div>` : ""}
-      <div class="r grand"><span>Total</span><span class="num">${kz(tot)}</span></div>
-      ${numerario ? `<div class="r"><label for="vrec">Valor recebido</label><input id="vrec" class="num" inputmode="numeric" value="${venda.recebido ? fmt(venda.recebido) : ""}" placeholder="0"></div>
-        ${venda.recebido ? `<div class="r ${troco < 0 ? "falta" : "troco"}"><span>${troco < 0 ? "Falta receber" : "Troco"}</span><span class="num">${kz(Math.abs(troco))}</span></div>` : ""}` : ""}
+    <div class="cart-h"><button class="icon-btn cart-close" data-act="fechar-carrinho" aria-label="Voltar ao catálogo">${icon("left")}</button>
+      <h2>Nova ${nomeTipo}</h2>${venda.itens.length ? `<button class="btn sm ghost-bad" data-act="limpar-venda">Limpar</button>` : ""}</div>
+    <div class="cart-b">
+      <div class="field"><span>Documento</span>
+        <div class="tipos" role="radiogroup" aria-label="Tipo de documento">${[["FR", "Fatura-Recibo", "Pago agora"], ["FT", "Fatura", "Paga depois"], ["PP", "Pró-forma", "Orçamento"]].map(([v, t, s]) => `<button class="tipo t-${v}" data-act="doc-tipo" data-v="${v}" role="radio" aria-checked="${venda.tipo === v}"><b>${t}</b><small>${s}</small></button>`).join("")}</div>
+        <div class="cod tipo-ajuda">${{ FR: "Pago no acto: emite fatura e recibo no mesmo documento.", FT: "O cliente paga depois. Registe o pagamento quando receber.", PP: `Orçamento: não mexe no stock nem conta como venda. Válida ${E.config.validade_proforma || 15} dias.` }[venda.tipo]}</div></div>
+      <div class="field"><span>Cliente</span>${blocoCliente()}</div>
+      <div class="field"><span>${n ? `${n} ${n === 1 ? "item" : "itens"}` : "Itens"}</span>
+      ${venda.itens.length ? `<div class="lines">${venda.itens.map((it, i) => {
+        if (it.operador_id) { const o = operador(it.operador_id) || { nome: "?", categoria: "" }; return `<div class="line rec"><div class="nm"><span class="rec-t"><span class="opi sm">${opIcon(o)}</span>Recarga ${esc(o.nome)}</span>
+          <div class="cod">${it.referencia ? esc(it.referencia) + " · " : ""}saldo ${esc(o.nome)}: ${kz(o.saldo)}</div></div>
+          <div class="tot num">${kz(it.preco_unit * it.qtd)}</div>
+          <div class="ctr"><button type="button" class="btn sm" data-act="recarga" data-id="${o.id}">${icon("plus")}Outra recarga</button><button class="icon-btn rm-btn" data-act="rm" data-i="${i}" aria-label="Remover recarga ${esc(o.nome)}">${icon("trash")}</button></div></div>`; }
+        const p = produto(it.produto_id); const tier = p && p.tier_qtd && it.qtd >= p.tier_qtd && it.preco_unit === p.tier_preco;
+        const proxTier = p && p.tier_qtd && it.qtd < p.tier_qtd && !it.manual ? p.tier_qtd - it.qtd : 0;
+        return `<div class="line"><div class="nm">${esc(it.descricao)}<div class="cod">${p ? (p.tipo === "produto" ? `${p.codigo} · ${p.stock} em stock` : p.codigo + " · serviço") : "Item avulso"}</div></div>
+          <div class="tot num">${kz(it.qtd * (it.preco_unit || 0))}</div>
+          <div class="ctr"><span class="qty"><button data-act="qtd" data-i="${i}" data-d="-1" aria-label="Menos">${icon("minus")}</button><input id="q${i}" class="num" inputmode="numeric" value="${it.qtd}" data-i="${i}" aria-label="Quantidade"><button data-act="qtd" data-i="${i}" data-d="1" aria-label="Mais">${icon("plus")}</button></span>
+            <label class="price-in">× <input id="pr${i}" class="num ${it.preco_unit ? "" : "need"}" inputmode="numeric" value="${it.preco_unit ? fmt(it.preco_unit) : ""}" placeholder="preço" data-i="${i}" aria-label="Preço unitário"> Kz</label>
+            <button class="icon-btn rm-btn" data-act="rm" data-i="${i}" aria-label="Remover ${esc(it.descricao)}">${icon("trash")}</button></div>
+          ${tier ? `<div class="hint">Preço por quantidade aplicado (${p.tier_qtd}+ un.)</div>` : ""}${proxTier && proxTier <= 5 ? `<div class="hint" style="color:var(--brand-deep)">Mais ${proxTier} un. e o preço baixa para ${kz(p.tier_preco)}</div>` : ""}${p && p.modo === "consulta" && !it.preco_unit ? `<div class="hint" style="color:var(--warn)">Por consulta: indique o preço combinado</div>` : ""}${p && p.modo === "a_partir" ? `<div class="hint" style="color:var(--ink-3)">Mínimo ${kz(p.preco)}, ajuste ao pedido</div>` : ""}</div>`;
+      }).join("")}</div>` : `<div class="empty vazio-cart">${icon("cart")}<span>Toque no <b>+</b> de um produto ou serviço para o adicionar.</span></div>`}</div>
+      <div class="extras">
+        ${verDesc ? `<div class="extra"><span class="ex-l">Desconto <span class="seg mini">${[["kz", "Kz"], ["pct", "%"]].map(([v, t]) => `<button data-act="desc-modo" data-v="${v}" aria-pressed="${venda.descModo === v}">${t}</button>`).join("")}</span></span>
+          <input id="vdesc" class="f num" inputmode="numeric" value="${venda.desconto ? fmt(venda.desconto) : ""}" placeholder="0" aria-label="Desconto">${desc ? `<span class="ex-v num">− ${kz(desc)}</span>` : ""}</div>` : `<button class="btn-extra" data-act="ver-extra" data-v="desc">${icon("plus")}Desconto</button>`}
+        ${verObs ? `<label class="extra col"><span class="ex-l">Observação</span><textarea class="f" id="vobs" rows="2" placeholder="Ex.: entrega em 2 dias úteis, arte enviada por WhatsApp">${esc(venda.obs)}</textarea></label>` : `<button class="btn-extra" data-act="ver-extra" data-v="obs">${icon("plus")}Observação</button>`}
+      </div>
+      ${venda.tipo === "FR" ? `<div class="field"><span>Pagamento</span><div class="pay">${E.config.formas_pagamento.map(m => `<button data-act="forma" data-v="${esc(m)}" aria-pressed="${venda.forma === m}">${esc(m)}</button>`).join("")}</div>
+        ${numerario ? `<div class="receb"><label for="vrec">Recebido</label><input id="vrec" class="f num" inputmode="numeric" value="${venda.recebido ? fmt(venda.recebido) : ""}" placeholder="0">
+          ${venda.recebido ? `<span class="${troco < 0 ? "falta" : "troco"}">${troco < 0 ? "Falta" : "Troco"} <b class="num">${kz(Math.abs(troco))}</b></span>` : ""}</div>` : ""}</div>` : ""}
+      <div id="v-err"></div>
     </div>
-    <label class="field"><span>Observações</span><textarea class="f" id="vobs" rows="2" placeholder="Ex.: entrega em 2 dias úteis, arte enviada por WhatsApp">${esc(venda.obs)}</textarea></label>
-    <div id="v-err"></div>
-    <button class="btn pri big" data-act="emitir" ${venda.itens.length ? "" : "disabled"}>${icon("receipt")}Emitir ${venda.tipo === "PP" ? "pró-forma" : venda.tipo === "FT" ? "fatura" : "fatura-recibo"} ${venda.tipo} ${nf(E.config.numeracao[venda.tipo] || 1)} · ${kz(tot)}</button>`;
+    <div class="cart-f">
+      ${desc ? `<div class="sub-l"><span>Subtotal ${kz(sub)}</span><span>Desconto − ${kz(desc)}</span></div>` : ""}
+      <div class="tot-l"><span>Total${n ? ` · ${n} ${n === 1 ? "item" : "itens"}` : ""}</span><b class="num">${kz(tot)}</b></div>
+      <button class="btn big emitir-btn e-${venda.tipo}" data-act="emitir" ${venda.itens.length ? "" : "disabled"}>${icon("check")}Emitir ${nomeTipo} <span class="en">${venda.tipo} ${nf(E.config.numeracao[venda.tipo] || 1)}</span></button>
+    </div>`;
   if (aberto) $("#cart").classList.add("open");
   const bar = $("#cartbar");
-  if (bar) { bar.hidden = !venda.itens.length || aberto; bar.innerHTML = `<span>${icon("cart")} ${n} ${n === 1 ? "item" : "itens"}</span><span class="num">${kz(tot)} · Ver venda</span>`; }
+  if (bar) {
+    bar.hidden = !venda.itens.length || aberto;
+    bar.innerHTML = `<span class="cb-n num">${n}</span><span class="cb-t"><small>${n} ${n === 1 ? "item" : "itens"} · ${nomeTipo}</small><b class="num">${kz(tot)}</b></span><span class="cb-go">Continuar${icon("right")}</span>`;
+    bar.setAttribute("aria-label", `Ver venda: ${n} ${n === 1 ? "item" : "itens"}, ${kz(tot)}`);
+  }
   const cq = $("#vcliq");
   if (cq) { cq.oninput = e => { venda.cliQ = e.target.value; resultadosCliente(); }; resultadosCliente(); }
   if (venda.novoCli) ["nome", "nif", "tel", "end"].forEach(k => { $("#nc-" + k).oninput = e => venda.novoCli[{ tel: "telefone", end: "endereco" }[k] || k] = e.target.value; });
-  $("#vobs").oninput = e => venda.obs = e.target.value;
-  $("#vdesc").onchange = e => { venda.desconto = inteiro(e.target.value) || 0; carrinho(); };
+  if ($("#vobs")) $("#vobs").oninput = e => venda.obs = e.target.value;
+  if ($("#vdesc")) $("#vdesc").onchange = e => { venda.desconto = inteiro(e.target.value) || 0; carrinho(); };
   if ($("#vrec")) $("#vrec").onchange = e => { venda.recebido = inteiro(e.target.value) || 0; carrinho(); };
   venda.itens.forEach((it, i) => {
+    if (it.operador_id) return;
     $("#q" + i).onchange = e => mudarQtd(i, (inteiro(e.target.value) || 1) - it.qtd);
     $("#pr" + i).onchange = e => { it.preco_unit = inteiro(e.target.value) || 0; it.manual = true; carrinho(); };
   });
@@ -906,61 +1149,238 @@ function adicionar(id) {
   if (p.tipo === "produto" && p.stock <= 0 && venda.tipo !== "PP") return toast("Produto esgotado");
   venda.itens.push({ produto_id: p.id, descricao: p.nome, qtd: 1, preco_unit: p.modo === "consulta" ? 0 : precoPara(p, 1), manual: false });
   carrinho(); tiles();
-  toast(`${p.nome} adicionado`);
 }
 async function emitir() {
+  if (venda.emitindo) return;   // dois toques nunca criam duas faturas
   const { desc, tot } = totaisVenda();
   const err = m => { $("#v-err").innerHTML = `<div class="err">${esc(m)}</div>`; $("#v-err").scrollIntoView({ block: "nearest" }); };
   if (venda.novoCli) return err("Termine de registar o novo cliente (ou cancele) antes de emitir.");
   if (venda.tipo === "FR" && !venda.forma) return err("Escolha a forma de pagamento.");
   let obs = venda.obs.trim();
   if (venda.tipo === "FR" && venda.forma === "Numerário" && venda.recebido) obs = `${obs}\nRecebido: ${kz(venda.recebido)} · ${venda.recebido >= tot ? "Troco: " + kz(venda.recebido - tot) : "Falta: " + kz(tot - venda.recebido)}`.trim();
+  venda.emitindo = true;
+  const info = { forma: venda.tipo === "FR" ? venda.forma : null, recebido: venda.recebido };
+  const btn = $("[data-act=emitir]");
+  if (btn) { btn.disabled = true; btn.classList.add("a-emitir"); btn.innerHTML = `<span class="spin" aria-hidden="true"></span>A emitir…<span class="bprog"><i></i></span>`; }
+  ocupado(true);
   try {
     const f = await acao("registarDocumento", { tipo: venda.tipo, cliente_id: venda.cliente_id ? (ehTemp(venda.cliente_id) ? venda.cliente_id : Number(venda.cliente_id)) : null, forma_pagamento: venda.tipo === "FR" ? venda.forma : null, desconto: desc, observacoes: obs,
-      itens: venda.itens.map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
-    Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null });
-    render(); toast(f.pendente ? "Venda guardada neste aparelho. É enviada quando houver internet." : `${docNum(f)} emitida`); verFatura(f.id, true);
-  } catch (e) { err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
+      itens: venda.itens.map(i => ({ produto_id: i.produto_id, operador_id: i.operador_id || null, referencia: i.referencia || "", descricao: i.descricao, qtd: i.qtd, preco_unit: i.preco_unit })) });
+    Object.assign(venda, { tipo: "FR", itens: [], cliente_id: "", forma: "", desconto: 0, descModo: "kz", recebido: 0, obs: "", cliQ: "", novoCli: null, extras: { desc: false, obs: false } });
+    venda.emitindo = false; ocupado(false);
+    render(); verFatura(f.id, info);
+  } catch (e) { venda.emitindo = false; ocupado(false); carrinho(); err(e.message); if (!(e instanceof ErroNegocio)) console.error(e); }
+}
+/* cabeçalho animado depois de emitir: número, total e troco */
+function cabecalhoEmitida(f, info = {}) {
+  const n = f.itens.reduce((s, i) => s + i.qtd, 0), pend = f.pendente;
+  const troco = info.forma === "Numerário" && info.recebido >= f.total ? info.recebido - f.total : null;
+  const lab = pend ? "Venda guardada neste aparelho" : `${TIPOS_DOC[f.tipo]} emitida`;
+  const totLab = f.tipo === "FR" ? `Pago${f.forma_pagamento ? " · " + esc(f.forma_pagamento) : ""}` : f.tipo === "FT" ? "A pagar" : "Orçamento";
+  return `<div class="emitida e-${pend ? "pend" : f.tipo}" role="status">
+    <span class="em-circ">${pend ? icon("wallet") : `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="em-visto" d="M5 12.5l4.5 4.5L19 7.5"/></svg>`}</span>
+    <span class="em-tx"><small>${lab}</small><b>${pend ? "Por enviar" : docNum(f)}</b><span>${esc(f.cliente_nome)} · ${n} ${n === 1 ? "item" : "itens"}</span></span>
+    <span class="em-tot"><small>${totLab}</small><b class="num">${kz(f.total)}</b>${troco !== null ? `<span>Troco <b class="num">${kz(troco)}</b></span>` : ""}</span></div>
+    ${pend ? `<p class="cod" style="margin:-4px 0 0">É enviada sozinha quando houver internet; o número oficial vem do servidor.</p>` : ""}`;
+}
+
+/* ============================================================ recargas e saldos */
+const ICON_CAT = { "Telemóvel": "phone", "Televisão": "tv", "Energia": "bolt", "Água": "drop" };
+const opIcon = o => icon(ICON_CAT[o.categoria] || "wallet");
+const operador = id => (E.operadores || []).find(o => String(o.id) === String(id));
+const opEstado = o => o.saldo <= 0 ? "bad" : o.saldo < (o.saldo_min || 0) ? "warn" : "ok";
+const noCarrinhoOp = id => venda.itens.filter(i => String(i.operador_id) === String(id)).reduce((s, i) => s + i.qtd * i.preco_unit, 0);
+function opCard(o) {
+  const livre = o.saldo - (venda.tipo === "PP" ? 0 : noCarrinhoOp(o.id)), n = venda.itens.filter(i => String(i.operador_id) === String(o.id)).length;
+  const st = livre <= 0 ? "bad" : livre < (o.saldo_min || 0) ? "warn" : "ok";
+  return `<button class="opc s-${st}" data-act="recarga" data-id="${o.id}" aria-label="Vender recarga ${esc(o.nome)}, saldo ${kz(livre)}">
+    <span class="opi">${opIcon(o)}</span><span class="opt"><b>${esc(o.nome)}</b><small>${esc(o.categoria)}</small></span>
+    <span class="ops-s"><small>Saldo</small><b class="num">${kz(Math.max(0, livre))}</b></span>${n ? `<span class="badge">${n}</span>` : ""}</button>`;
+}
+const opGrade = ops => ops.length ? `<div class="ops">${ops.map(opCard).join("")}</div>` : `<div class="empty">Sem operadores de recarga.</div>`;
+function formRecarga(id) {
+  const o = operador(id); if (!o) return;
+  const pp = venda.tipo === "PP", usado = pp ? 0 : noCarrinhoOp(o.id), livre = o.saldo - usado;
+  const rapidos = ["Telemóvel"].includes(o.categoria) ? [500, 1000, 2000, 5000, 10000] : [2000, 5000, 10000, 20000, 50000];
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2 class="rc-h"><span class="opi">${opIcon(o)}</span>Recarga ${esc(o.nome)}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b">
+      <div class="rc-saldo s-${livre <= 0 ? "bad" : livre < o.saldo_min ? "warn" : "ok"}"><span>Saldo ${esc(o.nome)} disponível</span><b class="num">${kz(livre)}</b>
+        <small id="rc-fica">${pp ? "Pró-forma: o saldo só sai quando for convertida em fatura." : usado ? `Já há ${kz(usado)} desta operadora nesta venda.` : "Escolha o valor da recarga."}</small></div>
+      <div class="field"><span>Valor da recarga (Kz)</span>
+        <div class="rc-rapidos">${rapidos.map(v => `<button type="button" data-act="rc-valor" data-v="${v}" ${!pp && v > livre ? "disabled" : ""}>${fmt(v)}</button>`).join("")}</div>
+        <input class="f num rc-in" id="rc-valor" inputmode="numeric" placeholder="Outro valor" autocomplete="off" required></div>
+      <label class="field"><span>${esc(o.referencia)} <em class="opc-l">(opcional)</em></span><input class="f" id="rc-ref" inputmode="${o.categoria === "Telemóvel" ? "tel" : "text"}" maxlength="40" autocomplete="off" placeholder="${o.categoria === "Telemóvel" ? "Ex.: 923 456 789" : ""}"></label>
+      <div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A adicionar…">${icon("plus")}Adicionar à venda</button></div></form>`,
+    async () => {
+      const v = inteiro($("#rc-valor").value);
+      if (!(v > 0)) falha("Indique o valor da recarga em Kz.");
+      if (!pp && v > livre) falha(`Saldo ${o.nome} insuficiente: há ${kz(livre)}.`);
+      const referencia = $("#rc-ref").value.trim();
+      venda.itens.push({ produto_id: null, operador_id: o.id, referencia, descricao: `Recarga ${o.nome}${referencia ? " — " + referencia : ""}`, qtd: 1, preco_unit: v, manual: true });
+      fechar(); carrinho(); tiles(); toast(`Recarga ${o.nome} de ${kz(v)} adicionada`, "ok");
+    });
+  const atualizar = () => {
+    const v = inteiro($("#rc-valor").value) || 0;
+    document.querySelectorAll(".rc-rapidos button").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.v) === v));
+    if (!pp && v) $("#rc-fica").innerHTML = v > livre ? `<strong style="color:var(--bad)">Falta saldo: há ${kz(livre)}.</strong>` : `Depois desta recarga fica <strong>${kz(livre - v)}</strong>.`;
+  };
+  $("#rc-valor").oninput = atualizar;
+  setTimeout(() => $("#rc-valor").focus(), 50);
+}
+
+/* página Saldos (quem gere stock) */
+const filtroS = { op: "todos", tipo: "todos" };
+function resumoSaldos(desde) {
+  const r = {}; (E.operadores || []).forEach(o => r[o.id] = { vendido: 0, custo: 0, n: 0, carregado: 0, pago: 0, nCargas: 0 });
+  (E.movimentos_saldo || []).forEach(m => {
+    const x = r[m.operador_id]; if (!x || m.data < desde) return;
+    if (m.tipo === "venda") { x.vendido += -m.valor; x.custo += m.custo; x.n++; }
+    else if (m.tipo === "anulacao") { x.vendido -= m.valor; x.custo -= m.custo; x.n--; }
+    else if (m.tipo === "carga") { x.carregado += m.valor; x.pago += m.custo; x.nCargas++; }
+  });
+  Object.values(r).forEach(x => x.lucro = x.vendido - x.custo);
+  return r;
+}
+function vSaldos() {
+  const ops = E.operadores || [], mes = hoje().slice(0, 7) + "-01", r = resumoSaldos(mes);
+  const tot = k => Object.values(r).reduce((s, x) => s + x[k], 0);
+  const saldoTotal = ops.reduce((s, o) => s + o.saldo, 0), custoTotal = ops.reduce((s, o) => s + o.custo, 0);
+  const movs = (E.movimentos_saldo || []).filter(m => (filtroS.op === "todos" || String(m.operador_id) === filtroS.op) && (filtroS.tipo === "todos" || m.tipo === filtroS.tipo))
+    .sort((a, b) => b.data.localeCompare(a.data) || b.id - a.id).slice(0, 80);
+  const TIPO_MOV = { carga: ["Carga", "ok"], venda: ["Venda", "brand"], anulacao: ["Anulação", "warn"], ajuste: ["Correção", ""] };
+  $("#main").innerHTML = `
+    <section class="kpis">
+      <div class="kpi hero"><span class="lab">Saldo disponível</span><span class="val num">${fmt(saldoTotal)} <small>Kz</small></span><span class="ft">em ${ops.length} operador${ops.length === 1 ? "" : "es"} · custou ${kz(custoTotal)}</span></div>
+      <div class="kpi"><span class="lab">Recargas vendidas este mês</span><span class="val num">${fmt(tot("vendido"))} <small>Kz</small></span><span class="ft">${tot("n")} recarga${tot("n") === 1 ? "" : "s"}</span></div>
+      <div class="kpi"><span class="lab">Lucro das recargas este mês</span><span class="val num" style="color:var(--ok)">${fmt(tot("lucro"))} <small>Kz</small></span><span class="ft">${tot("vendido") ? ((tot("lucro") / tot("vendido")) * 100).toFixed(1).replace(".", ",") + "% do vendido" : "sem vendas"}</span></div>
+      <div class="kpi"><span class="lab">Investido este mês</span><span class="val num">${fmt(tot("pago"))} <small>Kz</small></span><span class="ft">${tot("nCargas")} carregamento${tot("nCargas") === 1 ? "" : "s"} · ${kz(tot("carregado"))} de saldo recebido</span></div>
+    </section>
+    <div class="panel"><div class="panel-h"><h2>Operadores</h2><div class="toolbar"><button class="btn sm" data-act="novo-operador">${icon("plus")}Novo operador</button><button class="btn sm pri" data-act="carregar-saldo">${icon("in")}Carregar saldo</button></div></div>
+      <div class="sgrid">${ops.map(o => { const x = r[o.id], st = opEstado(o); return `<div class="scard s-${st}">
+        <div class="sc-top"><span class="opi">${opIcon(o)}</span><span class="opt"><b>${esc(o.nome)}</b><small>${esc(o.categoria)}</small></span><button class="icon-btn" data-act="editar-operador" data-id="${o.id}" aria-label="Editar ${esc(o.nome)}">${icon("adj")}</button></div>
+        <div class="sc-saldo"><small>Saldo disponível</small><b class="num">${kz(o.saldo)}</b>${st !== "ok" ? `<span class="chip ${st}">${st === "bad" ? "Sem saldo" : "Saldo baixo"}</span>` : ""}</div>
+        <div class="sc-mini"><span>Vendido no mês<b class="num">${kz(x.vendido)}</b></span><span>Lucro no mês<b class="num" style="color:var(--ok)">${kz(x.lucro)}</b></span>
+          <span class="sc-cargas">Carregado no mês<b class="num">${kz(x.carregado)}</b><small>${x.nCargas} carregamento${x.nCargas === 1 ? "" : "s"}</small></span></div>
+        <div class="sc-acoes"><button class="btn sm" data-act="ajustar-saldo" data-id="${o.id}">Corrigir</button><button class="btn sm pri" data-act="carregar-saldo" data-id="${o.id}">${icon("plus")}Carregar</button></div></div>`; }).join("")}</div></div>
+    <div class="panel"><div class="panel-h"><h2>Histórico de saldos</h2>
+      <div class="toolbar"><select class="f" id="s-op" aria-label="Operador" style="width:auto"><option value="todos">Todos os operadores</option>${ops.map(o => `<option value="${o.id}" ${filtroS.op === String(o.id) ? "selected" : ""}>${esc(o.nome)}</option>`).join("")}</select>
+        <select class="f" id="s-tipo" aria-label="Tipo de movimento" style="width:auto">${[["todos", "Todos os movimentos"], ["carga", "Carregamentos"], ["venda", "Vendas"], ["anulacao", "Anulações"], ["ajuste", "Correções"]].map(([v, t]) => `<option value="${v}" ${filtroS.tipo === v ? "selected" : ""}>${t}</option>`).join("")}</select></div></div>
+      ${movs.length ? `<div class="dlist">${movs.map(m => { const o = operador(m.operador_id) || { nome: "—", categoria: "" }, [tt, tc] = TIPO_MOV[m.tipo] || [m.tipo, ""]; return `<div class="drow est">
+        <span class="opi sm">${opIcon(o)}</span>
+        <span class="dmeio"><b>${esc(o.nome)} · <span class="chip ${tc}">${tt}</span></b><small>${dataPt(m.data)} ${horaPt(m.data)}${m.ref ? " · " + esc(m.ref) : ""}${m.motivo && m.motivo !== "Venda" ? " · " + esc(m.motivo) : ""}</small></span>
+        <span class="dfim"><b class="num" style="color:${m.valor >= 0 ? "var(--ok)" : "var(--ink)"}">${m.valor >= 0 ? "+" : "−"} ${kz(Math.abs(m.valor))}</b><small class="num">saldo ${kz(m.saldo_final)}</small></span></div>`; }).join("")}</div>` : `<div class="empty">Ainda não há movimentos de saldo.</div>`}</div>`;
+  $("#s-op").onchange = e => { filtroS.op = e.target.value; vSaldos(); };
+  $("#s-tipo").onchange = e => { filtroS.tipo = e.target.value; vSaldos(); };
+}
+function formCarga(id) {
+  const ops = E.operadores || [], o0 = operador(id) || ops[0];
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>Carregar saldo</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><div class="field"><span>Operador</span><div class="seg wrap" id="cs-op">${ops.map(o => `<button type="button" data-v="${o.id}" aria-pressed="${o === o0}">${esc(o.nome)}</button>`).join("")}</div></div>
+      <div class="grid2"><label class="field"><span>Saldo recebido (Kz)</span><input class="f num" id="cs-valor" inputmode="numeric" placeholder="Ex.: 10000" required></label>
+        <label class="field"><span>Quanto pagou (Kz)</span><input class="f num" id="cs-pago" inputmode="numeric" placeholder="Igual ao saldo"></label></div>
+      <div class="cs-atual" id="cs-atual"></div>
+      <div class="note" id="cs-prev">Se o operador lhe dá desconto (ex.: paga 9.500 e recebe 10.000), escreva o valor pago: a diferença é o seu lucro.</div>
+      <label class="field"><span>Nota (opcional)</span><input class="f" id="cs-mot" placeholder="Ex.: comprado no agente da Mutamba"></label><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A carregar…">Carregar saldo</button></div></form>`,
+    async () => {
+      const opId = Number($("#cs-op [aria-pressed=true]").dataset.v);
+      const o = await acao("carregarSaldo", { operador_id: opId, valor: inteiro($("#cs-valor").value), pago: $("#cs-pago").value.trim() ? inteiro($("#cs-pago").value) : "", motivo: $("#cs-mot").value });
+      fechar(); render(); toast(`${o.nome}: saldo ${kz(o.saldo)}`, "ok");
+    });
+  ligarEscolha("#cs-op");
+  const prev = () => {
+    const v = inteiro($("#cs-valor").value) || 0, p = $("#cs-pago").value.trim() ? inteiro($("#cs-pago").value) || 0 : v;
+    const o = operador($("#cs-op [aria-pressed=true]").dataset.v), x = resumoSaldos(hoje().slice(0, 7) + "-01")[o.id] || { nCargas: 0, carregado: 0 };
+    $("#cs-atual").innerHTML = `<span>Saldo ${esc(o.nome)} agora</span><b class="num">${kz(o.saldo)}</b>${v ? `<span class="cs-fica">${icon("right")}fica <b class="num">${kz(o.saldo + v)}</b></span>` : ""}
+      <small>Pode carregar quantas vezes quiser: cada carregamento soma ao saldo. Este mês: ${x.nCargas} carregamento${x.nCargas === 1 ? "" : "s"} (${kz(x.carregado)}).</small>`;
+    if (v && p) $("#cs-prev").innerHTML = p < v ? `Lucro previsto ao vender este saldo: <b style="color:var(--ok)">${kz(v - p)}</b> (${((v - p) / v * 100).toFixed(1).replace(".", ",")}%).` : p > v ? `<b style="color:var(--warn)">Pagou mais do que o saldo recebido: estas recargas dão prejuízo.</b>` : "Sem desconto: estas recargas não dão lucro.";
+  };
+  $("#cs-valor").oninput = prev; $("#cs-pago").oninput = prev; $("#cs-op").addEventListener("change", prev); prev();
+  setTimeout(() => $("#cs-valor").focus(), 50);
+}
+function formAjusteSaldo(id) {
+  const o = operador(id); if (!o) return;
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>Corrigir saldo ${esc(o.nome)}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><p class="note" style="margin:0">Use quando o saldo no telemóvel/agente não bate com o do sistema. O sistema mostra <b>${kz(o.saldo)}</b>.</p>
+      <label class="field"><span>Saldo certo agora (Kz)</span><input class="f num" id="as-saldo" inputmode="numeric" value="${o.saldo}" required></label>
+      <label class="field"><span>Motivo</span><input class="f" id="as-mot" placeholder="Ex.: recarga falhada devolvida"></label><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri" data-espera="A corrigir…">Corrigir saldo</button></div></form>`,
+    async () => { const r = await acao("ajustarSaldo", { operador_id: o.id, saldo: inteiro($("#as-saldo").value), motivo: $("#as-mot").value }); fechar(); render(); toast(`${r.nome}: saldo ${kz(r.saldo)}`, "ok"); });
+  setTimeout(() => $("#as-saldo").select(), 50);
+}
+function formOperador(id) {
+  const o = id ? operador(id) : { nome: "", categoria: "Telemóvel", referencia: "Número de telefone", saldo_min: 2000 };
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>${id ? "Editar " + esc(o.nome) : "Novo operador de recarga"}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b"><label class="field"><span>Nome</span><input class="f" id="op-nome" value="${esc(o.nome)}" required placeholder="Ex.: Movicel"></label>
+      <div class="grid2"><label class="field"><span>Tipo</span><select class="f" id="op-cat">${["Telemóvel", "Televisão", "Energia", "Água", "Outros"].map(c => `<option ${c === o.categoria ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+        <label class="field"><span>Avisar abaixo de (Kz)</span><input class="f num" id="op-min" inputmode="numeric" value="${o.saldo_min}"></label></div>
+      <label class="field"><span>O que pedir ao cliente</span><input class="f" id="op-ref" value="${esc(o.referencia)}" placeholder="Ex.: Número de telefone"></label><div id="frm-err"></div></div>
+    <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri">Guardar</button></div></form>`,
+    async () => { await acao("guardarOperador", { nome: $("#op-nome").value, categoria: $("#op-cat").value, referencia: $("#op-ref").value, saldo_min: $("#op-min").value }, id || null); fechar(); render(); toast("Operador guardado", "ok"); });
+  setTimeout(() => $("#op-nome").focus(), 50);
 }
 
 /* ============================================================ produtos */
 const filtroP = { q: "", sec: "Todas", tipo: "todos" };
+/* secções do catálogo: as da configuração (mesmo vazias) e as que os produtos usam */
+function todasSeccoes() { return [...new Set([...(E.config.seccoes || []), ...E.produtos.map(p => p.seccao)])]; }
 function vProdutos() {
-  const secs = ["Todas", ...new Set(E.produtos.map(p => p.seccao))];
+  const secs = todasSeccoes(), conta = {}; E.produtos.forEach(p => conta[p.seccao] = (conta[p.seccao] || 0) + 1);
+  if (filtroP.sec !== "Todas" && !secs.includes(filtroP.sec)) filtroP.sec = "Todas";
   $("#main").innerHTML = `
     <div class="toolbar">
       <label class="search">${icon("search")}<input id="xq" type="search" placeholder="Procurar por nome ou código" value="${esc(filtroP.q)}" aria-label="Procurar produtos"></label>
-      <select class="f" id="xs" aria-label="Secção">${secs.map(s => `<option ${s === filtroP.sec ? "selected" : ""}>${esc(s)}</option>`).join("")}</select>
       <div class="seg" id="xt">${[["todos", "Todos"], ["produto", "Produtos"], ["servico", "Serviços"]].map(([v, t]) => `<button data-act="tipo-p" data-v="${v}" aria-pressed="${filtroP.tipo === v}">${t}</button>`).join("")}</div>
-      ${pode("produtos") ? `<button class="btn pri" data-act="novo-produto">${icon("plus")}Registar produto</button>` : ""}
+      ${pode("produtos") ? `<button class="btn" data-act="gerir-seccoes">${icon("adj")}Secções</button><button class="btn pri" data-act="novo-produto">${icon("plus")}Registar produto</button>` : ""}
     </div>
+    <div class="chips" id="xsec">${["Todas", ...secs].map(x => `<button data-act="sec-p" data-v="${esc(x)}" aria-pressed="${x === filtroP.sec}">${esc(NOME_SEC(x))} <span class="cnt">${x === "Todas" ? E.produtos.length : conta[x] || 0}</span></button>`).join("")}${pode("produtos") ? `<button class="chip-nova" data-act="nova-seccao">${icon("plus")}Nova secção</button>` : ""}</div>
     <div class="panel"><div class="panel-h"><h2 id="x-res"></h2><span class="sub">Preços em kwanzas (Kz).${pode("produtos") ? " Toque numa linha para editar." : ""}</span></div><div id="x-lista"></div></div>`;
   const upd = () => {
-    filtroP.q = $("#xq").value; filtroP.sec = $("#xs").value;
+    filtroP.q = $("#xq").value;
     const q = filtroP.q.trim().toLowerCase();
     const l = E.produtos.filter(p => (filtroP.sec === "Todas" || p.seccao === filtroP.sec) && (filtroP.tipo === "todos" || p.tipo === filtroP.tipo) && (!q || (p.nome + " " + p.codigo + " " + p.descricao).toLowerCase().includes(q)));
-    $("#x-res").textContent = `${l.length} ${l.length === 1 ? "item" : "itens"} no catálogo`;
-    $("#x-lista").innerHTML = l.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th class="hide-m">Código</th><th>Nome</th><th class="hide-m">Secção</th><th class="hide-m">Tipo</th><th class="r">Preço</th><th class="r">Stock</th></tr></thead><tbody>
+    $("#x-res").textContent = filtroP.sec === "Todas" ? `${l.length} ${l.length === 1 ? "item" : "itens"} no catálogo` : `${filtroP.sec} · ${l.length} ${l.length === 1 ? "item" : "itens"}`;
+    $("#x-lista").innerHTML = l.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th class="hide-m">Código</th><th>Nome</th><th class="hide-m">Secção</th><th class="hide-m">Tipo</th><th class="r">Preço</th><th class="r">Stock</th>${pode("produtos") ? '<th class="r"><span class="sr">Ações</span></th>' : ""}</tr></thead><tbody>
       ${l.map(p => `<tr ${pode("produtos") ? `class="click" data-act="editar-produto" data-id="${p.id}"` : ""}><td class="cod hide-m">${p.codigo}</td>
         <td><span class="strong">${esc(p.nome)}</span>${p.descricao ? `<div class="muted">${esc(p.descricao)}</div>` : ""}<div class="cod">${p.codigo} · ${p.tipo === "produto" ? "Produto" : "Serviço"}</div>${p.tier_qtd ? `<div class="muted" style="color:var(--ok)">${p.tier_qtd}+ un.: ${kz(p.tier_preco)}</div>` : ""}</td>
         <td class="hide-m muted">${esc(p.seccao)}</td>
         <td class="hide-m">${p.tipo === "produto" ? '<span class="chip brand">Produto</span>' : '<span class="chip">Serviço</span>'}</td>
         <td class="r num strong" style="white-space:nowrap">${precoCurto(p)}</td>
-        <td class="r num">${p.tipo === "produto" ? `<span class="chip ${estadoStock(p)}">${p.stock}</span>` : '<span class="muted">—</span>'}</td></tr>`).join("")}
-    </tbody></table></div>` : `<div class="empty">Nenhum item encontrado.</div>`;
+        <td class="r num">${p.tipo === "produto" ? `<span class="chip ${estadoStock(p)}">${p.stock}</span>` : '<span class="muted">—</span>'}</td>
+        ${pode("produtos") ? `<td class="r acoes-l"><button class="icon-btn hide-m" data-act="editar-produto" data-id="${p.id}" aria-label="Editar ${esc(p.nome)}">${icon("adj")}</button><button class="icon-btn perigo" data-act="remover-produto" data-id="${p.id}" aria-label="Remover ${esc(p.nome)}">${icon("trash")}</button></td>` : ""}</tr>`).join("")}
+    </tbody></table></div>` : filtroP.sec !== "Todas" && !q && !(conta[filtroP.sec] > 0)
+      ? `<div class="empty">Ainda não há itens em <b>${esc(filtroP.sec)}</b>.${pode("produtos") ? `<div style="margin-top:12px"><button class="btn pri" data-act="novo-produto">${icon("plus")}Registar o primeiro</button></div>` : ""}</div>`
+      : `<div class="empty">Nenhum item encontrado.</div>`;
   };
-  $("#xq").oninput = upd; $("#xs").onchange = upd; upd();
+  $("#xq").oninput = upd; upd();
   vProdutos.upd = upd;
+}
+function gerirSeccoes() {
+  const conta = {}; E.produtos.forEach(p => conta[p.seccao] = (conta[p.seccao] || 0) + 1);
+  const cod = Object.fromEntries((E.config.seccoes_cod || []).map(([c, n]) => [n, c]));
+  abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>Secções do catálogo</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
+    <div class="sheet-b">
+      <div class="field"><span>Nova secção</span><div class="nova-sec"><input class="f" id="ns-nome" placeholder="Ex.: Electrodomésticos, CCTV, Papelaria" maxlength="60" autocomplete="off"><button class="btn pri" data-espera="A criar…">${icon("plus")}Criar</button></div>
+        <small style="color:var(--ink-3)">Cada secção recebe um código (ex.: Electrodomésticos → EL) usado nos códigos dos produtos.</small></div>
+      <div id="frm-err"></div>
+      <div class="sec-lista">${todasSeccoes().map(x => `<div class="sec-l"><span class="sec-cod">${esc(cod[x] || "—")}</span><span class="sec-n"><b>${esc(x)}</b><small>${conta[x] || 0} ${conta[x] === 1 ? "item" : "itens"}</small></span>
+        ${conta[x] ? `<span class="cod">tem itens</span>` : `<button type="button" class="icon-btn perigo" data-act="remover-seccao" data-v="${esc(x)}" aria-label="Remover a secção ${esc(x)}">${icon("trash")}</button>`}</div>`).join("")}</div>
+    </div>
+    <div class="sheet-f"><span class="sp"></span><button type="button" class="btn" data-act="fechar">Fechar</button></div></form>`,
+    async () => { const nome = $("#ns-nome").value.trim(); await acao("guardarSeccao", nome, false); gerirSeccoes(); render(); toast(`Secção ${nome} criada`, "ok"); });
+  setTimeout(() => $("#ns-nome")?.focus(), 50);
 }
 function formProduto(id) {
   const p = id ? produto(id) : { nome: "", descricao: "", seccao: filtroP.sec !== "Todas" ? filtroP.sec : E.config.seccoes[0], tipo: "produto", modo: "fixo", preco: "", tier_qtd: "", tier_preco: "", stock: "", stock_min: 5 };
-  const secs = [...new Set([...E.config.seccoes, ...E.produtos.map(x => x.seccao)])];
+  const secs = todasSeccoes();
   abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>${id ? "Editar " + esc(p.codigo) : "Registar produto ou serviço"}</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
     <div class="sheet-b">
       <label class="field"><span>Nome</span><input class="f" id="p-nome" value="${esc(p.nome)}" placeholder="Ex.: Caneca personalizada" required></label>
       <label class="field"><span>Descrição</span><input class="f" id="p-desc" value="${esc(p.descricao)}" placeholder="Ex.: Com o nosso material"></label>
       <div class="grid2">
-        <label class="field"><span>Secção do catálogo</span><input class="f" id="p-sec" list="secs" value="${esc(p.seccao)}"><datalist id="secs">${secs.map(s => `<option value="${esc(s)}">`).join("")}</datalist></label>
+        <label class="field"><span>Secção do catálogo</span><select class="f" id="p-sec">${secs.map(x => `<option ${x === p.seccao ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__nova">+ Nova secção…</option></select>
+          <input class="f" id="p-sec-nova" placeholder="Nome da nova secção (ex.: Electrodomésticos)" aria-label="Nome da nova secção" maxlength="60" hidden style="margin-top:8px"></label>
         <div class="field"><span>Tipo</span><div class="seg" id="p-tipo">${[["produto", "Produto (com stock)"], ["servico", "Serviço"]].map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${p.tipo === v}">${t}</button>`).join("")}</div></div>
       </div>
       <div class="grid2">
@@ -980,7 +1400,9 @@ function formProduto(id) {
     <div class="sheet-f">${id ? `<button type="button" class="btn danger" data-act="remover-produto" data-id="${id}">${icon("trash")}Remover</button>` : ""}<span class="sp"></span><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri">${id ? "Guardar alterações" : "Registar"}</button></div></form>`,
     async () => {
       const g = s => $(s)?.value ?? "";
-      const d = { nome: g("#p-nome"), descricao: g("#p-desc"), seccao: g("#p-sec"), tipo: $("#p-tipo [aria-pressed=true]").dataset.v, modo: $("#p-modo [aria-pressed=true]").dataset.v,
+      const seccao = g("#p-sec") === "__nova" ? g("#p-sec-nova").trim() : g("#p-sec");
+      if (!seccao) falha("Escreva o nome da nova secção.");
+      const d = { nome: g("#p-nome"), descricao: g("#p-desc"), seccao, tipo: $("#p-tipo [aria-pressed=true]").dataset.v, modo: $("#p-modo [aria-pressed=true]").dataset.v,
         preco: inteiro(g("#p-preco")) || 0, tier_qtd: inteiro(g("#p-tq")) || "", tier_preco: inteiro(g("#p-tp")) || "", stock: inteiro(g("#p-stock")) || 0, stock_min: inteiro(g("#p-min")) || 0 };
       const r = await acao("guardarProduto", d, id);
       fechar(); render(); toast(id ? "Alterações guardadas" : `${r.nome} registado (${r.codigo})`);
@@ -990,6 +1412,7 @@ function formProduto(id) {
     $("#p-stock-g").hidden = tipo !== "produto"; $("#p-preco-f").hidden = modo === "consulta";
   };
   ["#p-tipo", "#p-modo"].forEach(s => $(s).addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; $(s).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); sync(); }));
+  $("#p-sec").onchange = e => { const nova = e.target.value === "__nova"; $("#p-sec-nova").hidden = !nova; if (nova) $("#p-sec-nova").focus(); };
   sync(); setTimeout(() => $("#p-nome").focus(), 50);
 }
 
@@ -1125,13 +1548,20 @@ function calcularRelatorio(tipo, ref) {
   const soma = (l, k = "total") => l.reduce((s, x) => s + x[k], 0);
   const anterior = soma(base.filter(f => f.estado === "emitida" && dentro(f, dISO(ant.ini), dISO(ant.fim))));
   const faturacao = soma(emit);
-  const itens = {}, secs = {}, pags = {}, clis = {}, vends = {}; let vp = 0, vs = 0, qt = 0;
+  const itens = {}, secs = {}, pags = {}, clis = {}, vends = {}, recs = {}; let vp = 0, vs = 0, qt = 0;
   emit.forEach(f => {
     const fp = f.pago ? f.forma_pagamento : "Por pagar";
     const pg = pags[fp] ||= { forma: fp, n: 0, valor: 0 }; pg.n++; pg.valor += f.total;
     const vd = vends[f.vendedor_nome || "—"] ||= { nome: f.vendedor_nome || "—", n: 0, valor: 0 }; vd.n++; vd.valor += f.total;
     const cl = clis[f.cliente_nome] ||= { nome: f.cliente_nome, n: 0, valor: 0 }; cl.n++; cl.valor += f.total;
     f.itens.forEach(it => {
+      if (it.operador_id) {
+        const o = operador(it.operador_id), nome = o ? o.nome : it.descricao.replace(/^Recarga /, "").split(" — ")[0];
+        const rc = recs[nome] ||= { nome, n: 0, valor: 0, custo: 0 }; rc.n += it.qtd; rc.valor += it.total; rc.custo += it.custo || 0;
+        const l = itens["REC-" + nome] ||= { codigo: "", descricao: "Recargas " + nome, tipo: "recarga", qtd: 0, valor: 0 }; l.qtd += it.qtd; l.valor += it.total;
+        const s = secs["Recargas"] ||= { seccao: "Recargas", qtd: 0, valor: 0 }; s.qtd += it.qtd; s.valor += it.total;
+        qt += it.qtd; vs += it.total; return;
+      }
       const p = prods[it.produto_id], k = p ? p.codigo : it.descricao;
       const l = itens[k] ||= { codigo: p ? p.codigo : "", descricao: p ? p.nome : it.descricao, tipo: p ? p.tipo : "servico", qtd: 0, valor: 0 };
       l.qtd += it.qtd; l.valor += it.total;
@@ -1163,6 +1593,7 @@ function calcularRelatorio(tipo, ref) {
       variacao: anterior ? Math.round((faturacao - anterior) / anterior * 1000) / 10 : null },
     evolucao, pagamentos: ord(pags), seccoes: ord(secs), itens: Object.values(itens).sort((a, b) => b.valor - a.valor || a.descricao.localeCompare(b.descricao)),
     clientes: ord(clis).slice(0, 10), vendedores: ord(vends), stock,
+    recargas: ord(recs).map(x => ({ ...x, lucro: x.valor - x.custo })),
     stock_resumo: { valor: soma(stock, "valor_final"), unidades: soma(stock, "final"), entradas: soma(stock, "entradas"), saidas: soma(stock, "saidas"), alertas: stock.filter(s => s.final <= s.stock_min).length },
     faturas: [...todas].sort((a, b) => a.numero - b.numero),
   };
@@ -1202,9 +1633,8 @@ function vRelatorios() {
       <div class="sp"></div>
       <input type="date" class="f" id="rdata" value="${rel.ref}" aria-label="Escolher data" style="width:auto">
       ${ehAtual ? "" : `<button class="btn sm" data-act="rel-hoje">Atual</button>`}
-      ${DEMO ? "" : `<button class="btn pri" data-act="pdf-relatorio">${icon("down")}Relatório PDF</button>`}
+      <button class="btn pri" data-act="pdf-relatorio" data-espera="A gerar PDF…">${icon("down")}Guardar PDF</button>
     </div>
-    ${DEMO ? `<div class="note">Na versão instalada (página web ou APK) o botão <b>Relatório PDF</b> descarrega este relatório, com os mesmos números.</div>` : ""}
     <section class="kpis">
       <div class="kpi hero"><span class="lab">Faturação</span><span class="val num">${fmt(r.faturacao)} <small>Kz</small></span><span class="ft">${varTxt}</span></div>
       <div class="kpi"><span class="lab">Faturas emitidas</span><span class="val num">${r.n_faturas}</span><span class="ft">recebido ${kz(r.recebido)} · por receber ${kz(r.por_receber)}</span></div>
@@ -1223,11 +1653,12 @@ function vRelatorios() {
           <div class="legend"><span><i style="background:var(--brand-deep)"></i>Produtos ${kz(r.produtos_valor)}</span><span><i style="background:var(--brand);opacity:.45"></i>Serviços ${kz(r.servicos_valor)}</span></div></div>
         <div class="panel"><div class="panel-h"><h2>Por secção do catálogo</h2></div>${R.seccoes.length ? `<div class="hbars">${R.seccoes.map(s => `<div class="hbar"><span class="n">${esc(s.seccao)}</span><span class="num strong">${kz(s.valor)}</span><div class="track"><div class="fill" style="width:${(s.valor / R.seccoes[0].valor * 100).toFixed(1)}%"></div></div></div>`).join("")}</div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>
       </section>
+      ${R.recargas.length ? `<div class="panel"><div class="panel-h"><h2>Recargas</h2><span class="sub">lucro = valor vendido − custo do saldo</span></div><div class="tbl-wrap"><table class="t"><thead><tr><th>Operador</th><th class="r">Recargas</th><th class="r">Vendido</th><th class="r">Lucro</th></tr></thead><tbody>${R.recargas.map(x => `<tr><td>${esc(x.nome)}</td><td class="r num">${x.n}</td><td class="r num">${kz(x.valor)}</td><td class="r num strong" style="color:var(--ok)">${kz(x.lucro)}</td></tr>`).join("")}</tbody><tfoot><tr><td class="strong">Total</td><td class="r num">${R.recargas.reduce((s, x) => s + x.n, 0)}</td><td class="r num strong">${kz(R.recargas.reduce((s, x) => s + x.valor, 0))}</td><td class="r num strong" style="color:var(--ok)">${kz(R.recargas.reduce((s, x) => s + x.lucro, 0))}</td></tr></tfoot></table></div></div>` : ""}
       ${R.vendedores.length > 1 || pode("ver_todas") ? `<div class="panel"><div class="panel-h"><h2>Por vendedor</h2></div>${R.vendedores.length ? `<div class="hbars">${R.vendedores.map(v => `<div class="hbar"><span class="n">${esc(v.nome)} <span style="color:var(--ink-3)">· ${v.n}</span></span><span class="num strong">${kz(v.valor)}</span><div class="track"><div class="fill" style="width:${(v.valor / (R.vendedores[0].valor || 1) * 100).toFixed(1)}%"></div></div></div>`).join("")}</div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>` : ""}
       <div class="panel"><div class="panel-h"><h2>Principais clientes</h2></div>${R.clientes.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th>Cliente</th><th class="r">Faturas</th><th class="r">Valor</th></tr></thead><tbody>${R.clientes.map(c => `<tr><td>${esc(c.nome)}</td><td class="r num">${c.n}</td><td class="r num strong">${kz(c.valor)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>`,
     vendas: () => `<div class="panel"><div class="panel-h"><h2>${R.itens.length} produtos e serviços vendidos</h2><span class="sub">valores antes de descontos</span></div>
       ${R.itens.length ? `<div class="tbl-wrap"><table class="t"><thead><tr><th class="hide-m">Código</th><th>Descrição</th><th class="hide-m">Tipo</th><th class="r">Qtd.</th><th class="r">Valor</th><th class="r hide-m">%</th></tr></thead><tbody>
-        ${R.itens.map(it => `<tr><td class="cod hide-m">${esc(it.codigo)}</td><td><span class="strong">${esc(it.descricao)}</span><div class="cod">${esc(it.codigo)} · ${it.tipo === "produto" ? "Produto" : "Serviço"}</div></td><td class="hide-m">${it.tipo === "produto" ? '<span class="chip brand">Produto</span>' : '<span class="chip">Serviço</span>'}</td><td class="r num">${fmt(it.qtd)}</td><td class="r num strong">${kz(it.valor)}</td><td class="r num hide-m muted">${(it.valor / sub * 100).toFixed(1).replace(".", ",")}%</td></tr>`).join("")}
+        ${R.itens.map(it => `<tr><td class="cod hide-m">${esc(it.codigo)}</td><td><span class="strong">${esc(it.descricao)}</span><div class="cod">${it.codigo ? esc(it.codigo) + " · " : ""}${it.tipo === "produto" ? "Produto" : it.tipo === "recarga" ? "Recarga" : "Serviço"}</div></td><td class="hide-m">${it.tipo === "produto" ? '<span class="chip brand">Produto</span>' : it.tipo === "recarga" ? '<span class="chip ok">Recarga</span>' : '<span class="chip">Serviço</span>'}</td><td class="r num">${fmt(it.qtd)}</td><td class="r num strong">${kz(it.valor)}</td><td class="r num hide-m muted">${(it.valor / sub * 100).toFixed(1).replace(".", ",")}%</td></tr>`).join("")}
         <tr class="tot"><td class="hide-m"></td><td class="strong">Total</td><td class="hide-m"></td><td class="r num strong">${fmt(r.itens_qtd)}</td><td class="r num strong">${kz(r.subtotal)}</td><td class="r hide-m strong">100%</td></tr>
       </tbody></table></div>` : `<div class="empty">Sem vendas neste período.</div>`}</div>`,
     stock: () => `<section class="kpis">
@@ -1276,7 +1707,7 @@ function formUtilizador(id) {
       <label class="field"><span>Nome (aparece nas faturas)</span><input class="f" id="u-nome" value="${esc(u.nome)}" placeholder="Ex.: Maria Domingos" required></label>
       <div class="grid2">
         <label class="field"><span>Utilizador (para entrar)</span><input class="f" id="u-user" value="${esc(u.utilizador)}" ${id ? "disabled" : ""} placeholder="Ex.: maria" autocapitalize="none" spellcheck="false"><small>Letras minúsculas e números, sem espaços.</small></label>
-        <label class="field"><span>${id ? "Nova senha (opcional)" : "Senha"}</span><input class="f" id="u-senha" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" ${id ? "" : "required"}></label>
+        ${campoSenha("u-senha", id ? "Nova senha (opcional)" : "Senha", "new-password", `placeholder="Mínimo 6 caracteres" ${id ? "" : "required"}`)}
       </div>
       <div class="field"><span>Papel</span><div class="seg" id="u-papel"><button type="button" data-v="vendedor" aria-pressed="${u.papel !== "admin"}">Vendedor</button><button type="button" data-v="admin" aria-pressed="${u.papel === "admin"}">Administrador (acesso total)</button></div></div>
       <div class="field" id="u-perm-f"><span>Permissões extra do vendedor</span>
@@ -1303,18 +1734,41 @@ function formUtilizador(id) {
 }
 
 /* ============================================================ definições (só administrador) */
+let bancoAlterado = false;
+function linhaConta(c = { banco: "", iban: "" }) {
+  return `<div class="conta-l"><input class="f" data-k="banco" value="${esc(c.banco)}" placeholder="Banco (ex.: BFA)" aria-label="Banco" maxlength="60">
+    <input class="f num" data-k="iban" value="${esc(c.iban)}" placeholder="IBAN ou número" aria-label="IBAN ou número da conta" maxlength="60">
+    <button type="button" class="icon-btn" data-act="conta-subir" aria-label="Pôr em primeiro (aparece no rodapé da fatura)" title="Pôr em primeiro">${icon("up")}</button>
+    <button type="button" class="icon-btn perigo" data-act="conta-remover" aria-label="Remover esta conta">${icon("trash")}</button></div>`;
+}
 function vDefinicoes() {
   const emp = E.config.empresa, n = E.config.numeracao;
+  const campo = (id, rot, v, extra = "") => `<label class="field"><span>${rot}</span><input class="f" id="${id}" value="${esc(v || "")}" ${extra}></label>`;
   $("#main").innerHTML = `
     <div class="dash">
-      <form class="panel" id="frm-emp" style="display:flex;flex-direction:column;gap:14px"><div class="panel-h" style="margin:0"><h2>Dados da empresa nos documentos</h2></div>
-        <div class="grid2"><label class="field"><span>Nome</span><input class="f" id="e-nome" value="${esc(emp.nome)}"></label><label class="field"><span>NIF da empresa</span><input class="f" id="e-nif" value="${esc(emp.nif)}" placeholder="Por preencher"></label></div>
-        <label class="field"><span>Actividade</span><input class="f" id="e-act" value="${esc(emp.actividade)}"></label>
-        <label class="field"><span>Endereço</span><input class="f" id="e-end" value="${esc(emp.endereco || "")}" placeholder="Ex.: Luanda, Viana"></label>
-        <div class="grid2"><label class="field"><span>Telefones</span><input class="f" id="e-tel" value="${esc(emp.telefones)}"></label><label class="field"><span>E-mail</span><input class="f" id="e-mail" value="${esc(emp.email)}"></label></div>
-        <label class="field"><span>Slogan (rodapé)</span><input class="f" id="e-slo" value="${esc(emp.slogan)}"></label>
-        <div id="emp-err"></div><div><button class="btn pri">Guardar dados</button></div></form>
       <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+        <form class="panel form-p" id="frm-emp"><div class="panel-h" style="margin:0"><h2>Dados da empresa nos documentos</h2></div>
+          <div class="grid2">${campo("e-nome", "Nome", emp.nome, "required")}${campo("e-nif", "NIF da empresa", emp.nif, 'placeholder="Por preencher"')}</div>
+          ${campo("e-act", "Actividade", emp.actividade)}
+          ${campo("e-slo", "Slogan (rodapé)", emp.slogan)}
+          <div id="emp-err"></div><div><button class="btn pri" data-espera="A guardar…">Guardar dados</button></div></form>
+        <form class="panel form-p" id="frm-cont"><div class="panel-h" style="margin:0"><h2>Contactos e localização</h2><span class="sub">aparecem nas faturas e PDF</span></div>
+          <div class="grid2">${campo("c-tel", "Telefones", emp.telefones, 'placeholder="Ex.: 951 332 741 · 949 512 673"')}${campo("c-mail", "E-mail", emp.email, 'type="email"')}</div>
+          ${campo("c-end", "Endereço", emp.endereco, 'placeholder="Ex.: Rua da Missão, nº 12, Luanda"')}
+          ${campo("c-loc", "Ponto de referência / bairro", emp.localizacao, 'placeholder="Ex.: Viana, junto ao mercado do Km 30"')}
+          <label class="field"><span>Link do mapa (Google Maps)</span><input class="f" id="c-mapa" value="${esc(emp.mapa || "")}" inputmode="url" placeholder="https://maps.app.goo.gl/…"></label>
+          ${emp.mapa ? `<a class="btn sm" href="${esc(emp.mapa)}" target="_blank" rel="noopener" style="align-self:flex-start">Ver no mapa</a>` : ""}
+          <div class="grid3">${campo("c-fb", "Facebook", emp.facebook)}${campo("c-tt", "TikTok", emp.tiktok)}${campo("c-ig", "Instagram", emp.instagram)}</div>
+          <div id="cont-err"></div><div><button class="btn pri" data-espera="A guardar…">Guardar contactos</button></div></form>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+        <form class="panel form-p" id="frm-banco"><div class="panel-h" style="margin:0"><h2>Coordenadas bancárias</h2><span class="sub">a primeira aparece no rodapé da fatura</span></div>
+          ${campo("b-tit", "Titular das contas", emp.titular, "required")}
+          <div class="field"><span>Contas</span><div id="b-contas" class="contas">${(emp.contas || []).map(linhaConta).join("")}</div>
+            <button type="button" class="btn sm" data-act="conta-nova" style="align-self:flex-start;margin-top:8px">${icon("plus")}Acrescentar conta</button></div>
+          <div id="banco-err"></div><div class="toolbar"><button class="btn pri" data-espera="A guardar…">Guardar coordenadas</button>
+            <button type="button" class="btn" data-act="pdf-coordenadas" data-espera="A gerar PDF…">${icon("down")}PDF para enviar aos clientes</button></div>
+          <small style="color:var(--ink-3)">O PDF leva o logótipo, as contas, o titular, os contactos, a localização e as redes sociais.</small></form>
         <form class="panel" id="frm-num" style="display:flex;flex-direction:column;gap:12px"><div class="panel-h" style="margin:0"><h2>Numeração dos documentos</h2></div>
           <div class="grid3"><label class="field"><span>Próxima FR</span><input class="f num" id="n-FR" inputmode="numeric" value="${n.FR}"></label>
             <label class="field"><span>Próxima FT</span><input class="f num" id="n-FT" inputmode="numeric" value="${n.FT}"></label>
@@ -1322,15 +1776,28 @@ function vDefinicoes() {
           <small style="color:var(--ink-3)">Use para continuar a sequência do bloco em papel (ex.: se o bloco vai na 0057, ponha 58).</small>
           <label class="field"><span>Validade das pró-formas (dias)</span><input class="f num" id="n-val" inputmode="numeric" value="${E.config.validade_proforma || 15}"></label>
           <div id="num-err"></div><div><button class="btn pri">Guardar</button></div></form>
-        <div class="panel"><div class="panel-h"><h2>Contas para pagamento</h2></div>
-          <div class="alert-list">${emp.contas.map(c => `<div class="row"><span>${esc(c.banco)}</span><span class="num cod" style="font-size:13px">${esc(c.iban)}</span></div>`).join("")}</div>
-          <p class="note" style="margin:12px 0 0">Titular: ${esc(emp.titular)}</p></div>
         <div class="panel"><div class="panel-h"><h2>Dados e sincronização</h2></div>
           <p style="margin:0 0 12px;color:var(--ink-2)">${DEMO ? "Modo de demonstração: os dados ficam só neste navegador." : "Os dados ficam no servidor e aparecem em todos os dispositivos (telemóveis, computadores e APK) logo que mudam."}</p>
           ${DEMO ? `<button class="btn danger" data-act="repor">Recomeçar a demonstração</button>` : ""}</div>
       </div>
     </div>`;
-  $("#frm-emp").onsubmit = async e => { e.preventDefault(); try { await acao("guardarConfig", { empresa: { nome: $("#e-nome").value, nif: $("#e-nif").value, actividade: $("#e-act").value, endereco: $("#e-end").value, telefones: $("#e-tel").value, email: $("#e-mail").value, slogan: $("#e-slo").value } }); toast("Dados da empresa guardados"); } catch (er) { $("#emp-err").innerHTML = `<div class="err">${esc(er.message)}</div>`; } };
+  /* guarda um formulário com indicador no botão e aviso no fim */
+  const ligar = (frm, errSel, dados, msg) => { $(frm).onsubmit = async e => {
+    e.preventDefault(); const b = $(frm + " button.pri"); if (b.disabled) return;
+    const txt = b.innerHTML; b.disabled = true; b.innerHTML = `<span class="spin" aria-hidden="true"></span>${esc(b.dataset.espera || "A guardar…")}`; $(errSel).innerHTML = "";
+    try { await acao("guardarConfig", { empresa: dados() }); toast(msg, "ok"); render(); }
+    catch (er) { $(errSel).innerHTML = `<div class="err">${esc(mensagemErro(er))}</div>`; if (b.isConnected) { b.disabled = false; b.innerHTML = txt; } }
+  }; };
+  ligar("#frm-emp", "#emp-err", () => ({ nome: $("#e-nome").value.trim(), nif: $("#e-nif").value.trim(), actividade: $("#e-act").value.trim(), slogan: $("#e-slo").value.trim() }), "Dados da empresa guardados");
+  ligar("#frm-cont", "#cont-err", () => {
+    const mapa = $("#c-mapa").value.trim();
+    if (mapa && !/^https?:\/\//i.test(mapa)) falha("O link do mapa tem de começar por https://");
+    return { telefones: $("#c-tel").value.trim(), email: $("#c-mail").value.trim(), endereco: $("#c-end").value.trim(), localizacao: $("#c-loc").value.trim(), mapa,
+      facebook: $("#c-fb").value.trim(), tiktok: $("#c-tt").value.trim(), instagram: $("#c-ig").value.trim() };
+  }, "Contactos guardados");
+  bancoAlterado = false; $("#frm-banco").addEventListener("input", () => bancoAlterado = true);
+  ligar("#frm-banco", "#banco-err", () => ({ titular: $("#b-tit").value.trim(),
+    contas: [...document.querySelectorAll("#b-contas .conta-l")].map(l => ({ banco: l.querySelector("[data-k=banco]").value.trim(), iban: l.querySelector("[data-k=iban]").value.trim() })).filter(c => c.banco || c.iban) }), "Coordenadas bancárias guardadas");
   $("#frm-num").onsubmit = async e => {
     e.preventDefault();
     try {
@@ -1348,11 +1815,12 @@ function conta() {
   abrir(`<form class="sheet" id="frm"><div class="sheet-h"><h2>A minha conta</h2><button type="button" class="icon-btn" data-act="fechar" aria-label="Fechar">${icon("x")}</button></div>
     <div class="sheet-b">
       <div class="cli-card"><div><div class="strong">${esc(u.nome)}</div><div class="cod">${u.papel === "admin" ? "Administrador" : "Vendedor"} · entra como ${esc(u.utilizador)}</div><div class="cod">${esc(extras)}</div></div></div>
-      ${pode("admin") ? `<div class="toolbar"><a class="btn" href="#utilizadores">${icon("user")}Utilizadores</a><a class="btn" href="#definicoes">${icon("cog")}Definições</a></div>` : ""}
+      <div class="toolbar"><button type="button" class="btn" data-act="pdf-coordenadas" data-espera="A gerar PDF…">${icon("down")}Coordenadas bancárias (PDF)</button>${pode("admin") ? `<a class="btn" href="#utilizadores">${icon("user")}Utilizadores</a><a class="btn" href="#definicoes">${icon("cog")}Definições</a>` : ""}</div>
       ${DEMO || eNativo() || navigator.userAgent.includes("Electron") ? "" : `<a class="btn" href="instalar.html" target="_blank" rel="noopener">${icon("down")}Instalar no Android, iPhone ou Windows</a>`}
       ${DEMO ? `<div class="field"><span>Ver a demonstração como</span><div class="seg" id="demo-u">${E.utilizadores.filter(x => x.ativo).map(x => `<button type="button" data-act="demo-ver" data-id="${esc(x.id)}" aria-pressed="${x.id === u.id}">${esc(x.nome)}</button>`).join("")}</div>
           <small style="color:var(--ink-3)">Mude para a vendedora para ver o sistema com permissões limitadas.</small></div>`
-      : `<div class="field"><span>Mudar senha</span><div class="grid2"><input class="f" id="s-nova" type="password" autocomplete="new-password" placeholder="Nova senha (mín. 6)"><input class="f" id="s-conf" type="password" autocomplete="new-password" placeholder="Repetir a nova senha"></div></div>`}
+      : `<input type="text" name="username" autocomplete="username" value="${esc(u.utilizador)}" hidden>
+        <div class="grid2">${campoSenha("s-nova", "Nova senha", "new-password", `placeholder="Mínimo 6 caracteres"`, "new-password")}${campoSenha("s-conf", "Repetir a nova senha", "new-password")}</div>`}
       <div id="frm-err"></div>
     </div>
     <div class="sheet-f"><button type="button" class="btn danger" data-act="sair">${icon("logout")}Terminar sessão</button><span class="sp"></span><button type="button" class="btn" data-act="fechar">Fechar</button>${DEMO ? "" : `<button class="btn pri">Guardar senha</button>`}</div></form>`,
@@ -1362,6 +1830,7 @@ function conta() {
       if (a !== b) falha("As duas senhas não são iguais.");
       const { error } = await sb.auth.updateUser({ password: a });
       if (error) falha(mensagemErro(error));
+      await guardarCredencial(u.utilizador, a);
       fechar(); toast("Senha alterada");
     });
 }
@@ -1374,17 +1843,112 @@ async function jsPDFPronto() {
   if (!window.jspdf.jsPDF.API.autoTable) await carregarScript("vendor/jspdf.plugin.autotable.min.js");
   return window.jspdf.jsPDF;
 }
-async function guardarPdf(doc, nome) {
+async function guardarPdf(doc, nome, imprimir = false) {
   if (eNativo()) {
     const { Filesystem, Share } = window.Capacitor.Plugins;
     const dados = doc.output("datauristring").split(",")[1];
+    if (!imprimir) {
+      // guarda uma cópia em Documentos/Grupo Kambas no telemóvel
+      try {
+        await Filesystem.writeFile({ path: "Grupo Kambas/" + nome, data: dados, directory: "DOCUMENTS", recursive: true });
+        toast("PDF guardado", "ok", "Documentos › Grupo Kambas › " + nome);
+      } catch (e) { /* sem acesso à pasta: fica só a partilha */ }
+    }
     const r = await Filesystem.writeFile({ path: nome, data: dados, directory: "CACHE" });
-    await Share.share({ title: nome, files: [r.uri], dialogTitle: "Partilhar ou guardar o PDF" });
-  } else doc.save(nome);
+    if (imprimir) fecharToast();
+    await Share.share({ title: nome, files: [r.uri], dialogTitle: imprimir ? "Escolha a impressora ou a app de impressão" : "Enviar ou abrir o PDF" });
+  } else if (window.claude && window.claude.use) {
+    // demonstração dentro do Claude: o ficheiro passa pela permissão de descarregar da página
+    const dl = await window.claude.use("downloads");
+    if (!dl) { toast("Descarregar não está disponível aqui", "erro"); return; }
+    try { await dl.save({ filename: nome, data: doc.output("blob") }); toast("PDF guardado", "ok", nome); }
+    catch (e) { if (e && e.code !== "declined") toast("Não foi possível guardar o PDF", "erro"); else fecharToast(); }
+  } else { doc.save(nome); toast("PDF descarregado", "ok", nome); }
+}
+/* PDF das coordenadas bancárias e contactos da empresa, para enviar aos clientes */
+async function pdfCoordenadas() {
+  const jsPDF = await jsPDFPronto();
+  const doc = new jsPDF({ unit: "mm", format: "a5" });
+  const W = 148, H = 210, m = 13, emp = E.config.empresa, contas = emp.contas || [];
+  const tc = c => doc.setTextColor(...c), fc = c => doc.setFillColor(...c), dc = c => doc.setDrawColor(...c);
+  const txt = (x, y, t, s = 8, b = false, c = COR.tin, al = "left") => { doc.setFont("helvetica", b ? "bold" : "normal"); doc.setFontSize(s); tc(c); doc.text(String(t ?? ""), x, y, { align: al }); };
+  const rot = (x, y, t, c = COR.azul, s = 6.4, al = "left") => { doc.setFont("helvetica", "bold"); doc.setFontSize(s); doc.setCharSpace(0.4); tc(c); doc.text(String(t).toUpperCase(), x, y, { align: al }); doc.setCharSpace(0); };
+  const corta = (t, sz, larg, b = false) => { t = String(t ?? ""); doc.setFont("helvetica", b ? "bold" : "normal"); doc.setFontSize(sz); if (doc.getTextWidth(t) <= larg) return t; while (t && doc.getTextWidth(t + "...") > larg) t = t.slice(0, -1); return t + "..."; };
+  // o jsPDF não conta o espaçamento entre letras ao alinhar: calcula-se a largura à mão
+  const espacado = (t, x, yy, sz, cs, cor, al = "left") => {
+    t = String(t ?? ""); doc.setFont("helvetica", "bold"); doc.setFontSize(sz);
+    const w = doc.getTextWidth(t) + cs * Math.max(0, t.length - 1);
+    doc.setCharSpace(cs); tc(cor); doc.text(t, al === "center" ? x - w / 2 : al === "right" ? x - w : x, yy); doc.setCharSpace(0);
+  };
+  doc.setProperties({ title: `Coordenadas bancárias — ${emp.nome}` });
+  // cabeçalho: faixa petróleo com o logótipo branco
+  fc([10, 61, 76]); doc.rect(0, 0, W, 42, "F");
+  fc([15, 127, 156]); doc.rect(0, 39, W, 3, "F");
+  const logo = $(".rail .logo")?.src;
+  if (logo && logo.startsWith("data:")) doc.addImage(logo, "PNG", W / 2 - 14, 6, 28, 21.8); else txt(W / 2, 20, emp.nome, 18, true, COR.branco, "center");
+  espacado(String(emp.actividade || "").toUpperCase(), W / 2, 34, 6.4, 0.8, [184, 220, 230], "center");
+  // título
+  let y = 53;
+  espacado("COORDENADAS BANCÁRIAS", W / 2, y, 13, 1.2, COR.pet, "center");
+  dc(COR.azul); doc.setLineWidth(0.6); doc.line(W / 2 - 14, y + 3, W / 2 + 14, y + 3);
+  txt(W / 2, y + 8.5, "Para pagamentos por transferência bancária", 7.4, false, COR.cin, "center");
+  // titular
+  y += 15;
+  fc([230, 243, 247]); doc.roundedRect(m, y, W - 2 * m, 13, 2.5, 2.5, "F");
+  rot(m + 5, y + 5, "Titular das contas", COR.cin, 5.8); txt(m + 5, y + 10, corta(emp.titular, 10, W - 2 * m - 10, true), 10, true, COR.tin);
+  // contas
+  y += 17;
+  const n = contas.length, hc = n > 6 ? 8.6 : n > 4 ? 10.5 : 12;
+  contas.forEach(c => {
+    dc(COR.lin); doc.setLineWidth(0.3); fc(COR.branco); doc.roundedRect(m, y, W - 2 * m, hc, 2.5, 2.5, "FD");
+    fc(COR.azul); doc.roundedRect(m, y, 2.2, hc, 1, 1, "F");
+    txt(m + 6, y + hc / 2 + (n > 6 ? 1.2 : -0.6), corta(c.banco, 8.6, 46, true), 8.6, true, COR.pet);
+    if (n <= 6) rot(m + 6, y + hc / 2 + 3.6, String(c.iban).replace(/\D/g, "").length >= 21 ? "IBAN" : "Número / ID", COR.cin, 5.2);
+    const sz = n > 6 ? 8.4 : n > 4 ? 9.2 : 10.2;
+    espacado(corta(c.iban, sz, W - 2 * m - 62, true), W - m - 5, y + hc / 2 + 1.4, sz, 0.2, COR.tin, "right");
+    y += hc + (n > 6 ? 1.6 : 2.5);
+  });
+  // contactos e localização (duas colunas); se não couber, vão para uma segunda página
+  const nTel = String(emp.telefones || "").split(/\s*[·|,;\/]\s*/).filter(Boolean).length;
+  const nRedes = [emp.facebook, emp.tiktok, emp.instagram].filter(Boolean).length;
+  const altEsq = nTel * 4.4 + (emp.email ? 4.4 : 0) + (nRedes ? 7.1 + nRedes * 4.2 : 0);
+  const altDir = 4 * [emp.endereco, emp.localizacao].filter(Boolean).length * 2 + (emp.mapa ? 4.6 : 0) + 4;
+  if (y + 13.5 + Math.max(altEsq, altDir) > H - 16) { doc.addPage(); y = 14; }
+  y += 2; dc(COR.lin); doc.setLineWidth(0.2); doc.line(m, y, W - m, y); y += 6.5;
+  const c1 = m, c2 = W / 2 + 3, larg = W / 2 - m - 5;
+  rot(c1, y, "Contactos"); rot(c2, y, "Localização");
+  let ya = y + 5, yb = y + 5;
+  String(emp.telefones || "").split(/\s*[·|,;\/]\s*/).filter(Boolean).forEach(t => { txt(c1, ya, "Tel. " + t, 8.4, true); ya += 4.4; });
+  if (emp.email) { txt(c1, ya, corta(emp.email, 7.8, larg), 7.8); ya += 4.4; }
+  const redes = [["Facebook", emp.facebook], ["TikTok", emp.tiktok], ["Instagram", emp.instagram]].filter(([, v]) => v);
+  if (redes.length) {
+    ya += 2.5; rot(c1, ya, "Redes sociais"); ya += 4.6;
+    redes.forEach(([r, v]) => { txt(c1, ya, r, 7, false, COR.cin); txt(c1 + 15, ya, corta(v, 7.8, larg - 15, true), 7.8, true, COR.pet); ya += 4.2; });
+  }
+  const linhasLoc = [emp.endereco, emp.localizacao].filter(Boolean);
+  linhasLoc.forEach(l => { doc.setFont("helvetica", "normal"); doc.setFontSize(7.8); doc.splitTextToSize(l, larg).slice(0, 3).forEach(t => { txt(c2, yb, t, 7.8); yb += 3.8; }); yb += 0.8; });
+  if (!linhasLoc.length) { txt(c2, yb, "Luanda, Angola", 7.8); yb += 4.4; }
+  if (emp.mapa) { doc.setFont("helvetica", "bold"); doc.setFontSize(7.8); tc(COR.azul); doc.textWithLink("Ver no mapa  ›", c2, yb + 0.6, { url: emp.mapa }); yb += 4.6; }
+  y = Math.max(ya, yb) + 3;
+  // rodapé em todas as páginas
+  for (let pgn = 1; pgn <= doc.internal.getNumberOfPages(); pgn++) {
+    doc.setPage(pgn);
+    fc([10, 61, 76]); doc.rect(0, H - 14, W, 14, "F");
+    espacado(String(emp.slogan || "").toUpperCase(), W / 2, H - 7.6, 8, 1, COR.branco, "center");
+    txt(W / 2, H - 3.6, `${emp.nome}${emp.nif ? " · NIF " + emp.nif : ""} · atualizado em ${dataPt(hoje())}`, 6, false, [184, 220, 230], "center");
+  }
+  await guardarPdf(doc, `Coordenadas_Bancarias_${String(emp.nome || "Empresa").replace(/\s+/g, "_")}.pdf`);
+}
+/* Imprimir: no navegador e no Windows abre a janela de impressão só com o documento;
+   na APK (o Android não imprime páginas), gera o PDF e abre a escolha de impressora/app. */
+async function imprimirDoc(f) {
+  if (eNativo() || (window.claude && window.claude.use)) { toast("A preparar para imprimir…", "prog"); return pdfFatura(f, true); }
+  document.body.classList.add("a-imprimir");
+  setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove("a-imprimir"), 500); }, 50);
 }
 const COR = { azul: [1, 146, 184], pet: [11, 106, 128], nev: [234, 245, 248], lin: [191, 214, 222], tin: [15, 46, 58], cin: [107, 135, 146], ver: [180, 35, 24], branco: [255, 255, 255] };
 const kzPdf = n => fmt(n) + " Kz";
-async function pdfFatura(f) {
+async function pdfFatura(f, imprimir = false) {
   const jsPDF = await jsPDFPronto();
   const doc = new jsPDF({ unit: "mm", format: "a5" });
   const W = 148, m = 12, dir = W - m, emp = E.config.empresa;
@@ -1396,10 +1960,18 @@ async function pdfFatura(f) {
   doc.addImage(LOGO_AZUL, "PNG", m, 12, 27, 21);
   rot(m, 37.5, emp.actividade, COR.cin, 5.2);
   txt(m, 41.5, emp.telefones, 6.6); txt(m, 44.8, emp.email, 6.6);
-  let ye = 48.1; if (emp.nif) { txt(m, ye, "NIF " + emp.nif, 6.6); ye += 3.3; } if (emp.endereco) txt(m, ye, emp.endereco, 6.6);
-  const titulo = { FR: "FATURA-RECIBO", FT: "FATURA", PP: "PRÓ-FORMA" }[f.tipo];
-  doc.setFont("helvetica", "bold"); doc.setFontSize(f.tipo === "FT" ? 17 : 13.5); doc.setCharSpace(1); tc(COR.pet); doc.text(titulo, dir, 20, { align: "right" }); doc.setCharSpace(0);
-  dc(COR.azul); doc.setLineWidth(0.5); doc.line(dir - (f.tipo === "FT" ? 36 : 50), 22.5, dir, 22.5);
+  let ye = 48.1; if (emp.nif) { txt(m, ye, "NIF " + emp.nif, 6.6); ye += 3.3; } if (emp.endereco) { txt(m, ye, emp.endereco, 6.6); ye += 3.3; } if (emp.localizacao) txt(m, ye, emp.localizacao, 6.6);
+  const titulo = TITULO_DOC[f.tipo];
+  const anulado = f.estado !== "emitida";
+  fc(anulado ? COR.ver : COR_DOC[f.tipo]); doc.rect(0, 0, W, 8.5, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setCharSpace(0.6); tc(COR.branco);
+  doc.text(titulo + (anulado ? (f.estado === "anulada" ? " · ANULADA" : " · CONVERTIDA") : ""), m, 5.6); doc.setCharSpace(0);
+  txt(W - m, 5.6, significadoDoc(f), 6.6, false, COR.branco, "right");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(f.tipo === "FT" ? 17 : f.tipo === "PP" ? 12 : 13.5); const esp = f.tipo === "PP" ? 0.5 : 1;
+  // o jsPDF não conta o espaçamento entre letras ao alinhar à direita: calcula-se à mão
+  const larg = doc.getTextWidth(titulo) + esp * (titulo.length - 1);
+  doc.setCharSpace(esp); tc(COR.pet); doc.text(titulo, dir - larg, 20); doc.setCharSpace(0);
+  dc(COR.azul); doc.setLineWidth(0.5); doc.line(dir - Math.max(larg, 36), 22.5, dir, 22.5);
   txt(dir, 29, "Nº " + docNum(f), 10, true, COR.tin, "right");
   if (f.estado !== "emitida") txt(dir, 33.5, f.estado === "anulada" ? "ANULADA" : "CONVERTIDA", 8, true, COR.ver, "right");
   rot(dir - 52, 37.5, "Data"); txt(dir - 52, 42, `${dataPt(f.data)}  ${horaPt(f.data)}`, 8);
@@ -1452,8 +2024,8 @@ async function pdfFatura(f) {
   txt(m, 186, f.vendedor_nome, 8.5, true); dc(COR.lin); doc.line(m, 188, m + 60, 188); rot(m, 191, "O vendedor / carimbo", COR.cin, 5.4);
   // rodapé
   fc(COR.pet); doc.roundedRect(m, 195, W - 2 * m, 7, 1.5, 1.5, "F");
-  rot(m + 4, 199.6, emp.slogan, COR.branco, 6.4); txt(dir - 4, 199.6, `${emp.contas[0].banco}  ${emp.contas[0].iban}`, 6, false, COR.branco, "right");
-  await guardarPdf(doc, `${f.tipo}_${nf(f.numero)}_Grupo_Kambas.pdf`);
+  rot(m + 4, 199.6, emp.slogan, COR.branco, 6.4); if (emp.contas && emp.contas[0]) txt(dir - 4, 199.6, `${emp.contas[0].banco}  ${emp.contas[0].iban}`, 6, false, COR.branco, "right");
+  await guardarPdf(doc, `${f.tipo}_${nf(f.numero)}_Grupo_Kambas.pdf`, imprimir);
 }
 async function pdfRelatorio(R) {
   const jsPDF = await jsPDFPronto();
@@ -1513,12 +2085,17 @@ async function pdfRelatorio(R) {
   y += gh + 10;
   secao("Por forma de pagamento");
   tabela(["FORMA DE PAGAMENTO", "Nº", "VALOR"], R.pagamentos.map(p => [p.forma, p.n, kzPdf(p.valor)]), { cols: { 1: { halign: "right" }, 2: { halign: "right" } } });
+  if (R.recargas.length) {
+    secao("Recargas (lucro = valor vendido − custo do saldo)");
+    tabela(["OPERADOR", "RECARGAS", "VENDIDO", "LUCRO"], R.recargas.map(x => [x.nome, x.n, kzPdf(x.valor), kzPdf(x.lucro)]),
+      { cols: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } }, foot: ["Total", R.recargas.reduce((s, x) => s + x.n, 0), kzPdf(R.recargas.reduce((s, x) => s + x.valor, 0)), kzPdf(R.recargas.reduce((s, x) => s + x.lucro, 0))] });
+  }
   if (R.vendedores.length) { secao("Por vendedor"); tabela(["VENDEDOR", "DOCUMENTOS", "VALOR"], R.vendedores.map(v => [v.nome, v.n, kzPdf(v.valor)]), { cols: { 1: { halign: "right" }, 2: { halign: "right" } } }); }
   secao("Por secção do catálogo");
   tabela(["SECÇÃO", "QTD.", "VALOR"], R.seccoes.map(s => [s.seccao, s.qtd, kzPdf(s.valor)]), { cols: { 1: { halign: "right" }, 2: { halign: "right" } } });
   secao("Vendas por produto e serviço");
   const sub = r.subtotal || 1;
-  tabela(["CÓD.", "DESCRIÇÃO", "TIPO", "QTD.", "VALOR", "%"], R.itens.map(it => [it.codigo, it.descricao, it.tipo === "produto" ? "Produto" : "Serviço", it.qtd, kzPdf(it.valor), (it.valor / sub * 100).toFixed(1).replace(".", ",") + "%"]),
+  tabela(["CÓD.", "DESCRIÇÃO", "TIPO", "QTD.", "VALOR", "%"], R.itens.map(it => [it.codigo, it.descricao, it.tipo === "produto" ? "Produto" : it.tipo === "recarga" ? "Recarga" : "Serviço", it.qtd, kzPdf(it.valor), (it.valor / sub * 100).toFixed(1).replace(".", ",") + "%"]),
     { cols: { 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } }, foot: R.itens.length ? ["", "Total (antes de descontos)", "", r.itens_qtd, kzPdf(r.subtotal), "100%"] : null });
   if (R.stock.length) {
     secao("Stock de produtos");
@@ -1539,9 +2116,11 @@ function abrir(html, aoSubmeter) {
   $("#layer").innerHTML = `<div class="sheet-bg" data-act="fundo">${html}</div>`;
   const frm = $("#frm");
   if (frm && aoSubmeter) frm.onsubmit = async e => {
-    e.preventDefault(); const b = frm.querySelector("button.pri"); if (b) b.disabled = true;
+    e.preventDefault(); const b = frm.querySelector("button.pri"); if (b && b.disabled) return;
+    const txt = b ? b.innerHTML : ""; if (b) { b.disabled = true; b.innerHTML = `<span class="spin" aria-hidden="true"></span>${esc(b.dataset.espera || "A guardar…")}`; }
+    if (!DEMO) ocupado(true);
     try { await aoSubmeter(); } catch (er) { const el = $("#frm-err"); if (el) el.innerHTML = `<div class="err">${esc(mensagemErro(er))}</div>`; if (!(er instanceof ErroNegocio)) console.error(er); }
-    finally { if (b && b.isConnected) b.disabled = false; }
+    finally { if (!DEMO) ocupado(false); if (b && b.isConnected) { b.disabled = false; b.innerHTML = txt; } }
   };
 }
 function fechar() { $("#layer").innerHTML = ""; if (pendente) aplicarSync(); }
@@ -1550,10 +2129,43 @@ function confirmar(titulo, texto, botao, fn) {
     <div class="sheet-f"><button type="button" class="btn" data-act="fechar">Cancelar</button><button class="btn pri">${esc(botao)}</button></div></form>`, fn);
 }
 let tToast;
-function toast(m) { let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); } t.textContent = m; t.hidden = false; clearTimeout(tToast); tToast = setTimeout(() => t.hidden = true, 2800); }
+/* aviso: tipo "" (simples), "ok" (feito), "erro" ou "prog" (a decorrer, fica até ao próximo aviso) */
+function toast(m, tipo = "", sub = "") {
+  let t = $(".toast"); if (!t) { t = document.createElement("div"); t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.className = "toast" + (tipo ? " t-" + tipo : "");
+  t.innerHTML = (tipo === "ok" ? `<span class="ti">${icon("check")}</span>` : tipo === "erro" ? `<span class="ti">!</span>` : tipo === "prog" ? `<span class="ti"><span class="spin"></span></span>` : "")
+    + `<span class="tt"><b></b>${sub ? "<small></small>" : ""}</span>` + (tipo === "prog" ? `<span class="tbar"><i></i></span>` : "");
+  t.querySelector("b").textContent = m; if (sub) t.querySelector("small").textContent = sub;
+  t.hidden = false; clearTimeout(tToast);
+  if (tipo !== "prog") tToast = setTimeout(() => t.hidden = true, tipo === "erro" ? 4500 : 2800);
+}
+function fecharToast() { const t = $(".toast"); if (t) t.hidden = true; }
+/* linha fina no topo enquanto há trabalho a decorrer */
+let nOcupado = 0;
+function ocupado(on) { nOcupado = Math.max(0, nOcupado + (on ? 1 : -1)); document.body.classList.toggle("ocupado", nOcupado > 0); }
+/* ecrã de arranque: barra de progresso com as etapas reais da entrada */
+const Arranque = {
+  passos: [["Ligação", 16], ["Conta", 40], ["Catálogo", 70], ["Vendas", 90]], inicio: Date.now(), feito: false,
+  passo(i, texto) {
+    if (!$("#arranque") || this.feito) return;
+    $("#arr-txt").textContent = texto; this.pct(this.passos[i][1]);
+    $("#arr-passos").innerHTML = this.passos.map(([n], k) => `<span class="${k < i ? "ok" : k === i ? "agora" : ""}">${k < i ? icon("check") : "<i></i>"}${n}</span>`).join("");
+  },
+  pct(v) { $("#arr-fill").style.width = v + "%"; $("#arr-pct").textContent = Math.round(v) + "%"; $("#arr-barra").setAttribute("aria-valuenow", Math.round(v)); },
+  async fim() {
+    const el = $("#arranque"); if (!el || this.feito) return; this.feito = true;
+    this.pct(100); $("#arr-txt").textContent = "Pronto";
+    $("#arr-passos").innerHTML = this.passos.map(([n]) => `<span class="ok">${icon("check")}${n}</span>`).join("");
+    await new Promise(r => setTimeout(r, Math.max(250, 900 - (Date.now() - this.inicio))));   // não pisca nem atrasa
+    el.classList.add("sai"); setTimeout(() => el.remove(), 450);
+  },
+};
 async function comEspera(btn, fn) {
-  const txt = btn.innerHTML; btn.disabled = true; btn.innerHTML = "A preparar…";
-  try { await fn(); } catch (e) { toast(mensagemErro(e)); console.error(e); } finally { btn.disabled = false; btn.innerHTML = txt; }
+  if (btn.disabled) return;
+  const txt = btn.innerHTML; btn.disabled = true; btn.innerHTML = `<span class="spin" aria-hidden="true"></span>${esc(btn.dataset.espera || "A preparar…")}`;
+  ocupado(true);
+  try { await fn(); } catch (e) { toast(mensagemErro(e), "erro"); console.error(e); }
+  finally { ocupado(false); if (btn.isConnected) { btn.disabled = false; btn.innerHTML = txt; } }
 }
 
 const ACOES = {
@@ -1563,9 +2175,10 @@ const ACOES = {
   "anular": el => anular(el.dataset.id),
   "converter": el => converter(el.dataset.id),
   "pagar": el => pagar(el.dataset.id),
-  "imprimir": () => window.print(),
-  "pdf-fatura": el => comEspera(el, () => pdfFatura(byId(E.faturas, el.dataset.id))),
-  "pdf-relatorio": el => comEspera(el, () => pdfRelatorio(vRelatorios.atual)),
+  "imprimir": el => comEspera(el, () => imprimirDoc(byId(E.faturas, el.dataset.id))),
+  "ver-senha": el => { const i = $("#" + el.dataset.alvo); const ver = i.type === "password"; i.type = ver ? "text" : "password"; el.setAttribute("aria-pressed", ver); el.setAttribute("aria-label", ver ? "Esconder senha" : "Mostrar senha"); el.innerHTML = icon(ver ? "olho-fechado" : "olho"); i.focus(); },
+  "pdf-fatura": el => comEspera(el, async () => { const f = byId(E.faturas, el.dataset.id); toast(`A gerar o PDF da ${docNum(f)}…`, "prog"); await pdfFatura(f); }),
+  "pdf-relatorio": el => comEspera(el, async () => { toast(`A gerar o relatório ${vRelatorios.atual.nome.toLowerCase()}…`, "prog"); await new Promise(r => setTimeout(r, 30)); await pdfRelatorio(vRelatorios.atual); }),
   "f-tipo": el => { filtroF.tipo = el.dataset.v; document.querySelectorAll("#ftipo button").forEach(b => b.setAttribute("aria-pressed", b === el)); vFaturas.upd(); },
   "doc-tipo": el => { venda.tipo = el.dataset.v; carrinho(); tiles(); },
   "sec": el => { venda.sec = el.dataset.v; document.querySelectorAll("#psec button").forEach(b => b.setAttribute("aria-pressed", b === el)); tiles(); },
@@ -1573,7 +2186,23 @@ const ACOES = {
   "qtd": el => mudarQtd(Number(el.dataset.i), Number(el.dataset.d)),
   "rm": el => { venda.itens.splice(Number(el.dataset.i), 1); carrinho(); tiles(); },
   "forma": el => { venda.forma = el.dataset.v; carrinho(); if (venda.forma === "Numerário") setTimeout(() => $("#vrec")?.focus(), 30); },
-  "limpar-venda": () => { venda.itens = []; venda.desconto = 0; carrinho(); tiles(); },
+  "limpar-venda": () => { venda.itens = []; venda.desconto = 0; venda.extras = { desc: false, obs: false }; carrinho(); tiles(); },
+  "tqtd": el => {
+    const i = venda.itens.findIndex(x => String(x.produto_id) === String(el.dataset.id)); if (i < 0) return;
+    if (Number(el.dataset.d) < 0 && venda.itens[i].qtd <= 1) { venda.itens.splice(i, 1); carrinho(); tiles(); } else mudarQtd(i, Number(el.dataset.d));
+  },
+  "vista-cat": el => { venda.vista = el.dataset.v; gravarPref("vista-catalogo", venda.vista); document.querySelectorAll(".vista-cat button").forEach(b => b.setAttribute("aria-pressed", b === el)); tiles(); },
+  "ver-extra": el => { venda.extras = venda.extras || {}; venda.extras[el.dataset.v] = true; carrinho(); setTimeout(() => $(el.dataset.v === "desc" ? "#vdesc" : "#vobs")?.focus(), 30); },
+  "ini-dias": el => { ini.dias = Number(el.dataset.v); vPainel(); },
+  "ir-proforma": () => { venda.tipo = "PP"; if (location.hash === "#vender") render(); else location.hash = "#vender"; },
+  "ver-abertas": () => { filtroF.estado = "aberto"; if (location.hash === "#faturas") render(); else location.hash = "#faturas"; },
+  "mais": () => menuMais(),
+  "recarga": el => formRecarga(el.dataset.id),
+  "rc-valor": el => { $("#rc-valor").value = el.dataset.v; $("#rc-valor").dispatchEvent(new Event("input")); },
+  "carregar-saldo": el => formCarga(el.dataset.id),
+  "ajustar-saldo": el => formAjusteSaldo(el.dataset.id),
+  "editar-operador": el => formOperador(el.dataset.id),
+  "novo-operador": () => formOperador(null),
   "emitir": () => emitir(),
   "abrir-carrinho": () => { $("#cart").classList.add("open"); $("#cartbar").hidden = true; },
   "fechar-carrinho": () => { $("#cart").classList.remove("open"); carrinho(); },
@@ -1589,8 +2218,19 @@ const ACOES = {
   "copiar-fatura": async el => { const t = resumoFatura(byId(E.faturas, el.dataset.id)); try { await navigator.clipboard.writeText(t); toast("Resumo copiado"); } catch (e) { toast("Não foi possível copiar neste dispositivo"); } },
   "tipo-p": el => { filtroP.tipo = el.dataset.v; document.querySelectorAll("#xt button").forEach(b => b.setAttribute("aria-pressed", b === el)); vProdutos.upd(); },
   "novo-produto": () => formProduto(null),
+  "sec-p": el => { filtroP.sec = el.dataset.v; document.querySelectorAll("#xsec [data-act=sec-p]").forEach(b => b.setAttribute("aria-pressed", b === el)); vProdutos.upd(); },
+  "gerir-seccoes": () => gerirSeccoes(),
+  "pdf-coordenadas": el => {
+    if ($("#frm-banco") && bancoAlterado) return toast("Guarde primeiro as coordenadas alteradas e depois gere o PDF.", "erro");
+    comEspera(el, async () => { toast("A gerar o PDF das coordenadas…", "prog"); await pdfCoordenadas(); });
+  },
+  "conta-nova": () => { bancoAlterado = true; $("#b-contas").insertAdjacentHTML("beforeend", linhaConta()); $("#b-contas .conta-l:last-child input").focus(); },
+  "conta-remover": el => { bancoAlterado = true; el.closest(".conta-l").remove(); },
+  "conta-subir": el => { bancoAlterado = true; const l = el.closest(".conta-l"); l.parentNode.prepend(l); toast("Esta conta passa a aparecer no rodapé da fatura (guarde para confirmar)."); },
+  "nova-seccao": () => gerirSeccoes(),
+  "remover-seccao": el => { const nome = el.dataset.v; confirmar(`Remover a secção ${nome}?`, "A secção está vazia. Pode criá-la de novo mais tarde.", "Remover", async () => { await acao("guardarSeccao", nome, true); if (filtroP.sec === nome) filtroP.sec = "Todas"; gerirSeccoes(); render(); toast(`Secção ${nome} removida`, "ok"); }); },
   "editar-produto": el => formProduto(Number(el.dataset.id)),
-  "remover-produto": el => { const p = produto(el.dataset.id); confirmar(`Remover ${p.nome}?`, "Deixa de aparecer no catálogo e nas vendas. Os documentos antigos continuam intactos.", "Remover", async () => { await acao("removerProduto", p.id); fechar(); render(); toast(`${p.nome} removido`); }); },
+  "remover-produto": el => { const p = produto(el.dataset.id); confirmar(`Remover ${p.nome}?`, "Deixa de aparecer no catálogo e nas vendas. Os documentos antigos continuam intactos.", "Remover", async () => { await acao("removerProduto", p.id); fechar(); render(); toast(`${p.nome} removido`, "ok"); }); },
   "mov": el => formMov(el.dataset.t, el.dataset.id),
   "contagem": () => formContagem(),
   "rel-tipo": el => { rel.tipo = el.dataset.v; vRelatorios(); },
@@ -1654,14 +2294,14 @@ function ligarTempoReal() {
 
 /* ============================================================ entrar / configuração inicial */
 const emailDe = u => u.includes("@") ? u.trim() : `${u.trim().toLowerCase()}@${DOMINIO_LOGIN}`;
-function ecraAuth(html) { $("#app").hidden = true; const a = $("#auth"); a.hidden = false; a.innerHTML = `<div class="auth-box"><img class="auth-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">${html}</div><p class="auth-pe">Crescendo juntos sempre!</p>`; }
+function ecraAuth(html) { ocupado(false); Arranque.fim(); $("#app").hidden = true; const a = $("#auth"); a.hidden = false; a.innerHTML = `<div class="auth-box"><img class="auth-logo" src="${$(".rail .logo").src}" alt="Grupo Kambas">${html}</div><p class="auth-pe">Crescendo juntos sempre!</p>`; }
 function ecraLogin(msg = "") {
   ecraAuth(`<form id="f-login" class="auth-card" autocomplete="on">
       <h1>Entrar</h1><p class="sub">Sistema de gestão do Grupo Kambas</p>
-      <label class="field"><span>Utilizador</span><input class="f" id="l-user" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
-      <label class="field"><span>Senha</span><input class="f" id="l-senha" type="password" autocomplete="current-password" required></label>
+      <label class="field"><span>Utilizador</span><input class="f" id="l-user" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+      ${campoSenha("l-senha", "Senha", "current-password", "required", "password")}
       <div id="l-err">${msg ? `<div class="err">${esc(msg)}</div>` : ""}</div>
-      <button class="btn pri big">Entrar</button>
+      <button type="submit" class="btn pri big">Entrar</button>
       <p class="cod" style="text-align:center;margin:0">Esqueceu a senha? Peça ao administrador para a mudar.</p>
       ${eNativo() || navigator.userAgent.includes("Electron") ? "" : `<a class="cod" style="text-align:center" href="instalar.html" target="_blank" rel="noopener">Instalar no Android, iPhone ou Windows</a>`}</form>`);
   $("#f-login").onsubmit = async e => {
@@ -1672,6 +2312,7 @@ function ecraLogin(msg = "") {
       const m = /invalid login/i.test(error.message) ? "Utilizador ou senha errados." : /banned/i.test(error.message) ? "Esta conta foi desativada. Fale com o administrador." : mensagemErro(error);
       $("#l-err").innerHTML = `<div class="err">${esc(m)}</div>`; return;
     }
+    await guardarCredencial($("#l-user").value.trim(), $("#l-senha").value);
     await entrarNaApp();
   };
   setTimeout(() => $("#l-user").focus(), 50);
@@ -1682,9 +2323,8 @@ function ecraConfigurar() {
       <label class="field"><span>Código de configuração</span><input class="f" id="c-cod" placeholder="KMB-XXXX-XXXX-XXXX" autocapitalize="characters" required></label>
       <label class="field"><span>O seu nome (aparece nas faturas)</span><input class="f" id="c-nome" required></label>
       <label class="field"><span>Utilizador (para entrar)</span><input class="f" id="c-user" placeholder="Ex.: yuri" autocapitalize="none" spellcheck="false" required></label>
-      <div class="grid2"><label class="field"><span>Senha</span><input class="f" id="c-s1" type="password" autocomplete="new-password" required></label>
-        <label class="field"><span>Repetir senha</span><input class="f" id="c-s2" type="password" autocomplete="new-password" required></label></div>
-      <div id="c-err"></div><button class="btn pri big">Criar administrador</button></form>`);
+      <div class="grid2">${campoSenha("c-s1", "Senha", "new-password", "required", "password")}${campoSenha("c-s2", "Repetir senha", "new-password", "required")}</div>
+      <div id="c-err"></div><button type="submit" class="btn pri big">Criar administrador</button></form>`);
   $("#f-cfg").onsubmit = async e => {
     e.preventDefault(); const b = e.target.querySelector("button"); const err = m => { $("#c-err").innerHTML = `<div class="err">${esc(m)}</div>`; b.disabled = false; b.textContent = "Criar administrador"; };
     if ($("#c-s1").value !== $("#c-s2").value) return err("As duas senhas não são iguais.");
@@ -1693,6 +2333,7 @@ function ecraConfigurar() {
       await chamarFuncao({ acao: "configurar", codigo: $("#c-cod").value, nome: $("#c-nome").value, utilizador: $("#c-user").value, senha: $("#c-s1").value });
       const { error } = await sb.auth.signInWithPassword({ email: emailDe($("#c-user").value), password: $("#c-s1").value });
       if (error) throw error;
+      await guardarCredencial($("#c-user").value.trim().toLowerCase(), $("#c-s1").value);
       await entrarNaApp(); toast("Administrador criado. Bem-vindo!");
     } catch (er) { err(mensagemErro(er)); }
   };
@@ -1704,16 +2345,21 @@ async function mostrarEntrada(msg) {
 async function entrarNaApp(uid) {
   uid = uid || (await sb.auth.getSession().catch(() => ({ data: {} }))).data?.session?.user?.id || localStorage.getItem(ULTIMO);
   await carregarFila(uid);
+  Arranque.passo(2, "A carregar catálogo, preços e vendas…");
+  ocupado(true);
   try { await recarregar(); }
   catch (e) {
     if (e.rede && await carregarCopia(uid)) { montarE(); entrarOffline(); }
     else if (e.rede) { $("#app").hidden = true; return ecraLogin("Sem internet e sem dados guardados neste aparelho. Ligue-se uma vez à internet para começar a usar o modo offline."); }
     else { await sb.auth.signOut(); return mostrarEntrada(/sessão|permission/i.test(e.message) ? "A sua conta não tem acesso ativo. Fale com o administrador." : e.message); }
   }
+  ocupado(false);
+  Arranque.passo(3, "A preparar as vendas…");
   $("#auth").hidden = true; $("#app").hidden = false;
   mostrarEstado();
   if (!canal) ligarTempoReal();
   navegar();
+  Arranque.fim();
   enviarFila();
 }
 
@@ -1730,9 +2376,9 @@ function ecraLoginDemo(msg = "") {
   ecraAuth(`<form id="f-login" class="auth-card" autocomplete="off">
       <h1>Entrar</h1><p class="sub">Demonstração: entre como <b>admin</b> (administrador) ou <b>maria</b> (vendedora), com qualquer senha.</p>
       <label class="field"><span>Utilizador</span><input class="f" id="l-user" autocapitalize="none" spellcheck="false" required></label>
-      <label class="field"><span>Senha</span><input class="f" id="l-senha" type="password" required></label>
+      ${campoSenha("l-senha", "Senha", "current-password", "required", "password")}
       <div id="l-err">${msg ? `<div class="note">${esc(msg)}</div>` : ""}</div>
-      <button class="btn pri big">Entrar</button></form>`);
+      <button type="submit" class="btn pri big">Entrar</button></form>`);
   $("#f-login").onsubmit = e => {
     e.preventDefault();
     const u = E.utilizadores.find(x => x.utilizador === $("#l-user").value.trim().toLowerCase());
@@ -1745,21 +2391,29 @@ function ecraLoginDemo(msg = "") {
 
 /* ============================================================ arranque */
 (async function iniciar() {
+  Arranque.passo(0, "A iniciar…");
   if (DEMO) {
+    Arranque.passo(2, "A carregar catálogo e preços…");
     $("#mode").textContent = "Demonstração";
     try { const s = localStorage.getItem(CHAVE); if (s) E = JSON.parse(s); } catch (e) { E = null; }
+    if (E && !E.operadores) { Local.semearOperadores(); guardarLocal(); }   // demonstração guardada antes das recargas
+    if (E && E.config && !E._secNovas) { SECCOES_NOVAS.forEach(x => Local.garantirSeccao(x)); E._secNovas = true; guardarLocal(); }
     if (!E || !E._seq || !E.utilizadores) { Local.novo(); guardarLocal(); }
     if (E._sessao === false) return ecraLoginDemo();
     Local.atualizarEu();
+    Arranque.passo(3, "A preparar as vendas…");
     $("#app").hidden = false;
     navegar();
+    Arranque.fim();
     return;
   }
+  Arranque.passo(0, "A ligar ao servidor…");
   sb = window.supabase.createClient(SUPA.url, SUPA.chave, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "grupo-kambas-sessao" } });
   sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT" && E) location.reload(); });
   registarServiceWorker();
   let session = null;
   try { session = (await sb.auth.getSession()).data.session; } catch (e) { /* sem rede para renovar a sessão */ }
+  Arranque.passo(1, "A verificar a sua conta…");
   const ultimo = (() => { try { return localStorage.getItem(ULTIMO); } catch (e) { return null; } })();
   if (session) await entrarNaApp(session.user.id);
   else if (!navigator.onLine && ultimo) await entrarNaApp(ultimo);

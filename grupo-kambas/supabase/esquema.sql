@@ -203,6 +203,7 @@ declare
   v_sub integer := 0; v_desconto integer; v_cli clientes;
   v_num integer; v_num_cfg jsonb; v_id bigint; v_k text; v_v jsonb; v_ref text;
   v_data timestamptz := now(); v_ref_local text := nullif(d ->> 'ref_local', ''); v_existe bigint;
+  v_op operadores; v_refer text; v_saldo_prec jsonb := '{}'::jsonb; v_o operadores; v_row record; v_c integer;
 begin
   -- vendas feitas sem internet: a mesma referência nunca cria dois documentos
   if v_ref_local is not null then
@@ -234,6 +235,18 @@ begin
     exception when others then perform _erro('Quantidade e preço têm de ser números inteiros.');
     end;
     v_descr := trim(coalesce(nullif(v_it ->> 'descricao', ''), v_p.nome, ''));
+    -- recarga: o operador vem no item; a descrição leva o nome e o número do cliente
+    v_op := null; v_refer := '';
+    if nullif(v_it ->> 'operador_id', '') is not null then
+      if v_p.id is not null then perform _erro('Item inválido.'); end if;
+      select * into v_op from operadores where id = (v_it ->> 'operador_id')::bigint and ativo;
+      if not found then perform _erro('Operador de recarga não encontrado.'); end if;
+      v_refer := left(trim(coalesce(v_it ->> 'referencia', '')), 40);
+      v_descr := 'Recarga ' || v_op.nome || case when v_refer <> '' then ' — ' || v_refer else '' end;
+      if v_qtd is not null and v_preco is not null then
+        v_saldo_prec := jsonb_set(v_saldo_prec, array[v_op.id::text], to_jsonb(coalesce((v_saldo_prec ->> v_op.id::text)::integer, 0) + v_qtd * v_preco));
+      end if;
+    end if;
     if v_descr = '' then perform _erro('Item sem descrição.'); end if;
     if v_qtd is null or v_qtd <= 0 then perform _erro(format('Quantidade inválida em ''%s''.', v_descr)); end if;
     if v_preco is null or v_preco <= 0 then perform _erro(format('Indique o preço de ''%s''.', v_descr)); end if;
@@ -243,7 +256,7 @@ begin
     if v_p.id is not null and v_p.tipo = 'produto' then
       v_precisa := jsonb_set(v_precisa, array[v_p.id::text], to_jsonb(coalesce((v_precisa ->> v_p.id::text)::integer, 0) + v_qtd));
     end if;
-    v_linhas := v_linhas || jsonb_build_object('produto_id', v_p.id, 'descricao', v_descr, 'qtd', v_qtd, 'preco_unit', v_preco, 'total', v_qtd * v_preco);
+    v_linhas := v_linhas || jsonb_build_object('produto_id', v_p.id, 'operador_id', v_op.id, 'referencia', v_refer, 'descricao', v_descr, 'qtd', v_qtd, 'preco_unit', v_preco, 'total', v_qtd * v_preco);
     v_sub := v_sub + v_qtd * v_preco;
   end loop;
 
@@ -252,6 +265,12 @@ begin
       select * into v_p from produtos where id = v_k::bigint;
       if (v_v #>> '{}')::integer > v_p.stock then
         perform _erro(format('Stock insuficiente de %s: pediu %s, há %s.', v_p.nome, v_v #>> '{}', v_p.stock));
+      end if;
+    end loop;
+    for v_k, v_v in select * from jsonb_each(v_saldo_prec) loop
+      select * into v_o from operadores where id = v_k::bigint;
+      if (v_v #>> '{}')::integer > v_o.saldo then
+        perform _erro(format('Saldo %s insuficiente: a venda pede %s Kz, há %s Kz.', v_o.nome, v_v #>> '{}', v_o.saldo));
       end if;
     end loop;
   end if;
@@ -283,9 +302,9 @@ begin
           nullif(d ->> 'origem_id', '')::bigint)
   returning id into v_id;
 
-  insert into documento_itens (documento_id, produto_id, descricao, qtd, preco_unit, total)
-  select v_id, nullif(l ->> 'produto_id', '')::bigint, l ->> 'descricao', (l ->> 'qtd')::integer,
-         (l ->> 'preco_unit')::integer, (l ->> 'total')::integer
+  insert into documento_itens (documento_id, produto_id, operador_id, referencia, descricao, qtd, preco_unit, total)
+  select v_id, nullif(l ->> 'produto_id', '')::bigint, nullif(l ->> 'operador_id', '')::bigint, coalesce(l ->> 'referencia', ''),
+         l ->> 'descricao', (l ->> 'qtd')::integer, (l ->> 'preco_unit')::integer, (l ->> 'total')::integer
   from jsonb_array_elements(v_linhas) l;
 
   if v_tipo <> 'PP' then
@@ -294,6 +313,10 @@ begin
       if v_precisa ? (v_it ->> 'produto_id') then
         perform _mover((v_it ->> 'produto_id')::bigint, 'saida', (v_it ->> 'qtd')::integer, 'Venda', v_ref);
       end if;
+    end loop;
+    for v_row in select id, operador_id, total from documento_itens where documento_id = v_id and operador_id is not null order by id loop
+      v_c := _mover_saldo(v_row.operador_id, 'venda', -v_row.total, null, 'Venda', v_ref);
+      update documento_itens set custo = v_c where id = v_row.id;
     end loop;
   end if;
   return _doc_json(v_id);
@@ -317,6 +340,9 @@ begin
                  where i.documento_id = p_id and p.tipo = 'produto' loop
       perform _mover(v_it.produto_id, 'entrada', v_it.qtd, 'Documento anulado', _ref(v_d.tipo, v_d.numero));
     end loop;
+    for v_it in select i.operador_id, i.total, i.custo from documento_itens i where i.documento_id = p_id and i.operador_id is not null loop
+      perform _mover_saldo(v_it.operador_id, 'anulacao', v_it.total, v_it.custo, 'Documento anulado', _ref(v_d.tipo, v_d.numero));
+    end loop;
   end if;
   v_nota := case when trim(coalesce(p_motivo, '')) <> '' then 'ANULADA: ' || trim(p_motivo) else 'ANULADA' end;
   update documentos set estado = 'anulada', observacoes = trim(both E'\n' from observacoes || E'\n' || v_nota) where id = p_id;
@@ -337,7 +363,7 @@ begin
     'tipo', p_tipo, 'forma_pagamento', p_forma, 'cliente_id', v_d.cliente_id, 'desconto', v_d.desconto,
     'origem_id', v_d.id,
     'observacoes', trim(both E'\n' from v_d.observacoes || E'\nReferente à pró-forma ' || _ref('PP', v_d.numero)),
-    'itens', (select jsonb_agg(jsonb_build_object('produto_id', produto_id, 'descricao', descricao, 'qtd', qtd, 'preco_unit', preco_unit) order by id)
+    'itens', (select jsonb_agg(jsonb_build_object('produto_id', produto_id, 'operador_id', operador_id, 'referencia', referencia, 'descricao', descricao, 'qtd', qtd, 'preco_unit', preco_unit) order by id)
               from documento_itens where documento_id = p_id)));
   update documentos set estado = 'convertida',
          observacoes = trim(both E'\n' from observacoes || E'\nConvertida em ' || _ref(p_tipo, (v_novo ->> 'numero')::integer))
@@ -425,6 +451,7 @@ begin
   if v_modo <> 'consulta' and v_preco = 0 then perform _erro('Indique o preço em Kz (ou escolha ''por consulta'').'); end if;
   if (v_tq is null) <> (v_tp is null) then perform _erro('Para preço por quantidade, indique a quantidade mínima e o preço.'); end if;
   if v_tipo = 'servico' then v_min := 0; v_ini := 0; end if;
+  v_pref := _garantir_seccao(v_seccao);   -- secção nova (ex.: CCTV & Segurança) fica criada com o seu código
 
   if p_id is not null then
     select * into v_atual from produtos where id = p_id for update;
@@ -436,7 +463,6 @@ begin
            preco = v_preco, modo = v_modo, tier_qtd = v_tq, tier_preco = v_tp, stock_min = v_min where id = p_id;
     v_id := p_id;
   else
-    v_pref := coalesce((select e ->> 0 from jsonb_array_elements(cfg_valor('seccoes_cod')) e where e ->> 1 = v_seccao), 'GK');
     while exists (select 1 from produtos where codigo = v_pref || lpad(v_n::text, 2, '0')) loop v_n := v_n + 1; end loop;
     v_cod := v_pref || lpad(v_n::text, 2, '0');
     insert into produtos (codigo, nome, descricao, seccao, tipo, preco, modo, tier_qtd, tier_preco, stock_min)
@@ -492,12 +518,25 @@ begin
 end $$;
 
 -- ================================================================ configuração
-create or replace function public.guardarcfg_valor(d jsonb) returns jsonb
+create or replace function public.guardar_config(d jsonb) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare v_k text; v_n integer; v_maior integer;
 begin
   perform exigir('admin');
   if d ? 'empresa' then
+    if jsonb_typeof(d -> 'empresa') is distinct from 'object' then perform _erro('Dados da empresa inválidos.'); end if;
+    if (d -> 'empresa') ? 'nome' and trim(coalesce(d -> 'empresa' ->> 'nome', '')) = '' then perform _erro('Indique o nome da empresa.'); end if;
+    if (d -> 'empresa') ? 'contas' then
+      if jsonb_typeof(d -> 'empresa' -> 'contas') is distinct from 'array' or jsonb_array_length(d -> 'empresa' -> 'contas') = 0 then
+        perform _erro('Indique pelo menos uma conta bancária.');
+      end if;
+      if jsonb_array_length(d -> 'empresa' -> 'contas') > 10 then perform _erro('No máximo 10 contas.'); end if;
+      if exists (select 1 from jsonb_array_elements(d -> 'empresa' -> 'contas') c
+                 where trim(coalesce(c ->> 'banco', '')) = '' or trim(coalesce(c ->> 'iban', '')) = '') then
+        perform _erro('Cada conta precisa do banco e do IBAN (ou número).');
+      end if;
+    end if;
+    if (d -> 'empresa') ? 'titular' and trim(coalesce(d -> 'empresa' ->> 'titular', '')) = '' then perform _erro('Indique o titular das contas.'); end if;
     update config set valor = valor || (d -> 'empresa') where chave = 'empresa';
   end if;
   if d ? 'numeracao' then
@@ -537,7 +576,11 @@ begin
     'movimentos', coalesce((select jsonb_agg(to_jsonb(m) - 'data' || jsonb_build_object(
                      'data', to_char(m.data at time zone 'Africa/Luanda', 'YYYY-MM-DD"T"HH24:MI:SS')) order by m.data desc, m.id desc)
                    from movimentos m), '[]'::jsonb),
-    'utilizadores', coalesce((select jsonb_agg(to_jsonb(u) order by u.nome) from perfis u), '[]'::jsonb)
+    'utilizadores', coalesce((select jsonb_agg(to_jsonb(u) order by u.nome) from perfis u), '[]'::jsonb),
+    'operadores', coalesce((select jsonb_agg(to_jsonb(o) order by o.ordem, o.id) from operadores o where o.ativo), '[]'::jsonb),
+    'movimentos_saldo', coalesce((select jsonb_agg(to_jsonb(m) - 'data' || jsonb_build_object(
+                     'data', to_char(m.data at time zone 'Africa/Luanda', 'YYYY-MM-DD"T"HH24:MI:SS')) order by m.data desc, m.id desc)
+                   from movimentos_saldo m), '[]'::jsonb)
   );
 end $$;
 
@@ -553,12 +596,12 @@ grant execute on function public._doc_json(bigint) to authenticated;
 revoke execute on function public.registar_documento(jsonb), public.anular_documento(bigint, text),
   public.converter_proforma(bigint, text, text), public.registar_pagamento(bigint, text), public.movimento_stock(jsonb),
   public.contagem_stock(jsonb, text), public.guardar_produto(jsonb, bigint), public.remover_produto(bigint),
-  public.guardar_cliente(jsonb, bigint), public.remover_cliente(bigint), public.guardarcfg_valor(jsonb), public.estado()
+  public.guardar_cliente(jsonb, bigint), public.remover_cliente(bigint), public.guardar_config(jsonb), public.estado()
   from public, anon;
 grant execute on function public.registar_documento(jsonb), public.anular_documento(bigint, text),
   public.converter_proforma(bigint, text, text), public.registar_pagamento(bigint, text), public.movimento_stock(jsonb),
   public.contagem_stock(jsonb, text), public.guardar_produto(jsonb, bigint), public.remover_produto(bigint),
-  public.guardar_cliente(jsonb, bigint), public.remover_cliente(bigint), public.guardarcfg_valor(jsonb), public.estado()
+  public.guardar_cliente(jsonb, bigint), public.remover_cliente(bigint), public.guardar_config(jsonb), public.estado()
   to authenticated;
 grant execute on function public.precisa_configurar() to anon, authenticated;
 
@@ -602,3 +645,219 @@ grant execute on function public.validar_codigo_configuracao(text), public.concl
 -- ================================================================ modo offline (bases já existentes)
 alter table public.documentos add column if not exists ref_local text unique;
 alter table public.clientes add column if not exists ref_local text unique;
+
+-- ================================================================ recargas (Unitel, Africell, ZAP, DStv, EDEL, EPAL)
+-- Cada operador tem um saldo em Kz. Carregar saldo regista quanto se pagou (custo) e quanto saldo se recebeu.
+-- Vender uma recarga tira o valor ao saldo; o custo sai pela média (custo do saldo que resta / saldo),
+-- por isso o lucro de cada recarga = valor vendido − custo desse saldo.
+create table if not exists public.operadores (
+  id bigint generated always as identity primary key,
+  codigo text unique not null,
+  nome text not null,
+  categoria text not null default 'Telemóvel',
+  referencia text not null default 'Número de telefone',
+  saldo integer not null default 0 check (saldo >= 0),
+  custo integer not null default 0 check (custo >= 0),
+  saldo_min integer not null default 2000 check (saldo_min >= 0),
+  ordem integer not null default 0,
+  ativo boolean not null default true
+);
+
+create table if not exists public.movimentos_saldo (
+  id bigint generated always as identity primary key,
+  data timestamptz not null default now(),
+  operador_id bigint not null references public.operadores(id) on delete cascade,
+  tipo text not null check (tipo in ('carga', 'venda', 'anulacao', 'ajuste')),
+  valor integer not null,
+  custo integer not null default 0,
+  saldo_final integer not null,
+  motivo text not null default '',
+  ref text not null default '',
+  utilizador_id uuid references public.perfis(id) on delete set null
+);
+create index if not exists movimentos_saldo_op_idx on public.movimentos_saldo (operador_id, data);
+
+alter table public.documento_itens add column if not exists operador_id bigint references public.operadores(id) on delete set null;
+alter table public.documento_itens add column if not exists referencia text not null default '';
+alter table public.documento_itens add column if not exists custo integer not null default 0;
+
+alter table public.operadores enable row level security;
+alter table public.movimentos_saldo enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'operadores' and policyname = 'ler') then
+    create policy ler on public.operadores for select to authenticated using (ativo());
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'movimentos_saldo' and policyname = 'ler') then
+    create policy ler on public.movimentos_saldo for select to authenticated using (tem_permissao('stock'));
+  end if;
+end $$;
+
+insert into public.operadores (codigo, nome, categoria, referencia, ordem) values
+  ('UNITEL', 'Unitel', 'Telemóvel', 'Número de telefone', 1),
+  ('AFRICELL', 'Africell', 'Telemóvel', 'Número de telefone', 2),
+  ('ZAP', 'ZAP', 'Televisão', 'Nº do cartão ZAP', 3),
+  ('DSTV', 'DStv', 'Televisão', 'Nº do cartão (smartcard)', 4),
+  ('EDEL', 'EDEL', 'Energia', 'Nº do contador', 5),
+  ('EPAL', 'EPAL', 'Água', 'Nº do contador / cliente', 6)
+on conflict (codigo) do nothing;
+
+-- mexe no saldo e regista o movimento; devolve o custo do movimento
+--   carga / anulacao: p_valor > 0 e p_custo dado
+--   venda:            p_valor < 0, custo calculado pela média
+--   ajuste:           p_valor = novo saldo (contagem), custo ajustado na proporção
+create or replace function public._mover_saldo(p_op bigint, p_tipo text, p_valor integer, p_custo integer, p_motivo text, p_ref text default '')
+returns integer language plpgsql security definer set search_path = public as $$
+declare v_o operadores; v_custo integer; v_delta integer;
+begin
+  select * into v_o from operadores where id = p_op for update;
+  if not found then perform _erro('Operador não encontrado.'); end if;
+  if p_tipo = 'venda' then
+    if -p_valor > v_o.saldo then
+      perform _erro(format('Saldo %s insuficiente: pediu %s Kz, há %s Kz.', v_o.nome, -p_valor, v_o.saldo));
+    end if;
+    v_custo := case when v_o.saldo > 0 then round(v_o.custo::numeric * (-p_valor) / v_o.saldo)::integer else 0 end;
+    update operadores set saldo = saldo + p_valor, custo = greatest(custo - v_custo, 0) where id = p_op;
+    v_delta := p_valor;
+  elsif p_tipo in ('carga', 'anulacao') then
+    v_custo := coalesce(p_custo, 0);
+    update operadores set saldo = saldo + p_valor, custo = custo + v_custo where id = p_op;
+    v_delta := p_valor;
+  else -- ajuste: p_valor é o saldo contado
+    v_custo := case when v_o.saldo > 0 then round(v_o.custo::numeric * p_valor / v_o.saldo)::integer else 0 end;
+    update operadores set saldo = p_valor, custo = v_custo where id = p_op;
+    v_delta := p_valor - v_o.saldo;
+    v_custo := v_custo - v_o.custo;
+  end if;
+  insert into movimentos_saldo (operador_id, tipo, valor, custo, saldo_final, motivo, ref, utilizador_id)
+  values (p_op, p_tipo, v_delta, abs(v_custo), (select saldo from operadores where id = p_op), coalesce(p_motivo, ''), coalesce(p_ref, ''), auth.uid());
+  return v_custo;
+end $$;
+
+create or replace function public.carregar_saldo(d jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_o operadores; v_valor integer; v_pago integer;
+begin
+  perform exigir('stock');
+  select * into v_o from operadores where id = (d ->> 'operador_id')::bigint and ativo;
+  if not found then perform _erro('Escolha o operador.'); end if;
+  begin
+    v_valor := (d ->> 'valor')::integer;
+    v_pago := coalesce(nullif(d ->> 'pago', '')::integer, v_valor);
+  exception when others then perform _erro('Os valores têm de ser números inteiros (Kz).');
+  end;
+  if v_valor is null or v_valor <= 0 then perform _erro('Indique o saldo recebido em Kz.'); end if;
+  if v_pago is null or v_pago <= 0 then perform _erro('Indique quanto pagou em Kz.'); end if;
+  if v_pago > v_valor * 2 then perform _erro('O valor pago parece demasiado alto para este saldo. Verifique.'); end if;
+  perform _mover_saldo(v_o.id, 'carga', v_valor, v_pago,
+    coalesce(nullif(trim(d ->> 'motivo'), ''), format('Saldo carregado: pago %s Kz', v_pago)));
+  return (select to_jsonb(o) from operadores o where id = v_o.id);
+end $$;
+
+create or replace function public.ajustar_saldo(d jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_o operadores; v_novo integer;
+begin
+  perform exigir('stock');
+  select * into v_o from operadores where id = (d ->> 'operador_id')::bigint and ativo;
+  if not found then perform _erro('Escolha o operador.'); end if;
+  begin v_novo := (d ->> 'saldo')::integer; exception when others then v_novo := null; end;
+  if v_novo is null or v_novo < 0 then perform _erro('Indique o saldo certo em Kz (0 ou mais).'); end if;
+  if v_novo = v_o.saldo then perform _erro('O saldo já é esse.'); end if;
+  perform _mover_saldo(v_o.id, 'ajuste', v_novo, null, coalesce(nullif(trim(d ->> 'motivo'), ''), 'Correção do saldo'));
+  return (select to_jsonb(o) from operadores o where id = v_o.id);
+end $$;
+
+create or replace function public.guardar_operador(d jsonb, p_id bigint default null) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_nome text := trim(coalesce(d ->> 'nome', '')); v_min integer; v_id bigint; v_cod text;
+begin
+  perform exigir('stock');
+  if v_nome = '' then perform _erro('Indique o nome do operador.'); end if;
+  begin v_min := coalesce(nullif(d ->> 'saldo_min', '')::integer, 2000); exception when others then perform _erro('Saldo mínimo inválido.'); end;
+  if v_min < 0 then perform _erro('Saldo mínimo inválido.'); end if;
+  if p_id is not null then
+    update operadores set nome = v_nome, categoria = coalesce(nullif(trim(d ->> 'categoria'), ''), categoria),
+           referencia = coalesce(nullif(trim(d ->> 'referencia'), ''), referencia), saldo_min = v_min
+     where id = p_id and ativo returning id into v_id;
+    if v_id is null then perform _erro('Operador não encontrado.'); end if;
+  else
+    v_cod := upper(regexp_replace(v_nome, '[^A-Za-z0-9]', '', 'g'));
+    if v_cod = '' then v_cod := 'OP'; end if;
+    while exists (select 1 from operadores where codigo = v_cod) loop v_cod := v_cod || '2'; end loop;
+    insert into operadores (codigo, nome, categoria, referencia, saldo_min, ordem)
+    values (v_cod, v_nome, coalesce(nullif(trim(d ->> 'categoria'), ''), 'Outros'),
+            coalesce(nullif(trim(d ->> 'referencia'), ''), 'Referência'), v_min, (select coalesce(max(ordem), 0) + 1 from operadores))
+    returning id into v_id;
+  end if;
+  return (select to_jsonb(o) from operadores o where id = v_id);
+end $$;
+
+revoke execute on function public._mover_saldo(bigint, text, integer, integer, text, text) from public, anon, authenticated;
+revoke execute on function public.carregar_saldo(jsonb), public.ajustar_saldo(jsonb), public.guardar_operador(jsonb, bigint) from public, anon;
+grant execute on function public.carregar_saldo(jsonb), public.ajustar_saldo(jsonb), public.guardar_operador(jsonb, bigint) to authenticated;
+do $$
+declare t text;
+begin
+  foreach t in array array['operadores', 'movimentos_saldo'] loop
+    if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = t) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
+
+-- ================================================================ secções do catálogo
+-- Cada secção tem um código de 2 letras usado nos códigos dos produtos (ex.: Electrodomésticos → EL01).
+create or replace function public._garantir_seccao(p_nome text) returns text
+language plpgsql security definer set search_path = public as $$
+declare v_nome text := trim(coalesce(p_nome, '')); v_cod text; v_base text; v_n integer := 1; v_pal text[]; v_long text[];
+begin
+  if v_nome = '' then return 'GK'; end if;
+  select e ->> 0 into v_cod from jsonb_array_elements(coalesce(cfg_valor('seccoes_cod'), '[]'::jsonb)) e where lower(e ->> 1) = lower(v_nome) limit 1;
+  if v_cod is not null then return v_cod; end if;
+  v_pal := array_remove(regexp_split_to_array(translate(upper(v_nome), 'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ', 'AAAAAEEEEIIIIOOOOOUUUUC'), '[^A-Z0-9]+'), '');
+  select array_agg(w) into v_long from unnest(v_pal) w where length(w) > 2;   -- ignora "de", "e", "a"…
+  if coalesce(array_length(v_long, 1), 0) > 0 then v_pal := v_long; end if;
+  v_base := case when coalesce(array_length(v_pal, 1), 0) >= 2 then left(v_pal[1], 1) || left(v_pal[2], 1)
+                 when coalesce(array_length(v_pal, 1), 0) = 1 then left(v_pal[1] || 'X', 2) else 'GK' end;
+  v_cod := v_base;
+  while exists (select 1 from jsonb_array_elements(coalesce(cfg_valor('seccoes_cod'), '[]'::jsonb)) e where e ->> 0 = v_cod) loop
+    v_cod := left(v_base, 1) || v_n; v_n := v_n + 1;
+  end loop;
+  insert into config values ('seccoes', '[]'::jsonb) on conflict (chave) do nothing;
+  insert into config values ('seccoes_cod', '[]'::jsonb) on conflict (chave) do nothing;
+  if not exists (select 1 from jsonb_array_elements(cfg_valor('seccoes')) e where lower(e #>> '{}') = lower(v_nome)) then
+    update config set valor = valor || jsonb_build_array(v_nome) where chave = 'seccoes';
+  end if;
+  update config set valor = valor || jsonb_build_array(jsonb_build_array(v_cod, v_nome)) where chave = 'seccoes_cod';
+  return v_cod;
+end $$;
+
+create or replace function public.guardar_seccao(p_nome text, p_remover boolean default false) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare v_nome text := trim(coalesce(p_nome, '')); v_n integer;
+begin
+  perform exigir('produtos');
+  if v_nome = '' then perform _erro('Indique o nome da secção.'); end if;
+  if length(v_nome) > 60 then perform _erro('O nome da secção é demasiado longo (máx. 60 letras).'); end if;
+  if p_remover then
+    select count(*) into v_n from produtos where ativo and seccao = v_nome;
+    if v_n > 0 then
+      perform _erro(format('A secção ''%s'' ainda tem %s item(ns). Mude-os de secção ou remova-os primeiro.', v_nome, v_n));
+    end if;
+    update config set valor = coalesce((select jsonb_agg(e) from jsonb_array_elements(valor) e where e #>> '{}' <> v_nome), '[]'::jsonb) where chave = 'seccoes';
+    update config set valor = coalesce((select jsonb_agg(e) from jsonb_array_elements(valor) e where e ->> 1 <> v_nome), '[]'::jsonb) where chave = 'seccoes_cod';
+  else
+    if exists (select 1 from jsonb_array_elements(coalesce(cfg_valor('seccoes'), '[]'::jsonb)) e where lower(e #>> '{}') = lower(v_nome)) then
+      perform _erro(format('Já existe a secção ''%s''.', v_nome));
+    end if;
+    perform _garantir_seccao(v_nome);
+  end if;
+  return jsonb_build_object('seccoes', cfg_valor('seccoes'), 'seccoes_cod', cfg_valor('seccoes_cod'));
+end $$;
+
+revoke execute on function public._garantir_seccao(text) from public, anon, authenticated;
+revoke execute on function public.guardar_seccao(text, boolean) from public, anon;
+grant execute on function public.guardar_seccao(text, boolean) to authenticated;
+
+-- secções novas pedidas pela loja
+select public._garantir_seccao(s) from unnest(array['Electrodomésticos', 'CCTV & Segurança', 'Material de Papelaria']) s;
