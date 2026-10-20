@@ -1081,7 +1081,17 @@
   var VOLTA_DEPOIS_DE_DIAS = [
     'Bom regresso, depois destes dias.'
   ];
-  function _escolher(lista){ return lista[Math.floor(Math.random() * lista.length)]; }
+  // Escolhe ao acaso, mas nunca a mesma frase da última vez (guardada neste
+  // aparelho por lista), para o Zelo não soar repetitivo.
+  function _escolher(lista){
+    if (lista.length < 2) return lista[0];
+    var k = 'zeloUltimaFrase_' + lista[0].slice(0, 24), ant = null;
+    try { ant = localStorage.getItem(k); } catch (e) {}
+    var opc = lista.filter(function (t) { return t !== ant; });
+    var r = opc[Math.floor(Math.random() * opc.length)];
+    try { localStorage.setItem(k, r); } catch (e) {}
+    return r;
+  }
   function _chaveAtividade(){ return 'zeloUltimaAtividade_' + (sessionStorage.getItem('zeloEmail') || 'geral'); }
   function _ultimaAtividade(){ return Number(localStorage.getItem(_chaveAtividade())) || 0; }
   function _registarAtividade(){ try { if (sessionStorage.getItem('zeloNome')) localStorage.setItem(_chaveAtividade(), String(Date.now())); } catch (e) {} }
@@ -1111,19 +1121,65 @@
     var ultima = _ultimaAtividade();
     var foraMin = ultima ? (Date.now() - ultima) / 60000 : Infinity;
     _registarAtividade();
+    // Dia especial: uma vez por pessoa neste aparelho, mesmo que já tenha
+    // entrado hoje antes (substitui a saudação habitual desse dia).
+    var chaveEsp = 'zeloDiaEspecial_' + agora.data + '_' + (sessionStorage.getItem('zeloEmail') || nome);
+    if (DIAS_ESPECIAIS[agora.data] && !localStorage.getItem(chaveEsp)) {
+      localStorage.setItem(chaveEsp, '1'); localStorage.setItem('zeloSaudacaoDia', agora.data);
+      mensagemDiaEspecial(agora, nome); return;
+    }
     if (localStorage.getItem('zeloSaudacaoDia') === agora.data) {
-      var lista = foraMin < 45 ? VOLTA_POUCO_TEMPO : VOLTA_PAUSA;
-      falar(_escolher(lista).replace('SAUDACAO', saudacaoPorHora(agora.hora)).replace('NOME', nome));
+      // Já cumprimentou hoje: só volta a falar depois de uma pausa longa
+      // (mais de 2 horas fora), e só uma frase curta.
+      if (foraMin > 120) falar(_escolher(VOLTA_PAUSA).replace('SAUDACAO', saudacaoPorHora(agora.hora)).replace('NOME', nome));
       return;
     }
     localStorage.setItem('zeloSaudacaoDia', agora.data);
     var regressoDias = foraMin !== Infinity && foraMin > 2 * 24 * 60 ? ' ' + _escolher(VOLTA_DEPOIS_DE_DIAS).replace('NOME', nome) : '';
     var listaAberturas = agora.diaSemana === 'Mon' ? ABERTURAS_ENTRADA_SEGUNDA : ABERTURAS_ENTRADA_DIA;
-    var abertura = listaAberturas[Math.floor(Math.random() * listaAberturas.length)];
-    var lembrete = LEMBRETES_SAUDACAO[Math.floor(Math.random() * LEMBRETES_SAUDACAO.length)];
-    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '.' + regressoDias + ' ' + abertura + ' ' + lembrete + NOTA_LIVROS + NOTA_ESTATISTICA;
+    var abertura = _escolher(listaAberturas);
+    // Menos repetição (a pedido): só UMA das notas fixas por dia, alternando
+    // (livros de registo num dia, envio à Estatística no seguinte), e o
+    // lembrete curto só nos dias em que não há nota.
+    var diaN = Math.floor(Date.parse(agora.data) / 864e5);
+    var nota = diaN % 2 ? NOTA_LIVROS : NOTA_ESTATISTICA;
+    var lembrete = diaN % 3 === 0 ? ' ' + _escolher(LEMBRETES_SAUDACAO) : '';
+    var texto = saudacaoPorHora(agora.hora) + ', ' + nome + '.' + regressoDias + ' ' + abertura + lembrete + nota;
     falar(texto);
   }
+  // ── Dias especiais: mensagem no ecrã + em voz, na 1.ª entrada do dia ──
+  // Chave = data de Angola (AAAA-MM-DD). Para outro ano/dia, acrescentar aqui.
+  var SVG_CORACAO = '<svg width="16" height="16" viewBox="0 0 24 24" fill="#60A5FA" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round" style="vertical-align:-3px"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
+  var SVG_SOBE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>';
+  var DIAS_ESPECIAIS = {
+    '2026-10-20': {
+      titulo: 'Dia Municipal da Estatística',
+      paragrafos: [
+        'Os números contam histórias, revelam realidades e abrem caminhos para melhores decisões. Por detrás de cada dado, existe uma informação valiosa; por detrás de cada estatística, uma oportunidade de transformar o presente e construir o futuro.',
+        'Hoje celebramos a importância da estatística como instrumento de conhecimento, desenvolvimento e progresso.',
+        '<b>Porque conhecer a realidade é o primeiro passo para transformá-la!</b>',
+        'Dia mundial da estatística ' + SVG_CORACAO + ' ' + SVG_SOBE
+      ]
+    }
+  };
+  function mensagemDiaEspecial(agora, nome){
+    var d = DIAS_ESPECIAIS[agora.data]; if (!d) return false;
+    var semTags = function (t) { return String(t).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); };
+    var voz = saudacaoPorHora(agora.hora) + ', ' + nome + '. ' + d.titulo + '. ' + d.paragrafos.slice(0, 3).map(semTags).join(' ');
+    falar(voz);
+    if (window.ZeloEspera && window.ZeloEspera.mensagem) {
+      window.ZeloEspera.mensagem({
+        nome: saudacaoPorHora(agora.hora) + ', ' + nome,
+        titulo: d.titulo,
+        icone: 'grafico',
+        html: d.paragrafos.map(function (p) { return '<p style="margin:0 0 10px;font-size:.98rem;line-height:1.6;text-align:center">' + p + '</p>'; }).join(''),
+        botoes: [{ texto: 'Obrigado', principal: true }]
+      });
+    }
+    return true;
+  }
+  window.zeloMensagemDiaEspecial = function (data) { var a = dataHoraAngola(); if (data) a.data = data; return mensagemDiaEspecial(a, _doisNomes(sessionStorage.getItem('zeloNome') || '') || 'colega'); };
+
   // Exposto para o index.html chamar assim que o login terminar. É preciso
   // porque o index.html é uma SPA — o login acontece na mesma carga da
   // página (sem recarregar), por isso a tentativa automática 1200ms depois
@@ -1466,9 +1522,10 @@
       if (diasFalta.length) {
         // Só volta a falar dos dias em falta uma vez por sessão (e de novo se
         // o mês mudar dentro da mesma sessão).
-        var chaveFaltaSessao = 'zeloAvisoPreenchimentoFaltaSessao_' + cfg.chaveAviso + '_' + partes[0] + '-' + partes[1];
-        if (sessionStorage.getItem(chaveFaltaSessao)) return;
-        sessionStorage.setItem(chaveFaltaSessao, '1');
+        // Menos repetição: uma vez por dia em cada página (não a cada sessão).
+        var chaveFaltaDia = 'zeloAvisoFaltaDia_' + cfg.chaveAviso;
+        if (localStorage.getItem(chaveFaltaDia) === agora.data) return;
+        localStorage.setItem(chaveFaltaDia, agora.data);
         if (soFaltaOntem) {
           texto = saud + ', ' + nome + '. Falta o registo de ontem. Por favor, preencha hoje.';
         } else {
@@ -1478,6 +1535,9 @@
       } else {
         if (localStorage.getItem(chaveOkHoje) === agora.data) return;
         localStorage.setItem(chaveOkHoje, agora.data);
+        // «Tudo em dia»: só o 1.º serviço do dia dá os parabéns (não cada página).
+        if (localStorage.getItem('zeloParabensDia') === agora.data) return;
+        localStorage.setItem('zeloParabensDia', agora.data);
         texto = _escolher(ABERTURAS_PARABENS_EM_DIA).replace('NOME', nome).replace('ITENS', cfg.itemPlural) +
           ' Está tudo preenchido até ontem.';
       }

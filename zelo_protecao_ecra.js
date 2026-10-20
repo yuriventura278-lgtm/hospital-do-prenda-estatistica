@@ -34,10 +34,10 @@
     if (!t || /^zelo$/i.test(t)) t = 'Hospital do Prenda';
     return t;
   }
-  function logo() { return fundo().replace(/login_bg\.jpg$/, 'logo.png'); }
+  function logo() { return fundo().replace(/login_equipa\.jpg$/, 'logo.png'); }
   function fundo() {
     var s = document.querySelector('script[src*="zelo_protecao_ecra.js"]');
-    return s ? s.src.replace(/zelo_protecao_ecra\.js.*$/, 'icons/login_bg.jpg') : 'icons/login_bg.jpg';
+    return s ? s.src.replace(/zelo_protecao_ecra\.js.*$/, 'icons/login_equipa.jpg') : 'icons/login_equipa.jpg';
   }
 
   var css =
