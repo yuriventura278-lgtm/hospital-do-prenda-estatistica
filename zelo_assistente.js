@@ -1145,17 +1145,9 @@
   // Chave = data de Angola (AAAA-MM-DD). Para outro ano/dia, acrescentar aqui.
   var SVG_CORACAO = '<svg width="16" height="16" viewBox="0 0 24 24" fill="#60A5FA" stroke="#60A5FA" stroke-width="2" stroke-linejoin="round" style="vertical-align:-3px"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
   var SVG_SOBE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>';
-  var DIAS_ESPECIAIS = {
-    '2026-10-20': {
-      titulo: 'Dia Mundial da Estatística',
-      paragrafos: [
-        'Os números contam histórias, revelam realidades e abrem caminhos para melhores decisões. Por detrás de cada dado, existe uma informação valiosa; por detrás de cada estatística, uma oportunidade de transformar o presente e construir o futuro.',
-        'Hoje celebramos a importância da estatística como instrumento de conhecimento, desenvolvimento e progresso.',
-        '<b>Porque conhecer a realidade é o primeiro passo para transformá-la!</b>',
-        'Dia Mundial da Estatística ' + SVG_CORACAO + ' ' + SVG_SOBE
-      ]
-    }
-  };
+  // Datas especiais ('AAAA-MM-DD': { titulo, paragrafos:[…] }). Vazio = nenhuma
+  // mensagem especial (a do Dia Mundial da Estatística foi retirada a pedido).
+  var DIAS_ESPECIAIS = {};
   function mensagemDiaEspecial(agora, nome){
     var d = DIAS_ESPECIAIS[agora.data]; if (!d) return false;
     var semTags = function (t) { return String(t).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); };
