@@ -1147,12 +1147,12 @@
   var SVG_SOBE = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>';
   var DIAS_ESPECIAIS = {
     '2026-10-20': {
-      titulo: 'Dia Municipal da Estatística',
+      titulo: 'Dia Mundial da Estatística',
       paragrafos: [
         'Os números contam histórias, revelam realidades e abrem caminhos para melhores decisões. Por detrás de cada dado, existe uma informação valiosa; por detrás de cada estatística, uma oportunidade de transformar o presente e construir o futuro.',
         'Hoje celebramos a importância da estatística como instrumento de conhecimento, desenvolvimento e progresso.',
         '<b>Porque conhecer a realidade é o primeiro passo para transformá-la!</b>',
-        'Dia mundial da estatística ' + SVG_CORACAO + ' ' + SVG_SOBE
+        'Dia Mundial da Estatística ' + SVG_CORACAO + ' ' + SVG_SOBE
       ]
     }
   };
