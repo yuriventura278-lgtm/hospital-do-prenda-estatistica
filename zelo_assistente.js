@@ -1161,27 +1161,33 @@
     var semTags = function (t) { return String(t).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); };
     // Lê a mensagem TODA (título, parágrafos e a frase final).
     var voz = saudacaoPorHora(agora.hora) + ', ' + nome + '. ' + d.titulo + '. ' + d.paragrafos.map(semTags).join(' ');
-    var aberta = true, comecou = false, caixa = null;
-    function ler(){
+    var aberta = true, caixa = null, chaveVoz = 'zeloDiaEspecialVoz_' + agora.data;
+    function jaFalou(){ try { return !!localStorage.getItem(chaveVoz); } catch (e) { return true; } }
+    function ler(forcar){
       if (!window.speechSynthesis) return;
-      comecou = true;
+      if (!forcar && jaFalou()) return;
+      try { localStorage.setItem(chaveVoz, String(Date.now())); } catch (e) {}
       vozesProntas(function () { try { _dizer(voz); } catch (e) {} });
     }
     // Os navegadores bloqueiam a fala automática se a pessoa ainda não
-    // clicou na página (ex.: depois de recarregar). Tenta já; se não
-    // começar, lê no primeiro clique/tecla (fora do botão «Obrigado»).
+    // clicou na página. Tenta uma vez; se o navegador não deixar começar,
+    // lê UMA vez no primeiro clique/tecla (fora dos botões da mensagem).
     function aoGesto(e){
-      if (!aberta) return limpar();
-      if (e && e.target && e.target.closest && e.target.closest('[data-esp-fechar]')) return;
-      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) ler();
       limpar();
+      if (!aberta) return;
+      if (e && e.target && e.target.closest && e.target.closest('.ze-botoes')) return;
+      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) ler(true);
     }
     function limpar(){ document.removeEventListener('pointerdown', aoGesto, true); document.removeEventListener('keydown', aoGesto, true); }
-    if ((localStorage.getItem('zeloVoz') || 'on') !== 'off') {
+    if ((localStorage.getItem('zeloVoz') || 'on') !== 'off' && !jaFalou()) {
       ler();
-      document.addEventListener('pointerdown', aoGesto, true);
-      document.addEventListener('keydown', aoGesto, true);
-      setTimeout(function () { if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) limpar(); }, 2500);
+      // Só arma o «ler no 1.º clique» se a fala automática não arrancou.
+      setTimeout(function () {
+        if (!aberta || !window.speechSynthesis) return;
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) return;
+        document.addEventListener('pointerdown', aoGesto, true);
+        document.addEventListener('keydown', aoGesto, true);
+      }, 1500);
     }
     if (window.ZeloEspera && window.ZeloEspera.mensagem) {
       caixa = window.ZeloEspera.mensagem({
@@ -1190,7 +1196,7 @@
         titulo: d.titulo,
         html: d.paragrafos.map(function (p) { return '<p style="margin:0 0 10px;font-size:.98rem;line-height:1.6;text-align:center">' + p + '</p>'; }).join(''),
         botoes: [
-          { texto: 'Ouvir a mensagem', acao: function () { limpar(); ler(); }, manter: true },
+          { texto: 'Ouvir a mensagem', acao: function () { limpar(); ler(true); }, manter: true },
           { texto: 'Obrigado', principal: true, acao: function () { aberta = false; limpar(); } }
         ]
       });
@@ -1215,8 +1221,15 @@
     if (!DIAS_ESPECIAIS[agora.data] || diaEspecialEmCurso) return false;
     var nome = _doisNomes(sessionStorage.getItem('zeloNome') || '');
     if (!nome) return false;
-    var chave = 'zeloDiaEspecial_' + agora.data + '_' + (sessionStorage.getItem('zeloEmail') || nome);
-    try { if (localStorage.getItem(chave)) return false; } catch (e) { return false; }
+    // Uma vez por DIA em cada aparelho (ecrã e voz), seja qual for a conta,
+    // o separador ou a página — nunca se repete no mesmo dia.
+    var chave = 'zeloDiaEspecialVisto_' + agora.data;
+    try {
+      if (localStorage.getItem(chave)) return false;
+      // Marca antiga (por conta) de quem já viu hoje antes desta versão: conta como visto.
+      var antiga = 'zeloDiaEspecial_' + agora.data + '_';
+      for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf(antiga) === 0) { localStorage.setItem(chave, '1'); return false; } }
+    } catch (e) { return false; }
     if (!(window.ZeloEspera && window.ZeloEspera.mensagem)) return false; // ecrã ainda não pronto: tenta de novo depois
     diaEspecialEmCurso = true;
     try { localStorage.setItem(chave, String(Date.now())); localStorage.setItem('zeloSaudacaoDia', agora.data); sessionStorage.setItem('zeloSaudacaoSessao', '1'); } catch (e) {}
