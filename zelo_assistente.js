@@ -1112,6 +1112,7 @@
   // separador/browser) — recebe só as boas-vindas de volta, mais curtas. Uma
   // simples recarga da mesma página/sessão não repete nada.
   function tentarSaudarEntrada(){
+    if (tentarDiaEspecial()) return;
     if (!estaNaPaginaInicial()) return;
     var nome = _doisNomes(sessionStorage.getItem('zeloNome') || '');
     if (!nome) return;
@@ -1121,13 +1122,6 @@
     var ultima = _ultimaAtividade();
     var foraMin = ultima ? (Date.now() - ultima) / 60000 : Infinity;
     _registarAtividade();
-    // Dia especial: uma vez por pessoa neste aparelho, mesmo que já tenha
-    // entrado hoje antes (substitui a saudação habitual desse dia).
-    var chaveEsp = 'zeloDiaEspecial_' + agora.data + '_' + (sessionStorage.getItem('zeloEmail') || nome);
-    if (DIAS_ESPECIAIS[agora.data] && !localStorage.getItem(chaveEsp)) {
-      localStorage.setItem(chaveEsp, '1'); localStorage.setItem('zeloSaudacaoDia', agora.data);
-      mensagemDiaEspecial(agora, nome); return;
-    }
     if (localStorage.getItem('zeloSaudacaoDia') === agora.data) {
       // Já cumprimentou hoje: só volta a falar depois de uma pausa longa
       // (mais de 2 horas fora), e só uma frase curta.
@@ -1176,6 +1170,24 @@
         botoes: [{ texto: 'Obrigado', principal: true }]
       });
     }
+    return true;
+  }
+  // Dia especial: em QUALQUER página, assim que há sessão iniciada, uma vez
+  // por pessoa em cada aparelho — mesmo para quem já tinha o ZELO aberto ou
+  // já foi cumprimentado hoje (antes, só na página inicial e só na 1.ª
+  // saudação da sessão, e por isso não aparecia a quem recarregava).
+  var diaEspecialEmCurso = false;
+  function tentarDiaEspecial(){
+    var agora = dataHoraAngola();
+    if (!DIAS_ESPECIAIS[agora.data] || diaEspecialEmCurso) return false;
+    var nome = _doisNomes(sessionStorage.getItem('zeloNome') || '');
+    if (!nome) return false;
+    var chave = 'zeloDiaEspecial_' + agora.data + '_' + (sessionStorage.getItem('zeloEmail') || nome);
+    try { if (localStorage.getItem(chave)) return false; } catch (e) { return false; }
+    if (!(window.ZeloEspera && window.ZeloEspera.mensagem)) return false; // ecrã ainda não pronto: tenta de novo depois
+    diaEspecialEmCurso = true;
+    try { localStorage.setItem(chave, String(Date.now())); localStorage.setItem('zeloSaudacaoDia', agora.data); sessionStorage.setItem('zeloSaudacaoSessao', '1'); } catch (e) {}
+    mensagemDiaEspecial(agora, nome);
     return true;
   }
   window.zeloMensagemDiaEspecial = function (data) { var a = dataHoraAngola(); if (data) a.data = data; return mensagemDiaEspecial(a, _doisNomes(sessionStorage.getItem('zeloNome') || '') || 'colega'); };
@@ -1552,7 +1564,7 @@
       }
       falarEmFila(texto);
       // No ecrã: só o nome e uma frase curta em letras grandes.
-      if (window.ZeloEspera && window.ZeloEspera.mensagem) {
+      if (window.ZeloEspera && window.ZeloEspera.mensagem && !diaEspecialEmCurso) {
         window.ZeloEspera.mensagem({
           icone: diasFalta.length ? 'calendario' : 'ok',
           nome: 'Olá, ' + nome,
@@ -1841,8 +1853,12 @@
     // Ver nota acima de tentarAvisarPreenchimento: cobre o caso de a sessão
     // só ficar confirmada depois dos 1200ms fixos.
     window.addEventListener('zelo-gate-ready', function () {
+      tentarDiaEspecial();
       tentarAvisarPreenchimento();
     });
+    // Dia especial: volta a tentar durante o 1.º minuto (sessão/ecrã podem
+    // ficar prontos mais tarde em ligações lentas).
+    [2500, 5000, 10000, 20000, 40000, 60000].forEach(function (ms) { setTimeout(tentarDiaEspecial, ms); });
   }
 
   if (document.readyState === 'loading') {
