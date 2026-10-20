@@ -887,7 +887,7 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
 (function(){
   var g=document.getElementById('zeloAuthGate'); if(!g) return;
   /* Dia da Estatística: imagem especial só nesse dia (data de Luanda). */
-  try{ var hoje=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Luanda',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); if(['2026-10-20'].indexOf(hoje)>=0) g.classList.add('zag-especial'); }catch(e){}
+  try{ var hoje=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Luanda',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); if([].indexOf(hoje)>=0) g.classList.add('zag-especial'); /* datas 'AAAA-MM-DD' com imagem especial; vazio = design normal (a pedido, também a 20/10/2026) */ }catch(e){}
   var em=document.getElementById('zeloAuthEmail'), pw=document.getElementById('zeloAuthPass'), anel=document.getElementById('zagAnelP');
   var ok='<span class="zaf-ok" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg></span>';
   ['zeloEmailField','zeloPassField'].forEach(function(id){ var w=document.querySelector('#'+id+' .zaf-wrap'); if(w) w.insertAdjacentHTML('beforeend', ok); });
