@@ -524,11 +524,21 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
      em si não é alterada, só a forma como é enquadrada.
   */
   #zeloAuthGate{
-    background-color:#16222F;
-    background-image:url('icons/login_bg.jpg');
-    background-size:cover;background-position:right center;background-repeat:no-repeat;
-    align-items:center;justify-content:flex-end;
+    background-color:#0A1F4D;
+    align-items:stretch;justify-content:flex-end;
   }
+  /* Ecrã dividido (a pedido): à esquerda a imagem da equipa INTEIRA (as
+     quatro pessoas e o título nunca são cortados — "contain", encostada em
+     baixo); o espaço que sobrar em cima é do mesmo azul do topo da imagem, com
+     uma passagem curta (não toca no título da imagem). À direita, o formulário numa coluna branca. */
+  #zeloAuthGate .zag-foto-fundo{position:absolute;top:0;bottom:0;left:0;right:440px;}
+  #zeloAuthGate .zag-foto{position:absolute;inset:0;}
+  #zeloAuthGate .zag-foto-fundo{background:linear-gradient(180deg,#00245F 0%,#002E7B 100%);}
+  #zeloAuthGate .zag-foto-corte{position:absolute;top:0;bottom:0;left:0;right:440px;overflow:hidden;}
+  #zeloAuthGate .zag-foto{background:url('icons/login_equipa.jpg') center bottom/contain no-repeat;
+    --fh:min(100%,calc((100vw - 440px)*.6667));
+    -webkit-mask-image:linear-gradient(180deg,transparent calc(100% - var(--fh)),#000 calc(100% - var(--fh) + 26px));
+            mask-image:linear-gradient(180deg,transparent calc(100% - var(--fh)),#000 calc(100% - var(--fh) + 26px));}
   /* Nome em baixo, sobre as mãos, sem caixa/contorno — só texto branco
      grande e com peso, com sombra para legibilidade sobre a foto. */
   #zeloAuthGate .zag-brand{position:absolute;bottom:165px;left:min(4vw,48px);z-index:3;max-width:min(48vw,560px);pointer-events:none;
@@ -543,13 +553,14 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
     #zeloAuthGate .zag-top-sub{font-size:.88rem;margin-top:7px;}
   }
   /* Logótipo bem realçado, no canto superior esquerdo, sobre a fotografia. */
-  #zeloAuthGate .zag-logo-corner{position:absolute;top:32px;left:32px;z-index:3;}
-  #zeloAuthGate .zag-logo-corner img{width:84px;height:84px;border-radius:20px;background:#fff;padding:10px;object-fit:contain;box-shadow:0 16px 36px -10px rgba(0,0,0,.55);}
+  #zeloAuthGate .zag-brand{display:none !important;} /* o título já está na imagem */
+  #zeloAuthGate .zag-logo-corner{position:absolute;top:26px;left:26px;z-index:3;}
+  #zeloAuthGate .zag-logo-corner img{width:64px;height:64px;border-radius:20px;background:#fff;padding:10px;object-fit:contain;box-shadow:0 16px 36px -10px rgba(0,0,0,.55);}
   /* Cartão do formulário: flutua sobre a fotografia, à direita (a
      pedido), numa zona sem rostos — com leve desfoque por trás para
      garantir legibilidade sobre a foto. O logótipo ZELO fica aqui
      dentro. */
-  #zeloAuthGate .zag-form-panel{position:relative;flex:none;width:100%;max-width:350px;margin-right:min(5vw,60px);padding:34px 32px;border-radius:20px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);border:1px solid rgba(255,255,255,.6);box-shadow:0 30px 70px -24px rgba(9,17,31,.55);min-width:290px;max-height:calc(100vh - 56px);overflow-y:auto;}
+  #zeloAuthGate .zag-form-panel{position:relative;z-index:4;flex:none;width:440px;max-width:440px;min-height:100vh;align-self:stretch;display:flex;flex-direction:column;justify-content:center;margin:0;padding:40px 48px;border-radius:0;box-shadow:-20px 0 60px rgba(0,0,0,.28);background:#fff;-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);border:1px solid rgba(255,255,255,.6);box-shadow:0 30px 70px -24px rgba(9,17,31,.55);min-width:290px;max-height:calc(100vh - 56px);overflow-y:auto;}
   #zeloAuthGate .zag-form-inner{max-width:330px;width:100%;margin:0 auto;}
   #zeloAuthGate .zag-brand-row{display:flex;align-items:center;gap:11px;margin-bottom:30px;max-width:360px;width:100%;margin-left:auto;margin-right:auto;}
   #zeloAuthGate .zag-brand-row img{width:44px;height:44px;border-radius:12px;object-fit:contain;box-shadow:0 6px 16px -6px rgba(22,34,47,.35);flex-shrink:0;}
@@ -629,13 +640,18 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
        já acontecia antes, com o formulário a ocupar a largura toda. */
     #zeloAuthGate{flex-direction:column;justify-content:flex-start;overflow-y:auto;align-items:stretch;background-image:none;background-color:#F5F6F8;}
     #zeloAuthGate .zag-mobile-brand{display:flex;}
+    #zeloAuthGate .zag-foto-fundo{display:none;}
+    #zeloAuthGate .zag-foto-corte{position:relative;right:auto;flex:none;height:min(62vw,300px);}
+    #zeloAuthGate .zag-foto{background-size:cover;background-position:center 40%;-webkit-mask-image:none;mask-image:none;}
     #zeloAuthGate .zag-brand{display:none;} /* já aparece na barra compacta acima */
     #zeloAuthGate .zag-logo-corner{display:none;}
-    #zeloAuthGate .zag-form-panel{position:static;flex:none;width:100%;max-width:none;margin-left:0;margin-right:0;padding:32px 24px;border-radius:0;background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;box-shadow:none;max-height:none;}
+    #zeloAuthGate .zag-form-panel{position:static;flex:none;width:100%;max-width:none;min-height:0;display:block;align-self:auto;margin-left:0;margin-right:0;padding:32px 24px;border-radius:0;background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;border:none;box-shadow:none;max-height:none;}
     #zeloAuthGate .zag-brand-row{display:none;} /* já aparece na barra compacta acima */
   }
 </style>
   <div class="zag-mobile-brand"><img src="icons/logo.png" alt="ZELO"><span>ZELO · Hospital do Prenda</span></div>
+  <div class="zag-foto-fundo" aria-hidden="true"></div>
+  <div class="zag-foto-corte" aria-hidden="true"><div class="zag-foto"></div></div>
   <div class="zag-brand">
     <img class="zag-brand-icon" src="icons/logo.png" alt="">
     <div>
