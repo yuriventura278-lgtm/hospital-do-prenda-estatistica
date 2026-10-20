@@ -3,7 +3,7 @@
 <head>
 <script src="zelo_consumo.js"></script>
 <script>window.ZELO_ESPERA_MODO='entrada';</script>
-<script src="zelo_espera.js?v=9"></script>
+<script src="zelo_espera.js?v=10"></script>
 <script defer src="zelo_cabecalho.js"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
@@ -657,16 +657,17 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
   #zeloAuthGate{background:#020B24 !important;}
   #zeloAuthGate .zag-foto-fundo{display:none !important;}
   #zeloAuthGate .zag-foto-corte{right:480px !important;background:#0A2A6B;}
-  /* Fundo azul com gráficos (vetor, nítido em qualquer ecrã) e, por cima, a
-     equipa recortada (fundo transparente), sempre inteira. */
-  #zeloAuthGate .zag-foto{background:url('icons/login_fundo_estatistica.svg') center/cover no-repeat !important;
+  /* Modelo aprovado: a imagem da equipa com o fundo original de gráficos
+     (barras, linha de tendência, mapa e onda clara), de ponta a ponta. */
+  #zeloAuthGate .zag-foto{background:url('icons/login_equipa2.jpg') center 20%/cover no-repeat !important;
+    background-image:image-set(url('icons/login_equipa2.webp') type('image/webp'),url('icons/login_equipa2.jpg') type('image/jpeg')) !important;
     -webkit-mask-image:none !important;mask-image:none !important;animation:zagEntra 1.4s cubic-bezier(.2,.7,.2,1) both;}
   @keyframes zagEntra{from{opacity:0;transform:scale(1.04)}}
-  #zeloAuthGate .zag-pessoas{position:absolute;left:0;right:4%;top:9%;bottom:0;background:url('icons/login_pessoas.png') left bottom/contain no-repeat;
+  #zeloAuthGate .zag-pessoas{display:none !important;position:absolute;left:0;right:4%;top:9%;bottom:0;background:url('icons/login_pessoas.png') left bottom/contain no-repeat;
     background-image:image-set(url('icons/login_pessoas.webp') type('image/webp'),url('icons/login_pessoas.png') type('image/png'));
     filter:drop-shadow(0 18px 30px rgba(0,10,40,.45));animation:zagEntra 1.4s .15s cubic-bezier(.2,.7,.2,1) both;}
   #zeloAuthGate.zag-especial .zag-pessoas{display:none !important;}
-  #zeloAuthGate .zag-sombra{position:absolute;left:0;right:0;bottom:0;height:50%;background:linear-gradient(0deg,rgba(2,11,36,.98) 0%,rgba(2,11,36,.9) 22%,rgba(2,11,36,.55) 48%,transparent 100%);}
+  #zeloAuthGate .zag-sombra{position:absolute;left:0;right:0;bottom:0;height:44%;background:linear-gradient(0deg,rgba(2,11,36,.95) 0%,rgba(2,11,36,.7) 35%,transparent 100%);}
   #zeloAuthGate .zag-foto-corte::after{content:'';position:absolute;top:0;bottom:0;right:0;width:80px;background:linear-gradient(90deg,transparent,#020B24);}
   #zeloAuthGate .zag-titulo{position:absolute;left:44px;right:110px;bottom:40px;z-index:2;animation:zagSobe 1s .5s both;}
   #zeloAuthGate .zag-titulo b{display:block;font-family:var(--font-body,Inter),'Segoe UI',Arial,sans-serif;font-size:clamp(2.6rem,4.6vw,4.2rem);font-weight:900;letter-spacing:.18em;color:#fff;line-height:1;text-shadow:0 6px 30px rgba(0,0,0,.5);}
@@ -758,7 +759,7 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
     #zeloAuthGate .zag-mobile-brand{display:none !important;}
     #zeloAuthGate .zag-foto-corte{right:auto !important;height:min(82vw,380px) !important;}
     #zeloAuthGate .zag-foto-corte::after{display:none;}
-    #zeloAuthGate .zag-pessoas{left:0;right:2%;top:10%;}
+    #zeloAuthGate .zag-foto{background-position:center 25% !important;}
     #zeloAuthGate .zag-logo-corner{display:block !important;top:12px !important;left:12px !important;}
     #zeloAuthGate .zag-logo-corner img{width:42px !important;height:42px !important;}
     #zeloAuthGate .zag-titulo{left:16px;right:16px;bottom:16px;}
@@ -2322,6 +2323,22 @@ document.addEventListener('click', function(e){
         if (reg && reg.update) reg.update().catch(() => {});
       }).catch(() => {});
     });
+    // Versão nova do sistema chegou depois de mostrar a cópia guardada (rede
+    // lenta): se ainda estiver na página de entrada e sem nada escrito,
+    // recarrega UMA vez para mostrar já a versão nova.
+    function recarregarSeNaEntrada(){
+      try{
+        if (sessionStorage.getItem('zeloRecarregouVersao')) return;
+        var g = document.getElementById('zeloAuthGate'); if (!g) return;
+        var e = document.getElementById('zeloAuthEmail'), p = document.getElementById('zeloAuthPass');
+        if ((e && e.value) || (p && p.value) || (document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName))) return;
+        sessionStorage.setItem('zeloRecarregouVersao', '1');
+        location.reload();
+      }catch(x){}
+    }
+    navigator.serviceWorker.addEventListener('message', (ev) => { if (ev.data && ev.data.tipo === 'zelo-versao-nova') recarregarSeNaEntrada(); });
+    var tinhaControlador = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (tinhaControlador) recarregarSeNaEntrada(); });
   }
 </script>
 

@@ -78,7 +78,7 @@
     'html.ze-ecra #zmf-btn,html.ze-ecra #zas-btn,html.ze-ecra #zub-sair-btn{visibility:hidden !important;}',
     // Opção A: azul-escuro com a fotografia do ecrã de entrada ao fundo, suave (desfocada e escurecida)
     '.ze-escura{background:#0B1522;color:#fff;isolation:isolate;overflow:hidden;}',
-    '.ze-escura::before{content:"";position:absolute;inset:-12px;z-index:-2;background:url(icons/login_equipa.jpg) center/cover no-repeat;filter:blur(3px) saturate(.9);opacity:.55;}',
+    '.ze-escura::before{content:"";position:absolute;inset:-12px;z-index:-2;background:url(icons/login_equipa2.jpg) center/cover no-repeat;filter:blur(3px) saturate(.9);opacity:.55;}',
     '.ze-escura::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 50% 45%,rgba(20,40,75,.72) 0%,rgba(10,21,40,.9) 60%,rgba(6,13,26,.96) 100%);}',
     '.ze-veu{background:rgba(15,23,42,.5);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);}',
     '.ze-centro{text-align:center;width:min(86vw,340px);}',
@@ -115,7 +115,7 @@
     '@keyframes zeGira{to{transform:rotate(360deg);}}',
     // Janelas de boas-vindas / ajuda (#welcomeModal) e mensagens de boas-vindas
     // no ecrã de abertura: mesmo visual dos ecrãs de espera.
-    '#welcomeModal,#splash.ze-splash-msg{background:linear-gradient(180deg,rgba(8,18,38,.84),rgba(6,13,26,.93)),url(icons/login_equipa.jpg) center/cover no-repeat !important;}',
+    '#welcomeModal,#splash.ze-splash-msg{background:linear-gradient(180deg,rgba(8,18,38,.84),rgba(6,13,26,.93)),url(icons/login_equipa2.jpg) center/cover no-repeat !important;}',
     '#welcomeModal > *{background:rgba(12,26,52,.62) !important;border:1px solid rgba(255,255,255,.16) !important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.45) !important;color:#E2E8F0 !important;}',
     '#welcomeModal > * *:not(svg):not(path):not(circle):not(line):not(polyline){color:#E2E8F0 !important;}',
     '#welcomeModal h2:not(#ze-x),#welcomeModal b:not(#ze-x),#welcomeModal strong:not(#ze-x){color:#fff !important;}',
