@@ -730,6 +730,23 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
   #zeloAuthGate .zag-lang button{background:transparent !important;border-color:rgba(125,211,252,.3) !important;color:#BFDBFE !important;}
   #zeloAuthGate .zag-lang button.active{background:#22D3EE !important;color:#02122E !important;border-color:#22D3EE !important;}
   #zeloAuthGate .zag-foot,#zeloAuthGate .zag-version{color:#7C93B8 !important;}
+  /* Dia da Estatística (20/10/2026): a imagem do dia INTEIRA, tal como foi
+     enviada (texto e ícones incluídos), sem cortes; o espaço à volta é a
+     mesma imagem desfocada. Noutros dias fica a imagem da equipa normal. */
+  #zeloAuthGate.zag-especial .zag-foto-fundo{display:block !important;position:absolute;top:0;bottom:0;left:0;right:480px;overflow:hidden;
+    background:url('icons/login_dia_estatistica.jpg') center/cover no-repeat !important;filter:blur(30px) brightness(.8) saturate(1.1);transform:scale(1.15);}
+  #zeloAuthGate.zag-especial .zag-foto-corte{background:transparent !important;}
+  #zeloAuthGate.zag-especial .zag-foto{background:url('icons/login_dia_estatistica.jpg') center/contain no-repeat !important;
+    background-image:image-set(url('icons/login_dia_estatistica.webp') type('image/webp'),url('icons/login_dia_estatistica.jpg') type('image/jpeg')) !important;
+    --fh:min(100%,calc((100vw - 480px)*.6667));
+    -webkit-mask-image:linear-gradient(180deg,transparent calc((100% - var(--fh))/2),#000 calc((100% - var(--fh))/2 + 28px),#000 calc((100% + var(--fh))/2 - 28px),transparent calc((100% + var(--fh))/2)) !important;
+            mask-image:linear-gradient(180deg,transparent calc((100% - var(--fh))/2),#000 calc((100% - var(--fh))/2 + 28px),#000 calc((100% + var(--fh))/2 - 28px),transparent calc((100% + var(--fh))/2)) !important;}
+  #zeloAuthGate.zag-especial .zag-sombra,#zeloAuthGate.zag-especial .zag-titulo,#zeloAuthGate.zag-especial .zag-foto-corte::after{display:none !important;}
+  @media(max-width:760px){
+    #zeloAuthGate.zag-especial .zag-foto-fundo{display:none !important;}
+    #zeloAuthGate.zag-especial .zag-foto-corte{height:66.7vw !important;}
+    #zeloAuthGate.zag-especial .zag-foto{-webkit-mask-image:none !important;mask-image:none !important;}
+  }
   @media(prefers-reduced-motion:reduce){#zeloAuthGate *{animation:none !important;}}
   @media(max-width:760px){
     #zeloAuthGate{background:#020B24 !important;}
@@ -864,6 +881,8 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
    verdes, saudação pela hora de Luanda e rede de dados animada. Só aspeto. */
 (function(){
   var g=document.getElementById('zeloAuthGate'); if(!g) return;
+  /* Dia da Estatística: imagem especial só nesse dia (data de Luanda). */
+  try{ var hoje=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Luanda',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()); if(['2026-10-20'].indexOf(hoje)>=0) g.classList.add('zag-especial'); }catch(e){}
   var em=document.getElementById('zeloAuthEmail'), pw=document.getElementById('zeloAuthPass'), anel=document.getElementById('zagAnelP');
   var ok='<span class="zaf-ok" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg></span>';
   ['zeloEmailField','zeloPassField'].forEach(function(id){ var w=document.querySelector('#'+id+' .zaf-wrap'); if(w) w.insertAdjacentHTML('beforeend', ok); });
