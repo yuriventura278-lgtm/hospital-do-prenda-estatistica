@@ -1159,16 +1159,49 @@
   function mensagemDiaEspecial(agora, nome){
     var d = DIAS_ESPECIAIS[agora.data]; if (!d) return false;
     var semTags = function (t) { return String(t).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); };
-    var voz = saudacaoPorHora(agora.hora) + ', ' + nome + '. ' + d.titulo + '. ' + d.paragrafos.slice(0, 3).map(semTags).join(' ');
-    falar(voz);
+    // Lê a mensagem TODA (título, parágrafos e a frase final).
+    var voz = saudacaoPorHora(agora.hora) + ', ' + nome + '. ' + d.titulo + '. ' + d.paragrafos.map(semTags).join(' ');
+    var aberta = true, comecou = false, caixa = null;
+    function ler(){
+      if (!window.speechSynthesis) return;
+      comecou = true;
+      vozesProntas(function () { try { _dizer(voz); } catch (e) {} });
+    }
+    // Os navegadores bloqueiam a fala automática se a pessoa ainda não
+    // clicou na página (ex.: depois de recarregar). Tenta já; se não
+    // começar, lê no primeiro clique/tecla (fora do botão «Obrigado»).
+    function aoGesto(e){
+      if (!aberta) return limpar();
+      if (e && e.target && e.target.closest && e.target.closest('[data-esp-fechar]')) return;
+      if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) ler();
+      limpar();
+    }
+    function limpar(){ document.removeEventListener('pointerdown', aoGesto, true); document.removeEventListener('keydown', aoGesto, true); }
+    if ((localStorage.getItem('zeloVoz') || 'on') !== 'off') {
+      ler();
+      document.addEventListener('pointerdown', aoGesto, true);
+      document.addEventListener('keydown', aoGesto, true);
+      setTimeout(function () { if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) limpar(); }, 2500);
+    }
     if (window.ZeloEspera && window.ZeloEspera.mensagem) {
-      window.ZeloEspera.mensagem({
+      caixa = window.ZeloEspera.mensagem({
+        icone: 'grafico',
         nome: saudacaoPorHora(agora.hora) + ', ' + nome,
         titulo: d.titulo,
-        icone: 'grafico',
         html: d.paragrafos.map(function (p) { return '<p style="margin:0 0 10px;font-size:.98rem;line-height:1.6;text-align:center">' + p + '</p>'; }).join(''),
-        botoes: [{ texto: 'Obrigado', principal: true }]
+        botoes: [
+          { texto: 'Ouvir a mensagem', acao: function () { limpar(); ler(); }, manter: true },
+          { texto: 'Obrigado', principal: true, acao: function () { aberta = false; limpar(); } }
+        ]
       });
+      try {
+        var bts = caixa.camada.querySelectorAll('.ze-botoes .ze-btn');
+        if (bts[1]) bts[1].setAttribute('data-esp-fechar', '1');
+        if (bts[0]) {
+          bts[0].innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:8px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>Ouvir a mensagem';
+          bts[0].style.cssText += ';text-decoration:none;border:1.5px solid rgba(125,211,252,.6);border-radius:12px;padding:11px 16px;color:#E0F2FE;background:rgba(34,211,238,.12);font-weight:800;margin-bottom:8px';
+        }
+      } catch (e) {}
     }
     return true;
   }
