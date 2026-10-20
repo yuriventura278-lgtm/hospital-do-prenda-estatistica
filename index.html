@@ -649,9 +649,108 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
     #zeloAuthGate .zag-brand-row{display:none;} /* já aparece na barra compacta acima */
   }
 </style>
+<style id="zagV2">
+  /* ── Entrada v2 (a pedido): imagem da equipa de ponta a ponta à esquerda com
+     «ZELO — Sistema Estatístico e Gestão de Ocorrências»; à direita, cartão de
+     vidro escuro sobre uma rede de dados subtil. Só aspeto: o formulário e as
+     suas funções são os mesmos. ── */
+  #zeloAuthGate{background:#020B24 !important;}
+  #zeloAuthGate .zag-foto-fundo{display:none !important;}
+  #zeloAuthGate .zag-foto-corte{right:480px !important;background:#0A2A6B;}
+  #zeloAuthGate .zag-foto{background:url('icons/login_equipa2.jpg') center 20%/cover no-repeat !important;
+    background-image:image-set(url('icons/login_equipa2.webp') type('image/webp'),url('icons/login_equipa2.jpg') type('image/jpeg')) !important;
+    -webkit-mask-image:none !important;mask-image:none !important;animation:zagEntra 1.4s cubic-bezier(.2,.7,.2,1) both;}
+  @keyframes zagEntra{from{opacity:0;transform:scale(1.04)}}
+  #zeloAuthGate .zag-sombra{position:absolute;left:0;right:0;bottom:0;height:44%;background:linear-gradient(0deg,rgba(2,11,36,.95) 0%,rgba(2,11,36,.7) 35%,transparent 100%);}
+  #zeloAuthGate .zag-foto-corte::after{content:'';position:absolute;top:0;bottom:0;right:0;width:80px;background:linear-gradient(90deg,transparent,#020B24);}
+  #zeloAuthGate .zag-titulo{position:absolute;left:44px;right:110px;bottom:40px;z-index:2;animation:zagSobe 1s .5s both;}
+  #zeloAuthGate .zag-titulo b{display:block;font-family:var(--font-body,Inter),'Segoe UI',Arial,sans-serif;font-size:clamp(2.6rem,4.6vw,4.2rem);font-weight:900;letter-spacing:.18em;color:#fff;line-height:1;text-shadow:0 6px 30px rgba(0,0,0,.5);}
+  #zeloAuthGate .zag-titulo span{display:block;margin-top:10px;font-size:clamp(1rem,1.6vw,1.35rem);font-weight:800;color:#E0F2FE;}
+  #zeloAuthGate .zag-titulo em{font-style:normal;background:linear-gradient(90deg,#22D3EE,#A78BFA);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  #zeloAuthGate .zag-titulo i{display:block;width:90px;height:4px;border-radius:4px;margin-top:14px;background:linear-gradient(90deg,#22D3EE,#A78BFA);}
+  @keyframes zagSobe{from{opacity:0;transform:translateY(16px)}}
+  #zeloAuthGate .zag-logo-corner{top:24px !important;left:24px !important;}
+  #zeloAuthGate .zag-logo-corner img{width:56px !important;height:56px !important;border-radius:15px !important;padding:6px !important;}
+  /* coluna da direita */
+  #zeloAuthGate .zag-form-panel{width:480px !important;max-width:480px !important;background:radial-gradient(70% 50% at 50% 30%,rgba(26,86,219,.28),transparent 70%),radial-gradient(60% 40% at 80% 95%,rgba(124,58,237,.2),transparent 70%),#020B24 !important;
+    box-shadow:none !important;padding:32px !important;align-items:center;overflow:hidden;}
+  #zagRede{position:absolute;inset:0;pointer-events:none;}
+  #zeloAuthGate .zag-form-panel{border:none !important;outline:none !important;}
+  #zeloAuthGate .zag-form-inner,#zeloAuthGate .zag-brand-row{max-width:none !important;width:100% !important;margin-left:0 !important;margin-right:0 !important;}
+  #zeloAuthGate input#zeloAuthEmail{padding-right:40px !important;}
+  @property --zagA{syntax:'<angle>';inherits:false;initial-value:0deg}
+  #zeloAuthGate .zag-cartao{position:relative;width:100%;max-width:416px;border-radius:24px;padding:1.5px;
+    background:conic-gradient(from var(--zagA),rgba(34,211,238,.9),rgba(26,86,219,.25),rgba(167,139,250,.9),rgba(26,86,219,.25),rgba(34,211,238,.9));animation:zagGira 8s linear infinite,zagSobe .9s .3s both;}
+  @keyframes zagGira{to{--zagA:360deg}}
+  #zeloAuthGate .zag-vidro{position:relative;border-radius:23px;background:rgba(7,20,50,.88);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding:30px 30px 22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);}
+  #zeloAuthGate .zag-brand-row{margin:0 0 4px !important;gap:14px !important;}
+  #zeloAuthGate .zag-anel{position:relative;width:66px;height:66px;flex:none;}
+  #zeloAuthGate .zag-anel svg{position:absolute;inset:0;transform:rotate(-90deg);}
+  #zeloAuthGate .zag-anel .p{transition:stroke-dashoffset .6s cubic-bezier(.2,.7,.2,1);}
+  #zeloAuthGate .zag-brand-row .zag-anel img{position:absolute;inset:11px;width:44px !important;height:44px !important;border-radius:12px !important;background:#fff;padding:5px;box-shadow:none !important;}
+  #zeloAuthGate .zag-brand-row .zag-brand-word{font-size:1.3rem !important;font-weight:900 !important;letter-spacing:.32em !important;color:#fff !important;font-family:inherit !important;}
+  #zeloAuthGate .zag-brand-row .zag-brand-sub{color:#22D3EE !important;font-weight:800;letter-spacing:.14em !important;margin-top:5px !important;}
+  #zeloAuthGate .zag-saud{margin:22px 0 2px;font-size:1.5rem;font-weight:900;color:#fff;letter-spacing:-.01em;}
+  #zeloAuthGate .zag-saud em{font-style:normal;background:linear-gradient(90deg,#22D3EE,#A78BFA);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  #zeloAuthGate .zag-dia{font-size:.78rem;color:#93C5FD;margin-bottom:6px;}
+  #zeloAuthGate .zag-title{font-size:.72rem !important;font-weight:800 !important;letter-spacing:.12em;text-transform:uppercase;color:#7DD3FC !important;margin-top:14px;}
+  #zeloAuthGate .zag-sub{color:#A5B4CC !important;font-size:.8rem !important;margin-top:4px !important;}
+  #zeloAuthGate label{color:#93C5FD !important;text-transform:uppercase;letter-spacing:.07em;font-size:.66rem !important;font-weight:800 !important;}
+  #zeloAuthGate .zaf-field{margin-top:16px !important;}
+  #zeloAuthGate input{background:rgba(255,255,255,.05) !important;border:1.5px solid rgba(125,211,252,.22) !important;color:#fff !important;}
+  #zeloAuthGate input::placeholder{color:#64748B !important;}
+  #zeloAuthGate input:focus{border-color:#22D3EE !important;background:rgba(34,211,238,.07) !important;box-shadow:0 0 0 4px rgba(34,211,238,.14) !important;}
+  #zeloAuthGate input:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 1000px #0B1F4A inset !important;caret-color:#fff;}
+  #zeloAuthGate .zaf-wrap svg.zaf-icon{color:#7DD3FC !important;}
+  #zeloAuthGate .zaf-ok{position:absolute;right:44px;top:50%;transform:translateY(-50%) scale(0);width:20px;height:20px;border-radius:50%;background:#10B981;display:flex;align-items:center;justify-content:center;transition:transform .25s cubic-bezier(.3,1.6,.5,1);pointer-events:none;}
+  #zeloAuthGate #zeloEmailField .zaf-ok{right:12px;}
+  #zeloAuthGate .zaf-field.zag-v .zaf-ok{transform:translateY(-50%) scale(1);}
+  #zeloAuthGate .zaf-toggle{color:#7DD3FC !important;}
+  #zeloAuthGate .zaf-toggle:hover{background:rgba(125,211,252,.12) !important;}
+  #zeloAuthGate .zaf-row label{color:#BFDBFE !important;text-transform:none;letter-spacing:0;font-size:.78rem !important;font-weight:600 !important;}
+  #zeloAuthGate .zaf-row input[type=checkbox]{accent-color:#22D3EE !important;}
+  #zeloAuthGate .zaf-row a,#zeloAuthGate .zaq-other a{color:#67E8F9 !important;}
+  #zeloAuthGate .zaq-other{color:#A5B4CC !important;}
+  #zeloAuthGate button[type=submit]{height:52px;border-radius:14px !important;color:#02122E !important;font-weight:900 !important;
+    background:linear-gradient(90deg,#22D3EE,#60A5FA,#A78BFA,#60A5FA,#22D3EE) !important;background-size:200% 100% !important;animation:zagFluxo 5s linear infinite;box-shadow:0 14px 34px -12px rgba(34,211,238,.75) !important;}
+  @keyframes zagFluxo{to{background-position:200% 0}}
+  #zeloAuthGate .zaf-spin{border-color:rgba(2,18,46,.3) !important;border-top-color:#02122E !important;}
+  #zeloAuthGate .zaq-chip{background:rgba(255,255,255,.05) !important;border-color:rgba(125,211,252,.25) !important;}
+  #zeloAuthGate .zaq-chip:hover{background:rgba(34,211,238,.1) !important;border-color:#22D3EE !important;}
+  #zeloAuthGate .zaq-name,#zeloAuthGate .zaq-active-name{color:#fff !important;}
+  #zeloAuthGate .zaq-role,#zeloAuthGate .zaq-active-role{color:#93C5FD !important;}
+  #zeloAuthGate .zaq-active{background:rgba(255,255,255,.05) !important;border-color:rgba(125,211,252,.25) !important;}
+  #zeloAuthGate .zaq-swap{color:#67E8F9 !important;}
+  #zeloAuthGate .zaf-captcha{background:rgba(255,255,255,.05) !important;border-color:rgba(125,211,252,.25) !important;}
+  #zeloAuthGate .zaf-captcha .zc-q{color:#E0F2FE !important;}
+  #zeloAuthGate .zag-loading{background:transparent !important;}
+  #zeloAuthGate .zag-loading span{color:#BFDBFE !important;}
+  #zeloAuthGate .zag-loading .zaf-loading-spin{border-color:rgba(125,211,252,.2) !important;border-top-color:#22D3EE !important;}
+  #zeloAuthGate .zag-progress{background:rgba(125,211,252,.18) !important;}
+  #zeloAuthGate .zag-lang button{background:transparent !important;border-color:rgba(125,211,252,.3) !important;color:#BFDBFE !important;}
+  #zeloAuthGate .zag-lang button.active{background:#22D3EE !important;color:#02122E !important;border-color:#22D3EE !important;}
+  #zeloAuthGate .zag-foot,#zeloAuthGate .zag-version{color:#7C93B8 !important;}
+  @media(prefers-reduced-motion:reduce){#zeloAuthGate *{animation:none !important;}}
+  @media(max-width:760px){
+    #zeloAuthGate{background:#020B24 !important;}
+    #zeloAuthGate .zag-mobile-brand{display:none !important;}
+    #zeloAuthGate .zag-foto-corte{right:auto !important;height:min(82vw,380px) !important;}
+    #zeloAuthGate .zag-foto-corte::after{display:none;}
+    #zeloAuthGate .zag-foto{background-position:center 25% !important;}
+    #zeloAuthGate .zag-logo-corner{display:block !important;top:12px !important;left:12px !important;}
+    #zeloAuthGate .zag-logo-corner img{width:42px !important;height:42px !important;}
+    #zeloAuthGate .zag-titulo{left:16px;right:16px;bottom:16px;}
+    #zeloAuthGate .zag-titulo b{font-size:2rem;}
+    #zeloAuthGate .zag-titulo span{font-size:.9rem;margin-top:6px;}
+    #zeloAuthGate .zag-titulo i{display:none;}
+    #zeloAuthGate .zag-form-panel{width:100% !important;max-width:none !important;padding:18px 14px 28px !important;display:flex !important;justify-content:center;}
+    #zeloAuthGate .zag-brand-row{display:flex !important;}
+    #zeloAuthGate .zag-vidro{padding:24px 20px 20px;}
+  }
+</style>
   <div class="zag-mobile-brand"><img src="icons/logo.png" alt="ZELO"><span>ZELO · Hospital do Prenda</span></div>
   <div class="zag-foto-fundo" aria-hidden="true"></div>
-  <div class="zag-foto-corte" aria-hidden="true"><div class="zag-foto"></div></div>
+  <div class="zag-foto-corte" aria-hidden="true"><div class="zag-foto"></div><div class="zag-sombra"></div><div class="zag-titulo"><b>ZELO</b><span>Sistema Estatístico e <em>Gestão de Ocorrências</em></span><i></i></div></div>
   <div class="zag-brand">
     <img class="zag-brand-icon" src="icons/logo.png" alt="">
     <div>
@@ -661,13 +760,17 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
   </div>
   <div class="zag-logo-corner"><img src="icons/logo.png" alt="ZELO"></div>
   <div class="zag-form-panel">
+   <canvas id="zagRede" aria-hidden="true"></canvas>
+   <div class="zag-cartao"><div class="zag-vidro">
     <div class="zag-brand-row">
-      <img src="icons/logo.png" alt="ZELO">
+      <div class="zag-anel"><svg viewBox="0 0 66 66" aria-hidden="true"><circle cx="33" cy="33" r="29" fill="none" stroke="rgba(125,211,252,.16)" stroke-width="5"/><circle class="p" id="zagAnelP" cx="33" cy="33" r="29" fill="none" stroke="url(#zagGr)" stroke-width="5" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2"/><defs><linearGradient id="zagGr"><stop offset="0" stop-color="#22D3EE"/><stop offset="1" stop-color="#A78BFA"/></linearGradient></defs></svg><img src="icons/logo.png" alt="ZELO"></div>
       <div>
         <div class="zag-brand-word">ZELO</div>
         <div class="zag-brand-sub">Hospital do Prenda</div>
       </div>
     </div>
+    <div class="zag-saud" id="zagSaud">Bem-vindo(a)</div>
+    <div class="zag-dia" id="zagDia"></div>
     <div id="zeloAuthLoading" class="zag-loading">
       <div class="zaf-loading-spin"></div>
       <span id="zeloAuthLoadingTxt">A carregar…</span>
@@ -753,8 +856,49 @@ document.addEventListener('keydown',function(e){if(num(e.target)&&(e.key==='Arro
         <span class="zag-version">v3.1</span>
       </div>
     </form>
+   </div></div>
   </div>
 </div>
+<script>
+/* Entrada v2: anel do logótipo (email 50% + palavra-passe 100%), vistos
+   verdes, saudação pela hora de Luanda e rede de dados animada. Só aspeto. */
+(function(){
+  var g=document.getElementById('zeloAuthGate'); if(!g) return;
+  var em=document.getElementById('zeloAuthEmail'), pw=document.getElementById('zeloAuthPass'), anel=document.getElementById('zagAnelP');
+  var ok='<span class="zaf-ok" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg></span>';
+  ['zeloEmailField','zeloPassField'].forEach(function(id){ var w=document.querySelector('#'+id+' .zaf-wrap'); if(w) w.insertAdjacentHTML('beforeend', ok); });
+  function atualizar(){ if(!document.body.contains(g)) return; var fe=document.getElementById('zeloEmailField'), fp=document.getElementById('zeloPassField'); if(!fe||!fp) return;
+    var e=/.+@.+\..+/.test(em.value), p=pw.value.length>=6; if(anel) anel.style.strokeDashoffset=182.2*(1-((e?.5:0)+(p?.5:0)));
+    fe.classList.toggle('zag-v',e); fp.classList.toggle('zag-v',p); }
+  if(em&&pw){ ['input','change'].forEach(function(t){ em.addEventListener(t,atualizar); pw.addEventListener(t,atualizar); }); setTimeout(atualizar,800); }
+  function saudar(){
+    if(!document.body.contains(g)) return;
+    try{
+      var h=+new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Luanda',hour:'2-digit',hour12:false}).format(new Date());
+      var en=(document.documentElement.lang||'').indexOf('en')===0||(document.getElementById('zeloLangEN')||{}).className==='active';
+      var s=en?(h>=5&&h<12?'Good morning':h<19?'Good afternoon':'Good evening'):(h>=5&&h<12?'Bom dia':h<19?'Boa tarde':'Boa noite');
+      document.getElementById('zagSaud').innerHTML=s+', <em>'+(en?'welcome':'bem-vindo(a)')+'</em>';
+      var d=new Date();
+      document.getElementById('zagDia').textContent=new Intl.DateTimeFormat(en?'en-GB':'pt-PT',{timeZone:'Africa/Luanda',weekday:'long',day:'numeric',month:'long'}).format(d)+' · Luanda '+new Intl.DateTimeFormat('pt-PT',{timeZone:'Africa/Luanda',hour:'2-digit',minute:'2-digit'}).format(d);
+    }catch(e){}
+  }
+  saudar(); var rel=setInterval(saudar,30000);
+  ['zeloLangPT','zeloLangEN'].forEach(function(id){ var b=document.getElementById(id); if(b) b.addEventListener('click',function(){ setTimeout(saudar,30); }); });
+  var cv=document.getElementById('zagRede'), pai=cv&&cv.parentNode, cx=cv&&cv.getContext&&cv.getContext('2d'), P=[];
+  if(!cx) return;
+  var calmo=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function tam(){ cv.width=pai.clientWidth; cv.height=pai.clientHeight; P=[]; for(var i=0;i<38;i++) P.push({x:Math.random()*cv.width,y:Math.random()*cv.height,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3}); }
+  tam(); window.addEventListener('resize',tam);
+  (function passo(){
+    if(!document.body.contains(g)){ clearInterval(rel); window.removeEventListener('resize',tam); return; } /* entrou: pára */
+    cx.clearRect(0,0,cv.width,cv.height);
+    P.forEach(function(p,i){ if(!calmo){ p.x+=p.vx; p.y+=p.vy; } if(p.x<0||p.x>cv.width) p.vx*=-1; if(p.y<0||p.y>cv.height) p.vy*=-1;
+      cx.fillStyle='rgba(125,211,252,.55)'; cx.beginPath(); cx.arc(p.x,p.y,1.4,0,7); cx.fill();
+      for(var j=i+1;j<P.length;j++){ var q=P[j], d=Math.hypot(p.x-q.x,p.y-q.y); if(d<120){ cx.strokeStyle='rgba(96,165,250,'+(.18*(1-d/120))+')'; cx.beginPath(); cx.moveTo(p.x,p.y); cx.lineTo(q.x,q.y); cx.stroke(); } } });
+    if(!calmo) requestAnimationFrame(passo);
+  })();
+})();
+</script>
 <script src="zelo_loading.js"></script>
 <script src="zelo_servicos_menu.js?v=7"></script>
 <script type="module">
