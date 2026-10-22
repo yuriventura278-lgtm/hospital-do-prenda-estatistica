@@ -88,7 +88,21 @@
     function pedir() { if (!agendado) { agendado = true; requestAnimationFrame(encostar); } }
     encostar();
     window.addEventListener('resize', pedir);
-    if (window.ResizeObserver) new ResizeObserver(pedir).observe(document.body);
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(pedir);
+      ro.observe(document.body);
+      // Páginas com o corpo de altura fixa (= ecrã): o corpo não muda de
+      // tamanho quando o conteúdo cresce, por isso vigia-se também o conteúdo.
+      // Sem isto o rodapé podia ficar com um espaço a mais se se medisse
+      // antes de o conteúdo aparecer.
+      var pai = f.parentNode;
+      [pai, pai !== document.body ? document.body : null].forEach(function (c) {
+        if (!c) return;
+        Array.prototype.forEach.call(c.children, function (e) { if (e !== f && e !== pai) ro.observe(e); });
+      });
+    }
+    window.addEventListener('load', pedir);
+    setTimeout(pedir, 2000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montar);
   else montar();

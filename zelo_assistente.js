@@ -973,19 +973,34 @@
   // aparecer. Os lembretes falados (dias ou serviços em falta) mantêm-se.
   var VOZ_ONCLICK = /zeloLerElemento|narrar|Narrar|Voz\s*\(|lerEmVoz|zeloNarrar/;
   var VOZ_TEXTO = /ler (os dados |dados |de hoje )?(em voz|.*em voz)|^\s*🔊/i;
+  function verBotaoVoz(b) {
+    if (b.closest('#zas-panel,#zas-btn,.ze-camada')) return;
+    var oc = b.getAttribute('onclick') || '', t = (b.textContent || '') + ' ' + (b.getAttribute('aria-label') || '') + ' ' + (b.getAttribute('title') || '');
+    if (VOZ_ONCLICK.test(oc) || VOZ_TEXTO.test(t) || b.classList.contains('svc-voz-btn')) b.style.setProperty('display', 'none', 'important');
+  }
   function retirarBotoesVoz(raiz) {
-    (raiz || document).querySelectorAll('button,a,[role="button"]').forEach(function (b) {
-      if (b.closest('#zas-panel,#zas-btn,.ze-camada')) return;
-      var oc = b.getAttribute('onclick') || '', t = (b.textContent || '') + ' ' + (b.getAttribute('aria-label') || '') + ' ' + (b.getAttribute('title') || '');
-      if (VOZ_ONCLICK.test(oc) || VOZ_TEXTO.test(t) || b.classList.contains('svc-voz-btn')) b.style.setProperty('display', 'none', 'important');
-    });
+    (raiz || document).querySelectorAll('button,a,[role="button"]').forEach(verBotaoVoz);
   }
   function vigiarBotoesVoz() {
     retirarBotoesVoz();
     if (window.MutationObserver && document.body) {
-      var pend = false;
-      new MutationObserver(function () { if (pend) return; pend = true; setTimeout(function () { pend = false; retirarBotoesVoz(); }, 150); })
-        .observe(document.body, { childList: true, subtree: true });
+      // Só se revê a parte da página que mudou (e não a página toda de cada vez).
+      var pend = false, zonas = [];
+      new MutationObserver(function (lista) {
+        for (var i = 0; i < lista.length && zonas.length <= 60; i++) zonas.push(lista[i].target);
+        if (pend) return; pend = true;
+        setTimeout(function () {
+          pend = false; var z = zonas; zonas = [];
+          if (z.length > 60) { retirarBotoesVoz(); return; }
+          var vistas = [];
+          z.forEach(function (el) {
+            if (!el || el.nodeType !== 1 || !el.isConnected || vistas.indexOf(el) !== -1) return;
+            vistas.push(el);
+            var b = el.closest('button,a,[role="button"]'); if (b) verBotaoVoz(b);
+            retirarBotoesVoz(el);
+          });
+        }, 150);
+      }).observe(document.body, { childList: true, subtree: true });
     }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', vigiarBotoesVoz); else vigiarBotoesVoz();
@@ -1021,10 +1036,12 @@
   // Angola usa UTC+1 o ano inteiro (Africa/Luanda, sem hora de Verão), por
   // isso a escolha entre "bom dia"/"boa tarde"/"boa noite" usa sempre a hora
   // desse fuso, independentemente do fuso do dispositivo de quem acede.
+  var _fmtAngola = null; // criado uma vez (criar o formatador é a parte lenta)
   function dataHoraAngola(){
-    var partes = new Intl.DateTimeFormat('en-CA', {
+    if (!_fmtAngola) _fmtAngola = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Africa/Luanda', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false, weekday: 'short'
-    }).formatToParts(new Date());
+    });
+    var partes = _fmtAngola.formatToParts(new Date());
     var obj = {};
     partes.forEach(function (p) { obj[p.type] = p.value; });
     return { data: obj.year + '-' + obj.month + '-' + obj.day, hora: parseInt(obj.hour, 10), diaSemana: obj.weekday };

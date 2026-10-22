@@ -483,10 +483,11 @@
   }
   function splashSumiu(sp, jaVisto) {
     if (!sp || !sp.isConnected) return true;
+    // Primeiro o que não obriga o navegador a recalcular estilos.
+    if (sp.style.opacity === '0' || sp.style.display === 'none') return true;
+    if (/(^|\s)(hide|hidden|out|fade|fadeout|fade-out|gone|done|oculto)(\s|$)/.test(sp.className)) return true;
     var cs = getComputedStyle(sp);
     if (cs.display === 'none') return true;
-    if (sp.style.opacity === '0') return true;
-    if (/(^|\s)(hide|hidden|out|fade|fadeout|fade-out|gone|done|oculto)(\s|$)/.test(sp.className)) return true;
     if (jaVisto && parseFloat(cs.opacity) < 0.5) return true;
     return false;
   }

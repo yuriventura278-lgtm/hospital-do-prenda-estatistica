@@ -467,9 +467,13 @@
     var els = document.querySelectorAll('a,button');
     for (var i = 0; i < els.length; i++){
       var el = els[i];
+      var alvo = (el.getAttribute('href') || '') + ' ' + (el.getAttribute('onclick') || '');
+      // Filtro rápido (sem medir a página): só interessam botões que falem
+      // em Início/Voltar ou que levem ao index.html. Os restantes nunca
+      // teriam nota, por isso não vale a pena medir a posição deles.
+      if (!/in[íi]cio|voltar/i.test(el.textContent || '') && !/index\.html/i.test(alvo)) continue;
       if (!visivelNoTopo(el)) continue;
       var txt = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
-      var alvo = (el.getAttribute('href') || '') + ' ' + (el.getAttribute('onclick') || '');
       var nota = 0;
       if (/^[^A-Za-zÀ-ÿ]*in[íi]cio$/i.test(txt)) nota = 3;
       else if (/voltar (à|a) central/i.test(txt)) nota = 2;
@@ -546,9 +550,9 @@
       }
 
       var inicio = encontrarBotaoInicio();
-      var cabecalho = inicio ? null : encontrarCabecalho();
       // Já está no cabeçalho: só volta a mexer se aparecer o botão Início.
       if (atual && atual.classList.contains('zub-cabecalho') && !inicio) return false;
+      var cabecalho = inicio ? null : encontrarCabecalho();
       // Espera até 20 s pelo cabeçalho (a verificação da sessão pode demorar);
       // só depois usa o botão flutuante — e continua a tentar pô-lo no
       // cabeçalho, para nunca ficar por cima da informação.
