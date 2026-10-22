@@ -49,7 +49,7 @@
     F.cor(NAVY, 'Draw'); d.setLineWidth(0.6); d.roundedRect(M, 10, CW, 22, 2, 2, 'S');
     try { if (Z.LOGO) d.addImage(Z.LOGO, 'JPEG', M + 3, 12.5, 17, 17); } catch (e) {}
     F.txt('HOSPITAL DO PRENDA', M + 24, 16.2, { s: 7.5, b: 1, c: CINZA });
-    F.txt(titulo || 'Recolha de Dias de Cama e Dias de Doente', M + 24, 22.6, { s: 14.5, b: 1 });
+    F.txt(titulo || 'Dias de Cama e Dias de Doente', M + 24, 22.6, { s: 14.5, b: 1 });
     F.txt('Serviço de Admissão e Arquivo Médico Estatístico', M + 24, 28, { s: 8.5, c: CINZA });
   }
   function rodape(d, F, W, M, dir, H) {
@@ -180,7 +180,7 @@
       for (var i = 1; i <= nd; i++) { var a = num(((s.dados || {}).cama || {})[i]), b = num(((s.dados || {}).doente || {})[i]); if (a != null && b != null) { PC += a; PD += b; } }
       linha([s.nome, L == null ? '—' : L, T.cama == null ? '—' : T.cama, T.doente == null ? '—' : T.doente, T.taxa == null ? '—' : taxaTxt(T.taxa) + '%', T.preenchidos + ' / ' + nd]);
     });
-    linha(['TOTAL DO HOSPITAL', TL || '—', TC || '—', TD || '—', PC ? taxaTxt(PD / PC * 100) + '%' : '—', ''], true);
+    linha(['TOTAL GERAL', TL || '—', TC || '—', TD || '—', PC ? taxaTxt(PD / PC * 100) + '%' : '—', ''], true);
     F.cor(NAVY, 'Draw'); d.setLineWidth(0.5); d.rect(M, 47, CW, y + rh - 47, 'S');
     F.txt('Taxa de ocupação = dias de doente ÷ dias de cama × 100 (só os dias com os dois números). «—» = sem valores registados.', M, y + rh + 6, { s: 7.5, i: 1, c: CINZA });
     rodape(d, F, W, M, MESES[+p[1] - 1] + ' de ' + p[0] + ' · resumo');
@@ -209,7 +209,7 @@
       PC += s.pc || 0; PD += s.pd || 0;
       linha([s.nome, s.lotacao == null ? '—' : s.lotacao, s.cama == null ? '—' : s.cama, s.doente == null ? '—' : s.doente, s.taxa == null ? '—' : taxaTxt(s.taxa) + '%', s.preenchidos + ' / ' + s.dias]);
     });
-    linha(['TOTAL DO HOSPITAL', TL || '—', TC || '—', TD || '—', PC ? taxaTxt(PD / PC * 100) + '%' : '—', ''], true);
+    linha(['TOTAL GERAL', TL || '—', TC || '—', TD || '—', PC ? taxaTxt(PD / PC * 100) + '%' : '—', ''], true);
     F.cor(NAVY, 'Draw'); d.setLineWidth(0.5); d.rect(M, 47, CW, y + rh - 47, 'S');
     F.txt('Taxa de ocupação = dias de doente ÷ dias de cama × 100 (só os dias com os dois números). «—» = sem valores registados.', M, y + rh + 6, { s: 7.5, i: 1, c: CINZA });
     rodape(d, F, W, M, rotulo || titulo);
@@ -236,6 +236,7 @@
     meses.forEach(function (m) {
       var p = m.ym.split('-'), nd = diasNoMes(m.ym), mesTxt = MESES[+p[1] - 1] + ' de ' + p[0];
       if (op.grelha !== false) grelha(m, p, nd, mesTxt);
+      if (op.resumo) resumoMes(m, p, nd, mesTxt);
       if (op.fichas !== false) m.servicos.forEach(function (s) {
         var T = totais(s.dados, m.ym);
         if (op.soComDados && !T.preenchidos && T.cama == null && T.doente == null) return;
@@ -265,7 +266,7 @@
         x += cServ;
       });
       F.cor([224, 231, 255], 'Fill'); d.rect(x, y0, 3 * cHosp, h1 + h2, 'F');
-      F.txt('HOSPITAL', x + 1.5 * cHosp, y0 + 5.5, { s: 7, b: 1, al: 'center' });
+      F.txt('TOTAL GERAL', x + 1.5 * cHosp, y0 + 5.5, { s: 7, b: 1, al: 'center' });
       ['Cama', 'Doente', 'Ocup. %'].forEach(function (t, i) { F.txt(t, x + cHosp * (i + .5), y0 + h1 + 3.6, { s: 5.8, b: 1, c: CINZA, al: 'center' }); });
       // linhas dos dias
       var y = y0 + h1 + h2, totC = {}, totD = {}, hc = 0, hd = 0, pc = 0, pdd = 0;
@@ -279,21 +280,21 @@
           if (a != null) { sc += a; temC = true; totC[i] = (totC[i] || 0) + a; }
           if (b != null) { sd += b; temD = true; totD[i] = (totD[i] || 0) + b; }
           if (a != null && b != null) { pcd += a; pdd2 += b; }
-          F.txt(a == null ? '·' : a, x + sub / 2, y + rh - 1.2, { s: 6.8, c: a == null ? LINHA : TINTA, al: 'center' });
-          F.txt(b == null ? '·' : b, x + sub * 1.5, y + rh - 1.2, { s: 6.8, b: a != null && b != null && b > a, c: b == null ? LINHA : (a != null && b > a ? VERM : TINTA), al: 'center' });
+          F.txt(a == null ? '—' : a, x + sub / 2, y + rh - 1.2, { s: 6.8, c: a == null ? LINHA : TINTA, al: 'center' });
+          F.txt(b == null ? '—' : b, x + sub * 1.5, y + rh - 1.2, { s: 6.8, b: a != null && b != null && b > a, c: b == null ? LINHA : (a != null && b > a ? VERM : TINTA), al: 'center' });
           x += cServ;
         });
         if (temC) hc += sc; if (temD) hd += sd; pc += pcd; pdd += pdd2;
-        F.txt(temC ? sc : '·', x + cHosp / 2, y + rh - 1.2, { s: 6.8, b: 1, c: temC ? NAVY : LINHA, al: 'center' });
-        F.txt(temD ? sd : '·', x + cHosp * 1.5, y + rh - 1.2, { s: 6.8, b: 1, c: temD ? NAVY : LINHA, al: 'center' });
-        F.txt(pcd ? taxaTxt(pdd2 / pcd * 100) : '·', x + cHosp * 2.5, y + rh - 1.2, { s: 6.8, b: 1, c: pcd ? NAVY : LINHA, al: 'center' });
+        F.txt(temC ? sc : '—', x + cHosp / 2, y + rh - 1.2, { s: 6.8, b: 1, c: temC ? NAVY : LINHA, al: 'center' });
+        F.txt(temD ? sd : '—', x + cHosp * 1.5, y + rh - 1.2, { s: 6.8, b: 1, c: temD ? NAVY : LINHA, al: 'center' });
+        F.txt(pcd ? taxaTxt(pdd2 / pcd * 100) : '—', x + cHosp * 2.5, y + rh - 1.2, { s: 6.8, b: 1, c: pcd ? NAVY : LINHA, al: 'center' });
         F.cor(dia % 7 === 0 ? NAVY : [226, 232, 240], 'Draw'); d.setLineWidth(dia % 7 === 0 ? 0.35 : 0.15); d.line(M, y + rh, M + CW, y + rh);
         y += rh;
       }
       // totais e ocupação do mês
       var rt = 5.2;
       F.cor([224, 231, 255], 'Fill'); d.rect(M, y, CW, rt * 2, 'F');
-      F.txt('Total', M + 2, y + rt - 1.4, { s: 7, b: 1 }); F.txt('Ocupação', M + 2, y + 2 * rt - 1.4, { s: 7, b: 1 });
+      F.txt('Total do mês', M + 2, y + rt - 1.4, { s: 6.8, b: 1 }); F.txt('Ocupação', M + 2, y + 2 * rt - 1.4, { s: 6.8, b: 1 });
       x = M + cDia;
       m.servicos.forEach(function (s, i) {
         var T = totais(s.dados, m.ym);
@@ -311,8 +312,42 @@
       for (var i = 0; i <= ns; i++) { d.setLineWidth(0.35); d.line(x, y0, x, y + 2 * rt); if (i < ns) { d.setLineWidth(0.12); d.line(x + sub, y0 + h1, x + sub, y); x += cServ; } }
       var hx = M + cDia + ns * cServ; d.setLineWidth(0.12); d.line(M + cDia, y0 + h1, M + CW, y0 + h1); d.line(hx + cHosp, y0 + h1, hx + cHosp, y); d.line(hx + 2 * cHosp, y0 + h1, hx + 2 * cHosp, y);
       F.cor(NAVY, 'Draw'); d.setLineWidth(0.5); d.rect(M, y0, CW, y + 2 * rt - y0, 'S'); d.line(M, y, M + CW, y);
-      F.txt('Valores tal como registados em cada dia. «·» = dia sem registo. A vermelho: mais doentes do que camas. Ocupação = dias de doente ÷ dias de cama × 100 (só os dias com os dois números).', M, y + 2 * rt + 4.5, { s: 6.5, i: 1, c: CINZA });
+      F.txt('Valores registados em cada dia, em cada especialidade; TOTAL GERAL = soma de todas as especialidades. «—» = dia sem registo. A vermelho: mais doentes do que camas. Ocupação = dias de doente ÷ dias de cama × 100 (só os dias com os dois números).', M, y + 2 * rt + 4.5, { s: 6.5, i: 1, c: CINZA });
       rodape(d, F, W, M, mesTxt + ' · registo diário', H);
+    }
+
+    // Página do somatório de cada especialidade e do total geral do mês.
+    function resumoMes(m, p, nd, mesTxt) {
+      var F = nova('portrait'), W = 210, H = 297, M = 12, CW = W - 2 * M;
+      cabecalho(d, F, W, M, CW, 'Somatório por especialidade');
+      F.txt(mesTxt.charAt(0).toUpperCase() + mesTxt.slice(1), W - M - 3, 22.6, { s: 12, b: 1, al: 'right' });
+      var cols = [['Especialidade', 50, 'l'], ['Lotação', 18], ['Dias registados', 24], ['Dias de cama', 24], ['Dias de doente', 24], ['Taxa de ocupação', 24], ['Doentes por dia', 22]];
+      var y = 40, hh = 10, rh = 11;
+      F.cor([226, 232, 240], 'Fill'); d.rect(M, y, CW, hh, 'F');
+      var x = M; cols.forEach(function (c) { F.txt(c[0], c[2] ? x + 2.5 : x + c[1] / 2, y + 6.4, { s: 7.6, b: 1, al: c[2] ? undefined : 'center' }); x += c[1]; });
+      y += hh;
+      var TL = 0, TC = 0, TD = 0, PC = 0, PD = 0, SDo = 0, NDo = 0, TP = 0, temL = false;
+      function linha(v, tot, zebra) {
+        if (tot) { F.cor([224, 231, 255], 'Fill'); d.rect(M, y, CW, rh + 1, 'F'); }
+        else if (zebra) { F.cor(SUAVE, 'Fill'); d.rect(M, y, CW, rh, 'F'); }
+        var xx = M;
+        v.forEach(function (t, i) { var c = cols[i]; F.txt(t, c[2] ? xx + 2.5 : xx + c[1] / 2, y + 7.2, { s: tot ? 10 : 9.5, b: tot || i === 0 || i === 5, c: tot || i === 0 ? NAVY : TINTA, al: c[2] ? undefined : 'center' }); xx += c[1]; });
+        F.cor(tot ? NAVY : LINHA, 'Draw'); d.setLineWidth(tot ? 0.6 : 0.2); d.line(M, tot ? y : y + rh, M + CW, tot ? y : y + rh);
+        y += tot ? rh + 1 : rh;
+      }
+      m.servicos.forEach(function (s, i) {
+        var D = s.dados || {}, T = totais(D, m.ym), L = num(D.lotacao), nDo = 0, sDo = 0, pc = 0, pd = 0;
+        for (var dia = 1; dia <= nd; dia++) { var a = num((D.cama || {})[dia]), b = num((D.doente || {})[dia]); if (b != null) { nDo++; sDo += b; } if (a != null && b != null) { pc += a; pd += b; } }
+        if (L != null) { TL += L; temL = true; } if (T.cama != null) TC += T.cama; if (T.doente != null) TD += T.doente;
+        PC += pc; PD += pd; SDo += sDo; NDo += nDo; TP += T.preenchidos;
+        linha([s.nome, L == null ? '—' : L, T.preenchidos + ' / ' + nd, T.cama == null ? '—' : T.cama, T.doente == null ? '—' : T.doente, T.taxa == null ? '—' : taxaTxt(T.taxa) + '%', nDo ? taxaTxt(sDo / nDo) : '—'], false, i % 2 === 1);
+      });
+      linha(['TOTAL GERAL', temL ? TL : '—', TP + ' / ' + nd * m.servicos.length, TC || '—', TD || '—', PC ? taxaTxt(PD / PC * 100) + '%' : '—', nd && TD ? taxaTxt(TD / nd) : '—'], true);
+      F.cor(LINHA, 'Draw'); d.setLineWidth(0.15); var xx = M; cols.forEach(function (c, i) { if (i) d.line(xx, 40, xx, y); xx += c[1]; });
+      F.cor(NAVY, 'Draw'); d.setLineWidth(0.5); d.rect(M, 40, CW, y - 40, 'S');
+      F.txt('Somatório dos valores registados dia a dia em cada especialidade. Taxa de ocupação = dias de doente ÷ dias de cama × 100 (só os dias com os dois números).', M, y + 6, { s: 7, i: 1, c: CINZA });
+      F.txt('Doentes por dia = média de doentes internados; no TOTAL GERAL, dias de doente do hospital ÷ dias do mês. «—» = sem valores registados.', M, y + 10, { s: 7, i: 1, c: CINZA });
+      rodape(d, F, W, M, mesTxt + ' · somatório por especialidade', H);
     }
 
     // Página vertical de um serviço: cada dia numa linha, com totais e observações.

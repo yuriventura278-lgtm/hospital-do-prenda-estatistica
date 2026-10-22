@@ -645,7 +645,8 @@
   var ICO_FOLHA = '<svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
   function opcoesPDF() {
     var mes = estado.per === 'mes', n = esc(nomeServ(estado.serv)), quando = mes ? nomeMes(estado.ym) : tituloPeriodo(), h = '';
-    h += '<button type="button" data-pdf="det-todos">' + ICO_GRADE + '<span><b>Detalhado dia a dia — todos os serviços</b><small>' + (mes ? 'Grelha diária do hospital + uma página por serviço com cada dia (' + quando + ')' : 'Grelha diária do hospital, um mês por página (' + quando + ')') + '</small></span></button>';
+    h += '<button type="button" data-pdf="mensal">' + ICO_GRADE + '<span><b>PDF ' + (mes ? 'mensal' : 'de cada mês') + ' — todos os serviços</b><small>Todos os dias de cada especialidade, somatório por especialidade e total geral (' + quando + ')</small></span></button>';
+    h += '<button type="button" data-pdf="det-todos">' + ICO_GRADE + '<span><b>Detalhado — todos os serviços</b><small>O PDF mensal + uma página por serviço com cada dia e observações (' + quando + ')</small></span></button>';
     h += '<button type="button" data-pdf="det-serv">' + ICO_DOC + '<span><b>Detalhado dia a dia — ' + n + '</b><small>Cada dia numa linha: cama, doente, ocupação, camas livres e observações' + (mes ? '' : ' (um mês por página)') + '</small></span></button>';
     if (!mes) h += '<hr><button type="button" data-pdf="resumo">' + ICO_DOC + '<span><b>Resumo do período</b><small>Totais de cada serviço e do hospital (' + quando + ')</small></span></button>';
     return h;
@@ -666,7 +667,7 @@
     var tipo = b.dataset.pdf, mes = estado.per === 'mes', slug = estado.serv, n = nomeServ(slug);
     var quando = mes ? estado.ym : nomeFicheiro(tituloPeriodo());
     try {
-      if (tipo === 'det-todos' || tipo === 'det-serv') {
+      if (tipo === 'mensal' || tipo === 'det-todos' || tipo === 'det-serv') {
         var meses = mesesRelatorio().map(function (ym) {
           var dados = dadosDoMes(ym);
           var lista = (tipo === 'det-serv' ? SERVICOS.filter(function (s) { return s[0] === slug; }) : SERVICOS).map(function (s) {
@@ -674,8 +675,8 @@
           });
           return { ym: ym, servicos: lista };
         });
-        var op = tipo === 'det-serv' ? { grelha: false } : (mes ? { soComDados: true } : { fichas: false });
-        FD.detalhado(meses, op).save('Dias_Cama_Detalhado_' + (tipo === 'det-serv' ? nomeFicheiro(n) + '_' : 'Todos_') + quando + '.pdf');
+        var op = tipo === 'det-serv' ? { grelha: false } : tipo === 'mensal' ? { fichas: false, resumo: true } : { soComDados: true, resumo: true };
+        FD.detalhado(meses, op).save('Dias_Cama_' + (tipo === 'mensal' ? 'Mensal_Todos_' : 'Detalhado_' + (tipo === 'det-serv' ? nomeFicheiro(n) + '_' : 'Todos_')) + quando + '.pdf');
       } else if (tipo === 'resumo') {
         FD.resumoPeriodo(linhasPeriodo(), tituloPeriodo()).save('Dias_Cama_Resumo_' + quando + '.pdf');
       }
