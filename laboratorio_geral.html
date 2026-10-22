@@ -647,6 +647,9 @@ header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--hdr-h);paddi
 /* TECHS */
 .techs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:8px;}
 .tech-item{display:flex;align-items:center;gap:6px;}
+.chefe-eq{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 12px;border-radius:8px;background:var(--accent-tint);border:1px solid var(--accent-ring);flex-wrap:wrap;}
+.chefe-eq label{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-head);font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--accent);white-space:nowrap;}
+.chefe-eq .tech-inp{flex:1;min-width:200px;}
 .tech-num{font-family:var(--font-body);font-size:.56rem;color:var(--accent);background:var(--accent-tint);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--accent-ring);}
 .tech-inp{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:7px 9px;font-family:var(--font-head);font-size:.85rem;color:var(--text);width:100%;outline:none;}
 .tech-inp:focus{border-color:var(--accent);}
@@ -989,6 +992,10 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
             <small>Indique os técnicos que fizeram o turno deste dia</small>
           </div>
           <span class="turno-24h" title="O turno é sempre de 24 horas"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Turno 24 H</span>
+        </div>
+        <div class="chefe-eq">
+          <label for="chefe-equipa"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 8 4 4 6-8 6 8 4-4-2 12H4z"/></svg> Chefe de equipa</label>
+          <input class="tech-inp" id="chefe-equipa" type="text" placeholder="Nome do chefe de equipa" autocomplete="off" oninput="cd.chefeEquipa=this.value;autoSaveDebounced();">
         </div>
         <div class="techs-grid" id="techs-grid"></div>
         <div class="btn-group">
@@ -1645,11 +1652,12 @@ let numTechs    = 3;
 let cd          = newData(currentDate);
 
 function newData(d) {
-  return { date: d, techs: [], exames: {}, positivos: {}, notas: '' };
+  return { date: d, chefeEquipa: '', techs: [], exames: {}, positivos: {}, notas: '' };
 }
 
 function collectFromDOM() {
   cd.notas = document.getElementById('notas-dia')?.value || '';
+  const ch = document.getElementById('chefe-equipa'); if (ch) cd.chefeEquipa = ch.value;
   cd.techs = [];
   for(let i=0;i<numTechs;i++){
     const el = document.getElementById('tech-'+i);
@@ -1678,6 +1686,7 @@ function updateHeaderDate() {
 function renderTechs() {
   const g = document.getElementById('techs-grid');
   if(!g) return;
+  const ch = document.getElementById('chefe-equipa'); if (ch && document.activeElement !== ch) ch.value = cd.chefeEquipa || '';
   numTechs = Math.max(3, cd.techs.length || 3);
   g.innerHTML = '';
   for(let i=0;i<numTechs;i++){
@@ -2288,6 +2297,7 @@ function buildDayDataText(){
   linhas.push('ZELO — Laboratório de Análises Clínicas');
   linhas.push('Registo Diário de Exames — ' + fmtDate(currentDate));
   const techs = (cd.techs||[]).filter(t=>t && t.trim()).join(', ');
+  if(cd.chefeEquipa && cd.chefeEquipa.trim()) linhas.push('Chefe de equipa: ' + cd.chefeEquipa.trim());
   if(techs) linhas.push('Técnicos de serviço: ' + techs);
   linhas.push('');
   linhas.push('Exame\tB. Urgência\tInternamento\tTotal');
@@ -2819,9 +2829,12 @@ function _mesclarDadosLaboratorio(local, remoto){
   if(techsR.ts !== undefined) camposTsMesclados['techs'] = techsR.ts;
   let techsFinal;
   try{ techsFinal = JSON.parse(techsR.valor||'[]'); }catch(e){ techsFinal = local.techs||remoto.techs||[]; }
+  const chefeR = ZeloMerge.resolverCampo(local.chefeEquipa, remoto.chefeEquipa, localTs['chefeEquipa'], remotoTs['chefeEquipa'], remotoMaisRecente);
+  if(chefeR.ts !== undefined) camposTsMesclados['chefeEquipa'] = chefeR.ts;
 
   return {
     date: local.date || remoto.date,
+    chefeEquipa: chefeR.valor || '',
     techs: techsFinal,
     exames: exames.valor,
     positivos: positivos.valor,
@@ -2854,6 +2867,7 @@ function _construirCamposTsLaboratorio(prevCamposTs, prevData, novoData, ts){
   const antigoTechs = JSON.stringify((prevData && prevData.techs)||[]);
   const novoTechs = JSON.stringify(novoData.techs||[]);
   if(antigoTechs !== novoTechs) out['techs'] = ts;
+  if((novoData.chefeEquipa||'') !== ((prevData && prevData.chefeEquipa)||'')) out['chefeEquipa'] = ts;
   return out;
 }
 // ── Todos os dias guardados no Firebase passam a aparecer neste computador ──
@@ -3047,13 +3061,16 @@ function exportDailyPDF() {
   const techsList = (cd.techs||[]).filter(t=>t && t.trim()).join(', ');
   doc.setFillColor(238,244,255);
   doc.setDrawColor(210,225,245); doc.setLineWidth(.25);
-  doc.roundedRect(ML, cy-4.5, CW, 9, 1.5, 1.5, 'FD');
+  const chefeTxt = (cd.chefeEquipa||'').trim();
+  doc.roundedRect(ML, cy-4.5, CW, 14, 1.5, 1.5, 'FD');
   doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(62,92,135);
-  doc.text('Técnicos de serviço:', ML+3, cy+1);
+  doc.text('Chefe de equipa:', ML+3, cy+1);
+  doc.text('Técnicos de serviço:', ML+3, cy+6);
   doc.setFont('helvetica','normal'); doc.setTextColor(13,27,46);
-  doc.text(doc.splitTextToSize(techsList || '—', CW-45)[0] || '—', ML+34, cy+1);
+  doc.text(doc.splitTextToSize(chefeTxt || '—', CW-45)[0] || '—', ML+34, cy+1);
+  doc.text(doc.splitTextToSize(techsList || '—', CW-45)[0] || '—', ML+34, cy+6);
   doc.setTextColor(0);
-  cy += 9;
+  cy += 14;
 
   // ── KPIs ──
   let grandBu=0, grandInt=0;
