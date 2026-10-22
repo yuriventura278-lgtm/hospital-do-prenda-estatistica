@@ -239,17 +239,19 @@
       fl.className = 'm2-falta' + (C.faltaN ? '' : ' ok');
       fl.innerHTML = (C.faltaN ? ICO_AV + C.faltaN + ' dias em falta no período' : ICO_OK + 'Período completo até hoje');
     }
-    // serviços
-    $('servs').innerHTML = SERVICOS.map(function (s) {
-      var K = contas(s[0]), ok = K.preenchidos >= K.dias;
-      return '<button type="button" class="sv' + (ok ? ' ok' : '') + (s[0] === estado.serv ? ' on' : '') + '" data-s="' + s[0] + '"><b>' + esc(s[1]) + '</b><div class="l"><span>' + K.preenchidos + '/' + K.dias + '</span><span class="tx">' + pct(K.taxa) + '</span></div><div class="bar"><i style="width:' + (K.dias ? K.preenchidos / K.dias * 100 : 0) + '%"></i></div></button>';
-    }).join('');
-    $('vMes').hidden = !mes; $('vPer').hidden = mes;
-    $('nG1').textContent = mes ? 6 : 3; $('nG2').textContent = mes ? 7 : 4; $('nR').textContent = mes ? 8 : 5;
-    if (mes) { desenharDias(); desenharRegisto(); desenharFolha(); desenharMapa(); }
+    $('vMes').hidden = !mes; $('vPer').hidden = mes; $('vFolha').hidden = !mes;
+    if (mes) { desenharDias(); desenharRegisto(); desenharFolha(); desenharMapa(); desenharIndicadores(); }
     else desenharPeriodo();
+    $('grSub').textContent = mes ? 'do mês · ' + nomeServ(estado.serv) : tituloPeriodo() + ' · ' + nomeServ(estado.serv);
     desenharGrafico(); desenharBarras(); desenharResumo();
+    numerar();
     mostrarEstado();
+  }
+
+  // Números das secções (1, 2, 3…) só nas que estão à vista, como no Movimento.
+  function numerar() {
+    var n = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('main i.n'), function (el) { if (el.offsetParent !== null || el.getClientRects().length) el.textContent = ++n; });
   }
 
   function escolherDia() {
@@ -262,7 +264,7 @@
   }
 
   function desenharDias() {
-    escolherDia();
+    var antes = estado.dia; escolherDia(); if (estado.dia !== antes && estado.diaAuto) estado.pag = estado.dia > 16 ? 1 : 0;
     var D = dadosServ(estado.serv), nd = FD.diasNoMes(estado.ym), p = estado.ym.split('-'), lim = limite(estado.ym), h = '';
     for (var d = 1; d <= nd; d++) {
       var c = val(D, 'cama', d), o = val(D, 'doente', d), cl = 'm2-d';
@@ -283,6 +285,7 @@
     // Cada campo sabe a que dia pertence: ao mudar de dia, o valor é sempre trocado
     // (mesmo com o cursor lá), para não ir parar ao dia errado.
     [['rC', c], ['rD', o]].forEach(function (x) { var el = $(x[0]); if (+el.dataset.dia !== d) { el.value = x[1] == null ? '' : x[1]; el.dataset.dia = d; el.classList.remove('erro'); } else setVal(el, x[1]); });
+    $('fLot').textContent = L == null ? '—' : L;
     $('fC').textContent = c == null ? '—' : c;
     $('fD').textContent = o == null ? '—' : o;
     var tx = c && o != null ? o / c * 100 : null;
@@ -327,35 +330,51 @@
     e.textContent = dias > 0 ? 'Entregue ' + dias + ' dia' + (dias > 1 ? 's' : '') + ' depois do fim do mês' : dias === 0 ? 'Entregue no último dia do mês' : 'Entregue antes do fim do mês';
   }
 
+  // Mapa do mês como a grelha do Movimento: dias em colunas (1–16 | 17–fim).
+  estado.pag = 0;
+  function paginas(nd) { return [[1, 16], [17, nd]]; }
   function desenharMapa() {
     var t = $('mapa'), foco = document.activeElement;
     if (foco && t.contains(foco)) return; // não redesenhar por baixo de quem está a escrever
     var slug = estado.serv, D = dadosServ(slug), nd = FD.diasNoMes(estado.ym), p = estado.ym.split('-'), L = num(D.lotacao), C = contasMes(D, estado.ym);
-    var h = '<tr><th>Dia</th>';
-    for (var d = 1; d <= nd; d++) h += '<th data-dia="' + d + '"' + (d === estado.dia ? ' class="on"' : '') + '>' + d + '<small>' + SEM[new Date(+p[0], +p[1] - 1, d).getDay()].charAt(0) + '</small></th>';
-    h += '<th class="tot">Total</th></tr>';
+    var pg = paginas(nd)[estado.pag], a0 = pg[0], a1 = pg[1], ultima = estado.pag === 1;
+    $('mpPag').textContent = 'Dias ' + a0 + '–' + a1;
+    $('mpAnt').disabled = estado.pag === 0; $('mpSeg').disabled = estado.pag === 1;
+    var h = '<tr><th>Dias do mês</th>';
+    for (var d = a0; d <= a1; d++) h += '<th data-dia="' + d + '"' + (d === estado.dia ? ' class="on"' : '') + '>' + d + '<small>' + SEM[new Date(+p[0], +p[1] - 1, d).getDay()] + '</small></th>';
+    if (ultima) h += '<th class="tot">Total</th>';
+    h += '</tr>';
     function linha(nome, campo, tot) {
       var s = '<tr><td class="r">' + nome + '</td>';
-      for (var d = 1; d <= nd; d++) {
+      for (var d = a0; d <= a1; d++) {
         var v = val(D, campo, d), c = val(D, 'cama', d), o = val(D, 'doente', d), cl = [];
-        if (v == null) cl.push('v');
+        if (v == null && d <= limite(estado.ym)) cl.push('v');
         if (campo === 'doente' && v != null && c != null && o > c) cl.push('x');
         if (campo === 'cama' && v != null && L != null && v !== L) cl.push('lt');
         if (pend[caminho(estado.ym, slug, campo + '/' + d)]) cl.push('pend');
         s += '<td><input data-k="' + campo + '/' + d + '" inputmode="numeric" autocomplete="off" aria-label="' + nome + ' dia ' + d + '" value="' + (v == null ? '' : v) + '" class="' + cl.join(' ') + '"></td>';
       }
-      return s + '<td class="tot">' + tot + '</td></tr>';
+      return s + (ultima ? '<td class="tot">' + tot + '</td>' : '') + '</tr>';
     }
-    h += linha('Dias de cama', 'cama', C.cama == null ? '—' : C.cama);
-    h += linha('Dias de doente', 'doente', C.doente == null ? '—' : C.doente);
-    h += '<tr><td class="r">Ocupação %</td>';
-    for (d = 1; d <= nd; d++) {
-      var c = val(D, 'cama', d), o = val(D, 'doente', d);
-      if (!c || o == null) { h += '<td><span class="pc n">·</span></td>'; continue; }
-      var x = Math.round(o / c * 100);
-      h += '<td><span class="pc' + (x > 100 ? ' x' : x < 70 ? ' b' : '') + '">' + x + '</span></td>';
+    function calc(nome, f, tot) {
+      var s = '<tr><td class="r sub">' + nome + '</td>';
+      for (var d = a0; d <= a1; d++) s += '<td>' + f(val(D, 'cama', d), val(D, 'doente', d)) + '</td>';
+      return s + (ultima ? '<td class="tot">' + tot + '</td>' : '') + '</tr>';
     }
-    h += '<td class="tot">' + pct(C.taxa) + '</td></tr>';
+    h += linha('Dias de Cama', 'cama', C.cama == null ? '—' : C.cama);
+    h += linha('Dias de Doente', 'doente', C.doente == null ? '—' : C.doente);
+    h += calc('Camas livres', function (c, o) { return c == null || o == null ? '<span class="cal n">·</span>' : '<span class="cal' + (c - o < 0 ? ' x' : '') + '">' + (c - o) + '</span>'; }, f1(C.livres));
+    h += calc('Ocupação %', function (c, o) { if (!c || o == null) return '<span class="cal n">·</span>'; var x = Math.round(o / c * 100); return '<span class="cal' + (x > 100 ? ' x' : x < 70 ? ' b' : '') + '">' + x + '</span>'; }, pct(C.taxa));
+    if (estado.movPronto && comparar(slug).temMov) {
+      // Só leitura: o que está no Movimento Hospitalar (cama / doente); a vermelho se diferente.
+      h += '<tr><td class="r sub">Movimento (C / D)</td>';
+      for (var dm = a0; dm <= a1; dm++) {
+        var mc = movVal(slug, 'cama', dm), md = movVal(slug, 'doente', dm), cc = val(D, 'cama', dm), oo = val(D, 'doente', dm);
+        var dif = (mc != null && cc != null && mc !== cc) || (md != null && oo != null && md !== oo);
+        h += '<td>' + (mc == null && md == null ? '<span class="cal n">·</span>' : '<span class="cal' + (dif ? ' x' : '') + '" style="font-size:.68rem;padding:5px 3px">' + (mc == null ? '—' : mc) + '/' + (md == null ? '—' : md) + '</span>') + '</td>';
+      }
+      h += (ultima ? '<td class="tot"></td>' : '') + '</tr>';
+    }
     t.innerHTML = h;
     var acima = [];
     for (d = 1; d <= nd; d++) { var a = val(D, 'cama', d), b = val(D, 'doente', d); if (a != null && b != null && b > a) acima.push(d); }
@@ -364,6 +383,25 @@
     if (estado.movPronto) { var K = comparar(slug); if (K.dif.length) av += '<div class="av am"><b>Diferente do Movimento Hospitalar</b> no' + (K.dif.length > 1 ? 's dias ' : ' dia ') + resumirDias(K.dif) + '.</div>'; }
     $('avisos').innerHTML = av;
     $('copiarMov').hidden = !(estado.movPronto && comparar(slug).temMov);
+  }
+
+  // Resumo do mês em cartões de indicadores (como no Movimento).
+  function desenharIndicadores() {
+    var slug = estado.serv, D = dadosServ(slug), C = contasMes(D, estado.ym), nd = C.dias, L = C.lotacao;
+    var nCama = 0, acima = 0, difLot = 0;
+    for (var d = 1; d <= nd; d++) { var c = val(D, 'cama', d), o = val(D, 'doente', d); if (c != null) nCama++; if (c != null && o != null && o > c) acima++; if (c != null && L != null && c !== L) difLot++; }
+    var K = estado.movPronto ? comparar(slug) : null;
+    function k(t, v, sub, cl) { return '<div class="k"><span>' + t + '</span><b class="' + (cl || '') + '">' + v + '</b><small>' + sub + '</small></div>'; }
+    $('indSub').textContent = nomeMes(estado.ym).charAt(0).toUpperCase() + nomeMes(estado.ym).slice(1) + ' · ' + nomeServ(slug);
+    $('ind').innerHTML =
+      k('Dias de cama', C.cama == null ? '—' : C.cama, 'soma dos dias registados') +
+      k('Dias de doente', C.doente == null ? '—' : C.doente, 'soma dos dias registados') +
+      k('Taxa de ocupação', pct(C.taxa), 'dias de doente ÷ dias de cama', C.taxa != null && C.taxa > 100 ? 'v' : '') +
+      k('Média de camas reais', nCama ? f1(C.cama / nCama) : '—', 'dias de cama ÷ dias' + (L != null ? ' · lotação ' + L : '')) +
+      k('Doentes por dia', f1(C.media), 'média de doentes internados') +
+      k('Camas livres por dia', f1(C.livres), 'dias de cama − dias de doente') +
+      k('Dias com mais doentes', acima, 'do que camas (confirmar na folha)', acima ? 'v' : 'ok') +
+      k('Movimento Hospitalar', !K ? '…' : !K.comparados ? '—' : K.dif.length ? K.dif.length + ' dif.' : 'igual', !K ? 'a consultar' : !K.comparados ? 'sem dias para comparar' : K.comparados + ' dias comparados', K && K.dif.length ? 'v' : (K && K.comparados ? 'ok' : ''));
   }
 
   function desenharPeriodo() {
@@ -403,17 +441,71 @@
     rotulos.forEach(function (r, i) { if (i % passo === 0 || i === n - 1) g += '<text x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#94A3B8">' + r + '</text>'; });
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Taxa de ocupação">' + g + '</svg>';
   }
-  function desenharGrafico() {
-    var pontos = [], rot = [];
-    if (estado.per === 'mes') {
-      $('g1Tit').textContent = 'Ocupação por dia — ' + nomeServ(estado.serv);
-      var D = dadosServ(estado.serv), nd = FD.diasNoMes(estado.ym);
-      for (var d = 1; d <= nd; d++) { var c = val(D, 'cama', d), o = val(D, 'doente', d); pontos.push(c && o != null ? o / c * 100 : null); rot.push(d); }
-    } else {
-      $('g1Tit').textContent = 'Ocupação por mês — ' + nomeServ(estado.serv);
-      contasPeriodo(estado.serv).meses.forEach(function (m) { pontos.push(m.C.pc ? m.C.pd / m.C.pc * 100 : null); rot.push(FD.MESES[+m.ym.slice(5) - 1].slice(0, 3)); });
+  // Doentes internados por dia, com a lotação a tracejado (como no Movimento).
+  function doentesSVG(pts, camas, L, rot) {
+    var W = 520, H = 230, Lm = 34, R = 10, T = 16, B = 26, n = rot.length;
+    var vals = pts.concat(camas).concat([L || 0]).filter(function (v) { return v != null; });
+    var maxV = Math.max(4, Math.ceil(Math.max.apply(null, vals.concat([0])) * 1.12));
+    function x(i) { return Lm + (n > 1 ? i * (W - Lm - R) / (n - 1) : 0); }
+    function y(v) { return T + (1 - v / maxV) * (H - T - B); }
+    var g = '';
+    [0, Math.round(maxV / 2), maxV].forEach(function (v) { g += '<line x1="' + Lm + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#EEF2F7"/><text x="' + (Lm - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="10" fill="#94A3B8">' + v + '</text>'; });
+    if (L != null) g += '<line x1="' + Lm + '" x2="' + (W - R) + '" y1="' + y(L) + '" y2="' + y(L) + '" stroke="#DC2626" stroke-dasharray="5 4"/><text x="' + (W - R) + '" y="' + (y(L) - 5) + '" text-anchor="end" font-size="10" fill="#DC2626">lotação ' + L + '</text>';
+    function serie(arr, cor, larg, area) {
+      var seg = [], cur = [];
+      arr.forEach(function (v, i) { if (v == null) { if (cur.length) seg.push(cur); cur = []; } else cur.push([x(i), y(v)]); });
+      if (cur.length) seg.push(cur);
+      seg.forEach(function (sg) {
+        if (area && sg.length > 1) g += '<path d="M' + sg.map(function (q) { return q.join(','); }).join(' L') + ' L' + sg[sg.length - 1][0] + ',' + y(0) + ' L' + sg[0][0] + ',' + y(0) + 'Z" fill="rgba(30,58,95,.08)"/>';
+        g += '<polyline points="' + sg.map(function (q) { return q.join(','); }).join(' ') + '" fill="none" stroke="' + cor + '" stroke-width="' + larg + '" stroke-linejoin="round"/>';
+      });
     }
-    $('graf').innerHTML = pontos.some(function (p) { return p != null; }) ? linhaSVG(pontos, rot) : '<div class="vazio">Ainda sem dias com os dois números registados.</div>';
+    serie(camas, '#93C5FD', 2, false);
+    serie(pts, '#1E3A5F', 2.5, true);
+    pts.forEach(function (v, i) { if (v != null) g += '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3" fill="' + (camas[i] != null && v > camas[i] ? '#DC2626' : '#1E3A5F') + '"><title>Dia ' + rot[i] + ': ' + v + ' doentes' + (camas[i] != null ? ' / ' + camas[i] + ' camas' : '') + '</title></circle>'; });
+    [0, Math.floor((n - 1) / 3), Math.floor(2 * (n - 1) / 3), n - 1].forEach(function (i) { g += '<text x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="10" fill="#94A3B8">' + rot[i] + '</text>'; });
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Doentes internados por dia">' + g + '</svg>' +
+      '<div class="m2-leg" style="margin-top:4px"><span><i style="background:#1E3A5F"></i>Dias de doente</span><span><i style="background:#93C5FD"></i>Dias de cama</span></div>';
+  }
+  // Barras verticais simples (ocupação por semana / por mês).
+  function barrasSVG(itens) {
+    var W = 520, H = 230, Lm = 34, R = 10, T = 16, B = 30, n = itens.length, maxV = 120;
+    itens.forEach(function (it) { if (it.v != null) maxV = Math.max(maxV, Math.ceil(it.v / 10) * 10 + 10); });
+    function y(v) { return T + (1 - v / maxV) * (H - T - B); }
+    var g = '', bw = (W - Lm - R) / n;
+    [0, 50, 100].forEach(function (v) { g += '<line x1="' + Lm + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#EEF2F7"/><text x="' + (Lm - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="10" fill="#94A3B8">' + v + '%</text>'; });
+    g += '<line x1="' + Lm + '" x2="' + (W - R) + '" y1="' + y(85) + '" y2="' + y(85) + '" stroke="#10B981" stroke-dasharray="5 4"/>';
+    itens.forEach(function (it, i) {
+      var cx = Lm + bw * i + bw / 2, w = Math.min(46, bw * .6);
+      if (it.v != null) {
+        g += '<rect x="' + (cx - w / 2) + '" y="' + y(it.v) + '" width="' + w + '" height="' + (y(0) - y(it.v)) + '" rx="5" fill="' + corTaxa(it.v) + '"><title>' + it.r + ': ' + f1(it.v) + '%</title></rect>';
+        g += '<text x="' + cx + '" y="' + (y(it.v) - 5) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#334155">' + Math.round(it.v) + '%</text>';
+      }
+      g += '<text x="' + cx + '" y="' + (H - 10) + '" text-anchor="middle" font-size="10" fill="#94A3B8">' + it.r + '</text>';
+    });
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Ocupação">' + g + '</svg>' +
+      '<div class="m2-leg" style="margin-top:4px"><span><i style="background:#10B981"></i>Linha tracejada = 85%</span></div>';
+  }
+  function desenharGrafico() {
+    var vazio = '<div class="vazio">Ainda sem dias com os dois números registados.</div>';
+    if (estado.per === 'mes') {
+      $('g1Tit').textContent = 'Doentes internados por dia'; $('g2Tit').textContent = 'Ocupação por semana';
+      var D = dadosServ(estado.serv), nd = FD.diasNoMes(estado.ym), pts = [], cam = [], rot = [], sem = [];
+      for (var d = 1; d <= nd; d++) { pts.push(val(D, 'doente', d)); cam.push(val(D, 'cama', d)); rot.push(d); }
+      for (var w = 0; w * 7 < nd; w++) {
+        var pc = 0, pd = 0;
+        for (d = w * 7 + 1; d <= Math.min(nd, w * 7 + 7); d++) { var c = val(D, 'cama', d), o = val(D, 'doente', d); if (c != null && o != null) { pc += c; pd += o; } }
+        sem.push({ r: 'Sem. ' + (w + 1), v: pc ? pd / pc * 100 : null });
+      }
+      $('graf').innerHTML = pts.some(function (v) { return v != null; }) ? doentesSVG(pts, cam, num(D.lotacao), rot) : vazio;
+      $('graf2').innerHTML = sem.some(function (x) { return x.v != null; }) ? barrasSVG(sem) : vazio;
+    } else {
+      $('g1Tit').textContent = 'Ocupação por mês'; $('g2Tit').textContent = 'Doentes por dia (média de cada mês)';
+      var M = contasPeriodo(estado.serv).meses, pontos = [], rot2 = [], med = [];
+      M.forEach(function (m) { pontos.push(m.C.pc ? m.C.pd / m.C.pc * 100 : null); rot2.push(FD.MESES[+m.ym.slice(5) - 1].slice(0, 3)); med.push(m.C.media); });
+      $('graf').innerHTML = pontos.some(function (p) { return p != null; }) ? linhaSVG(pontos, rot2) : vazio;
+      $('graf2').innerHTML = med.some(function (v) { return v != null; }) ? doentesSVG(med.map(function (v) { return v == null ? null : Math.round(v * 10) / 10; }), med.map(function () { return null; }), null, rot2) : vazio;
+    }
   }
   function desenharBarras() {
     var l = SERVICOS.map(function (s) { return [s, contas(s[0]).taxa]; }).filter(function (x) { return x[1] != null; }).sort(function (a, b) { return b[1] - a[1]; });
@@ -459,7 +551,7 @@
     gravarValor(campo, d, v); return true;
   }
   function gravarRegisto() { var a = gravarDoInput($('rC'), 'cama', estado.dia), b = gravarDoInput($('rD'), 'doente', estado.dia); return a && b; }
-  function irDia(d) { estado.diaAuto = false; var nd = FD.diasNoMes(estado.ym); estado.dia = Math.max(1, Math.min(nd, d)); desenhar(); }
+  function irDia(d) { estado.diaAuto = false; var nd = FD.diasNoMes(estado.ym); estado.dia = Math.max(1, Math.min(nd, d)); estado.pag = estado.dia > 16 ? 1 : 0; desenhar(); }
   function abrirMes(ym) { estado.ym = ym; estado.dia = null; estado.diaAuto = true; gravarLS('zeloDiasCamaMes', ym); escutar(); }
   function abrirServ(slug) { estado.serv = slug; estado.dia = null; estado.diaAuto = true; gravarLS('zeloDiasCamaServ', slug); desenhar(); }
 
@@ -477,11 +569,13 @@
     }
     if (b.dataset.por) { var id = b.dataset.por === 'cama' ? 'rC' : 'rD'; $(id).value = b.dataset.v; gravarValor(b.dataset.por, estado.dia, Number(b.dataset.v)); return; }
     if (b.dataset.dia) { clearTimeout(tmpStep); irDia(+b.dataset.dia); return; }
-    if (b.closest('#servs') && b.dataset.s) { abrirServ(b.dataset.s); return; }
     if (b.closest('#barras,#res') && b.dataset.s) { abrirServ(b.dataset.s); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (b.dataset.ym) { estado.per = 'mes'; abrirMes(b.dataset.ym); return; }
     if (b.dataset.p) { estado.per = b.dataset.p; if (estado.per !== 'mes') carregarPeriodo(); desenhar(); return; }
   });
+  $('rGuardar').addEventListener('click', function () { clearTimeout(tmpStep); if (gravarRegisto()) toast('Dia ' + estado.dia + ' gravado.'); });
+  $('mpAnt').addEventListener('click', function () { estado.pag = 0; desenharMapa(); });
+  $('mpSeg').addEventListener('click', function () { estado.pag = 1; desenharMapa(); });
   $('rAnt').addEventListener('click', function () { clearTimeout(tmpStep); gravarRegisto(); irDia(estado.dia - 1); });
   $('rSeg').addEventListener('click', function () {
     clearTimeout(tmpStep);
