@@ -322,7 +322,7 @@
       F.txt(mesTxt.charAt(0).toUpperCase() + mesTxt.slice(1), W - M - 3, 22.6, { s: 12, b: 1, al: 'right' });
       // quadro de identificação
       var yi = 35, iw = CW / 4;
-      [['Lotação', L == null ? '—' : L + ' camas'], ['Dias registados', T.preenchidos + ' / ' + nd], ['Responsável', D.responsavel || '—'], ['Recebido em', dataPT(D.recebido) || '—']].forEach(function (c, i) {
+      [['Lotação', L == null ? '—' : L + ' camas'], ['Dias registados', T.preenchidos + ' / ' + nd], ['Taxa de ocupação', T.taxa == null ? '—' : taxaTxt(T.taxa) + '%'], ['Doentes por dia', (function () { var n = 0; for (var i = 1; i <= nd; i++) if (num((D.doente || {})[i]) != null) n++; return n && T.doente != null ? taxaTxt(T.doente / n) : '—'; })()]].forEach(function (c, i) {
         F.caixa(M + i * iw, yi, iw - 2, 11, c[0]); var t = String(c[1]); d.setFontSize(9); while (d.getTextWidth(t) > iw - 6 && t.length > 4) t = t.slice(0, -2) + '…';
         F.txt(t, M + i * iw + 2, yi + 8.6, { s: 9, b: 1, c: TINTA });
       });

@@ -1,7 +1,7 @@
 // ── ZELO — Dias de Cama e Dias de Doente (Serviço de Estatística) ──
-// Registo das folhas de recolha entregues pelos serviços, com o mesmo
+// Registo dos dias de cama e dias de doente de cada serviço, dia a dia, com o mesmo
 // desenho do Movimento Hospitalar: faixa com os totais, dias do mês,
-// registo do dia, mapa do mês (igual à folha em papel), gráficos e resumo.
+// registo do dia, mapa do mês, gráficos e resumo.
 //
 // Dados: registos_sistemas_locais/dias_cama/<AAAA-MM>/<serviço> =
 //   { lotacao, cama:{dia:n}, doente:{dia:n}, responsavel, entrega, recebido, recebidoPor, em, por }
@@ -89,10 +89,6 @@
     Object.keys(campos).forEach(function (c) { pend[caminho(ym, slug, c)] = { v: campos[c], t: t }; });
     pend[caminho(ym, slug, 'em')] = { v: t, t: t };
     if (quem) pend[caminho(ym, slug, 'por')] = { v: quem, t: t };
-    // 1.º número da folha: regista a receção (hoje, por quem está a registar).
-    var D = dadosServ(slug);
-    if (!D.recebido && !('recebido' in campos)) pend[caminho(ym, slug, 'recebido')] = { v: hojeISO(), t: t };
-    if (!D.recebidoPor && !('recebidoPor' in campos) && quem) pend[caminho(ym, slug, 'recebidoPor')] = { v: quem, t: t };
     gravarLS(PEND_K, pend);
     desenhar(); enviar();
   }
@@ -239,8 +235,8 @@
       fl.className = 'm2-falta' + (C.faltaN ? '' : ' ok');
       fl.innerHTML = (C.faltaN ? ICO_AV + C.faltaN + ' dias em falta no período' : ICO_OK + 'Período completo até hoje');
     }
-    $('vMes').hidden = !mes; $('vPer').hidden = mes; $('vFolha').hidden = !mes;
-    if (mes) { desenharDias(); desenharRegisto(); desenharFolha(); desenharMapa(); desenharIndicadores(); }
+    $('vMes').hidden = !mes; $('vPer').hidden = mes;
+    if (mes) { desenharDias(); desenharRegisto(); desenharMapa(); desenharIndicadores(); }
     else desenharPeriodo();
     $('grSub').textContent = mes ? 'do mês · ' + nomeServ(estado.serv) : tituloPeriodo() + ' · ' + nomeServ(estado.serv);
     desenharGrafico(); desenharBarras(); desenharResumo();
@@ -302,7 +298,7 @@
     if (md != null && md !== o) dd += '<button type="button" data-por="doente" data-v="' + md + '">do Movimento (' + md + ')</button>';
     $('dC').innerHTML = dc; $('dD').innerHTML = dd;
     var av = '';
-    if (c != null && o != null && o > c) av += '<div class="av mau"><b>Mais doentes do que camas</b> neste dia — confirme na folha.</div>';
+    if (c != null && o != null && o > c) av += '<div class="av mau"><b>Mais doentes do que camas</b> neste dia — confirme os números.</div>';
     if (c != null && L != null && c !== L) av += '<div class="av am">Dias de cama (' + c + ') diferentes da lotação (' + L + ').</div>';
     $('rAv').innerHTML = av ? '<div class="avisos">' + av + '</div>' : '';
     var cz = $('cruz');
@@ -318,16 +314,6 @@
     else { ok.className = 'm2-ok'; ok.textContent = ''; }
     $('rAnt').textContent = '‹ Dia ' + (d - 1); $('rAnt').hidden = d <= 1;
     $('rSeg').textContent = d < nd ? 'Guardar e ir para o dia ' + (d + 1) : 'Guardar';
-  }
-
-  function desenharFolha() {
-    var D = dadosServ(estado.serv);
-    ['fResp', 'fEnt', 'fRecEm', 'fRecPor'].forEach(function (id) { setVal($(id), D[$(id).dataset.campo]); });
-    var e = $('fEst').querySelector('span'), ent = D.entrega || D.recebido;
-    if (!ent) { e.textContent = 'Folha ainda não registada como entregue.'; return; }
-    var p = estado.ym.split('-'), fim = new Date(+p[0], +p[1], 0), q = String(ent).split('-'), dt = new Date(+q[0], +q[1] - 1, +q[2]);
-    var dias = Math.round((dt - fim) / 86400000);
-    e.textContent = dias > 0 ? 'Entregue ' + dias + ' dia' + (dias > 1 ? 's' : '') + ' depois do fim do mês' : dias === 0 ? 'Entregue no último dia do mês' : 'Entregue antes do fim do mês';
   }
 
   // Mapa do mês como a grelha do Movimento: dias em colunas (1–16 | 17–fim).
@@ -379,7 +365,7 @@
     var acima = [];
     for (d = 1; d <= nd; d++) { var a = val(D, 'cama', d), b = val(D, 'doente', d); if (a != null && b != null && b > a) acima.push(d); }
     var av = '';
-    if (acima.length) av += '<div class="av mau"><b>Mais doentes do que camas</b> no' + (acima.length > 1 ? 's dias ' : ' dia ') + resumirDias(acima) + ' — confirme na folha.</div>';
+    if (acima.length) av += '<div class="av mau"><b>Mais doentes do que camas</b> no' + (acima.length > 1 ? 's dias ' : ' dia ') + resumirDias(acima) + ' — confirme os números.</div>';
     if (estado.movPronto) { var K = comparar(slug); if (K.dif.length) av += '<div class="av am"><b>Diferente do Movimento Hospitalar</b> no' + (K.dif.length > 1 ? 's dias ' : ' dia ') + resumirDias(K.dif) + '.</div>'; }
     $('avisos').innerHTML = av;
     $('copiarMov').hidden = !(estado.movPronto && comparar(slug).temMov);
@@ -400,7 +386,7 @@
       k('Média de camas reais', nCama ? f1(C.cama / nCama) : '—', 'dias de cama ÷ dias' + (L != null ? ' · lotação ' + L : '')) +
       k('Doentes por dia', f1(C.media), 'média de doentes internados') +
       k('Camas livres por dia', f1(C.livres), 'dias de cama − dias de doente') +
-      k('Dias com mais doentes', acima, 'do que camas (confirmar na folha)', acima ? 'v' : 'ok') +
+      k('Dias com mais doentes', acima, 'do que camas (confirmar)', acima ? 'v' : 'ok') +
       k('Movimento Hospitalar', !K ? '…' : !K.comparados ? '—' : K.dif.length ? K.dif.length + ' dif.' : 'igual', !K ? 'a consultar' : !K.comparados ? 'sem dias para comparar' : K.comparados + ' dias comparados', K && K.dif.length ? 'v' : (K && K.comparados ? 'ok' : ''));
   }
 
@@ -661,13 +647,7 @@
     var mes = estado.per === 'mes', n = esc(nomeServ(estado.serv)), quando = mes ? nomeMes(estado.ym) : tituloPeriodo(), h = '';
     h += '<button type="button" data-pdf="det-todos">' + ICO_GRADE + '<span><b>Detalhado dia a dia — todos os serviços</b><small>' + (mes ? 'Grelha diária do hospital + uma página por serviço com cada dia (' + quando + ')' : 'Grelha diária do hospital, um mês por página (' + quando + ')') + '</small></span></button>';
     h += '<button type="button" data-pdf="det-serv">' + ICO_DOC + '<span><b>Detalhado dia a dia — ' + n + '</b><small>Cada dia numa linha: cama, doente, ocupação, camas livres e observações' + (mes ? '' : ' (um mês por página)') + '</small></span></button>';
-    h += '<hr>';
-    if (mes) {
-      h += '<button type="button" data-pdf="folhas">' + ICO_FOLHA + '<span><b>Folhas de recolha preenchidas</b><small>Igual ao papel, todos os serviços, com o resumo do mês</small></span></button>';
-      h += '<button type="button" data-pdf="folha-serv">' + ICO_FOLHA + '<span><b>Folha de recolha — ' + n + '</b><small>Igual ao papel, só este serviço</small></span></button>';
-    } else {
-      h += '<button type="button" data-pdf="resumo">' + ICO_DOC + '<span><b>Resumo do período</b><small>Totais de cada serviço e do hospital (' + quando + ')</small></span></button>';
-    }
+    if (!mes) h += '<hr><button type="button" data-pdf="resumo">' + ICO_DOC + '<span><b>Resumo do período</b><small>Totais de cada serviço e do hospital (' + quando + ')</small></span></button>';
     return h;
   }
   function fecharMenu() { $('pdfMenu').hidden = true; $('btPdf').setAttribute('aria-expanded', 'false'); }
@@ -696,12 +676,6 @@
         });
         var op = tipo === 'det-serv' ? { grelha: false } : (mes ? { soComDados: true } : { fichas: false });
         FD.detalhado(meses, op).save('Dias_Cama_Detalhado_' + (tipo === 'det-serv' ? nomeFicheiro(n) + '_' : 'Todos_') + quando + '.pdf');
-      } else if (tipo === 'folhas') {
-        var lista2 = SERVICOS.map(function (s) { return { nome: s[1], dados: dadosServ(s[0]) }; });
-        var d = FD.pdf(lista2, estado.ym); FD.resumo(d, lista2, estado.ym);
-        d.save('Dias_Cama_Folhas_' + estado.ym + '.pdf');
-      } else if (tipo === 'folha-serv') {
-        FD.pdf([{ nome: n, dados: dadosServ(slug) }], estado.ym).save('Dias_Cama_Folha_' + nomeFicheiro(n) + '_' + estado.ym + '.pdf');
       } else if (tipo === 'resumo') {
         FD.resumoPeriodo(linhasPeriodo(), tituloPeriodo()).save('Dias_Cama_Resumo_' + quando + '.pdf');
       }
