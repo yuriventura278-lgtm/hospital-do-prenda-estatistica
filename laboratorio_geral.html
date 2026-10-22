@@ -671,6 +671,18 @@ html[data-zelo-theme="dark"] .card.tech-destaque{background:#111A2E;}
 /* BTN GROUP */
 .btn-group{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:8px;}
 /* ─── MONTHLY REPORT FORM ─── */
+.mrd-cab{padding:12px 16px;border-bottom:1px solid var(--border);font-family:var(--font-head);font-weight:800;font-size:.9rem;color:var(--text);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;}
+.mrd-cab small{font-family:var(--font-body);font-weight:600;font-size:.72rem;color:var(--muted);}
+.mrd{width:100%;border-collapse:collapse;font-size:.84rem;}
+.mrd th{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.mrd th:first-child,.mrd td:first-child{text-align:left;}
+.mrd td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap;}
+.mrd td small{color:var(--muted);font-size:.7rem;}
+.mrd td.mrd-eq{text-align:left;white-space:normal;color:var(--muted);font-size:.76rem;min-width:180px;}
+.mrd tr.mrd-l{cursor:pointer;}.mrd tr.mrd-l:hover td{background:var(--accent-tint);}
+.mrd tr.mrd-sem td{color:#B45309;background:#FFFBEB;font-size:.78rem;}
+.mrd tr.mrd-tot td{font-weight:800;background:var(--accent-tint);border-top:2px solid var(--accent);}
+.mrd-aviso{margin:0 0 12px;padding:10px 14px;border-radius:8px;background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;font-size:.82rem;}
 .rpt-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
 .rpt-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:3px;font-size:.5rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;font-family:var(--font-head);}
 .rb-month{background:#f5f3ff;color:#5b21b6;border:1px solid #ddd6fe;}
@@ -1100,16 +1112,18 @@ body.sel-mode .lab-row, body.sel-mode .pos-row{user-select:text;-webkit-user-sel
       <div class="period-row">
         <label>Mês</label>
         <input type="month" id="mrpt-month" onchange="mrptMonthChanged()">
-        <button class="btn-load" onclick="autoFillMonthly()"><span class="icon-svg" data-icon="refresh"></span> Auto-preencher dos registos diários</button>
+        <button class="btn-load" onclick="autoFillMonthly()"><span class="icon-svg" data-icon="refresh"></span> Carregar dados do mês</button>
         <button class="btn-h btn-save" style="font-size:.62rem;padding:6px 13px;" onclick="saveMonthlyReport()"><span class="icon-svg" data-icon="save"></span> Guardar Mês</button>
         <button class="btn-load sec" onclick="exportMonthlyPDF()"><span class="icon-svg" data-icon="download"></span> Guardar PDF</button>
         <button class="btn-load mail" onclick="sendMonthlyEmail()" title="Enviar o resumo do relatório mensal para estatisticahp@gmail.com"><span class="icon-svg" data-icon="mail"></span> Enviar à Estatística</button>
         <button class="btn-load sec" onclick="zeloNarrarRelatorioMensal()">🔊 Ler em voz</button>
         <span id="mrpt-savestat" style="font-family:var(--font-body);font-size:.6rem;color:var(--muted);margin-left:4px;"></span>
       </div>
+      <div id="mrpt-aviso"></div>
       <div id="mrpt-content">
         <!-- monthly table built by JS -->
       </div>
+      <div id="mrpt-dias"></div>
     </div>
 
     <!-- ══ SEMANAL ══ -->
@@ -3232,6 +3246,83 @@ const MRPT_SECTIONS = [
 ];
 const MRPT_ALL = MRPT_SECTIONS.flatMap(s=>s.exames);
 
+// ── Nada fica escondido no relatório ──
+// Exames acrescentados no registo diário (ou que só existem em dias antigos)
+// entram também no relatório, na secção a que pertencem (ou em «Outros»).
+function mrptIncluirExames(nomes){
+  const secDe = {};
+  EXAM_SECTIONS.forEach(s=>{ s.exames.forEach(e=>secDe[e]=s.id); ((_extraExames||{})[s.id]||[]).forEach(e=>secDe[e]=s.id); });
+  let novos = 0;
+  nomes.forEach(e=>{
+    if(!e || MRPT_ALL.includes(e)) return;
+    const sec = MRPT_SECTIONS.find(x=>x.id===secDe[e]) || MRPT_SECTIONS[MRPT_SECTIONS.length-1];
+    sec.exames.push(e); MRPT_ALL.push(e); novos++;
+  });
+  return novos;
+}
+function mrptIncluirDosDias(dias){
+  const nomes = new Set();
+  Object.keys(_extraExames||{}).forEach(k=>((_extraExames||{})[k]||[]).forEach(e=>nomes.add(e)));
+  (dias||getSavedDays()).forEach(d=>{
+    try{
+      const x = JSON.parse(LS.getItem(sk(d))||'null');
+      if(x && x.exames) Object.keys(x.exames).forEach(e=>{ const v=x.exames[e]; if(v && ((+v.bu||0)+(+v.int||0))>0) nomes.add(e); });
+    }catch(e){}
+  });
+  return mrptIncluirExames([...nomes]);
+}
+// Todos os dias do mês, com os totais de cada dia guardado (os outros: sem registo).
+function mrptDiasDoMes(m){
+  const [y,mo] = m.split('-').map(Number), nd = new Date(y, mo, 0).getDate(), guardados = new Set(getSavedDays());
+  const out = [];
+  for(let d=1; d<=nd; d++){
+    const iso = m+'-'+String(d).padStart(2,'0');
+    let data = null;
+    if(guardados.has(iso)){ try{ data = JSON.parse(LS.getItem(sk(iso))||'null'); }catch(e){} }
+    let bu=0, int=0, pos=0;
+    if(data){
+      Object.keys(data.exames||{}).forEach(e=>{ bu += +(data.exames[e]?.bu||0); int += +(data.exames[e]?.int||0); });
+      Object.keys(data.positivos||{}).forEach(e=>{ pos += +(data.positivos[e]?.bu||0) + +(data.positivos[e]?.int||0); });
+    }
+    out.push({ iso, d, sem: ['dom','seg','ter','qua','qui','sex','sáb'][new Date(y,mo-1,d).getDay()], data, bu, int, pos,
+      chefe: data && data.chefeEquipa ? String(data.chefeEquipa).trim() : '',
+      techs: data ? (data.techs||[]).filter(t=>t && String(t).trim()).join(', ') : '' });
+  }
+  return out;
+}
+function mrdEsc(t){ return String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+document.addEventListener('click', function(e){
+  const tr = e.target.closest && e.target.closest('#mrpt-dias tr.mrd-l'); if(!tr) return;
+  const d = tr.dataset.dia; const inp = document.getElementById('data-registo'); if(inp) inp.value = d;
+  loadDay(d); showSection('sec-registo', document.getElementById('nav-registo'));
+});
+function mrptRenderDias(){
+  const box = document.getElementById('mrpt-dias'), aviso = document.getElementById('mrpt-aviso');
+  const m = document.getElementById('mrpt-month')?.value;
+  if(!box || !m) return;
+  const dias = mrptDiasDoMes(m), _h = new Date(), hoje = _h.getFullYear()+'-'+String(_h.getMonth()+1).padStart(2,'0')+'-'+String(_h.getDate()).padStart(2,'0');
+  const comDados = dias.filter(x=>x.data);
+  let tBu=0, tInt=0, tPos=0;
+  let linhas = dias.map(x=>{
+    if(!x.data){
+      const fut = x.iso > hoje;
+      return '<tr class="mrd-sem"><td><b>'+String(x.d).padStart(2,'0')+'</b> <small>'+x.sem+'</small></td><td colspan="5">'+(fut?'—':'Sem registo')+'</td></tr>';
+    }
+    tBu+=x.bu; tInt+=x.int; tPos+=x.pos;
+    return '<tr class="mrd-l" data-dia="'+x.iso+'"><td><b>'+String(x.d).padStart(2,'0')+'</b> <small>'+x.sem+'</small></td><td>'+x.bu+'</td><td>'+x.int+'</td><td><b>'+(x.bu+x.int)+'</b></td><td>'+x.pos+'</td><td class="mrd-eq">'+mrdEsc([x.chefe?('Chefe: '+x.chefe):'', x.techs].filter(Boolean).join(' · ')||'—')+'</td></tr>';
+  }).join('');
+  linhas += '<tr class="mrd-tot"><td>TOTAL ('+comDados.length+' dia'+(comDados.length===1?'':'s')+')</td><td>'+tBu+'</td><td>'+tInt+'</td><td>'+(tBu+tInt)+'</td><td>'+tPos+'</td><td></td></tr>';
+  box.innerHTML = '<div class="card" style="padding:0;overflow:hidden;margin-top:14px;"><div class="mrd-cab">Registos diários de '+fmtMonth(m)+' <small>'+comDados.length+' de '+dias.length+' dias com registo · toque num dia para o abrir</small></div>'+
+    '<div style="overflow-x:auto"><table class="mrd"><thead><tr><th>Dia</th><th>B. Urgência</th><th>Internamento</th><th>Total</th><th>Positivos</th><th>Equipa</th></tr></thead><tbody>'+linhas+'</tbody></table></div></div>';
+  // Aviso se o relatório mostrado não coincide com os dias guardados.
+  let gBu=0, gInt=0; MRPT_ALL.forEach(e=>{ gBu += +(mrptData[e]?.bu||0); gInt += +(mrptData[e]?.int||0); });
+  if(aviso){
+    aviso.innerHTML = (comDados.length && (gBu!==tBu || gInt!==tInt))
+      ? '<div class="mrd-aviso"><b>Os registos diários deste mês somam '+(tBu+tInt)+' exames e o relatório mostra '+(gBu+gInt)+'.</b> Carregue em «Carregar dados do mês» para atualizar com todos os dias.</div>'
+      : '';
+  }
+}
+
 let mrptData = {}; // { examName: {bu, int} }
 let mrptPosData = {}; // { examName: {bu, int} } — exames positivos do mês
 let MRPT_POS_LIST = []; // nomes dos exames positivos incluídos no relatório mensal actual
@@ -3239,6 +3330,9 @@ let MRPT_POS_LIST = []; // nomes dos exames positivos incluídos no relatório m
 function buildMonthlyForm() {
   const cont = document.getElementById('mrpt-content');
   if(!cont) return;
+  const mSel = document.getElementById('mrpt-month')?.value;
+  if(mSel){ mrptIncluirDosDias(getSavedDays().filter(d => d.startsWith(mSel))); mrptIncluirExames(Object.keys(mrptData)); }
+  setTimeout(mrptRenderDias, 0);
   let html = '<div class="card" style="padding:0;overflow:hidden;">';
   html += '<div class="mrpt-thead"><span class="mth-name">Exame</span><span style="color:var(--danger)">B. Urgência</span><span style="color:var(--blue)">Internamento</span><span>Total</span></div>';
   MRPT_SECTIONS.forEach(sec => {
@@ -3386,7 +3480,7 @@ function mrptMonthChanged() {
   if(!loaded){
     mrptData = {}; mrptPosData = {}; MRPT_POS_LIST = allPositivos();
     if(stat) stat.textContent = '';
-    showToast('info', 'Ainda não há relatório guardado para '+fmtMonth(m)+' — use "Auto-preencher" ou introduza os dados manualmente');
+    showToast('info', 'Ainda não há relatório guardado para '+fmtMonth(m)+' — use «Carregar dados do mês» ou introduza os dados manualmente');
   } else {
     if(stat) stat.textContent = 'Relatório guardado carregado';
     (function(){
@@ -3411,13 +3505,17 @@ function openMonthlySection() {
   buildMonthlyForm();
 }
 
-function autoFillMonthly() {
+async function autoFillMonthly() {
   const m = document.getElementById('mrpt-month').value;
   if(!m){ showToast('warning', 'Seleccione primeiro o mês do relatório'); return; }
+  // Primeiro vai buscar ao servidor os dias registados noutros computadores.
+  showToast('info', 'A carregar os registos de '+fmtMonth(m)+'…', 2000);
+  try{ await _labPuxarTodosDias(); }catch(e){}
+  mrptIncluirDosDias(getSavedDays().filter(d => d.startsWith(m)));
   mrptData = {};
   const posAgg = {};
   const days = getSavedDays().filter(d => d.startsWith(m));
-  if(!days.length){ showToast('info', 'Não há registos diários guardados em '+fmtMonth(m)+' para agregar'); mrptPosData={}; MRPT_POS_LIST=[]; buildMonthlyForm(); return; }
+  if(!days.length){ showToast('info', 'Não há registos diários guardados em '+fmtMonth(m)); mrptPosData={}; MRPT_POS_LIST=[]; buildMonthlyForm(); return; }
   days.forEach(d => {
     const raw = LS.getItem(sk(d));
     if(!raw) return;
@@ -3447,7 +3545,7 @@ function autoFillMonthly() {
     const notaM = (restamM !== null && restamM >= 0)
       ? (' · Atenção: o mês ainda está em curso, ' + (restamM===0 ? 'termina hoje' : 'faltam '+restamM+' dia'+(restamM>1?'s':'')) + ' — dados incompletos')
       : '';
-    showToast('success', 'Auto-preenchimento concluído — '+days.length+' dia(s) de registos somados para '+fmtMonth(m)+notaM, notaM ? 5500 : 3200);
+    showToast('success', 'Dados carregados — '+days.length+' dia(s) de registos somados para '+fmtMonth(m)+notaM, notaM ? 5500 : 3200);
   })();
 }
 
@@ -3593,6 +3691,28 @@ function exportMonthlyPDF() {
     });
 
     cy = doc.lastAutoTable.finalY + 12;
+  }
+
+  // ── Registo dia a dia (todos os dias do mês) ──
+  {
+    const diasM = mrptDiasDoMes(m); let dBu=0, dInt=0, dPos=0, nCom=0;
+    const rowsD = diasM.map(x=>{
+      if(!x.data) return [String(x.d).padStart(2,'0')+' '+safe(x.sem), {content:safe('Sem registo'), colSpan:5, styles:{textColor:[180,83,9], fontStyle:'italic'}}];
+      dBu+=x.bu; dInt+=x.int; dPos+=x.pos; nCom++;
+      return [String(x.d).padStart(2,'0')+' '+safe(x.sem), x.bu, x.int, x.bu+x.int, x.pos, safe([x.chefe?('Chefe: '+x.chefe):'', x.techs].filter(Boolean).join(' / ')||'-')];
+    });
+    rowsD.push([{content:safe('TOTAL ('+nCom+' dias)'), styles:{fontStyle:'bold'}}, {content:dBu,styles:{fontStyle:'bold'}}, {content:dInt,styles:{fontStyle:'bold'}}, {content:dBu+dInt,styles:{fontStyle:'bold'}}, {content:dPos,styles:{fontStyle:'bold'}}, '']);
+    doc.addPage(); cy = 18;
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(30,58,95);
+    doc.text(safe('REGISTO DIA A DIA - ')+safe(mLabel.toUpperCase()), ML, cy); doc.setTextColor(0);
+    doc.autoTable({
+      head:[[safe('DIA'),safe('B. URGENCIA'),safe('INTERNAMENTO'),safe('TOTAL'),safe('POSITIVOS'),safe('EQUIPA')]],
+      body: rowsD, startY: cy+4, margin:{left:ML, right:MR},
+      styles:{fontSize:7.6, cellPadding:1.6, font:'helvetica'},
+      headStyles:{fillColor:[30,58,95], textColor:[255,255,255], fontStyle:'bold', fontSize:7.2},
+      columnStyles:{0:{cellWidth:20},1:{halign:'center',cellWidth:22},2:{halign:'center',cellWidth:24},3:{halign:'center',cellWidth:18},4:{halign:'center',cellWidth:20},5:{halign:'left'}}
+    });
+    cy = doc.lastAutoTable.finalY + 10;
   }
 
   // ── Referência, assinatura única e rodapé ──
