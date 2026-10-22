@@ -16,7 +16,8 @@
 
   // Ainda durante a leitura da página: os scripts escritos correm já a seguir,
   // antes do código da página (que só usa o jsPDF ao clicar).
-  if (document.readyState === 'loading') {
+  // Com zelo_pdf_tardio.js a biblioteca chega depois de a página abrir (não se força aqui).
+  if (document.readyState === 'loading' && !window.__zeloPdfTardio) {
     try {
       if (!temJspdf()) document.write('<script src="' + LOCAL_JSPDF + '"><\/script><script src="' + LOCAL_AT + '"><\/script>');
       else if (!temAt()) document.write('<script src="' + LOCAL_AT + '"><\/script>');
@@ -32,6 +33,7 @@
   var aCarregar = null;
   function carregar() {
     if (temAt()) { corrigirSave(); return Promise.resolve(true); }
+    if (window.ZeloPdfTardio) return window.ZeloPdfTardio.carregar().then(function (ok) { corrigirSave(); return ok && temAt(); });
     if (!aCarregar) {
       aCarregar = (temJspdf() ? Promise.resolve() : script(LOCAL_JSPDF))
         .then(function () { return temAt() ? null : script(LOCAL_AT); })
@@ -145,6 +147,10 @@
     });
   }, true);
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { carregar(); });
+  if (window.__zeloPdfTardio) {
+    // A biblioteca chega mais tarde: ajusta o «guardar» assim que estiver pronta.
+    window.addEventListener('zelo-pdf-pronto', function () { corrigirSave(); });
+    if (temJspdf()) corrigirSave();
+  } else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { carregar(); });
   else carregar();
 })();
