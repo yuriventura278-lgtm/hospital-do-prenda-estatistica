@@ -802,8 +802,9 @@
     if (typeof ps === 'function' && !ps.__b2) { var np = function () { var r = ps.apply(this, arguments); ultGuardado = Date.now(); guardado(); return r; }; np.__b2 = true; window.persist = np; }
     var dt = $('regDate'); if (dt) dt.addEventListener('change', function () { edit = null; novoF(); desenharForm(); setTimeout(desenhar, 400); });
     var relogio = function () { var c = $('b2-clock'); if (c) { var d = new Date(); c.textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } guardado(); };
-    relogio(); setInterval(relogio, 15000);
-    setInterval(desenhar, 5000);
+    relogio(); setInterval(function () { if (!document.hidden) relogio(); }, 15000);
+    setInterval(function () { if (!document.hidden) desenhar(); }, 5000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) { relogio(); desenhar(); } });
     return true;
   }
   var n = 0, iv = setInterval(function () { if (montar() || ++n > 40) clearInterval(iv); }, 250);

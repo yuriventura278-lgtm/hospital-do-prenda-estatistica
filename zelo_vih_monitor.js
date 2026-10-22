@@ -385,7 +385,7 @@
     $('mdlDiaFechar').addEventListener('click', function () { $('ovDia').classList.remove('open'); });
     $('ovDia').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('ovDia').classList.remove('open'); });
-    setInterval(function () { var n = new Date(); $('clock').textContent = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds()); }, 1000);
+    setInterval(function () { if (document.hidden) return; var n = new Date(); $('clock').textContent = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds()); }, 1000);
     mostrar('sec-painel');
     sincronizar();
   }

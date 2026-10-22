@@ -288,7 +288,7 @@
         ultimo.insertBefore(rel, ultimo.firstChild);
         var DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'], MES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
         var tick = function () { var d = new Date(); rel.querySelector('span').textContent = d.getDate() + ' ' + MES[d.getMonth()] + ' · ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
-        tick(); setInterval(tick, 20000);
+        tick(); setInterval(function () { if (!document.hidden) tick(); }, 20000); document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
       }
     }
     // Cabeçalhos altos (ex.: Controlo de Pacientes, Movimento): mais baixos.

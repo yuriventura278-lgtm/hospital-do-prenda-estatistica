@@ -41,7 +41,7 @@
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"></noscript>
 <link rel="stylesheet" href="zelo_tokens.css">
-<script src="zelo_pdf_tardio.js?v=1" data-at="3.8.2"></script>
+<script src="zelo_pdf_tardio.js?v=2" data-at="3.8.2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
 /* ════ CLINICAL MINIMAL — Hemoterapia (Lab theme) ════ */
@@ -1179,7 +1179,7 @@ function runSplash(onDone){
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded',()=>{
   buildMapaSections();
-  setInterval(updateClock,1000);
+  setInterval(function(){ if(!document.hidden) updateClock(); },1000);
   updateClock();
   const n=new Date();
   const yy=n.getFullYear(),mm=String(n.getMonth()+1).padStart(2,'0'),dd=String(n.getDate()).padStart(2,'0');
@@ -2776,7 +2776,7 @@ _zeloAtualizarBackupTrigger();
 window.addEventListener('zelo-gate-ready', _zeloAtualizarBackupTrigger);
 </script>
 <script src="zelo_servicos_menu.js?v=8"></script>
-<script src="zelo_menu_flutuante.js"></script>
+<script src="zelo_menu_flutuante.js?v=2"></script>
 <script src="zelo_theme.js"></script>
 <script src="zelo_assistente.js?v=15"></script>
 <script src="zelo_save_feedback.js"></script>

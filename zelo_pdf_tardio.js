@@ -13,9 +13,15 @@
   window.__zeloPdfTardio = true;
   var eu = document.currentScript;
   var AT = (eu && eu.getAttribute('data-at')) || '3.8.2';
+  if (AT === 'nenhum') AT = '';
   var CDN_J = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
   var CDN_A = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/' + AT + '/jspdf.plugin.autotable.min.js';
   var LOC_J = 'jspdf.umd.min.js', LOC_A = 'jspdf.plugin.autotable.min.js';
+  // Páginas que tinham a biblioteca colada dentro de si indicam o ficheiro
+  // local com a MESMA versão (data-j / data-a): carrega-se esse, do próprio sistema.
+  var PROP_J = eu && eu.getAttribute('data-j'), PROP_A = eu && eu.getAttribute('data-a');
+  if (PROP_J) { CDN_J = PROP_J; LOC_J = PROP_J; }
+  if (PROP_A) { CDN_A = PROP_A; LOC_A = PROP_A; }
 
   function temJ() { return !!(window.jspdf && window.jspdf.jsPDF); }
   function temA() { return !AT || (temJ() && typeof window.jspdf.jsPDF.API.autoTable === 'function'); }

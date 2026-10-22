@@ -239,8 +239,10 @@
     });
     var inp = document.getElementById('regDate');
     if (inp) { inp.addEventListener('change', function () { setTimeout(atualizar, 300); }); }
-    setInterval(atualizar, 2500);
-    setInterval(relogio, 15000);
+    // Com o separador escondido não se redesenha nada (poupa processador e bateria).
+    setInterval(function () { if (!document.hidden) atualizar(); }, 2500);
+    setInterval(function () { if (!document.hidden) relogio(); }, 15000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) { atualizar(); relogio(); } });
 
     // Os indicadores do dia só aparecem no registo das cirurgias.
     function mostrarKpis() {

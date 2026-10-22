@@ -583,7 +583,7 @@
     $('mdlNao').addEventListener('click', function () { $('ovGuardar').classList.remove('open'); });
     $('mdlSim').addEventListener('click', gravar);
     $('ovGuardar').addEventListener('click', function (e) { if (e.target === this) this.classList.remove('open'); });
-    setInterval(function () { var n = new Date(); $('clock').textContent = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds()); }, 1000);
+    setInterval(function () { if (document.hidden) return; var n = new Date(); $('clock').textContent = pad(n.getHours()) + ':' + pad(n.getMinutes()) + ':' + pad(n.getSeconds()); }, 1000);
     ligarTeclado();
     abrirDia(data);
     sincronizar();

@@ -752,3 +752,37 @@
     iniciar();
   }
 })();
+
+// ── Abrir mais depressa ──
+// 1) Liga já ao servidor de dados (Firebase) e às letras: poupa o tempo da
+//    ligação quando a página precisar deles.
+// 2) Ao passar o rato ou tocar numa ligação para outra página do sistema,
+//    essa página começa a descarregar logo — quando se larga o dedo/clica,
+//    ela abre quase de imediato. Não muda nada no funcionamento: só antecipa.
+(function () {
+  if (window.__zeloAntecipar) return; window.__zeloAntecipar = true;
+  var head = document.head || document.documentElement;
+  ['https://www.gstatic.com', 'https://fonts.gstatic.com', 'https://fonts.googleapis.com'].forEach(function (u) {
+    if (document.querySelector('link[rel="preconnect"][href="' + u + '"]')) return;
+    var l = document.createElement('link'); l.rel = 'preconnect'; l.href = u; if (u.indexOf('gstatic') > 0) l.crossOrigin = '';
+    head.appendChild(l);
+  });
+  try { var fb = (window.firebaseConfig && window.firebaseConfig.databaseURL); if (fb) { var l2 = document.createElement('link'); l2.rel = 'preconnect'; l2.href = fb; head.appendChild(l2); } } catch (e) {}
+  var feitos = {};
+  var lento = navigator.connection && (navigator.connection.saveData || /(^|-)2g$/.test(navigator.connection.effectiveType || ''));
+  function antecipar(e) {
+    if (lento) return; // em redes muito lentas ou com «poupança de dados» não se antecipa nada
+    var a = e.target && e.target.closest && e.target.closest('a[href]');
+    if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
+    var u;
+    try { u = new URL(a.getAttribute('href'), location.href); } catch (x) { return; }
+    if (u.origin !== location.origin || !/\.html?$/i.test(u.pathname) || u.pathname === location.pathname) return;
+    var chave = u.pathname;
+    if (feitos[chave]) return; feitos[chave] = 1;
+    var l = document.createElement('link'); l.rel = 'prefetch'; l.href = u.pathname; l.as = 'document';
+    head.appendChild(l);
+  }
+  document.addEventListener('pointerover', antecipar, { passive: true });
+  document.addEventListener('touchstart', antecipar, { passive: true, capture: true });
+  document.addEventListener('focusin', antecipar, true);
+})();
