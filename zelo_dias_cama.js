@@ -239,8 +239,6 @@
       fl.className = 'm2-falta' + (C.faltaN ? '' : ' ok');
       fl.innerHTML = (C.faltaN ? ICO_AV + C.faltaN + ' dias em falta no período' : ICO_OK + 'Período completo até hoje');
     }
-    $('btPdfT').textContent = mes ? 'PDF do mês (todos os serviços)' : 'PDF do ' + (estado.per === 'ano' ? 'ano' : estado.per === 'tri' ? 'trimestre' : 'semestre');
-    $('btPdfServ').hidden = !mes;
     // serviços
     $('servs').innerHTML = SERVICOS.map(function (s) {
       var K = contas(s[0]), ok = K.preenchidos >= K.dias;
@@ -552,20 +550,69 @@
   function linhasPeriodo() {
     return SERVICOS.map(function (s) { var P = contasPeriodo(s[0]); return { nome: s[1], lotacao: P.lotacao, cama: P.cama, doente: P.doente, taxa: P.taxa, pc: P.pc, pd: P.pd, preenchidos: P.preenchidos, dias: P.dias }; });
   }
-  $('btPdf').addEventListener('click', function () {
-    if (semPDF()) return;
-    if (estado.per === 'mes') {
-      var lista = SERVICOS.map(function (s) { return { nome: s[1], dados: dadosServ(s[0]) }; });
-      var d = FD.pdf(lista, estado.ym); FD.resumo(d, lista, estado.ym);
-      d.save('Dias_Cama_Todos_' + estado.ym + '.pdf');
+  // Movimento Hospitalar no formato {cama:{dia:n}, doente:{dia:n}} (só o mês aberto).
+  function movDoServ(slug) {
+    if (!estado.movPronto) return null;
+    var nd = FD.diasNoMes(estado.ym), c = {}, o = {}, tem = false;
+    for (var d = 1; d <= nd; d++) { var a = movVal(slug, 'cama', d), b = movVal(slug, 'doente', d); if (a != null) { c[d] = a; tem = true; } if (b != null) { o[d] = b; tem = true; } }
+    return tem ? { cama: c, doente: o } : null;
+  }
+  // Meses do relatório: o mês aberto, ou os meses do período já começados.
+  function mesesRelatorio() { return estado.per === 'mes' ? [estado.ym] : mesesPeriodo().filter(function (ym) { return ym <= YM_HOJE; }); }
+  function nomeFicheiro(t) { return t.replace(/[^\wÀ-ú]+/g, '_').replace(/^_|_$/g, ''); }
+  var ICO_DOC = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg>';
+  var ICO_GRADE = '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>';
+  var ICO_FOLHA = '<svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
+  function opcoesPDF() {
+    var mes = estado.per === 'mes', n = esc(nomeServ(estado.serv)), quando = mes ? nomeMes(estado.ym) : tituloPeriodo(), h = '';
+    h += '<button type="button" data-pdf="det-todos">' + ICO_GRADE + '<span><b>Detalhado dia a dia — todos os serviços</b><small>' + (mes ? 'Grelha diária do hospital + uma página por serviço com cada dia (' + quando + ')' : 'Grelha diária do hospital, um mês por página (' + quando + ')') + '</small></span></button>';
+    h += '<button type="button" data-pdf="det-serv">' + ICO_DOC + '<span><b>Detalhado dia a dia — ' + n + '</b><small>Cada dia numa linha: cama, doente, ocupação, camas livres e observações' + (mes ? '' : ' (um mês por página)') + '</small></span></button>';
+    h += '<hr>';
+    if (mes) {
+      h += '<button type="button" data-pdf="folhas">' + ICO_FOLHA + '<span><b>Folhas de recolha preenchidas</b><small>Igual ao papel, todos os serviços, com o resumo do mês</small></span></button>';
+      h += '<button type="button" data-pdf="folha-serv">' + ICO_FOLHA + '<span><b>Folha de recolha — ' + n + '</b><small>Igual ao papel, só este serviço</small></span></button>';
     } else {
-      var t = tituloPeriodo();
-      FD.resumoPeriodo(linhasPeriodo(), t).save('Dias_Cama_' + t.replace(/[^\wÀ-ú]+/g, '_') + '.pdf');
+      h += '<button type="button" data-pdf="resumo">' + ICO_DOC + '<span><b>Resumo do período</b><small>Totais de cada serviço e do hospital (' + quando + ')</small></span></button>';
     }
+    return h;
+  }
+  function fecharMenu() { $('pdfMenu').hidden = true; $('btPdf').setAttribute('aria-expanded', 'false'); }
+  $('btPdf').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var m = $('pdfMenu');
+    if (!m.hidden) { fecharMenu(); return; }
+    m.innerHTML = opcoesPDF(); m.hidden = false; this.setAttribute('aria-expanded', 'true');
   });
-  $('btPdfServ').addEventListener('click', function () {
-    if (semPDF()) return; var n = nomeServ(estado.serv);
-    FD.pdf([{ nome: n, dados: dadosServ(estado.serv) }], estado.ym).save('Dias_Cama_' + n.replace(/\s+/g, '_') + '_' + estado.ym + '.pdf');
+  document.addEventListener('click', function (e) { if (!e.target.closest('.pdfm')) fecharMenu(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fecharMenu(); });
+  $('pdfMenu').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-pdf]'); if (!b) return;
+    fecharMenu();
+    if (semPDF()) return;
+    var tipo = b.dataset.pdf, mes = estado.per === 'mes', slug = estado.serv, n = nomeServ(slug);
+    var quando = mes ? estado.ym : nomeFicheiro(tituloPeriodo());
+    try {
+      if (tipo === 'det-todos' || tipo === 'det-serv') {
+        var meses = mesesRelatorio().map(function (ym) {
+          var dados = dadosDoMes(ym);
+          var lista = (tipo === 'det-serv' ? SERVICOS.filter(function (s) { return s[0] === slug; }) : SERVICOS).map(function (s) {
+            return { nome: s[1], dados: dados[s[0]] || {}, mov: ym === estado.ym ? movDoServ(s[0]) : null };
+          });
+          return { ym: ym, servicos: lista };
+        });
+        var op = tipo === 'det-serv' ? { grelha: false } : (mes ? { soComDados: true } : { fichas: false });
+        FD.detalhado(meses, op).save('Dias_Cama_Detalhado_' + (tipo === 'det-serv' ? nomeFicheiro(n) + '_' : 'Todos_') + quando + '.pdf');
+      } else if (tipo === 'folhas') {
+        var lista2 = SERVICOS.map(function (s) { return { nome: s[1], dados: dadosServ(s[0]) }; });
+        var d = FD.pdf(lista2, estado.ym); FD.resumo(d, lista2, estado.ym);
+        d.save('Dias_Cama_Folhas_' + estado.ym + '.pdf');
+      } else if (tipo === 'folha-serv') {
+        FD.pdf([{ nome: n, dados: dadosServ(slug) }], estado.ym).save('Dias_Cama_Folha_' + nomeFicheiro(n) + '_' + estado.ym + '.pdf');
+      } else if (tipo === 'resumo') {
+        FD.resumoPeriodo(linhasPeriodo(), tituloPeriodo()).save('Dias_Cama_Resumo_' + quando + '.pdf');
+      }
+      toast('PDF criado.');
+    } catch (err) { console.error(err); toast('Não foi possível criar o PDF.'); }
   });
 
   // ── Excel (a biblioteca só carrega quando se carrega no botão) ──

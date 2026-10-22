@@ -44,18 +44,19 @@
     function caixa(x, y, w, h, rot) { cor(LINHA, 'Draw'); d.setLineWidth(0.3); d.roundedRect(x, y, w, h, 1.2, 1.2, 'S'); if (rot) txt(rot.toUpperCase(), x + 2, y + 3.4, { s: 6.3, b: 1, c: CINZA }); }
     return { cor: cor, txt: txt, caixa: caixa };
   }
-  function cabecalho(d, F, W, M, CW) {
+  function cabecalho(d, F, W, M, CW, titulo) {
     var Z = window.ZeloPDF || {};
     F.cor(NAVY, 'Draw'); d.setLineWidth(0.6); d.roundedRect(M, 10, CW, 22, 2, 2, 'S');
     try { if (Z.LOGO) d.addImage(Z.LOGO, 'JPEG', M + 3, 12.5, 17, 17); } catch (e) {}
     F.txt('HOSPITAL DO PRENDA', M + 24, 16.2, { s: 7.5, b: 1, c: CINZA });
-    F.txt('Recolha de Dias de Cama e Dias de Doente', M + 24, 22.6, { s: 14.5, b: 1 });
+    F.txt(titulo || 'Recolha de Dias de Cama e Dias de Doente', M + 24, 22.6, { s: 14.5, b: 1 });
     F.txt('Serviço de Admissão e Arquivo Médico Estatístico', M + 24, 28, { s: 8.5, c: CINZA });
   }
-  function rodape(d, F, W, M, dir) {
-    F.cor(NAVY, 'Draw'); d.setLineWidth(0.4); d.line(M, 285, W - M, 285);
-    F.txt('Hospital do Prenda · Serviço de Admissão e Arquivo Médico Estatístico', M, 289.5, { s: 7.3, c: CINZA });
-    F.txt(dir, W - M, 289.5, { s: 7.3, c: CINZA, al: 'right' });
+  function rodape(d, F, W, M, dir, H) {
+    var y = (H || 297) - 12;
+    F.cor(NAVY, 'Draw'); d.setLineWidth(0.4); d.line(M, y, W - M, y);
+    F.txt('Hospital do Prenda · Serviço de Admissão e Arquivo Médico Estatístico', M, y + 4.5, { s: 7.3, c: CINZA });
+    F.txt(dir, W - M, y + 4.5, { s: 7.3, c: CINZA, al: 'right' });
   }
 
   function pdf(lista, ym) {
@@ -215,5 +216,162 @@
     return d;
   }
 
-  window.ZeloFolhaDiasCama = { pdf: pdf, resumo: resumo, resumoPeriodo: resumoPeriodo, totais: totais, diasNoMes: diasNoMes, MESES: MESES };
+
+  // ── Relatório DETALHADO: os números registados dia a dia ──
+  //   meses: [{ ym, servicos: [{ nome, dados, mov? }] }]
+  //     mov (opcional) = { cama:{dia:n}, doente:{dia:n} } do Movimento Hospitalar
+  //   op.grelha: página horizontal com todos os serviços lado a lado (por mês)
+  //   op.fichas: uma página por serviço com cada dia em linha (por mês)
+  var SEM_L = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  var VERM = [185, 28, 28], VERDE = [5, 150, 105], LARANJA = [180, 83, 9];
+  function detalhado(meses, op) {
+    op = op || {};
+    var d = null, paginas = 0;
+    function nova(orient) {
+      if (!d) { var J = window.jspdf.jsPDF; d = new J({ unit: 'mm', format: 'a4', orientation: orient }); }
+      else d.addPage('a4', orient);
+      paginas++;
+      return ferramentas(d);
+    }
+    meses.forEach(function (m) {
+      var p = m.ym.split('-'), nd = diasNoMes(m.ym), mesTxt = MESES[+p[1] - 1] + ' de ' + p[0];
+      if (op.grelha !== false) grelha(m, p, nd, mesTxt);
+      if (op.fichas !== false) m.servicos.forEach(function (s) {
+        var T = totais(s.dados, m.ym);
+        if (op.soComDados && !T.preenchidos && T.cama == null && T.doente == null) return;
+        ficha(s, m.ym, p, nd, mesTxt, T);
+      });
+    });
+    if (!d) { var F0 = nova('portrait'); cabecalho(d, F0, 210, 12, 186, 'Relatório Detalhado — Dias de Cama e Dias de Doente'); F0.txt('Sem dados registados no período escolhido.', 12, 45, { s: 11 }); }
+    return d;
+
+    // Página horizontal: dias em linhas, serviços em colunas (cama | doente) e o hospital.
+    function grelha(m, p, nd, mesTxt) {
+      var F = nova('landscape'), W = 297, H = 210, M = 10, CW = W - 2 * M, ns = m.servicos.length;
+      cabecalho(d, F, W, M, CW, 'Registo diário — todos os serviços');
+      F.txt(mesTxt.charAt(0).toUpperCase() + mesTxt.slice(1), W - M - 3, 22.6, { s: 12, b: 1, al: 'right' });
+      var cDia = 17, cHosp = 15, cServ = (CW - cDia - 3 * cHosp) / ns, sub = cServ / 2;
+      var y0 = 36, h1 = 9, h2 = 5, rh = Math.min(4.6, (H - 22 - y0 - h1 - h2 - 2 * 5.2) / nd);
+      // cabeçalho da tabela
+      F.cor([226, 232, 240], 'Fill'); d.rect(M, y0, CW, h1 + h2, 'F');
+      F.txt('Dia', M + cDia / 2, y0 + 8, { s: 7.5, b: 1, al: 'center' });
+      var x = M + cDia;
+      m.servicos.forEach(function (s) {
+        var nome = s.nome; d.setFontSize(6.6); while (d.getTextWidth(nome) > cServ - 1.5 && nome.length > 4) nome = nome.slice(0, -2) + '…';
+        F.txt(nome, x + cServ / 2, y0 + 4.2, { s: 6.6, b: 1, al: 'center' });
+        var L = num((s.dados || {}).lotacao); if (L != null) F.txt('lot. ' + L, x + cServ / 2, y0 + 7.6, { s: 5.6, c: CINZA, al: 'center' });
+        F.txt('Cama', x + sub / 2, y0 + h1 + 3.6, { s: 5.8, b: 1, c: CINZA, al: 'center' });
+        F.txt('Doente', x + sub * 1.5, y0 + h1 + 3.6, { s: 5.8, b: 1, c: CINZA, al: 'center' });
+        x += cServ;
+      });
+      F.cor([224, 231, 255], 'Fill'); d.rect(x, y0, 3 * cHosp, h1 + h2, 'F');
+      F.txt('HOSPITAL', x + 1.5 * cHosp, y0 + 5.5, { s: 7, b: 1, al: 'center' });
+      ['Cama', 'Doente', 'Ocup. %'].forEach(function (t, i) { F.txt(t, x + cHosp * (i + .5), y0 + h1 + 3.6, { s: 5.8, b: 1, c: CINZA, al: 'center' }); });
+      // linhas dos dias
+      var y = y0 + h1 + h2, totC = {}, totD = {}, hc = 0, hd = 0, pc = 0, pdd = 0;
+      for (var dia = 1; dia <= nd; dia++) {
+        var w = new Date(+p[0], +p[1] - 1, dia).getDay();
+        if (w === 0 || w === 6) { F.cor(SUAVE, 'Fill'); d.rect(M, y, CW, rh, 'F'); }
+        F.txt(pad2(dia) + ' ' + SEM_L[w].slice(0, 3).toLowerCase(), M + 2, y + rh - 1.2, { s: 6.6, b: 1 });
+        x = M + cDia; var sc = 0, sd = 0, temC = false, temD = false, pcd = 0, pdd2 = 0;
+        m.servicos.forEach(function (s, i) {
+          var a = num(((s.dados || {}).cama || {})[dia]), b = num(((s.dados || {}).doente || {})[dia]);
+          if (a != null) { sc += a; temC = true; totC[i] = (totC[i] || 0) + a; }
+          if (b != null) { sd += b; temD = true; totD[i] = (totD[i] || 0) + b; }
+          if (a != null && b != null) { pcd += a; pdd2 += b; }
+          F.txt(a == null ? '·' : a, x + sub / 2, y + rh - 1.2, { s: 6.8, c: a == null ? LINHA : TINTA, al: 'center' });
+          F.txt(b == null ? '·' : b, x + sub * 1.5, y + rh - 1.2, { s: 6.8, b: a != null && b != null && b > a, c: b == null ? LINHA : (a != null && b > a ? VERM : TINTA), al: 'center' });
+          x += cServ;
+        });
+        if (temC) hc += sc; if (temD) hd += sd; pc += pcd; pdd += pdd2;
+        F.txt(temC ? sc : '·', x + cHosp / 2, y + rh - 1.2, { s: 6.8, b: 1, c: temC ? NAVY : LINHA, al: 'center' });
+        F.txt(temD ? sd : '·', x + cHosp * 1.5, y + rh - 1.2, { s: 6.8, b: 1, c: temD ? NAVY : LINHA, al: 'center' });
+        F.txt(pcd ? taxaTxt(pdd2 / pcd * 100) : '·', x + cHosp * 2.5, y + rh - 1.2, { s: 6.8, b: 1, c: pcd ? NAVY : LINHA, al: 'center' });
+        F.cor(dia % 7 === 0 ? NAVY : [226, 232, 240], 'Draw'); d.setLineWidth(dia % 7 === 0 ? 0.35 : 0.15); d.line(M, y + rh, M + CW, y + rh);
+        y += rh;
+      }
+      // totais e ocupação do mês
+      var rt = 5.2;
+      F.cor([224, 231, 255], 'Fill'); d.rect(M, y, CW, rt * 2, 'F');
+      F.txt('Total', M + 2, y + rt - 1.4, { s: 7, b: 1 }); F.txt('Ocupação', M + 2, y + 2 * rt - 1.4, { s: 7, b: 1 });
+      x = M + cDia;
+      m.servicos.forEach(function (s, i) {
+        var T = totais(s.dados, m.ym);
+        F.txt(totC[i] == null ? '—' : totC[i], x + sub / 2, y + rt - 1.4, { s: 7, b: 1, al: 'center' });
+        F.txt(totD[i] == null ? '—' : totD[i], x + sub * 1.5, y + rt - 1.4, { s: 7, b: 1, al: 'center' });
+        F.txt(T.taxa == null ? '—' : taxaTxt(T.taxa) + '%', x + cServ / 2, y + 2 * rt - 1.4, { s: 7, b: 1, c: T.taxa != null && T.taxa > 100 ? VERM : NAVY, al: 'center' });
+        x += cServ;
+      });
+      F.txt(hc || '—', x + cHosp / 2, y + rt - 1.4, { s: 7, b: 1, al: 'center' });
+      F.txt(hd || '—', x + cHosp * 1.5, y + rt - 1.4, { s: 7, b: 1, al: 'center' });
+      F.txt(pc ? taxaTxt(pdd / pc * 100) + '%' : '—', x + cHosp * 1.5, y + 2 * rt - 1.4, { s: 7.5, b: 1, al: 'center' });
+      // grelha vertical
+      F.cor(LINHA, 'Draw'); d.setLineWidth(0.2);
+      x = M + cDia;
+      for (var i = 0; i <= ns; i++) { d.setLineWidth(0.35); d.line(x, y0, x, y + 2 * rt); if (i < ns) { d.setLineWidth(0.12); d.line(x + sub, y0 + h1, x + sub, y); x += cServ; } }
+      var hx = M + cDia + ns * cServ; d.setLineWidth(0.12); d.line(M + cDia, y0 + h1, M + CW, y0 + h1); d.line(hx + cHosp, y0 + h1, hx + cHosp, y); d.line(hx + 2 * cHosp, y0 + h1, hx + 2 * cHosp, y);
+      F.cor(NAVY, 'Draw'); d.setLineWidth(0.5); d.rect(M, y0, CW, y + 2 * rt - y0, 'S'); d.line(M, y, M + CW, y);
+      F.txt('Valores tal como registados em cada dia. «·» = dia sem registo. A vermelho: mais doentes do que camas. Ocupação = dias de doente ÷ dias de cama × 100 (só os dias com os dois números).', M, y + 2 * rt + 4.5, { s: 6.5, i: 1, c: CINZA });
+      rodape(d, F, W, M, mesTxt + ' · registo diário', H);
+    }
+
+    // Página vertical de um serviço: cada dia numa linha, com totais e observações.
+    function ficha(s, ym, p, nd, mesTxt, T) {
+      var F = nova('portrait'), W = 210, H = 297, M = 12, CW = W - 2 * M, D = s.dados || {}, L = num(D.lotacao), mv = s.mov;
+      cabecalho(d, F, W, M, CW, 'Registo diário — ' + s.nome);
+      F.txt(mesTxt.charAt(0).toUpperCase() + mesTxt.slice(1), W - M - 3, 22.6, { s: 12, b: 1, al: 'right' });
+      // quadro de identificação
+      var yi = 35, iw = CW / 4;
+      [['Lotação', L == null ? '—' : L + ' camas'], ['Dias registados', T.preenchidos + ' / ' + nd], ['Responsável', D.responsavel || '—'], ['Recebido em', dataPT(D.recebido) || '—']].forEach(function (c, i) {
+        F.caixa(M + i * iw, yi, iw - 2, 11, c[0]); var t = String(c[1]); d.setFontSize(9); while (d.getTextWidth(t) > iw - 6 && t.length > 4) t = t.slice(0, -2) + '…';
+        F.txt(t, M + i * iw + 2, yi + 8.6, { s: 9, b: 1, c: TINTA });
+      });
+      var cols = [['Dia', 11], ['Dia da semana', 22], ['Dias de cama', 21], ['Dias de doente', 22], ['Ocupação %', 20], ['Camas livres', 19]];
+      if (mv) cols.push(['Movimento (C / D)', 25]);
+      var resto = CW - cols.reduce(function (a, c) { return a + c[1]; }, 0); cols.push(['Observação', resto]);
+      var y = 50, hh = 8, rh = Math.min(6.6, (H - 30 - y - hh - 8 - 14) / nd);
+      F.cor([226, 232, 240], 'Fill'); d.rect(M, y, CW, hh, 'F');
+      var x = M; cols.forEach(function (c) { F.txt(c[0], x + c[1] / 2, y + 5.3, { s: 7, b: 1, al: 'center' }); x += c[1]; });
+      y += hh;
+      var livres = 0, nl = 0;
+      for (var dia = 1; dia <= nd; dia++) {
+        var w = new Date(+p[0], +p[1] - 1, dia).getDay(), a = num((D.cama || {})[dia]), b = num((D.doente || {})[dia]);
+        if (w === 0 || w === 6) { F.cor(SUAVE, 'Fill'); d.rect(M, y, CW, rh, 'F'); }
+        var obs = [], mc = mv ? num((mv.cama || {})[dia]) : null, md = mv ? num((mv.doente || {})[dia]) : null;
+        if (a == null && b == null) obs.push('Sem registo'); else if (a == null || b == null) obs.push('Incompleto');
+        if (a != null && b != null && b > a) obs.push('Mais doentes que camas');
+        if (a != null && L != null && a !== L) obs.push('Camas diferentes da lotação');
+        if ((mc != null && a != null && mc !== a) || (md != null && b != null && md !== b)) obs.push('Diferente do Movimento');
+        var tx = a && b != null ? b / a * 100 : null; if (a != null && b != null) { livres += a - b; nl++; }
+        var v = [pad2(dia), SEM_L[w], a == null ? '' : a, b == null ? '' : b, tx == null ? '' : taxaTxt(tx), a != null && b != null ? a - b : ''];
+        if (mv) v.push(mc == null && md == null ? '' : (mc == null ? '—' : mc) + ' / ' + (md == null ? '—' : md));
+        v.push(obs.join(' · '));
+        x = M; var ty = y + rh - 1.7;
+        v.forEach(function (t, i) {
+          var c = cols[i], obsCol = i === v.length - 1, cor = TINTA;
+          if (i === 3 && a != null && b != null && b > a) cor = VERM;
+          if (i === 4 && tx != null) cor = tx > 100 ? VERM : tx < 70 ? LARANJA : VERDE;
+          if (i === 5 && a != null && b != null && a - b < 0) cor = VERM;
+          if (obsCol) cor = /Sem registo|Incompleto/.test(t) ? CINZA : VERM;
+          if (i <= 1) cor = NAVY;
+          var tt = String(t); if (obsCol) { d.setFontSize(6.5); while (d.getTextWidth(tt) > c[1] - 3 && tt.length > 4) tt = tt.slice(0, -2) + '…'; }
+          F.txt(tt, obsCol ? x + 1.8 : x + c[1] / 2, ty, { s: obsCol ? 6.5 : 8.2, b: i === 0 || (i >= 2 && i <= 4), c: cor, al: obsCol ? undefined : 'center' });
+          x += c[1];
+        });
+        F.cor(dia % 7 === 0 ? NAVY : [226, 232, 240], 'Draw'); d.setLineWidth(dia % 7 === 0 ? 0.35 : 0.15); d.line(M, y + rh, M + CW, y + rh);
+        y += rh;
+      }
+      // total
+      F.cor([224, 231, 255], 'Fill'); d.rect(M, y, CW, 8, 'F');
+      var tv = ['Total', '', T.cama == null ? '—' : T.cama, T.doente == null ? '—' : T.doente, T.taxa == null ? '—' : taxaTxt(T.taxa) + '%', nl ? taxaTxt(livres / nl) + '/dia' : '—'];
+      x = M; tv.forEach(function (t, i) { F.txt(t, i === 0 ? x + 2 : x + cols[i][1] / 2, y + 5.4, { s: 8.6, b: 1, al: i === 0 ? undefined : 'center' }); x += cols[i][1]; });
+      F.cor(LINHA, 'Draw'); d.setLineWidth(0.15); x = M; cols.forEach(function (c, i) { if (i) d.line(x, 50, x, y + 8); x += c[1]; });
+      F.cor(NAVY, 'Draw'); d.setLineWidth(0.5); d.rect(M, 50, CW, y + 8 - 50, 'S'); d.line(M, y, M + CW, y);
+      F.txt('Ocupação = dias de doente ÷ dias de cama × 100. Camas livres = dias de cama - dias de doente.' + (mv ? ' Movimento = valores do Movimento Hospitalar do serviço (cama / doente).' : ''), M, y + 13, { s: 6.8, i: 1, c: CINZA });
+      rodape(d, F, W, M, s.nome + ' · ' + mesTxt, H);
+    }
+  }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  window.ZeloFolhaDiasCama = { pdf: pdf, resumo: resumo, resumoPeriodo: resumoPeriodo, detalhado: detalhado, totais: totais, diasNoMes: diasNoMes, MESES: MESES };
 })();
