@@ -30,50 +30,175 @@
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{--nv:#0B2545;--bg:#F2F5FA;--sf:#fff;--br:#E3E8F0;--tx:#132033;--tx2:#4B5B70;--tx3:#8B98AA;--az:#1A56DB;--f:Inter,'Segoe UI',Arial,sans-serif}
-html[data-zelo-theme="dark"]{--nv:#E6ECF5;--bg:#0B1220;--sf:#111A2B;--br:#1F2A3D;--tx:#E6ECF5;--tx2:#AAB6C8;--tx3:#7C8AA0}
 *{box-sizing:border-box}
-body{margin:0;font-family:var(--f);background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column}
-main{flex:1;width:100%;max-width:1100px;margin:0 auto;padding:22px 16px 40px}
-h2{margin:0 0 4px;font-size:1.35rem;font-weight:900;color:var(--nv)}
-.sub{color:var(--tx2);font-size:.9rem;margin-bottom:18px;line-height:1.5}
-.card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:16px 18px;margin-bottom:16px}
-.ctl{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
-.ctl label{display:flex;flex-direction:column;gap:5px;font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3)}
-.ctl input,.ctl select{padding:9px 11px;border:1px solid var(--br);border-radius:9px;font:600 .9rem var(--f);background:var(--sf);color:var(--tx);min-width:180px}
-.ctl .chk{flex-direction:row;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:.88rem;color:var(--tx2);font-weight:600;padding-bottom:9px}
-.ctl .chk input{min-width:0;width:18px;height:18px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:0;background:linear-gradient(135deg,var(--az),#0D1B3E);color:#fff;font:700 .9rem var(--f);cursor:pointer}
-.btn.sec{background:var(--sf);color:var(--tx);border:1px solid var(--br)}
-.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
-.folhas{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-.folha h3{margin:0 0 2px;font-size:1rem;font-weight:800;color:var(--nv)}
-.folha .m{font-size:.78rem;color:var(--tx3);margin-bottom:10px}
-table{width:100%;border-collapse:collapse;font-size:.82rem}
-th{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);padding:5px 6px;border-bottom:1px solid var(--br);text-align:center}
-th:first-child,td:first-child{text-align:left}
-td{padding:3px 6px;border-bottom:1px solid var(--br);text-align:center;font-variant-numeric:tabular-nums;height:22px}
-td.fds{color:var(--tx3)}
-tr.tot td{font-weight:900;background:rgba(26,86,219,.07);border-top:2px solid var(--az)}
-.nota{font-size:.8rem;color:var(--tx3);margin-top:8px}
-@media(max-width:640px){.acoes{margin-left:0}.ctl input,.ctl select{min-width:0;width:100%}.ctl label{flex:1 1 100%}}
+body{margin:0;background:#F2F5FA;font-family:Inter,"Segoe UI",Arial,sans-serif;color:#0F172A;min-height:100vh;display:flex;flex-direction:column}
+header.dc-top{display:flex;align-items:center;gap:14px;padding:14px 24px;background:#1E3A5F;color:#fff}
+header.dc-top img{width:34px;height:34px;border-radius:9px}
+header.dc-top h1{margin:0;font-size:1.05rem}
+header.dc-top .acoes{margin-left:auto;display:flex;gap:10px;align-items:center}
+header.dc-top a{display:inline-flex;gap:7px;align-items:center;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:8px 14px;font:700 .78rem Inter,Arial,sans-serif;text-decoration:none}
+header.dc-top svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}
+main{flex:1;width:100%;max-width:1380px;margin:0 auto;padding:18px 24px 40px}
+button{font-family:inherit}
+[hidden]{display:none !important}
+.m2-faixa{background:linear-gradient(135deg,#1E3A5F,#2B5A8A);color:#fff;border-radius:18px;padding:14px 18px;box-shadow:0 10px 24px rgba(30,58,95,.22)}
+.m2-f1{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tit{display:flex;align-items:center;gap:12px}
+.tit .ic{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none}
+.tit .ic svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2}
+.tit b{display:block;font-size:1.22rem;font-weight:800}.tit span{display:block;font-size:.78rem;opacity:.82}
+.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border-radius:10px;padding:4px 5px 4px 10px;font:600 .82rem Inter,Arial,sans-serif;margin-left:auto}
+.pill select{border:0;border-radius:7px;padding:6px 8px;font:800 .88rem Inter,Arial,sans-serif;color:#0F172A;max-width:260px}
+.m2-nums{display:flex;margin-top:12px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px}
+.m2-num{flex:1;text-align:center;border-left:1px solid rgba(255,255,255,.15);padding:0 6px;min-width:0}.m2-num:first-child{border-left:0}
+.m2-num b{display:block;font:800 1.55rem ui-monospace,Consolas,monospace}
+.m2-num span{display:block;font:700 .64rem Inter,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;opacity:.86}
+.m2-num.c b{color:#93C5FD}.m2-num.d b{color:#C4B5FD}.m2-num.p b{color:#6EE7B7}.m2-num.e b{color:#67E8F9}
+.m2-acoes{display:flex;gap:10px;align-items:center;margin:14px 0;flex-wrap:wrap}
+.m2-b{border:0;border-radius:12px;padding:11px 16px;font:700 .9rem Inter,Arial,sans-serif;display:inline-flex;gap:7px;align-items:center;white-space:nowrap;cursor:pointer;text-decoration:none}
+.m2-b svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;flex:none}
+.m2-b.p{background:linear-gradient(135deg,#1E3A5F,#2B5A8A);color:#fff;box-shadow:0 8px 18px rgba(30,58,95,.25)}
+.m2-b.o{background:#fff;border:1px solid #E3E8F0;color:#1E3A5F}
+.dica{margin-left:auto;background:#EEF4FB;border:1px solid #D6E2F0;color:#1E3A5F;border-radius:999px;padding:7px 13px;font:700 .8rem Inter,Arial,sans-serif;display:inline-flex;gap:6px;align-items:center}
+.dica svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2}
+.pdfm{position:relative}
+.pm{position:absolute;top:calc(100% + 6px);left:0;z-index:30;width:340px;max-width:calc(100vw - 24px);background:#fff;border:1px solid #E3E8F0;border-radius:14px;box-shadow:0 18px 40px rgba(15,23,42,.18);padding:6px}
+.pm button{display:flex;gap:10px;align-items:flex-start;width:100%;border:0;background:none;text-align:left;padding:10px 11px;border-radius:10px;cursor:pointer;color:#0F172A}
+.pm button:hover,.pm button:focus{background:#F1F5F9;outline:none}
+.pm button svg{width:18px;height:18px;flex:none;fill:none;stroke:#1E3A5F;stroke-width:2;margin-top:1px}
+.pm b{display:block;font:800 .86rem Inter,Arial,sans-serif;color:#1E3A5F}.pm small{display:block;font:600 .74rem Inter,Arial,sans-serif;color:#64748B;margin-top:2px}
+.pm hr{border:0;border-top:1px solid #EEF2F7;margin:4px 6px}
+.m2-card{background:#fff;border:1px solid #E3E8F0;border-radius:16px;overflow:hidden;margin-bottom:16px;min-width:0}
+.m2-ch{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid #E3E8F0;font:800 .98rem Inter,Arial,sans-serif;color:#1E3A5F;flex-wrap:wrap}
+.m2-ch i{font-style:normal;width:24px;height:24px;border-radius:50%;background:#1E3A5F;color:#fff;font:800 .74rem Inter,Arial,sans-serif;display:flex;align-items:center;justify-content:center;flex:none}
+.m2-ch small{margin-left:auto;color:#64748B;font:600 .8rem Inter,Arial,sans-serif}
+.m2-cb{padding:14px 18px}
+.servs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.sv{border:1.5px solid #E3E8F0;border-radius:13px;padding:11px 12px;background:#fff;min-width:0;text-align:left;cursor:pointer;color:#0F172A;display:flex;align-items:center;gap:9px}
+.sv:hover{border-color:#93C5FD}
+.sv>span{min-width:0}.sv .ck{width:20px;height:20px;border-radius:6px;border:1.5px solid #CBD5E1;flex:none;display:flex;align-items:center;justify-content:center}
+.sv .ck svg{width:13px;height:13px;fill:none;stroke:#fff;stroke-width:3.2;opacity:0}
+.sv b{display:block;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv small{display:block;font:600 .7rem Inter,Arial,sans-serif;color:#64748B;margin-top:1px}
+.sv.on{border-color:#1E3A5F;background:#EEF4FB;box-shadow:0 0 0 2px rgba(30,58,95,.12)}
+.sv.on .ck{background:#1E3A5F;border-color:#1E3A5F}.sv.on .ck svg{opacity:1}
+.sv.todos{background:#F8FAFC}
+.g2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+/* folha (pré-visualização igual ao papel) */
+.prev{background:#E9EEF5;padding:18px;display:flex;justify-content:center}
+.folha{background:#fff;width:100%;max-width:640px;box-shadow:0 10px 30px rgba(15,23,42,.18);padding:3.6% 5.6%;min-height:0;font-size:clamp(7px,1.25vw,11px);color:#1F2F45;display:flex;flex-direction:column;gap:1.4%}
+.fl-cab{display:flex;align-items:center;gap:3%;border:1.5px solid #1F2F45;border-radius:6px;padding:2% 2.5%}
+.fl-cab img{width:9%;border-radius:4px}
+.fl-cab small{display:block;font-weight:800;letter-spacing:.06em;color:#64748B;font-size:.75em}
+.fl-cab b{display:block;font-size:1.45em;font-weight:900;line-height:1.15}
+.fl-cab span{display:block;color:#64748B;font-size:.85em}
+.fl-id{display:grid;grid-template-columns:2.4fr 1fr 1.4fr;gap:1.6%}
+.cx{border:1px solid #94A3B8;border-radius:4px;padding:1% 1.6% 1.4%;min-height:2.6em}
+.cx em{display:block;font-style:normal;font-size:.62em;font-weight:800;letter-spacing:.06em;color:#64748B;text-transform:uppercase}
+.cx strong{font-size:1.05em}
+.fl-mes{display:flex;align-items:center;gap:1.4%;flex-wrap:nowrap;font-size:.86em}
+.fl-mes em{font-style:normal;font-size:.72em;font-weight:800;color:#64748B;margin-right:1%;line-height:1.1}
+.fl-mes span{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.fl-mes span i{display:inline-block;width:.9em;height:.9em;border:1px solid #1F2F45}
+.fl-inst{background:#F4F7FB;border:1px solid #94A3B8;border-radius:4px;padding:1% 2%;font-size:.82em;line-height:1.45}
+.fl-tabs{display:grid;grid-template-columns:1fr 1fr;gap:3%;margin:1% 0}
+.fl-tabs table{width:100%;border-collapse:collapse;border:1.5px solid #1F2F45;table-layout:fixed}
+.fl-tabs th{background:#E2E8F0;font-size:.74em;padding:1.2% 0;font-weight:800}
+.fl-tabs td{height:2.15em;border-bottom:1px solid #CBD5E1;border-left:1px solid #CBD5E1;font-weight:800;text-align:center;font-size:.92em}
+.fl-tabs td:first-child{border-left:0}
+.fl-tabs tr.sem td{border-bottom:1.5px solid #1F2F45}
+.fl-tabs tr.alt td{background:#F4F7FB}
+.fl-tabs td.op{color:#94A3B8}
+.fl-tot{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6%}
+.fl-ass{display:grid;grid-template-columns:1.65fr 1fr;gap:1.6%}
+.fl-res{border:1px dashed #94A3B8;border-radius:4px;padding:1% 1.6%;font-size:.78em;color:#64748B}
+.fl-pe{display:flex;justify-content:space-between;border-top:1px solid #1F2F45;padding-top:1%;font-size:.7em;color:#64748B}
+.passos{display:flex;flex-direction:column;gap:12px}
+.ps{display:flex;gap:12px;align-items:flex-start}
+.ps i{font-style:normal;width:28px;height:28px;border-radius:9px;background:#EEF4FB;color:#1E3A5F;font:800 .85rem Inter,Arial,sans-serif;display:flex;align-items:center;justify-content:center;flex:none}
+.ps>div>b{display:block;font:800 .88rem Inter,Arial,sans-serif;color:#1E3A5F}.ps span b{color:#1E3A5F}
+.ps span{display:block;font:500 .82rem Inter,Arial,sans-serif;color:#475569;line-height:1.45;margin-top:2px}
+.lig{display:flex;gap:10px;align-items:center;background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;border-radius:12px;padding:11px 13px;font:600 .82rem Inter,Arial,sans-serif;margin-top:14px;text-decoration:none}
+.lig svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;flex:none}
+.lig b{color:#047857}
+#rcToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#1E3A5F;color:#fff;border-radius:12px;padding:11px 16px;font:700 .86rem Inter,Arial,sans-serif;opacity:0;transition:.25s;pointer-events:none;z-index:50}
+#rcToast.on{opacity:1;transform:translateX(-50%)}
+html[data-zelo-theme="dark"] body{background:#0B1220;color:#E6ECF5}
+html[data-zelo-theme="dark"] .m2-card,html[data-zelo-theme="dark"] .sv,html[data-zelo-theme="dark"] .m2-b.o,html[data-zelo-theme="dark"] .pm{background:#111A2B;border-color:#1F2A3D;color:#E6ECF5}
+html[data-zelo-theme="dark"] .m2-ch,html[data-zelo-theme="dark"] .ps>div>b,html[data-zelo-theme="dark"] .pm b{color:#DCE6F5}
+html[data-zelo-theme="dark"] .sv.on,html[data-zelo-theme="dark"] .sv.todos,html[data-zelo-theme="dark"] .ps i{background:#0F1726}
+html[data-zelo-theme="dark"] .prev{background:#0F1726}
+html[data-zelo-theme="dark"] .ps span{color:#AAB6C8}
+@media(max-width:1000px){.g2{grid-template-columns:1fr}.servs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){
+ main{padding:12px 12px 30px}header.dc-top{padding:12px 14px}
+ .m2-faixa{padding:12px 14px;border-radius:16px}
+ .pill{margin-left:0;width:100%}.pill select{flex:1;max-width:none}
+ .m2-nums{display:grid;grid-template-columns:repeat(2,1fr);row-gap:10px}.m2-num{border-left:0}.m2-num b{font-size:1.25rem}
+ .servs{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .dica{margin-left:0}.prev{padding:10px}.folha{font-size:clamp(5px,1.9vw,9px)}
+ .m2-ch small{margin-left:0;width:100%}
+}
+@media(max-width:420px){.m2-acoes .m2-b{flex:1 1 auto;justify-content:center}}
 </style>
 </head>
 <body>
+<header class="dc-top">
+  <img src="icons/logo.png" alt="ZELO">
+  <h1>Recolha de Dias de Cama e Dias de Doente</h1>
+  <div class="acoes"><a href="index.html"><svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</a></div>
+</header>
 <main>
-  <h2>Recolha de Dias de Cama e Dias de Doente</h2>
-  <div class="sub">Modelo para cada serviço, para preencher à mão: o <b>mês</b>, e em <b>todos os dias</b> (1 a 31) os <b>dias de cama</b> (camas disponíveis no dia) e os <b>dias de doente</b> (doentes internados no dia), com os totais no fim. Nos meses com menos de 31 dias, os dias a mais ficam em branco.</div>
-  <div class="card">
-    <div class="ctl">
-      <label>Serviço<select id="servico"></select></label>
-      <div class="acoes"><button class="btn" id="pdf" type="button">Baixar PDF</button></div>
+  <div class="m2-faixa">
+    <div class="m2-f1">
+      <div class="tit"><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg></span>
+        <div><b>Folha de recolha em branco</b><span>Para cada serviço preencher à mão, todos os dias do mês</span></div></div>
+      <label class="pill">Serviço <select id="servico"></select></label>
+    </div>
+    <div class="m2-nums">
+      <div class="m2-num c"><b id="nF">9</b><span>Folhas no PDF</span></div>
+      <div class="m2-num d"><b>31</b><span>Dias por folha</span></div>
+      <div class="m2-num p"><b>A4</b><span>Uma página por serviço</span></div>
+      <div class="m2-num e"><b>9</b><span>Serviços</span></div>
     </div>
   </div>
-  <div class="folhas" id="folhas"></div>
+
+  <div class="m2-acoes">
+    <div class="pdfm"><button type="button" class="m2-b p" id="btPdf" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Baixar PDF<svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="m6 9 6 6 6-6"/></svg></button>
+      <div class="pm" id="pdfMenu" hidden></div></div>
+    <button type="button" class="m2-b o" id="btImp"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir</button>
+    <a class="m2-b o" href="dias_cama_doente.html"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Registar as folhas recebidas</a>
+    <span class="dica"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>Mês e ano em branco: preenchem-se à mão</span>
+  </div>
+
+  <div class="m2-card">
+    <div class="m2-ch"><i>1</i>Serviços<small>escolha para quem imprimir · «Todos» faz uma folha para cada serviço</small></div>
+    <div class="m2-cb"><div class="servs" id="servs"></div></div>
+  </div>
+
+  <div class="g2">
+    <div class="m2-card">
+      <div class="m2-ch"><i>2</i>Pré-visualização da folha<small id="prevNota"></small></div>
+      <div class="prev"><div class="folha" id="folha"></div></div>
+    </div>
+    <div class="m2-card">
+      <div class="m2-ch"><i>3</i>Como preencher</div>
+      <div class="m2-cb">
+        <div class="passos">
+          <div class="ps"><i>1</i><div><b>Identificação</b><span>No início do mês, o serviço escreve o ano, a lotação (número de camas) e marca o mês com X.</span></div></div>
+          <div class="ps"><i>2</i><div><b>Todos os dias</b><span><b>Dias de cama</b> = camas disponíveis no serviço nesse dia. <b>Dias de doente</b> = doentes internados (contagem à meia-noite). Se não houver doentes, escreve-se 0.</span></div></div>
+          <div class="ps"><i>3</i><div><b>Fim do mês</b><span>Somar as duas colunas nos totais, assinar e entregar a folha ao Serviço de Estatística.</span></div></div>
+          <div class="ps"><i>4</i><div><b>Na Estatística</b><span>Registar a folha recebida na página Dias de Cama e Dias de Doente. Os totais e a taxa de ocupação são calculados sozinhos.</span></div></div>
+        </div>
+        <a class="lig" href="dias_cama_doente.html"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg><span>Abrir <b>Dias de Cama e Dias de Doente</b> para registar as folhas entregues</span></a>
+      </div>
+    </div>
+  </div>
 </main>
+<div id="rcToast"></div>
 <script src="zelo_pdf_tardio.js?v=1" data-at="3.8.2"></script>
 <script src="zelo_pdf_guardar.js?v=3"></script>
-<script src="zelo_folha_dias_cama.js?v=1"></script>
+<script src="zelo_folha_dias_cama.js?v=3"></script>
 <script>
 (function(){
   'use strict';
@@ -83,30 +208,83 @@ tr.tot td{font-weight:900;background:rgba(26,86,219,.07);border-top:2px solid va
     ['ortopedia','Orto-Traumatologia'], ['neurocirurgia','Neurocirurgia'], ['maxilo_facial','Maxilo-Facial'],
     ['nefrologia','Nefrologia'], ['uci_intensivo','UCI'], ['uci_intermedio','Cuidados Intermédios']
   ];
-  var DIAS = 31;
+  var MESES_C = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var CK = '<span class="ck"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>';
   function $(id){ return document.getElementById(id); }
   function pad(n){ return String(n).padStart(2,'0'); }
   function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function toast(t){ var e = $('rcToast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function(){ e.classList.remove('on'); }, 2600); }
+  var sel = 'todos';
+  try { sel = localStorage.getItem('zeloRecolhaServ') || 'todos'; } catch (e) {}
+  if (sel !== 'todos' && !SERVICOS.some(function(s){ return s[0] === sel; })) sel = 'todos';
   $('servico').innerHTML = '<option value="todos">Todos os serviços (uma folha cada)</option>' + SERVICOS.map(function(s){ return '<option value="' + s[0] + '">' + esc(s[1]) + '</option>'; }).join('');
-  function escolhidos(){ var v = $('servico').value; return SERVICOS.filter(function(s){ return v === 'todos' || s[0] === v; }); }
-  function mostrar(){
-    var linhas = ''; for (var i = 1; i <= DIAS; i++) linhas += '<tr><td>' + pad(i) + '</td><td></td><td></td></tr>';
-    $('folhas').innerHTML = escolhidos().map(function(s){
-      return '<div class="card folha"><h3>' + esc(s[1]) + '</h3><div class="m">Mês: ____________ &nbsp; Ano: ________</div>' +
-        '<table><thead><tr><th>Dia</th><th>Dias de cama</th><th>Dias de doente</th></tr></thead><tbody>' + linhas +
-        '<tr class="tot"><td>TOTAL</td><td></td><td></td></tr></tbody></table></div>';
-    }).join('');
+  function escolhidos(){ return SERVICOS.filter(function(s){ return sel === 'todos' || s[0] === sel; }); }
+  function nomeSel(){ return sel === 'todos' ? 'Todos os serviços' : escolhidos()[0][1]; }
+
+  function folhaHTML(nome){
+    function metade(ini, fim){
+      var h = '<table><thead><tr><th style="width:17%">Dia</th><th>Dias de cama</th><th>Dias de doente</th><th style="width:26%">Rubrica</th></tr></thead><tbody>';
+      for (var d = ini; d < ini + 16; d++) {
+        var cl = []; if (d % 7 === 0 && d < fim) cl.push('sem'); if (Math.floor((d - 1) / 7) % 2 === 1) cl.push('alt');
+        h += '<tr class="' + cl.join(' ') + '">' + (d <= fim ? '<td class="' + (d >= 29 ? 'op' : '') + '">' + pad(d) + (d >= 29 ? '*' : '') + '</td>' : '<td></td>') + '<td></td><td></td><td></td></tr>';
+      }
+      return h + '</tbody></table>';
+    }
+    return '<div class="fl-cab"><img src="icons/logo.png" alt=""><div><small>HOSPITAL DO PRENDA</small><b>Recolha de Dias de Cama e Dias de Doente</b><span>Serviço de Admissão e Arquivo Médico Estatístico</span></div></div>' +
+      '<div class="fl-id"><div class="cx"><em>Serviço</em><strong>' + esc(nome) + '</strong></div><div class="cx"><em>Ano</em></div><div class="cx"><em>Lotação (n.º de camas)</em></div></div>' +
+      '<div class="fl-mes"><em>MÊS<br>(marque com X)</em>' + MESES_C.map(function(m){ return '<span><i></i>' + m + '</span>'; }).join('') + '</div>' +
+      '<div class="fl-inst"><b>Dias de cama</b> = camas disponíveis no serviço nesse dia. &nbsp; <b>Dias de doente</b> = doentes internados nesse dia (contagem à meia-noite).</div>' +
+      '<div class="fl-tabs">' + metade(1, 16) + metade(17, 31) + '</div>' +
+      '<div class="fl-tot"><div class="cx"><em>Total de dias de cama</em></div><div class="cx"><em>Total de dias de doente</em></div><div class="cx"><em>Taxa de ocupação (%)</em></div></div>' +
+      '<div class="fl-ass"><div class="cx"><em>Responsável pelo registo (nome e assinatura)</em></div><div class="cx"><em>Data de entrega</em></div></div>' +
+      '<div class="fl-res"><b>RESERVADO À ESTATÍSTICA</b> &nbsp; Recebido em ___/___/______ por ________________________ &nbsp; ☐ Registado no sistema</div>' +
+      '<div class="fl-pe"><span>Hospital do Prenda · Serviço de Admissão e Arquivo Médico Estatístico</span><span>Uma folha por serviço e por mês</span></div>';
   }
-  // A folha (desenho) está em zelo_folha_dias_cama.js, partilhada com «Dias de Cama e Dias de Doente».
-  window.__recolhaFolhaPDF = function(lista){ return ZeloFolhaDiasCama.pdf(lista.map(function(s){ return { nome: s[1] }; })); };
-  function pdf(){
-    if (!(window.jspdf && window.jspdf.jsPDF)) { alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return; }
-    var lista = escolhidos(), doc = window.__recolhaFolhaPDF(lista);
-    doc.save('Recolha_Dias_Cama_' + ($('servico').value === 'todos' ? 'Todos' : lista[0][1].replace(/\s+/g,'_')) + '.pdf');
+  function desenhar(){
+    $('servico').value = sel;
+    var n = escolhidos().length;
+    $('nF').textContent = n;
+    $('servs').innerHTML = '<button type="button" class="sv todos' + (sel === 'todos' ? ' on' : '') + '" data-s="todos">' + CK + '<span><b>Todos</b><small>9 folhas</small></span></button>' +
+      SERVICOS.map(function(s){ return '<button type="button" class="sv' + (sel === s[0] ? ' on' : '') + '" data-s="' + s[0] + '">' + CK + '<span><b>' + esc(s[1]) + '</b><small>1 folha</small></span></button>'; }).join('');
+    var lista = escolhidos();
+    $('folha').innerHTML = folhaHTML(lista[0][1]);
+    $('prevNota').textContent = sel === 'todos' ? 'mostra a 1.ª de 9 folhas iguais (muda só o nome do serviço)' : 'igual ao PDF';
   }
-  $('servico').addEventListener('change', mostrar);
-  $('pdf').addEventListener('click', pdf);
-  mostrar();
+  function escolher(v){ sel = v; try { localStorage.setItem('zeloRecolhaServ', sel); } catch (e) {} desenhar(); }
+
+  function documento(lista){ return ZeloFolhaDiasCama.pdf(lista.map(function(s){ return { nome: s[1] }; })); }
+  window.__recolhaFolhaPDF = documento;
+  function semPDF(){ if (window.jspdf && window.jspdf.jsPDF) return false; toast('A biblioteca de PDF ainda não carregou. Tente de novo dentro de alguns segundos.'); return true; }
+  function baixar(lista, nome){ if (semPDF()) return; documento(lista).save('Recolha_Dias_Cama_' + nome.replace(/\s+/g, '_') + '.pdf'); }
+  function imprimir(){
+    if (semPDF()) return;
+    var url = documento(escolhidos()).output('bloburl'), w = window.open(url, '_blank');
+    if (!w) baixar(escolhidos(), sel === 'todos' ? 'Todos' : escolhidos()[0][1]);
+  }
+
+  var ICO = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>';
+  var ICO_T = '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>';
+  function opcoes(){
+    var h = '<button type="button" data-pdf="todos">' + ICO_T + '<span><b>Todos os serviços — 9 folhas</b><small>Uma página A4 por serviço, prontas a imprimir</small></span></button>';
+    if (sel !== 'todos') h += '<button type="button" data-pdf="um">' + ICO + '<span><b>Só ' + esc(nomeSel()) + '</b><small>Uma folha para este serviço</small></span></button>';
+    else h += '<hr>' + SERVICOS.map(function(s){ return '<button type="button" data-pdf="' + s[0] + '">' + ICO + '<span><b>' + esc(s[1]) + '</b></span></button>'; }).join('');
+    return h;
+  }
+  function fechar(){ $('pdfMenu').hidden = true; $('btPdf').setAttribute('aria-expanded', 'false'); }
+  $('btPdf').addEventListener('click', function(e){ e.stopPropagation(); var m = $('pdfMenu'); if (!m.hidden) { fechar(); return; } m.innerHTML = opcoes(); m.hidden = false; this.setAttribute('aria-expanded', 'true'); });
+  document.addEventListener('click', function(e){ if (!e.target.closest('.pdfm')) fechar(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fechar(); });
+  $('pdfMenu').addEventListener('click', function(e){
+    var b = e.target.closest('[data-pdf]'); if (!b) return; fechar();
+    var v = b.dataset.pdf;
+    if (v === 'todos') baixar(SERVICOS, 'Todos');
+    else if (v === 'um') baixar(escolhidos(), nomeSel());
+    else { var s = SERVICOS.filter(function(x){ return x[0] === v; }); baixar(s, s[0][1]); }
+  });
+  $('btImp').addEventListener('click', imprimir);
+  $('servico').addEventListener('change', function(){ escolher(this.value); });
+  $('servs').addEventListener('click', function(e){ var b = e.target.closest('[data-s]'); if (b) escolher(b.dataset.s); });
+  desenhar();
 })();
 </script>
 <script src="zelo_servicos_menu.js?v=7"></script>
