@@ -18,7 +18,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"></noscript>
 <link rel="stylesheet" href="zelo_tokens.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>/* Gráficos: a biblioteca chega sem atrasar a abertura da página; quem desenha espera por ela. */
+window.__zeloChart = new Promise(function(r){ window.__zeloChartOk = r; });</script>
+<script async src="chart.umd.min.js" onload="__zeloChartOk()" onerror="__zeloChartOk()"></script>
 <style>
 :root{
   --nv:var(--zelo-accent-ink, #16222F);--nv2:var(--zelo-accent-dark, #2B415E);--nv3:var(--zelo-accent, #3E5C87);
@@ -1575,7 +1577,8 @@ function corToken(nome, fallback){
 }
 function desenharCoverageChart(reportaram, total){
   const canvas = document.getElementById('coverageChart');
-  if(!canvas || typeof Chart === 'undefined') return;
+  if(!canvas) return;
+  if(typeof Chart === 'undefined'){ if(window.__zeloChart) window.__zeloChart.then(function(){ if(typeof Chart !== 'undefined') desenharCoverageChart(reportaram, total); }); return; }
   const pendentes = Math.max(total - reportaram, 0);
   const corBoa = corToken('--gr', '#3F7A56');
   const corPendente = corToken('--br2', '#CBD5E1');
@@ -1602,6 +1605,7 @@ function desenharCoverageChart(reportaram, total){
    enviadas por postMessage em vez de ficarem só lá dentro. ── */
 let categoryPieChartInst = null;
 function desenharCategoryPieChart(porCategoria){
+  if(typeof Chart === 'undefined'){ if(window.__zeloChart) window.__zeloChart.then(function(){ if(typeof Chart !== 'undefined') desenharCategoryPieChart(porCategoria); }); return; }
   const canvas = document.getElementById('categoryPieChart');
   const vazio = document.getElementById('categoryPieEmpty');
   if(!canvas || typeof Chart === 'undefined') return;
@@ -1660,7 +1664,8 @@ window.addEventListener('message', function(e){
 let weeklyTrendChartInst = null;
 async function carregarTendenciaSemanal(){
   const canvas = document.getElementById('weeklyTrendChart');
-  if(!canvas || typeof Chart === 'undefined') return;
+  if(!canvas) return;
+  if(typeof Chart === 'undefined'){ if(window.__zeloChart) await window.__zeloChart; if(typeof Chart === 'undefined') return; }
   const contagemPorDia = {};
   try{
     await Promise.all(REGISTO_PATHS.map(async function(r){

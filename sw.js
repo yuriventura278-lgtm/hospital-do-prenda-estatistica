@@ -12,8 +12,8 @@
 // • Nunca guarda pedidos de autenticação nem da base de dados do Firebase —
 //   os dados vivem no aparelho (localStorage/IndexedDB) e a fila de
 //   sincronização (zelo_sync.js) envia-os quando a rede voltar.
-const VERSAO = 'v44';
-const SHELL_CACHE = 'zelo-shell-v44';
+const VERSAO = 'v45';
+const SHELL_CACHE = 'zelo-shell-v45';
 const SDK_CACHE = 'zelo-sdk-v3';
 const NETWORK_TIMEOUT_MS = 3000;
 const NAV_TIMEOUT_MS = 10000;
