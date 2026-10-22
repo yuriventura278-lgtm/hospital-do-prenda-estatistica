@@ -31,363 +31,288 @@
 <link rel="icon" type="image/png" href="icons/logo.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{--nv:#0B2545;--bg:#F2F5FA;--sf:#fff;--br:#E3E8F0;--tx:#132033;--tx2:#4B5B70;--tx3:#8B98AA;--az:#1A56DB;--ok:#059669;--av:#D97706;--mau:#DC2626;--in:#fff;--inb:#DCE3EE;--th:#EEF2F8;--alt:#F7F9FC;--f:Inter,'Segoe UI',Arial,sans-serif}
-html[data-zelo-theme="dark"]{--nv:#E6ECF5;--bg:#0B1220;--sf:#111A2B;--br:#1F2A3D;--tx:#E6ECF5;--tx2:#AAB6C8;--tx3:#7C8AA0;--in:#0F1828;--inb:#2A3850;--th:#18233A;--alt:#0F1828}
 *{box-sizing:border-box}
-body{margin:0;font-family:var(--f);background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column}
-main{flex:1;width:100%;max-width:1280px;margin:0 auto;padding:20px 16px 40px}
-h2{margin:0;font-size:1.35rem;font-weight:900;color:var(--nv)}
-.sub{color:var(--tx2);font-size:.88rem;margin:4px 0 16px;line-height:1.5}
-.barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
-.mes{display:flex;align-items:center;gap:8px;background:var(--sf);border:1px solid var(--br);border-radius:12px;padding:6px 8px}
-.mes button{border:1px solid var(--br);background:var(--th);color:var(--tx);border-radius:8px;width:32px;height:32px;font-weight:800;cursor:pointer}
-.mes span{font-weight:800;min-width:140px;text-align:center;text-transform:capitalize}
-.bt{display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border-radius:10px;border:1px solid var(--br);background:var(--sf);font:700 .82rem var(--f);color:var(--tx);cursor:pointer;text-decoration:none}
-.bt.p{background:linear-gradient(135deg,var(--az),#0D1B3E);color:#fff;border:0}
-.bt:disabled{opacity:.5;cursor:default}
-.vista{margin-left:auto;display:flex;background:var(--th);border-radius:10px;padding:3px}
-.vista button{border:0;background:none;padding:8px 14px;border-radius:8px;font:700 .82rem var(--f);color:var(--tx2);cursor:pointer}
-.vista .on{background:var(--sf);color:var(--nv);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.servs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-.sv{display:flex;align-items:center;gap:8px;background:var(--sf);border:1.5px solid var(--br);border-radius:11px;padding:8px 12px;font:700 .84rem var(--f);color:var(--tx);cursor:pointer}
-.sv i{width:9px;height:9px;border-radius:50%;background:var(--tx3)}.sv.ok i{background:var(--ok)}.sv.par i{background:var(--av)}
-.sv.on{border-color:var(--az);background:rgba(26,86,219,.08);color:var(--az)}
-.sv small{font-weight:600;color:var(--tx3);font-size:.72rem}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px}
-.card{background:var(--sf);border:1px solid var(--br);border-radius:14px;padding:16px 18px}
-.card h3{margin:0 0 12px;font-size:.74rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
-.ident{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
-.ident label,.rec label{display:flex;flex-direction:column;gap:4px;font-size:.64rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3)}
-.ident input{padding:8px 10px;border:1px solid var(--inb);border-radius:9px;font:700 .95rem var(--f);width:110px;background:var(--in);color:var(--tx)}
-.dica{font-size:.74rem;color:var(--tx3);margin-left:auto}
-.metades{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-table{width:100%;border-collapse:collapse;font-size:.86rem}
-th{font-size:.64rem;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);background:var(--th);padding:7px 6px;text-align:center}
-th:first-child{text-align:left;padding-left:9px}
-td{border-bottom:1px solid var(--br);padding:3px 5px;text-align:center}
-td.d{font-weight:800;color:var(--nv);text-align:left;padding-left:9px;width:66px;white-space:nowrap}
-td.d small{color:var(--tx3);font-weight:600;font-size:.68rem;margin-left:3px}
-tr.sem td{border-bottom:2px solid var(--nv)}tr.alt td{background:var(--alt)}tr.off td{opacity:.3}
-td input{width:100%;max-width:92px;padding:6px;border:1px solid var(--inb);border-radius:7px;text-align:center;font:700 .92rem var(--f);background:var(--in);color:var(--tx)}
-td input:focus,.ident input:focus,.rec input:focus{outline:2px solid var(--az);outline-offset:0;border-color:var(--az)}
-td input.vz{background:#FFFBEB;border-color:#FCD34D}
-html[data-zelo-theme="dark"] td input.vz{background:#2A2410;border-color:#7A5C10}
-td input.erro{border-color:var(--mau);background:#FEF2F2;color:var(--mau)}
-td input.pend{box-shadow:inset 0 -2px 0 var(--av)}
-.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.k{border:1px solid var(--br);border-top:3px solid var(--c,var(--nv));border-radius:12px;padding:10px 12px;min-width:0}
-.k .t{font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
-.k .v{font-size:1.45rem;font-weight:900;color:var(--c,var(--tx));font-variant-numeric:tabular-nums}
-.k .s{font-size:.7rem;color:var(--tx2)}
-.prog{height:8px;background:var(--th);border-radius:6px;overflow:hidden;margin:6px 0 4px}
-.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--av),#F59E0B);transition:width .3s}
-.prog.ok i{background:linear-gradient(90deg,var(--ok),#34D399)}
-.mini{display:flex;align-items:flex-end;gap:2px;height:70px;margin-top:8px}
-.mini b{flex:1;background:#93C5FD;border-radius:2px 2px 0 0;min-height:2px}.mini b.x{background:#FCA5A5}.mini b.n{background:var(--th)}
-.aviso{font-size:.78rem;border-radius:10px;padding:9px 11px;margin-top:10px;line-height:1.45}
-.aviso.mau{background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5}
-.aviso.av{background:#FFFBEB;color:#92400E;border:1px solid #FCD34D}
-.aviso.ok{background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0}
-.rec label{margin-bottom:10px}
-.rec input{padding:8px 10px;border:1px solid var(--inb);border-radius:9px;font:600 .88rem var(--f);background:var(--in);color:var(--tx)}
-.estado{font-size:.74rem;color:var(--tx3);margin-top:8px}
-.res table td,.res table th{text-align:right;padding:9px 10px}
-.res td:first-child,.res th:first-child{text-align:left}
-.res tr.tot td{font-weight:900;border-top:2px solid var(--az);background:rgba(26,86,219,.07)}
-.res tr.l{cursor:pointer}.res tr.l:hover td{background:var(--alt)}
-.chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.7rem;font-weight:800}
-.chip.ok{background:#D1FAE5;color:#065F46}.chip.par{background:#FEF3C7;color:#92400E}.chip.nd{background:#E2E8F0;color:#475569}
+body{margin:0;background:#F2F5FA;font-family:Inter,"Segoe UI",Arial,sans-serif;color:#0F172A;min-height:100vh;display:flex;flex-direction:column}
+header.dc-top{display:flex;align-items:center;gap:14px;padding:14px 24px;background:#1E3A5F;color:#fff}
+header.dc-top img{width:34px;height:34px;border-radius:9px}
+header.dc-top h1{margin:0;font-size:1.05rem}
+header.dc-top .acoes{margin-left:auto;display:flex;gap:10px;align-items:center}
+header.dc-top a{display:inline-flex;gap:7px;align-items:center;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;border-radius:999px;padding:8px 14px;font:700 .78rem Inter,Arial,sans-serif;text-decoration:none}
+header.dc-top svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2}
+main{flex:1;width:100%;max-width:1380px;margin:0 auto;padding:18px 24px 40px}
+button{font-family:inherit}
 [hidden]{display:none !important}
-@media(max-width:980px){.grid{grid-template-columns:1fr}}
-@media(max-width:640px){.metades{grid-template-columns:1fr}.vista{margin-left:0}.dica{margin-left:0}.res{overflow-x:auto}}
+.m2-faixa{background:linear-gradient(135deg,#1E3A5F,#2B5A8A);color:#fff;border-radius:18px;padding:14px 18px;box-shadow:0 10px 24px rgba(30,58,95,.22)}
+.m2-f1{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.m2-mes{display:flex;align-items:center;gap:8px}
+.m2-mes button{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:#fff;font-size:1.15rem;cursor:pointer}
+.m2-mes button:hover{background:rgba(255,255,255,.18)}
+.m2-mes b{display:block;font-size:1.22rem;font-weight:800}.m2-mes span{display:block;font-size:.78rem;opacity:.82}
+.pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border-radius:10px;padding:4px 5px 4px 10px;font:600 .82rem Inter,Arial,sans-serif}
+.pill input{width:58px;border:0;border-radius:7px;padding:6px 4px;text-align:center;font:800 .92rem ui-monospace,Consolas,monospace;color:#0F172A}
+.pill input:disabled{background:rgba(255,255,255,.6)}
+.pill select{border:0;border-radius:7px;padding:6px 8px;font:800 .88rem Inter,Arial,sans-serif;color:#0F172A;max-width:190px}
+.m2-seg{display:flex;background:rgba(255,255,255,.1);border-radius:12px;padding:3px;margin-left:auto}
+.m2-seg button{border:0;background:transparent;padding:7px 13px;border-radius:9px;font:700 .82rem Inter,Arial,sans-serif;color:rgba(255,255,255,.82);cursor:pointer}
+.m2-seg button.on{background:#fff;color:#1E3A5F}
+.m2-nums{display:flex;margin-top:12px;border-top:1px solid rgba(255,255,255,.15);padding-top:10px}
+.m2-num{flex:1;text-align:center;border-left:1px solid rgba(255,255,255,.15);padding:0 6px;min-width:0}.m2-num:first-child{border-left:0}
+.m2-num b{display:block;font:800 1.55rem ui-monospace,Consolas,monospace}
+.m2-num span{display:block;font:700 .64rem Inter,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;opacity:.86}
+.m2-num.c b{color:#93C5FD}.m2-num.d b{color:#C4B5FD}.m2-num.p b{color:#6EE7B7}.m2-num.e b{color:#67E8F9}.m2-num.o b{color:#FCD34D}
+.m2-acoes{display:flex;gap:10px;align-items:center;margin:14px 0;flex-wrap:wrap}
+.m2-b{border:0;border-radius:12px;padding:11px 16px;font:700 .9rem Inter,Arial,sans-serif;display:inline-flex;gap:7px;align-items:center;white-space:nowrap;cursor:pointer;text-decoration:none}
+.m2-b svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;flex:none}
+.m2-b.p{background:linear-gradient(135deg,#1E3A5F,#2B5A8A);color:#fff;box-shadow:0 8px 18px rgba(30,58,95,.25)}
+.m2-b.o{background:#fff;border:1px solid #E3E8F0;color:#1E3A5F}
+.m2-b.s{padding:7px 11px;font-size:.78rem;border-radius:10px}
+.m2-b:disabled{opacity:.5;cursor:default}
+.m2-falta{margin-left:auto;background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:999px;padding:7px 13px;font:700 .82rem Inter,Arial,sans-serif;display:inline-flex;gap:6px;align-items:center}
+.m2-falta svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.2}
+.m2-falta.ok{background:#ECFDF5;border-color:#A7F3D0;color:#047857}
+.m2-card{background:#fff;border:1px solid #E3E8F0;border-radius:16px;overflow:hidden;margin-bottom:16px;min-width:0}
+.m2-ch{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid #E3E8F0;font:800 .98rem Inter,Arial,sans-serif;color:#1E3A5F;flex-wrap:wrap}
+.m2-ch i{font-style:normal;width:24px;height:24px;border-radius:50%;background:#1E3A5F;color:#fff;font:800 .74rem Inter,Arial,sans-serif;display:flex;align-items:center;justify-content:center;flex:none}
+.m2-ch small{margin-left:auto;color:#64748B;font:600 .8rem Inter,Arial,sans-serif}
+.m2-ch .dir{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.m2-cb{padding:14px 18px}
+.servs{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:8px}
+.sv{border:1.5px solid #E3E8F0;border-radius:13px;padding:9px 10px;background:#fff;min-width:0;text-align:left;cursor:pointer;color:#0F172A}
+.sv:hover{border-color:#93C5FD}
+.sv b{display:block;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv .l{display:flex;justify-content:space-between;align-items:baseline;font:700 .7rem Inter,Arial,sans-serif;color:#64748B;margin-top:5px}
+.sv .bar{height:5px;border-radius:4px;background:#EEF2F7;margin-top:5px;overflow:hidden}.sv .bar i{display:block;height:100%;background:#F59E0B}
+.sv.ok .bar i{background:#10B981}.sv.on{border-color:#1E3A5F;background:#EEF4FB;box-shadow:0 0 0 2px rgba(30,58,95,.12)}
+.sv .tx{font:800 .95rem ui-monospace,Consolas,monospace;color:#1E3A5F}
+.dias{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
+.m2-d{border-radius:12px;text-align:center;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 1.15rem ui-monospace,Consolas,monospace;border:1.5px solid #E3E8F0;background:#fff;color:#0F172A;cursor:pointer;padding:0}
+.m2-d small{display:block;font:600 .6rem Inter,Arial,sans-serif;color:#64748B}
+.m2-d.ok{background:#ECFDF5;border-color:#A7F3D0;color:#065F46}.m2-d.fa{background:#FFFBEB;border-color:#FDE68A;color:#92400E}
+.m2-d.x{background:#FEF2F2;border-color:#FCA5A5;color:#B91C1C}
+.m2-d.fut{opacity:.45}.m2-d.hj{box-shadow:0 0 0 2px #93C5FD}
+.m2-d.on{background:#1E3A5F;border-color:#1E3A5F;color:#fff;opacity:1}.m2-d.on small{color:#CBD5E1}
+.m2-leg{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font:600 .75rem Inter,Arial,sans-serif;color:#64748B}
+.m2-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.g2{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+.m2-diah{display:flex;align-items:baseline;gap:8px;margin:0 0 10px;flex-wrap:wrap}.m2-diah b{font-size:1.05rem}.m2-diah span{color:#64748B;font-size:.84rem}
+.m2-flux{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:#F4F7FB;border-radius:14px;padding:10px 12px;margin-bottom:12px}
+.m2-fx{text-align:center}.m2-fx b{display:block;font:800 1.35rem ui-monospace,Consolas,monospace}
+.m2-fx span{font:700 .62rem Inter,Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#64748B}
+.m2-fx.c b{color:#1A56DB}.m2-fx.d b{color:#7C3AED}.m2-fx.p b{color:#059669}.m2-fx.p.x b{color:#DC2626}
+.campos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.m2-grp{border:1px solid #E3E8F0;border-radius:14px;padding:10px 12px;min-width:0}
+.m2-grp h4{margin:0 0 8px;font:800 .78rem Inter,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.m2-grp.c h4{color:#1A56DB}.m2-grp.d h4{color:#7C3AED}
+.m2-st{display:flex;align-items:center;border:1.5px solid #E3E8F0;border-radius:12px;overflow:hidden;height:52px;background:#fff}
+.m2-st:focus-within{border-color:#2B5A8A;box-shadow:0 0 0 3px rgba(43,90,138,.14)}
+.m2-st.x{border-color:#FCA5A5;background:#FEF2F2}.m2-st.x input{color:#B91C1C}
+.m2-st button{width:48px;height:100%;border:0;background:#F1F5F9;font:800 1.3rem Inter,Arial,sans-serif;color:#1E3A5F;cursor:pointer;flex:none}
+.m2-st button:active{background:#E2E8F0}
+.m2-st input{flex:1;min-width:0;width:100%;border:0;text-align:center;font:800 1.35rem ui-monospace,Consolas,monospace;color:#0F172A;background:transparent;outline:none}
+.m2-st input::placeholder{color:#CBD5E1;font-weight:600}
+.m2-dica{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.m2-dica button{border:1px dashed #BFD3EA;background:#F4F8FC;color:#1E3A5F;border-radius:9px;padding:6px 10px;font:700 .76rem Inter,Arial,sans-serif;cursor:pointer}
+.cruz{display:flex;align-items:center;gap:10px;margin-top:12px;border-radius:11px;padding:9px 12px;font:600 .82rem Inter,Arial,sans-serif;border:1px solid}
+.cruz svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2}
+.cruz.ok{background:#ECFDF5;border-color:#A7F3D0;color:#065F46}
+.cruz.dif{background:#FEF2F2;border-color:#FCA5A5;color:#991B1B}
+.cruz.nd{background:#F4F7FB;border-color:#E3E8F0;color:#64748B}
+.cruz.av{background:#FFFBEB;border-color:#FDE68A;color:#92400E}
+.m2-guard{display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.m2-ok{margin-right:auto;font:700 .8rem Inter,Arial,sans-serif;color:#047857}
+.m2-ok.pend{color:#B45309}
+.rec label{display:block;font:700 .66rem Inter,Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#64748B;margin:0 0 4px}
+.rec input{width:100%;height:42px;border:1.5px solid #E3E8F0;border-radius:11px;padding:0 11px;font:600 .9rem Inter,Arial,sans-serif;margin-bottom:10px;color:#0F172A;background:#fff}
+.rec input:focus{outline:none;border-color:#2B5A8A;box-shadow:0 0 0 3px rgba(43,90,138,.14)}
+.rec .est{display:flex;align-items:center;gap:8px;background:#EEF4FB;border-radius:11px;padding:9px 11px;font:700 .8rem Inter,Arial,sans-serif;color:#1E3A5F}
+.rec .est svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;flex:none}
+.mapa{overflow-x:auto}
+.mapa table{border-collapse:separate;border-spacing:0;width:100%;font-size:.8rem}
+.mapa th{font:800 .7rem ui-monospace,Consolas,monospace;color:#64748B;padding:6px 0;text-align:center;border-bottom:1px solid #E3E8F0;cursor:pointer}
+.mapa th:first-child{cursor:default;text-align:left;font-family:Inter,Arial,sans-serif;padding-left:4px}
+.mapa th small{display:block;font:600 .56rem Inter,Arial,sans-serif;color:#94A3B8}
+.mapa th.on{color:#fff;background:#1E3A5F;border-radius:7px 7px 0 0}.mapa th.on small{color:#CBD5E1}
+.mapa td{padding:3px 2px;text-align:center;border-bottom:1px solid #F1F5F9}
+.mapa td.r{text-align:left;font:800 .8rem Inter,Arial,sans-serif;color:#1E3A5F;padding-left:4px;white-space:nowrap;position:sticky;left:0;background:#fff;min-width:118px;z-index:1}
+.mapa input{width:100%;min-width:32px;height:30px;border:1px solid #E3E8F0;border-radius:7px;font:800 .82rem ui-monospace,Consolas,monospace;background:#fff;text-align:center;color:#0F172A;padding:0}
+.mapa input:focus{outline:2px solid #2B5A8A;outline-offset:0;border-color:#2B5A8A}
+.mapa input.v{background:#FFFBEB;border-color:#FDE68A}
+.mapa input.x{background:#FEF2F2;border-color:#FCA5A5;color:#B91C1C}
+.mapa input.lt{border-color:#F59E0B}
+.mapa input.erro{border-color:#DC2626;background:#FEF2F2}
+.mapa input.pend{box-shadow:inset 0 -2px 0 #F59E0B}
+.mapa .pc{font:800 .78rem ui-monospace,Consolas,monospace;color:#059669}.mapa .pc.b{color:#B45309}.mapa .pc.x{color:#B91C1C}.mapa .pc.n{color:#CBD5E1}
+.mapa td.tot{font:900 .9rem ui-monospace,Consolas,monospace;color:#1E3A5F;background:#EEF4FB;padding:0 10px;white-space:nowrap}
+.mapa th.tot{background:#EEF4FB;color:#1E3A5F;cursor:default;padding:0 10px}
+.mapa td.off input{visibility:hidden}
+.nota{font:600 .76rem Inter,Arial,sans-serif;color:#64748B;margin-top:10px}
+.g3{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+.graf svg{display:block;width:100%;height:auto}
+.graf text{font-family:Inter,Arial,sans-serif}
+.barras .ln{display:grid;grid-template-columns:140px 1fr 58px;gap:8px;align-items:center;margin:8px 0;font:600 .8rem Inter,Arial,sans-serif;cursor:pointer}
+.barras .ln span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barras .ln em{background:#F1F5F9;border-radius:6px;height:12px;overflow:hidden;display:block}
+.barras .ln em i{display:block;height:100%;border-radius:6px}
+.barras .ln b{text-align:right;font-family:ui-monospace,Consolas,monospace}
+.vazio{color:#94A3B8;font:600 .84rem Inter,Arial,sans-serif;padding:20px 0;text-align:center}
+.res{overflow-x:auto}
+.res table{width:100%;border-collapse:collapse;font-size:.85rem}
+.res th{font:800 .64rem Inter,Arial,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#64748B;text-align:right;padding:8px 10px;border-bottom:1px solid #E3E8F0;white-space:nowrap}
+.res td{padding:9px 10px;text-align:right;border-bottom:1px solid #F1F5F9;font-variant-numeric:tabular-nums;white-space:nowrap}
+.res td:first-child,.res th:first-child{text-align:left}
+.res tr.l{cursor:pointer}.res tr.l:hover td{background:#F8FAFC}
+.res tr.on td{background:#EEF4FB}
+.res tr.tot td{font-weight:900;border-top:2px solid #1E3A5F;background:#F4F7FB}
+.chip{display:inline-block;padding:2px 9px;border-radius:20px;font:800 .7rem Inter,Arial,sans-serif}
+.chip.ok{background:#D1FAE5;color:#065F46}.chip.par{background:#FEF3C7;color:#92400E}.chip.nd{background:#E2E8F0;color:#475569}.chip.dif{background:#FEE2E2;color:#991B1B}
+.avisos{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.av{border-radius:10px;padding:8px 11px;font:600 .8rem Inter,Arial,sans-serif;line-height:1.4}
+.av.mau{background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5}.av.am{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}
+#dcToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#1E3A5F;color:#fff;border-radius:12px;padding:11px 16px;font:700 .86rem Inter,Arial,sans-serif;opacity:0;transition:.25s;pointer-events:none;z-index:50;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+#dcToast.on{opacity:1;transform:translateX(-50%)}
+html[data-zelo-theme="dark"] body{background:#0B1220;color:#E6ECF5}
+html[data-zelo-theme="dark"] .m2-card,html[data-zelo-theme="dark"] .sv,html[data-zelo-theme="dark"] .m2-d,html[data-zelo-theme="dark"] .m2-st,html[data-zelo-theme="dark"] .m2-b.o,html[data-zelo-theme="dark"] .rec input,html[data-zelo-theme="dark"] .mapa input,html[data-zelo-theme="dark"] .mapa td.r{background:#111A2B;border-color:#1F2A3D;color:#E6ECF5}
+html[data-zelo-theme="dark"] .m2-ch,html[data-zelo-theme="dark"] .mapa td.r,html[data-zelo-theme="dark"] .m2-ch,html[data-zelo-theme="dark"] .sv .tx{color:#DCE6F5}
+html[data-zelo-theme="dark"] .m2-flux,html[data-zelo-theme="dark"] .rec .est,html[data-zelo-theme="dark"] .m2-st button,html[data-zelo-theme="dark"] .mapa td.tot,html[data-zelo-theme="dark"] .res tr.tot td,html[data-zelo-theme="dark"] .res tr.on td,html[data-zelo-theme="dark"] .sv.on{background:#0F1726}
+html[data-zelo-theme="dark"] .m2-st input{color:#E6ECF5}
+html[data-zelo-theme="dark"] .m2-ch,html[data-zelo-theme="dark"] .res th,html[data-zelo-theme="dark"] .res td,html[data-zelo-theme="dark"] .mapa th,html[data-zelo-theme="dark"] .mapa td{border-color:#1F2A3D}
+html[data-zelo-theme="dark"] .mapa input.v,html[data-zelo-theme="dark"] .m2-d.fa{background:#2A2410;border-color:#7A5C10;color:#FCD34D}
+html[data-zelo-theme="dark"] .m2-d.ok{background:#0F2A22;border-color:#14532D;color:#6EE7B7}
+html[data-zelo-theme="dark"] .m2-d.x,html[data-zelo-theme="dark"] .mapa input.x{background:#2A1215;border-color:#7F1D1D;color:#FCA5A5}
+html[data-zelo-theme="dark"] .m2-d.on{background:#3B82F6;border-color:#3B82F6}
+@media(max-width:1100px){.servs{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:1000px){.dias{grid-auto-flow:row;grid-template-columns:repeat(7,1fr);grid-auto-columns:auto}.g2,.g3{grid-template-columns:1fr}}
+@media(max-width:760px){
+ main{padding:12px 12px 30px}header.dc-top{padding:12px 14px}
+ .m2-faixa{padding:12px 14px;border-radius:16px}
+ .m2-seg{margin-left:0;width:100%}.m2-seg button{flex:1;padding:7px 4px}
+ .m2-nums{display:grid;grid-template-columns:repeat(3,1fr);row-gap:10px}.m2-num{border-left:0}.m2-num b{font-size:1.2rem}
+ .servs{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:150px;overflow-x:auto;padding-bottom:4px}
+ .m2-falta{margin-left:0}.m2-flux{grid-template-columns:repeat(2,1fr)}
+ .m2-ch small{margin-left:0;width:100%}
+ .barras .ln{grid-template-columns:110px 1fr 54px}
+}
+@media(max-width:420px){.campos{grid-template-columns:1fr}.m2-acoes .m2-b{flex:1 1 auto;justify-content:center}}
 </style>
 </head>
 <body>
+<header class="dc-top">
+  <img src="icons/logo.png" alt="ZELO">
+  <h1>Dias de Cama e Dias de Doente</h1>
+  <div class="acoes"><a href="index.html"><svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Início</a></div>
+</header>
 <main>
-  <h2>Dias de Cama e Dias de Doente</h2>
-  <div class="sub">Registo das folhas de recolha entregues pelos serviços: um mês de cada vez, dia a dia. Os totais e a taxa de ocupação são calculados sozinhos e tudo grava automaticamente.</div>
-  <div class="barra">
-    <div class="mes"><button type="button" id="mAnt" aria-label="Mês anterior">‹</button><span id="mNome"></span><button type="button" id="mSeg" aria-label="Mês seguinte">›</button></div>
-    <a class="bt" href="recolha_dias_cama.html">Folha em branco</a>
-    <button class="bt p" type="button" id="pdfMes">PDF do mês (todos os serviços)</button>
-    <div class="vista"><button type="button" class="on" data-v="reg">Registo por serviço</button><button type="button" data-v="res">Resumo do mês</button></div>
+  <div class="m2-faixa">
+    <div class="m2-f1">
+      <div class="m2-mes"><button type="button" id="mAnt" aria-label="Anterior">‹</button><div><b id="mNome"></b><span id="mSub"></span></div><button type="button" id="mSeg" aria-label="Seguinte">›</button></div>
+      <label class="pill">Serviço <select id="selServ"></select></label>
+      <label class="pill">Camas <input id="lot" inputmode="numeric" autocomplete="off" title="Lotação do serviço neste mês"></label>
+      <div class="m2-seg" id="per"><button type="button" data-p="mes" class="on">Mensal</button><button type="button" data-p="tri">Trimestral</button><button type="button" data-p="sem">Semestral</button><button type="button" data-p="ano">Anual</button></div>
+    </div>
+    <div class="m2-nums">
+      <div class="m2-num c"><b id="nC">—</b><span>Dias de cama</span></div>
+      <div class="m2-num d"><b id="nD">—</b><span>Dias de doente</span></div>
+      <div class="m2-num p"><b id="nT">—</b><span>Taxa de ocupação</span></div>
+      <div class="m2-num e"><b id="nM">—</b><span>Doentes por dia</span></div>
+      <div class="m2-num"><b id="nL">—</b><span>Camas livres por dia</span></div>
+      <div class="m2-num o"><b id="nF">—</b><span>Dias em falta</span></div>
+    </div>
   </div>
-  <div class="servs" id="servs"></div>
 
-  <section id="vReg">
-    <div class="grid">
-      <div class="card">
-        <h3 id="regTit"></h3>
-        <div class="ident">
-          <label>Lotação (camas)<input id="lot" inputmode="numeric" autocomplete="off"></label>
-          <button class="bt" type="button" id="encher">Dias de cama = lotação nos dias vazios</button>
-          <button class="bt" type="button" id="pdfServ">PDF deste serviço</button>
-          <span class="dica">Enter passa ao dia seguinte · grava sozinho</span>
-        </div>
-        <div class="metades"><table id="t1"></table><table id="t2"></table></div>
-        <div class="estado" id="estado"></div>
+  <div class="m2-acoes">
+    <button type="button" class="m2-b p" id="btHoje"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Registar o dia de hoje</button>
+    <button type="button" class="m2-b o" id="btPdf"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span id="btPdfT">Relatório PDF</span></button>
+    <button type="button" class="m2-b o" id="btPdfServ"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>PDF deste serviço</button>
+    <button type="button" class="m2-b o" id="btXls"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Exportar Excel</button>
+    <a class="m2-b o" href="recolha_dias_cama.html"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Folha em branco</a>
+    <span class="m2-falta" id="falta"></span>
+  </div>
+
+  <div class="m2-card">
+    <div class="m2-ch"><i>1</i>Serviços<small>toque num serviço para o abrir · a barra mostra os dias preenchidos</small></div>
+    <div class="m2-cb"><div class="servs" id="servs"></div></div>
+  </div>
+
+  <section id="vMes">
+    <div class="m2-card">
+      <div class="m2-ch"><i>2</i>Dias do mês<small>toque num dia para o abrir</small></div>
+      <div class="m2-cb"><div class="dias" id="dias"></div>
+        <div class="m2-leg"><span><i style="background:#A7F3D0"></i>Registado</span><span><i style="background:#FDE68A"></i>Em falta</span><span><i style="background:#FCA5A5"></i>Mais doentes do que camas</span><span><i style="background:#1E3A5F"></i>Aberto</span></div>
       </div>
-      <div>
-        <div class="card" style="margin-bottom:16px">
-          <h3>Totais do mês</h3>
-          <div class="kpis">
-            <div class="k" style="--c:#1A56DB"><div class="t">Dias de cama</div><div class="v" id="kC">—</div><div class="s">soma dos dias</div></div>
-            <div class="k" style="--c:#7C3AED"><div class="t">Dias de doente</div><div class="v" id="kD">—</div><div class="s">soma dos dias</div></div>
-            <div class="k" style="--c:#059669"><div class="t">Taxa de ocupação</div><div class="v" id="kT">—</div><div class="s">doente ÷ cama × 100</div></div>
-            <div class="k" style="--c:#0891B2"><div class="t">Média de doentes</div><div class="v" id="kM">—</div><div class="s">por dia registado</div></div>
+    </div>
+
+    <div class="g2">
+      <div class="m2-card" id="cRegisto">
+        <div class="m2-ch"><i>3</i>Registo do dia<small>Enter passa ao campo seguinte · grava sozinho</small></div>
+        <div class="m2-cb">
+          <div class="m2-diah"><b id="rDia"></b><span id="rSub"></span></div>
+          <div class="m2-flux">
+            <div class="m2-fx c"><b id="fC">—</b><span>Dias de cama</span></div>
+            <div class="m2-fx d"><b id="fD">—</b><span>Dias de doente</span></div>
+            <div class="m2-fx p" id="fTw"><b id="fT">—</b><span>Ocupação do dia</span></div>
+            <div class="m2-fx"><b id="fL">—</b><span>Camas livres</span></div>
           </div>
-          <div style="font-size:.74rem;font-weight:800;color:var(--tx2)">Dias preenchidos <span style="float:right" id="kP"></span></div>
-          <div class="prog" id="prog"><i></i></div>
-          <div class="mini" id="mini"></div>
-          <div style="font-size:.66rem;color:var(--tx3);text-align:center;margin-top:3px">ocupação por dia (vermelho: mais doentes do que camas)</div>
-          <div id="avisos"></div>
+          <div class="campos">
+            <div class="m2-grp c"><h4>Dias de cama</h4><div class="m2-st" id="stC"><button type="button" data-st="rC" data-n="-1" aria-label="Menos">−</button><input id="rC" inputmode="numeric" autocomplete="off" placeholder="—"><button type="button" data-st="rC" data-n="1" aria-label="Mais">+</button></div>
+              <div class="m2-dica" id="dC"></div></div>
+            <div class="m2-grp d"><h4>Dias de doente</h4><div class="m2-st" id="stD"><button type="button" data-st="rD" data-n="-1" aria-label="Menos">−</button><input id="rD" inputmode="numeric" autocomplete="off" placeholder="—"><button type="button" data-st="rD" data-n="1" aria-label="Mais">+</button></div>
+              <div class="m2-dica" id="dD"></div></div>
+          </div>
+          <div id="rAv"></div>
+          <div class="cruz nd" id="cruz"></div>
+          <div class="m2-guard"><span class="m2-ok" id="rOk"></span><button type="button" class="m2-b o" id="rAnt"></button><button type="button" class="m2-b p" id="rSeg"></button></div>
         </div>
-        <div class="card rec">
-          <h3>Folha recebida</h3>
-          <label>Responsável pelo registo<input id="fResp" data-campo="responsavel" autocomplete="off"></label>
-          <label>Data de entrega<input id="fEnt" type="date" data-campo="entrega"></label>
-          <label>Recebido em<input id="fRecEm" type="date" data-campo="recebido"></label>
-          <label>Recebido por<input id="fRecPor" data-campo="recebidoPor" autocomplete="off"></label>
+      </div>
+      <div class="m2-card rec">
+        <div class="m2-ch"><i>4</i>Folha recebida</div>
+        <div class="m2-cb">
+          <label for="fResp">Responsável pelo registo</label><input id="fResp" data-campo="responsavel" autocomplete="off">
+          <label for="fEnt">Data de entrega</label><input id="fEnt" type="date" data-campo="entrega">
+          <label for="fRecEm">Recebido em</label><input id="fRecEm" type="date" data-campo="recebido">
+          <label for="fRecPor">Recebido por</label><input id="fRecPor" data-campo="recebidoPor" autocomplete="off">
+          <div class="est" id="fEst"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span></span></div>
         </div>
+      </div>
+    </div>
+
+    <div class="m2-card">
+      <div class="m2-ch"><i>5</i>Mapa do mês<div class="dir"><button type="button" class="m2-b o s" id="encher">Dias de cama = lotação nos dias vazios</button><button type="button" class="m2-b o s" id="copiarMov">Copiar do Movimento os dias vazios</button></div></div>
+      <div class="m2-cb mapa"><table id="mapa"></table>
+        <div class="nota">Igual à folha em papel: pode escrever direto nas casas (Enter passa ao dia seguinte). Vermelho = mais doentes do que camas · contorno laranja = dias de cama diferentes da lotação.</div>
+        <div class="avisos" id="avisos"></div>
       </div>
     </div>
   </section>
 
-  <section id="vRes" hidden>
-    <div class="card res">
-      <h3 id="resTit"></h3>
-      <table id="res"></table>
-      <div class="estado">Toque num serviço para abrir o registo dele.</div>
+  <section id="vPer" hidden>
+    <div class="m2-card">
+      <div class="m2-ch"><i>2</i><span id="perTit">Meses do período</span><small>toque num mês para o abrir</small></div>
+      <div class="m2-cb res"><table id="perTab"></table></div>
     </div>
   </section>
+
+  <div class="g3">
+    <div class="m2-card">
+      <div class="m2-ch"><i id="nG1">6</i><span id="g1Tit">Ocupação por dia</span><small>linha tracejada = 85%</small></div>
+      <div class="m2-cb graf" id="graf"></div>
+    </div>
+    <div class="m2-card">
+      <div class="m2-ch"><i id="nG2">7</i>Ocupação por serviço</div>
+      <div class="m2-cb barras" id="barras"></div>
+    </div>
+  </div>
+
+  <div class="m2-card">
+    <div class="m2-ch"><i id="nR">8</i><span id="resTit">Resumo do mês — todos os serviços</span><small>toque numa linha para abrir o serviço</small></div>
+    <div class="m2-cb res"><table id="res"></table></div>
+  </div>
+  <div class="nota" id="estado"></div>
 </main>
+<div id="dcToast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="zelo_pdf_guardar.js?v=2"></script>
-<script src="zelo_folha_dias_cama.js?v=1"></script>
-<script>
-(function(){
-  'use strict';
-  // Os dados ficam em registos_sistemas_locais/dias_cama/<AAAA-MM>/<serviço>:
-  //   { lotacao, cama:{dia:n}, doente:{dia:n}, responsavel, entrega, recebido, recebidoPor, em, por }
-  // Cada número grava-se sozinho no seu lugar (campo a campo), por isso dois
-  // computadores podem registar ao mesmo tempo sem se apagarem. Sem internet,
-  // as alterações ficam guardadas neste computador e seguem quando voltar.
-  var BASE = 'registos_sistemas_locais/dias_cama';
-  var SERVICOS = [
-    ['medicina_homem','Medicina Homem'], ['medicina_mulher','Medicina Mulher'], ['cirurgia_geral','Cirurgia Geral'],
-    ['ortopedia','Orto-Traumatologia'], ['neurocirurgia','Neurocirurgia'], ['maxilo_facial','Maxilo-Facial'],
-    ['nefrologia','Nefrologia'], ['uci_intensivo','UCI'], ['uci_intermedio','Cuidados Intermédios']
-  ];
-  var SEM = ['dom','seg','ter','qua','qui','sex','sáb'];
-  var FD = window.ZeloFolhaDiasCama;
-  var PEND_K = 'zeloDiasCamaPendentes', CACHE_K = 'zeloDiasCamaCache_';
-  function $(id){ return document.getElementById(id); }
-  function pad(n){ return String(n).padStart(2,'0'); }
-  function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function num(v){ return v === null || v === undefined || v === '' || isNaN(v) ? null : Number(v); }
-  function hojeISO(){ var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
-  function utilizador(){ try { return sessionStorage.getItem('zeloNome') || ''; } catch (e) { return ''; } }
-  function lerLS(k, def){ try { var v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? def : v; } catch (e) { return def; } }
-  function gravarLS(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-
-  var agora = new Date(), estado = {
-    ym: lerLS('zeloDiasCamaMes', null) || (agora.getFullYear() + '-' + pad(agora.getMonth()+1)),
-    serv: lerLS('zeloDiasCamaServ', SERVICOS[0][0]), vista: 'reg', mes: {}, parar: null
-  };
-  if (!SERVICOS.some(function(s){ return s[0] === estado.serv; })) estado.serv = SERVICOS[0][0];
-
-  // ── alterações por enviar (sem internet ou à espera da resposta) ──
-  var pend = lerLS(PEND_K, {});
-  function caminho(ym, slug, campo){ return BASE + '/' + ym + '/' + slug + '/' + campo; }
-  function aplicar(obj, campo, v){ var p = campo.split('/'); if (p.length === 2) { obj[p[0]] = obj[p[0]] || {}; if (v == null) delete obj[p[0]][p[1]]; else obj[p[0]][p[1]] = v; } else { if (v == null) delete obj[campo]; else obj[campo] = v; } }
-  function comPendentes(ym, dadosMes){
-    var out = JSON.parse(JSON.stringify(dadosMes || {}));
-    Object.keys(pend).forEach(function(k){
-      var pre = BASE + '/' + ym + '/'; if (k.indexOf(pre) !== 0) return;
-      var r = k.slice(pre.length), i = r.indexOf('/'), slug = r.slice(0, i), campo = r.slice(i + 1);
-      out[slug] = out[slug] || {}; aplicar(out[slug], campo, pend[k].v);
-    });
-    return out;
-  }
-  var enviando = false;
-  function enviar(){
-    if (enviando || !window.__fbReady || navigator.onLine === false) return;
-    var ks = Object.keys(pend); if (!ks.length) { mostrarEstado(); return; }
-    enviando = true;
-    var lote = {}; ks.forEach(function(k){ lote[k] = pend[k]; });
-    // Um update por mês: todas as alterações pendentes numa só escrita.
-    var porMes = {};
-    ks.forEach(function(k){ var r = k.slice(BASE.length + 1), ym = r.slice(0, 7); (porMes[ym] = porMes[ym] || {})[r.slice(8)] = pend[k].v; });
-    Promise.all(Object.keys(porMes).map(function(ym){ return window.__fbUpdate(BASE + '/' + ym, porMes[ym]); }))
-      .then(function(){ ks.forEach(function(k){ if (pend[k] && pend[k].t === lote[k].t) delete pend[k]; }); gravarLS(PEND_K, pend); })
-      .catch(function(e){ console.warn('ZELO dias de cama: envio adiado', e); })
-      .then(function(){ enviando = false; mostrarEstado(); desenhar(); });
-  }
-  function guardar(slug, campos){
-    var t = Date.now(), quem = utilizador();
-    Object.keys(campos).forEach(function(c){ pend[caminho(estado.ym, slug, c)] = { v: campos[c], t: t }; });
-    pend[caminho(estado.ym, slug, 'em')] = { v: t, t: t };
-    if (quem) pend[caminho(estado.ym, slug, 'por')] = { v: quem, t: t };
-    // 1.º número da folha: regista a receção (hoje, por quem está a registar).
-    var D = dadosServ(slug);
-    if (!D.recebido && !('recebido' in campos)) pend[caminho(estado.ym, slug, 'recebido')] = { v: hojeISO(), t: t };
-    if (!D.recebidoPor && !('recebidoPor' in campos) && quem) pend[caminho(estado.ym, slug, 'recebidoPor')] = { v: quem, t: t };
-    gravarLS(PEND_K, pend);
-    desenhar(); enviar();
-  }
-  window.addEventListener('online', enviar);
-  setInterval(enviar, 15000);
-
-  // ── leitura ao vivo (só o mês aberto) ──
-  function escutar(){
-    if (estado.parar) { try { estado.parar(); } catch (e) {} estado.parar = null; }
-    var ym = estado.ym;
-    estado.mes = lerLS(CACHE_K + ym, {});
-    desenhar();
-    if (!window.__fbListen) return;
-    estado.parar = window.__fbListen(BASE + '/' + ym, function(v){
-      if (ym !== estado.ym) return;
-      estado.mes = v || {}; gravarLS(CACHE_K + ym, estado.mes); estado.carregado = true;
-      desenhar();
-    });
-  }
-  function dadosMes(){ return comPendentes(estado.ym, estado.mes); }
-  function dadosServ(slug){ return dadosMes()[slug] || {}; }
-
-  // ── desenho ──
-  function nomeMes(ym){ var p = ym.split('-'); return FD.MESES[+p[1]-1] + ' ' + p[0]; }
-  function estadoServ(slug){ var T = FD.totais(dadosServ(slug), estado.ym); return { T: T, cl: T.preenchidos >= T.dias ? 'ok' : (T.preenchidos ? 'par' : 'nd') }; }
-  function desenhar(){
-    $('mNome').textContent = nomeMes(estado.ym);
-    $('servs').innerHTML = SERVICOS.map(function(s){ var e = estadoServ(s[0]);
-      return '<button type="button" class="sv ' + e.cl + (s[0] === estado.serv && estado.vista === 'reg' ? ' on' : '') + '" data-s="' + s[0] + '"><i></i>' + esc(s[1]) + ' <small>' + e.T.preenchidos + '/' + e.T.dias + '</small></button>'; }).join('');
-    $('vReg').hidden = estado.vista !== 'reg'; $('vRes').hidden = estado.vista !== 'res';
-    Array.prototype.forEach.call(document.querySelectorAll('.vista button'), function(b){ b.classList.toggle('on', b.dataset.v === estado.vista); });
-    if (estado.vista === 'reg') desenharRegisto(); else desenharResumo();
-    mostrarEstado();
-  }
-  function desenharRegisto(){
-    var slug = estado.serv, nome = SERVICOS.filter(function(s){ return s[0] === slug; })[0][1];
-    var D = dadosServ(slug), nd = FD.diasNoMes(estado.ym), p = estado.ym.split('-');
-    $('regTit').textContent = nome + ' · ' + nomeMes(estado.ym);
-    var foco = document.activeElement, focoId = foco && foco.dataset && foco.dataset.k;
-    setVal($('lot'), D.lotacao);
-    ['fResp','fEnt','fRecEm','fRecPor'].forEach(function(id){ setVal($(id), D[$(id).dataset.campo]); });
-    function linhas(a, b){
-      var h = '<thead><tr><th>Dia</th><th>Dias de cama</th><th>Dias de doente</th></tr></thead><tbody>';
-      for (var i = a; i <= b; i++) {
-        var off = i > nd, w = new Date(+p[0], +p[1]-1, i).getDay(), cl = [];
-        if (i % 7 === 0 && i < 31) cl.push('sem'); if (Math.floor((i-1)/7) % 2) cl.push('alt'); if (off) cl.push('off');
-        var c = num((D.cama||{})[i]), o = num((D.doente||{})[i]);
-        var pc = pend[caminho(estado.ym, slug, 'cama/' + i)], po = pend[caminho(estado.ym, slug, 'doente/' + i)];
-        h += '<tr class="' + cl.join(' ') + '"><td class="d">' + pad(i) + (off ? '' : '<small>' + SEM[w] + '</small>') + '</td>' +
-          '<td><input data-k="cama/' + i + '" inputmode="numeric" autocomplete="off" ' + (off ? 'disabled' : '') + ' value="' + (c == null ? '' : c) + '" class="' + (off ? '' : (c == null ? 'vz' : '')) + (pc ? ' pend' : '') + '"></td>' +
-          '<td><input data-k="doente/' + i + '" inputmode="numeric" autocomplete="off" ' + (off ? 'disabled' : '') + ' value="' + (o == null ? '' : o) + '" class="' + (off ? '' : (o == null ? 'vz' : (c != null && o > c ? 'erro' : ''))) + (po ? ' pend' : '') + '"></td></tr>';
-      }
-      return h + '</tbody>';
-    }
-    // Não redesenhar a tabela por baixo de quem está a escrever nela.
-    if (!(focoId && $('t1').contains(foco) || focoId && $('t2').contains(foco))) {
-      $('t1').innerHTML = linhas(1, 16); $('t2').innerHTML = linhas(17, 31);
-    }
-    var T = FD.totais(D, estado.ym);
-    $('kC').textContent = T.cama == null ? '—' : T.cama;
-    $('kD').textContent = T.doente == null ? '—' : T.doente;
-    $('kT').textContent = T.taxa == null ? '—' : T.taxa.toFixed(1).replace('.', ',') + '%';
-    var nDo = 0; for (var i = 1; i <= nd; i++) if (num((D.doente||{})[i]) != null) nDo++;
-    $('kM').textContent = nDo ? (T.doente / nDo).toFixed(1).replace('.', ',') : '—';
-    $('kP').textContent = T.preenchidos + ' / ' + nd;
-    $('prog').className = 'prog' + (T.preenchidos >= nd ? ' ok' : ''); $('prog').firstChild.style.width = (T.preenchidos / nd * 100) + '%';
-    var bars = '', acima = [], vazios = [];
-    for (var j = 1; j <= nd; j++) {
-      var cc = num((D.cama||{})[j]), oo = num((D.doente||{})[j]);
-      if (cc == null || oo == null) { vazios.push(j); bars += '<b class="n"></b>'; continue; }
-      if (oo > cc) acima.push(j);
-      bars += '<b class="' + (oo > cc ? 'x' : '') + '" style="height:' + Math.max(3, Math.min(100, cc ? oo / cc * 100 : 0)) + '%" title="Dia ' + j + ': ' + oo + ' / ' + cc + '"></b>';
-    }
-    $('mini').innerHTML = bars;
-    var av = '';
-    if (acima.length) av += '<div class="aviso mau"><b>Mais doentes do que camas</b> no' + (acima.length > 1 ? 's dias ' : ' dia ') + acima.join(', ') + ' — confirme na folha.</div>';
-    if (vazios.length && vazios.length < nd) av += '<div class="aviso av"><b>' + vazios.length + ' dia' + (vazios.length > 1 ? 's' : '') + ' por preencher:</b> ' + resumirDias(vazios) + '.</div>';
-    if (!vazios.length) av += '<div class="aviso ok"><b>Folha completa.</b> Todos os dias do mês estão registados.</div>';
-    $('avisos').innerHTML = av;
-  }
-  function resumirDias(l){ var out = [], i = 0; while (i < l.length) { var j = i; while (j + 1 < l.length && l[j+1] === l[j] + 1) j++; out.push(j > i ? l[i] + ' a ' + l[j] : String(l[i])); i = j + 1; } return out.join(', '); }
-  // Soma de camas e doentes só dos dias com os dois números (para a taxa).
-  function pares(D){ var c = 0, o = 0; for (var i = 1; i <= FD.diasNoMes(estado.ym); i++) { var a = num((D.cama||{})[i]), b = num((D.doente||{})[i]); if (a != null && b != null) { c += a; o += b; } } return [c, o]; }
-  function setVal(el, v){ if (document.activeElement === el) return; el.value = v == null ? '' : v; }
-  function desenharResumo(){
-    $('resTit').textContent = nomeMes(estado.ym) + ' — todos os serviços';
-    var h = '<thead><tr><th>Serviço</th><th>Lotação</th><th>Dias de cama</th><th>Dias de doente</th><th>Taxa de ocupação</th><th>Folha</th></tr></thead><tbody>', TL = 0, TC = 0, TD = 0, PC = 0, PD = 0;
-    SERVICOS.forEach(function(s){
-      var D = dadosServ(s[0]), e = estadoServ(s[0]), T = e.T, L = num(D.lotacao);
-      if (L != null) TL += L; if (T.cama != null) TC += T.cama; if (T.doente != null) TD += T.doente;
-      var P = pares(D); PC += P[0]; PD += P[1];
-      h += '<tr class="l" data-s="' + s[0] + '"><td>' + esc(s[1]) + '</td><td>' + (L == null ? '—' : L) + '</td><td>' + (T.cama == null ? '—' : T.cama) + '</td><td>' + (T.doente == null ? '—' : T.doente) + '</td><td>' + (T.taxa == null ? '—' : T.taxa.toFixed(1).replace('.', ',') + '%') + '</td><td><span class="chip ' + e.cl + '">' + (e.cl === 'ok' ? 'Completa' : e.cl === 'par' ? 'Incompleta ' + T.preenchidos + '/' + T.dias : 'Não entregue') + '</span></td></tr>';
-    });
-    h += '<tr class="tot"><td>TOTAL DO HOSPITAL</td><td>' + (TL || '—') + '</td><td>' + (TC || '—') + '</td><td>' + (TD || '—') + '</td><td>' + (PC ? (PD / PC * 100).toFixed(1).replace('.', ',') + '%' : '—') + '</td><td></td></tr></tbody>';
-    $('res').innerHTML = h;
-  }
-  function mostrarEstado(){
-    var n = Object.keys(pend).filter(function(k){ return !/\/(em|por)$/.test(k); }).length;
-    $('estado').textContent = n ? (navigator.onLine === false ? 'Sem internet — ' + n + ' alteração(ões) guardada(s) neste computador; seguem quando a ligação voltar.' : 'A gravar…')
-      : (estado.carregado ? 'Tudo gravado.' : 'A carregar…');
-  }
-
-  // ── eventos ──
-  function lerNum(v){ v = String(v).trim(); if (v === '') return null; if (!/^\d{1,4}$/.test(v)) return undefined; return Number(v); }
-  function aoMudar(el){
-    var k = el.dataset.k, v = lerNum(el.value);
-    if (v === undefined) { el.classList.add('erro'); el.title = 'Escreva só números inteiros'; return; }
-    el.classList.remove('erro'); el.title = '';
-    var D = dadosServ(estado.serv), atual = num(k.split('/').reduce(function(o, x){ return o == null ? null : o[x]; }, D));
-    if (atual === v) return;
-    var c = {}; c[k] = v; guardar(estado.serv, c);
-  }
-  document.addEventListener('change', function(e){
-    var el = e.target;
-    if (el.dataset && el.dataset.k) return aoMudar(el);
-    if (el.id === 'lot') { var v = lerNum(el.value); if (v === undefined) { el.classList.add('erro'); return; } el.classList.remove('erro'); guardar(estado.serv, { lotacao: v }); return; }
-    if (el.dataset && el.dataset.campo) { var c = {}; c[el.dataset.campo] = el.value.trim() || null; guardar(estado.serv, c); }
-  });
-  document.addEventListener('keydown', function(e){
-    var el = e.target; if (e.key !== 'Enter' || !el.dataset || !el.dataset.k) return;
-    e.preventDefault(); aoMudar(el);
-    var p = el.dataset.k.split('/'), nd = FD.diasNoMes(estado.ym), prox = +p[1] < nd ? p[0] + '/' + (+p[1] + 1) : (p[0] === 'cama' ? 'doente/1' : null);
-    var nx = prox && document.querySelector('[data-k="' + prox + '"]'); if (nx) { nx.focus(); nx.select(); }
-  });
-  document.addEventListener('focusout', function(e){ if (e.target.dataset && e.target.dataset.k) setTimeout(function(){ var a = document.activeElement; if (!(a && a.dataset && a.dataset.k)) desenhar(); }, 50); });
-  $('servs').addEventListener('click', function(e){ var b = e.target.closest('[data-s]'); if (!b) return; estado.serv = b.dataset.s; estado.vista = 'reg'; gravarLS('zeloDiasCamaServ', estado.serv); desenhar(); });
-  $('res').addEventListener('click', function(e){ var r = e.target.closest('tr[data-s]'); if (!r) return; estado.serv = r.dataset.s; estado.vista = 'reg'; gravarLS('zeloDiasCamaServ', estado.serv); desenhar(); });
-  Array.prototype.forEach.call(document.querySelectorAll('.vista button'), function(b){ b.addEventListener('click', function(){ estado.vista = b.dataset.v; desenhar(); }); });
-  function mudarMes(n){ var p = estado.ym.split('-'), d = new Date(+p[0], +p[1]-1+n, 1); estado.ym = d.getFullYear() + '-' + pad(d.getMonth()+1); gravarLS('zeloDiasCamaMes', estado.ym); estado.carregado = false; escutar(); }
-  $('mAnt').addEventListener('click', function(){ mudarMes(-1); }); $('mSeg').addEventListener('click', function(){ mudarMes(1); });
-  $('encher').addEventListener('click', function(){
-    var D = dadosServ(estado.serv), L = num(D.lotacao);
-    if (L == null) { alert('Escreva primeiro a lotação (número de camas) do serviço.'); $('lot').focus(); return; }
-    var c = {}, n = 0; for (var i = 1; i <= FD.diasNoMes(estado.ym); i++) if (num((D.cama||{})[i]) == null) { c['cama/' + i] = L; n++; }
-    if (!n) { alert('Todos os dias já têm dias de cama.'); return; }
-    guardar(estado.serv, c);
-  });
-  // ── PDF: a mesma folha do papel, já preenchida ──
-  function semPDF(){ if (window.jspdf && window.jspdf.jsPDF && FD) return false; alert('A biblioteca de PDF ainda não carregou. Tente novamente em alguns segundos.'); return true; }
-  $('pdfServ').addEventListener('click', function(){
-    if (semPDF()) return; var s = SERVICOS.filter(function(x){ return x[0] === estado.serv; })[0];
-    FD.pdf([{ nome: s[1], dados: dadosServ(s[0]) }], estado.ym).save('Dias_Cama_' + s[1].replace(/\s+/g, '_') + '_' + estado.ym + '.pdf');
-  });
-  $('pdfMes').addEventListener('click', function(){
-    if (semPDF()) return; var lista = SERVICOS.map(function(s){ return { nome: s[1], dados: dadosServ(s[0]) }; });
-    var d = FD.pdf(lista, estado.ym); FD.resumo(d, lista, estado.ym);
-    d.save('Dias_Cama_Todos_' + estado.ym + '.pdf');
-  });
-  window.__diasCama = { estado: estado, dadosServ: dadosServ, pend: function(){ return pend; } };
-
-  var feito = false;
-  function primeira(){ if (feito) return; feito = true; (function v(n){ if (window.__fbReady && window.__fbListen) { escutar(); enviar(); } else if (n < 40) setTimeout(function(){ v(n + 1); }, 250); else escutar(); })(0); }
-  window.addEventListener('zelo-gate-ready', primeira);
-  setTimeout(primeira, 1500);
-})();
-</script>
+<script src="zelo_folha_dias_cama.js?v=2"></script>
+<script src="zelo_dias_cama.js?v=1"></script>
 <script src="zelo_servicos_menu.js?v=7"></script>
 <script src="zelo_menu_flutuante.js"></script>
 <script src="zelo_theme.js"></script>

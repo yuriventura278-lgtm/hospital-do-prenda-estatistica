@@ -185,5 +185,35 @@
     rodape(d, F, W, M, MESES[+p[1] - 1] + ' de ' + p[0] + ' · resumo');
   }
 
-  window.ZeloFolhaDiasCama = { pdf: pdf, resumo: resumo, totais: totais, diasNoMes: diasNoMes, MESES: MESES };
+  // Resumo de um período (trimestre, semestre, ano): uma página com todos os
+  // serviços, já somados.  linhas: [{ nome, lotacao, cama, doente, taxa, preenchidos, dias }]
+  function resumoPeriodo(linhas, titulo, rotulo) {
+    var d = criar(), F = ferramentas(d), W = 210, M = 12, CW = W - 2 * M;
+    cabecalho(d, F, W, M, CW);
+    F.txt('Resumo — ' + titulo, M, 42, { s: 12, b: 1 });
+    var cols = [['Serviço', 52, 'left'], ['Lotação', 20], ['Dias de cama', 28], ['Dias de doente', 28], ['Taxa de ocupação', 30], ['Dias registados', 28]];
+    var y = 47, rh = 9, x = M;
+    F.cor([226, 232, 240], 'Fill'); d.rect(M, y, CW, rh, 'F');
+    cols.forEach(function (c) { F.txt(c[0], c[2] ? x + 2.5 : x + c[1] / 2, y + 6, { s: 8, b: 1, al: c[2] ? undefined : 'center' }); x += c[1]; });
+    function linha(v, tot) {
+      y += rh;
+      if (tot) { F.cor([224, 231, 255], 'Fill'); d.rect(M, y, CW, rh, 'F'); }
+      var xx = M;
+      v.forEach(function (t, i) { var c = cols[i]; F.txt(t, c[2] ? xx + 2.5 : xx + c[1] / 2, y + 6, { s: 9.5, b: tot || i === 0, al: c[2] ? undefined : 'center', c: i && !tot ? TINTA : NAVY }); xx += c[1]; });
+      F.cor(tot ? NAVY : LINHA, 'Draw'); d.setLineWidth(tot ? 0.6 : 0.2); d.line(M, y + (tot ? 0 : rh), M + CW, y + (tot ? 0 : rh));
+    }
+    var TL = 0, TC = 0, TD = 0, PC = 0, PD = 0;
+    linhas.forEach(function (s) {
+      if (s.lotacao != null) TL += s.lotacao; if (s.cama != null) TC += s.cama; if (s.doente != null) TD += s.doente;
+      PC += s.pc || 0; PD += s.pd || 0;
+      linha([s.nome, s.lotacao == null ? '—' : s.lotacao, s.cama == null ? '—' : s.cama, s.doente == null ? '—' : s.doente, s.taxa == null ? '—' : taxaTxt(s.taxa) + '%', s.preenchidos + ' / ' + s.dias]);
+    });
+    linha(['TOTAL DO HOSPITAL', TL || '—', TC || '—', TD || '—', PC ? taxaTxt(PD / PC * 100) + '%' : '—', ''], true);
+    F.cor(NAVY, 'Draw'); d.setLineWidth(0.5); d.rect(M, 47, CW, y + rh - 47, 'S');
+    F.txt('Taxa de ocupação = dias de doente ÷ dias de cama × 100 (só os dias com os dois números). «—» = sem valores registados.', M, y + rh + 6, { s: 7.5, i: 1, c: CINZA });
+    rodape(d, F, W, M, rotulo || titulo);
+    return d;
+  }
+
+  window.ZeloFolhaDiasCama = { pdf: pdf, resumo: resumo, resumoPeriodo: resumoPeriodo, totais: totais, diasNoMes: diasNoMes, MESES: MESES };
 })();
