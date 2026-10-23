@@ -241,6 +241,25 @@
   .gcampos input[type=number]{text-align:center;font-weight:700;-moz-appearance:textfield;appearance:textfield}
   .gcampos input::-webkit-inner-spin-button{-webkit-appearance:none}
   .gcampos input.tem{border-color:var(--zelo-accent);background:var(--zelo-accent-soft)}
+  /* Diagnóstico: caixa maior + lista de opções (CID-10) */
+  textarea.diag{min-height:72px;font-size:16px;line-height:1.35;resize:vertical}
+  .gcampos input.diag{min-height:48px}
+  .dg-lista{position:fixed;z-index:1000;background:var(--zelo-surface);border:1.5px solid var(--zelo-line-strong);border-radius:14px;box-shadow:0 18px 40px -12px rgba(0,0,0,.35);max-height:300px;overflow:auto;padding:4px}
+  .dg-it{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:10px;cursor:pointer;font-size:.95rem;line-height:1.3;color:var(--zelo-ink)}
+  .dg-it:hover,.dg-it.on{background:var(--zelo-accent-soft)}
+  .dg-it code{flex:none;min-width:52px;font:700 .8rem ui-monospace,Consolas,monospace;color:var(--zelo-accent-ink);background:var(--zelo-accent-soft);border-radius:6px;padding:2px 6px;text-align:center}
+  .dg-gr{font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--zelo-ink-soft);padding:8px 10px 2px}
+  .dg-vz{padding:10px;color:var(--zelo-ink-soft);font-size:.9rem}
+  .dica-diag{font-size:.78rem;color:var(--zelo-ink-faint);margin-top:3px}
+  /* Botões Guardar / Guardar e gerar PDF */
+  .barra-fundo{flex-wrap:wrap}
+  .barra-fundo .botoes{display:flex;gap:10px;flex:1;min-width:260px}
+  .barra-fundo .botoes .btn{flex:1}
+  .btn.pdf{background:var(--zelo-surface);color:var(--zelo-accent-ink);border:2px solid var(--zelo-accent)}
+  .rascunho{width:100%;font-size:.8rem;color:var(--zelo-ink-soft);display:flex;align-items:center;gap:6px}
+  .rascunho:empty{display:none}
+  .obrigado .acoes .linha-bt{display:flex;gap:10px;margin-top:10px}
+  .obrigado .acoes .linha-bt .btn{margin-top:0}
   @media (max-width:360px){.passo button{width:42px;height:42px}.passo input{width:54px}}
 </style>
 </head>
@@ -311,19 +330,26 @@
 
     <div class="barra-fundo">
       <div class="conta"><b id="total-txt">0</b>observados</div>
-      <button type="submit" class="btn" id="enviar">Enviar registo</button>
+      <div class="botoes">
+        <button type="submit" class="btn" id="enviar">Guardar</button>
+        <button type="button" class="btn pdf" id="enviar-pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>Guardar e gerar PDF</button>
+      </div>
+      <div class="rascunho" id="rascunho"></div>
     </div>
   </form>
 
   <!-- Ecrã 3: confirmação -->
   <div class="obrigado oculto" id="obrigado">
     <div class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></div>
-    <h2>Registo enviado</h2>
+    <h2>Registo guardado</h2>
     <p id="obrigado-txt"></p>
     <div class="resumo" id="resumo"></div>
     <div class="acoes">
-      <button type="button" class="btn" id="inicio">Registar outro serviço</button>
-      <button type="button" class="btn sec" id="editar">Corrigir este registo</button>
+      <div class="linha-bt">
+        <button type="button" class="btn" id="gerar-pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>Gerar PDF</button>
+        <button type="button" class="btn sec" id="editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Editar registo</button>
+      </div>
+      <button type="button" class="btn sec" id="inicio">Registar outro serviço</button>
     </div>
     <div class="assinatura"><img src="icons/hospital_prenda_192.png" alt="">Hospital do Prenda<br><small>Banco de Urgência · Estatística</small></div>
   </div>
@@ -425,7 +451,7 @@ $('categorias').innerHTML = window.URG_CATEGORIAS.map(([v, t]) => `<label><input
 $('classif').innerHTML = window.URG_CLASSIF.map(([v, t]) => `<label><input type="radio" name="classificacao" value="${v}"><span>${esc(t)}</span></label>`).join('');
 
 // ── Ecrã 2: construção do formulário a partir do modelo ──
-let atual = null, anterior = null, confirmarAvisos = false, nLinha = 0;
+let atual = null, anterior = null, confirmarAvisos = false, nLinha = 0, querPDF = false;
 
 function htmlContadores(sec) {
   return sec.grupos.map((g) => `<div class="grupo">
@@ -449,7 +475,7 @@ function htmlGrade(sec) {
       const k = lc + '_' + cc;
       return tipo === 'n'
         ? `<div><label for="g-${k}">${esc(cr)}</label><input type="number" id="g-${k}" data-g="${k}" inputmode="numeric" min="0" max="9999" placeholder="0"></div>`
-        : `<div class="gt"><label for="g-${k}">${esc(cr)}</label><input type="text" id="g-${k}" data-gt="${k}" maxlength="120" autocomplete="off"></div>`;
+        : `<div class="gt"><label for="g-${k}">${esc(cr)}</label><input type="text" id="g-${k}" data-gt="${k}"${cc === 'diag' ? ' class="diag" data-diag="1" placeholder="Diagnóstico (opções CID)"' : ''} maxlength="200" autocomplete="off"></div>`;
     }).join('')}</div></div>`;
   }
   return h;
@@ -467,6 +493,7 @@ function htmlLinha(sec, vals) {
     if (tipo === 'hora') return `<div><label for="${nm}">${esc(rot)}</label><input type="time" id="${nm}" data-col="${cod}" value="${esc(v || '')}"></div>`;
     if (tipo === 'genero') opcoes = [['m', 'M'], ['f', 'F']];
     if (tipo === 'genero' || tipo === 'escolha') return `<div class="${tipo === 'escolha' ? 'larga' : ''}"><label>${esc(rot)}</label><div class="opcoes" data-col="${cod}" data-escolha="1">${opcoes.map(([ov, ot]) => `<label><input type="radio" name="${nm}" value="${ov}"${v === ov ? ' checked' : ''}><span>${esc(ot)}</span></label>`).join('')}</div></div>`;
+    if (cod === 'diag') return `<div class="larga"><label for="${nm}">${esc(rot)}</label><textarea id="${nm}" class="diag" data-col="${cod}" data-diag="1" rows="2" maxlength="200" placeholder="Escreva 2 letras ou o código CID para ver opções">${esc(v || '')}</textarea></div>`;
     return `<div class="larga"><label for="${nm}">${esc(rot)}</label><input type="text" id="${nm}" data-col="${cod}" maxlength="${cod === 'desc' ? 200 : 120}" autocomplete="off" value="${esc(v || '')}"></div>`;
   }).join('');
   return `<div class="linha" id="${id}"><div class="linha-cab"><span class="n"></span><button type="button" data-tirar="${id}">Retirar</button></div><div class="linha-campos">${campos}</div></div>`;
@@ -504,7 +531,7 @@ function recolher() {
   const s = atual, contagens = {}, textos = {}, listas = {};
   for (const [cod] of window.urgCampos(s)) { const n = val(cod); if (n) contagens[cod] = n; }
   document.querySelectorAll('#secoes [data-g]').forEach((e) => { const n = parseInt(e.value, 10); if (n > 0) contagens[e.dataset.g] = Math.min(n, 9999); });
-  document.querySelectorAll('#secoes [data-t], #secoes [data-gt]').forEach((e) => { const t = e.value.trim(); if (t) textos[e.dataset.t || e.dataset.gt] = t.slice(0, e.tagName === 'TEXTAREA' ? 1000 : 120); });
+  document.querySelectorAll('#secoes [data-t], #secoes [data-gt]').forEach((e) => { const t = e.value.trim(); if (t) textos[e.dataset.t || e.dataset.gt] = t.slice(0, e.tagName === 'TEXTAREA' || e.dataset.diag ? 1000 : 120); });
   for (const sec of s.secoes) {
     if (!sec.lista) continue;
     const rows = [];
@@ -539,7 +566,7 @@ function atualizarTotais() {
   else { $('total-txt').textContent = Object.keys(R.contagens).length; $('total-txt').nextSibling.textContent = 'campos preenchidos'; }
   confirmarAvisos = false;
   $('enviar').classList.remove('confirmar');
-  $('enviar').textContent = anterior ? 'Guardar correcção' : 'Enviar registo';
+  $('enviar').textContent = anterior && !anterior.deOutro ? 'Guardar correcção' : 'Guardar';
 }
 
 $('secoes').addEventListener('click', (e) => {
@@ -619,6 +646,19 @@ async function carregarExistente() {
   await fbPronto;
   if (fb) { try { const snap = await comPrazo(fb.get(fb.ref(fb.db, caminhoMeta(dia, s.id))), 8000); if (snap.exists()) meta = snap.val(); } catch (e) { console.warn(e); } }
   if (meu !== carregamento || atual !== s || $('dia').value !== dia) return;
+  let rasc = null; try { rasc = JSON.parse(ls.get(`urg24:rasc:${dia}:${s.id}`) || 'null'); } catch (e) {}
+  $('rascunho').textContent = '';
+  if (rasc && (!local || rasc.ts > local.ts)) {
+    if (local) anterior = local; else if (meta) anterior = { data: dia, criado: meta.criado, editado: meta.editado, deOutro: true };
+    preencher(rasc);
+    if (rasc.preenchidoPor) $('nome').value = rasc.preenchidoPor;
+    if (rasc.categoria) marcar('categoria', rasc.categoria);
+    $('ja-existe').innerHTML = `✎ <span>Recuperado o rascunho de ${hora(rasc.ts)} (ainda não guardado no servidor). Reveja e toque em «Guardar».</span>`;
+    $('ja-existe').classList.remove('oculto');
+    $('rascunho').textContent = `✎ Rascunho guardado neste telemóvel às ${hora(rasc.ts)} (ainda não enviado)`;
+    atualizarTotais();
+    return;
+  }
   if (local && (!meta || local.ts >= meta.ts)) {
     anterior = local;
     preencher(local);
@@ -691,6 +731,7 @@ $('form').addEventListener('submit', async (e) => {
   const nome = $('nome').value.trim();
   if (nome.length < 2) { faltas.push('quem preenche'); $('c-nome').classList.add('falta'); }
   if (faltas.length) {
+    querPDF = false;
     mostrarAviso('Falta indicar ' + faltas.join(' e ') + '.');
     $('aviso').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
@@ -699,8 +740,9 @@ $('form').addEventListener('submit', async (e) => {
   const avisos = avisosCoerencia(R);
   if (avisos.length && !confirmarAvisos) {
     confirmarAvisos = true;
-    mostrarAviso('Verifique: ' + avisos.join('; ') + '. Se estiver certo, toque outra vez em «Enviar mesmo assim».');
-    $('enviar').textContent = 'Enviar mesmo assim';
+    querPDF = false;
+    mostrarAviso('Verifique: ' + avisos.join('; ') + '. Se estiver certo, toque outra vez em «Guardar mesmo assim».');
+    $('enviar').textContent = 'Guardar mesmo assim';
     $('enviar').classList.add('confirmar');
     $('aviso').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
@@ -724,7 +766,7 @@ $('form').addEventListener('submit', async (e) => {
   if (reg.editado) meta.editado = reg.editado;
 
   const btn = $('enviar'), txt = btn.textContent;
-  btn.disabled = true; btn.textContent = 'A enviar…';
+  btn.disabled = true; btn.textContent = 'A guardar…';
   try {
     await fbPronto;
     if (!fb) throw new Error('sem firebase');
@@ -732,6 +774,8 @@ $('form').addEventListener('submit', async (e) => {
     try { await comPrazo(fb.set(fb.ref(fb.db, caminhoMeta(dia, s.id)), meta), 8000); } catch (e) { console.warn('resumo público não guardado', e); }
     anterior = reg;
     ls.set(`urg24:${dia}:${s.id}`, JSON.stringify(reg));
+    try { localStorage.removeItem(`urg24:rasc:${dia}:${s.id}`); } catch (e) {}
+    $('rascunho').textContent = '';
     ls.set('urg24:nome', reg.preenchidoPor);
     if (cat) ls.set('urg24:categoria', cat);
     $('obrigado-txt').textContent = `${s.nome} · ${s.diario ? 'dia' : 'turno de'} ${fmtData(dia)}${mesmo ? ' (corrigido)' : ''}`;
@@ -739,15 +783,203 @@ $('form').addEventListener('submit', async (e) => {
     if (!res.length) s.secoes.filter((sec) => sec.grupos && sec.total !== false).forEach((sec) => res.push([sec.titulo, window.urgSubtotal(sec, val)]));
     $('resumo').innerHTML = res.map(([t, n]) => `<div><b>${n}</b><span>${esc(t)}</span></div>`).join('');
     mostrar('obrigado');
+    if (querPDF) { querPDF = false; pdfDoRegisto($('gerar-pdf')); }
   } catch (err) {
     console.error(err);
-    mostrarAviso('Não foi possível enviar. Verifique a internet e tente de novo.');
+    querPDF = false;
+    mostrarAviso('Não foi possível guardar no servidor. O rascunho ficou guardado neste telemóvel — verifique a internet e toque outra vez em «Guardar».');
     $('aviso').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } finally {
     btn.disabled = false;
-    if (btn.textContent === 'A enviar…') btn.textContent = txt;
+    if (btn.textContent === 'A guardar…') btn.textContent = txt;
   }
 });
+
+// ── Diagnóstico: opções do catálogo CID-10 do ZELO (zelo_cid10.js, carregado ao primeiro uso)
+let cidEstado = 0;
+function carregarCID(cb) {
+  if (window.ZeloCID) { cb && cb(); return; }
+  if (cidEstado) { if (cb) document.addEventListener('cid-pronto', cb, { once: true }); return; }
+  cidEstado = 1; if (cb) document.addEventListener('cid-pronto', cb, { once: true });
+  const sc = document.createElement('script'); sc.src = 'zelo_cid10.js?v=1'; sc.async = true;
+  sc.onload = () => document.dispatchEvent(new Event('cid-pronto'));
+  sc.onerror = () => { cidEstado = 0; };
+  document.head.appendChild(sc);
+}
+const norm = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const usados = () => { try { return JSON.parse(ls.get('urg24:diags') || '[]'); } catch (e) { return []; } };
+function lembrarDiag(t) {
+  if (!t) return;
+  const l = usados().filter((x) => norm(x) !== norm(t)); l.unshift(t);
+  ls.set('urg24:diags', JSON.stringify(l.slice(0, 60)));
+}
+let dg = null, dgAlvo = null, dgItens = [], dgAtivo = -1;
+function fecharDiag() { if (dg) dg.remove(); dg = null; dgAlvo = null; dgItens = []; dgAtivo = -1; }
+function posicionarDiag() {
+  if (!dg || !dgAlvo) return;
+  const r = dgAlvo.getBoundingClientRect(), baixo = window.innerHeight - r.bottom;
+  dg.style.left = Math.max(8, r.left) + 'px';
+  dg.style.width = Math.min(r.width, window.innerWidth - 16) + 'px';
+  if (baixo < 220 && r.top > baixo) { dg.style.top = ''; dg.style.bottom = (window.innerHeight - r.top + 4) + 'px'; dg.style.maxHeight = Math.min(300, r.top - 12) + 'px'; }
+  else { dg.style.bottom = ''; dg.style.top = (r.bottom + 4) + 'px'; dg.style.maxHeight = Math.min(300, baixo - 12) + 'px'; }
+}
+function mostrarDiag(el) {
+  const q = el.value.trim();
+  if (q.length < 2) { fecharDiag(); return; }
+  const qn = norm(q);
+  const meus = usados().filter((t) => norm(t).includes(qn) && norm(t) !== qn).slice(0, 5).map((t) => ['', t, 'usado']);
+  const cid = window.ZeloCID ? window.ZeloCID.buscar(q, 12).map(([c, d]) => [c, d, 'cid']) : [];
+  dgItens = meus.concat(cid.filter((x) => !meus.some((m) => norm(m[1]) === norm(`${x[0]} – ${x[1]}`))));
+  if (!dg) { dg = document.createElement('div'); dg.className = 'dg-lista'; dg.setAttribute('role', 'listbox'); document.body.appendChild(dg); }
+  dgAlvo = el; dgAtivo = -1;
+  let h = '', gr = '';
+  dgItens.forEach(([c, d, g], i) => {
+    if (g !== gr) { h += `<div class="dg-gr">${g === 'usado' ? 'Usados neste telemóvel' : 'Catálogo CID-10'}</div>`; gr = g; }
+    h += `<button type="button" class="dg-it" data-i="${i}">${c ? `<code>${esc(c)}</code>` : ''}<span>${esc(d)}</span></button>`;
+  });
+  if (!dgItens.length) h = `<div class="dg-vz">${window.ZeloCID ? 'Sem opções — pode escrever o diagnóstico à mão.' : 'A carregar a lista de diagnósticos…'}</div>`;
+  dg.innerHTML = h;
+  posicionarDiag();
+}
+function escolherDiag(i) {
+  const it = dgItens[i], el = dgAlvo; if (!it || !el) return;
+  el.value = it[0] ? `${it[0]} – ${it[1]}` : it[1];
+  lembrarDiag(el.value);
+  fecharDiag();
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+document.addEventListener('focusin', (e) => { if (e.target.dataset && e.target.dataset.diag) carregarCID(); });
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (!el.dataset || !el.dataset.diag || e.isTrusted === false) return;
+  if (window.ZeloCID) mostrarDiag(el); else { mostrarDiag(el); carregarCID(() => { if (document.activeElement === el) mostrarDiag(el); }); }
+});
+document.addEventListener('keydown', (e) => {
+  if (!dg || e.target !== dgAlvo) return;
+  const its = dg.querySelectorAll('.dg-it');
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); dgAtivo = (dgAtivo + (e.key === 'ArrowDown' ? 1 : -1) + its.length) % its.length; its.forEach((b, i) => b.classList.toggle('on', i === dgAtivo)); }
+  else if (e.key === 'Enter' && dgAtivo >= 0) { e.preventDefault(); escolherDiag(dgAtivo); }
+  else if (e.key === 'Escape') fecharDiag();
+});
+document.addEventListener('pointerdown', (e) => {
+  const b = e.target.closest && e.target.closest('.dg-it');
+  if (b) { e.preventDefault(); escolherDiag(+b.dataset.i); return; }
+  if (dg && !e.target.closest('.dg-lista') && e.target !== dgAlvo) fecharDiag();
+});
+document.addEventListener('focusout', (e) => { if (e.target === dgAlvo) setTimeout(() => { if (document.activeElement !== dgAlvo) { if (dgAlvo && dgAlvo.value.trim().length > 3) lembrarDiag(dgAlvo.value.trim()); fecharDiag(); } }, 200); });
+window.addEventListener('scroll', posicionarDiag, { passive: true });
+window.addEventListener('resize', posicionarDiag);
+
+// ── Rascunho automático neste telemóvel ──
+const chaveRasc = () => (atual ? `urg24:rasc:${$('dia').value}:${atual.id}` : null);
+let tRasc = null;
+function guardarRascunho() {
+  const k = chaveRasc(); if (!k || !$('dia').value) return;
+  const R = recolher();
+  const tem = Object.keys(R.contagens).length || Object.keys(R.textos).length || Object.keys(R.listas).length || $('observacoes').value.trim();
+  if (!tem) return;
+  ls.set(k, JSON.stringify({ ...R, classificacao: marcado('classificacao'), observacoes: $('observacoes').value, preenchidoPor: $('nome').value.trim(), categoria: marcado('categoria'), ts: Date.now() }));
+  $('rascunho').textContent = `✎ Rascunho guardado neste telemóvel às ${hora(Date.now())} (ainda não enviado)`;
+}
+$('form').addEventListener('input', () => { clearTimeout(tRasc); tRasc = setTimeout(guardarRascunho, 700); });
+$('form').addEventListener('change', () => { clearTimeout(tRasc); tRasc = setTimeout(guardarRascunho, 700); });
+
+// ── PDF da ficha (como a ficha em papel; sem nomes de doentes) ──
+let pdfLib = null;
+function carregarPDF() {
+  if (window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API.autoTable) return Promise.resolve();
+  if (pdfLib) return pdfLib;
+  const sc = (src) => new Promise((ok, falha) => { const e = document.createElement('script'); e.src = src; e.onload = ok; e.onerror = falha; document.head.appendChild(e); });
+  pdfLib = sc('jspdf.umd.min.js').then(() => sc('jspdf.plugin.autotable.min.js')).catch((e) => { pdfLib = null; throw e; });
+  return pdfLib;
+}
+function logoDataURL() {
+  return fetch('icons/hospital_prenda_logo.jpg').then((r) => (r.ok ? r.blob() : null)).then((b) => b && new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result); f.onerror = () => ok(null); f.readAsDataURL(b); })).catch(() => null);
+}
+const limparPDF = (t) => String(t == null ? '' : t).replace(/[–—]/g, '-').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\x00-\xFF]/g, '');
+async function gerarPDF(sv, reg) {
+  await carregarPDF();
+  const logo = await logoDataURL();
+  const { jsPDF } = window.jspdf;
+  const d = new jsPDF({ unit: 'mm', format: 'a4' }), W = 210, M = 14, AZUL = [1, 70, 127];
+  const T = limparPDF;
+  // Cabeçalho
+  if (logo) { try { d.addImage(logo, 'JPEG', M, 10, 20, 20); } catch (e) {} }
+  d.setTextColor(30, 30, 30); d.setFont('helvetica', 'bold'); d.setFontSize(9); d.text('MINISTÉRIO DA SAÚDE', W / 2, 13, { align: 'center' });
+  d.setFontSize(14); d.text('HOSPITAL DO PRENDA', W / 2, 19.5, { align: 'center' });
+  d.setTextColor(...AZUL); d.setFontSize(12.5); d.text(T(`${sv.nome} — ${sv.diario ? 'Movimento Diário' : 'Banco de Urgência'}`), W / 2, 26.5, { align: 'center' });
+  d.setTextColor(90, 90, 90); d.setFont('helvetica', 'normal'); d.setFontSize(8.5); d.text('FICHA DE RECOLHA DE DADOS · SERVIÇO DE ESTATÍSTICA', W / 2, 31.5, { align: 'center' });
+  d.setDrawColor(...AZUL); d.setLineWidth(0.6); d.line(M, 35, W - M, 35);
+  let y = 39;
+  const tab = (o) => { d.autoTable(Object.assign({ startY: y, margin: { left: M, right: M }, theme: 'grid',
+    styles: { fontSize: 9, cellPadding: 1.8, lineColor: [190, 200, 210], lineWidth: 0.2, textColor: [25, 25, 25], overflow: 'linebreak' },
+    headStyles: { fillColor: [228, 239, 249], textColor: AZUL, fontStyle: 'bold' } }, o)); y = d.lastAutoTable.finalY + 5; };
+  const secao = (n, t) => {
+    if (y > 265) { d.addPage(); y = 16; }
+    d.setFillColor(...AZUL); d.roundedRect(M, y, W - 2 * M, 7, 1.2, 1.2, 'F');
+    d.setTextColor(255, 255, 255); d.setFont('helvetica', 'bold'); d.setFontSize(9.5); d.text(T(`${n}. ${t.toUpperCase()}`), M + 3, y + 4.8);
+    y += 9;
+  };
+  tab({ body: [[{ content: 'DATA', styles: { fontStyle: 'bold' } }, fmtData(reg.data), { content: 'TURNO', styles: { fontStyle: 'bold' } }, sv.diario ? 'DIA' : '24 HORAS',
+    { content: 'PREENCHIDO POR', styles: { fontStyle: 'bold' } }, T(reg.preenchidoPor + (reg.categoria ? ` (${(window.URG_CATEGORIAS.find((c) => c[0] === reg.categoria) || [])[1] || ''})` : ''))]] });
+  let n = 0;
+  const k = reg.contagens || {}, tx = reg.textos || {}, ls2 = reg.listas || {};
+  for (const sec of sv.secoes) {
+    if (sec.textos) {
+      const linhas = sec.textos.map(([c, r]) => [T(r), T(tx[c] || '')]);
+      secao(++n, sec.titulo);
+      tab({ body: linhas, columnStyles: { 0: { cellWidth: 55, fontStyle: 'bold', fillColor: [246, 248, 251] } } });
+    } else if (sec.grupos) {
+      secao(++n, sec.titulo);
+      const linhas = []; sec.grupos.forEach((g) => g.campos.forEach(([c, r]) => linhas.push([T(r), k[c] || 0])));
+      const st = window.urgSubtotal(sec, (c) => k[c] || 0);
+      if (st !== null && linhas.length > 1) linhas.push([{ content: 'Total', styles: { fontStyle: 'bold' } }, { content: st, styles: { fontStyle: 'bold' } }]);
+      tab({ head: [['Categoria', 'Total']], body: linhas, columnStyles: { 1: { halign: 'center', cellWidth: 30 } } });
+    } else if (sec.lista) {
+      secao(++n, sec.titulo);
+      const rows = ls2[sec.id] || [];
+      const cols = sec.lista.colunas;
+      const corpo = rows.length ? rows.map((r, i) => [i + 1].concat(cols.map(([c, , tipo, ops]) => {
+        const v = r[c]; if (tipo === 'genero') return v === 'm' ? 'M' : v === 'f' ? 'F' : '';
+        if (ops) { const o = ops.find((x) => x[0] === v); return T(o ? o[1] : (v || '')); } return T(v === undefined ? '' : v);
+      }))) : [[{ content: 'Sem registos', colSpan: cols.length + 1, styles: { textColor: [140, 140, 140], halign: 'center' } }]];
+      tab({ head: [['N.º'].concat(cols.map((c) => T(c[1])))], body: corpo, styles: { fontSize: 8.5, cellPadding: 1.6, lineColor: [190, 200, 210], lineWidth: 0.2 }, columnStyles: { 0: { cellWidth: 10, halign: 'center' } } });
+    } else if (sec.grade) {
+      secao(++n, sec.titulo);
+      const G = sec.grade;
+      const corpo = G.linhas.map(([lc, lr, gr]) => [T((gr && gr !== 'Outros' && !sv.diario ? gr + ' · ' : '') + lr)].concat(G.colunas.map(([cc, , tp]) => (tp === 'n' ? (k[lc + '_' + cc] || '') : T(tx[lc + '_' + cc] || '')))));
+      const nums = G.colunas.filter((c) => c[2] === 'n' && c[0] !== 'idade');
+      if (nums.length) corpo.push([{ content: 'TOTAL', styles: { fontStyle: 'bold' } }].concat(G.colunas.map(([cc, , tp]) => (tp === 'n' && cc !== 'idade' ? { content: k[cc] || 0, styles: { fontStyle: 'bold' } } : ''))));
+      tab({ head: [[''].concat(G.colunas.map((c) => T(c[1])))], body: corpo, styles: { fontSize: 8, cellPadding: 1.4, halign: 'center', lineColor: [190, 200, 210], lineWidth: 0.2 }, columnStyles: { 0: { halign: 'left', cellWidth: 48 } } });
+    }
+  }
+  if (reg.classificacao || reg.observacoes) {
+    secao(++n, 'Observações');
+    const cl = window.URG_CLASSIF.find((c) => c[0] === reg.classificacao);
+    tab({ body: [['Como foi o turno', T(cl ? cl[1] : '')], ['Observações', T(reg.observacoes || '')]], columnStyles: { 0: { cellWidth: 55, fontStyle: 'bold', fillColor: [246, 248, 251] } } });
+  }
+  if (sv.resumo) {
+    secao(++n, 'Resumo do turno (uso do Serviço de Estatística)');
+    tab({ head: [sv.resumo.map((r) => T(r[1]))], body: [sv.resumo.map((r) => k[r[0]] || 0)], styles: { fontSize: 8, halign: 'center', cellPadding: 1.6, lineColor: [190, 200, 210], lineWidth: 0.2 }, headStyles: { fillColor: [228, 239, 249], textColor: AZUL, fontStyle: 'bold', halign: 'center', fontSize: 7.5 } });
+  }
+  const pags = d.getNumberOfPages();
+  for (let i = 1; i <= pags; i++) {
+    d.setPage(i); d.setDrawColor(...AZUL); d.setLineWidth(0.3); d.line(M, 286, W - M, 286);
+    d.setFont('helvetica', 'normal'); d.setFontSize(8); d.setTextColor(110, 110, 110);
+    d.text('Serviço de Estatística · Hospital do Prenda', M, 290.5);
+    d.text(T(`Enviado em ${new Date(reg.ts).toLocaleString('pt-PT')}${reg.editado ? ' (corrigido)' : ''}`), W / 2, 290.5, { align: 'center' });
+    d.text(`Página ${i} de ${pags}`, W - M, 290.5, { align: 'right' });
+  }
+  d.save(`Ficha_${sv.id}_${reg.data}.pdf`);
+}
+async function pdfDoRegisto(btn) {
+  if (!atual || !anterior || anterior.deOutro) return;
+  const txt = btn.innerHTML; btn.disabled = true; btn.textContent = 'A gerar o PDF…';
+  try { await gerarPDF(atual, anterior); } catch (e) { console.error(e); alert('Não foi possível gerar o PDF. Verifique a internet e tente de novo.'); }
+  finally { btn.disabled = false; btn.innerHTML = txt; }
+}
+$('gerar-pdf').addEventListener('click', (e) => pdfDoRegisto(e.currentTarget));
+$('enviar-pdf').addEventListener('click', () => { querPDF = true; $('form').requestSubmit ? $('form').requestSubmit($('enviar')) : $('enviar').click(); });
 
 const inicial = new URLSearchParams(location.search).get('servico');
 if (inicial && PORID[inicial]) abrir(inicial, false);
