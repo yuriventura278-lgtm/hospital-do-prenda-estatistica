@@ -44,7 +44,7 @@
   window.__urgApagar = (caminho) => remove(ref(db, 'urgencia_24h/' + caminho));
   window.dispatchEvent(new Event('urg-fb-pronto'));
 </script>
-<script src="urgencia_modelos.js?v=1"></script>
+<script src="urgencia_modelos.js?v=2"></script>
 <script src="chart.umd.min.js"></script>
 <script src="lib/qrcode-generator-1.4.4.js"></script>
 <script src="zelo_pdf.js"></script>
@@ -245,11 +245,11 @@
   var hora = function (ts) { if (!ts) return ''; var d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
   function toast(t) { var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(function () { e.style.display = 'none'; }, 2600); }
 
-  // Indicadores principais (colunas da tabela por serviço)
-  var IND = [['obs', 'Observados'], ['obs_m', 'Masc.'], ['obs_f', 'Fem.'], ['idade_men15', '< 15'], ['idade_mai15', '≥ 15'],
+  // Indicadores clínicos (tabela comparativa dos serviços com doentes observados e destino)
+  var IND = [['obs', 'Doentes'], ['obs_m', 'Masc.'], ['obs_f', 'Fem.'], ['idade_men15', '< 15'], ['idade_mai15', '≥ 15'],
     ['altas', 'Altas'], ['internados', 'Intern.'], ['transf_recebidas', 'Transf. receb.'], ['transf_efetuadas', 'Transf. efect.'], ['obitos', 'Óbitos']];
-  var SECOES_EXTRA = [['sinistros', 'Sinistros'], ['procedimentos', 'Procedimentos realizados']];
-  var ANEST = (PORID.anestesia ? window.urgCampos(PORID.anestesia) : []);
+  var temCampo = function (sv, cod) { return !!sv && window.urgCampos(sv).some(function (x) { return x[0] === cod; }); };
+  var CLINICOS = SV.filter(function (s) { return temCampo(s, 'idade_men15') && temCampo(s, 'altas'); }).map(function (s) { return s.id; });
 
   // ── Filtros e período ──
   var anoAtual = new Date().getFullYear();
@@ -344,7 +344,7 @@
     var g = [];
     if (P.tipo === 'mensal') diasDoPeriodo().forEach(function (d) { g.push({ rot: fmtD(d), l: lista.filter(function (r) { return r.data === d; }) }); });
     else for (var m = P.m1; m <= P.m2; m++) { var pref = P.ano + '-' + pad(m); g.push({ rot: MESES[m - 1], l: lista.filter(function (r) { return r.data.slice(0, 7) === pref; }) }); }
-    return g.map(function (x) { return { rot: x.rot, S: somar(x.l) }; }).filter(function (x) { return P.tipo !== 'mensal' || x.S.n; });
+    return g.map(function (x) { return { rot: x.rot, S: somar(x.l), C: somar(x.l.filter(function (r) { return CLINICOS.indexOf(r.servico) >= 0; })) }; }).filter(function (x) { return P.tipo !== 'mensal' || x.S.n; });
   }
   // Serviços que não enviaram registo em cada dia do período (só serviços com formulário)
   function emFalta(lista) {
@@ -359,82 +359,93 @@
 
   // ── Ecrã ──
   var grafico = null;
-  function kpis(S, nDias) {
-    var k = [['Doentes observados', v(S, 'obs'), 'Masc. ' + v(S, 'obs_m') + ' · Fem. ' + v(S, 'obs_f')],
-      ['Menos de 15 anos', v(S, 'idade_men15'), '15 ou mais: ' + v(S, 'idade_mai15')],
-      ['Altas', v(S, 'altas'), ''], ['Internados', v(S, 'internados'), ''],
-      ['Transferências', v(S, 'transf_recebidas') + ' / ' + v(S, 'transf_efetuadas'), 'recebidas / efectuadas'],
-      ['Óbitos', v(S, 'obitos'), ''],
-      ['Cirurgias (Anestesia)', v(S, 'an_cir_urg') + v(S, 'an_cir_ele'), 'Urg. ' + v(S, 'an_cir_urg') + ' · Elect. ' + v(S, 'an_cir_ele')],
-      ['Registos', S.n, nDias ? 'em ' + nDias + ' dia(s)' : '']];
-    return '<div class="kpis">' + k.map(function (x) { return '<div class="kpi"><span>' + x[0] + '</span><b>' + x[1] + '</b><small>' + x[2] + '</small></div>'; }).join('') + '</div>';
-  }
   function tabela(cab, linhas, totalLinha) {
     return '<div class="tab-wrap"><table><thead><tr>' + cab.map(function (h, i) { return '<th' + (i ? ' class="n"' : '') + '>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
-      linhas.map(function (l) { return '<tr>' + l.map(function (x, i) { return '<td' + (i ? ' class="n' + (x === 0 ? ' zero' : '') + '"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') +
+      linhas.map(function (l) { return '<tr' + (l.__sec ? ' class="total"' : '') + '>' + l.map(function (x, i) { return '<td' + (i ? ' class="n' + (x === 0 ? ' zero' : '') + '"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') +
       (totalLinha ? '<tr class="total">' + totalLinha.map(function (x, i) { return '<td' + (i ? ' class="n"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>' : '') +
       '</tbody></table></div>';
   }
   function linhaInd(nome, S) { return [nome].concat(IND.map(function (k) { return v(S, k[0]); })); }
+  // Linhas de detalhe de um serviço: [secção (destacada), campo, campo, ...]
+  function detalheServico(sv, S, nReg) {
+    var linhas = [];
+    sv.secoes.forEach(function (sec) {
+      var st = window.urgSubtotal(sec, function (cod) { return v(S, cod); });
+      var cab = [sec.titulo, st === null ? '' : st]; cab.__sec = true; linhas.push(cab);
+      sec.grupos.forEach(function (g) { g.campos.forEach(function (cp) { linhas.push(['   ' + cp[1], v(S, cp[0])]); }); });
+    });
+    return linhas;
+  }
+  function kpis(lista, S) {
+    var dias = {}, svs = {}; lista.forEach(function (r) { dias[r.data] = 1; svs[r.servico] = 1; });
+    var clin = somar(lista.filter(function (r) { return CLINICOS.indexOf(r.servico) >= 0; }));
+    var k = [['Registos', S.n, 'em ' + Object.keys(dias).length + ' dia(s)'],
+      ['Serviços com registo', Object.keys(svs).length, 'de ' + SV.length],
+      ['Doentes observados', v(clin, 'obs'), 'urgência e internamento'],
+      ['Altas', v(clin, 'altas'), ''], ['Internados', v(clin, 'internados'), ''], ['Óbitos', v(clin, 'obitos'), 'urgência e internamento']];
+    return '<div class="kpis">' + k.map(function (x) { return '<div class="kpi"><span>' + x[0] + '</span><b>' + x[1] + '</b><small>' + x[2] + '</small></div>'; }).join('') + '</div>';
+  }
 
   function desenhar() {
     var lista = filtrados(), areaSel = $('area').value, S = somar(lista), h = '';
-    var nDias = {}; lista.forEach(function (r) { nDias[r.data] = 1; });
-    h += '<div class="card"><h2>' + esc(P.nome) + ' · ' + esc(P.rot) + ' · ' + esc(areaSel ? nomeSv(areaSel) : 'Todos os serviços') + '</h2>' + kpis(S, Object.keys(nDias).length);
+    h += '<div class="card"><h2>' + esc(P.nome) + ' · ' + esc(P.rot) + ' · ' + esc(areaSel ? nomeSv(areaSel) : 'Todos os serviços') + '</h2>' + kpis(lista, S);
     var falta = emFalta(lista);
     if (falta.length && P.tipo === 'diario') h += '<div class="falta-sv">Sem registo neste dia: ' + falta.map(function (f) { return esc(f.nome); }).join(', ') + '</div>';
     h += '</div>';
     if (!lista.length) { $('resumo').innerHTML = h + '<div class="card"><p class="vazio">Não há registos neste período.</p></div>'; desenharRegistos(); return; }
 
     var A = porServico(lista);
-    var semAnest = A.filter(function (x) { return x.id !== 'anestesia'; });
-    if (semAnest.length) {
-      h += '<div class="card"><h2>Movimento por serviço</h2>' + (areaSel ? '' : '<div class="grafico"><canvas id="graf"></canvas></div>') +
-        tabela(['Serviço'].concat(IND.map(function (k) { return k[1]; })), semAnest.map(function (x) { return linhaInd(x.nome, x.S); }), semAnest.length > 1 ? linhaInd('Total', somar([].concat.apply([], semAnest.map(function (x) { return x.lista; })))) : null) + '</div>';
+    var clin = A.filter(function (x) { return CLINICOS.indexOf(x.id) >= 0; });
+    if (clin.length) {
+      h += '<div class="card"><h2>Urgência e internamento — doentes</h2>' + (areaSel || clin.length < 2 ? '' : '<div class="grafico"><canvas id="graf"></canvas></div>') +
+        tabela(['Serviço'].concat(IND.map(function (k) { return k[1]; })), clin.map(function (x) { return linhaInd(x.nome, x.S); }),
+          clin.length > 1 ? linhaInd('Total', somar([].concat.apply([], clin.map(function (x) { return x.lista; })))) : null) + '</div>';
     }
     var ev = evolucao(lista);
     if (ev && ev.length) h += '<div class="card"><h2>' + (P.tipo === 'mensal' ? 'Por dia' : 'Por mês') + '</h2>' +
-      tabela([P.tipo === 'mensal' ? 'Dia' : 'Mês', 'Registos', 'Observados', 'Altas', 'Intern.', 'Transf. receb.', 'Transf. efect.', 'Óbitos', 'Cirurgias'],
-        ev.map(function (x) { return [x.rot, x.S.n, v(x.S, 'obs'), v(x.S, 'altas'), v(x.S, 'internados'), v(x.S, 'transf_recebidas'), v(x.S, 'transf_efetuadas'), v(x.S, 'obitos'), v(x.S, 'an_cir_urg') + v(x.S, 'an_cir_ele')]; })) + '</div>';
+      tabela([P.tipo === 'mensal' ? 'Dia' : 'Mês', 'Registos', 'Doentes (urg./intern.)', 'Altas', 'Internados', 'Óbitos'],
+        ev.map(function (x) { return [x.rot, x.S.n, v(x.C, 'obs'), v(x.C, 'altas'), v(x.C, 'internados'), v(x.C, 'obitos')]; })) + '</div>';
 
-    SECOES_EXTRA.forEach(function (sx) {
-      var campos = camposSecao(sx[0]), comDados = A.filter(function (x) { return campos.some(function (cp) { return v(x.S, cp[0]); }); });
-      if (!comDados.length) return;
-      var cab = ['Tipo'].concat(comDados.map(function (x) { return x.nome; })).concat(comDados.length > 1 ? ['Total'] : []);
-      var linhas = campos.map(function (cp) { var l = [cp[1]], t = 0; comDados.forEach(function (x) { var n = v(x.S, cp[0]); t += n; l.push(n); }); if (comDados.length > 1) l.push(t); return l; });
-      h += '<div class="card"><h2>' + sx[1] + '</h2>' + tabela(cab, linhas) + '</div>';
+    h += '<div class="card"><h2>Detalhe por serviço</h2>';
+    A.forEach(function (x) {
+      var sv = PORID[x.id];
+      h += '<details class="area"' + (areaSel ? ' open' : '') + '><summary>' + esc(x.nome) + ' <small>' + x.lista.length + ' registo(s)</small></summary><div class="corpo">' +
+        (sv ? tabela(['Indicador', 'Total'], detalheServico(sv, x.S)) : '<p>Serviço desconhecido.</p>') + '</div></details>';
     });
-    var an = A.filter(function (x) { return x.id === 'anestesia'; })[0];
-    if (an) h += '<div class="card"><h2>Anestesia e Reanimação</h2>' + tabela(['Indicador', 'Total'], ANEST.map(function (cp) { return [cp[1], v(an.S, cp[0])]; })) + '</div>';
+    h += '</div>';
 
     var cl = {}; lista.forEach(function (r) { if (r.classificacao) cl[r.classificacao] = (cl[r.classificacao] || 0) + 1; });
     if (Object.keys(cl).length) h += '<div class="card"><h2>Como foram os turnos</h2>' + tabela(['Classificação', 'Turnos'], window.URG_CLASSIF.filter(function (x) { return cl[x[0]]; }).map(function (x) { return [x[1], cl[x[0]]]; })) + '</div>';
-
     var obs = lista.filter(function (r) { return (r.observacoes || '').trim(); });
     h += '<div class="card"><h2>Observações</h2>' + (obs.length ? obs.map(function (r) { return '<div class="sug"><small>' + fmtD(r.data) + ' · ' + esc(nomeSv(r.servico, r)) + ' · ' + esc(r.preenchidoPor || '') + '</small>' + esc(r.observacoes) + '</div>'; }).join('') : '<p class="vazio">Sem observações.</p>') + '</div>';
-
     if (falta.length && P.tipo !== 'diario') h += '<div class="card"><h2>Dias sem registo</h2>' + tabela(['Serviço', 'Dias em falta', 'Quais'], falta.map(function (f) { return [f.nome, f.dias.length, f.dias.length > 12 ? f.dias.length + ' dias' : f.dias.map(fmtD).join(', ')]; })) + '</div>';
 
     $('resumo').innerHTML = h;
-    if (!areaSel && window.Chart && $('graf')) {
+    if (window.Chart && $('graf')) {
       if (grafico) grafico.destroy();
       grafico = new Chart($('graf'), { type: 'bar',
-        data: { labels: semAnest.map(function (x) { return x.nome; }), datasets: [{ label: 'Doentes observados', data: semAnest.map(function (x) { return v(x.S, 'obs'); }), backgroundColor: '#0B62A8', borderRadius: 4 }] },
+        data: { labels: clin.map(function (x) { return x.nome; }), datasets: [{ label: 'Doentes observados', data: clin.map(function (x) { return v(x.S, 'obs'); }), backgroundColor: '#0B62A8', borderRadius: 4 }] },
         options: { maintainAspectRatio: false, animation: false, indexAxis: 'y', plugins: { legend: { display: false } } } });
     }
     desenharRegistos();
   }
 
+  // Resumo curto de um registo: subtotais das secções com subtotal
+  function resumoReg(r) {
+    var sv = PORID[r.servico]; if (!sv) return '';
+    return sv.secoes.filter(function (sec) { return sec.total !== false; }).map(function (sec) {
+      return sec.titulo + ': ' + window.urgSubtotal(sec, function (cod) { return c(r, cod); });
+    }).join(' · ');
+  }
+
   function desenharRegistos() {
     var lista = filtrados().slice().reverse();
     if (!lista.length) { $('lista-respostas').innerHTML = '<p class="vazio">Não há registos neste período.</p>'; return; }
-    $('lista-respostas').innerHTML = '<table class="resp"><thead><tr><th>Dia</th><th>Serviço</th><th>Observados</th><th>Altas</th><th>Intern.</th><th>Óbitos</th><th>Preenchido por</th><th>Enviado</th><th>Turno</th><th>Observações</th><th></th></tr></thead><tbody>' +
+    $('lista-respostas').innerHTML = '<table class="resp"><thead><tr><th>Dia</th><th>Serviço</th><th>Resumo</th><th>Preenchido por</th><th>Enviado</th><th>Turno</th><th>Observações</th><th></th></tr></thead><tbody>' +
       lista.slice(0, 500).map(function (r) {
-        var an = r.servico === 'anestesia';
-        return '<tr><td data-l="Dia">' + fmtD(r.data) + '</td><td data-l="Serviço">' + esc(nomeSv(r.servico, r)) + '</td><td data-l="' + (an ? 'Cirurgias' : 'Observados') + '">' + (an ? c(r, 'an_cir_urg') + c(r, 'an_cir_ele') : c(r, 'obs_m') + c(r, 'obs_f')) +
-          '</td><td data-l="Altas">' + (an ? '' : c(r, 'altas')) + '</td><td data-l="Internados">' + (an ? '' : c(r, 'internados')) + '</td><td data-l="Óbitos">' + (an ? c(r, 'an_obitos') : c(r, 'obitos')) +
+        return '<tr><td data-l="Dia">' + fmtD(r.data) + '</td><td data-l="Serviço">' + esc(nomeSv(r.servico, r)) + '</td><td data-l="Resumo" style="min-width:200px">' + esc(resumoReg(r)) +
           '</td><td data-l="Preenchido por">' + esc(r.preenchidoPor || '') + (r.categoria ? ' <small>(' + esc(CATEG[r.categoria] || r.categoria) + ')</small>' : '') +
-          '</td><td data-l="Enviado">' + (r.ts ? fmtD(new Date(r.ts).toISOString().slice(0, 10)) + ' ' + hora(r.ts) : '') + (r.editado ? ' <small>(corrigido)</small>' : '') +
+          '</td><td data-l="Enviado">' + (r.ts ? new Date(r.ts).toLocaleDateString('pt-PT') + ' ' + hora(r.ts) : '') + (r.editado ? ' <small>(corrigido)</small>' : '') +
           '</td><td data-l="Turno">' + esc(CLASSIF[r.classificacao] || '') + '</td><td data-l="Observações" style="min-width:180px">' + esc(r.observacoes || '') +
           '</td><td class="acao"><button class="btn peq perigo" data-apagar="' + esc(r.__caminho) + '">Apagar</button></td></tr>';
       }).join('') + '</tbody></table>';
@@ -481,42 +492,39 @@
       if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
       y = ZeloPDF.autoTable(d, o);
     };
-    var nDias = {}; lista.forEach(function (r) { nDias[r.data] = 1; });
+    var negrito = function (l) { return l.map(function (t) { return { content: String(t), styles: { fontStyle: 'bold' } }; }); };
+    var dias = {}, svs = {}; lista.forEach(function (r) { dias[r.data] = 1; svs[r.servico] = 1; });
+    var clinS = somar(lista.filter(function (r) { return CLINICOS.indexOf(r.servico) >= 0; }));
     y = Z.secT(y, (++sec) + '. Resumo');
-    y = Z.kv(y, [['Doentes observados', String(v(S, 'obs'))], ['Masculino / Feminino', v(S, 'obs_m') + ' / ' + v(S, 'obs_f')], ['< 15 / >= 15 anos', v(S, 'idade_men15') + ' / ' + v(S, 'idade_mai15')], ['Registos', S.n + ' em ' + Object.keys(nDias).length + ' dia(s)']]);
-    y = Z.kv(y, [['Altas', String(v(S, 'altas'))], ['Internados', String(v(S, 'internados'))], ['Transf. recebidas / efectuadas', v(S, 'transf_recebidas') + ' / ' + v(S, 'transf_efetuadas')], ['Óbitos', String(v(S, 'obitos'))]]);
+    y = Z.kv(y, [['Registos', S.n + ' em ' + Object.keys(dias).length + ' dia(s)'], ['Serviços com registo', Object.keys(svs).length + ' de ' + SV.length], ['Doentes observados (urg./intern.)', String(v(clinS, 'obs'))], ['Óbitos (urg./intern.)', String(v(clinS, 'obitos'))]]);
     if (!lista.length) { y = Z.txt(y, 'Nota', 'Não há registos neste período.'); Z.rodape(); d.save(nomePDF(areaSel)); return; }
-    var A = porServico(lista), semAnest = A.filter(function (x) { return x.id !== 'anestesia'; });
-    if (semAnest.length) {
-      y = Z.secT(y, (++sec) + '. Movimento por serviço');
-      var corpo = semAnest.map(function (x) { return linhaInd(x.nome, x.S); });
-      if (semAnest.length > 1) corpo.push(linhaInd('TOTAL', somar([].concat.apply([], semAnest.map(function (x) { return x.lista; })))).map(function (t) { return { content: String(t), styles: { fontStyle: 'bold' } }; }));
+    var A = porServico(lista), clin = A.filter(function (x) { return CLINICOS.indexOf(x.id) >= 0; });
+    if (clin.length) {
+      y = Z.secT(y, (++sec) + '. Urgência e internamento — doentes');
+      var corpo = clin.map(function (x) { return linhaInd(x.nome, x.S); });
+      if (clin.length > 1) corpo.push(negrito(linhaInd('TOTAL', somar([].concat.apply([], clin.map(function (x) { return x.lista; }))))));
       tab(['Serviço'].concat(IND.map(function (k) { return k[1].replace('≥', '>='); })), corpo);
     }
     var ev = evolucao(lista);
     if (ev && ev.length) {
       y = Z.secT(y, (++sec) + '. ' + (P.tipo === 'mensal' ? 'Por dia' : 'Por mês'));
-      tab([P.tipo === 'mensal' ? 'Dia' : 'Mês', 'Registos', 'Observados', 'Altas', 'Internados', 'Transf. receb.', 'Transf. efect.', 'Óbitos', 'Cirurgias'],
-        ev.map(function (x) { return [x.rot, x.S.n, v(x.S, 'obs'), v(x.S, 'altas'), v(x.S, 'internados'), v(x.S, 'transf_recebidas'), v(x.S, 'transf_efetuadas'), v(x.S, 'obitos'), v(x.S, 'an_cir_urg') + v(x.S, 'an_cir_ele')]; }));
+      tab([P.tipo === 'mensal' ? 'Dia' : 'Mês', 'Registos', 'Doentes (urg./intern.)', 'Altas', 'Internados', 'Óbitos'],
+        ev.map(function (x) { return [x.rot, x.S.n, v(x.C, 'obs'), v(x.C, 'altas'), v(x.C, 'internados'), v(x.C, 'obitos')]; }));
     }
-    SECOES_EXTRA.forEach(function (sx) {
-      var campos = camposSecao(sx[0]), comDados = A.filter(function (x) { return campos.some(function (cp) { return v(x.S, cp[0]); }); });
-      if (!comDados.length) return;
-      y = Z.secT(y, (++sec) + '. ' + sx[1]);
-      tab(['Tipo'].concat(comDados.map(function (x) { return x.nome; })).concat(comDados.length > 1 ? ['Total'] : []),
-        campos.map(function (cp) { var l = [cp[1]], t = 0; comDados.forEach(function (x) { var n = v(x.S, cp[0]); t += n; l.push(n); }); if (comDados.length > 1) l.push(t); return l; }));
+    A.forEach(function (x) {
+      var sv = PORID[x.id]; if (!sv) return;
+      y = Z.secT(y, (++sec) + '. ' + x.nome + ' (' + x.lista.length + ' registo' + (x.lista.length === 1 ? '' : 's') + ')');
+      tab(['Indicador', 'Total'], detalheServico(sv, x.S).map(function (l) { return l.__sec ? negrito([l[0], l[1]]) : [l[0].trim(), l[1]]; }),
+        { columnStyles: { 0: { halign: 'left', cellWidth: 150 }, 1: { halign: 'center' } } });
     });
-    var an = A.filter(function (x) { return x.id === 'anestesia'; })[0];
-    if (an) { y = Z.secT(y, (++sec) + '. Anestesia e Reanimação'); tab(['Indicador', 'Total'], ANEST.map(function (cp) { return [cp[1], v(an.S, cp[0])]; })); }
     var cl = {}; lista.forEach(function (r) { if (r.classificacao) cl[r.classificacao] = (cl[r.classificacao] || 0) + 1; });
     if (Object.keys(cl).length) { y = Z.secT(y, (++sec) + '. Como foram os turnos'); tab(['Classificação', 'Turnos'], window.URG_CLASSIF.filter(function (x) { return cl[x[0]]; }).map(function (x) { return [x[1], cl[x[0]]]; })); }
     var falta = emFalta(lista);
     if (falta.length) { y = Z.secT(y, (++sec) + '. Dias sem registo'); tab(['Serviço', 'Dias em falta', 'Quais'], falta.map(function (f) { return [f.nome, f.dias.length, f.dias.length > 12 ? f.dias.length + ' dias' : f.dias.map(fmtD).join(', ')]; }), { columnStyles: { 0: { halign: 'left' }, 2: { halign: 'left' } } }); }
     y = Z.secT(y, (++sec) + '. Registos e observações');
-    tab(['Dia', 'Serviço', 'Preenchido por', 'Observ./Cirurg.', 'Turno', 'Observações'], lista.map(function (r) {
-      var an2 = r.servico === 'anestesia';
-      return [fmtD(r.data), nomeSv(r.servico, r), (r.preenchidoPor || '') + (r.categoria ? ' (' + (CATEG[r.categoria] || '') + ')' : ''), an2 ? c(r, 'an_cir_urg') + c(r, 'an_cir_ele') : c(r, 'obs_m') + c(r, 'obs_f'), CLASSIF[r.classificacao] || '', r.observacoes || ''];
-    }), { styles: { fontSize: 8, halign: 'left' }, columnStyles: { 3: { halign: 'center' }, 5: { cellWidth: 90 } } });
+    tab(['Dia', 'Serviço', 'Preenchido por', 'Resumo', 'Turno', 'Observações'], lista.map(function (r) {
+      return [fmtD(r.data), nomeSv(r.servico, r), (r.preenchidoPor || '') + (r.categoria ? ' (' + (CATEG[r.categoria] || '') + ')' : ''), resumoReg(r), CLASSIF[r.classificacao] || '', r.observacoes || ''];
+    }), { styles: { fontSize: 8, halign: 'left' }, columnStyles: { 3: { cellWidth: 70 }, 5: { cellWidth: 70 } } });
     Z.rodape();
     d.save(nomePDF(areaSel));
   }
@@ -566,7 +574,7 @@
         d.setFont('helvetica', 'normal'); d.setFontSize(13); d.text('Banco de Urgência · dados das 24 horas', xt, 31, { align: al });
         d.setTextColor('#01467F'); d.setFont('helvetica', 'bold'); d.setFontSize(26); d.text(d.splitTextToSize(pg.nome, W - 30), W / 2, 64, { align: 'center' });
         d.setFont('helvetica', 'normal'); d.setFontSize(15); d.setTextColor('#333333');
-        d.text('No fim de cada turno, registe aqui os totais do serviço.', W / 2, 80, { align: 'center' });
+        d.text('No fim de cada turno de 24 horas, registe aqui os totais do serviço.', W / 2, 80, { align: 'center' });
         var q = qr(pg.url), n = q.getModuleCount(), tam = 120, cel = tam / n, x0 = (W - tam) / 2, y0 = 92;
         d.setFillColor('#000000');
         for (var r = 0; r < n; r++) for (var cc = 0; cc < n; cc++) if (q.isDark(r, cc)) d.rect(x0 + cc * cel, y0 + r * cel, cel + 0.05, cel + 0.05, 'F');
