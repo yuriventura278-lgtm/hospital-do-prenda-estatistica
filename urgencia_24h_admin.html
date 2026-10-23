@@ -44,7 +44,7 @@
   window.__urgApagar = (caminho) => Promise.all([remove(ref(db, 'urgencia_24h/' + caminho)), remove(ref(db, 'urgencia_24h_meta/' + caminho))]);
   window.dispatchEvent(new Event('urg-fb-pronto'));
 </script>
-<script src="urgencia_modelos.js?v=3"></script>
+<script src="urgencia_modelos.js?v=4"></script>
 <script src="chart.umd.min.js"></script>
 <script src="lib/qrcode-generator-1.4.4.js"></script>
 <script src="zelo_pdf.js"></script>
@@ -409,7 +409,7 @@
         var tot = row.slice(1).reduce(function (a, b) { return a + b; }, 0);
         return { row: row.concat([tot]), tot: tot };
       }).filter(function (x) { return x.tot; }).map(function (x) { return x.row; });
-      var total = ['Total'].concat(cols.map(function (col) { return v(S, col[0]); }));
+      var total = ['Total'].concat(cols.map(function (col) { return v(S, (sec.grade.totais ? sec.grade.totais + '_' : '') + col[0]); }));
       total.push(total.slice(1).reduce(function (a, b) { return a + b; }, 0));
       return { titulo: sec.titulo, cab: ['Linha'].concat(cols.map(function (col) { return col[1]; })).concat(['Total']), linhas: linhas, total: total };
     });
