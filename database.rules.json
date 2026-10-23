@@ -158,6 +158,35 @@
       }
     },
 
+    "urgencia_24h": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+
+      "$dia": {
+        "$servico": {
+          ".read": true,
+          ".write": "newData.exists() && (!data.exists() || data.child('criado').val() > now - 864000000)",
+          ".validate": "$dia.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $servico.matches(/^[a-z_]{2,40}$/) && newData.hasChildren(['servico', 'data', 'criado', 'ts', 'preenchidoPor']) && newData.child('servico').val() === $servico && newData.child('data').val() === $dia",
+
+            "servico":       { ".validate": "newData.isString()" },
+            "servicoNome":   { ".validate": "newData.isString() && newData.val().length <= 80" },
+            "v":             { ".validate": "newData.isNumber()" },
+            "data":          { ".validate": "newData.isString()" },
+            "criado":        { ".validate": "newData.isNumber() && ((data.exists() && newData.val() === data.val()) || (!data.exists() && newData.val() >= now - 300000 && newData.val() <= now + 300000))" },
+            "ts":            { ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 300000" },
+            "editado":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
+            "preenchidoPor": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 80" },
+            "categoria":     { ".validate": "newData.isString() && newData.val().matches(/^[a-z_]{2,30}$/)" },
+            "classificacao": { ".validate": "newData.isString() && newData.val().matches(/^[a-z_]{2,30}$/)" },
+            "contagens": {
+              "$c": { ".validate": "$c.matches(/^[a-z0-9_]{1,30}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999" }
+            },
+            "observacoes":   { ".validate": "newData.isString() && newData.val().length <= 1000" },
+            "$outro":        { ".validate": false }
+        }
+      }
+    },
+
     "login_attempts": {
       ".read": true,
 

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+/* Telemóvel em modo "Site para computador" (ou navegador que ignora o ajuste
+   ao ecrã): a página seria desenhada com ~980 px e encolhida, ficando com
+   letra minúscula. Nesse caso amplia-se para ocupar o ecrã todo. */
+(function () {
+  function ajustar() {
+    var de = document.documentElement, iw;
+    // Largura do ecrã na orientação actual (o iPhone dá sempre a do ecrã ao alto)
+    var deitado = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+    var sw = deitado ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    de.style.zoom = '';
+    iw = window.innerWidth || de.clientWidth;
+    var tatil = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+    if (tatil && sw && sw < 760 && iw > sw * 1.2) { de.style.zoom = (iw / sw).toFixed(3); de.classList.add('modo-ampliado'); }
+    else de.classList.remove('modo-ampliado');
+  }
+  ajustar();
+  window.addEventListener('orientationchange', function () { setTimeout(ajustar, 300); });
+})();
+</script>
+
+<title>Banco de Urgência · 24 horas</title>
+<link rel="icon" type="image/png" href="icons/hospital_prenda_192.png">
+<link rel="apple-touch-icon" href="icons/hospital_prenda_180.png">
+<link rel="manifest" href="manifest_urgencia.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Urgência 24h">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Recolha de dados das 24 horas do Banco de Urgência do Hospital do Prenda.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Fraunces:wght@600;700&display=swap">
+<link rel="stylesheet" href="zelo_tokens.css">
+<script src="urgencia_modelos.js?v=1"></script>
+<meta name="theme-color" content="#01467F">
+<style>
+  /* Mesmo design do inquérito de satisfação (inquerito_satisfacao.html). */
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{--sobre-acento:#fff;--hp-1:#01467F;--hp-2:#005D9B;--hp-3:#1A7BC0}
+  /* Azul do Hospital do Prenda (logótipo) em vez do azul do sistema */
+  :root:not([data-theme="dark"]){--zelo-accent:#0B62A8;--zelo-accent-dark:#01467F;--zelo-accent-ink:#01467F;--zelo-accent-soft:#E4EFF9}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){--sobre-acento:#0F151B;--zelo-accent:#6FB0E6;--zelo-accent-dark:#9CCBF0;--zelo-accent-ink:#CBE3F7;--zelo-accent-soft:#12283C}
+    :root:not([data-theme="light"]) .ico{color:color-mix(in srgb,var(--cor) 55%,#fff);background:color-mix(in srgb,var(--cor) 28%,transparent)}
+  }
+  html{scroll-behavior:smooth}
+  /* Letra base: 17 px no telemóvel, cresce um pouco em tablets e computadores (até 21 px) */
+  html{font-size:clamp(17px, 12px + 0.9vw, 21px)}
+  html.modo-ampliado{font-size:17px}
+  body{margin:0;background:var(--zelo-bg);color:var(--zelo-ink);font-family:var(--zelo-font-body);font-size:1.06rem;line-height:1.45;-webkit-font-smoothing:antialiased}
+  .oculto{display:none!important}
+  .wrap{margin:0;padding:0 0 calc(32px + env(safe-area-inset-bottom))}
+  .wrap.escolha{max-width:none;padding-left:12px;padding-right:12px}
+  .capa-in{max-width:none}
+  button{font:inherit;color:inherit}
+
+  /* ── Ecrã 1: capa ── */
+  .capa{background:radial-gradient(120% 90% at 50% 0%,var(--hp-3) 0%,var(--hp-2) 45%,var(--hp-1) 100%);color:#fff;padding:calc(22px + env(safe-area-inset-top)) 20px 64px;border-radius:0 0 28px 28px;text-align:center}
+  .capa-in{max-width:640px;margin:0 auto}
+  .marca{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .marca img{width:96px;height:96px;border-radius:24px;box-shadow:0 10px 30px -8px rgba(0,0,0,.45),0 0 0 3px rgba(255,255,255,.18);animation:entra .5s ease-out}
+  .marca span{font-weight:700;font-size:.82rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+  @keyframes entra{from{transform:translateY(-8px) scale(.94);opacity:0}to{transform:none;opacity:1}}
+  .capa h1{font-family:var(--zelo-font-display);font-size:1.75rem;line-height:1.15;margin:18px 0 8px}
+  .capa p{margin:0;opacity:.85;font-size:1rem}
+  .selos{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:center}
+  .selo{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:5px 12px;font-size:.85rem;font-weight:600}
+  .selo svg{width:15px;height:15px}
+  .escolha{margin-top:-40px}
+  .escolha-cab{background:var(--zelo-surface);border-radius:18px;box-shadow:var(--zelo-shadow);padding:16px 18px;margin-bottom:18px}
+  .escolha-cab h2{font-family:var(--zelo-font-display);font-size:1.2rem;margin:0 0 2px}
+  .escolha-cab p{margin:0;color:var(--zelo-ink-soft);font-size:.95rem}
+  .grupo-tit{font-weight:700;color:var(--zelo-ink-soft);text-transform:uppercase;letter-spacing:.06em;font-size:.75rem;margin:22px 4px 10px}
+  .areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .area-btn{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:left;background:var(--zelo-surface);border:1.5px solid var(--zelo-line);border-radius:18px;padding:14px;cursor:pointer;min-height:132px;box-shadow:var(--zelo-shadow-sm);transition:transform .12s,border-color .12s}
+  .area-btn:active{transform:scale(.97)}
+  .area-btn:hover,.area-btn:focus-visible{border-color:var(--cor);outline:none}
+  .ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--cor) 14%,transparent);color:var(--cor)}
+  .ico svg{width:24px;height:24px}
+  .area-btn strong{font-size:1rem;line-height:1.2}
+  .area-btn small{color:var(--zelo-ink-soft);font-size:.82rem;line-height:1.3}
+  .feito{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:50%;background:var(--zelo-good);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700}
+  .legenda-feito{display:flex;align-items:center;gap:8px;color:var(--zelo-ink-soft);font-size:.85rem;margin:18px 4px 0}
+  .legenda-feito .feito{position:static;width:18px;height:18px;font-size:.65rem}
+
+  /* ── Ecrã 2: barra de topo fixa com progresso ── */
+  .barra-topo{background:var(--zelo-surface);margin:0 0 10px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--zelo-line)}
+  .barra-topo .linha{display:flex;align-items:center;gap:10px}
+  .voltar{flex:none;width:42px;height:42px;border-radius:12px;border:1.5px solid var(--zelo-line-strong);background:var(--zelo-surface);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .voltar svg{width:20px;height:20px}
+  .titulo-area{min-width:0;flex:1}
+  .titulo-area small{display:block;color:var(--zelo-ink-soft);font-size:.78rem;font-weight:600}
+  .titulo-area h2{font-family:var(--zelo-font-display);font-size:1.15rem;line-height:1.2;margin:0;overflow-wrap:anywhere}
+  .titulo-area .ico{display:none}
+  .logo-mini{flex:none;width:40px;height:40px;border-radius:11px}
+  .prog{height:6px;border-radius:3px;background:var(--zelo-surface-3);margin-top:10px;overflow:hidden}
+  .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--zelo-accent),var(--zelo-good));border-radius:3px;transition:width .3s}
+
+  section.cartao{background:var(--zelo-surface);border-top:1px solid var(--zelo-line);border-bottom:1px solid var(--zelo-line);padding:20px 18px;margin-bottom:10px}
+  .sec-tit{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+  .sec-tit b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--zelo-accent-soft);color:var(--zelo-accent-ink);display:flex;align-items:center;justify-content:center;font-size:.85rem}
+  .sec-tit h3{font-family:var(--zelo-font-display);font-size:1.08rem;margin:0;color:var(--zelo-ink)}
+  .nota{margin:-6px 0 14px;color:var(--zelo-ink-soft);font-size:.92rem}
+  .campo{margin-bottom:18px}
+  .campo:last-child{margin-bottom:0}
+  #depois:not(:empty){margin-bottom:18px}
+  .rot{display:block;font-weight:700;margin-bottom:8px;font-size:.98rem}
+  .rot small{font-weight:400;color:var(--zelo-ink-faint)}
+  .obr{color:var(--zelo-warn)}
+  .hoje{display:inline-flex;align-items:center;gap:8px;background:var(--zelo-surface-2);border-radius:10px;padding:8px 12px;font-weight:600}
+  select,input[type=text],textarea{width:100%;font:inherit;font-size:16px;color:inherit;background:var(--zelo-surface);border:1.5px solid var(--zelo-line-strong);border-radius:12px;padding:12px 14px;min-height:48px}
+  select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%2355636F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:40px}
+  select:focus,input:focus,textarea:focus{outline:3px solid var(--zelo-accent-soft);border-color:var(--zelo-accent)}
+  textarea{min-height:120px;resize:vertical}
+
+  /* Opções em "fichas" grandes, fáceis de tocar */
+  .opcoes{display:flex;flex-wrap:wrap;gap:8px}
+  .opcoes label,.escala label{position:relative}
+  .opcoes input,.escala input{position:absolute;opacity:0;pointer-events:none}
+  .opcoes span{display:flex;align-items:center;min-height:44px;padding:8px 16px;border:1.5px solid var(--zelo-line-strong);border-radius:999px;cursor:pointer;user-select:none;background:var(--zelo-surface);transition:all .12s}
+  .opcoes input:checked + span{background:var(--zelo-accent);border-color:var(--zelo-accent);color:var(--sobre-acento);font-weight:600}
+  .opcoes input:focus-visible + span,.escala input:focus-visible + span{outline:3px solid var(--zelo-accent-soft);outline-offset:2px}
+
+  /* Perguntas com carinhas */
+  .item{padding:16px 0;border-top:1px solid var(--zelo-line);scroll-margin-top:16px}
+  .item:first-of-type{border-top:0;padding-top:4px}
+  .item .pergunta{font-weight:700;margin-bottom:10px;display:flex;gap:8px}
+  .item .pergunta b{flex:none;color:var(--zelo-ink-faint);font-size:.9rem;min-width:18px;padding-top:1px}
+  .escala{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .escala span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;min-height:68px;padding:6px 2px;border:1.5px solid var(--zelo-line);border-radius:14px;font-size:.76rem;line-height:1.1;color:var(--zelo-ink-soft);cursor:pointer;user-select:none;background:var(--zelo-surface-2);transition:transform .12s,background .12s}
+  .escala span svg{width:30px;height:30px;color:var(--zelo-ink-faint)}
+  .escala label:active span{transform:scale(.94)}
+  .escala input:checked + span{color:#fff;font-weight:700;border-color:transparent;transform:scale(1.04);box-shadow:0 6px 14px -6px rgba(0,0,0,.35)}
+  .escala input:checked + span svg{color:#fff}
+  .escala input[value="1"]:checked + span{background:#B33A2B}
+  .escala input[value="2"]:checked + span{background:#D2722F}
+  .escala input[value="3"]:checked + span{background:#B08A1E}
+  .escala input[value="4"]:checked + span{background:#4E8A5E}
+  .escala input[value="5"]:checked + span{background:#2F6B45}
+  .item.global{background:var(--zelo-accent-soft);margin:10px -18px -20px;padding:16px 18px 20px;border-top:0}
+  .item.global .escala span{background:var(--zelo-surface)}
+  .falta .pergunta,.falta .rot{color:var(--zelo-warn)}
+  .item.falta .escala span,.campo.falta select{border-color:var(--zelo-warn)}
+  .erro{border-color:var(--zelo-warn)!important}
+
+  .aviso{display:none;background:var(--zelo-warn-soft);color:var(--zelo-warn-ink);padding:14px 18px;margin-bottom:10px;font-weight:600}
+  .aviso.on{display:block}
+  .info{display:flex;gap:10px;align-items:flex-start;background:var(--zelo-good-soft);color:var(--zelo-good-ink);padding:14px 18px;margin-bottom:10px;font-weight:600;font-size:.95rem}
+  .contador{text-align:right;font-size:.8rem;color:var(--zelo-ink-faint);margin-top:4px}
+  .privado{display:flex;gap:8px;align-items:center;color:var(--zelo-ink-soft);font-size:.85rem;justify-content:center;margin:12px 18px 0}
+  .privado svg{width:16px;height:16px;flex:none}
+
+  /* Botão de envio sempre visível no fundo do ecrã */
+  .barra-fundo{margin:10px 0 0;padding:16px 18px;background:var(--zelo-surface);border-top:1px solid var(--zelo-line);border-bottom:1px solid var(--zelo-line);display:flex;align-items:center;gap:12px}
+  .barra-fundo .conta{flex:none;font-size:.82rem;color:var(--zelo-ink-soft);line-height:1.2}
+  .barra-fundo .conta b{display:block;font-size:1rem;color:var(--zelo-ink)}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-weight:700;font-size:1.05rem;min-height:52px;padding:12px 18px;border:0;border-radius:14px;background:var(--zelo-accent);color:var(--sobre-acento);cursor:pointer;transition:transform .1s,opacity .1s}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.6;cursor:wait}
+  .btn.sec{background:var(--zelo-surface);color:var(--zelo-ink);border:1.5px solid var(--zelo-line-strong);margin-top:10px}
+  .btn svg{width:20px;height:20px}
+
+  /* ── Ecrã 3: obrigado ── */
+  .obrigado{text-align:center;padding:calc(56px + env(safe-area-inset-top)) 18px 24px}
+  .obrigado .ok{width:96px;height:96px;border-radius:50%;background:var(--zelo-good);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;box-shadow:0 0 0 12px var(--zelo-good-soft);animation:pop .45s cubic-bezier(.2,1.4,.5,1)}
+  .obrigado .ok svg{width:48px;height:48px;stroke-dasharray:30;stroke-dashoffset:30;animation:traco .4s .25s forwards}
+  .obrigado h2{font-family:var(--zelo-font-display);font-size:1.6rem;margin:0 0 8px}
+  .obrigado p{color:var(--zelo-ink-soft);margin:0 0 6px}
+  .obrigado .acoes{margin-top:26px}
+  .assinatura{margin-top:36px;color:var(--zelo-ink-soft);font-weight:700;font-size:.95rem}
+  .assinatura img{display:block;width:56px;height:56px;border-radius:14px;margin:0 auto 8px}
+  .assinatura small{font-weight:400}
+  @keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes traco{to{stroke-dashoffset:0}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.obrigado .ok svg{stroke-dashoffset:0}}
+  @media (max-width:480px){
+    .wrap.escolha{padding-left:10px;padding-right:10px}
+    .barra-topo{padding-left:14px;padding-right:14px}
+    section.cartao{padding:18px 14px}
+    .item.global{margin:10px -14px -18px;padding:14px 14px 18px}
+    .escala{gap:5px}
+    .barra-fundo{padding:14px}
+  }
+  @media (max-width:360px){.escala span{font-size:.7rem;min-height:66px}.escala span svg{width:26px;height:26px}.capa h1{font-size:1.5rem}}
+  @media (min-width:700px){.capa{padding-bottom:72px}.capa h1{font-size:2.1rem}}
+
+  /* ── Contadores (− número +) ── */
+  .grupo{margin-bottom:16px}
+  .grupo:last-child{margin-bottom:0}
+  .grupo-rot{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;color:var(--zelo-ink-soft);margin:0 0 4px}
+  .grupo-rot span{font-size:.9rem;text-transform:none;letter-spacing:0;color:var(--zelo-accent-ink)}
+  .cont{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--zelo-line)}
+  .grupo .cont:last-child{border-bottom:0}
+  .cont label{flex:1;min-width:0;font-weight:600;line-height:1.25}
+  .passo{flex:none;display:flex;align-items:center;gap:6px}
+  .passo button{width:46px;height:46px;border-radius:14px;border:1.5px solid var(--zelo-line-strong);background:var(--zelo-surface-2);font-size:1.5rem;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--zelo-accent-ink);touch-action:manipulation}
+  .passo button:active{transform:scale(.92);background:var(--zelo-accent-soft)}
+  .passo input{width:64px;height:46px;text-align:center;font:inherit;font-size:1.15rem;font-weight:700;color:inherit;background:var(--zelo-surface);border:1.5px solid var(--zelo-line-strong);border-radius:12px;-moz-appearance:textfield;appearance:textfield}
+  .passo input::-webkit-inner-spin-button,.passo input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .passo input:focus{outline:3px solid var(--zelo-accent-soft);border-color:var(--zelo-accent)}
+  .cont.tem input{border-color:var(--zelo-accent);background:var(--zelo-accent-soft)}
+  .sec-tit .subtotal{margin-left:auto;font-family:var(--zelo-font-body);font-weight:700;font-size:.9rem;color:var(--zelo-accent-ink);background:var(--zelo-accent-soft);border-radius:999px;padding:3px 12px}
+  input[type=date]{width:100%;font:inherit;font-size:16px;color:inherit;background:var(--zelo-surface);border:1.5px solid var(--zelo-line-strong);border-radius:12px;padding:10px 14px;min-height:48px}
+  .confirmar{background:var(--zelo-warn)!important}
+  .resumo{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:14px;text-align:left}
+  .resumo div{background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:12px;padding:8px 12px}
+  .resumo b{display:block;font-size:1.3rem}
+  .resumo span{font-size:.8rem;color:var(--zelo-ink-soft)}
+  @media (max-width:360px){.passo button{width:42px;height:42px}.passo input{width:54px}}
+</style>
+</head>
+<body>
+<!-- Ecrã 1: escolher o serviço -->
+<div id="ecra-areas">
+  <div class="capa"><div class="capa-in">
+    <div class="marca"><img src="icons/hospital_prenda_192.png" alt="Logótipo do Hospital do Prenda" width="96" height="96"><span>Banco de Urgência · 24 horas</span></div>
+    <h1>Recolha de dados do turno</h1>
+    <p>Registe os totais das 24 horas do seu serviço. Não escreva nomes de doentes.</p>
+    <div class="selos">
+      <span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Turno de 24 horas</span>
+      <span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Só totais</span>
+      <span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Pode corrigir</span>
+    </div>
+  </div></div>
+  <div class="wrap escolha">
+    <div class="escolha-cab"><h2>Qual é o serviço?</h2><p>Toque no serviço para abrir o formulário das 24 horas.</p></div>
+    <div id="lista-areas"></div>
+    <div class="legenda-feito oculto" id="legenda-feito"><span class="feito">✓</span> Já tem registo de hoje · toque para corrigir</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- Ecrã 2: formulário do serviço -->
+  <form id="form" class="oculto" novalidate>
+    <div class="barra-topo">
+      <div class="linha">
+        <button type="button" class="voltar" id="mudar" aria-label="Mudar de serviço"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+        <div class="titulo-area"><small>Banco de Urgência · 24 horas</small><h2 id="area-nome"></h2></div>
+        <img class="logo-mini" src="icons/hospital_prenda_192.png" alt="">
+      </div>
+    </div>
+
+    <div class="info oculto" id="ja-existe"></div>
+    <div class="aviso" id="aviso" role="alert"></div>
+
+    <section class="cartao">
+      <div class="sec-tit"><b>1</b><h3>Turno</h3></div>
+      <div class="campo" id="c-dia">
+        <label class="rot" for="dia">Dia em que começou o turno de 24 horas <span class="obr">*</span></label>
+        <input type="date" id="dia" required>
+      </div>
+      <div class="campo" id="c-nome">
+        <label class="rot" for="nome">Quem preenche <span class="obr">*</span></label>
+        <input type="text" id="nome" maxlength="80" autocomplete="name" placeholder="O seu nome">
+      </div>
+      <div class="campo" id="c-categoria">
+        <span class="rot">Categoria</span>
+        <div class="opcoes" id="categorias"></div>
+      </div>
+    </section>
+
+    <div id="secoes"></div>
+
+    <section class="cartao">
+      <div class="sec-tit"><b id="num-fim">9</b><h3>Para terminar</h3></div>
+      <div class="campo">
+        <span class="rot">Como foi o turno?</span>
+        <div class="opcoes" id="classif"></div>
+      </div>
+      <div class="campo">
+        <label class="rot" for="observacoes">Observações <small>(opcional, sem nomes de doentes)</small></label>
+        <textarea id="observacoes" maxlength="1000" placeholder="Faltas de material, ocorrências, equipa incompleta…"></textarea>
+        <div class="contador"><span id="cont">0</span>/1000</div>
+      </div>
+    </section>
+
+    <div class="barra-fundo">
+      <div class="conta"><b id="total-txt">0</b>observados</div>
+      <button type="submit" class="btn" id="enviar">Enviar registo</button>
+    </div>
+  </form>
+
+  <!-- Ecrã 3: confirmação -->
+  <div class="obrigado oculto" id="obrigado">
+    <div class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></div>
+    <h2>Registo enviado</h2>
+    <p id="obrigado-txt"></p>
+    <div class="resumo" id="resumo"></div>
+    <div class="acoes">
+      <button type="button" class="btn" id="inicio">Registar outro serviço</button>
+      <button type="button" class="btn sec" id="editar">Corrigir este registo</button>
+    </div>
+    <div class="assinatura"><img src="icons/hospital_prenda_192.png" alt="">Hospital do Prenda<br><small>Banco de Urgência · Estatística</small></div>
+  </div>
+</div>
+
+<script type="module">
+// Um registo por serviço e por dia: urgencia_24h/<dia>/<serviço>.
+// Voltar a enviar o mesmo serviço e dia substitui o registo (correcção).
+// Para abrir directamente um serviço: urgencia_24h.html?servico=ortopedia
+const SERVICOS = window.URG_SERVICOS;
+const PORID = Object.fromEntries(SERVICOS.map((s) => [s.id, s]));
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ls = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+const pad = (n) => String(n).padStart(2, '0');
+const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const hoje = () => iso(new Date());
+const diasAtras = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); };
+const fmtData = (s) => s.split('-').reverse().join('/');
+const hora = (ts) => { const d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+// Turno de 24 h que começa de manhã: até às 10h, o mais provável é estar a fechar o turno de ontem.
+const diaPorDefeito = () => (new Date().getHours() < 10 ? diasAtras(1) : hoje());
+
+const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
+let fb = null;
+const fbPronto = (async () => {
+  try {
+    const [{ initializeApp }, m, { firebaseConfig }] = await Promise.all([
+      import(FB + 'firebase-app.js'), import(FB + 'firebase-database.js'), import('./zelo_firebase_config.js'),
+    ]);
+    fb = { db: m.getDatabase(initializeApp(firebaseConfig)), ref: m.ref, set: m.set, get: m.get };
+  } catch (e) { console.warn('Firebase indisponível', e); }
+})();
+const comPrazo = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), ms))]);
+const caminho = (dia, sv) => `urgencia_24h/${dia}/${sv}`;
+
+// ── Ícones e cores por serviço ──
+const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICONES = {
+  cirurgia_geral: '<path d="m14 4 6 6-9 9-4 1 1-4z"/><path d="m12 6 6 6"/>',
+  ortopedia: '<path d="M17 10c.7-.7 1.7-.7 2.4 0a1.7 1.7 0 0 1 0 2.4l-.6.6.6.6a1.7 1.7 0 0 1-2.4 2.4l-.6-.6-6.8 6.8a1.7 1.7 0 0 1-2.4-2.4l.6-.6-.6-.6a1.7 1.7 0 0 1 2.4-2.4l.6.6L17 10z"/>',
+  neurocirurgia: '<path d="M12 5a3 3 0 1 0-5.9.8A4 4 0 0 0 4 13a4 4 0 0 0 2 6 3 3 0 0 0 6-1V5z"/><path d="M12 5a3 3 0 1 1 5.9.8A4 4 0 0 1 20 13a4 4 0 0 1-2 6 3 3 0 0 1-6-1"/>',
+  maxilo_facial: '<path d="M7 3c-2 0-4 2-4 5 0 4 2 5 2 8s1 5 2.5 5 1.5-3 2.5-6c.6-1.6 1.4-1.6 2 0 1 3 1 6 2.5 6s2.5-2 2.5-5 2-4 2-8c0-3-2-5-4-5-2.5 0-3 1-5 1S9.5 3 7 3z"/>',
+  oftalmologia: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  otorrino: '<path d="M6 8.5a6.5 6.5 0 1 1 13 0c0 6-6 6-6 10a3.5 3.5 0 1 1-7 0"/><path d="M15 8.5a2.5 2.5 0 0 0-5 0v1a2 2 0 1 1 0 4"/>',
+  medicina_interna: '<path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 12 0V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 12 0v-4"/><circle cx="20" cy="10" r="2"/>',
+  peq_cirurgia: '<rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-45 12 12)"/><path d="M12 12h.01M10 10h.01M14 14h.01"/>',
+  anestesia: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+};
+const CORES = { cirurgia_geral: '#0B62A8', ortopedia: '#2F6B8A', neurocirurgia: '#7A5BA6', maxilo_facial: '#A0522D', oftalmologia: '#2F7F7A',
+  otorrino: '#B08A1E', medicina_interna: '#4E8A5E', peq_cirurgia: '#C0662A', anestesia: '#B33A2B' };
+
+// ── Ecrã 1 ──
+function desenharServicos() {
+  const lista = $('lista-areas');
+  const grid = document.createElement('div');
+  grid.className = 'areas';
+  let algum = false;
+  for (const s of SERVICOS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'area-btn';
+    b.style.setProperty('--cor', CORES[s.id] || '#0B62A8');
+    const ja = !!ls.get(`urg24:${diaPorDefeito()}:${s.id}`);
+    algum = algum || ja;
+    b.innerHTML = `<span class="ico">${svg(ICONES[s.id] || ICONES.anestesia)}</span><strong>${esc(s.nome)}</strong><small>${esc(s.desc)}</small>${ja ? '<span class="feito">✓</span>' : ''}`;
+    b.addEventListener('click', () => abrir(s.id, true));
+    grid.appendChild(b);
+  }
+  lista.innerHTML = '';
+  lista.appendChild(grid);
+  $('legenda-feito').classList.toggle('oculto', !algum);
+}
+desenharServicos();
+
+// Escolhas fixas: categoria e classificação do turno
+$('categorias').innerHTML = window.URG_CATEGORIAS.map(([v, t]) => `<label><input type="radio" name="categoria" value="${v}"><span>${esc(t)}</span></label>`).join('');
+$('classif').innerHTML = window.URG_CLASSIF.map(([v, t]) => `<label><input type="radio" name="classificacao" value="${v}"><span>${esc(t)}</span></label>`).join('');
+
+// ── Ecrã 2 ──
+let atual = null, anterior = null, confirmarAvisos = false;
+
+function htmlSecoes(s) {
+  return s.secoes.map((sec, i) => `<section class="cartao" data-sec="${sec.id}">
+    <div class="sec-tit"><b>${i + 2}</b><h3>${esc(sec.titulo)}</h3><span class="subtotal" id="st-${sec.id}">0</span></div>
+    ${sec.nota ? `<p class="nota">${esc(sec.nota)}</p>` : ''}
+    ${sec.grupos.map((g) => `<div class="grupo">
+      ${g.rotulo ? `<div class="grupo-rot">${esc(g.rotulo)}${g.soma ? `<span id="soma-${g.soma}">0</span>` : ''}</div>` : ''}
+      ${g.campos.map(([cod, rot]) => `<div class="cont" id="r-${cod}">
+        <label for="n-${cod}">${esc(rot)}</label>
+        <div class="passo"><button type="button" data-d="-1" data-c="${cod}" aria-label="Menos">−</button><input type="number" id="n-${cod}" data-c="${cod}" inputmode="numeric" min="0" max="9999" placeholder="0"><button type="button" data-d="1" data-c="${cod}" aria-label="Mais">+</button></div>
+      </div>`).join('')}
+    </div>`).join('')}
+  </section>`).join('');
+}
+
+const val = (cod) => { const e = $('n-' + cod); const n = e ? parseInt(e.value, 10) : 0; return Number.isFinite(n) && n > 0 ? n : 0; };
+const soma = (cods) => cods.reduce((a, c) => a + val(c), 0);
+
+function atualizarTotais() {
+  if (!atual) return;
+  for (const sec of atual.secoes) {
+    let st = 0;
+    for (const g of sec.grupos) {
+      const t = soma(g.campos.map((c) => c[0]));
+      if (g.soma && $('soma-' + g.soma)) $('soma-' + g.soma).textContent = t;
+      // em secções com sexo e idade, o subtotal é o total por sexo (não somar duas vezes)
+      if (sec.id === 'observados') { if (g.soma === 'total') st = t; } else st += t;
+    }
+    $('st-' + sec.id).textContent = st;
+  }
+  document.querySelectorAll('.cont').forEach((r) => r.classList.toggle('tem', val(r.id.slice(2)) > 0));
+  const total = atual.id === 'anestesia' ? soma(['an_cir_urg', 'an_cir_ele']) : soma(['obs_m', 'obs_f']);
+  $('total-txt').textContent = total;
+  $('total-txt').nextSibling.textContent = atual.id === 'anestesia' ? 'cirurgias' : 'observados';
+  confirmarAvisos = false;
+  $('enviar').classList.remove('confirmar');
+  $('enviar').textContent = anterior ? 'Guardar correcção' : 'Enviar registo';
+}
+
+$('secoes').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-d]');
+  if (!b) return;
+  const inp = $('n-' + b.dataset.c);
+  inp.value = Math.min(9999, Math.max(0, val(b.dataset.c) + Number(b.dataset.d))) || '';
+  atualizarTotais();
+  if (navigator.vibrate) navigator.vibrate(8);
+});
+$('secoes').addEventListener('input', (e) => {
+  if (!e.target.matches('input[data-c]')) return;
+  const n = parseInt(e.target.value, 10);
+  if (e.target.value !== '' && (!Number.isFinite(n) || n < 0)) e.target.value = '';
+  if (n > 9999) e.target.value = 9999;
+  atualizarTotais();
+});
+
+function mostrar(ecra) {
+  for (const id of ['ecra-areas', 'form', 'obrigado']) $(id).classList.toggle('oculto', id !== ecra);
+  window.scrollTo(0, 0);
+}
+function mostrarAviso(txt) { const a = $('aviso'); a.textContent = txt; a.classList.toggle('on', !!txt); }
+const marcado = (nome) => { const r = document.querySelector(`input[name="${nome}"]:checked`); return r ? r.value : null; };
+const marcar = (nome, v) => { const r = document.querySelector(`input[name="${nome}"][value="${CSS.escape(String(v))}"]`); if (r) r.checked = true; };
+
+function limpar() {
+  $('form').reset();
+  $('nome').value = ls.get('urg24:nome') || '';
+  if (ls.get('urg24:categoria')) marcar('categoria', ls.get('urg24:categoria'));
+  $('dia').min = diasAtras(7);
+  $('dia').max = hoje();
+  $('cont').textContent = '0';
+  $('ja-existe').classList.add('oculto');
+  mostrarAviso('');
+}
+
+function preencher(r) {
+  for (const [cod, n] of Object.entries(r.contagens || {})) { const e = $('n-' + cod); if (e) e.value = n || ''; }
+  if (r.classificacao) marcar('classificacao', r.classificacao);
+  if (r.observacoes) { $('observacoes').value = r.observacoes; $('cont').textContent = r.observacoes.length; }
+}
+
+// Carrega o registo já existente deste serviço e dia (se houver)
+async function carregarExistente() {
+  const s = atual, dia = $('dia').value;
+  anterior = null;
+  $('ja-existe').classList.add('oculto');
+  document.querySelectorAll('#secoes input[data-c]').forEach((e) => { e.value = ''; });
+  document.querySelectorAll('input[name=classificacao]').forEach((e) => { e.checked = false; });
+  $('observacoes').value = ''; $('cont').textContent = '0';
+  atualizarTotais();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return;
+  let r = null;
+  await fbPronto;
+  if (fb) { try { const snap = await comPrazo(fb.get(fb.ref(fb.db, caminho(dia, s.id))), 8000); if (snap.exists()) r = snap.val(); } catch (e) { console.warn(e); } }
+  if (!r) { try { r = JSON.parse(ls.get(`urg24:${dia}:${s.id}`) || 'null'); } catch (e) {} }
+  if (atual !== s || $('dia').value !== dia || !r) return;
+  anterior = r;
+  preencher(r);
+  const quem = r.preenchidoPor ? ` por ${r.preenchidoPor}` : '';
+  $('ja-existe').innerHTML = `✓ <span>Já existe registo de ${esc(s.nome)} para ${fmtData(dia)}, enviado${esc(quem)} às ${hora(r.ts)}. Pode corrigir os números e voltar a enviar.</span>`;
+  $('ja-existe').classList.remove('oculto');
+  atualizarTotais();
+}
+
+function abrir(id, hist) {
+  const s = PORID[id];
+  if (!s) { atual = null; mostrar('ecra-areas'); return; }
+  atual = s;
+  $('area-nome').textContent = s.nome;
+  $('secoes').innerHTML = htmlSecoes(s);
+  $('num-fim').textContent = s.secoes.length + 2;
+  limpar();
+  $('dia').value = diaPorDefeito();
+  if (hist) history.pushState({ s: id }, '', '?servico=' + encodeURIComponent(id));
+  mostrar('form');
+  carregarExistente();
+}
+
+$('dia').addEventListener('change', carregarExistente);
+$('observacoes').addEventListener('input', (e) => { $('cont').textContent = e.target.value.length; });
+function voltar() { history.pushState({}, '', location.pathname); atual = null; desenharServicos(); mostrar('ecra-areas'); }
+$('mudar').addEventListener('click', voltar);
+$('inicio').addEventListener('click', voltar);
+$('editar').addEventListener('click', () => { if (atual) { const d = anterior && anterior.data; abrir(atual.id, false); if (d) { $('dia').value = d; carregarExistente(); } } });
+window.addEventListener('popstate', () => {
+  const a = new URLSearchParams(location.search).get('servico');
+  if (a && PORID[a]) abrir(a, false); else { atual = null; desenharServicos(); mostrar('ecra-areas'); }
+});
+
+// Verificações de coerência (avisam, mas deixam enviar se a pessoa confirmar)
+function avisosCoerencia() {
+  const out = [];
+  if (atual.id === 'anestesia') return out;
+  const total = soma(['obs_m', 'obs_f']), idade = soma(['idade_men15', 'idade_mai15']);
+  if (idade && idade !== total) out.push(`o total por sexo (${total}) é diferente do total por idade (${idade})`);
+  const destino = soma(['altas', 'internados', 'transf_efetuadas', 'obitos']);
+  if (destino > total) out.push(`altas + internados + transferências + óbitos (${destino}) é maior que os observados (${total})`);
+  if (!total) out.push('não indicou nenhum doente observado');
+  return out;
+}
+
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!atual) return;
+  const s = atual;
+  document.querySelectorAll('.falta').forEach((el) => el.classList.remove('falta'));
+  const faltas = [];
+  const dia = $('dia').value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia) || dia > hoje() || dia < diasAtras(7)) { faltas.push('o dia do turno (até 7 dias atrás)'); $('c-dia').classList.add('falta'); }
+  const nome = $('nome').value.trim();
+  if (nome.length < 2) { faltas.push('quem preenche'); $('c-nome').classList.add('falta'); }
+  if (faltas.length) {
+    mostrarAviso('Falta indicar ' + faltas.join(' e ') + '.');
+    $('aviso').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  const avisos = avisosCoerencia();
+  if (avisos.length && !confirmarAvisos) {
+    confirmarAvisos = true;
+    mostrarAviso('Verifique: ' + avisos.join('; ') + '. Se estiver certo, toque outra vez em «Enviar mesmo assim».');
+    $('enviar').textContent = 'Enviar mesmo assim';
+    $('enviar').classList.add('confirmar');
+    $('aviso').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const contagens = {};
+  for (const [cod] of window.urgCampos(s)) { const n = val(cod); if (n) contagens[cod] = n; }
+  const agora = Date.now();
+  const mesmo = anterior && anterior.data === dia;
+  const reg = {
+    servico: s.id, servicoNome: s.nome, v: 1, data: dia,
+    criado: mesmo && anterior.criado ? anterior.criado : agora, ts: agora,
+    preenchidoPor: nome.slice(0, 80),
+  };
+  if (mesmo) reg.editado = (Number(anterior.editado) || 0) + 1;
+  const cat = marcado('categoria'); if (cat) reg.categoria = cat;
+  const cl = marcado('classificacao'); if (cl) reg.classificacao = cl;
+  if (Object.keys(contagens).length) reg.contagens = contagens;
+  const obs = $('observacoes').value.trim(); if (obs) reg.observacoes = obs.slice(0, 1000);
+
+  const btn = $('enviar'), txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'A enviar…';
+  try {
+    await fbPronto;
+    if (!fb) throw new Error('sem firebase');
+    await comPrazo(fb.set(fb.ref(fb.db, caminho(dia, s.id)), reg), 15000);
+    anterior = reg;
+    ls.set(`urg24:${dia}:${s.id}`, JSON.stringify(reg));
+    ls.set('urg24:nome', reg.preenchidoPor);
+    if (cat) ls.set('urg24:categoria', cat);
+    $('obrigado-txt').textContent = `${s.nome} · turno de ${fmtData(dia)}${mesmo ? ' (corrigido)' : ''}`;
+    const R = s.id === 'anestesia'
+      ? [['Cirurgias', soma(['an_cir_urg', 'an_cir_ele'])], ['Urgência', val('an_cir_urg')], ['Electivas', val('an_cir_ele')], ['Óbitos', val('an_obitos')]]
+      : [['Observados', soma(['obs_m', 'obs_f'])], ['Altas', val('altas')], ['Internados', val('internados')], ['Óbitos', val('obitos')]];
+    $('resumo').innerHTML = R.map(([t, n]) => `<div><b>${n}</b><span>${t}</span></div>`).join('');
+    mostrar('obrigado');
+  } catch (err) {
+    console.error(err);
+    mostrarAviso('Não foi possível enviar. Verifique a internet e tente de novo.');
+    $('aviso').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } finally {
+    btn.disabled = false;
+    if (btn.textContent === 'A enviar…') btn.textContent = txt;
+  }
+});
+
+const inicial = new URLSearchParams(location.search).get('servico');
+if (inicial && PORID[inicial]) abrir(inicial, false);
+</script>
+</body>
+</html>
