@@ -36,7 +36,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Fraunces:wght@600;700&display=swap">
 <link rel="stylesheet" href="zelo_tokens.css">
-<script src="urgencia_modelos.js?v=2"></script>
+<script src="urgencia_modelos.js?v=3"></script>
 <meta name="theme-color" content="#01467F">
 <style>
   /* Mesmo design do inquérito de satisfação (inquerito_satisfacao.html). */
@@ -211,6 +211,36 @@
   .resumo div{background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:12px;padding:8px 12px}
   .resumo b{display:block;font-size:1.3rem}
   .resumo span{font-size:.8rem;color:var(--zelo-ink-soft)}
+
+  /* ── Campos de texto (equipa) ── */
+  .textos{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px 14px}
+  .textos label{display:block;font-weight:600;font-size:.88rem;color:var(--zelo-ink-soft);margin-bottom:4px}
+  .textos textarea{min-height:90px}
+  /* ── Listas (Adicionar doente) ── */
+  .linha{border:1.5px solid var(--zelo-line);border-radius:14px;padding:12px;margin-bottom:10px;background:var(--zelo-surface-2)}
+  .linha-cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-weight:700;color:var(--zelo-accent-ink)}
+  .linha-cab button{border:0;background:none;color:var(--zelo-warn-ink);font-weight:700;font-size:.9rem;padding:6px 8px;cursor:pointer;border-radius:8px}
+  .linha-campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 10px}
+  .linha-campos .larga{grid-column:1/-1}
+  .linha-campos label{display:block;font-size:.8rem;font-weight:600;color:var(--zelo-ink-soft);margin-bottom:3px}
+  .linha-campos input[type=number],.linha-campos input[type=time]{width:100%;font:inherit;font-size:16px;color:inherit;background:var(--zelo-surface);border:1.5px solid var(--zelo-line-strong);border-radius:12px;padding:10px 12px;min-height:46px}
+  .linha-campos .opcoes span{min-height:40px;padding:6px 12px;font-size:.92rem}
+  .add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;border:2px dashed var(--zelo-accent);border-radius:14px;background:var(--zelo-accent-soft);color:var(--zelo-accent-ink);font-weight:700;font-size:1rem;cursor:pointer}
+  .add:active{transform:scale(.98)}
+  .vazio-lista{color:var(--zelo-ink-faint);font-size:.9rem;margin:0 0 10px}
+  /* ── Grelhas (exames por serviço, especialidades, camas) ── */
+  .grade-grupo{font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--zelo-ink-soft);margin:14px 0 6px}
+  .grade-grupo:first-child{margin-top:0}
+  .glinha{border-bottom:1px solid var(--zelo-line);padding:10px 0}
+  .glinha:last-child{border-bottom:0}
+  .glinha > b{display:block;margin-bottom:6px}
+  .gcampos{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px 8px}
+  .gcampos .gt{grid-column:span 2}
+  .gcampos label{display:block;font-size:.72rem;font-weight:600;color:var(--zelo-ink-soft);margin-bottom:2px;line-height:1.15}
+  .gcampos input{width:100%;font:inherit;font-size:16px;color:inherit;background:var(--zelo-surface);border:1.5px solid var(--zelo-line-strong);border-radius:10px;padding:8px 10px;min-height:42px}
+  .gcampos input[type=number]{text-align:center;font-weight:700;-moz-appearance:textfield;appearance:textfield}
+  .gcampos input::-webkit-inner-spin-button{-webkit-appearance:none}
+  .gcampos input.tem{border-color:var(--zelo-accent);background:var(--zelo-accent-soft)}
   @media (max-width:360px){.passo button{width:42px;height:42px}.passo input{width:54px}}
 </style>
 </head>
@@ -220,10 +250,10 @@
   <div class="capa"><div class="capa-in">
     <div class="marca"><img src="icons/hospital_prenda_192.png" alt="Logótipo do Hospital do Prenda" width="96" height="96"><span>Banco de Urgência · 24 horas</span></div>
     <h1>Recolha de dados das 24 horas</h1>
-    <p>Registe os totais das 24 horas do seu serviço. Não escreva nomes de doentes.</p>
+    <p>Ficha de recolha de dados do Serviço de Estatística. Sem nomes de doentes.</p>
     <div class="selos">
       <span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Turno de 24 horas</span>
-      <span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Só totais</span>
+      <span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Sem nomes de doentes</span>
       <span class="selo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Pode corrigir</span>
     </div>
   </div></div>
@@ -300,7 +330,9 @@
 </div>
 
 <script type="module">
-// Um registo por serviço e por dia: urgencia_24h/<dia>/<serviço>.
+// Um registo por serviço e por dia: urgencia_24h/<dia>/<serviço> (só o
+// administrador lê). Para avisar que já há registo, guarda-se também um
+// resumo sem dados clínicos em urgencia_24h_meta/<dia>/<serviço> (público).
 // Voltar a enviar o mesmo serviço e dia substitui o registo (correcção).
 // Para abrir directamente um serviço: urgencia_24h.html?servico=ortopedia
 const SERVICOS = window.URG_SERVICOS;
@@ -318,7 +350,7 @@ const diasAtras = (n) => { const d = new Date(); d.setDate(d.getDate() - n); ret
 const fmtData = (s) => s.split('-').reverse().join('/');
 const hora = (ts) => { const d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
 // Turno de 24 h que começa de manhã: até às 10h, o mais provável é estar a fechar o turno de ontem.
-const diaPorDefeito = () => (new Date().getHours() < 10 ? diasAtras(1) : hoje());
+const diaPorDefeito = (sv) => (sv && sv.diario ? hoje() : (new Date().getHours() < 10 ? diasAtras(1) : hoje()));
 
 const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
 let fb = null;
@@ -332,6 +364,7 @@ const fbPronto = (async () => {
 })();
 const comPrazo = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), ms))]);
 const caminho = (dia, sv) => `urgencia_24h/${dia}/${sv}`;
+const caminhoMeta = (dia, sv) => `urgencia_24h_meta/${dia}/${sv}`;
 
 // ── Ícones e cores por serviço ──
 const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -341,6 +374,7 @@ const ICONES = {
   cirurgia_geral: '<path d="m14 4 6 6-9 9-4 1 1-4z"/><path d="m12 6 6 6"/>',
   maxilo_facial: '<path d="M7 3c-2 0-4 2-4 5 0 4 2 5 2 8s1 5 2.5 5 1.5-3 2.5-6c.6-1.6 1.4-1.6 2 0 1 3 1 6 2.5 6s2.5-2 2.5-5 2-4 2-8c0-3-2-5-4-5-2.5 0-3 1-5 1S9.5 3 7 3z"/>',
   neurocirurgia: '<path d="M12 5a3 3 0 1 0-5.9.8A4 4 0 0 0 4 13a4 4 0 0 0 2 6 3 3 0 0 0 6-1V5z"/><path d="M12 5a3 3 0 1 1 5.9.8A4 4 0 0 1 20 13a4 4 0 0 1-2 6 3 3 0 0 1-6-1"/>',
+  oftalmologia: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   nefrologia: '<path d="M12 2.7C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-11.3z"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 2.5"/>',
   uci: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   bloco_operatorio: '<path d="M12 3v3M5.6 5.6l2.1 2.1M18.4 5.6l-2.1 2.1"/><circle cx="12" cy="13" r="5"/><path d="M3 21h18"/>',
@@ -353,8 +387,8 @@ const ICONES = {
   supervisao: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
 };
 const CORES = { medicina_interna: '#4E8A5E', ortopedia: '#2F6B8A', cirurgia_geral: '#0B62A8', maxilo_facial: '#A0522D', neurocirurgia: '#7A5BA6',
-  nefrologia: '#2F7F7A', uci: '#B33A2B', bloco_operatorio: '#1F5F8B', laboratorio: '#6B7F2F', imagiologia: '#55636F', hemoterapia: '#A3283A',
-  esterilizacao: '#B08A1E', consulta_externa: '#0B62A8', fisioterapia: '#C0662A', supervisao: '#2B415E' };
+  oftalmologia: '#2F7F7A', nefrologia: '#1F7A8C', uci: '#B33A2B', bloco_operatorio: '#1F5F8B', laboratorio: '#6B7F2F', imagiologia: '#55636F',
+  hemoterapia: '#A3283A', esterilizacao: '#B08A1E', consulta_externa: '#0B62A8', fisioterapia: '#C0662A', supervisao: '#2B415E' };
 
 // ── Ecrã 1 ──
 function desenharServicos() {
@@ -374,7 +408,7 @@ function desenharServicos() {
       b.type = 'button';
       b.className = 'area-btn';
       b.style.setProperty('--cor', CORES[s.id] || '#0B62A8');
-      const ja = !!ls.get(`urg24:${diaPorDefeito()}:${s.id}`);
+      const ja = !!ls.get(`urg24:${diaPorDefeito(s)}:${s.id}`);
       algum = algum || ja;
       b.setAttribute('aria-label', s.nome + (ja ? ' (já tem registo)' : ''));
       b.innerHTML = `<span class="ico">${svg(ICONES[s.id] || ICONES.uci)}</span><strong>${esc(s.nome)}</strong><small>${esc(s.desc)}</small>${ja ? '<span class="feito">✓</span>' : ''}`;
@@ -387,34 +421,110 @@ function desenharServicos() {
 }
 desenharServicos();
 
-// Escolhas fixas: categoria e classificação do turno
 $('categorias').innerHTML = window.URG_CATEGORIAS.map(([v, t]) => `<label><input type="radio" name="categoria" value="${v}"><span>${esc(t)}</span></label>`).join('');
 $('classif').innerHTML = window.URG_CLASSIF.map(([v, t]) => `<label><input type="radio" name="classificacao" value="${v}"><span>${esc(t)}</span></label>`).join('');
 
-// ── Ecrã 2 ──
-let atual = null, anterior = null, confirmarAvisos = false;
+// ── Ecrã 2: construção do formulário a partir do modelo ──
+let atual = null, anterior = null, confirmarAvisos = false, nLinha = 0;
 
-function htmlSecoes(s) {
-  return s.secoes.map((sec, i) => `<section class="cartao" data-sec="${sec.id}">
-    <div class="sec-tit"><b>${i + 2}</b><h3>${esc(sec.titulo)}</h3>${sec.total === false ? '' : `<span class="subtotal" id="st-${sec.id}">0</span>`}</div>
-    ${sec.nota ? `<p class="nota">${esc(sec.nota)}</p>` : ''}
-    ${sec.grupos.map((g) => `<div class="grupo">
-      ${g.rotulo ? `<div class="grupo-rot">${esc(g.rotulo)}${g.soma ? `<span data-soma="${g.campos.map((c) => c[0]).join(',')}">0</span>` : ''}</div>` : ''}
-      ${g.campos.map(([cod, rot]) => `<div class="cont" id="r-${cod}">
-        <label for="n-${cod}">${esc(rot)}</label>
-        <div class="passo"><button type="button" data-d="-1" data-c="${cod}" aria-label="Menos">−</button><input type="number" id="n-${cod}" data-c="${cod}" inputmode="numeric" min="0" max="9999" placeholder="0"><button type="button" data-d="1" data-c="${cod}" aria-label="Mais">+</button></div>
-      </div>`).join('')}
+function htmlContadores(sec) {
+  return sec.grupos.map((g) => `<div class="grupo">
+    ${g.rotulo || g.soma ? `<div class="grupo-rot">${esc(g.rotulo || '')}${g.soma ? `<span data-soma="${g.campos.map((c) => c[0]).join(',')}">0</span>` : ''}</div>` : ''}
+    ${g.campos.map(([cod, rot]) => `<div class="cont" id="r-${cod}">
+      <label for="n-${cod}">${esc(rot)}</label>
+      <div class="passo"><button type="button" data-d="-1" data-c="${cod}" aria-label="Menos">−</button><input type="number" id="n-${cod}" data-c="${cod}" inputmode="numeric" min="0" max="9999" placeholder="0"><button type="button" data-d="1" data-c="${cod}" aria-label="Mais">+</button></div>
     </div>`).join('')}
-  </section>`).join('');
+  </div>`).join('');
+}
+function htmlTextos(sec) {
+  return `<div class="textos">${sec.textos.map(([cod, rot, dica]) => `<div class="${dica ? 'larga' : ''}"${dica ? ' style="grid-column:1/-1"' : ''}><label for="t-${cod}">${esc(rot)}</label>
+    ${dica ? `<textarea id="t-${cod}" data-t="${cod}" maxlength="1000" placeholder="${esc(dica)}"></textarea>` : `<input type="text" id="t-${cod}" data-t="${cod}" maxlength="120" autocomplete="off">`}</div>`).join('')}</div>`;
+}
+function htmlGrade(sec) {
+  const G = sec.grade;
+  let grupoAnt = null, h = '';
+  for (const [lc, lr, grupo] of G.linhas) {
+    if (grupo && grupo !== grupoAnt) { h += `<div class="grade-grupo">${esc(grupo)}</div>`; grupoAnt = grupo; }
+    h += `<div class="glinha"><b>${esc(lr)}</b><div class="gcampos">${G.colunas.map(([cc, cr, tipo]) => {
+      const k = lc + '_' + cc;
+      return tipo === 'n'
+        ? `<div><label for="g-${k}">${esc(cr)}</label><input type="number" id="g-${k}" data-g="${k}" inputmode="numeric" min="0" max="9999" placeholder="0"></div>`
+        : `<div class="gt"><label for="g-${k}">${esc(cr)}</label><input type="text" id="g-${k}" data-gt="${k}" maxlength="120" autocomplete="off"></div>`;
+    }).join('')}</div></div>`;
+  }
+  return h;
+}
+function htmlLista(sec) {
+  return `<div id="L-${sec.id}" data-lista="${sec.id}"></div>
+    <button type="button" class="add" data-add="${sec.id}">＋ Adicionar ${esc(sec.lista.item)}</button>`;
+}
+function htmlLinha(sec, vals) {
+  const id = 'ln' + (++nLinha);
+  const campos = sec.lista.colunas.map(([cod, rot, tipo, opcoes]) => {
+    const v = vals ? vals[cod] : undefined, nm = `${id}-${cod}`;
+    if (tipo === 'idade') return `<div><label for="${nm}">${esc(rot)}</label><input type="number" id="${nm}" data-col="${cod}" inputmode="numeric" min="0" max="130" placeholder="anos" value="${v ?? ''}"></div>`;
+    if (tipo === 'numero') return `<div><label for="${nm}">${esc(rot)}</label><input type="number" id="${nm}" data-col="${cod}" inputmode="numeric" min="0" max="9999" placeholder="0" value="${v ?? ''}"></div>`;
+    if (tipo === 'hora') return `<div><label for="${nm}">${esc(rot)}</label><input type="time" id="${nm}" data-col="${cod}" value="${esc(v || '')}"></div>`;
+    if (tipo === 'genero') opcoes = [['m', 'M'], ['f', 'F']];
+    if (tipo === 'genero' || tipo === 'escolha') return `<div class="${tipo === 'escolha' ? 'larga' : ''}"><label>${esc(rot)}</label><div class="opcoes" data-col="${cod}" data-escolha="1">${opcoes.map(([ov, ot]) => `<label><input type="radio" name="${nm}" value="${ov}"${v === ov ? ' checked' : ''}><span>${esc(ot)}</span></label>`).join('')}</div></div>`;
+    return `<div class="larga"><label for="${nm}">${esc(rot)}</label><input type="text" id="${nm}" data-col="${cod}" maxlength="${cod === 'desc' ? 200 : 120}" autocomplete="off" value="${esc(v || '')}"></div>`;
+  }).join('');
+  return `<div class="linha" id="${id}"><div class="linha-cab"><span class="n"></span><button type="button" data-tirar="${id}">Retirar</button></div><div class="linha-campos">${campos}</div></div>`;
+}
+function renumerar(secId) {
+  const sec = atual.secoes.find((x) => x.id === secId), box = $('L-' + secId);
+  const linhas = box.querySelectorAll('.linha');
+  linhas.forEach((l, i) => { l.querySelector('.n').textContent = `${sec.lista.item.charAt(0).toUpperCase() + sec.lista.item.slice(1)} ${i + 1}`; });
+  const st = $('st-' + secId); if (st) st.textContent = linhas.length;
+  const add = document.querySelector(`[data-add="${secId}"]`);
+  if (add) add.disabled = linhas.length >= (sec.lista.max || 40);
+}
+function adicionarLinha(secId, vals, focar) {
+  const sec = atual.secoes.find((x) => x.id === secId);
+  $('L-' + secId).insertAdjacentHTML('beforeend', htmlLinha(sec, vals));
+  renumerar(secId);
+  if (focar) { const l = $('L-' + secId).lastElementChild; const i = l.querySelector('input'); if (i) i.focus({ preventScroll: true }); l.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
 
-const val = (cod) => { const e = $('n-' + cod); const n = e ? parseInt(e.value, 10) : 0; return Number.isFinite(n) && n > 0 ? n : 0; };
+function htmlSecoes(s) {
+  return s.secoes.map((sec, i) => {
+    const temTotal = (sec.grupos && sec.total !== false) || sec.lista;
+    const corpo = sec.grupos ? htmlContadores(sec) : sec.textos ? htmlTextos(sec) : sec.grade ? htmlGrade(sec) : htmlLista(sec);
+    return `<section class="cartao" data-sec="${sec.id}">
+      <div class="sec-tit"><b>${i + 2}</b><h3>${esc(sec.titulo)}</h3>${temTotal ? `<span class="subtotal" id="st-${sec.id}">0</span>` : ''}</div>
+      ${sec.nota ? `<p class="nota">${esc(sec.nota)}</p>` : ''}${corpo}</section>`;
+  }).join('');
+}
+
+const val = (cod) => { const e = $('n-' + cod) || $('g-' + cod); const n = e ? parseInt(e.value, 10) : 0; return Number.isFinite(n) && n > 0 ? n : 0; };
 const soma = (cods) => cods.reduce((a, c) => a + val(c), 0);
 
-// Indicador principal do serviço (barra do fundo e resumo): o subtotal da 1.ª secção que o tenha
-const principal = (sv) => sv.secoes.find((sec) => sec.total !== false) || sv.secoes[0];
-const temCampo = (sv, cod) => window.urgCampos(sv).some((c) => c[0] === cod);
+// Lê tudo o que está preenchido no formulário
+function recolher() {
+  const s = atual, contagens = {}, textos = {}, listas = {};
+  for (const [cod] of window.urgCampos(s)) { const n = val(cod); if (n) contagens[cod] = n; }
+  document.querySelectorAll('#secoes [data-g]').forEach((e) => { const n = parseInt(e.value, 10); if (n > 0) contagens[e.dataset.g] = Math.min(n, 9999); });
+  document.querySelectorAll('#secoes [data-t], #secoes [data-gt]').forEach((e) => { const t = e.value.trim(); if (t) textos[e.dataset.t || e.dataset.gt] = t.slice(0, e.tagName === 'TEXTAREA' ? 1000 : 120); });
+  for (const sec of s.secoes) {
+    if (!sec.lista) continue;
+    const rows = [];
+    $('L-' + sec.id).querySelectorAll('.linha').forEach((l) => {
+      const r = {};
+      l.querySelectorAll('[data-col]').forEach((e) => {
+        const col = e.dataset.col;
+        if (e.dataset.escolha) { const c = e.querySelector('input:checked'); if (c) r[col] = c.value; return; }
+        if (e.type === 'number') { const n = parseInt(e.value, 10); if (Number.isFinite(n) && n >= 0) r[col] = n; return; }
+        const t = e.value.trim(); if (t) r[col] = t.slice(0, 200);
+      });
+      if (Object.keys(r).length) rows.push(r);
+    });
+    if (rows.length) listas[sec.id] = rows;
+  }
+  Object.assign(contagens, Object.fromEntries(Object.entries(window.urgDerivadas(s, contagens, listas, textos)).filter(([, n]) => n > 0)));
+  return { contagens, textos, listas };
+}
 
+const principalTxt = (s) => (s.resumo && s.resumo[0]) ? s.resumo[0] : null;
 function atualizarTotais() {
   if (!atual) return;
   for (const sec of atual.secoes) {
@@ -423,9 +533,10 @@ function atualizarTotais() {
   }
   document.querySelectorAll('[data-soma]').forEach((e) => { e.textContent = soma(e.dataset.soma.split(',')); });
   document.querySelectorAll('.cont').forEach((r) => r.classList.toggle('tem', val(r.id.slice(2)) > 0));
-  const p = principal(atual);
-  $('total-txt').textContent = window.urgSubtotal(p, val) ?? window.urgCampos(atual).filter((c) => val(c[0]) > 0).length;
-  $('total-txt').nextSibling.textContent = p.total === false ? 'campos preenchidos' : p.titulo.toLowerCase();
+  document.querySelectorAll('.gcampos input').forEach((e) => e.classList.toggle('tem', !!e.value.trim() && e.value !== '0'));
+  const R = recolher(), p = principalTxt(atual);
+  if (p) { $('total-txt').textContent = R.contagens[p[0]] || 0; $('total-txt').nextSibling.textContent = p[1].toLowerCase(); }
+  else { $('total-txt').textContent = Object.keys(R.contagens).length; $('total-txt').nextSibling.textContent = 'campos preenchidos'; }
   confirmarAvisos = false;
   $('enviar').classList.remove('confirmar');
   $('enviar').textContent = anterior ? 'Guardar correcção' : 'Enviar registo';
@@ -433,19 +544,33 @@ function atualizarTotais() {
 
 $('secoes').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-d]');
-  if (!b) return;
-  const inp = $('n-' + b.dataset.c);
-  inp.value = Math.min(9999, Math.max(0, val(b.dataset.c) + Number(b.dataset.d))) || '';
-  atualizarTotais();
-  if (navigator.vibrate) navigator.vibrate(8);
+  if (b) {
+    const inp = $('n-' + b.dataset.c);
+    inp.value = Math.min(9999, Math.max(0, val(b.dataset.c) + Number(b.dataset.d))) || '';
+    atualizarTotais();
+    if (navigator.vibrate) navigator.vibrate(8);
+    return;
+  }
+  const add = e.target.closest('[data-add]');
+  if (add) { adicionarLinha(add.dataset.add, null, true); atualizarTotais(); return; }
+  const tirar = e.target.closest('[data-tirar]');
+  if (tirar) {
+    const l = $(tirar.dataset.tirar), secId = l.parentElement.dataset.lista;
+    const temDados = [...l.querySelectorAll('input')].some((i) => (i.type === 'radio' ? i.checked : i.value.trim()));
+    if (temDados && !confirm('Retirar esta linha?')) return;
+    l.remove(); renumerar(secId); atualizarTotais();
+  }
 });
 $('secoes').addEventListener('input', (e) => {
-  if (!e.target.matches('input[data-c]')) return;
-  const n = parseInt(e.target.value, 10);
-  if (e.target.value !== '' && (!Number.isFinite(n) || n < 0)) e.target.value = '';
-  if (n > 9999) e.target.value = 9999;
+  const t = e.target;
+  if (t.type === 'number') {
+    const n = parseInt(t.value, 10), max = Number(t.max) || 9999;
+    if (t.value !== '' && (!Number.isFinite(n) || n < 0)) t.value = '';
+    if (n > max) t.value = max;
+  }
   atualizarTotais();
 });
+$('secoes').addEventListener('change', atualizarTotais);
 
 function mostrar(ecra) {
   for (const id of ['ecra-areas', 'form', 'obrigado']) $(id).classList.toggle('oculto', id !== ecra);
@@ -466,32 +591,44 @@ function limpar() {
   mostrarAviso('');
 }
 
+function limparDados() {
+  document.querySelectorAll('#secoes input[data-c], #secoes input[data-g], #secoes [data-t], #secoes [data-gt]').forEach((e) => { e.value = ''; });
+  for (const sec of atual.secoes) if (sec.lista) { $('L-' + sec.id).innerHTML = ''; renumerar(sec.id); }
+  document.querySelectorAll('input[name=classificacao]').forEach((e) => { e.checked = false; });
+  $('observacoes').value = ''; $('cont').textContent = '0';
+}
 function preencher(r) {
-  for (const [cod, n] of Object.entries(r.contagens || {})) { const e = $('n-' + cod); if (e) e.value = n || ''; }
+  for (const [cod, n] of Object.entries(r.contagens || {})) { const e = $('n-' + cod) || $('g-' + cod); if (e) e.value = n || ''; }
+  for (const [cod, t] of Object.entries(r.textos || {})) { const e = $('t-' + cod) || $('g-' + cod); if (e) e.value = t; }
+  for (const [secId, rows] of Object.entries(r.listas || {})) if ($('L-' + secId)) (rows || []).forEach((row) => adicionarLinha(secId, row, false));
   if (r.classificacao) marcar('classificacao', r.classificacao);
   if (r.observacoes) { $('observacoes').value = r.observacoes; $('cont').textContent = r.observacoes.length; }
 }
 
-// Carrega o registo já existente deste serviço e dia (se houver)
+// Já existe registo deste serviço e dia? (resumo público; os dados só deste aparelho)
+let carregamento = 0;
 async function carregarExistente() {
-  const s = atual, dia = $('dia').value;
+  const s = atual, dia = $('dia').value, meu = ++carregamento;
   anterior = null;
   $('ja-existe').classList.add('oculto');
-  document.querySelectorAll('#secoes input[data-c]').forEach((e) => { e.value = ''; });
-  document.querySelectorAll('input[name=classificacao]').forEach((e) => { e.checked = false; });
-  $('observacoes').value = ''; $('cont').textContent = '0';
+  limparDados();
   atualizarTotais();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return;
-  let r = null;
+  let meta = null, local = null;
+  try { local = JSON.parse(ls.get(`urg24:${dia}:${s.id}`) || 'null'); } catch (e) {}
   await fbPronto;
-  if (fb) { try { const snap = await comPrazo(fb.get(fb.ref(fb.db, caminho(dia, s.id))), 8000); if (snap.exists()) r = snap.val(); } catch (e) { console.warn(e); } }
-  if (!r) { try { r = JSON.parse(ls.get(`urg24:${dia}:${s.id}`) || 'null'); } catch (e) {} }
-  if (atual !== s || $('dia').value !== dia || !r) return;
-  anterior = r;
-  preencher(r);
-  const quem = r.preenchidoPor ? ` por ${r.preenchidoPor}` : '';
-  $('ja-existe').innerHTML = `✓ <span>Já existe registo de ${esc(s.nome)} para ${fmtData(dia)}, enviado${esc(quem)} às ${hora(r.ts)}. Pode corrigir os números e voltar a enviar.</span>`;
-  $('ja-existe').classList.remove('oculto');
+  if (fb) { try { const snap = await comPrazo(fb.get(fb.ref(fb.db, caminhoMeta(dia, s.id))), 8000); if (snap.exists()) meta = snap.val(); } catch (e) { console.warn(e); } }
+  if (meu !== carregamento || atual !== s || $('dia').value !== dia) return;
+  if (local && (!meta || local.ts >= meta.ts)) {
+    anterior = local;
+    preencher(local);
+    $('ja-existe').innerHTML = `✓ <span>Já enviou o registo de ${esc(s.nome)} para ${fmtData(dia)} às ${hora(local.ts)}. Pode corrigir e voltar a enviar.</span>`;
+    $('ja-existe').classList.remove('oculto');
+  } else if (meta) {
+    anterior = { data: dia, criado: meta.criado, editado: meta.editado, deOutro: true };
+    $('ja-existe').innerHTML = `⚠ <span>Já existe registo de ${esc(s.nome)} para ${fmtData(dia)}, enviado por ${esc(meta.preenchidoPor || '—')} às ${hora(meta.ts)} noutro aparelho. Se enviar, o seu substitui esse registo.</span>`;
+    $('ja-existe').classList.remove('oculto');
+  }
   atualizarTotais();
 }
 
@@ -503,7 +640,8 @@ function abrir(id, hist) {
   $('secoes').innerHTML = htmlSecoes(s);
   $('num-fim').textContent = s.secoes.length + 2;
   limpar();
-  $('dia').value = diaPorDefeito();
+  $('dia').value = diaPorDefeito(s);
+  $('c-dia').querySelector('label').firstChild.textContent = s.diario ? 'Dia ' : 'Dia em que começou o turno de 24 horas ';
   if (hist) history.pushState({ s: id }, '', '?servico=' + encodeURIComponent(id));
   mostrar('form');
   carregarExistente();
@@ -521,28 +659,24 @@ window.addEventListener('popstate', () => {
 });
 
 // Verificações de coerência (avisam, mas deixam enviar se a pessoa confirmar)
-function avisosCoerencia() {
-  const out = [], sv = atual;
-  const tem = (c) => temCampo(sv, c);
-  const sexo = soma(['obs_m', 'obs_f']);
-  if (tem('idade_men15')) {
-    const idade = soma(['idade_men15', 'idade_mai15']);
-    if (idade && idade !== sexo) out.push(`o total por sexo (${sexo}) é diferente do total por idade (${idade})`);
+function avisosCoerencia(R) {
+  const out = [], k = R.contagens, n = (c) => k[c] || 0;
+  const obs = n('observados');
+  if (obs) {
+    const saidas = n('internados') + n('transf_efetuadas') + n('obitos_banco');
+    if (saidas > obs) out.push(`internados + transferências efectuadas + óbitos no banco (${saidas}) é maior que os pacientes observados (${obs})`);
   }
-  if (tem('altas') && tem('internados') && tem('idade_men15')) {
-    const destino = soma(['altas', 'internados', 'transf_efetuadas', 'obitos']);
-    if (destino > sexo) out.push(`altas + internados + transferências + óbitos (${destino}) é maior que os doentes observados (${sexo})`);
+  if (atual.secoes.some((x) => x.id === 'cir_maiores_desc')) {
+    const desc = (R.listas.cir_maiores_desc || []).length;
+    if (desc !== n('cir_maiores')) out.push(`indicou ${n('cir_maiores')} cirurgia(s) maior(es) mas descreveu ${desc}`);
   }
-  if (tem('cons_realizadas')) {
-    if (val('cons_realizadas') > val('cons_agendadas') && val('cons_agendadas')) out.push('há mais consultas realizadas do que agendadas');
-    const tipo = soma(['cons_primeira', 'cons_retorno']);
-    if (tipo && tipo !== val('cons_realizadas')) out.push(`primeira + retorno (${tipo}) é diferente das consultas realizadas (${val('cons_realizadas')})`);
+  for (const [secId, rows] of Object.entries(R.listas)) {
+    const sec = atual.secoes.find((x) => x.id === secId);
+    const temIdade = sec.lista.colunas.some((c) => c[2] === 'idade'), temGen = sec.lista.colunas.some((c) => c[2] === 'genero');
+    const inc = rows.filter((r) => (temIdade && r.idade === undefined) || (temGen && !r.genero)).length;
+    if (inc) out.push(`em «${sec.titulo}» há ${inc} linha(s) sem idade ou género`);
   }
-  if (tem('fis_internos')) {
-    const orig = soma(['fis_internos', 'fis_externos']);
-    if (sexo && orig !== sexo) out.push(`doentes por origem (${orig}) é diferente de doentes por sexo (${sexo})`);
-  }
-  if (!window.urgCampos(sv).some((c) => val(c[0]) > 0)) out.push('não preencheu nenhum número');
+  if (!Object.keys(k).length && !Object.keys(R.listas).length) out.push('não preencheu nenhum número nem lista');
   return out;
 }
 
@@ -553,7 +687,7 @@ $('form').addEventListener('submit', async (e) => {
   document.querySelectorAll('.falta').forEach((el) => el.classList.remove('falta'));
   const faltas = [];
   const dia = $('dia').value;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia) || dia > hoje() || dia < diasAtras(7)) { faltas.push('o dia do turno (até 7 dias atrás)'); $('c-dia').classList.add('falta'); }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia) || dia > hoje() || dia < diasAtras(7)) { faltas.push('o dia (até 7 dias atrás)'); $('c-dia').classList.add('falta'); }
   const nome = $('nome').value.trim();
   if (nome.length < 2) { faltas.push('quem preenche'); $('c-nome').classList.add('falta'); }
   if (faltas.length) {
@@ -561,7 +695,8 @@ $('form').addEventListener('submit', async (e) => {
     $('aviso').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
-  const avisos = avisosCoerencia();
+  const R = recolher();
+  const avisos = avisosCoerencia(R);
   if (avisos.length && !confirmarAvisos) {
     confirmarAvisos = true;
     mostrarAviso('Verifique: ' + avisos.join('; ') + '. Se estiver certo, toque outra vez em «Enviar mesmo assim».');
@@ -571,20 +706,22 @@ $('form').addEventListener('submit', async (e) => {
     return;
   }
 
-  const contagens = {};
-  for (const [cod] of window.urgCampos(s)) { const n = val(cod); if (n) contagens[cod] = n; }
   const agora = Date.now();
   const mesmo = anterior && anterior.data === dia;
   const reg = {
-    servico: s.id, servicoNome: s.nome, v: 1, data: dia,
+    servico: s.id, servicoNome: s.nome, v: 2, data: dia,
     criado: mesmo && anterior.criado ? anterior.criado : agora, ts: agora,
     preenchidoPor: nome.slice(0, 80),
   };
   if (mesmo) reg.editado = (Number(anterior.editado) || 0) + 1;
   const cat = marcado('categoria'); if (cat) reg.categoria = cat;
   const cl = marcado('classificacao'); if (cl) reg.classificacao = cl;
-  if (Object.keys(contagens).length) reg.contagens = contagens;
+  if (Object.keys(R.contagens).length) reg.contagens = R.contagens;
+  if (Object.keys(R.textos).length) reg.textos = R.textos;
+  if (Object.keys(R.listas).length) reg.listas = R.listas;
   const obs = $('observacoes').value.trim(); if (obs) reg.observacoes = obs.slice(0, 1000);
+  const meta = { preenchidoPor: reg.preenchidoPor, criado: reg.criado, ts: agora };
+  if (reg.editado) meta.editado = reg.editado;
 
   const btn = $('enviar'), txt = btn.textContent;
   btn.disabled = true; btn.textContent = 'A enviar…';
@@ -592,14 +729,15 @@ $('form').addEventListener('submit', async (e) => {
     await fbPronto;
     if (!fb) throw new Error('sem firebase');
     await comPrazo(fb.set(fb.ref(fb.db, caminho(dia, s.id)), reg), 15000);
+    try { await comPrazo(fb.set(fb.ref(fb.db, caminhoMeta(dia, s.id)), meta), 8000); } catch (e) { console.warn('resumo público não guardado', e); }
     anterior = reg;
     ls.set(`urg24:${dia}:${s.id}`, JSON.stringify(reg));
     ls.set('urg24:nome', reg.preenchidoPor);
     if (cat) ls.set('urg24:categoria', cat);
-    $('obrigado-txt').textContent = `${s.nome} · turno de ${fmtData(dia)}${mesmo ? ' (corrigido)' : ''}`;
-    const R = s.secoes.filter((sec) => sec.total !== false).map((sec) => [sec.titulo, window.urgSubtotal(sec, val)]);
-    if (!R.length) window.urgCampos(s).slice(0, 4).forEach(([c, t]) => R.push([t, val(c)]));
-    $('resumo').innerHTML = R.map(([t, n]) => `<div><b>${n}</b><span>${t}</span></div>`).join('');
+    $('obrigado-txt').textContent = `${s.nome} · ${s.diario ? 'dia' : 'turno de'} ${fmtData(dia)}${mesmo ? ' (corrigido)' : ''}`;
+    const res = (s.resumo || []).slice(0, 8).map(([c, t]) => [t, R.contagens[c] || 0]);
+    if (!res.length) s.secoes.filter((sec) => sec.grupos && sec.total !== false).forEach((sec) => res.push([sec.titulo, window.urgSubtotal(sec, val)]));
+    $('resumo').innerHTML = res.map(([t, n]) => `<div><b>${n}</b><span>${esc(t)}</span></div>`).join('');
     mostrar('obrigado');
   } catch (err) {
     console.error(err);
