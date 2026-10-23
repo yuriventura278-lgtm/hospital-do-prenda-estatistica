@@ -216,6 +216,8 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Consumo do Firebase', file: 'consumo_firebase.html', modulo: 'sistemas_independentes', item: 'consumo_firebase' },
   // Respostas do inquérito público (inquerito_satisfacao.html), relatórios em PDF e códigos QR.
   { nome: 'Inquérito de Satisfação', file: 'inquerito_satisfacao_admin.html', modulo: 'sistemas_independentes', item: 'inquerito_satisfacao' },
+  // Totais das 24 horas de cada serviço do Banco de Urgência (formulário público urgencia_24h.html).
+  { nome: 'Banco de Urgência · 24 horas', file: 'urgencia_24h_admin.html', modulo: 'sistemas_independentes', item: 'urgencia_24h' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),
   // cada uma com a sua entrada, a seguir à Supervisão.
 ];

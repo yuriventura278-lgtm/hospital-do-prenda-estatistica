@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt" data-theme="light">
+<head>
+<script src="zelo_consumo.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+/* Telemóvel em modo "Site para computador" (ou navegador que ignora o ajuste
+   ao ecrã): a página seria desenhada com ~980 px e encolhida, ficando com
+   letra minúscula. Nesse caso amplia-se para ocupar o ecrã todo. */
+(function () {
+  function ajustar() {
+    var de = document.documentElement, iw;
+    // Largura do ecrã na orientação actual (o iPhone dá sempre a do ecrã ao alto)
+    var deitado = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+    var sw = deitado ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+    de.style.zoom = '';
+    iw = window.innerWidth || de.clientWidth;
+    var tatil = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+    if (tatil && sw && sw < 760 && iw > sw * 1.2) { de.style.zoom = (iw / sw).toFixed(3); de.classList.add('modo-ampliado'); }
+    else de.classList.remove('modo-ampliado');
+  }
+  ajustar();
+  window.addEventListener('orientationchange', function () { setTimeout(ajustar, 300); });
+})();
+</script>
+
+<title>Zelo — Banco de Urgência · 24 horas</title>
+<script>document.documentElement.style.visibility='hidden';</script>
+<script>
+  window.ZELO_MODULE = 'sistemas_independentes';
+  window.ZELO_ITEM = 'urgencia_24h';
+  window.ZELO_SO_ADMIN = true; // Serviço de Estatística — só administradores
+</script>
+<script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_pagegate_watchdog.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, get, remove, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  const db = getDatabase(initializeApp(firebaseConfig));
+  window.__urgLer = (de, ate) => get(query(ref(db, 'urgencia_24h'), orderByKey(), startAt(de), endAt(ate)))
+    .then((s) => (s.exists() ? s.val() : {}));
+  window.__urgApagar = (caminho) => remove(ref(db, 'urgencia_24h/' + caminho));
+  window.dispatchEvent(new Event('urg-fb-pronto'));
+</script>
+<script src="urgencia_modelos.js?v=1"></script>
+<script src="chart.umd.min.js"></script>
+<script src="lib/qrcode-generator-1.4.4.js"></script>
+<script src="zelo_pdf.js"></script>
+<script src="zelo_pdf_tardio.js?v=2" data-at="3.8.2"></script>
+<link rel="icon" type="image/png" href="icons/logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Fraunces:wght@600;700&display=swap">
+<link rel="stylesheet" href="zelo_tokens.css">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--zelo-bg);color:var(--zelo-ink);font-family:var(--zelo-font-body);font-size:15px;line-height:1.45}
+  .topo{background:var(--zelo-accent-ink);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .topo img{width:36px;height:36px;object-fit:contain;background:#fff;border-radius:8px;padding:2px}
+  .topo h1{font-family:var(--zelo-font-display);font-size:1.15rem;margin:0}
+  .topo p{margin:0;font-size:.85rem;opacity:.8}
+  .topo a{margin-left:auto;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:6px 14px;font-size:.88rem}
+  .wrap{max-width:1150px;margin:0 auto;padding:16px}
+  .abas{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+  .aba{font:inherit;font-weight:600;border:1.5px solid var(--zelo-line-strong);background:var(--zelo-surface);color:var(--zelo-ink);border-radius:999px;padding:8px 16px;cursor:pointer}
+  .aba.on{background:var(--zelo-accent);border-color:var(--zelo-accent);color:#fff}
+  .card{background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:var(--zelo-radius-l);box-shadow:var(--zelo-shadow-sm);padding:16px;margin-bottom:16px}
+  h2{font-family:var(--zelo-font-display);font-size:1.1rem;margin:0 0 12px;color:var(--zelo-accent-ink)}
+  h3{font-size:1rem;margin:16px 0 8px}
+  .filtros{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .filtros label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600;color:var(--zelo-ink-soft)}
+  select,input{font:inherit;color:inherit;background:var(--zelo-surface);border:1.5px solid var(--zelo-line-strong);border-radius:var(--zelo-radius-s);padding:8px 10px}
+  .btn{font:inherit;font-weight:700;border:0;border-radius:var(--zelo-radius-m);background:var(--zelo-accent);color:#fff;padding:9px 16px;cursor:pointer}
+  .btn.sec{background:var(--zelo-surface-2);color:var(--zelo-ink)}
+  .btn.peq{padding:5px 10px;font-size:.85rem;font-weight:600}
+  .btn.perigo{background:var(--zelo-warn-soft);color:var(--zelo-warn-ink)}
+  .btn:disabled{opacity:.6;cursor:wait}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+  .kpi{background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:var(--zelo-radius-m);padding:12px}
+  .kpi span{display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--zelo-ink-soft)}
+  .kpi b{display:block;font-size:1.6rem;font-family:var(--zelo-font-display)}
+  .kpi small{color:var(--zelo-ink-faint)}
+  .tab-wrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:.9rem}
+  th,td{padding:7px 8px;border-bottom:1px solid var(--zelo-line);text-align:left;vertical-align:top}
+  th{background:var(--zelo-surface-2);font-weight:700;white-space:nowrap}
+  td.n,th.n{text-align:right;white-space:nowrap}
+  tr.total td{font-weight:700;background:var(--zelo-accent-soft)}
+  details.area{border:1px solid var(--zelo-line);border-radius:var(--zelo-radius-m);margin-bottom:10px;background:var(--zelo-surface)}
+  details.area summary{cursor:pointer;padding:12px 14px;font-weight:700;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  details.area summary small{font-weight:400;color:var(--zelo-ink-soft)}
+  details.area .corpo{padding:0 14px 14px}
+  .barra{display:inline-block;height:8px;border-radius:4px;background:var(--zelo-accent);vertical-align:middle}
+  .vazio{color:var(--zelo-ink-soft);padding:20px;text-align:center}
+  .estado{color:var(--zelo-ink-soft);font-size:.9rem;margin-left:auto}
+  .sug{border-left:3px solid var(--zelo-accent);padding:6px 10px;margin-bottom:8px;background:var(--zelo-surface-2);border-radius:0 6px 6px 0}
+  .sug small{color:var(--zelo-ink-soft);display:block}
+  .links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+  .link-card{border:1px solid var(--zelo-line);border-radius:var(--zelo-radius-m);padding:12px;text-align:center;background:var(--zelo-surface)}
+  .link-card .qr svg{width:150px;height:150px}
+  .link-card code{display:block;font-size:.72rem;word-break:break-all;color:var(--zelo-ink-soft);margin:6px 0}
+  .link-principal{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .link-principal .qr svg{width:180px;height:180px}
+  .link-principal input{flex:1;min-width:240px}
+  .oculto{display:none!important}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--zelo-ink);color:var(--zelo-surface);padding:10px 18px;border-radius:999px;font-weight:600;z-index:99;display:none}
+  .grafico{position:relative;height:280px}
+  :root{--sobre-acento:#fff}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sobre-acento:#0F151B}}
+  .btn,.aba.on{color:var(--sobre-acento)}
+  .btn.sec,.btn.perigo{color:var(--zelo-ink)}
+  .abas{position:sticky;top:0;z-index:10;background:var(--zelo-bg);padding:8px 0;margin-top:-8px}
+  select,input{font-size:16px;min-height:42px}
+
+  /* ── Telemóvel ── */
+  @media (max-width:700px){
+    body{font-size:15px}
+    .topo{padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
+    .topo p{display:none}
+    .wrap{padding:12px 12px calc(24px + env(safe-area-inset-bottom))}
+    .abas{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:-8px -12px 12px;padding:8px 12px}
+    .abas::-webkit-scrollbar{display:none}
+    .aba{flex:none}
+    .card{padding:14px 12px;border-radius:16px}
+    .filtros{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .filtros label{min-width:0}
+    .filtros label select,.filtros label input{width:100%}
+    .filtros label input[type=checkbox]{width:20px;height:20px}
+    .filtros .opcao-pdf{justify-content:flex-start}
+    .filtros #l-area,.filtros .btn,.filtros .opcao-pdf,.filtros .estado{grid-column:1/-1}
+    .filtros .btn{min-height:48px}
+    .estado{margin-left:0;text-align:center}
+    .kpis{grid-template-columns:1fr 1fr;gap:8px}
+    .kpi{padding:10px}
+    .kpi b{font-size:1.35rem}
+    .kpi small{font-size:.75rem}
+    th,td{padding:6px 6px;font-size:.84rem}
+    .grafico{height:240px}
+    details.area summary{padding:12px}
+    details.area .corpo{padding:0 10px 12px}
+    .link-principal{flex-direction:column;align-items:stretch;text-align:center}
+    .link-principal .qr{display:flex;justify-content:center}
+    /* Respostas individuais em cartões */
+    table.resp thead{display:none}
+    table.resp,table.resp tbody,table.resp tr,table.resp td{display:block;width:100%}
+    table.resp tr{border:1px solid var(--zelo-line);border-radius:14px;margin-bottom:10px;padding:8px 10px;background:var(--zelo-surface)}
+    table.resp td{border:0;display:flex;gap:10px;justify-content:space-between;padding:4px 0;min-width:0!important;text-align:right}
+    table.resp td::before{content:attr(data-l);font-weight:700;color:var(--zelo-ink-soft);text-align:left;flex:none}
+    table.resp td:empty{display:none}
+    table.resp td.acao{justify-content:flex-end}
+    table.resp td.acao::before{content:none}
+  }
+  .falta-sv{color:var(--zelo-warn-ink);background:var(--zelo-warn-soft);border-radius:10px;padding:10px 12px;margin-top:10px;font-weight:600}
+  td.zero{color:var(--zelo-ink-faint)}
+</style>
+</head>
+<body>
+<div class="topo">
+  <img src="icons/hospital_prenda_192.png" alt="">
+  <div><h1>Banco de Urgência · 24 horas</h1><p>Recolha de dados por serviço · Serviço de Estatística</p></div>
+  <a href="index.html">Início</a>
+</div>
+
+<div class="wrap">
+  <div class="abas">
+    <button class="aba on" data-aba="relatorios">Relatórios</button>
+    <button class="aba" data-aba="respostas">Registos</button>
+    <button class="aba" data-aba="links">Link público e QR</button>
+  </div>
+
+  <div class="card" id="card-filtros">
+    <div class="filtros">
+      <label>Relatório
+        <select id="tipo">
+          <option value="diario">Diário</option>
+          <option value="mensal" selected>Mensal</option>
+          <option value="trimestral">Trimestral</option>
+          <option value="semestral">Semestral</option>
+          <option value="anual">Anual</option>
+        </select>
+      </label>
+      <label id="l-dia">Dia <input type="date" id="dia"></label>
+      <label id="l-mes">Mês <input type="month" id="mes"></label>
+      <label id="l-ano">Ano <select id="ano"></select></label>
+      <label id="l-tri">Trimestre
+        <select id="tri"><option value="1">1.º (Jan–Mar)</option><option value="2">2.º (Abr–Jun)</option><option value="3">3.º (Jul–Set)</option><option value="4">4.º (Out–Dez)</option></select>
+      </label>
+      <label id="l-sem">Semestre
+        <select id="sem"><option value="1">1.º (Jan–Jun)</option><option value="2">2.º (Jul–Dez)</option></select>
+      </label>
+      <label id="l-area">Serviço <select id="area"><option value="">Todos os serviços</option></select></label>
+      <button class="btn" id="btn-pdf">Exportar PDF</button>
+      <button class="btn sec" id="btn-csv">Exportar Excel (CSV)</button>
+      <span class="estado" id="estado"></span>
+    </div>
+  </div>
+
+  <div id="aba-relatorios"><div id="resumo"></div></div>
+
+  <div id="aba-respostas" class="oculto">
+    <div class="card">
+      <h2>Registos enviados</h2>
+      <p style="margin-top:-6px;color:var(--zelo-ink-soft)">Um registo por serviço e por dia. Quem preenche pode corrigir durante 10 dias. Use «Apagar» só para registos errados ou de teste.</p>
+      <div class="tab-wrap" id="lista-respostas"></div>
+    </div>
+  </div>
+
+  <div id="aba-links" class="oculto">
+    <div class="card">
+      <h2>Link público do formulário</h2>
+      <p style="margin-top:-6px;color:var(--zelo-ink-soft)">Abre sem login. Quem abrir escolhe o serviço. Partilhe com as equipas de urgência ou imprima o QR.</p>
+      <div class="link-principal">
+        <div class="qr" id="qr-principal"></div>
+        <div style="flex:1;min-width:240px">
+          <input type="text" id="url-principal" readonly style="width:100%">
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn" id="copiar-principal">Copiar link</button>
+            <a class="btn sec" id="abrir-principal" target="_blank" rel="noopener" style="text-decoration:none">Abrir formulário</a>
+            <button class="btn sec" id="btn-cartazes">Cartazes com QR (PDF)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Links por serviço</h2>
+      <p style="margin-top:-6px;color:var(--zelo-ink-soft)">Cada link abre logo o formulário do serviço.</p>
+      <div class="links-grid" id="links-areas"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+  var SV = window.URG_SERVICOS, PORID = {}; SV.forEach(function (s) { PORID[s.id] = s; });
+  var CLASSIF = {}; window.URG_CLASSIF.forEach(function (c) { CLASSIF[c[0]] = c[1]; });
+  var CATEG = {}; window.URG_CATEGORIAS.forEach(function (c) { CATEG[c[0]] = c[1]; });
+  var MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  var fmtD = function (iso) { return iso ? iso.split('-').reverse().join('/') : ''; };
+  var hojeISO = function () { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  var hora = function (ts) { if (!ts) return ''; var d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+  function toast(t) { var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(function () { e.style.display = 'none'; }, 2600); }
+
+  // Indicadores principais (colunas da tabela por serviço)
+  var IND = [['obs', 'Observados'], ['obs_m', 'Masc.'], ['obs_f', 'Fem.'], ['idade_men15', '< 15'], ['idade_mai15', '≥ 15'],
+    ['altas', 'Altas'], ['internados', 'Intern.'], ['transf_recebidas', 'Transf. receb.'], ['transf_efetuadas', 'Transf. efect.'], ['obitos', 'Óbitos']];
+  var SECOES_EXTRA = [['sinistros', 'Sinistros'], ['procedimentos', 'Procedimentos realizados']];
+  var ANEST = (PORID.anestesia ? window.urgCampos(PORID.anestesia) : []);
+
+  // ── Filtros e período ──
+  var anoAtual = new Date().getFullYear();
+  for (var a = anoAtual; a >= 2025; a--) $('ano').appendChild(new Option(a, a));
+  $('dia').value = hojeISO(); $('dia').max = hojeISO();
+  $('mes').value = hojeISO().slice(0, 7);
+  $('tri').value = String(Math.floor(new Date().getMonth() / 3) + 1);
+  $('sem').value = new Date().getMonth() < 6 ? '1' : '2';
+  SV.forEach(function (s) { $('area').appendChild(new Option(s.nome, s.id)); });
+
+  function ajustarFiltros() {
+    var t = $('tipo').value;
+    $('l-dia').classList.toggle('oculto', t !== 'diario');
+    $('l-mes').classList.toggle('oculto', t !== 'mensal');
+    $('l-ano').classList.toggle('oculto', !(t === 'trimestral' || t === 'semestral' || t === 'anual'));
+    $('l-tri').classList.toggle('oculto', t !== 'trimestral');
+    $('l-sem').classList.toggle('oculto', t !== 'semestral');
+  }
+  function ultimoDia(ano, mes) { return new Date(ano, mes, 0).getDate(); }
+  function periodo() {
+    var t = $('tipo').value, P = { tipo: t };
+    if (t === 'diario') { var d = $('dia').value || hojeISO(); P.de = P.ate = d; P.rot = fmtD(d); P.nome = 'Relatório Diário'; P.ficheiro = d; }
+    else if (t === 'mensal') {
+      var m = $('mes').value || hojeISO().slice(0, 7), p = m.split('-');
+      P.de = m + '-01'; P.ate = m + '-' + pad(ultimoDia(+p[0], +p[1])); P.rot = MESES[+p[1] - 1] + ' de ' + p[0]; P.nome = 'Relatório Mensal'; P.ficheiro = m;
+    } else {
+      var ano = +$('ano').value, m1, m2;
+      if (t === 'trimestral') { var q = +$('tri').value; m1 = (q - 1) * 3 + 1; m2 = m1 + 2; P.rot = q + '.º trimestre de ' + ano; P.nome = 'Relatório Trimestral'; P.ficheiro = ano + '-T' + q; }
+      else if (t === 'semestral') { var s = +$('sem').value; m1 = s === 1 ? 1 : 7; m2 = m1 + 5; P.rot = s + '.º semestre de ' + ano; P.nome = 'Relatório Semestral'; P.ficheiro = ano + '-S' + s; }
+      else { m1 = 1; m2 = 12; P.rot = 'Ano de ' + ano; P.nome = 'Relatório Anual'; P.ficheiro = String(ano); }
+      P.de = ano + '-' + pad(m1) + '-01'; P.ate = ano + '-' + pad(m2) + '-' + pad(ultimoDia(ano, m2)); P.m1 = m1; P.m2 = m2; P.ano = ano;
+    }
+    return P;
+  }
+
+  // ── Dados ──
+  var dados = [], P = null, pedido = 0;
+  function achatar(arvore) {
+    var lista = [];
+    Object.keys(arvore || {}).forEach(function (dia) {
+      Object.keys(arvore[dia] || {}).forEach(function (sv) {
+        var r = arvore[dia][sv];
+        if (!r || typeof r !== 'object') return;
+        r.__caminho = dia + '/' + sv; r.servico = r.servico || sv; r.data = r.data || dia;
+        lista.push(r);
+      });
+    });
+    lista.sort(function (a, b) { return a.data < b.data ? -1 : a.data > b.data ? 1 : 0; });
+    return lista;
+  }
+  function carregar() {
+    if (!window.__urgLer) return;
+    P = periodo();
+    var meu = ++pedido;
+    $('estado').textContent = 'A carregar…';
+    window.__urgLer(P.de, P.ate).then(function (arv) {
+      if (meu !== pedido) return;
+      dados = achatar(arv);
+      $('estado').textContent = dados.length + ' registo(s) · ' + P.rot;
+      desenhar();
+    }).catch(function (e) { console.error(e); $('estado').textContent = 'Erro ao carregar: ' + (e && e.message || e); });
+  }
+  function filtrados() { var a = $('area').value; return a ? dados.filter(function (r) { return r.servico === a; }) : dados; }
+  function nomeSv(id, r) { return PORID[id] ? PORID[id].nome : ((r && r.servicoNome) || id); }
+  var c = function (r, k) { return (r.contagens && Number(r.contagens[k])) || 0; };
+  function somar(lista) {
+    var S = { n: lista.length };
+    lista.forEach(function (r) { Object.keys(r.contagens || {}).forEach(function (k) { S[k] = (S[k] || 0) + c(r, k); }); });
+    S.obs = (S.obs_m || 0) + (S.obs_f || 0);
+    return S;
+  }
+  var v = function (S, k) { return S[k] || 0; };
+  function porServico(lista) {
+    var ids = SV.map(function (s) { return s.id; });
+    lista.forEach(function (r) { if (ids.indexOf(r.servico) < 0) ids.push(r.servico); });
+    return ids.map(function (id) { var l = lista.filter(function (r) { return r.servico === id; }); return { id: id, nome: nomeSv(id, l[0]), lista: l, S: somar(l) }; })
+      .filter(function (x) { return x.lista.length; });
+  }
+  function camposSecao(secId) {
+    for (var i = 0; i < SV.length; i++) for (var j = 0; j < SV[i].secoes.length; j++) {
+      var s = SV[i].secoes[j]; if (s.id === secId) { var o = []; s.grupos.forEach(function (g) { g.campos.forEach(function (x) { o.push(x); }); }); return o; }
+    }
+    return [];
+  }
+  function diasDoPeriodo() {
+    var out = [], d = new Date(P.de + 'T12:00:00'), fim = P.ate < hojeISO() ? P.ate : hojeISO();
+    while (true) { var s = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); if (s > fim) break; out.push(s); d.setDate(d.getDate() + 1); }
+    return out;
+  }
+  function evolucao(lista) {
+    if (!P || P.tipo === 'diario') return null;
+    var g = [];
+    if (P.tipo === 'mensal') diasDoPeriodo().forEach(function (d) { g.push({ rot: fmtD(d), l: lista.filter(function (r) { return r.data === d; }) }); });
+    else for (var m = P.m1; m <= P.m2; m++) { var pref = P.ano + '-' + pad(m); g.push({ rot: MESES[m - 1], l: lista.filter(function (r) { return r.data.slice(0, 7) === pref; }) }); }
+    return g.map(function (x) { return { rot: x.rot, S: somar(x.l) }; }).filter(function (x) { return P.tipo !== 'mensal' || x.S.n; });
+  }
+  // Serviços que não enviaram registo em cada dia do período (só serviços com formulário)
+  function emFalta(lista) {
+    var dias = diasDoPeriodo(), areaSel = $('area').value, svs = areaSel ? [areaSel] : SV.map(function (s) { return s.id; });
+    var out = [];
+    svs.forEach(function (id) {
+      var faltam = dias.filter(function (d) { return !lista.some(function (r) { return r.servico === id && r.data === d; }); });
+      if (faltam.length) out.push({ id: id, nome: nomeSv(id), dias: faltam });
+    });
+    return out;
+  }
+
+  // ── Ecrã ──
+  var grafico = null;
+  function kpis(S, nDias) {
+    var k = [['Doentes observados', v(S, 'obs'), 'Masc. ' + v(S, 'obs_m') + ' · Fem. ' + v(S, 'obs_f')],
+      ['Menos de 15 anos', v(S, 'idade_men15'), '15 ou mais: ' + v(S, 'idade_mai15')],
+      ['Altas', v(S, 'altas'), ''], ['Internados', v(S, 'internados'), ''],
+      ['Transferências', v(S, 'transf_recebidas') + ' / ' + v(S, 'transf_efetuadas'), 'recebidas / efectuadas'],
+      ['Óbitos', v(S, 'obitos'), ''],
+      ['Cirurgias (Anestesia)', v(S, 'an_cir_urg') + v(S, 'an_cir_ele'), 'Urg. ' + v(S, 'an_cir_urg') + ' · Elect. ' + v(S, 'an_cir_ele')],
+      ['Registos', S.n, nDias ? 'em ' + nDias + ' dia(s)' : '']];
+    return '<div class="kpis">' + k.map(function (x) { return '<div class="kpi"><span>' + x[0] + '</span><b>' + x[1] + '</b><small>' + x[2] + '</small></div>'; }).join('') + '</div>';
+  }
+  function tabela(cab, linhas, totalLinha) {
+    return '<div class="tab-wrap"><table><thead><tr>' + cab.map(function (h, i) { return '<th' + (i ? ' class="n"' : '') + '>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      linhas.map(function (l) { return '<tr>' + l.map(function (x, i) { return '<td' + (i ? ' class="n' + (x === 0 ? ' zero' : '') + '"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') +
+      (totalLinha ? '<tr class="total">' + totalLinha.map(function (x, i) { return '<td' + (i ? ' class="n"' : '') + '>' + esc(x) + '</td>'; }).join('') + '</tr>' : '') +
+      '</tbody></table></div>';
+  }
+  function linhaInd(nome, S) { return [nome].concat(IND.map(function (k) { return v(S, k[0]); })); }
+
+  function desenhar() {
+    var lista = filtrados(), areaSel = $('area').value, S = somar(lista), h = '';
+    var nDias = {}; lista.forEach(function (r) { nDias[r.data] = 1; });
+    h += '<div class="card"><h2>' + esc(P.nome) + ' · ' + esc(P.rot) + ' · ' + esc(areaSel ? nomeSv(areaSel) : 'Todos os serviços') + '</h2>' + kpis(S, Object.keys(nDias).length);
+    var falta = emFalta(lista);
+    if (falta.length && P.tipo === 'diario') h += '<div class="falta-sv">Sem registo neste dia: ' + falta.map(function (f) { return esc(f.nome); }).join(', ') + '</div>';
+    h += '</div>';
+    if (!lista.length) { $('resumo').innerHTML = h + '<div class="card"><p class="vazio">Não há registos neste período.</p></div>'; desenharRegistos(); return; }
+
+    var A = porServico(lista);
+    var semAnest = A.filter(function (x) { return x.id !== 'anestesia'; });
+    if (semAnest.length) {
+      h += '<div class="card"><h2>Movimento por serviço</h2>' + (areaSel ? '' : '<div class="grafico"><canvas id="graf"></canvas></div>') +
+        tabela(['Serviço'].concat(IND.map(function (k) { return k[1]; })), semAnest.map(function (x) { return linhaInd(x.nome, x.S); }), semAnest.length > 1 ? linhaInd('Total', somar([].concat.apply([], semAnest.map(function (x) { return x.lista; })))) : null) + '</div>';
+    }
+    var ev = evolucao(lista);
+    if (ev && ev.length) h += '<div class="card"><h2>' + (P.tipo === 'mensal' ? 'Por dia' : 'Por mês') + '</h2>' +
+      tabela([P.tipo === 'mensal' ? 'Dia' : 'Mês', 'Registos', 'Observados', 'Altas', 'Intern.', 'Transf. receb.', 'Transf. efect.', 'Óbitos', 'Cirurgias'],
+        ev.map(function (x) { return [x.rot, x.S.n, v(x.S, 'obs'), v(x.S, 'altas'), v(x.S, 'internados'), v(x.S, 'transf_recebidas'), v(x.S, 'transf_efetuadas'), v(x.S, 'obitos'), v(x.S, 'an_cir_urg') + v(x.S, 'an_cir_ele')]; })) + '</div>';
+
+    SECOES_EXTRA.forEach(function (sx) {
+      var campos = camposSecao(sx[0]), comDados = A.filter(function (x) { return campos.some(function (cp) { return v(x.S, cp[0]); }); });
+      if (!comDados.length) return;
+      var cab = ['Tipo'].concat(comDados.map(function (x) { return x.nome; })).concat(comDados.length > 1 ? ['Total'] : []);
+      var linhas = campos.map(function (cp) { var l = [cp[1]], t = 0; comDados.forEach(function (x) { var n = v(x.S, cp[0]); t += n; l.push(n); }); if (comDados.length > 1) l.push(t); return l; });
+      h += '<div class="card"><h2>' + sx[1] + '</h2>' + tabela(cab, linhas) + '</div>';
+    });
+    var an = A.filter(function (x) { return x.id === 'anestesia'; })[0];
+    if (an) h += '<div class="card"><h2>Anestesia e Reanimação</h2>' + tabela(['Indicador', 'Total'], ANEST.map(function (cp) { return [cp[1], v(an.S, cp[0])]; })) + '</div>';
+
+    var cl = {}; lista.forEach(function (r) { if (r.classificacao) cl[r.classificacao] = (cl[r.classificacao] || 0) + 1; });
+    if (Object.keys(cl).length) h += '<div class="card"><h2>Como foram os turnos</h2>' + tabela(['Classificação', 'Turnos'], window.URG_CLASSIF.filter(function (x) { return cl[x[0]]; }).map(function (x) { return [x[1], cl[x[0]]]; })) + '</div>';
+
+    var obs = lista.filter(function (r) { return (r.observacoes || '').trim(); });
+    h += '<div class="card"><h2>Observações</h2>' + (obs.length ? obs.map(function (r) { return '<div class="sug"><small>' + fmtD(r.data) + ' · ' + esc(nomeSv(r.servico, r)) + ' · ' + esc(r.preenchidoPor || '') + '</small>' + esc(r.observacoes) + '</div>'; }).join('') : '<p class="vazio">Sem observações.</p>') + '</div>';
+
+    if (falta.length && P.tipo !== 'diario') h += '<div class="card"><h2>Dias sem registo</h2>' + tabela(['Serviço', 'Dias em falta', 'Quais'], falta.map(function (f) { return [f.nome, f.dias.length, f.dias.length > 12 ? f.dias.length + ' dias' : f.dias.map(fmtD).join(', ')]; })) + '</div>';
+
+    $('resumo').innerHTML = h;
+    if (!areaSel && window.Chart && $('graf')) {
+      if (grafico) grafico.destroy();
+      grafico = new Chart($('graf'), { type: 'bar',
+        data: { labels: semAnest.map(function (x) { return x.nome; }), datasets: [{ label: 'Doentes observados', data: semAnest.map(function (x) { return v(x.S, 'obs'); }), backgroundColor: '#0B62A8', borderRadius: 4 }] },
+        options: { maintainAspectRatio: false, animation: false, indexAxis: 'y', plugins: { legend: { display: false } } } });
+    }
+    desenharRegistos();
+  }
+
+  function desenharRegistos() {
+    var lista = filtrados().slice().reverse();
+    if (!lista.length) { $('lista-respostas').innerHTML = '<p class="vazio">Não há registos neste período.</p>'; return; }
+    $('lista-respostas').innerHTML = '<table class="resp"><thead><tr><th>Dia</th><th>Serviço</th><th>Observados</th><th>Altas</th><th>Intern.</th><th>Óbitos</th><th>Preenchido por</th><th>Enviado</th><th>Turno</th><th>Observações</th><th></th></tr></thead><tbody>' +
+      lista.slice(0, 500).map(function (r) {
+        var an = r.servico === 'anestesia';
+        return '<tr><td data-l="Dia">' + fmtD(r.data) + '</td><td data-l="Serviço">' + esc(nomeSv(r.servico, r)) + '</td><td data-l="' + (an ? 'Cirurgias' : 'Observados') + '">' + (an ? c(r, 'an_cir_urg') + c(r, 'an_cir_ele') : c(r, 'obs_m') + c(r, 'obs_f')) +
+          '</td><td data-l="Altas">' + (an ? '' : c(r, 'altas')) + '</td><td data-l="Internados">' + (an ? '' : c(r, 'internados')) + '</td><td data-l="Óbitos">' + (an ? c(r, 'an_obitos') : c(r, 'obitos')) +
+          '</td><td data-l="Preenchido por">' + esc(r.preenchidoPor || '') + (r.categoria ? ' <small>(' + esc(CATEG[r.categoria] || r.categoria) + ')</small>' : '') +
+          '</td><td data-l="Enviado">' + (r.ts ? fmtD(new Date(r.ts).toISOString().slice(0, 10)) + ' ' + hora(r.ts) : '') + (r.editado ? ' <small>(corrigido)</small>' : '') +
+          '</td><td data-l="Turno">' + esc(CLASSIF[r.classificacao] || '') + '</td><td data-l="Observações" style="min-width:180px">' + esc(r.observacoes || '') +
+          '</td><td class="acao"><button class="btn peq perigo" data-apagar="' + esc(r.__caminho) + '">Apagar</button></td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+  $('lista-respostas').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-apagar]'); if (!b) return;
+    if (!confirm('Apagar este registo? Não é possível desfazer.')) return;
+    b.disabled = true;
+    window.__urgApagar(b.getAttribute('data-apagar')).then(function () { toast('Registo apagado'); carregar(); })
+      .catch(function (err) { b.disabled = false; alert('Não foi possível apagar: ' + (err && err.message || err)); });
+  });
+
+  // ── CSV ──
+  $('btn-csv').addEventListener('click', function () {
+    var lista = filtrados();
+    if (!lista.length) { toast('Não há registos neste período'); return; }
+    var areaSel = $('area').value, campos = [];
+    (areaSel ? [PORID[areaSel]] : SV).forEach(function (s) { if (s) window.urgCampos(s).forEach(function (cp) { if (!campos.some(function (x) { return x[0] === cp[0]; })) campos.push(cp); }); });
+    var cel = function (x) { x = x == null ? '' : String(x); return /[;"\n\r]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+    var linhas = [['Dia', 'Serviço', 'Preenchido por', 'Categoria', 'Enviado'].concat(campos.map(function (cp) { return cp[1]; })).concat(['Classificação do turno', 'Observações', 'Corrigido']).map(cel).join(';')];
+    lista.forEach(function (r) {
+      linhas.push([fmtD(r.data), nomeSv(r.servico, r), r.preenchidoPor || '', CATEG[r.categoria] || '', r.ts ? new Date(r.ts).toLocaleString('pt-PT') : '']
+        .concat(campos.map(function (cp) { return c(r, cp[0]); })).concat([CLASSIF[r.classificacao] || '', r.observacoes || '', r.editado ? 'Sim' : '']).map(cel).join(';'));
+    });
+    var blob = new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'Urgencia_24h_' + P.ficheiro + (areaSel ? '_' + areaSel : '') + '.csv';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  // ── PDF ──
+  function pdfPronto() { return window.ZeloPdfTardio ? window.ZeloPdfTardio.carregar() : Promise.resolve(); }
+  $('btn-pdf').addEventListener('click', function () {
+    var b = this; if (!P) return; b.disabled = true;
+    pdfPronto().then(function () { try { gerarPDF(); } catch (e) { console.error(e); alert('Erro ao gerar o PDF: ' + e.message); } }).finally(function () { b.disabled = false; });
+  });
+  function gerarPDF() {
+    if (!(window.jspdf && window.jspdf.jsPDF) || !window.ZeloPDF) { toast('O gerador de PDF ainda está a carregar — tente de novo'); return; }
+    var lista = filtrados(), areaSel = $('area').value, S = somar(lista), sec = 0;
+    var Z = ZeloPDF.criar({ orientation: 'landscape' }), d = Z.d;
+    var y = Z.cab('Banco de Urgência · 24 horas · ' + P.nome, P.rot + ' · ' + (areaSel ? nomeSv(areaSel) : 'Todos os serviços'));
+    var tab = function (head, body, extra) {
+      var o = { startY: y, head: [head], body: body, styles: { fontSize: 9, halign: 'center' }, columnStyles: { 0: { halign: 'left' } } };
+      if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
+      y = ZeloPDF.autoTable(d, o);
+    };
+    var nDias = {}; lista.forEach(function (r) { nDias[r.data] = 1; });
+    y = Z.secT(y, (++sec) + '. Resumo');
+    y = Z.kv(y, [['Doentes observados', String(v(S, 'obs'))], ['Masculino / Feminino', v(S, 'obs_m') + ' / ' + v(S, 'obs_f')], ['< 15 / >= 15 anos', v(S, 'idade_men15') + ' / ' + v(S, 'idade_mai15')], ['Registos', S.n + ' em ' + Object.keys(nDias).length + ' dia(s)']]);
+    y = Z.kv(y, [['Altas', String(v(S, 'altas'))], ['Internados', String(v(S, 'internados'))], ['Transf. recebidas / efectuadas', v(S, 'transf_recebidas') + ' / ' + v(S, 'transf_efetuadas')], ['Óbitos', String(v(S, 'obitos'))]]);
+    if (!lista.length) { y = Z.txt(y, 'Nota', 'Não há registos neste período.'); Z.rodape(); d.save(nomePDF(areaSel)); return; }
+    var A = porServico(lista), semAnest = A.filter(function (x) { return x.id !== 'anestesia'; });
+    if (semAnest.length) {
+      y = Z.secT(y, (++sec) + '. Movimento por serviço');
+      var corpo = semAnest.map(function (x) { return linhaInd(x.nome, x.S); });
+      if (semAnest.length > 1) corpo.push(linhaInd('TOTAL', somar([].concat.apply([], semAnest.map(function (x) { return x.lista; })))).map(function (t) { return { content: String(t), styles: { fontStyle: 'bold' } }; }));
+      tab(['Serviço'].concat(IND.map(function (k) { return k[1].replace('≥', '>='); })), corpo);
+    }
+    var ev = evolucao(lista);
+    if (ev && ev.length) {
+      y = Z.secT(y, (++sec) + '. ' + (P.tipo === 'mensal' ? 'Por dia' : 'Por mês'));
+      tab([P.tipo === 'mensal' ? 'Dia' : 'Mês', 'Registos', 'Observados', 'Altas', 'Internados', 'Transf. receb.', 'Transf. efect.', 'Óbitos', 'Cirurgias'],
+        ev.map(function (x) { return [x.rot, x.S.n, v(x.S, 'obs'), v(x.S, 'altas'), v(x.S, 'internados'), v(x.S, 'transf_recebidas'), v(x.S, 'transf_efetuadas'), v(x.S, 'obitos'), v(x.S, 'an_cir_urg') + v(x.S, 'an_cir_ele')]; }));
+    }
+    SECOES_EXTRA.forEach(function (sx) {
+      var campos = camposSecao(sx[0]), comDados = A.filter(function (x) { return campos.some(function (cp) { return v(x.S, cp[0]); }); });
+      if (!comDados.length) return;
+      y = Z.secT(y, (++sec) + '. ' + sx[1]);
+      tab(['Tipo'].concat(comDados.map(function (x) { return x.nome; })).concat(comDados.length > 1 ? ['Total'] : []),
+        campos.map(function (cp) { var l = [cp[1]], t = 0; comDados.forEach(function (x) { var n = v(x.S, cp[0]); t += n; l.push(n); }); if (comDados.length > 1) l.push(t); return l; }));
+    });
+    var an = A.filter(function (x) { return x.id === 'anestesia'; })[0];
+    if (an) { y = Z.secT(y, (++sec) + '. Anestesia e Reanimação'); tab(['Indicador', 'Total'], ANEST.map(function (cp) { return [cp[1], v(an.S, cp[0])]; })); }
+    var cl = {}; lista.forEach(function (r) { if (r.classificacao) cl[r.classificacao] = (cl[r.classificacao] || 0) + 1; });
+    if (Object.keys(cl).length) { y = Z.secT(y, (++sec) + '. Como foram os turnos'); tab(['Classificação', 'Turnos'], window.URG_CLASSIF.filter(function (x) { return cl[x[0]]; }).map(function (x) { return [x[1], cl[x[0]]]; })); }
+    var falta = emFalta(lista);
+    if (falta.length) { y = Z.secT(y, (++sec) + '. Dias sem registo'); tab(['Serviço', 'Dias em falta', 'Quais'], falta.map(function (f) { return [f.nome, f.dias.length, f.dias.length > 12 ? f.dias.length + ' dias' : f.dias.map(fmtD).join(', ')]; }), { columnStyles: { 0: { halign: 'left' }, 2: { halign: 'left' } } }); }
+    y = Z.secT(y, (++sec) + '. Registos e observações');
+    tab(['Dia', 'Serviço', 'Preenchido por', 'Observ./Cirurg.', 'Turno', 'Observações'], lista.map(function (r) {
+      var an2 = r.servico === 'anestesia';
+      return [fmtD(r.data), nomeSv(r.servico, r), (r.preenchidoPor || '') + (r.categoria ? ' (' + (CATEG[r.categoria] || '') + ')' : ''), an2 ? c(r, 'an_cir_urg') + c(r, 'an_cir_ele') : c(r, 'obs_m') + c(r, 'obs_f'), CLASSIF[r.classificacao] || '', r.observacoes || ''];
+    }), { styles: { fontSize: 8, halign: 'left' }, columnStyles: { 3: { halign: 'center' }, 5: { cellWidth: 90 } } });
+    Z.rodape();
+    d.save(nomePDF(areaSel));
+  }
+  function nomePDF(areaSel) { return 'Urgencia_24h_' + P.tipo + '_' + P.ficheiro + (areaSel ? '_' + areaSel : '') + '.pdf'; }
+
+  // ── Links e QR ──
+  var URL_BASE = new URL('urgencia_24h.html', location.href).href;
+  var linkSv = function (id) { return URL_BASE + '?servico=' + id; };
+  function qr(t) { var q = qrcode(0, 'M'); q.addData(t); q.make(); return q; }
+  function qrSVG(t) { return qr(t).createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+  function desenharLinks() {
+    $('url-principal').value = URL_BASE; $('abrir-principal').href = URL_BASE; $('qr-principal').innerHTML = qrSVG(URL_BASE);
+    $('links-areas').innerHTML = SV.map(function (s) {
+      var u = linkSv(s.id);
+      return '<div class="link-card"><strong>' + esc(s.nome) + '</strong><div class="qr">' + qrSVG(u) + '</div><code>' + esc(u) + '</code>' +
+        '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button class="btn peq" data-copiar="' + esc(u) + '">Copiar</button>' +
+        '<a class="btn peq sec" style="text-decoration:none" target="_blank" rel="noopener" href="' + esc(u) + '">Abrir</a>' +
+        '<button class="btn peq sec" data-cartaz="' + s.id + '">Cartaz PDF</button></div></div>';
+    }).join('');
+  }
+  function copiar(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Link copiado'); }).catch(function () { prompt('Copie o link:', t); }); }
+  $('copiar-principal').addEventListener('click', function () { copiar(URL_BASE); });
+  $('links-areas').addEventListener('click', function (e) {
+    var x = e.target.closest('[data-copiar]'); if (x) copiar(x.getAttribute('data-copiar'));
+    var p = e.target.closest('[data-cartaz]'); if (p) cartazes([p.getAttribute('data-cartaz')]);
+  });
+  $('btn-cartazes').addEventListener('click', function () { cartazes(null); });
+  function logoHospital() {
+    return fetch('icons/hospital_prenda_logo.jpg').then(function (r) { return r.ok ? r.blob() : null; }).then(function (b) {
+      if (!b) return null;
+      return new Promise(function (ok) { var f = new FileReader(); f.onload = function () { ok(f.result); }; f.onerror = function () { ok(null); }; f.readAsDataURL(b); });
+    }).catch(function () { return null; });
+  }
+  function cartazes(ids) {
+    Promise.all([pdfPronto(), logoHospital()]).then(function (res) {
+      var logo = res[1];
+      if (!(window.jspdf && window.jspdf.jsPDF)) { toast('O gerador de PDF ainda está a carregar — tente de novo'); return; }
+      var d = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' }), W = 210, primeira = true;
+      var pags = ids ? ids.map(function (id) { return { nome: PORID[id].nome, url: linkSv(id) }; })
+        : [{ nome: 'Escolha o seu serviço', url: URL_BASE }].concat(SV.map(function (s) { return { nome: s.nome, url: linkSv(s.id) }; }));
+      pags.forEach(function (pg) {
+        if (!primeira) d.addPage(); primeira = false;
+        d.setFillColor('#01467F'); d.rect(0, 0, W, 44, 'F');
+        if (logo) { try { d.addImage(logo, 'JPEG', 14, 7, 30, 30); } catch (e) { logo = null; } }
+        var xt = logo ? 52 : W / 2, al = logo ? 'left' : 'center';
+        d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(24); d.text('Hospital do Prenda', xt, 21, { align: al });
+        d.setFont('helvetica', 'normal'); d.setFontSize(13); d.text('Banco de Urgência · dados das 24 horas', xt, 31, { align: al });
+        d.setTextColor('#01467F'); d.setFont('helvetica', 'bold'); d.setFontSize(26); d.text(d.splitTextToSize(pg.nome, W - 30), W / 2, 64, { align: 'center' });
+        d.setFont('helvetica', 'normal'); d.setFontSize(15); d.setTextColor('#333333');
+        d.text('No fim de cada turno, registe aqui os totais do serviço.', W / 2, 80, { align: 'center' });
+        var q = qr(pg.url), n = q.getModuleCount(), tam = 120, cel = tam / n, x0 = (W - tam) / 2, y0 = 92;
+        d.setFillColor('#000000');
+        for (var r = 0; r < n; r++) for (var cc = 0; cc < n; cc++) if (q.isDark(r, cc)) d.rect(x0 + cc * cel, y0 + r * cel, cel + 0.05, cel + 0.05, 'F');
+        d.setFont('helvetica', 'bold'); d.setFontSize(16); d.setTextColor('#01467F'); d.text('Aponte a câmara do telemóvel para o código', W / 2, y0 + tam + 14, { align: 'center' });
+        d.setFont('helvetica', 'normal'); d.setFontSize(12); d.setTextColor('#555555'); d.text('Só totais. Não escreva nomes de doentes.', W / 2, y0 + tam + 23, { align: 'center' });
+        d.setFontSize(9); d.text(d.splitTextToSize(pg.url, W - 30), W / 2, 282, { align: 'center' });
+      });
+      d.save(ids ? 'Cartaz_Urgencia24h_' + ids[0] + '.pdf' : 'Cartazes_Urgencia_24h.pdf');
+    });
+  }
+
+  // ── Arranque ──
+  document.querySelectorAll('.aba').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.aba').forEach(function (x) { x.classList.toggle('on', x === b); });
+      var a = b.getAttribute('data-aba');
+      ['relatorios', 'respostas', 'links'].forEach(function (k) { $('aba-' + k).classList.toggle('oculto', k !== a); });
+      $('card-filtros').classList.toggle('oculto', a === 'links');
+    });
+  });
+  ['tipo', 'dia', 'mes', 'ano', 'tri', 'sem'].forEach(function (id) { $(id).addEventListener('change', function () { ajustarFiltros(); carregar(); }); });
+  $('area').addEventListener('change', function () { if (P) desenhar(); });
+  ajustarFiltros(); desenharLinks();
+  var fbOk = !!window.__urgLer, gateOk = !!window.__zeloGatePronto;
+  function talvez() { if (fbOk && gateOk) carregar(); }
+  window.addEventListener('urg-fb-pronto', function () { fbOk = true; talvez(); });
+  window.addEventListener('zelo-gate-ready', function () { gateOk = true; talvez(); });
+  talvez();
+})();
+</script>
+</body>
+</html>
