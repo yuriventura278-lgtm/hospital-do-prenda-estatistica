@@ -44,7 +44,7 @@
   window.__inqApagar = (caminho) => remove(ref(db, 'inqueritos_satisfacao/' + caminho));
   window.dispatchEvent(new Event('inq-fb-pronto'));
 </script>
-<script src="inquerito_modelos.js?v=1"></script>
+<script src="inquerito_modelos.js?v=2"></script>
 <script src="chart.umd.min.js"></script>
 <script src="lib/qrcode-generator-1.4.4.js"></script>
 <script src="zelo_pdf.js"></script>
@@ -518,14 +518,19 @@
   $('btn-csv').addEventListener('click', function () {
     var lista = filtrados();
     if (!lista.length) { toast('Não há respostas neste período'); return; }
-    var areaSel = $('area').value, maxQ = 0, campos = {};
+    var areaSel = $('area').value, campos = {}, cods = [];
+    var junta = function (c) { if (cods.indexOf(c) < 0) cods.push(c); };
+    if (areaSel && PORID[areaSel]) PORID[areaSel].perguntas.forEach(function (q) { junta(q[0]); });
     lista.forEach(function (r) {
-      var m = PORID[r.area]; if (m) maxQ = Math.max(maxQ, m.perguntas.length);
+      var m = PORID[r.area]; if (m && !areaSel) m.perguntas.forEach(function (q) { junta(q[0]); });
+      Object.keys(r.notas || {}).forEach(junta);
       Object.keys(r.perfil || {}).forEach(function (k) { campos[k] = 1; });
     });
+    if (!areaSel) cods.sort(function (a, b) { return parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10); });
     var cps = Object.keys(campos);
     var cab = ['Data', 'Hora', 'Área', 'Satisfação global (1-5)', 'Recomenda'];
-    for (var i = 1; i <= maxQ; i++) cab.push(areaSel && PORID[areaSel] && PORID[areaSel].perguntas[i - 1] ? PORID[areaSel].perguntas[i - 1][1] : 'Pergunta ' + i);
+    var textoQ = function (c) { var q = areaSel && PORID[areaSel] ? PORID[areaSel].perguntas.filter(function (x) { return x[0] === c; })[0] : null; return q ? q[1] : 'Pergunta ' + c; };
+    cods.forEach(function (c) { cab.push(textoQ(c)); });
     var rotCampo = function (k) {
       var achado = k;
       MODELOS.forEach(function (m) { m.campos.concat(m.depois || []).forEach(function (c) { if (c.id === k && (!areaSel || m.id === areaSel)) achado = c.rotulo; }); });
@@ -536,7 +541,7 @@
     var linhas = [cab.map(cel).join(';')];
     lista.forEach(function (r) {
       var m = PORID[r.area], l = [fmtD(r.data), hora(r.criado), nomeArea(r.area, r), r.global, REC[r.recomenda] || ''];
-      for (var i = 1; i <= maxQ; i++) l.push((r.notas && r.notas['q' + i]) || '');
+      cods.forEach(function (c) { l.push((r.notas && r.notas[c]) || ''); });
       cps.forEach(function (k) {
         var v = r.perfil && r.perfil[k], txt = v || '';
         if (v && m) m.campos.concat(m.depois || []).forEach(function (c) { if (c.id === k && c.opcoes) c.opcoes.forEach(function (o) { if (o[0] === v) txt = o[1]; }); });

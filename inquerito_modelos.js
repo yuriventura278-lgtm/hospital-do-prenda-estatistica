@@ -8,6 +8,10 @@
 //
 // Tipos de campo: 'opcoes' (botões), 'lista' (menu) e 'texto' (campo livre,
 // guardado em "especialidade" — só um campo de texto por modelo).
+//
+// Pergunta só para alguns casos: um 3.º elemento com a condição, ex.
+//   ['q10', 'Prazo de entrega do relatório', { assunto: ['relatorio_medico'] }]
+// aparece só quando o campo "assunto" tem uma dessas opções.
 (function () {
   const SEXO = { id: 'sexo', rotulo: 'Sexo', tipo: 'opcoes', opcoes: [['m', 'Masculino'], ['f', 'Feminino']] };
   const IDADE = { id: 'idade', rotulo: 'Idade', tipo: 'opcoes', opcoes: [['menos18', 'Menos de 18'], ['18-39', '18 a 39'], ['40-59', '40 a 59'], ['60mais', '60 ou mais']] };
@@ -180,18 +184,32 @@
     },
     {
       id: 'secretaria_recepcao', grupo: 'utente', nome: 'Secretaria Geral / Recepção',
-      desc: 'Marcações, processos e informações',
+      desc: 'Relatórios médicos, documentos, informações e audiências',
       campos: [
-        { id: 'respondente', rotulo: 'Quem está a responder?', tipo: 'opcoes', opcoes: [['utente', 'Utente'], ['acompanhante', 'Acompanhante'], ['visitante', 'Visitante'], ['outro', 'Outro']] },
-        { id: 'assunto', rotulo: 'Assunto tratado', tipo: 'opcoes', opcoes: [['marcacao', 'Marcação de consulta'], ['processo', 'Abertura de processo'], ['informacao', 'Informações / orientação'], ['documentos', 'Entrega de documentos'], ['outro', 'Outro']] },
+        { id: 'respondente', rotulo: 'Quem está a responder?', tipo: 'opcoes', opcoes: [['utente', 'Utente'], ['acompanhante', 'Familiar / acompanhante'], ['visitante', 'Visitante'], ['outro', 'Outro']] },
+        { id: 'assunto', rotulo: 'Assunto tratado na Secretaria', tipo: 'opcoes', obrig: true, opcoes: [
+          ['relatorio_medico', 'Relatório médico'],
+          ['documentos', 'Entrega de documentos'],
+          ['informacao', 'Informações / orientações'],
+          ['audiencia', 'Audiência com membros da direção'],
+          ['outro', 'Outro'],
+        ] },
         SEXO, IDADE,
       ],
+      // Na Secretaria não se marcam consultas (q4 «Facilidade de marcação» foi retirada).
       perguntas: [
         ['q1', 'Acolhimento e simpatia'],
-        ['q2', 'Tempo de espera'],
-        ['q3', 'Clareza das informações e orientação'],
-        ['q4', 'Facilidade de marcação'],
+        ['q2', 'Tempo de espera para ser atendido'],
+        ['q3', 'Clareza das informações e orientações'],
         ['q5', 'Rapidez do atendimento'],
+        ['q10', 'Cumprimento do prazo de entrega do relatório médico', { assunto: ['relatorio_medico'] }],
+        ['q11', 'Explicação sobre como e quando levantar o relatório', { assunto: ['relatorio_medico'] }],
+        ['q12', 'Receção e registo dos documentos entregues', { assunto: ['documentos'] }],
+        ['q13', 'Informação sobre o seguimento dos documentos', { assunto: ['documentos'] }],
+        ['q14', 'Utilidade das informações / orientações recebidas', { assunto: ['informacao'] }],
+        ['q15', 'Facilidade em conseguir a audiência', { assunto: ['audiencia'] }],
+        ['q16', 'Tempo de espera pela audiência', { assunto: ['audiencia'] }],
+        ['q17', 'Atenção dada ao seu assunto na audiência', { assunto: ['audiencia'] }],
         ['q6', 'Organização das filas / senhas'],
         ['q7', 'Sinalização dentro do hospital'],
         ['q8', 'Conforto da área de espera'],
