@@ -302,6 +302,111 @@
   .rascunho:empty{display:none}
   .obrigado .acoes .linha-bt{display:flex;gap:10px;margin-top:10px}
   .obrigado .acoes .linha-bt .btn{margin-top:0}
+
+  /* ═══════════ Acabamento visual (UI) ═══════════ */
+  /* Barra de topo azul do hospital, com progresso das secções */
+  .barra-topo{background:linear-gradient(135deg,var(--hp-1),var(--hp-2) 60%,var(--hp-3));color:#fff;border-bottom:0;padding-bottom:14px;box-shadow:0 8px 24px -16px rgba(1,70,127,.8)}
+  .barra-topo > .linha{background:none;border:0;box-shadow:none;padding:0;margin:0;border-radius:0}
+  .barra-topo .voltar{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.35);color:#fff}
+  .titulo-area small{color:rgba(255,255,255,.8)}
+  .titulo-area h2{color:#fff;font-size:1.3rem}
+  .logo-mini{box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+  .topo-prog{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:.8rem;font-weight:700;color:rgba(255,255,255,.9)}
+  .topo-prog .prog{flex:1;margin:0;height:8px;background:rgba(255,255,255,.22)}
+  .topo-prog .prog i{background:linear-gradient(90deg,#9FE3B4,#fff)}
+  /* Cartões de secção */
+  section.cartao{transition:background .2s}
+  .sec-tit b{width:32px;height:32px;font-size:.9rem;background:var(--zelo-accent);color:var(--sobre-acento);box-shadow:0 4px 10px -4px var(--zelo-accent)}
+  section.cartao.cheia .sec-tit b{background:var(--zelo-good);box-shadow:0 4px 10px -4px var(--zelo-good)}
+  section.cartao.cheia .sec-tit b::before{content:'✓'}
+  section.cartao.cheia .sec-tit b span{display:none}
+  .sec-tit h3{font-size:1.12rem;line-height:1.2}
+  .sec-tit .subtotal{font-size:.95rem;min-width:38px;text-align:center;padding:4px 12px}
+  .nota{display:flex;gap:8px;align-items:flex-start;background:var(--zelo-surface-2);border-radius:12px;padding:10px 12px;margin:-4px 0 14px;font-size:.88rem}
+  .nota::before{content:'i';flex:none;width:20px;height:20px;border-radius:50%;background:var(--zelo-accent-soft);color:var(--zelo-accent-ink);font-weight:800;font-size:.75rem;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif}
+  /* Índice */
+  .indice-cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .indice-cab h3{margin:0;font-family:var(--zelo-font-display);font-size:1.05rem}
+  .indice-cab small{color:var(--zelo-ink-faint);font-size:.8rem}
+  .indice{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .ix{display:flex;align-items:center;gap:8px;text-align:left;border:1.5px solid var(--zelo-line);background:var(--zelo-surface);border-radius:12px;padding:8px 10px;cursor:pointer;font-size:.86rem;font-weight:600;line-height:1.2;color:var(--zelo-ink);min-height:48px}
+  .ix:active{transform:scale(.98)}
+  .ix b{flex:none;width:24px;height:24px;border-radius:50%;background:var(--zelo-surface-2);color:var(--zelo-ink-soft);display:flex;align-items:center;justify-content:center;font-size:.75rem}
+  .ix span{flex:1;min-width:0}
+  .ix em{font-style:normal;font-weight:800;color:var(--zelo-accent-ink);font-size:.8rem}
+  .ix.cheia{border-color:color-mix(in srgb,var(--zelo-good) 45%,transparent);background:var(--zelo-good-soft)}
+  .ix.cheia b{background:var(--zelo-good);color:#fff}
+  .ix.cheia b::before{content:'✓'} .ix.cheia b i{display:none}
+  section.cartao{scroll-margin-top:12px}
+  .salto{animation:salto 1.2s ease}
+  @keyframes salto{0%{background:var(--zelo-accent-soft)}100%{background:var(--zelo-surface)}}
+  /* Dia do turno */
+  .dia-linha{display:flex;gap:8px;align-items:stretch}
+  .dia-linha input{flex:1;min-width:0}
+  .dia-atalhos{display:flex;gap:6px}
+  .dia-atalhos button{border:1.5px solid var(--zelo-line-strong);background:var(--zelo-surface);border-radius:12px;padding:0 14px;font-weight:700;font-size:.9rem;cursor:pointer;min-height:48px}
+  .dia-atalhos button.on{background:var(--zelo-accent);border-color:var(--zelo-accent);color:var(--sobre-acento)}
+  .dia-extenso{margin-top:6px;font-size:.88rem;color:var(--zelo-accent-ink);font-weight:600}
+  /* Campos de texto com ícone de pessoa (equipa) */
+  .textos input[type=text]{padding-left:42px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%238B98A3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21a8 8 0 0 1 16 0'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
+  .textos input[type=text]:not(:placeholder-shown){border-color:var(--zelo-accent);background-color:var(--zelo-accent-soft)}
+  input[type=text]:focus,textarea:focus,select:focus,input[type=date]:focus{box-shadow:0 0 0 4px var(--zelo-accent-soft)}
+  /* Contador: pílula − número + */
+  .cont{padding:12px 0}
+  .passo{gap:0;border:1.5px solid var(--zelo-line-strong);border-radius:999px;background:var(--zelo-surface);padding:3px;box-shadow:var(--zelo-shadow-sm)}
+  .passo button{width:44px;height:44px;border-radius:50%;border:0;background:var(--zelo-surface-2);font-size:1.45rem}
+  .passo button[data-d="1"]{background:var(--zelo-accent);color:var(--sobre-acento)}
+  .passo input{width:58px;height:44px;border:0;background:transparent;border-radius:0;font-size:1.2rem}
+  .passo input:focus{outline:0;box-shadow:none}
+  .cont.tem .passo{border-color:var(--zelo-accent);background:var(--zelo-accent-soft)}
+  .cont.tem input{background:transparent;border:0}
+  .cont.tem label{color:var(--zelo-accent-ink)}
+  /* Grelha compacta (exames): nome à esquerda, caixas à direita */
+  .gtab{width:100%;border-collapse:separate;border-spacing:0}
+  .gtab-rolo{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .gtab-rolo.larga{margin:0 -4px;padding:0 4px}
+  .gtab-rolo.larga .gtab td:first-child,.gtab-rolo.larga .gtab th:first-child{position:sticky;left:0;z-index:1;background:var(--zelo-surface);min-width:118px;max-width:150px;box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
+  .gtab-rolo.larga .gtab input{min-width:48px;max-width:60px}
+  .gtab-rolo.larga .gtab tr.g-gr td{position:static;background:var(--zelo-surface-2);box-shadow:none}
+  .gtab tr.g-gr td span{position:sticky;left:6px}
+  .gtab-dica{margin:0 0 6px;font-size:.78rem;color:var(--zelo-ink-soft);font-weight:600}
+  @media (min-width:640px){.gtab-dica{display:none}}
+  .gtab th{position:sticky;top:0;background:var(--zelo-surface);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--zelo-ink-soft);text-align:center;padding:6px 2px;border-bottom:2px solid var(--zelo-line)}
+  .gtab th:first-child{text-align:left}
+  .gtab td{padding:5px 2px;border-bottom:1px solid var(--zelo-line);vertical-align:middle}
+  .gtab td:first-child{font-weight:600;font-size:.95rem;line-height:1.2;padding-right:8px}
+  .gtab tr.g-gr td{background:var(--zelo-surface-2);font-weight:800;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--zelo-ink-soft);padding:8px 6px}
+  .gtab input{width:100%;min-width:54px;max-width:76px;display:block;margin:0 auto;font:inherit;font-size:16px;font-weight:700;text-align:center;color:inherit;background:var(--zelo-surface-2);border:1.5px solid var(--zelo-line);border-radius:10px;padding:8px 4px;min-height:44px;-moz-appearance:textfield;appearance:textfield}
+  .gtab input::-webkit-inner-spin-button{-webkit-appearance:none}
+  .gtab input:focus{outline:0;border-color:var(--zelo-accent);box-shadow:0 0 0 3px var(--zelo-accent-soft);background:var(--zelo-surface)}
+  .gtab input.tem{border-color:var(--zelo-accent);background:var(--zelo-accent-soft);color:var(--zelo-accent-ink)}
+  .gtab tr.tem td:first-child{color:var(--zelo-accent-ink)}
+  .gtab tfoot td{font-weight:800;text-align:center;color:var(--zelo-accent-ink);border-bottom:0;padding-top:8px}
+  .gtab tfoot td:first-child{text-align:left}
+  /* Listas */
+  .linha{background:var(--zelo-surface);box-shadow:var(--zelo-shadow-sm);border:1.5px solid var(--zelo-line);border-left:5px solid var(--zelo-accent)}
+  .linha-cab .n{display:flex;align-items:center;gap:8px}
+  .linha-cab .n::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--zelo-accent)}
+  .linha-cab button{display:inline-flex;align-items:center;gap:4px;border:1.5px solid color-mix(in srgb,var(--zelo-warn) 35%,transparent);background:var(--zelo-warn-soft);border-radius:999px;padding:5px 12px}
+  .linha-cab button::before{content:'';width:14px;height:14px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14'/%3E%3C/svg%3E") center/contain no-repeat}
+  [data-lista]:empty::before{content:attr(data-vazio);display:block;text-align:center;color:var(--zelo-ink-faint);font-size:.9rem;padding:14px 10px;border:1.5px dashed var(--zelo-line-strong);border-radius:14px;margin-bottom:10px}
+  .add{border-style:solid;border-width:1.5px;background:var(--zelo-surface);gap:10px;box-shadow:var(--zelo-shadow-sm)}
+  .add .mais{width:28px;height:28px;border-radius:50%;background:var(--zelo-accent);color:var(--sobre-acento);display:inline-flex;align-items:center;justify-content:center;font-size:1.2rem;line-height:1}
+  .add:disabled{opacity:.5}
+  .opcoes span{transition:transform .1s, background .15s}
+  .opcoes label:active span{transform:scale(.96)}
+  /* Botões */
+  .btn{background:linear-gradient(135deg,var(--zelo-accent),var(--zelo-accent-dark));box-shadow:0 10px 22px -12px var(--zelo-accent);border-radius:16px;letter-spacing:.01em}
+  .btn:hover{filter:brightness(1.05)}
+  .btn.sec,.btn.pdf{background:var(--zelo-surface);box-shadow:none}
+  .btn.confirmar{background:linear-gradient(135deg,var(--zelo-warn),#8E3A1E)!important}
+  .barra-fundo{flex-direction:column;align-items:stretch;gap:12px;background:var(--zelo-surface);padding:18px}
+  .barra-fundo .conta{display:flex;align-items:baseline;gap:8px;font-size:.92rem}
+  .barra-fundo .conta b{font-size:1.6rem;font-family:var(--zelo-font-display);color:var(--zelo-accent-ink)}
+  .barra-fundo .botoes{min-width:0}
+  .barra-fundo .botoes .btn{min-height:56px;font-size:1.02rem}
+  @media (max-width:380px){.barra-fundo .botoes{flex-direction:column}}
+  .rascunho{justify-content:center}
   @media (max-width:360px){.passo button{width:42px;height:42px}.passo input{width:54px}}
 </style>
 </head>
@@ -331,9 +436,10 @@
     <div class="barra-topo">
       <div class="linha">
         <button type="button" class="voltar" id="mudar" aria-label="Mudar de serviço"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-        <div class="titulo-area"><small>Banco de Urgência · 24 horas</small><h2 id="area-nome"></h2></div>
+        <div class="titulo-area"><small>Ficha de recolha de dados · 24 horas</small><h2 id="area-nome"></h2></div>
         <img class="logo-mini" src="icons/hospital_prenda_192.png" alt="">
       </div>
+      <div class="topo-prog"><div class="prog"><i id="prog-sec"></i></div><span id="prog-sec-txt">0 de 0 secções</span></div>
     </div>
 
     <div class="info oculto" id="ja-existe"></div>
@@ -343,7 +449,8 @@
       <div class="sec-tit"><b>1</b><h3>Turno</h3></div>
       <div class="campo" id="c-dia">
         <label class="rot" for="dia">Dia em que começou o turno de 24 horas <span class="obr">*</span></label>
-        <input type="date" id="dia" required>
+        <div class="dia-linha"><input type="date" id="dia" required><div class="dia-atalhos"><button type="button" data-dias="1">Ontem</button><button type="button" data-dias="0">Hoje</button></div></div>
+        <div class="dia-extenso" id="dia-extenso"></div>
       </div>
       <div class="campo" id="c-nome">
         <label class="rot" for="nome">Quem preenche <span class="obr">*</span></label>
@@ -354,6 +461,8 @@
         <div class="opcoes" id="categorias"></div>
       </div>
     </section>
+
+    <section class="cartao indice-sec"><div class="indice-cab"><h3>Secções da ficha</h3><small>Toque para ir à secção</small></div><div class="indice" id="indice"></div></section>
 
     <div id="secoes"></div>
 
@@ -521,10 +630,22 @@ function htmlContadores(sec) {
 }
 function htmlTextos(sec) {
   return `<div class="textos">${sec.textos.map(([cod, rot, dica]) => `<div class="${dica ? 'larga' : ''}"${dica ? ' style="grid-column:1/-1"' : ''}><label for="t-${cod}">${esc(rot)}</label>
-    ${dica ? `<textarea id="t-${cod}" data-t="${cod}" maxlength="1000" placeholder="${esc(dica)}"></textarea>` : `<input type="text" id="t-${cod}" data-t="${cod}" maxlength="120" autocomplete="off">`}</div>`).join('')}</div>`;
+    ${dica ? `<textarea id="t-${cod}" data-t="${cod}" maxlength="1000" placeholder="${esc(dica)}"></textarea>` : `<input type="text" id="t-${cod}" data-t="${cod}" maxlength="120" autocomplete="off" placeholder="Nome">`}</div>`).join('')}</div>`;
 }
 function htmlGrade(sec) {
   const G = sec.grade;
+  if (G.colunas.every((c) => c[2] === 'n')) {
+    // Tabela compacta: exame à esquerda, uma caixa por coluna
+    let gAnt = null, corpo = '';
+    for (const [lc, lr, grupo] of G.linhas) {
+      if (grupo && grupo !== gAnt) { corpo += `<tr class="g-gr"><td colspan="${G.colunas.length + 1}"><span>${esc(grupo)}</span></td></tr>`; gAnt = grupo; }
+      corpo += `<tr data-gl="${lc}"><td>${esc(lr)}</td>${G.colunas.map(([cc, cr]) => `<td><input type="number" id="g-${lc}_${cc}" data-g="${lc}_${cc}" inputmode="numeric" min="0" max="9999" placeholder="0" aria-label="${esc(lr + ' · ' + cr)}"></td>`).join('')}</tr>`;
+    }
+    const pre = G.totais ? G.totais + '_' : '';
+    const larga = G.colunas.length > 3;
+    return `${larga ? '<p class="gtab-dica">Deslize a tabela para o lado para ver todas as colunas →</p>' : ''}<div class="gtab-rolo${larga ? ' larga' : ''}"><table class="gtab"><thead><tr><th>${G.linhas.length > 8 ? 'Exame / item' : ''}</th>${G.colunas.map(([, cr]) => `<th>${esc(cr)}</th>`).join('')}</tr></thead><tbody>${corpo}</tbody>
+      <tfoot><tr><td>Total</td>${G.colunas.map(([cc]) => `<td data-gtot="${pre}${cc}" data-gcol="${cc}" data-gsec="${sec.id}">0</td>`).join('')}</tr></tfoot></table></div>`;
+  }
   let grupoAnt = null, h = '';
   for (const [lc, lr, grupo] of G.linhas) {
     if (grupo && grupo !== grupoAnt) { h += `<div class="grade-grupo">${esc(grupo)}</div>`; grupoAnt = grupo; }
@@ -540,8 +661,8 @@ function htmlGrade(sec) {
   return h;
 }
 function htmlLista(sec) {
-  return `<div id="L-${sec.id}" data-lista="${sec.id}"></div>
-    <button type="button" class="add" data-add="${sec.id}">＋ Adicionar ${esc(sec.lista.item)}</button>`;
+  return `<div id="L-${sec.id}" data-lista="${sec.id}" data-vazio="Nenhum(a) ${esc(sec.lista.item)} registado(a). Se houver, toque em «Adicionar»."></div>
+    <button type="button" class="add" data-add="${sec.id}"><span class="mais">+</span>Adicionar ${esc(sec.lista.item)}</button>`;
 }
 function htmlLinha(sec, vals) {
   const id = 'ln' + (++nLinha);
@@ -576,8 +697,8 @@ function htmlSecoes(s) {
   return s.secoes.map((sec, i) => {
     const temTotal = (sec.grupos && sec.total !== false) || sec.lista;
     const corpo = sec.grupos ? htmlContadores(sec) : sec.textos ? htmlTextos(sec) : sec.grade ? htmlGrade(sec) : htmlLista(sec);
-    return `<section class="cartao" data-sec="${sec.id}">
-      <div class="sec-tit"><b>${i + 2}</b><h3>${esc(sec.titulo)}</h3>${temTotal ? `<span class="subtotal" id="st-${sec.id}">0</span>` : ''}</div>
+    return `<section class="cartao" data-sec="${sec.id}" id="sec-${sec.id}">
+      <div class="sec-tit"><b><span>${i + 2}</span></b><h3>${esc(sec.titulo)}</h3>${temTotal ? `<span class="subtotal" id="st-${sec.id}">0</span>` : ''}</div>
       ${sec.nota ? `<p class="nota">${esc(sec.nota)}</p>` : ''}${corpo}</section>`;
   }).join('');
 }
@@ -610,6 +731,49 @@ function recolher() {
   return { contagens, textos, listas };
 }
 
+// Secção preenchida? (para o ✓, o índice e o progresso no topo)
+function secaoCheia(sec) {
+  const box = $('sec-' + sec.id); if (!box) return false;
+  if (sec.lista) return !!box.querySelector('.linha');
+  return [...box.querySelectorAll('input[type=number], input[type=text], textarea')].some((e) => e.value.trim() && e.value !== '0');
+}
+function estadoSecoes() {
+  if (!atual) return;
+  let cheias = 0;
+  atual.secoes.forEach((sec) => {
+    const c = secaoCheia(sec); if (c) cheias++;
+    const box = $('sec-' + sec.id); if (box) box.classList.toggle('cheia', c);
+    const ix = document.querySelector(`.ix[data-ir="${sec.id}"]`);
+    if (ix) {
+      ix.classList.toggle('cheia', c);
+      const st = $('st-' + sec.id); const em = ix.querySelector('em'); if (em) em.textContent = st && st.textContent !== '0' ? st.textContent : '';
+    }
+  });
+  $('prog-sec').style.width = Math.round(cheias * 100 / atual.secoes.length) + '%';
+  $('prog-sec-txt').textContent = `${cheias} de ${atual.secoes.length} secções`;
+}
+function desenharIndice(s) {
+  $('indice').innerHTML = s.secoes.map((sec, i) => `<button type="button" class="ix" data-ir="${sec.id}"><b><i>${i + 2}</i></b><span>${esc(sec.titulo)}</span><em></em></button>`).join('');
+}
+$('indice').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ir]'); if (!b) return;
+  const box = $('sec-' + b.dataset.ir); if (!box) return;
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  box.classList.remove('salto'); void box.offsetWidth; box.classList.add('salto');
+});
+// Dia do turno: atalhos e dia por extenso
+function mostrarDia() {
+  const v = $('dia').value;
+  document.querySelectorAll('.dia-atalhos button').forEach((b) => b.classList.toggle('on', v === diasAtras(+b.dataset.dias)));
+  const ext = v ? new Date(v + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  $('dia-extenso').textContent = ext ? ext.charAt(0).toUpperCase() + ext.slice(1) : '';
+}
+document.querySelector('.dia-atalhos').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-dias]'); if (!b) return;
+  $('dia').value = diasAtras(+b.dataset.dias); mostrarDia(); carregarExistente();
+});
+$('dia').addEventListener('input', mostrarDia);
+
 const principalTxt = (s) => (s.resumo && s.resumo[0]) ? s.resumo[0] : null;
 function atualizarTotais() {
   if (!atual) return;
@@ -619,7 +783,13 @@ function atualizarTotais() {
   }
   document.querySelectorAll('[data-soma]').forEach((e) => { e.textContent = soma(e.dataset.soma.split(',')); });
   document.querySelectorAll('.cont').forEach((r) => r.classList.toggle('tem', val(r.id.slice(2)) > 0));
-  document.querySelectorAll('.gcampos input').forEach((e) => e.classList.toggle('tem', !!e.value.trim() && e.value !== '0'));
+  document.querySelectorAll('.gcampos input, .gtab input').forEach((e) => e.classList.toggle('tem', !!e.value.trim() && e.value !== '0'));
+  document.querySelectorAll('.gtab tr[data-gl]').forEach((tr) => tr.classList.toggle('tem', !!tr.querySelector('input.tem')));
+  document.querySelectorAll('[data-gtot]').forEach((td) => {
+    const sec = atual.secoes.find((x) => x.id === td.dataset.gsec);
+    td.textContent = sec.grade.linhas.reduce((a, l) => a + val(l[0] + '_' + td.dataset.gcol), 0);
+  });
+  estadoSecoes();
   const R = recolher(), p = principalTxt(atual);
   if (p) { $('total-txt').textContent = R.contagens[p[0]] || 0; $('total-txt').nextSibling.textContent = p[1].toLowerCase(); }
   else { $('total-txt').textContent = Object.keys(R.contagens).length; $('total-txt').nextSibling.textContent = 'campos preenchidos'; }
@@ -737,16 +907,18 @@ function abrir(id, hist) {
   atual = s;
   $('area-nome').textContent = s.nome;
   $('secoes').innerHTML = htmlSecoes(s);
+  desenharIndice(s);
   $('num-fim').textContent = s.secoes.length + 2;
   limpar();
   $('dia').value = diaPorDefeito(s);
+  mostrarDia();
   $('c-dia').querySelector('label').firstChild.textContent = s.diario ? 'Dia ' : 'Dia em que começou o turno de 24 horas ';
   if (hist) history.pushState({ s: id }, '', '?servico=' + encodeURIComponent(id));
   mostrar('form');
   carregarExistente();
 }
 
-$('dia').addEventListener('change', carregarExistente);
+$('dia').addEventListener('change', () => { mostrarDia(); carregarExistente(); });
 $('observacoes').addEventListener('input', (e) => { $('cont').textContent = e.target.value.length; });
 function voltar() { history.pushState({}, '', location.pathname); atual = null; desenharServicos(); mostrar('ecra-areas'); }
 $('mudar').addEventListener('click', voltar);
@@ -824,8 +996,9 @@ $('form').addEventListener('submit', async (e) => {
   const meta = { preenchidoPor: reg.preenchidoPor, criado: reg.criado, ts: agora };
   if (reg.editado) meta.editado = reg.editado;
 
-  const btn = $('enviar'), txt = btn.textContent;
-  btn.disabled = true; btn.textContent = 'A guardar…';
+  const btn = $('enviar'), btnPdf = $('enviar-pdf'), txt = btn.innerHTML;
+  if (btn.disabled) return;
+  btn.disabled = true; btnPdf.disabled = true; btn.textContent = 'A guardar…';
   try {
     await fbPronto;
     if (!fb) throw new Error('sem firebase');
@@ -849,8 +1022,8 @@ $('form').addEventListener('submit', async (e) => {
     mostrarAviso('Não foi possível guardar no servidor. O rascunho ficou guardado neste telemóvel — verifique a internet e toque outra vez em «Guardar».');
     $('aviso').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } finally {
-    btn.disabled = false;
-    if (btn.textContent === 'A guardar…') btn.textContent = txt;
+    btn.disabled = false; btnPdf.disabled = false;
+    if (btn.textContent === 'A guardar…') btn.innerHTML = txt;
   }
 });
 
