@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Fraunces:wght@600;700&display=swap">
 <link rel="stylesheet" href="zelo_tokens.css">
+<script src="inquerito_modelos.js?v=1"></script>
 <style>
   /* Página pública: o utente preenche sem iniciar sessão. */
   *{box-sizing:border-box}
@@ -20,6 +21,21 @@
   .intro{background:var(--zelo-accent-soft);border-radius:var(--zelo-radius-m);padding:12px 14px;margin-bottom:16px;font-size:.98rem}
   section{background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:var(--zelo-radius-l);box-shadow:var(--zelo-shadow-sm);padding:16px;margin-bottom:16px}
   h2{font-family:var(--zelo-font-display);font-size:1.1rem;margin:0 0 12px;color:var(--zelo-accent-ink)}
+  .oculto{display:none!important}
+
+  /* Ecrã 1: escolha da área */
+  .grupo-tit{font-weight:700;color:var(--zelo-ink-soft);text-transform:uppercase;letter-spacing:.04em;font-size:.8rem;margin:20px 0 8px}
+  .areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+  .area-btn{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:var(--zelo-surface);border:1.5px solid var(--zelo-line);border-radius:var(--zelo-radius-m);padding:14px;cursor:pointer;box-shadow:var(--zelo-shadow-sm)}
+  .area-btn:hover,.area-btn:focus-visible{border-color:var(--zelo-accent);outline:none}
+  .area-btn strong{display:block;font-size:1.02rem}
+  .area-btn small{display:block;color:var(--zelo-ink-soft);font-size:.88rem;margin-top:2px}
+
+  /* Ecrã 2: inquérito */
+  .area-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .area-topo h2{margin:0;font-size:1.3rem}
+  .area-topo small{display:block;color:var(--zelo-ink-soft)}
+  .ligacao{font:inherit;font-size:.92rem;background:none;border:1.5px solid var(--zelo-line-strong);color:var(--zelo-ink);border-radius:999px;padding:7px 14px;cursor:pointer}
   .campo{margin-bottom:14px}
   .campo:last-child{margin-bottom:0}
   .rot{display:block;font-weight:600;margin-bottom:6px}
@@ -28,18 +44,16 @@
   select:focus,input:focus,textarea:focus{outline:3px solid var(--zelo-accent-soft);border-color:var(--zelo-accent)}
   textarea{min-height:110px;resize:vertical}
   .opcoes{display:flex;flex-wrap:wrap;gap:8px}
-  .opcoes label{position:relative}
-  .opcoes input{position:absolute;opacity:0;pointer-events:none}
+  .opcoes label,.escala label{position:relative}
+  .opcoes input,.escala input{position:absolute;opacity:0;pointer-events:none}
   .opcoes span{display:inline-block;padding:9px 14px;border:1.5px solid var(--zelo-line-strong);border-radius:999px;cursor:pointer;user-select:none;background:var(--zelo-surface)}
   .opcoes input:checked + span{background:var(--zelo-accent);border-color:var(--zelo-accent);color:#fff;font-weight:600}
-  .opcoes input:focus-visible + span{outline:3px solid var(--zelo-accent-soft)}
+  .opcoes input:focus-visible + span,.escala input:focus-visible + span{outline:3px solid var(--zelo-accent-soft)}
   .item{padding:12px 0;border-top:1px solid var(--zelo-line)}
   .item:first-of-type{border-top:0;padding-top:0}
   .item .pergunta{font-weight:600;margin-bottom:8px}
   .item .pergunta b{color:var(--zelo-ink-faint);margin-right:6px}
   .escala{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-  .escala label{position:relative}
-  .escala input{position:absolute;opacity:0;pointer-events:none}
   .escala span{display:flex;align-items:center;justify-content:center;text-align:center;min-height:46px;padding:4px;border:1.5px solid var(--zelo-line-strong);border-radius:var(--zelo-radius-s);font-size:.85rem;cursor:pointer;user-select:none;background:var(--zelo-surface)}
   .escala input:checked + span{color:#fff;font-weight:700;border-color:transparent}
   .escala input[value="1"]:checked + span{background:#B33A2B}
@@ -47,21 +61,20 @@
   .escala input[value="3"]:checked + span{background:#B08A1E}
   .escala input[value="4"]:checked + span{background:#4E8A5E}
   .escala input[value="5"]:checked + span{background:#2F6B45}
-  .escala input:focus-visible + span{outline:3px solid var(--zelo-accent-soft)}
-  .item.global{background:var(--zelo-accent-soft);margin:8px -16px 0;padding:12px 16px;border-radius:0 0 var(--zelo-radius-l) var(--zelo-radius-l)}
+  .item.global{background:var(--zelo-accent-soft);margin:8px -16px -16px;padding:12px 16px 16px;border-radius:0 0 var(--zelo-radius-l) var(--zelo-radius-l)}
   .erro{border-color:var(--zelo-warn)!important}
-  .item.falta .pergunta,.campo.falta .rot{color:var(--zelo-warn)}
+  .falta .pergunta,.falta .rot{color:var(--zelo-warn)}
   .aviso{display:none;background:var(--zelo-warn-soft);color:var(--zelo-warn-ink);border-radius:var(--zelo-radius-m);padding:12px 14px;margin-bottom:16px;font-weight:600}
   .aviso.on{display:block}
   .btn{display:block;width:100%;font:inherit;font-weight:700;font-size:1.05rem;padding:14px;border:0;border-radius:var(--zelo-radius-m);background:var(--zelo-accent);color:#fff;cursor:pointer}
   .btn:disabled{opacity:.6;cursor:wait}
   .btn.sec{background:var(--zelo-surface-2);color:var(--zelo-ink);margin-top:10px}
-  .obrigado{display:none;text-align:center;padding:40px 16px}
-  .obrigado.on{display:block}
+  .obrigado{text-align:center;padding:40px 16px}
   .obrigado .ok{width:72px;height:72px;border-radius:50%;background:var(--zelo-good-soft);color:var(--zelo-good);display:flex;align-items:center;justify-content:center;font-size:2.4rem;margin:0 auto 16px}
   .obrigado h2{font-size:1.4rem}
   .rodape{text-align:center;color:var(--zelo-ink-faint);font-size:.85rem;margin-top:8px}
   .contador{text-align:right;font-size:.8rem;color:var(--zelo-ink-faint);margin-top:4px}
+  .nota{margin:-6px 0 12px;color:var(--zelo-ink-soft);font-size:.95rem}
   @media (max-width:420px){.escala span{font-size:.75rem;min-height:52px}}
 </style>
 </head>
@@ -71,71 +84,45 @@
     <img src="icons/logo.png" alt="">
     <div>
       <h1>Hospital do Prenda</h1>
-      <p>Inquérito de satisfação do utente · Anónimo e voluntário</p>
+      <p>Inquérito de satisfação · Anónimo e voluntário</p>
     </div>
   </header>
 
-  <form id="form" novalidate>
-    <div class="intro">A sua opinião ajuda-nos a melhorar o atendimento. <strong>Não escreva o seu nome.</strong> Responda com sinceridade: as suas respostas não afectam o seu atendimento.</div>
+  <!-- Ecrã 1: escolher a área -->
+  <div id="ecra-areas">
+    <div class="intro">A sua opinião ajuda-nos a melhorar. <strong>Não escreva o seu nome.</strong> Responda com sinceridade: as suas respostas não afectam o seu atendimento.</div>
+    <h2>Em que área foi atendido?</h2>
+    <div id="lista-areas"></div>
+  </div>
+
+  <!-- Ecrã 2: inquérito da área escolhida -->
+  <form id="form" class="oculto" novalidate>
+    <div class="area-topo">
+      <div><small>Inquérito da área</small><h2 id="area-nome"></h2></div>
+      <button type="button" class="ligacao" id="mudar">← Mudar de área</button>
+    </div>
 
     <div class="aviso" id="aviso"></div>
 
     <section>
-      <h2>Sobre o seu atendimento de hoje</h2>
-
-      <div class="campo" id="c-area">
-        <label class="rot" for="area">Área onde foi atendido <span class="obr">*</span></label>
-        <select id="area" name="area" required>
-          <option value="">— Escolha a área —</option>
-        </select>
-      </div>
-
-      <div class="campo">
-        <label class="rot" for="especialidade">Especialidade / Consultório <small>(opcional)</small></label>
-        <input type="text" id="especialidade" maxlength="80" autocomplete="off" placeholder="Ex.: Cardiologia, Consultório 3">
-      </div>
-
+      <h2>Sobre o seu atendimento</h2>
       <div class="campo" id="c-data">
         <label class="rot" for="data">Data <span class="obr">*</span></label>
         <input type="date" id="data" required>
       </div>
-
-      <div class="campo">
-        <span class="rot">Sexo</span>
-        <div class="opcoes">
-          <label><input type="radio" name="sexo" value="M"><span>Masculino</span></label>
-          <label><input type="radio" name="sexo" value="F"><span>Feminino</span></label>
-        </div>
-      </div>
-
-      <div class="campo">
-        <span class="rot">Idade</span>
-        <div class="opcoes">
-          <label><input type="radio" name="idade" value="menos18"><span>Menos de 18</span></label>
-          <label><input type="radio" name="idade" value="18-39"><span>18 a 39</span></label>
-          <label><input type="radio" name="idade" value="40-59"><span>40 a 59</span></label>
-          <label><input type="radio" name="idade" value="60mais"><span>60 ou mais</span></label>
-        </div>
-      </div>
-
-      <div class="campo">
-        <span class="rot">Consulta</span>
-        <div class="opcoes">
-          <label><input type="radio" name="tipoConsulta" value="primeira"><span>Primeira consulta</span></label>
-          <label><input type="radio" name="tipoConsulta" value="retorno"><span>Consulta de retorno</span></label>
-        </div>
-      </div>
+      <div id="campos"></div>
     </section>
 
     <section>
       <h2>A sua opinião</h2>
-      <p style="margin:-6px 0 12px;color:var(--zelo-ink-soft);font-size:.95rem">Avalie cada ponto tocando numa opção.</p>
+      <p class="nota">Avalie cada ponto tocando numa opção. Deixe em branco o que não se aplica.</p>
       <div id="perguntas"></div>
     </section>
 
     <section>
-      <div class="campo" id="c-recomenda">
-        <span class="rot">Recomendaria este hospital a familiares e amigos?</span>
+      <div id="depois"></div>
+      <div class="campo">
+        <span class="rot" id="recomenda-txt"></span>
         <div class="opcoes">
           <label><input type="radio" name="recomenda" value="sim"><span>Sim</span></label>
           <label><input type="radio" name="recomenda" value="talvez"><span>Talvez</span></label>
@@ -155,111 +142,24 @@
     <p class="rodape">Os campos com <span class="obr">*</span> são obrigatórios.</p>
   </form>
 
-  <div class="obrigado" id="obrigado">
+  <!-- Ecrã 3: agradecimento -->
+  <div class="obrigado oculto" id="obrigado">
     <div class="ok">✓</div>
     <h2>Obrigado pela sua colaboração!</h2>
     <p>A sua resposta foi registada.</p>
-    <button type="button" class="btn sec" id="novo">Preencher outro inquérito</button>
+    <button type="button" class="btn sec" id="novo">Preencher outro inquérito nesta área</button>
+    <button type="button" class="btn sec" id="inicio">Escolher outra área</button>
   </div>
 </div>
 
 <script type="module">
-
-// Áreas do hospital que atendem utentes. O código (à esquerda) é o que fica
-// guardado; o nome é o que o utente vê. Para pré-escolher a área (ex.: num
-// código QR afixado no serviço) use: inquerito_satisfacao.html?area=banco_urgencia
-const AREAS = [
-  ['Urgência e Consultas', [
-    ['banco_urgencia', 'Banco de Urgência'],
-    ['consulta_externa', 'Consulta Externa'],
-    ['hospital_dia', 'Hospital de Dia'],
-  ]],
-  ['Internamento', [
-    ['cirurgia_geral', 'Cirurgia Geral'],
-    ['maxilo_facial', 'Cirurgia Maxilo-Facial'],
-    ['medicina_homem', 'Medicina Homem'],
-    ['medicina_mulher', 'Medicina Mulher'],
-    ['nefrologia', 'Nefrologia'],
-    ['neurocirurgia', 'Neurocirurgia'],
-    ['ortopedia', 'Orto-Traumatologia'],
-    ['uci', 'UCI (Cuidados Intensivos)'],
-    ['cuidados_intermedios', 'Cuidados Intermédios'],
-  ]],
-  ['Especialidades', [
-    ['oftalmologia', 'Oftalmologia'],
-    ['otorrinolaringologia', 'Otorrinolaringologia'],
-    ['estomatologia', 'Estomatologia'],
-    ['psicologia', 'Psicologia Clínica'],
-    ['fisioterapia', 'Fisioterapia'],
-    ['hemodialise', 'Centro de Hemodiálise'],
-    ['bloco_operatorio', 'Bloco Operatório'],
-  ]],
-  ['Exames e outros serviços', [
-    ['laboratorio', 'Laboratório'],
-    ['imagiologia', 'Imagiologia (Raio-X, Ecografia, TAC)'],
-    ['hemoterapia', 'Hemoterapia (Banco de Sangue)'],
-    ['anatomia_patologica', 'Anatomia Patológica'],
-    ['farmacia', 'Farmácia'],
-    ['secretaria', 'Secretaria / Admissão'],
-    ['outro', 'Outro'],
-  ]],
-];
-
-const PERGUNTAS = [
-  ['q1', 'Acolhimento / recepção'],
-  ['q2', 'Tempo de espera'],
-  ['q3', 'Organização do Serviço'],
-  ['q4', 'Atendimento médico'],
-  ['q5', 'Clareza das informações fornecidas'],
-  ['q6', 'Privacidade durante a consulta'],
-  ['q7', 'Condições físicas do Serviço'],
-  ['q8', 'Disponibilidade dos profissionais'],
-  ['q9', 'Facilidade de marcação'],
-  ['global', 'Satisfação global'],
-];
-const ESCALA = ['Muito mau', 'Mau', 'Razoável', 'Bom', 'Muito bom'];
-
+// Para abrir directamente o inquérito de uma área (ex.: código QR afixado
+// no serviço): inquerito_satisfacao.html?area=banco_urgencia
+const MODELOS = window.INQ_MODELOS;
+const ESCALA = window.INQ_ESCALA;
+const PORID = Object.fromEntries(MODELOS.map((m) => [m.id, m]));
 const $ = (id) => document.getElementById(id);
-const NOMES = {};
-
-// Lista de áreas
-const sel = $('area');
-for (const [grupo, itens] of AREAS) {
-  const og = document.createElement('optgroup');
-  og.label = grupo;
-  for (const [cod, nome] of itens) {
-    NOMES[cod] = nome;
-    og.appendChild(new Option(nome, cod));
-  }
-  sel.appendChild(og);
-}
-const areaUrl = new URLSearchParams(location.search).get('area');
-if (areaUrl && NOMES[areaUrl]) sel.value = areaUrl;
-
-// Perguntas com escala de 1 a 5
-const box = $('perguntas');
-PERGUNTAS.forEach(([cod, texto], i) => {
-  const div = document.createElement('div');
-  div.className = 'item' + (cod === 'global' ? ' global' : '');
-  div.id = 'i-' + cod;
-  const num = cod === 'global' ? '' : `<b>${i + 1}</b>`;
-  const obr = cod === 'global' ? ' <span class="obr">*</span>' : '';
-  div.innerHTML = `<div class="pergunta" id="p-${cod}">${num}${texto}${obr}</div>
-    <div class="escala" role="radiogroup" aria-labelledby="p-${cod}">
-      ${ESCALA.map((t, k) => `<label><input type="radio" name="${cod}" value="${k + 1}"><span>${t}</span></label>`).join('')}
-    </div>`;
-  box.appendChild(div);
-});
-
-// Data: hoje por defeito, sem datas futuras
-const hoje = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-$('data').value = hoje();
-$('data').max = hoje();
-
-$('sugestoes').addEventListener('input', (e) => { $('cont').textContent = e.target.value.length; });
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // O Firebase é carregado à parte: se falhar, o formulário continua visível
 // e o utente recebe um aviso ao enviar, em vez de uma página em branco.
@@ -276,10 +176,100 @@ const fbPronto = (async () => {
   } catch (e) { console.warn('Firebase indisponível', e); }
 })();
 
-const valor = (nome) => {
-  const r = document.querySelector(`input[name="${nome}"]:checked`);
-  return r ? r.value : null;
+const hoje = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
+
+// ── Ecrã 1: lista de áreas ──
+const lista = $('lista-areas');
+for (const [g, titulo] of window.INQ_GRUPOS) {
+  const h = document.createElement('div');
+  h.className = 'grupo-tit';
+  h.textContent = titulo;
+  const grid = document.createElement('div');
+  grid.className = 'areas';
+  for (const m of MODELOS.filter((x) => x.grupo === g)) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'area-btn';
+    b.innerHTML = `<strong>${esc(m.nome)}</strong><small>${esc(m.desc)}</small>`;
+    b.addEventListener('click', () => abrir(m.id, true));
+    grid.appendChild(b);
+  }
+  lista.append(h, grid);
+}
+
+// ── Ecrã 2: montar o inquérito da área ──
+let atual = null;
+
+function htmlCampo(c) {
+  const obr = c.obrig ? ' <span class="obr">*</span>' : '';
+  if (c.tipo === 'texto') {
+    return `<div class="campo" id="c-${c.id}"><label class="rot" for="f-texto">${esc(c.rotulo)} <small>(opcional)</small></label>
+      <input type="text" id="f-texto" maxlength="80" autocomplete="off" placeholder="${esc(c.dica || '')}"></div>`;
+  }
+  if (c.tipo === 'lista') {
+    return `<div class="campo" id="c-${c.id}"><label class="rot" for="f-${c.id}">${esc(c.rotulo)}${obr}</label>
+      <select id="f-${c.id}"><option value="">— Escolha —</option>
+      ${c.opcoes.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('')}</select></div>`;
+  }
+  return `<div class="campo" id="c-${c.id}"><span class="rot">${esc(c.rotulo)}${obr}</span><div class="opcoes">
+    ${c.opcoes.map(([v, t]) => `<label><input type="radio" name="f-${c.id}" value="${esc(v)}"><span>${esc(t)}</span></label>`).join('')}
+    </div></div>`;
+}
+
+function htmlEscala(cod, texto, num, obrig) {
+  return `<div class="item${cod === 'global' ? ' global' : ''}" id="i-${cod}">
+    <div class="pergunta" id="p-${cod}">${num ? `<b>${num}</b>` : ''}${esc(texto)}${obrig ? ' <span class="obr">*</span>' : ''}</div>
+    <div class="escala" role="radiogroup" aria-labelledby="p-${cod}">
+      ${ESCALA.map((t, k) => `<label><input type="radio" name="n-${cod}" value="${k + 1}"><span>${t}</span></label>`).join('')}
+    </div></div>`;
+}
+
+function mostrar(ecra) {
+  for (const id of ['ecra-areas', 'form', 'obrigado']) $(id).classList.toggle('oculto', id !== ecra);
+  window.scrollTo(0, 0);
+}
+
+function abrir(id, guardarHistorico) {
+  const m = PORID[id];
+  if (!m) { atual = null; mostrar('ecra-areas'); return; }
+  atual = m;
+  $('area-nome').textContent = m.nome;
+  $('campos').innerHTML = m.campos.map(htmlCampo).join('');
+  $('depois').innerHTML = (m.depois || []).map(htmlCampo).join('');
+  $('perguntas').innerHTML = m.perguntas.map(([c, t], i) => htmlEscala(c, t, i + 1, false)).join('')
+    + htmlEscala('global', 'Satisfação global com ' + m.nome, '', true);
+  $('recomenda-txt').textContent = m.recomenda;
+  limpar();
+  if (guardarHistorico) history.pushState({ area: id }, '', '?area=' + encodeURIComponent(id));
+  mostrar('form');
+}
+
+function limpar() {
+  $('form').reset();
+  $('data').value = hoje();
+  $('data').max = hoje();
+  $('cont').textContent = '0';
+  mostrarAviso('');
+}
+
+function voltarAreas() {
+  history.pushState({}, '', location.pathname);
+  atual = null;
+  mostrar('ecra-areas');
+}
+
+window.addEventListener('popstate', () => {
+  const a = new URLSearchParams(location.search).get('area');
+  if (a && PORID[a]) abrir(a, false); else { atual = null; mostrar('ecra-areas'); }
+});
+
+$('mudar').addEventListener('click', voltarAreas);
+$('inicio').addEventListener('click', voltarAreas);
+$('novo').addEventListener('click', () => { limpar(); mostrar('form'); });
+$('sugestoes').addEventListener('input', (e) => { $('cont').textContent = e.target.value.length; });
 
 function mostrarAviso(txt) {
   const a = $('aviso');
@@ -288,56 +278,65 @@ function mostrarAviso(txt) {
   if (txt) a.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+const marcado = (nome) => {
+  const r = document.querySelector(`input[name="${nome}"]:checked`);
+  return r ? r.value : null;
+};
+
 $('form').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (!atual) return;
+  const m = atual;
   document.querySelectorAll('.falta').forEach((el) => el.classList.remove('falta'));
-  sel.classList.remove('erro');
+  document.querySelectorAll('.erro').forEach((el) => el.classList.remove('erro'));
 
   const faltas = [];
-  if (!sel.value) { faltas.push('a área'); $('c-area').classList.add('falta'); sel.classList.add('erro'); }
   const data = $('data').value;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || data > hoje()) { faltas.push('a data'); $('c-data').classList.add('falta'); }
-  if (!valor('global')) { faltas.push('a satisfação global'); $('i-global').classList.add('falta'); }
+
+  const perfil = {};
+  let texto = '';
+  for (const c of [...m.campos, ...(m.depois || [])]) {
+    let v = null;
+    if (c.tipo === 'texto') { texto = $('f-texto').value.trim(); continue; }
+    if (c.tipo === 'lista') v = $('f-' + c.id).value || null;
+    else v = marcado('f-' + c.id);
+    if (v) perfil[c.id] = v;
+    else if (c.obrig) {
+      faltas.push(c.rotulo.toLowerCase());
+      $('c-' + c.id).classList.add('falta');
+      if (c.tipo === 'lista') $('f-' + c.id).classList.add('erro');
+    }
+  }
+  const global = marcado('n-global');
+  if (!global) { faltas.push('a satisfação global'); $('i-global').classList.add('falta'); }
   if (faltas.length) { mostrarAviso('Falta indicar ' + faltas.join(', ') + '.'); return; }
 
-  const reg = {
-    area: sel.value,
-    areaNome: NOMES[sel.value],
-    data,
-    global: Number(valor('global')),
-    ts: Date.now(),
-  };
-  const esp = $('especialidade').value.trim();
-  if (esp) reg.especialidade = esp.slice(0, 80);
-  for (const k of ['sexo', 'idade', 'tipoConsulta', 'recomenda']) {
-    const v = valor(k);
-    if (v) reg[k] = v;
-  }
+  const reg = { area: m.id, areaNome: m.nome, v: 1, data, global: Number(global), ts: Date.now() };
+  if (Object.keys(perfil).length) reg.perfil = perfil;
+  if (texto) reg.especialidade = texto.slice(0, 80);
   const notas = {};
-  for (const [cod] of PERGUNTAS) {
-    if (cod === 'global') continue;
-    const v = valor(cod);
+  for (const [cod] of m.perguntas) {
+    const v = marcado('n-' + cod);
     if (v) notas[cod] = Number(v);
   }
   if (Object.keys(notas).length) reg.notas = notas;
+  const rec = marcado('recomenda');
+  if (rec) reg.recomenda = rec;
   const sug = $('sugestoes').value.trim();
   if (sug) reg.sugestoes = sug.slice(0, 1000);
-
-  await fbPronto;
-  if (!fb) { mostrarAviso('Sem ligação ao servidor. Verifique a internet e tente de novo.'); return; }
 
   const btn = $('enviar');
   btn.disabled = true;
   btn.textContent = 'A enviar…';
   try {
+    await fbPronto;
+    if (!fb) throw new Error('sem firebase');
     await Promise.race([
       fb.set(fb.push(fb.ref(fb.db, 'inqueritos_satisfacao')), reg),
       new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), 15000)),
     ]);
-    mostrarAviso('');
-    $('form').style.display = 'none';
-    $('obrigado').classList.add('on');
-    window.scrollTo(0, 0);
+    mostrar('obrigado');
   } catch (err) {
     console.error(err);
     mostrarAviso('Não foi possível enviar. Verifique a internet e tente de novo.');
@@ -347,17 +346,9 @@ $('form').addEventListener('submit', async (e) => {
   }
 });
 
-// Novo inquérito (ex.: tablet na sala de espera): limpa tudo, mantém a área
-$('novo').addEventListener('click', () => {
-  const area = sel.value;
-  $('form').reset();
-  sel.value = area;
-  $('data').value = hoje();
-  $('cont').textContent = '0';
-  $('obrigado').classList.remove('on');
-  $('form').style.display = '';
-  window.scrollTo(0, 0);
-});
+// Abrir directamente pela ligação (?area=...)
+const inicial = new URLSearchParams(location.search).get('area');
+if (inicial && PORID[inicial]) abrir(inicial, false);
 </script>
 </body>
 </html>

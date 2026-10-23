@@ -134,15 +134,16 @@
 
         "area":          { ".validate": "newData.isString() && newData.val().matches(/^[a-z_]{2,40}$/)" },
         "areaNome":      { ".validate": "newData.isString() && newData.val().length <= 80" },
+        "v":             { ".validate": "newData.isNumber()" },
         "especialidade": { ".validate": "newData.isString() && newData.val().length <= 80" },
         "data":          { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
-        "sexo":          { ".validate": "newData.val() === 'M' || newData.val() === 'F'" },
-        "idade":         { ".validate": "newData.val() === 'menos18' || newData.val() === '18-39' || newData.val() === '40-59' || newData.val() === '60mais'" },
-        "tipoConsulta":  { ".validate": "newData.val() === 'primeira' || newData.val() === 'retorno'" },
+        "perfil": {
+          "$campo": { ".validate": "$campo.matches(/^[a-z_]{2,20}$/) && newData.isString() && newData.val().matches(/^[a-z0-9_-]{1,30}$/)" }
+        },
         "recomenda":     { ".validate": "newData.val() === 'sim' || newData.val() === 'talvez' || newData.val() === 'nao'" },
         "global":        { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" },
         "notas": {
-          "$q": { ".validate": "$q.matches(/^q[1-9]$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" }
+          "$q": { ".validate": "$q.matches(/^q[1-9][0-9]?$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" }
         },
         "sugestoes":     { ".validate": "newData.isString() && newData.val().length <= 1000" },
         "ts":            { ".validate": "newData.isNumber() && newData.val() <= now + 300000" },
