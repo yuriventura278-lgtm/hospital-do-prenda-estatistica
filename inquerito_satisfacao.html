@@ -4,18 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inquérito de Satisfação</title>
-<link rel="icon" type="image/png" href="icons/logo.png">
+<link rel="icon" type="image/png" href="icons/hospital_prenda_192.png">
+<link rel="apple-touch-icon" href="icons/hospital_prenda_180.png">
+<link rel="manifest" href="manifest_inquerito.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Inquérito HP">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Inquérito de satisfação do utente do Hospital do Prenda — anónimo e voluntário.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Fraunces:wght@600;700&display=swap">
 <link rel="stylesheet" href="zelo_tokens.css">
 <script src="inquerito_modelos.js?v=1"></script>
-<meta name="theme-color" content="#1F2F45">
+<meta name="theme-color" content="#01467F">
 <style>
   /* Página pública, pensada primeiro para o telemóvel: o utente preenche sem iniciar sessão. */
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  :root{--sobre-acento:#fff}
+  :root{--sobre-acento:#fff;--hp-1:#01467F;--hp-2:#005D9B;--hp-3:#1A7BC0}
+  /* Azul do Hospital do Prenda (logótipo) em vez do azul do sistema */
+  :root:not([data-theme="dark"]){--zelo-accent:#0B62A8;--zelo-accent-dark:#01467F;--zelo-accent-ink:#01467F;--zelo-accent-soft:#E4EFF9}
   @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]){--sobre-acento:#0F151B}
+    :root:not([data-theme="light"]){--sobre-acento:#0F151B;--zelo-accent:#6FB0E6;--zelo-accent-dark:#9CCBF0;--zelo-accent-ink:#CBE3F7;--zelo-accent-soft:#12283C}
     :root:not([data-theme="light"]) .ico{color:color-mix(in srgb,var(--cor) 55%,#fff);background:color-mix(in srgb,var(--cor) 28%,transparent)}
   }
   html{scroll-behavior:smooth}
@@ -25,13 +34,15 @@
   button{font:inherit;color:inherit}
 
   /* ── Ecrã 1: capa ── */
-  .capa{background:linear-gradient(160deg,#1F2F45 0%,#2B415E 55%,#3E5C87 100%);color:#fff;padding:calc(20px + env(safe-area-inset-top)) 20px 64px;border-radius:0 0 28px 28px}
+  .capa{background:radial-gradient(120% 90% at 50% 0%,var(--hp-3) 0%,var(--hp-2) 45%,var(--hp-1) 100%);color:#fff;padding:calc(22px + env(safe-area-inset-top)) 20px 64px;border-radius:0 0 28px 28px;text-align:center}
   .capa-in{max-width:640px;margin:0 auto}
-  .marca{display:flex;align-items:center;gap:10px;font-weight:700;font-size:.95rem;opacity:.95}
-  .marca img{width:36px;height:36px;border-radius:10px;background:#fff;padding:3px}
-  .capa h1{font-family:var(--zelo-font-display);font-size:1.75rem;line-height:1.15;margin:22px 0 8px}
+  .marca{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .marca img{width:96px;height:96px;border-radius:24px;box-shadow:0 10px 30px -8px rgba(0,0,0,.45),0 0 0 3px rgba(255,255,255,.18);animation:entra .5s ease-out}
+  .marca span{font-weight:700;font-size:.82rem;letter-spacing:.12em;text-transform:uppercase;opacity:.85}
+  @keyframes entra{from{transform:translateY(-8px) scale(.94);opacity:0}to{transform:none;opacity:1}}
+  .capa h1{font-family:var(--zelo-font-display);font-size:1.75rem;line-height:1.15;margin:18px 0 8px}
   .capa p{margin:0;opacity:.85;font-size:1rem}
-  .selos{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .selos{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;justify-content:center}
   .selo{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:5px 12px;font-size:.85rem;font-weight:600}
   .selo svg{width:15px;height:15px}
   .escolha{margin-top:-40px}
@@ -60,6 +71,7 @@
   .titulo-area small{display:block;color:var(--zelo-ink-soft);font-size:.78rem;font-weight:600}
   .titulo-area h2{font-family:var(--zelo-font-display);font-size:1.15rem;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .titulo-area .ico{display:none}
+  .logo-mini{flex:none;width:40px;height:40px;border-radius:11px}
   .prog{height:6px;border-radius:3px;background:var(--zelo-surface-3);margin-top:10px;overflow:hidden}
   .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--zelo-accent),var(--zelo-good));border-radius:3px;transition:width .3s}
 
@@ -133,6 +145,9 @@
   .obrigado h2{font-family:var(--zelo-font-display);font-size:1.6rem;margin:0 0 8px}
   .obrigado p{color:var(--zelo-ink-soft);margin:0 0 6px}
   .obrigado .acoes{margin-top:26px}
+  .assinatura{margin-top:36px;color:var(--zelo-ink-soft);font-weight:700;font-size:.95rem}
+  .assinatura img{display:block;width:56px;height:56px;border-radius:14px;margin:0 auto 8px}
+  .assinatura small{font-weight:400}
   @keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
   @keyframes traco{to{stroke-dashoffset:0}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.obrigado .ok svg{stroke-dashoffset:0}}
@@ -144,7 +159,7 @@
 <!-- Ecrã 1: escolher a área -->
 <div id="ecra-areas">
   <div class="capa"><div class="capa-in">
-    <div class="marca"><img src="icons/logo.png" alt="">Hospital do Prenda</div>
+    <div class="marca"><img src="icons/hospital_prenda_192.png" alt="Logótipo do Hospital do Prenda" width="96" height="96"><span>Inquérito de satisfação do utente</span></div>
     <h1>Como foi o seu atendimento?</h1>
     <p>A sua opinião ajuda-nos a melhorar. Responda com sinceridade: as respostas não afectam o seu atendimento.</p>
     <div class="selos">
@@ -166,7 +181,8 @@
     <div class="barra-topo">
       <div class="linha">
         <button type="button" class="voltar" id="mudar" aria-label="Mudar de área"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-        <div class="titulo-area"><small>Inquérito de satisfação</small><h2 id="area-nome"></h2></div>
+        <div class="titulo-area"><small>Hospital do Prenda · Inquérito</small><h2 id="area-nome"></h2></div>
+        <img class="logo-mini" src="icons/hospital_prenda_192.png" alt="">
       </div>
       <div class="prog" role="progressbar" aria-label="Progresso"><i id="prog-barra"></i></div>
     </div>
@@ -222,6 +238,7 @@
       <button type="button" class="btn" id="inicio">Avaliar outra área</button>
       <button type="button" class="btn sec" id="editar">Alterar a minha resposta</button>
     </div>
+    <div class="assinatura"><img src="icons/hospital_prenda_192.png" alt="">Hospital do Prenda<br><small>Obrigado por nos ajudar a cuidar melhor.</small></div>
   </div>
 </div>
 
