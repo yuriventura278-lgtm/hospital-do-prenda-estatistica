@@ -10,7 +10,10 @@
    letra minúscula. Nesse caso amplia-se para ocupar o ecrã todo. */
 (function () {
   function ajustar() {
-    var de = document.documentElement, sw = screen.width, iw;
+    var de = document.documentElement, iw;
+    // Largura do ecrã na orientação actual (o iPhone dá sempre a do ecrã ao alto)
+    var deitado = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+    var sw = deitado ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
     de.style.zoom = '';
     iw = window.innerWidth || de.clientWidth;
     var tatil = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
