@@ -143,26 +143,6 @@
       recomenda: RECOMENDA_HOSPITAL,
     },
     {
-      id: 'nutricao', grupo: 'utente', nome: 'Nutrição',
-      desc: 'Refeições e aconselhamento alimentar',
-      campos: [
-        { id: 'respondente', rotulo: 'Quem está a responder?', tipo: 'opcoes', opcoes: [['internado', 'Doente internado'], ['consulta', 'Utente da consulta de nutrição'], ['acompanhante', 'Acompanhante'], ['funcionario', 'Funcionário (refeitório)']] },
-        SEXO, IDADE,
-      ],
-      perguntas: [
-        ['q1', 'Sabor das refeições'],
-        ['q2', 'Quantidade servida'],
-        ['q3', 'Temperatura das refeições'],
-        ['q4', 'Variedade das ementas'],
-        ['q5', 'Cumprimento do horário das refeições'],
-        ['q6', 'Higiene dos utensílios e da distribuição'],
-        ['q7', 'Respeito pela dieta prescrita'],
-        ['q8', 'Orientação / aconselhamento nutricional'],
-        ['q9', 'Simpatia de quem serve'],
-      ],
-      recomenda: RECOMENDA_SERVICO,
-    },
-    {
       id: 'gabinete_utente', grupo: 'utente', nome: 'Gabinete do Utente',
       desc: 'Reclamações, sugestões e elogios',
       campos: [
