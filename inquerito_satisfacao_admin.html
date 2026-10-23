@@ -655,25 +655,34 @@
   $('btn-cartazes').addEventListener('click', function () { cartazes(null); });
 
   // Cartaz A4 por página: geral (se ids == null) + um por área
+  function logoHospital() {
+    return fetch('icons/hospital_prenda_logo.jpg').then(function (r) { return r.ok ? r.blob() : null; }).then(function (b) {
+      if (!b) return null;
+      return new Promise(function (ok) { var f = new FileReader(); f.onload = function () { ok(f.result); }; f.onerror = function () { ok(null); }; f.readAsDataURL(b); });
+    }).catch(function () { return null; });
+  }
   function cartazes(ids) {
-    pdfPronto().then(function () {
+    Promise.all([pdfPronto(), logoHospital()]).then(function (res) {
+      var logo = res[1];
       if (!(window.jspdf && window.jspdf.jsPDF)) { toast('O gerador de PDF ainda está a carregar — tente de novo'); return; }
       var d = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' }), W = 210, primeira = true;
       var paginas = ids ? ids.map(function (id) { return { nome: PORID[id].nome, url: linkArea(id) }; })
         : [{ nome: 'Escolha a área onde foi atendido', url: URL_BASE }].concat(MODELOS.map(function (m) { return { nome: m.nome, url: linkArea(m.id) }; }));
       paginas.forEach(function (pg) {
         if (!primeira) d.addPage(); primeira = false;
-        d.setFillColor('#1F2F45'); d.rect(0, 0, W, 38, 'F');
-        d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(24); d.text('Hospital do Prenda', W / 2, 18, { align: 'center' });
-        d.setFont('helvetica', 'normal'); d.setFontSize(14); d.text('Inquérito de satisfação · anónimo e voluntário', W / 2, 29, { align: 'center' });
-        d.setTextColor('#1F2F45'); d.setFont('helvetica', 'bold'); d.setFontSize(26);
-        d.text(d.splitTextToSize(pg.nome, W - 30), W / 2, 60, { align: 'center' });
+        d.setFillColor('#01467F'); d.rect(0, 0, W, 44, 'F');
+        if (logo) { try { d.addImage(logo, 'JPEG', 14, 7, 30, 30); } catch (e) { logo = null; } }
+        var xt = logo ? 52 : W / 2, al = logo ? 'left' : 'center';
+        d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(24); d.text('Hospital do Prenda', xt, 21, { align: al });
+        d.setFont('helvetica', 'normal'); d.setFontSize(13); d.text('Inquérito de satisfação · anónimo e voluntário', xt, 31, { align: al });
+        d.setTextColor('#01467F'); d.setFont('helvetica', 'bold'); d.setFontSize(26);
+        d.text(d.splitTextToSize(pg.nome, W - 30), W / 2, 64, { align: 'center' });
         d.setFont('helvetica', 'normal'); d.setFontSize(15); d.setTextColor('#333333');
-        d.text('A sua opinião ajuda-nos a melhorar o atendimento.', W / 2, 78, { align: 'center' });
-        var q = qr(pg.url), n = q.getModuleCount(), tam = 120, cel = tam / n, x0 = (W - tam) / 2, y0 = 90;
+        d.text('A sua opinião ajuda-nos a melhorar o atendimento.', W / 2, 80, { align: 'center' });
+        var q = qr(pg.url), n = q.getModuleCount(), tam = 120, cel = tam / n, x0 = (W - tam) / 2, y0 = 92;
         d.setFillColor('#000000');
         for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) d.rect(x0 + c * cel, y0 + r * cel, cel + 0.05, cel + 0.05, 'F');
-        d.setFont('helvetica', 'bold'); d.setFontSize(16); d.setTextColor('#1F2F45');
+        d.setFont('helvetica', 'bold'); d.setFontSize(16); d.setTextColor('#01467F');
         d.text('Aponte a câmara do telemóvel para o código', W / 2, y0 + tam + 14, { align: 'center' });
         d.setFont('helvetica', 'normal'); d.setFontSize(12); d.setTextColor('#555555');
         d.text('Não escreva o seu nome. Leva menos de 2 minutos.', W / 2, y0 + tam + 23, { align: 'center' });
