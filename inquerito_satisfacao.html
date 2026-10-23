@@ -36,7 +36,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Fraunces:wght@600;700&display=swap">
 <link rel="stylesheet" href="zelo_tokens.css">
-<script src="inquerito_modelos.js?v=1"></script>
+<script src="inquerito_modelos.js?v=2"></script>
 <meta name="theme-color" content="#01467F">
 <style>
   /* Página pública, pensada primeiro para o telemóvel: o utente preenche sem iniciar sessão. */
@@ -423,18 +423,44 @@ function htmlCampo(c) {
     </div></div>`;
 }
 
-function htmlEscala(cod, texto, num, obrig) {
-  return `<div class="item${cod === 'global' ? ' global' : ''}" id="i-${cod}">
+function htmlEscala(cod, texto, num, obrig, se) {
+  return `<div class="item${cod === 'global' ? ' global' : ''}" id="i-${cod}"${se ? ` data-se='${esc(JSON.stringify(se))}'` : ''}>
     <div class="pergunta" id="p-${cod}">${num ? `<b>${num}</b>` : ''}${esc(texto)}${obrig ? ' <span class="obr">*</span>' : ''}</div>
     <div class="escala" role="radiogroup" aria-labelledby="p-${cod}">
       ${ESCALA.map((t, k) => `<label><input type="radio" name="n-${cod}" value="${k + 1}" aria-label="${t}"><span>${carinha(k)}${t}</span></label>`).join('')}
     </div></div>`;
 }
 
+// Valor escolhido num campo do perfil (botões ou lista)
+function valorCampo(id) {
+  const sel = document.getElementById('f-' + id);
+  if (sel && sel.tagName === 'SELECT') return sel.value || null;
+  const r = document.querySelector(`input[name="f-${id}"]:checked`);
+  return r ? r.value : null;
+}
+const condicaoOk = (se) => !se || Object.entries(se).every(([campo, vals]) => vals.includes(valorCampo(campo)));
+// Perguntas visíveis do modelo actual (as condicionais só se o assunto corresponder)
+const perguntasVisiveis = () => (atual ? atual.perguntas.filter((q) => condicaoOk(q[2])) : []);
+
+// Mostra/esconde as perguntas que dependem do assunto e renumera as visíveis
+function aplicarCondicoes() {
+  if (!atual) return;
+  let n = 0;
+  for (const q of atual.perguntas) {
+    const el = $('i-' + q[0]);
+    if (!el) continue;
+    const ver = condicaoOk(q[2]);
+    el.classList.toggle('oculto', !ver);
+    if (!ver) el.querySelectorAll('input:checked').forEach((i) => { i.checked = false; });
+    else { const b = el.querySelector('.pergunta b'); if (b) b.textContent = ++n; }
+  }
+}
+
 // Progresso: perguntas da escala respondidas (incluindo a satisfação global)
 function atualizarProgresso() {
   if (!atual) return;
-  const nomes = atual.perguntas.map((q) => 'n-' + q[0]).concat('n-global');
+  aplicarCondicoes();
+  const nomes = perguntasVisiveis().map((q) => 'n-' + q[0]).concat('n-global');
   const feitas = nomes.filter((n) => document.querySelector(`input[name="${n}"]:checked`)).length;
   $('prog-txt').textContent = `${feitas}/${nomes.length}`;
   $('prog-barra').style.width = Math.round((feitas / nomes.length) * 100) + '%';
@@ -446,7 +472,7 @@ $('perguntas').addEventListener('change', (e) => {
   if (!item) return;
   item.classList.remove('falta');
   let prox = item.nextElementSibling;
-  while (prox && prox.querySelector('input:checked')) prox = prox.nextElementSibling;
+  while (prox && (prox.classList.contains('oculto') || prox.querySelector('input:checked'))) prox = prox.nextElementSibling;
   if (!prox) return;
   setTimeout(() => {
     const r = prox.getBoundingClientRect();
@@ -489,7 +515,7 @@ async function abrir(id, guardarHistorico) {
   $('area-nome').textContent = m.nome;
   $('campos').innerHTML = m.campos.map(htmlCampo).join('');
   $('depois').innerHTML = (m.depois || []).map(htmlCampo).join('');
-  $('perguntas').innerHTML = m.perguntas.map(([c, t], i) => htmlEscala(c, t, i + 1, false)).join('')
+  $('perguntas').innerHTML = m.perguntas.map(([c, t, se], i) => htmlEscala(c, t, i + 1, false, se)).join('')
     + htmlEscala('global', 'Satisfação global com ' + m.nome, '', true);
   $('recomenda-txt').textContent = m.recomenda;
   limpar();
@@ -589,7 +615,7 @@ $('form').addEventListener('submit', async (e) => {
   if (Object.keys(perfil).length) reg.perfil = perfil;
   if (texto) reg.especialidade = texto.slice(0, 80);
   const notas = {};
-  for (const [cod] of m.perguntas) {
+  for (const [cod] of perguntasVisiveis()) {
     const v = marcado('n-' + cod);
     if (v) notas[cod] = Number(v);
   }
