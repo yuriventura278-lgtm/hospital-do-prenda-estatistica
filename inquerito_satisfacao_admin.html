@@ -84,6 +84,51 @@
   .oculto{display:none!important}
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--zelo-ink);color:var(--zelo-surface);padding:10px 18px;border-radius:999px;font-weight:600;z-index:99;display:none}
   .grafico{position:relative;height:280px}
+  :root{--sobre-acento:#fff}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--sobre-acento:#0F151B}}
+  .btn,.aba.on{color:var(--sobre-acento)}
+  .btn.sec,.btn.perigo{color:var(--zelo-ink)}
+  .abas{position:sticky;top:0;z-index:10;background:var(--zelo-bg);padding:8px 0;margin-top:-8px}
+  select,input{font-size:16px;min-height:42px}
+
+  /* ── Telemóvel ── */
+  @media (max-width:700px){
+    body{font-size:15px}
+    .topo{padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
+    .topo p{display:none}
+    .wrap{padding:12px 12px calc(24px + env(safe-area-inset-bottom))}
+    .abas{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:-8px -12px 12px;padding:8px 12px}
+    .abas::-webkit-scrollbar{display:none}
+    .aba{flex:none}
+    .card{padding:14px 12px;border-radius:16px}
+    .filtros{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .filtros label{min-width:0}
+    .filtros label select,.filtros label input{width:100%}
+    .filtros label input[type=checkbox]{width:20px;height:20px}
+    .filtros .opcao-pdf{justify-content:flex-start}
+    .filtros #l-area,.filtros .btn,.filtros .opcao-pdf,.filtros .estado{grid-column:1/-1}
+    .filtros .btn{min-height:48px}
+    .estado{margin-left:0;text-align:center}
+    .kpis{grid-template-columns:1fr 1fr;gap:8px}
+    .kpi{padding:10px}
+    .kpi b{font-size:1.35rem}
+    .kpi small{font-size:.75rem}
+    th,td{padding:6px 6px;font-size:.84rem}
+    .grafico{height:240px}
+    details.area summary{padding:12px}
+    details.area .corpo{padding:0 10px 12px}
+    .link-principal{flex-direction:column;align-items:stretch;text-align:center}
+    .link-principal .qr{display:flex;justify-content:center}
+    /* Respostas individuais em cartões */
+    table.resp thead{display:none}
+    table.resp,table.resp tbody,table.resp tr,table.resp td{display:block;width:100%}
+    table.resp tr{border:1px solid var(--zelo-line);border-radius:14px;margin-bottom:10px;padding:8px 10px;background:var(--zelo-surface)}
+    table.resp td{border:0;display:flex;gap:10px;justify-content:space-between;padding:4px 0;min-width:0!important;text-align:right}
+    table.resp td::before{content:attr(data-l);font-weight:700;color:var(--zelo-ink-soft);text-align:left;flex:none}
+    table.resp td:empty{display:none}
+    table.resp td.acao{justify-content:flex-end}
+    table.resp td.acao::before{content:none}
+  }
 </style>
 </head>
 <body>
@@ -121,10 +166,10 @@
       <label id="l-sem">Semestre
         <select id="sem"><option value="1">1.º (Jan–Jun)</option><option value="2">2.º (Jul–Dez)</option></select>
       </label>
-      <label>Área <select id="area"><option value="">Todas as áreas</option></select></label>
+      <label id="l-area">Área <select id="area"><option value="">Todas as áreas</option></select></label>
       <button class="btn" id="btn-pdf">Exportar PDF</button>
       <button class="btn sec" id="btn-csv">Exportar Excel (CSV)</button>
-      <label style="flex-direction:row;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pdf-individuais"> Incluir respostas individuais no PDF</label>
+      <label class="opcao-pdf" style="flex-direction:row;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pdf-individuais" style="min-height:0"> Incluir respostas individuais no PDF</label>
       <span class="estado" id="estado"></span>
     </div>
   </div>
@@ -430,13 +475,13 @@
     if (!lista.length) { $('lista-respostas').innerHTML = '<p class="vazio">Não há respostas neste período.</p>'; return; }
     var max = 500;
     $('lista-respostas').innerHTML = (lista.length > max ? '<p>A mostrar as ' + max + ' mais recentes de ' + lista.length + '. O ficheiro Excel (CSV) tem todas.</p>' : '') +
-      '<table><thead><tr><th>Data</th><th>Hora</th><th>Área</th><th>Satisfação global</th><th>Recomenda</th><th>Notas (perguntas 1, 2, …)</th><th>Perfil</th><th>Sugestão / reclamação</th><th></th></tr></thead><tbody>' +
+      '<table class="resp"><thead><tr><th>Data</th><th>Hora</th><th>Área</th><th>Satisfação global</th><th>Recomenda</th><th>Notas (perguntas 1, 2, …)</th><th>Perfil</th><th>Sugestão / reclamação</th><th></th></tr></thead><tbody>' +
       lista.slice(0, max).map(function (r) {
         var m = PORID[r.area];
         var notas = m ? m.perguntas.map(function (q) { return (r.notas && r.notas[q[0]]) || '–'; }).join(' ') : '';
-        return '<tr><td>' + fmtD(r.data) + '</td><td>' + hora(r.criado) + (r.editado ? ' <small title="Alterada pelo utente">(alterada)</small>' : '') + '</td><td>' + esc(nomeArea(r.area, r)) + '</td><td>' + esc(ESCALA[r.global - 1] || '') + '</td><td>' + esc(REC[r.recomenda] || '') +
-          '</td><td style="font-family:var(--zelo-font-mono);white-space:nowrap">' + notas + '</td><td style="min-width:200px">' + esc(textoPerfil(m, r)) + '</td><td style="min-width:200px">' + esc(r.sugestoes || '') +
-          '</td><td><button class="btn peq perigo" data-apagar="' + esc(r.__caminho) + '">Apagar</button></td></tr>';
+        return '<tr><td data-l="Data">' + fmtD(r.data) + '</td><td data-l="Hora">' + hora(r.criado) + (r.editado ? ' <small title="Alterada pelo utente">(alterada)</small>' : '') + '</td><td data-l="Área">' + esc(nomeArea(r.area, r)) + '</td><td data-l="Satisfação global">' + esc(ESCALA[r.global - 1] || '') + '</td><td data-l="Recomenda">' + esc(REC[r.recomenda] || '') +
+          '</td><td data-l="Notas" style="font-family:var(--zelo-font-mono);white-space:nowrap">' + notas + '</td><td data-l="Perfil" style="min-width:200px">' + esc(textoPerfil(m, r)) + '</td><td data-l="Sugestão" style="min-width:200px">' + esc(r.sugestoes || '') +
+          '</td><td class="acao"><button class="btn peq perigo" data-apagar="' + esc(r.__caminho) + '">Apagar</button></td></tr>';
       }).join('') + '</tbody></table>';
   }
 
