@@ -214,6 +214,8 @@ const SISTEMAS_LOCAIS_MENU = [
   { nome: 'Dias de Cama e Dias de Doente', file: 'dias_cama_doente.html', modulo: 'sistemas_independentes', item: 'dias_cama_doente' },
   { nome: 'Fluxograma do Relatório', file: 'fluxograma_relatorio.html', modulo: 'sistemas_independentes', item: 'fluxograma_relatorio' },
   { nome: 'Consumo do Firebase', file: 'consumo_firebase.html', modulo: 'sistemas_independentes', item: 'consumo_firebase' },
+  // Respostas do inquérito público (inquerito_satisfacao.html), relatórios em PDF e códigos QR.
+  { nome: 'Inquérito de Satisfação', file: 'inquerito_satisfacao_admin.html', modulo: 'sistemas_independentes', item: 'inquerito_satisfacao' },
   // Secretaria Geral e Reprografia estão agora em Serviços (SERVICOS_MENU),
   // cada uma com a sua entrada, a seguir à Supervisão.
 ];
