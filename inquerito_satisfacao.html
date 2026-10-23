@@ -74,6 +74,9 @@
   .obrigado h2{font-size:1.4rem}
   .rodape{text-align:center;color:var(--zelo-ink-faint);font-size:.85rem;margin-top:8px}
   .contador{text-align:right;font-size:.8rem;color:var(--zelo-ink-faint);margin-top:4px}
+  .info{background:var(--zelo-good-soft);color:var(--zelo-good-ink);border-radius:var(--zelo-radius-m);padding:12px 14px;margin-bottom:16px;font-weight:600}
+  .feito{display:inline-block;margin-top:6px;font-size:.8rem;font-weight:700;color:var(--zelo-good-ink);background:var(--zelo-good-soft);border-radius:999px;padding:2px 10px}
+  .hoje{font-weight:600}
   .nota{margin:-6px 0 12px;color:var(--zelo-ink-soft);font-size:.95rem}
   @media (max-width:420px){.escala span{font-size:.75rem;min-height:52px}}
 </style>
@@ -102,14 +105,12 @@
       <button type="button" class="ligacao" id="mudar">← Mudar de área</button>
     </div>
 
+    <div class="info oculto" id="ja-respondeu">Já respondeu hoje a este inquérito. Pode alterar as suas respostas e voltar a enviar.</div>
     <div class="aviso" id="aviso"></div>
 
     <section>
       <h2>Sobre o seu atendimento</h2>
-      <div class="campo" id="c-data">
-        <label class="rot" for="data">Data <span class="obr">*</span></label>
-        <input type="date" id="data" required>
-      </div>
+      <div class="campo"><span class="rot">Data</span><span class="hoje" id="data-txt"></span></div>
       <div id="campos"></div>
     </section>
 
@@ -146,8 +147,9 @@
   <div class="obrigado oculto" id="obrigado">
     <div class="ok">✓</div>
     <h2>Obrigado pela sua colaboração!</h2>
-    <p>A sua resposta foi registada.</p>
-    <button type="button" class="btn sec" id="novo">Preencher outro inquérito nesta área</button>
+    <p id="obrigado-txt">A sua resposta foi registada.</p>
+    <p style="color:var(--zelo-ink-soft);font-size:.95rem">Só é possível uma resposta por área em cada dia. Se quiser, ainda pode alterá-la hoje.</p>
+    <button type="button" class="btn sec" id="editar">Alterar a minha resposta</button>
     <button type="button" class="btn sec" id="inicio">Escolher outra área</button>
   </div>
 </div>
@@ -155,11 +157,41 @@
 <script type="module">
 // Para abrir directamente o inquérito de uma área (ex.: código QR afixado
 // no serviço): inquerito_satisfacao.html?area=banco_urgencia
+//
+// Uma resposta por área, por dia, em cada aparelho: o aparelho recebe um
+// código aleatório (guardado no navegador) e a resposta fica em
+//   inqueritos_satisfacao/<dia>/<área>/<código>
+// Voltar a enviar no mesmo dia substitui a resposta anterior (edição).
 const MODELOS = window.INQ_MODELOS;
 const ESCALA = window.INQ_ESCALA;
 const PORID = Object.fromEntries(MODELOS.map((m) => [m.id, m]));
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const ls = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+
+function codigoAparelho() {
+  let c = ls.get('inqAparelho');
+  if (!c || !/^[A-Za-z0-9_-]{20,40}$/.test(c)) {
+    const b = new Uint8Array(18);
+    crypto.getRandomValues(b);
+    c = btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    ls.set('inqAparelho', c);
+  }
+  return c;
+}
+const APARELHO = codigoAparelho();
+
+const hoje = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const fmtData = (iso) => iso.split('-').reverse().join('/');
+const chaveLocal = (area, dia) => `inqResp:${dia}:${area}`;
+const caminho = (area, dia) => `inqueritos_satisfacao/${dia}/${area}/${APARELHO}`;
 
 // O Firebase é carregado à parte: se falhar, o formulário continua visível
 // e o utente recebe um aviso ao enviar, em vez de uma página em branco.
@@ -167,41 +199,59 @@ const FB = 'https://www.gstatic.com/firebasejs/10.14.1/';
 let fb = null;
 const fbPronto = (async () => {
   try {
-    const [{ initializeApp }, dbMod, { firebaseConfig }] = await Promise.all([
+    const [{ initializeApp }, m, { firebaseConfig }] = await Promise.all([
       import(FB + 'firebase-app.js'),
       import(FB + 'firebase-database.js'),
       import('./zelo_firebase_config.js'),
     ]);
-    fb = { db: dbMod.getDatabase(initializeApp(firebaseConfig)), ref: dbMod.ref, push: dbMod.push, set: dbMod.set };
+    fb = { db: m.getDatabase(initializeApp(firebaseConfig)), ref: m.ref, set: m.set, get: m.get };
   } catch (e) { console.warn('Firebase indisponível', e); }
 })();
+const comPrazo = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), ms))]);
 
-const hoje = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+// Resposta já dada hoje nesta área, neste aparelho (servidor primeiro; cópia local se falhar)
+async function respostaDeHoje(area) {
+  const dia = hoje();
+  let local = null;
+  try { local = JSON.parse(ls.get(chaveLocal(area, dia)) || 'null'); } catch (e) {}
+  await fbPronto;
+  if (fb) {
+    try {
+      const snap = await comPrazo(fb.get(fb.ref(fb.db, caminho(area, dia))), 8000);
+      if (snap.exists()) return snap.val();
+    } catch (e) { console.warn('Não foi possível ler a resposta anterior', e); }
+  }
+  return local;
+}
 
 // ── Ecrã 1: lista de áreas ──
-const lista = $('lista-areas');
-for (const [g, titulo] of window.INQ_GRUPOS) {
-  const h = document.createElement('div');
-  h.className = 'grupo-tit';
-  h.textContent = titulo;
-  const grid = document.createElement('div');
-  grid.className = 'areas';
-  for (const m of MODELOS.filter((x) => x.grupo === g)) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'area-btn';
-    b.innerHTML = `<strong>${esc(m.nome)}</strong><small>${esc(m.desc)}</small>`;
-    b.addEventListener('click', () => abrir(m.id, true));
-    grid.appendChild(b);
+function desenharAreas() {
+  const lista = $('lista-areas');
+  lista.innerHTML = '';
+  const dia = hoje();
+  for (const [g, titulo] of window.INQ_GRUPOS) {
+    const h = document.createElement('div');
+    h.className = 'grupo-tit';
+    h.textContent = titulo;
+    const grid = document.createElement('div');
+    grid.className = 'areas';
+    for (const m of MODELOS.filter((x) => x.grupo === g)) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'area-btn';
+      const feito = ls.get(chaveLocal(m.id, dia)) ? '<span class="feito">✓ Respondido hoje · pode alterar</span>' : '';
+      b.innerHTML = `<strong>${esc(m.nome)}</strong><small>${esc(m.desc)}</small>${feito}`;
+      b.addEventListener('click', () => abrir(m.id, true));
+      grid.appendChild(b);
+    }
+    lista.append(h, grid);
   }
-  lista.append(h, grid);
 }
+desenharAreas();
 
 // ── Ecrã 2: montar o inquérito da área ──
 let atual = null;
+let anterior = null; // resposta de hoje, se existir
 
 function htmlCampo(c) {
   const obr = c.obrig ? ' <span class="obr">*</span>' : '';
@@ -232,10 +282,32 @@ function mostrar(ecra) {
   window.scrollTo(0, 0);
 }
 
-function abrir(id, guardarHistorico) {
+function marcar(nome, valor) {
+  const r = document.querySelector(`input[name="${nome}"][value="${CSS.escape(String(valor))}"]`);
+  if (r) r.checked = true;
+}
+
+// Preenche o formulário com uma resposta guardada
+function preencher(m, r) {
+  if (!r) return;
+  const perfil = r.perfil || {};
+  for (const c of [...m.campos, ...(m.depois || [])]) {
+    if (c.tipo === 'texto') { if (r.especialidade) $('f-texto').value = r.especialidade; continue; }
+    const v = perfil[c.id];
+    if (!v) continue;
+    if (c.tipo === 'lista') $('f-' + c.id).value = v; else marcar('f-' + c.id, v);
+  }
+  for (const [cod, v] of Object.entries(r.notas || {})) marcar('n-' + cod, v);
+  if (r.global) marcar('n-global', r.global);
+  if (r.recomenda) marcar('recomenda', r.recomenda);
+  if (r.sugestoes) { $('sugestoes').value = r.sugestoes; $('cont').textContent = r.sugestoes.length; }
+}
+
+async function abrir(id, guardarHistorico) {
   const m = PORID[id];
   if (!m) { atual = null; mostrar('ecra-areas'); return; }
   atual = m;
+  anterior = null;
   $('area-nome').textContent = m.nome;
   $('campos').innerHTML = m.campos.map(htmlCampo).join('');
   $('depois').innerHTML = (m.depois || []).map(htmlCampo).join('');
@@ -245,30 +317,42 @@ function abrir(id, guardarHistorico) {
   limpar();
   if (guardarHistorico) history.pushState({ area: id }, '', '?area=' + encodeURIComponent(id));
   mostrar('form');
+
+  const r = await respostaDeHoje(id);
+  if (atual !== m) return; // entretanto mudou de área
+  if (r && r.data === hoje()) {
+    anterior = r;
+    preencher(m, r);
+    ls.set(chaveLocal(id, hoje()), JSON.stringify(r));
+    $('ja-respondeu').classList.remove('oculto');
+    $('enviar').textContent = 'Guardar alterações';
+  }
 }
 
 function limpar() {
   $('form').reset();
-  $('data').value = hoje();
-  $('data').max = hoje();
+  $('data-txt').textContent = fmtData(hoje());
   $('cont').textContent = '0';
+  $('ja-respondeu').classList.add('oculto');
+  $('enviar').textContent = 'Enviar inquérito';
   mostrarAviso('');
 }
 
 function voltarAreas() {
   history.pushState({}, '', location.pathname);
   atual = null;
+  desenharAreas();
   mostrar('ecra-areas');
 }
 
 window.addEventListener('popstate', () => {
   const a = new URLSearchParams(location.search).get('area');
-  if (a && PORID[a]) abrir(a, false); else { atual = null; mostrar('ecra-areas'); }
+  if (a && PORID[a]) abrir(a, false); else { atual = null; desenharAreas(); mostrar('ecra-areas'); }
 });
 
 $('mudar').addEventListener('click', voltarAreas);
 $('inicio').addEventListener('click', voltarAreas);
-$('novo').addEventListener('click', () => { limpar(); mostrar('form'); });
+$('editar').addEventListener('click', () => { if (atual) abrir(atual.id, false); });
 $('sugestoes').addEventListener('input', (e) => { $('cont').textContent = e.target.value.length; });
 
 function mostrarAviso(txt) {
@@ -291,9 +375,6 @@ $('form').addEventListener('submit', async (e) => {
   document.querySelectorAll('.erro').forEach((el) => el.classList.remove('erro'));
 
   const faltas = [];
-  const data = $('data').value;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || data > hoje()) { faltas.push('a data'); $('c-data').classList.add('falta'); }
-
   const perfil = {};
   let texto = '';
   for (const c of [...m.campos, ...(m.depois || [])]) {
@@ -312,7 +393,14 @@ $('form').addEventListener('submit', async (e) => {
   if (!global) { faltas.push('a satisfação global'); $('i-global').classList.add('falta'); }
   if (faltas.length) { mostrarAviso('Falta indicar ' + faltas.join(', ') + '.'); return; }
 
-  const reg = { area: m.id, areaNome: m.nome, v: 1, data, global: Number(global), ts: Date.now() };
+  const dia = hoje();
+  const agora = Date.now();
+  const editar = !!(anterior && anterior.data === dia);
+  const reg = {
+    area: m.id, areaNome: m.nome, v: 1, data: dia, global: Number(global),
+    criado: editar && anterior.criado ? anterior.criado : agora, ts: agora,
+  };
+  if (editar) reg.editado = (Number(anterior.editado) || 0) + 1;
   if (Object.keys(perfil).length) reg.perfil = perfil;
   if (texto) reg.especialidade = texto.slice(0, 80);
   const notas = {};
@@ -327,22 +415,23 @@ $('form').addEventListener('submit', async (e) => {
   if (sug) reg.sugestoes = sug.slice(0, 1000);
 
   const btn = $('enviar');
+  const txtBtn = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'A enviar…';
   try {
     await fbPronto;
     if (!fb) throw new Error('sem firebase');
-    await Promise.race([
-      fb.set(fb.push(fb.ref(fb.db, 'inqueritos_satisfacao')), reg),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), 15000)),
-    ]);
+    await comPrazo(fb.set(fb.ref(fb.db, caminho(m.id, dia)), reg), 15000);
+    anterior = reg;
+    ls.set(chaveLocal(m.id, dia), JSON.stringify(reg));
+    $('obrigado-txt').textContent = editar ? 'A sua resposta foi actualizada.' : 'A sua resposta foi registada.';
     mostrar('obrigado');
   } catch (err) {
     console.error(err);
     mostrarAviso('Não foi possível enviar. Verifique a internet e tente de novo.');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Enviar inquérito';
+    btn.textContent = txtBtn;
   }
 });
 

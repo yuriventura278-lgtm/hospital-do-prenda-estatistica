@@ -125,29 +125,36 @@
     },
 
     "inqueritos_satisfacao": {
-      ".read": "auth != null",
-      ".indexOn": ["area", "data"],
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'",
 
-      "$id": {
-        ".write": "!data.exists() && newData.exists()",
-        ".validate": "newData.hasChildren(['area', 'data', 'global', 'ts'])",
+      "$dia": {
+        "$area": {
+          "$aparelho": {
+            ".read": "$aparelho.matches(/^[A-Za-z0-9_-]{20,40}$/)",
+            ".write": "newData.exists() && (!data.exists() || data.child('criado').val() > now - 172800000)",
+            ".validate": "$dia.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && $area.matches(/^[a-z_]{2,40}$/) && $aparelho.matches(/^[A-Za-z0-9_-]{20,40}$/) && newData.hasChildren(['area', 'data', 'global', 'criado', 'ts']) && newData.child('area').val() === $area && newData.child('data').val() === $dia",
 
-        "area":          { ".validate": "newData.isString() && newData.val().matches(/^[a-z_]{2,40}$/)" },
-        "areaNome":      { ".validate": "newData.isString() && newData.val().length <= 80" },
-        "v":             { ".validate": "newData.isNumber()" },
-        "especialidade": { ".validate": "newData.isString() && newData.val().length <= 80" },
-        "data":          { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
-        "perfil": {
-          "$campo": { ".validate": "$campo.matches(/^[a-z_]{2,20}$/) && newData.isString() && newData.val().matches(/^[a-z0-9_-]{1,30}$/)" }
-        },
-        "recomenda":     { ".validate": "newData.val() === 'sim' || newData.val() === 'talvez' || newData.val() === 'nao'" },
-        "global":        { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" },
-        "notas": {
-          "$q": { ".validate": "$q.matches(/^q[1-9][0-9]?$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" }
-        },
-        "sugestoes":     { ".validate": "newData.isString() && newData.val().length <= 1000" },
-        "ts":            { ".validate": "newData.isNumber() && newData.val() <= now + 300000" },
-        "$outro":        { ".validate": false }
+            "area":          { ".validate": "newData.isString()" },
+            "areaNome":      { ".validate": "newData.isString() && newData.val().length <= 80" },
+            "v":             { ".validate": "newData.isNumber()" },
+            "data":          { ".validate": "newData.isString()" },
+            "criado":        { ".validate": "newData.isNumber() && ((data.exists() && newData.val() === data.val()) || (!data.exists() && newData.val() >= now - 300000 && newData.val() <= now + 300000))" },
+            "ts":            { ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 300000" },
+            "editado":       { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
+            "especialidade": { ".validate": "newData.isString() && newData.val().length <= 80" },
+            "perfil": {
+              "$campo": { ".validate": "$campo.matches(/^[a-z_]{2,20}$/) && newData.isString() && newData.val().matches(/^[a-z0-9_-]{1,30}$/)" }
+            },
+            "recomenda":     { ".validate": "newData.val() === 'sim' || newData.val() === 'talvez' || newData.val() === 'nao'" },
+            "global":        { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" },
+            "notas": {
+              "$q": { ".validate": "$q.matches(/^q[1-9][0-9]?$/) && newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" }
+            },
+            "sugestoes":     { ".validate": "newData.isString() && newData.val().length <= 1000" },
+            "$outro":        { ".validate": false }
+          }
+        }
       }
     },
 

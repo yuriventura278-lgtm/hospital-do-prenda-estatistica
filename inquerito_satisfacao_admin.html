@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="pt" data-theme="light">
+<head>
+<script src="zelo_consumo.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zelo — Inquérito de Satisfação</title>
+<script>document.documentElement.style.visibility='hidden';</script>
+<script>
+  window.ZELO_MODULE = 'sistemas_independentes';
+  window.ZELO_ITEM = 'inquerito_satisfacao';
+  window.ZELO_SO_ADMIN = true; // Serviço de Estatística — só administradores
+</script>
+<script type="module" src="zelo_pagegate.js"></script>
+<script src="zelo_pagegate_watchdog.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, get, remove, query, orderByKey, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+  import { firebaseConfig } from './zelo_firebase_config.js';
+  const db = getDatabase(initializeApp(firebaseConfig));
+  window.__inqLer = (de, ate) => get(query(ref(db, 'inqueritos_satisfacao'), orderByKey(), startAt(de), endAt(ate)))
+    .then((s) => (s.exists() ? s.val() : {}));
+  window.__inqApagar = (caminho) => remove(ref(db, 'inqueritos_satisfacao/' + caminho));
+  window.dispatchEvent(new Event('inq-fb-pronto'));
+</script>
+<script src="inquerito_modelos.js?v=1"></script>
+<script src="chart.umd.min.js"></script>
+<script src="lib/qrcode-generator-1.4.4.js"></script>
+<script src="zelo_pdf.js"></script>
+<script src="zelo_pdf_tardio.js?v=2" data-at="3.8.2"></script>
+<link rel="icon" type="image/png" href="icons/logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Fraunces:wght@600;700&display=swap">
+<link rel="stylesheet" href="zelo_tokens.css">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--zelo-bg);color:var(--zelo-ink);font-family:var(--zelo-font-body);font-size:15px;line-height:1.45}
+  .topo{background:var(--zelo-accent-ink);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .topo img{width:36px;height:36px;object-fit:contain;background:#fff;border-radius:8px;padding:2px}
+  .topo h1{font-family:var(--zelo-font-display);font-size:1.15rem;margin:0}
+  .topo p{margin:0;font-size:.85rem;opacity:.8}
+  .topo a{margin-left:auto;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:6px 14px;font-size:.88rem}
+  .wrap{max-width:1150px;margin:0 auto;padding:16px}
+  .abas{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+  .aba{font:inherit;font-weight:600;border:1.5px solid var(--zelo-line-strong);background:var(--zelo-surface);color:var(--zelo-ink);border-radius:999px;padding:8px 16px;cursor:pointer}
+  .aba.on{background:var(--zelo-accent);border-color:var(--zelo-accent);color:#fff}
+  .card{background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:var(--zelo-radius-l);box-shadow:var(--zelo-shadow-sm);padding:16px;margin-bottom:16px}
+  h2{font-family:var(--zelo-font-display);font-size:1.1rem;margin:0 0 12px;color:var(--zelo-accent-ink)}
+  h3{font-size:1rem;margin:16px 0 8px}
+  .filtros{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+  .filtros label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600;color:var(--zelo-ink-soft)}
+  select,input{font:inherit;color:inherit;background:var(--zelo-surface);border:1.5px solid var(--zelo-line-strong);border-radius:var(--zelo-radius-s);padding:8px 10px}
+  .btn{font:inherit;font-weight:700;border:0;border-radius:var(--zelo-radius-m);background:var(--zelo-accent);color:#fff;padding:9px 16px;cursor:pointer}
+  .btn.sec{background:var(--zelo-surface-2);color:var(--zelo-ink)}
+  .btn.peq{padding:5px 10px;font-size:.85rem;font-weight:600}
+  .btn.perigo{background:var(--zelo-warn-soft);color:var(--zelo-warn-ink)}
+  .btn:disabled{opacity:.6;cursor:wait}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+  .kpi{background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:var(--zelo-radius-m);padding:12px}
+  .kpi span{display:block;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--zelo-ink-soft)}
+  .kpi b{display:block;font-size:1.6rem;font-family:var(--zelo-font-display)}
+  .kpi small{color:var(--zelo-ink-faint)}
+  .tab-wrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:.9rem}
+  th,td{padding:7px 8px;border-bottom:1px solid var(--zelo-line);text-align:left;vertical-align:top}
+  th{background:var(--zelo-surface-2);font-weight:700;white-space:nowrap}
+  td.n,th.n{text-align:right;white-space:nowrap}
+  tr.total td{font-weight:700;background:var(--zelo-accent-soft)}
+  details.area{border:1px solid var(--zelo-line);border-radius:var(--zelo-radius-m);margin-bottom:10px;background:var(--zelo-surface)}
+  details.area summary{cursor:pointer;padding:12px 14px;font-weight:700;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  details.area summary small{font-weight:400;color:var(--zelo-ink-soft)}
+  details.area .corpo{padding:0 14px 14px}
+  .barra{display:inline-block;height:8px;border-radius:4px;background:var(--zelo-accent);vertical-align:middle}
+  .vazio{color:var(--zelo-ink-soft);padding:20px;text-align:center}
+  .estado{color:var(--zelo-ink-soft);font-size:.9rem;margin-left:auto}
+  .sug{border-left:3px solid var(--zelo-accent);padding:6px 10px;margin-bottom:8px;background:var(--zelo-surface-2);border-radius:0 6px 6px 0}
+  .sug small{color:var(--zelo-ink-soft);display:block}
+  .links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+  .link-card{border:1px solid var(--zelo-line);border-radius:var(--zelo-radius-m);padding:12px;text-align:center;background:var(--zelo-surface)}
+  .link-card .qr svg{width:150px;height:150px}
+  .link-card code{display:block;font-size:.72rem;word-break:break-all;color:var(--zelo-ink-soft);margin:6px 0}
+  .link-principal{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .link-principal .qr svg{width:180px;height:180px}
+  .link-principal input{flex:1;min-width:240px}
+  .oculto{display:none!important}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--zelo-ink);color:var(--zelo-surface);padding:10px 18px;border-radius:999px;font-weight:600;z-index:99;display:none}
+  .grafico{position:relative;height:280px}
+</style>
+</head>
+<body>
+<div class="topo">
+  <img src="icons/logo.png" alt="">
+  <div><h1>Inquérito de Satisfação</h1><p>Serviço de Estatística · Hospital do Prenda</p></div>
+  <a href="index.html">Início</a>
+</div>
+
+<div class="wrap">
+  <div class="abas">
+    <button class="aba on" data-aba="relatorios">Relatórios</button>
+    <button class="aba" data-aba="respostas">Respostas</button>
+    <button class="aba" data-aba="links">Link público e QR</button>
+  </div>
+
+  <!-- Filtros (comuns a Relatórios e Respostas) -->
+  <div class="card" id="card-filtros">
+    <div class="filtros">
+      <label>Relatório
+        <select id="tipo">
+          <option value="diario">Diário</option>
+          <option value="mensal" selected>Mensal</option>
+          <option value="trimestral">Trimestral</option>
+          <option value="semestral">Semestral</option>
+          <option value="anual">Anual</option>
+        </select>
+      </label>
+      <label id="l-dia">Dia <input type="date" id="dia"></label>
+      <label id="l-mes">Mês <input type="month" id="mes"></label>
+      <label id="l-ano">Ano <select id="ano"></select></label>
+      <label id="l-tri">Trimestre
+        <select id="tri"><option value="1">1.º (Jan–Mar)</option><option value="2">2.º (Abr–Jun)</option><option value="3">3.º (Jul–Set)</option><option value="4">4.º (Out–Dez)</option></select>
+      </label>
+      <label id="l-sem">Semestre
+        <select id="sem"><option value="1">1.º (Jan–Jun)</option><option value="2">2.º (Jul–Dez)</option></select>
+      </label>
+      <label>Área <select id="area"><option value="">Todas as áreas</option></select></label>
+      <button class="btn" id="btn-pdf">Exportar PDF</button>
+      <button class="btn sec" id="btn-csv">Exportar Excel (CSV)</button>
+      <label style="flex-direction:row;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pdf-individuais"> Incluir respostas individuais no PDF</label>
+      <span class="estado" id="estado"></span>
+    </div>
+  </div>
+
+  <!-- Relatórios -->
+  <div id="aba-relatorios">
+    <div id="resumo"></div>
+  </div>
+
+  <!-- Respostas individuais -->
+  <div id="aba-respostas" class="oculto">
+    <div class="card">
+      <h2>Respostas individuais</h2>
+      <p style="margin-top:-6px;color:var(--zelo-ink-soft)">Cada aparelho só pode deixar uma resposta por área em cada dia (pode alterá-la nesse dia). Use «Apagar» só para respostas falsas ou de teste.</p>
+      <div class="tab-wrap" id="lista-respostas"></div>
+    </div>
+  </div>
+
+  <!-- Links públicos -->
+  <div id="aba-links" class="oculto">
+    <div class="card">
+      <h2>Link público do inquérito</h2>
+      <p style="margin-top:-6px;color:var(--zelo-ink-soft)">Este link abre o inquérito sem login. Partilhe-o ou imprima o código QR. Quem abrir escolhe a área.</p>
+      <div class="link-principal">
+        <div class="qr" id="qr-principal"></div>
+        <div style="flex:1;min-width:240px">
+          <input type="text" id="url-principal" readonly style="width:100%">
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn" id="copiar-principal">Copiar link</button>
+            <a class="btn sec" id="abrir-principal" target="_blank" rel="noopener" style="text-decoration:none">Abrir inquérito</a>
+            <button class="btn sec" id="btn-cartazes">Cartazes com QR (PDF)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Links por área</h2>
+      <p style="margin-top:-6px;color:var(--zelo-ink-soft)">Cada link abre logo o inquérito da área. Bom para afixar à porta de cada serviço.</p>
+      <div class="links-grid" id="links-areas"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+  var MODELOS = window.INQ_MODELOS, ESCALA = window.INQ_ESCALA;
+  var PORID = {}; MODELOS.forEach(function (m) { PORID[m.id] = m; });
+  var MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  var REC = { sim: 'Sim', talvez: 'Talvez', nao: 'Não' };
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  var fmtD = function (iso) { return iso ? iso.split('-').reverse().join('/') : ''; };
+  var hojeISO = function () { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  var media = function (arr) { return arr.length ? arr.reduce(function (a, b) { return a + b; }, 0) / arr.length : null; };
+  var f1 = function (x) { return x == null ? '—' : x.toFixed(2).replace('.', ','); };
+  var pct = function (a, b) { return b ? Math.round(a * 1000 / b) / 10 + '%' : '—'; };
+  function toast(t) { var e = $('toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(function () { e.style.display = 'none'; }, 2600); }
+
+  // ── Filtros e período ──
+  var anoAtual = new Date().getFullYear();
+  for (var a = anoAtual; a >= 2025; a--) $('ano').appendChild(new Option(a, a));
+  $('dia').value = hojeISO(); $('dia').max = hojeISO();
+  $('mes').value = hojeISO().slice(0, 7);
+  $('tri').value = String(Math.floor(new Date().getMonth() / 3) + 1);
+  $('sem').value = new Date().getMonth() < 6 ? '1' : '2';
+  window.INQ_GRUPOS.forEach(function (g) {
+    var og = document.createElement('optgroup'); og.label = g[1];
+    MODELOS.filter(function (m) { return m.grupo === g[0]; }).forEach(function (m) { og.appendChild(new Option(m.nome, m.id)); });
+    $('area').appendChild(og);
+  });
+
+  function ajustarFiltros() {
+    var t = $('tipo').value;
+    $('l-dia').classList.toggle('oculto', t !== 'diario');
+    $('l-mes').classList.toggle('oculto', t !== 'mensal');
+    $('l-ano').classList.toggle('oculto', !(t === 'trimestral' || t === 'semestral' || t === 'anual'));
+    $('l-tri').classList.toggle('oculto', t !== 'trimestral');
+    $('l-sem').classList.toggle('oculto', t !== 'semestral');
+  }
+
+  function ultimoDia(ano, mes) { return new Date(ano, mes, 0).getDate(); } // mes 1..12
+  function periodo() {
+    var t = $('tipo').value, P = { tipo: t };
+    if (t === 'diario') {
+      var d = $('dia').value || hojeISO();
+      P.de = P.ate = d; P.rot = fmtD(d); P.nome = 'Relatório Diário'; P.ficheiro = d;
+    } else if (t === 'mensal') {
+      var m = $('mes').value || hojeISO().slice(0, 7), p = m.split('-');
+      P.de = m + '-01'; P.ate = m + '-' + pad(ultimoDia(+p[0], +p[1]));
+      P.rot = MESES[+p[1] - 1] + ' de ' + p[0]; P.nome = 'Relatório Mensal'; P.ficheiro = m;
+    } else {
+      var ano = +$('ano').value, m1, m2;
+      if (t === 'trimestral') { var q = +$('tri').value; m1 = (q - 1) * 3 + 1; m2 = m1 + 2; P.rot = q + '.º trimestre de ' + ano; P.nome = 'Relatório Trimestral'; P.ficheiro = ano + '-T' + q; }
+      else if (t === 'semestral') { var s = +$('sem').value; m1 = s === 1 ? 1 : 7; m2 = m1 + 5; P.rot = s + '.º semestre de ' + ano; P.nome = 'Relatório Semestral'; P.ficheiro = ano + '-S' + s; }
+      else { m1 = 1; m2 = 12; P.rot = 'Ano de ' + ano; P.nome = 'Relatório Anual'; P.ficheiro = String(ano); }
+      P.de = ano + '-' + pad(m1) + '-01'; P.ate = ano + '-' + pad(m2) + '-' + pad(ultimoDia(ano, m2));
+      P.m1 = m1; P.m2 = m2; P.ano = ano;
+    }
+    return P;
+  }
+
+  // ── Leitura dos dados ──
+  var dados = [];     // todas as respostas do período (todas as áreas)
+  var P = null;
+  var pedido = 0;
+
+  function achatar(arvore) {
+    var lista = [];
+    Object.keys(arvore || {}).forEach(function (dia) {
+      Object.keys(arvore[dia] || {}).forEach(function (area) {
+        Object.keys(arvore[dia][area] || {}).forEach(function (ap) {
+          var r = arvore[dia][area][ap];
+          if (!r || typeof r !== 'object') return;
+          r.__caminho = dia + '/' + area + '/' + ap;
+          r.area = r.area || area; r.data = r.data || dia;
+          lista.push(r);
+        });
+      });
+    });
+    lista.sort(function (a, b) { return (a.data + (a.criado || 0)) < (b.data + (b.criado || 0)) ? -1 : 1; });
+    return lista;
+  }
+
+  function carregar() {
+    if (!window.__inqLer) return;
+    P = periodo();
+    var meu = ++pedido;
+    $('estado').textContent = 'A carregar…';
+    window.__inqLer(P.de, P.ate).then(function (arvore) {
+      if (meu !== pedido) return;
+      dados = achatar(arvore);
+      $('estado').textContent = dados.length + ' resposta(s) · ' + P.rot;
+      desenhar();
+    }).catch(function (e) {
+      console.error(e);
+      $('estado').textContent = 'Erro ao carregar: ' + (e && e.message || e);
+    });
+  }
+
+  function filtrados() { var a = $('area').value; return a ? dados.filter(function (r) { return r.area === a; }) : dados; }
+  function nomeArea(id, r) { return PORID[id] ? PORID[id].nome : ((r && r.areaNome) || id); }
+
+  // ── Cálculos ──
+  function resumo(lista) {
+    var g = lista.map(function (r) { return Number(r.global); }).filter(function (x) { return x >= 1 && x <= 5; });
+    var rec = { sim: 0, talvez: 0, nao: 0 }, nrec = 0;
+    lista.forEach(function (r) { if (rec[r.recomenda] != null) { rec[r.recomenda]++; nrec++; } });
+    return {
+      n: lista.length, media: media(g),
+      satisf: g.filter(function (x) { return x >= 4; }).length,
+      insatisf: g.filter(function (x) { return x <= 2; }).length,
+      ng: g.length, rec: rec, nrec: nrec,
+      sug: lista.filter(function (r) { return (r.sugestoes || '').trim(); }).length,
+      editadas: lista.filter(function (r) { return r.editado; }).length,
+    };
+  }
+  function linhasPorArea(lista) {
+    var ids = [];
+    MODELOS.forEach(function (m) { if (lista.some(function (r) { return r.area === m.id; })) ids.push(m.id); });
+    lista.forEach(function (r) { if (ids.indexOf(r.area) < 0) ids.push(r.area); });
+    return ids.map(function (id) { var l = lista.filter(function (r) { return r.area === id; }); return { id: id, nome: nomeArea(id, l[0]), lista: l, R: resumo(l) }; });
+  }
+  function perguntasDe(m, lista) {
+    var linhas = m.perguntas.map(function (q) {
+      var v = lista.map(function (r) { return r.notas && Number(r.notas[q[0]]); }).filter(function (x) { return x >= 1 && x <= 5; });
+      var c = [0, 0, 0, 0, 0]; v.forEach(function (x) { c[x - 1]++; });
+      return { cod: q[0], texto: q[1], n: v.length, media: media(v), c: c, satisf: c[3] + c[4] };
+    });
+    var g = lista.map(function (r) { return Number(r.global); }).filter(function (x) { return x >= 1 && x <= 5; });
+    var cg = [0, 0, 0, 0, 0]; g.forEach(function (x) { cg[x - 1]++; });
+    linhas.push({ cod: 'global', texto: 'Satisfação global', n: g.length, media: media(g), c: cg, satisf: cg[3] + cg[4], global: true });
+    return linhas;
+  }
+  function perfilDe(m, lista) {
+    var out = [];
+    m.campos.concat(m.depois || []).forEach(function (c) {
+      if (c.tipo === 'texto') {
+        var cont = {};
+        lista.forEach(function (r) { var t = (r.especialidade || '').trim(); if (t) { var k = t.toLowerCase(); cont[k] = cont[k] || { t: t, n: 0 }; cont[k].n++; } });
+        var it = Object.keys(cont).map(function (k) { return [cont[k].t, cont[k].n]; }).sort(function (a, b) { return b[1] - a[1]; });
+        if (it.length) out.push({ rotulo: c.rotulo, itens: it.slice(0, 15), total: it.reduce(function (a, b) { return a + b[1]; }, 0) });
+        return;
+      }
+      var tot = 0;
+      var itens = c.opcoes.map(function (o) {
+        var n = lista.filter(function (r) { return r.perfil && r.perfil[c.id] === o[0]; }).length; tot += n; return [o[1], n];
+      });
+      out.push({ rotulo: c.rotulo, itens: itens, total: tot, sem: lista.length - tot });
+    });
+    return out;
+  }
+  function evolucao(lista) {
+    if (!P || P.tipo === 'diario') return null;
+    var grupos = [];
+    if (P.tipo === 'mensal') {
+      var p = P.de.split('-'), n = ultimoDia(+p[0], +p[1]);
+      for (var d = 1; d <= n; d++) { var iso = p[0] + '-' + p[1] + '-' + pad(d); grupos.push({ rot: fmtD(iso), f: (function (k) { return function (r) { return r.data === k; }; })(iso) }); }
+    } else {
+      for (var m = P.m1; m <= P.m2; m++) { var pref = P.ano + '-' + pad(m); grupos.push({ rot: MESES[m - 1], f: (function (k) { return function (r) { return r.data.slice(0, 7) === k; }; })(pref) }); }
+    }
+    return grupos.map(function (g) { var l = lista.filter(g.f); return { rot: g.rot, R: resumo(l) }; })
+      .filter(function (x) { return P.tipo !== 'mensal' || x.R.n; });
+  }
+  function textoPerfil(m, r) {
+    if (!m) return '';
+    var partes = [];
+    m.campos.concat(m.depois || []).forEach(function (c) {
+      if (c.tipo === 'texto') { if (r.especialidade) partes.push(c.rotulo + ': ' + r.especialidade); return; }
+      var v = r.perfil && r.perfil[c.id]; if (!v) return;
+      var o = c.opcoes.filter(function (x) { return x[0] === v; })[0];
+      partes.push(c.rotulo.replace(/\?$/, '') + ': ' + (o ? o[1] : v));
+    });
+    return partes.join(' · ');
+  }
+  var hora = function (ts) { if (!ts) return ''; var d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+
+  // ── Desenho no ecrã ──
+  var grafico = null;
+  function kpisHTML(R) {
+    return '<div class="kpis">' +
+      '<div class="kpi"><span>Respostas</span><b>' + R.n + '</b><small>' + R.editadas + ' alterada(s) pelo utente</small></div>' +
+      '<div class="kpi"><span>Satisfação global média</span><b>' + f1(R.media) + '</b><small>de 1 (muito mau) a 5 (muito bom)</small></div>' +
+      '<div class="kpi"><span>Satisfeitos</span><b>' + pct(R.satisf, R.ng) + '</b><small>Bom ou Muito bom (' + R.satisf + ')</small></div>' +
+      '<div class="kpi"><span>Insatisfeitos</span><b>' + pct(R.insatisf, R.ng) + '</b><small>Mau ou Muito mau (' + R.insatisf + ')</small></div>' +
+      '<div class="kpi"><span>Recomendaria</span><b>' + pct(R.rec.sim, R.nrec) + '</b><small>Sim ' + R.rec.sim + ' · Talvez ' + R.rec.talvez + ' · Não ' + R.rec.nao + '</small></div>' +
+      '<div class="kpi"><span>Sugestões / reclamações</span><b>' + R.sug + '</b><small>com texto escrito</small></div>' +
+      '</div>';
+  }
+  function tabelaPerguntasHTML(m, lista) {
+    var L = perguntasDe(m, lista);
+    return '<div class="tab-wrap"><table><thead><tr><th>Pergunta</th><th class="n">Resp.</th><th class="n">Média</th>' +
+      ESCALA.map(function (e) { return '<th class="n">' + e + '</th>'; }).join('') + '<th class="n">% satisfeitos</th></tr></thead><tbody>' +
+      L.map(function (q, i) {
+        return '<tr' + (q.global ? ' class="total"' : '') + '><td>' + (q.global ? '' : (i + 1) + '. ') + esc(q.texto) + '</td><td class="n">' + q.n + '</td><td class="n">' + f1(q.media) +
+          ' <span class="barra" style="width:' + (q.media ? Math.round(q.media * 10) : 0) + 'px"></span></td>' +
+          q.c.map(function (x) { return '<td class="n">' + x + '</td>'; }).join('') + '<td class="n">' + pct(q.satisf, q.n) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  function perfilHTML(m, lista) {
+    return perfilDe(m, lista).map(function (c) {
+      return '<h3>' + esc(c.rotulo) + '</h3><div class="tab-wrap"><table><tbody>' +
+        c.itens.map(function (it) { return '<tr><td>' + esc(it[0]) + '</td><td class="n">' + it[1] + '</td><td class="n">' + pct(it[1], c.total) + '</td></tr>'; }).join('') +
+        (c.sem ? '<tr><td style="color:var(--zelo-ink-faint)">Não respondeu</td><td class="n">' + c.sem + '</td><td></td></tr>' : '') +
+        '</tbody></table></div>';
+    }).join('');
+  }
+  function sugestoesHTML(lista, comArea) {
+    var s = lista.filter(function (r) { return (r.sugestoes || '').trim(); });
+    if (!s.length) return '<p class="vazio">Sem sugestões ou reclamações escritas.</p>';
+    return s.map(function (r) {
+      return '<div class="sug"><small>' + fmtD(r.data) + ' ' + hora(r.criado) + (comArea ? ' · ' + esc(nomeArea(r.area, r)) : '') + ' · Satisfação global: ' + esc(ESCALA[r.global - 1] || '—') + '</small>' + esc(r.sugestoes) + '</div>';
+    }).join('');
+  }
+
+  function desenhar() {
+    var lista = filtrados(), areaSel = $('area').value, R = resumo(lista), h = '';
+    h += '<div class="card"><h2>' + esc(P.nome) + ' · ' + esc(P.rot) + (areaSel ? ' · ' + esc(nomeArea(areaSel)) : ' · Todas as áreas') + '</h2>' + kpisHTML(R);
+    if (!lista.length) { h += '<p class="vazio">Não há respostas neste período.</p></div>'; $('resumo').innerHTML = h; desenharRespostas(); return; }
+    h += '</div>';
+
+    if (!areaSel) {
+      var A = linhasPorArea(lista);
+      h += '<div class="card"><h2>Por área</h2><div class="grafico"><canvas id="graf-areas"></canvas></div><div class="tab-wrap" style="margin-top:12px"><table><thead><tr><th>Área</th><th class="n">Respostas</th><th class="n">Satisfação média</th><th class="n">% satisfeitos</th><th class="n">% insatisfeitos</th><th class="n">% recomendaria</th><th class="n">Sugestões</th></tr></thead><tbody>' +
+        A.map(function (x) { return '<tr><td>' + esc(x.nome) + '</td><td class="n">' + x.R.n + '</td><td class="n">' + f1(x.R.media) + '</td><td class="n">' + pct(x.R.satisf, x.R.ng) + '</td><td class="n">' + pct(x.R.insatisf, x.R.ng) + '</td><td class="n">' + pct(x.R.rec.sim, x.R.nrec) + '</td><td class="n">' + x.R.sug + '</td></tr>'; }).join('') +
+        '<tr class="total"><td>Total</td><td class="n">' + R.n + '</td><td class="n">' + f1(R.media) + '</td><td class="n">' + pct(R.satisf, R.ng) + '</td><td class="n">' + pct(R.insatisf, R.ng) + '</td><td class="n">' + pct(R.rec.sim, R.nrec) + '</td><td class="n">' + R.sug + '</td></tr></tbody></table></div></div>';
+    }
+
+    var ev = evolucao(lista);
+    if (ev && ev.length) {
+      h += '<div class="card"><h2>' + (P.tipo === 'mensal' ? 'Por dia' : 'Por mês') + '</h2><div class="tab-wrap"><table><thead><tr><th>' + (P.tipo === 'mensal' ? 'Dia' : 'Mês') + '</th><th class="n">Respostas</th><th class="n">Satisfação média</th><th class="n">% satisfeitos</th><th class="n">% recomendaria</th></tr></thead><tbody>' +
+        ev.map(function (x) { return '<tr><td>' + x.rot + '</td><td class="n">' + x.R.n + '</td><td class="n">' + f1(x.R.media) + '</td><td class="n">' + pct(x.R.satisf, x.R.ng) + '</td><td class="n">' + pct(x.R.rec.sim, x.R.nrec) + '</td></tr>'; }).join('') +
+        '</tbody></table></div></div>';
+    }
+
+    h += '<div class="card"><h2>Detalhe por área</h2>';
+    linhasPorArea(lista).forEach(function (x) {
+      var m = PORID[x.id];
+      h += '<details class="area"' + (areaSel ? ' open' : '') + '><summary>' + esc(x.nome) + ' <small>' + x.R.n + ' resposta(s) · média ' + f1(x.R.media) + ' · ' + pct(x.R.satisf, x.R.ng) + ' satisfeitos</small></summary><div class="corpo">' +
+        (m ? '<h3>Avaliação por pergunta</h3>' + tabelaPerguntasHTML(m, x.lista) + perfilHTML(m, x.lista) : '<p>Modelo desconhecido.</p>') +
+        '<h3>Recomendação</h3><p>Sim: ' + x.R.rec.sim + ' · Talvez: ' + x.R.rec.talvez + ' · Não: ' + x.R.rec.nao + ' · Sem resposta: ' + (x.R.n - x.R.nrec) + '</p>' +
+        '<h3>Sugestões e reclamações</h3>' + sugestoesHTML(x.lista, false) + '</div></details>';
+    });
+    h += '</div>';
+    $('resumo').innerHTML = h;
+
+    if (!areaSel && window.Chart && $('graf-areas')) {
+      if (grafico) grafico.destroy();
+      var A2 = linhasPorArea(lista);
+      grafico = new Chart($('graf-areas'), {
+        type: 'bar',
+        data: { labels: A2.map(function (x) { return x.nome; }), datasets: [{ label: 'Satisfação média (1 a 5)', data: A2.map(function (x) { return x.R.media ? +x.R.media.toFixed(2) : 0; }), backgroundColor: '#3E5C87', borderRadius: 4 }] },
+        options: { maintainAspectRatio: false, animation: false, indexAxis: 'y', scales: { x: { min: 0, max: 5 } }, plugins: { legend: { display: false } } }
+      });
+    }
+    desenharRespostas();
+  }
+
+  function desenharRespostas() {
+    var lista = filtrados().slice().reverse();
+    if (!lista.length) { $('lista-respostas').innerHTML = '<p class="vazio">Não há respostas neste período.</p>'; return; }
+    var max = 500;
+    $('lista-respostas').innerHTML = (lista.length > max ? '<p>A mostrar as ' + max + ' mais recentes de ' + lista.length + '. O ficheiro Excel (CSV) tem todas.</p>' : '') +
+      '<table><thead><tr><th>Data</th><th>Hora</th><th>Área</th><th>Satisfação global</th><th>Recomenda</th><th>Notas (perguntas 1, 2, …)</th><th>Perfil</th><th>Sugestão / reclamação</th><th></th></tr></thead><tbody>' +
+      lista.slice(0, max).map(function (r) {
+        var m = PORID[r.area];
+        var notas = m ? m.perguntas.map(function (q) { return (r.notas && r.notas[q[0]]) || '–'; }).join(' ') : '';
+        return '<tr><td>' + fmtD(r.data) + '</td><td>' + hora(r.criado) + (r.editado ? ' <small title="Alterada pelo utente">(alterada)</small>' : '') + '</td><td>' + esc(nomeArea(r.area, r)) + '</td><td>' + esc(ESCALA[r.global - 1] || '') + '</td><td>' + esc(REC[r.recomenda] || '') +
+          '</td><td style="font-family:var(--zelo-font-mono);white-space:nowrap">' + notas + '</td><td style="min-width:200px">' + esc(textoPerfil(m, r)) + '</td><td style="min-width:200px">' + esc(r.sugestoes || '') +
+          '</td><td><button class="btn peq perigo" data-apagar="' + esc(r.__caminho) + '">Apagar</button></td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  $('lista-respostas').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-apagar]'); if (!b) return;
+    if (!confirm('Apagar esta resposta? Não é possível desfazer.')) return;
+    b.disabled = true;
+    window.__inqApagar(b.getAttribute('data-apagar')).then(function () { toast('Resposta apagada'); carregar(); })
+      .catch(function (err) { b.disabled = false; alert('Não foi possível apagar: ' + (err && err.message || err)); });
+  });
+
+  // ── CSV (abre no Excel) ──
+  $('btn-csv').addEventListener('click', function () {
+    var lista = filtrados();
+    if (!lista.length) { toast('Não há respostas neste período'); return; }
+    var areaSel = $('area').value, maxQ = 0, campos = {};
+    lista.forEach(function (r) {
+      var m = PORID[r.area]; if (m) maxQ = Math.max(maxQ, m.perguntas.length);
+      Object.keys(r.perfil || {}).forEach(function (k) { campos[k] = 1; });
+    });
+    var cps = Object.keys(campos);
+    var cab = ['Data', 'Hora', 'Área', 'Satisfação global (1-5)', 'Recomenda'];
+    for (var i = 1; i <= maxQ; i++) cab.push(areaSel && PORID[areaSel] && PORID[areaSel].perguntas[i - 1] ? PORID[areaSel].perguntas[i - 1][1] : 'Pergunta ' + i);
+    var rotCampo = function (k) {
+      var achado = k;
+      MODELOS.forEach(function (m) { m.campos.concat(m.depois || []).forEach(function (c) { if (c.id === k && (!areaSel || m.id === areaSel)) achado = c.rotulo; }); });
+      return achado;
+    };
+    cab = cab.concat(cps.map(rotCampo), ['Especialidade / texto', 'Sugestão / reclamação', 'Alterada']);
+    var cel = function (v) { v = v == null ? '' : String(v); return /[;"\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var linhas = [cab.map(cel).join(';')];
+    lista.forEach(function (r) {
+      var m = PORID[r.area], l = [fmtD(r.data), hora(r.criado), nomeArea(r.area, r), r.global, REC[r.recomenda] || ''];
+      for (var i = 1; i <= maxQ; i++) l.push((r.notas && r.notas['q' + i]) || '');
+      cps.forEach(function (k) {
+        var v = r.perfil && r.perfil[k], txt = v || '';
+        if (v && m) m.campos.concat(m.depois || []).forEach(function (c) { if (c.id === k && c.opcoes) c.opcoes.forEach(function (o) { if (o[0] === v) txt = o[1]; }); });
+        l.push(txt);
+      });
+      l.push(r.especialidade || '', r.sugestoes || '', r.editado ? 'Sim' : '');
+      linhas.push(l.map(cel).join(';'));
+    });
+    var blob = new Blob(['﻿' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Inquerito_Satisfacao_' + P.ficheiro + (areaSel ? '_' + areaSel : '') + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  // ── PDF ──
+  function pdfPronto() {
+    if (window.ZeloPdfTardio) return window.ZeloPdfTardio.carregar();
+    return Promise.resolve(!!(window.jspdf && window.jspdf.jsPDF));
+  }
+
+  $('btn-pdf').addEventListener('click', function () {
+    var b = this;
+    if (!P) return;
+    b.disabled = true;
+    pdfPronto().then(function () {
+      try { gerarPDF(); } catch (e) { console.error(e); alert('Erro ao gerar o PDF: ' + e.message); }
+    }).finally(function () { b.disabled = false; });
+  });
+
+  function gerarPDF() {
+    if (!(window.jspdf && window.jspdf.jsPDF) || !window.ZeloPDF) { toast('O gerador de PDF ainda está a carregar — tente de novo'); return; }
+    var lista = filtrados(), areaSel = $('area').value, R = resumo(lista);
+    var Z = ZeloPDF.criar(), d = Z.d, sec = 0;
+    var tituloArea = areaSel ? nomeArea(areaSel) : 'Todas as áreas';
+    var y = Z.cab('Inquérito de Satisfação · ' + P.nome, P.rot + ' · ' + tituloArea);
+    var tab = function (head, body, extra) {
+      var o = { startY: y, head: [head], body: body, styles: { fontSize: 9.5 } };
+      if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
+      y = ZeloPDF.autoTable(d, o);
+    };
+    var numCols = function (from, to) { var o = {}; for (var i = from; i <= to; i++) o[i] = { halign: 'center' }; return o; };
+
+    y = Z.secT(y, (++sec) + '. Resumo geral');
+    y = Z.kv(y, [['Respostas', String(R.n)], ['Satisfação média (1-5)', f1(R.media)], ['Satisfeitos', pct(R.satisf, R.ng)], ['Insatisfeitos', pct(R.insatisf, R.ng)]]);
+    y = Z.kv(y, [['Recomendaria (Sim)', pct(R.rec.sim, R.nrec)], ['Talvez / Não', R.rec.talvez + ' / ' + R.rec.nao], ['Sugestões escritas', String(R.sug)], ['Período', fmtD(P.de) + (P.de !== P.ate ? ' a ' + fmtD(P.ate) : '')]]);
+    if (!lista.length) { y = Z.txt(y, 'Nota', 'Não há respostas neste período.'); Z.rodape(); d.save(nomePDF(areaSel)); return; }
+
+    if (!areaSel) {
+      y = Z.secT(y, (++sec) + '. Por área');
+      var A = linhasPorArea(lista);
+      var corpo = A.map(function (x) { return [x.nome, x.R.n, f1(x.R.media), pct(x.R.satisf, x.R.ng), pct(x.R.insatisf, x.R.ng), pct(x.R.rec.sim, x.R.nrec), x.R.sug]; });
+      corpo.push([{ content: 'TOTAL', styles: { fontStyle: 'bold' } }, R.n, f1(R.media), pct(R.satisf, R.ng), pct(R.insatisf, R.ng), pct(R.rec.sim, R.nrec), R.sug]);
+      tab(['Área', 'Respostas', 'Média', '% satisf.', '% insatisf.', '% recomenda', 'Sugestões'], corpo, { columnStyles: numCols(1, 6) });
+      var cv = $('graf-areas');
+      if (cv && grafico) {
+        try {
+          var img = cv.toDataURL('image/png'), W = Z.CW, H = W * cv.height / cv.width;
+          y = Z.quebra(y, H + 4); d.addImage(img, 'PNG', Z.M, y, W, H); y += H + 6;
+        } catch (e) { console.warn(e); }
+      }
+    }
+
+    var ev = evolucao(lista);
+    if (ev && ev.length) {
+      y = Z.secT(y, (++sec) + '. ' + (P.tipo === 'mensal' ? 'Por dia' : 'Por mês'));
+      tab([P.tipo === 'mensal' ? 'Dia' : 'Mês', 'Respostas', 'Satisfação média', '% satisfeitos', '% recomenda'],
+        ev.map(function (x) { return [x.rot, x.R.n, f1(x.R.media), pct(x.R.satisf, x.R.ng), pct(x.R.rec.sim, x.R.nrec)]; }), { columnStyles: numCols(1, 4) });
+    }
+
+    linhasPorArea(lista).forEach(function (x) {
+      var m = PORID[x.id];
+      y = Z.secT(y, (++sec) + '. ' + x.nome + ' (' + x.R.n + ' resposta' + (x.R.n === 1 ? '' : 's') + ')');
+      if (m) {
+        var L = perguntasDe(m, x.lista);
+        tab(['Pergunta', 'Resp.', 'Média'].concat(ESCALA).concat(['% satisf.']),
+          L.map(function (q, i) {
+            var l = [(q.global ? '' : (i + 1) + '. ') + q.texto, q.n, f1(q.media)].concat(q.c).concat([pct(q.satisf, q.n)]);
+            if (q.global) l = l.map(function (v) { return { content: String(v), styles: { fontStyle: 'bold' } }; });
+            return l;
+          }), { columnStyles: Object.assign({ 0: { cellWidth: 62 } }, numCols(1, 8)), styles: { fontSize: 8.5 } });
+        perfilDe(m, x.lista).forEach(function (c) {
+          var body = c.itens.map(function (it) { return [it[0], it[1], pct(it[1], c.total)]; });
+          if (c.sem) body.push(['Não respondeu', c.sem, '']);
+          tab([c.rotulo, 'N.º', '%'], body, { columnStyles: numCols(1, 2) });
+        });
+      }
+      tab(['Recomendaria?', 'Sim', 'Talvez', 'Não', 'Sem resposta'], [['N.º de respostas', x.R.rec.sim, x.R.rec.talvez, x.R.rec.nao, x.R.n - x.R.nrec]], { columnStyles: numCols(1, 4) });
+      var s = x.lista.filter(function (r) { return (r.sugestoes || '').trim(); });
+      if (s.length) {
+        tab(['Data', 'Satisfação', 'Sugestão / reclamação'], s.map(function (r) { return [fmtD(r.data) + ' ' + hora(r.criado), ESCALA[r.global - 1] || '', r.sugestoes]; }),
+          { columnStyles: { 0: { cellWidth: 28 }, 1: { cellWidth: 24 } } });
+      }
+    });
+
+    if ($('pdf-individuais').checked) {
+      y = Z.secT(y, (++sec) + '. Respostas individuais');
+      tab(['Data', 'Área', 'Global', 'Rec.', 'Notas', 'Perfil'], lista.map(function (r) {
+        var m = PORID[r.area];
+        return [fmtD(r.data) + ' ' + hora(r.criado), nomeArea(r.area, r), r.global, REC[r.recomenda] || '', m ? m.perguntas.map(function (q) { return (r.notas && r.notas[q[0]]) || '-'; }).join(' ') : '', textoPerfil(m, r)];
+      }), { styles: { fontSize: 7.5 }, columnStyles: { 0: { cellWidth: 24 }, 1: { cellWidth: 30 }, 2: { cellWidth: 12, halign: 'center' }, 3: { cellWidth: 13 }, 4: { cellWidth: 30 } } });
+    }
+
+    Z.rodape();
+    d.save(nomePDF(areaSel));
+  }
+  function nomePDF(areaSel) { return 'Inquerito_Satisfacao_' + P.tipo + '_' + P.ficheiro + (areaSel ? '_' + areaSel : '') + '.pdf'; }
+
+  // ── Links e códigos QR ──
+  var URL_BASE = new URL('inquerito_satisfacao.html', location.href).href;
+  var linkArea = function (id) { return URL_BASE + '?area=' + id; };
+  function qr(texto) { var q = qrcode(0, 'M'); q.addData(texto); q.make(); return q; }
+  function qrSVG(texto) { return qr(texto).createSvgTag({ cellSize: 4, margin: 2, scalable: true }); }
+
+  function desenharLinks() {
+    $('url-principal').value = URL_BASE;
+    $('abrir-principal').href = URL_BASE;
+    $('qr-principal').innerHTML = qrSVG(URL_BASE);
+    $('links-areas').innerHTML = MODELOS.map(function (m) {
+      var u = linkArea(m.id);
+      return '<div class="link-card"><strong>' + esc(m.nome) + '</strong><div class="qr">' + qrSVG(u) + '</div><code>' + esc(u) + '</code>' +
+        '<div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button class="btn peq" data-copiar="' + esc(u) + '">Copiar</button>' +
+        '<a class="btn peq sec" style="text-decoration:none" target="_blank" rel="noopener" href="' + esc(u) + '">Abrir</a>' +
+        '<button class="btn peq sec" data-cartaz="' + m.id + '">Cartaz PDF</button></div></div>';
+    }).join('');
+  }
+  function copiar(t) {
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Link copiado'); })
+      .catch(function () { prompt('Copie o link:', t); });
+  }
+  $('copiar-principal').addEventListener('click', function () { copiar(URL_BASE); });
+  $('links-areas').addEventListener('click', function (e) {
+    var c = e.target.closest('[data-copiar]'); if (c) copiar(c.getAttribute('data-copiar'));
+    var p = e.target.closest('[data-cartaz]'); if (p) cartazes([p.getAttribute('data-cartaz')]);
+  });
+  $('btn-cartazes').addEventListener('click', function () { cartazes(null); });
+
+  // Cartaz A4 por página: geral (se ids == null) + um por área
+  function cartazes(ids) {
+    pdfPronto().then(function () {
+      if (!(window.jspdf && window.jspdf.jsPDF)) { toast('O gerador de PDF ainda está a carregar — tente de novo'); return; }
+      var d = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' }), W = 210, primeira = true;
+      var paginas = ids ? ids.map(function (id) { return { nome: PORID[id].nome, url: linkArea(id) }; })
+        : [{ nome: 'Escolha a área onde foi atendido', url: URL_BASE }].concat(MODELOS.map(function (m) { return { nome: m.nome, url: linkArea(m.id) }; }));
+      paginas.forEach(function (pg) {
+        if (!primeira) d.addPage(); primeira = false;
+        d.setFillColor('#1F2F45'); d.rect(0, 0, W, 38, 'F');
+        d.setTextColor('#FFFFFF'); d.setFont('helvetica', 'bold'); d.setFontSize(24); d.text('Hospital do Prenda', W / 2, 18, { align: 'center' });
+        d.setFont('helvetica', 'normal'); d.setFontSize(14); d.text('Inquérito de satisfação · anónimo e voluntário', W / 2, 29, { align: 'center' });
+        d.setTextColor('#1F2F45'); d.setFont('helvetica', 'bold'); d.setFontSize(26);
+        d.text(d.splitTextToSize(pg.nome, W - 30), W / 2, 60, { align: 'center' });
+        d.setFont('helvetica', 'normal'); d.setFontSize(15); d.setTextColor('#333333');
+        d.text('A sua opinião ajuda-nos a melhorar o atendimento.', W / 2, 78, { align: 'center' });
+        var q = qr(pg.url), n = q.getModuleCount(), tam = 120, cel = tam / n, x0 = (W - tam) / 2, y0 = 90;
+        d.setFillColor('#000000');
+        for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) d.rect(x0 + c * cel, y0 + r * cel, cel + 0.05, cel + 0.05, 'F');
+        d.setFont('helvetica', 'bold'); d.setFontSize(16); d.setTextColor('#1F2F45');
+        d.text('Aponte a câmara do telemóvel para o código', W / 2, y0 + tam + 14, { align: 'center' });
+        d.setFont('helvetica', 'normal'); d.setFontSize(12); d.setTextColor('#555555');
+        d.text('Não escreva o seu nome. Leva menos de 2 minutos.', W / 2, y0 + tam + 23, { align: 'center' });
+        d.setFontSize(9); d.text(d.splitTextToSize(pg.url, W - 30), W / 2, 282, { align: 'center' });
+      });
+      d.save(ids ? 'Cartaz_Inquerito_' + ids[0] + '.pdf' : 'Cartazes_Inquerito_Satisfacao.pdf');
+    });
+  }
+
+  // ── Abas e arranque ──
+  document.querySelectorAll('.aba').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.aba').forEach(function (x) { x.classList.toggle('on', x === b); });
+      var a = b.getAttribute('data-aba');
+      ['relatorios', 'respostas', 'links'].forEach(function (k) { $('aba-' + k).classList.toggle('oculto', k !== a); });
+      $('card-filtros').classList.toggle('oculto', a === 'links');
+    });
+  });
+  ['tipo', 'dia', 'mes', 'ano', 'tri', 'sem'].forEach(function (id) { $(id).addEventListener('change', function () { ajustarFiltros(); carregar(); }); });
+  $('area').addEventListener('change', function () { if (P) desenhar(); });
+  ajustarFiltros();
+  desenharLinks();
+
+  var fbOk = !!window.__inqLer, gateOk = !!window.__zeloGatePronto;
+  function talvez() { if (fbOk && gateOk) carregar(); }
+  window.addEventListener('inq-fb-pronto', function () { fbOk = true; talvez(); });
+  window.addEventListener('zelo-gate-ready', function () { gateOk = true; talvez(); });
+  talvez();
+})();
+</script>
+</body>
+</html>
