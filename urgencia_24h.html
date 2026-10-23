@@ -36,7 +36,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Fraunces:wght@600;700&display=swap">
 <link rel="stylesheet" href="zelo_tokens.css">
-<script src="urgencia_modelos.js?v=3"></script>
+<script src="urgencia_modelos.js?v=4"></script>
 <meta name="theme-color" content="#01467F">
 <style>
   /* Mesmo design do inquérito de satisfação (inquerito_satisfacao.html). */
@@ -251,6 +251,48 @@
   .dg-gr{font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--zelo-ink-soft);padding:8px 10px 2px}
   .dg-vz{padding:10px;color:var(--zelo-ink-soft);font-size:.9rem}
   .dica-diag{font-size:.78rem;color:var(--zelo-ink-faint);margin-top:3px}
+  .dg-livre{display:flex;gap:8px;align-items:center;width:100%;text-align:left;border:0;border-radius:10px;padding:10px;background:var(--zelo-warn-soft);color:var(--zelo-warn-ink);font-weight:700;font-size:.92rem;cursor:pointer;margin-bottom:4px}
+  .dg-livre[hidden]{display:none}
+  .dg-todos{display:block;width:100%;border:0;border-top:1px solid var(--zelo-line);background:none;color:var(--zelo-accent-ink);font-weight:700;padding:12px 10px;cursor:pointer;text-align:left}
+  .diag-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px}
+  .diag-cab label{margin:0!important}
+  .cid-abrir{flex:none;display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--zelo-accent);background:var(--zelo-accent-soft);color:var(--zelo-accent-ink);border-radius:999px;padding:5px 12px;font-weight:700;font-size:.82rem;cursor:pointer}
+  .cid-abrir svg{width:15px;height:15px}
+  /* Painel com a lista completa de diagnósticos CID-10 */
+  .cid-sheet{position:fixed;inset:0;z-index:2000;display:flex;align-items:flex-end;justify-content:center}
+  .cid-sheet[hidden]{display:none}
+  .cid-fundo{position:absolute;inset:0;background:rgba(10,20,35,.5);animation:fade .2s}
+  .cid-painel{position:relative;width:100%;max-width:760px;height:92vh;height:92dvh;background:var(--zelo-surface);border-radius:22px 22px 0 0;display:flex;flex-direction:column;box-shadow:0 -20px 50px -20px rgba(0,0,0,.5);animation:sobe .25s cubic-bezier(.2,.9,.3,1);padding-bottom:env(safe-area-inset-bottom)}
+  @keyframes sobe{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .cid-pega{width:44px;height:5px;border-radius:3px;background:var(--zelo-line-strong);margin:8px auto 2px}
+  .cid-topo{display:flex;align-items:center;gap:10px;padding:8px 16px 4px}
+  .cid-topo h3{flex:1;margin:0;font-family:var(--zelo-font-display);font-size:1.15rem}
+  .cid-topo button{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--zelo-line-strong);background:var(--zelo-surface);font-size:1.1rem;cursor:pointer}
+  .cid-corpo{padding:6px 16px 0}
+  .cid-procura{position:relative}
+  .cid-procura svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--zelo-ink-faint)}
+  .cid-procura input{width:100%;font:inherit;font-size:16px;color:inherit;background:var(--zelo-surface-2);border:1.5px solid var(--zelo-line-strong);border-radius:14px;padding:12px 14px 12px 40px;min-height:50px}
+  .cid-procura input:focus{outline:3px solid var(--zelo-accent-soft);border-color:var(--zelo-accent)}
+  .cid-tabs{display:flex;gap:6px;margin:10px 0 8px;overflow-x:auto;scrollbar-width:none}
+  .cid-tabs::-webkit-scrollbar{display:none}
+  .cid-tabs button{flex:none;border:1.5px solid var(--zelo-line-strong);background:var(--zelo-surface);color:var(--zelo-ink);border-radius:999px;padding:8px 14px;font-weight:700;font-size:.88rem;cursor:pointer}
+  .cid-tabs button.on{background:var(--zelo-accent);border-color:var(--zelo-accent);color:var(--sobre-acento)}
+  .cid-tabs button small{font-weight:600;opacity:.75;margin-left:4px}
+  .cid-info{font-size:.8rem;color:var(--zelo-ink-soft);margin:2px 2px 6px}
+  .cid-lista{flex:1;overflow:auto;padding:0 10px 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .cid-cap{position:sticky;top:0;z-index:1;background:var(--zelo-surface);font-weight:800;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--zelo-accent-ink);padding:10px 6px 6px;border-bottom:1px solid var(--zelo-line)}
+  .cid-it{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--zelo-line);padding:12px 6px;cursor:pointer;font-size:.98rem;line-height:1.3;color:var(--zelo-ink)}
+  .cid-it:active,.cid-it:hover{background:var(--zelo-accent-soft)}
+  .cid-it code{flex:none;min-width:56px;font:700 .82rem ui-monospace,Consolas,monospace;color:var(--zelo-accent-ink);background:var(--zelo-accent-soft);border-radius:7px;padding:3px 6px;text-align:center}
+  .cid-it.sub span{color:var(--zelo-ink-soft)}
+  .cid-it.cat span{font-weight:700}
+  .cid-mais{padding:14px;text-align:center;color:var(--zelo-ink-soft);font-size:.85rem}
+  .cid-vazio{padding:24px 10px;text-align:center;color:var(--zelo-ink-soft)}
+  body.sem-scroll{overflow:hidden}
+  /* Listas e grelhas mais confortáveis */
+  .linha{border-left:4px solid var(--zelo-accent)}
+  .glinha:nth-child(even){background:color-mix(in srgb,var(--zelo-surface-2) 55%,transparent);margin:0 -8px;padding:10px 8px;border-radius:10px}
   /* Botões Guardar / Guardar e gerar PDF */
   .barra-fundo{flex-wrap:wrap}
   .barra-fundo .botoes{display:flex;gap:10px;flex:1;min-width:260px}
@@ -352,6 +394,21 @@
       <button type="button" class="btn sec" id="inicio">Registar outro serviço</button>
     </div>
     <div class="assinatura"><img src="icons/hospital_prenda_192.png" alt="">Hospital do Prenda<br><small>Banco de Urgência · Estatística</small></div>
+  </div>
+</div>
+
+<div class="cid-sheet" id="cid-sheet" hidden>
+  <div class="cid-fundo" id="cid-fundo"></div>
+  <div class="cid-painel" role="dialog" aria-modal="true" aria-labelledby="cid-titulo">
+    <div class="cid-pega"></div>
+    <div class="cid-topo"><h3 id="cid-titulo">Escolher diagnóstico</h3><button type="button" id="cid-fechar" aria-label="Fechar">✕</button></div>
+    <div class="cid-corpo">
+      <div class="cid-procura"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="cid-q" placeholder="Procurar por nome ou código (ex.: fractura, S72)" autocomplete="off"></div>
+      <div class="cid-tabs" id="cid-tabs"></div>
+      <button type="button" class="dg-livre" id="cid-livre" hidden></button>
+      <div class="cid-info" id="cid-info"></div>
+    </div>
+    <div class="cid-lista" id="cid-lista"></div>
   </div>
 </div>
 
@@ -475,7 +532,9 @@ function htmlGrade(sec) {
       const k = lc + '_' + cc;
       return tipo === 'n'
         ? `<div><label for="g-${k}">${esc(cr)}</label><input type="number" id="g-${k}" data-g="${k}" inputmode="numeric" min="0" max="9999" placeholder="0"></div>`
-        : `<div class="gt"><label for="g-${k}">${esc(cr)}</label><input type="text" id="g-${k}" data-gt="${k}"${cc === 'diag' ? ' class="diag" data-diag="1" placeholder="Diagnóstico (opções CID)"' : ''} maxlength="200" autocomplete="off"></div>`;
+        : cc === 'diag'
+          ? `<div class="gt"><div class="diag-cab"><label for="g-${k}">${esc(cr)}</label><button type="button" class="cid-abrir" data-cid-para="g-${k}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>CID</button></div><input type="text" id="g-${k}" data-gt="${k}" class="diag" data-diag="1" placeholder="CID ou outro diagnóstico" maxlength="200" autocomplete="off"></div>`
+          : `<div class="gt"><label for="g-${k}">${esc(cr)}</label><input type="text" id="g-${k}" data-gt="${k}" maxlength="120" autocomplete="off"></div>`;
     }).join('')}</div></div>`;
   }
   return h;
@@ -493,7 +552,7 @@ function htmlLinha(sec, vals) {
     if (tipo === 'hora') return `<div><label for="${nm}">${esc(rot)}</label><input type="time" id="${nm}" data-col="${cod}" value="${esc(v || '')}"></div>`;
     if (tipo === 'genero') opcoes = [['m', 'M'], ['f', 'F']];
     if (tipo === 'genero' || tipo === 'escolha') return `<div class="${tipo === 'escolha' ? 'larga' : ''}"><label>${esc(rot)}</label><div class="opcoes" data-col="${cod}" data-escolha="1">${opcoes.map(([ov, ot]) => `<label><input type="radio" name="${nm}" value="${ov}"${v === ov ? ' checked' : ''}><span>${esc(ot)}</span></label>`).join('')}</div></div>`;
-    if (cod === 'diag') return `<div class="larga"><label for="${nm}">${esc(rot)}</label><textarea id="${nm}" class="diag" data-col="${cod}" data-diag="1" rows="2" maxlength="200" placeholder="Escreva 2 letras ou o código CID para ver opções">${esc(v || '')}</textarea></div>`;
+    if (cod === 'diag') return `<div class="larga"><div class="diag-cab"><label for="${nm}">${esc(rot)}</label><button type="button" class="cid-abrir" data-cid-para="${nm}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Ver lista CID</button></div><textarea id="${nm}" class="diag" data-col="${cod}" data-diag="1" rows="2" maxlength="200" placeholder="Escreva (CID ou outro diagnóstico) ou toque em «Ver lista CID»">${esc(v || '')}</textarea></div>`;
     return `<div class="larga"><label for="${nm}">${esc(rot)}</label><input type="text" id="${nm}" data-col="${cod}" maxlength="${cod === 'desc' ? 200 : 120}" autocomplete="off" value="${esc(v || '')}"></div>`;
   }).join('');
   return `<div class="linha" id="${id}"><div class="linha-cab"><span class="n"></span><button type="button" data-tirar="${id}">Retirar</button></div><div class="linha-campos">${campos}</div></div>`;
@@ -827,17 +886,22 @@ function mostrarDiag(el) {
   const q = el.value.trim();
   if (q.length < 2) { fecharDiag(); return; }
   const qn = norm(q);
-  const meus = usados().filter((t) => norm(t).includes(qn) && norm(t) !== qn).slice(0, 5).map((t) => ['', t, 'usado']);
-  const cid = window.ZeloCID ? window.ZeloCID.buscar(q, 12).map(([c, d]) => [c, d, 'cid']) : [];
+  const meus = usados().filter((t) => norm(t).includes(qn) && norm(t) !== qn).slice(0, 4).map((t) => ['', t, 'usado']);
+  let cid = window.ZeloCID ? window.ZeloCID.buscar(q, 40) : [];
+  const daEsp = cid.filter(([c]) => window.urgCidDoServico(atual, c)), outros = cid.filter(([c]) => !window.urgCidDoServico(atual, c));
+  cid = daEsp.slice(0, 8).map(([c, d]) => [c, d, 'esp']).concat(outros.slice(0, Math.max(3, 10 - daEsp.length)).map(([c, d]) => [c, d, 'cid']));
   dgItens = meus.concat(cid.filter((x) => !meus.some((m) => norm(m[1]) === norm(`${x[0]} – ${x[1]}`))));
   if (!dg) { dg = document.createElement('div'); dg.className = 'dg-lista'; dg.setAttribute('role', 'listbox'); document.body.appendChild(dg); }
   dgAlvo = el; dgAtivo = -1;
-  let h = '', gr = '';
+  const exato = dgItens.some((x) => norm(x[1]) === qn || norm(`${x[0]} – ${x[1]}`) === qn);
+  let h = exato ? '' : `<button type="button" class="dg-livre" data-livre="1">✎ Usar «${esc(q.slice(0, 60))}» — diagnóstico fora do CID</button>`, gr = '';
+  const NOMES = { usado: 'Usados neste telemóvel', esp: `CID-10 · ${atual && atual.cid ? atual.nome : 'recomendados'}`, cid: 'CID-10 · outras especialidades' };
   dgItens.forEach(([c, d, g], i) => {
-    if (g !== gr) { h += `<div class="dg-gr">${g === 'usado' ? 'Usados neste telemóvel' : 'Catálogo CID-10'}</div>`; gr = g; }
+    if (g !== gr) { h += `<div class="dg-gr">${esc(NOMES[g])}</div>`; gr = g; }
     h += `<button type="button" class="dg-it" data-i="${i}">${c ? `<code>${esc(c)}</code>` : ''}<span>${esc(d)}</span></button>`;
   });
-  if (!dgItens.length) h = `<div class="dg-vz">${window.ZeloCID ? 'Sem opções — pode escrever o diagnóstico à mão.' : 'A carregar a lista de diagnósticos…'}</div>`;
+  if (!dgItens.length && !window.ZeloCID) h += '<div class="dg-vz">A carregar a lista de diagnósticos…</div>';
+  h += '<button type="button" class="dg-todos" data-todos="1">📋 Ver todos os diagnósticos CID-10…</button>';
   dg.innerHTML = h;
   posicionarDiag();
 }
@@ -864,11 +928,96 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('pointerdown', (e) => {
   const b = e.target.closest && e.target.closest('.dg-it');
   if (b) { e.preventDefault(); escolherDiag(+b.dataset.i); return; }
+  const lv = e.target.closest && e.target.closest('[data-livre]');
+  if (lv && dgAlvo) { e.preventDefault(); const el = dgAlvo; lembrarDiag(el.value.trim()); fecharDiag(); el.blur(); return; }
+  const td = e.target.closest && e.target.closest('[data-todos]');
+  if (td && dgAlvo) { e.preventDefault(); const el = dgAlvo; fecharDiag(); abrirCID(el); return; }
   if (dg && !e.target.closest('.dg-lista') && e.target !== dgAlvo) fecharDiag();
 });
 document.addEventListener('focusout', (e) => { if (e.target === dgAlvo) setTimeout(() => { if (document.activeElement !== dgAlvo) { if (dgAlvo && dgAlvo.value.trim().length > 3) lembrarDiag(dgAlvo.value.trim()); fecharDiag(); } }, 200); });
 window.addEventListener('scroll', posicionarDiag, { passive: true });
 window.addEventListener('resize', posicionarDiag);
+
+// ── Painel com a lista completa (por especialidade, todos, usados) ──
+let cidAlvo = null, cidTab = 'esp', cidItens = [], cidMostrados = 0, cidIdx = null;
+const LOTE = 150;
+function indiceCID() {
+  if (cidIdx || !window.ZeloCID) return cidIdx;
+  cidIdx = window.ZeloCID.lista().map(([c, d]) => ({ c, d, n: ' ' + window.ZeloCID.normalizar(c + ' ' + d) + ' ' }));
+  return cidIdx;
+}
+function desenharTabs() {
+  const tabs = [];
+  if (atual && atual.cid) tabs.push(['esp', atual.nome]);
+  tabs.push(['todos', 'Todos os CID-10'], ['usados', 'Usados']);
+  if (!tabs.some((t) => t[0] === cidTab)) cidTab = tabs[0][0];
+  $('cid-tabs').innerHTML = tabs.map(([k, t]) => `<button type="button" data-tab="${k}" class="${k === cidTab ? 'on' : ''}">${esc(t)}</button>`).join('');
+}
+function filtrarCID() {
+  const q = $('cid-q').value.trim(), qn = window.ZeloCID ? window.ZeloCID.normalizar(q) : norm(q);
+  const livre = $('cid-livre');
+  if (q) { livre.hidden = false; livre.innerHTML = `✎ Usar «${esc(q.slice(0, 70))}» — diagnóstico fora do CID`; } else livre.hidden = true;
+  if (cidTab === 'usados') {
+    cidItens = usados().filter((t) => !qn || norm(t).includes(norm(q))).map((t) => ({ c: '', d: t }));
+  } else {
+    const idx = indiceCID();
+    if (!idx) { $('cid-lista').innerHTML = '<div class="cid-vazio">A carregar a lista de diagnósticos CID-10…</div>'; $('cid-info').textContent = ''; carregarCID(filtrarCID); return; }
+    const pal = qn.split(' ').filter(Boolean), codigo = /^[a-z][0-9]/i.test(q) ? q.toUpperCase().replace(/[^A-Z0-9.]/g, '') : '';
+    cidItens = idx.filter((x) => (cidTab !== 'esp' || window.urgCidDoServico(atual, x.c))
+      && (!pal.length || (codigo ? x.c.replace('.', '').startsWith(codigo.replace('.', '')) : pal.every((w) => x.n.includes(' ' + w) || x.n.includes(w)))));
+  }
+  $('cid-info').textContent = cidTab === 'usados'
+    ? `${cidItens.length} diagnóstico(s) usados neste telemóvel`
+    : `${cidItens.length.toLocaleString('pt-PT')} diagnóstico(s) CID-10${cidTab === 'esp' ? ' recomendados para ' + atual.nome : ''}${q ? ' com «' + q + '»' : ''}`;
+  cidMostrados = 0;
+  $('cid-lista').innerHTML = '';
+  $('cid-lista').scrollTop = 0;
+  maisCID();
+}
+function maisCID() {
+  const box = $('cid-lista');
+  const sent = box.querySelector('.cid-mais'); if (sent) sent.remove();
+  if (!cidItens.length) { box.innerHTML = `<div class="cid-vazio">Nenhum diagnóstico encontrado.${$('cid-q').value.trim() ? '<br>Pode usar o que escreveu (botão acima) como diagnóstico fora do CID.' : ''}</div>`; return; }
+  let h = '', capAnt = cidMostrados ? box.dataset.cap : '';
+  const fim = Math.min(cidItens.length, cidMostrados + LOTE);
+  for (let i = cidMostrados; i < fim; i++) {
+    const x = cidItens[i];
+    const cap = x.c && window.ZeloCID ? (window.ZeloCID.capitulo(x.c) || '') : '';
+    if (cap !== capAnt && cap) { h += `<div class="cid-cap">${esc(cap)}</div>`; capAnt = cap; }
+    h += `<button type="button" class="cid-it ${x.c.includes('.') ? 'sub' : (x.c ? 'cat' : '')}" data-ci="${i}">${x.c ? `<code>${esc(x.c)}</code>` : ''}<span>${esc(x.d)}</span></button>`;
+  }
+  box.dataset.cap = capAnt;
+  cidMostrados = fim;
+  if (cidMostrados < cidItens.length) h += `<div class="cid-mais">A mostrar ${cidMostrados.toLocaleString('pt-PT')} de ${cidItens.length.toLocaleString('pt-PT')} — continue a deslizar para ver mais</div>`;
+  box.insertAdjacentHTML('beforeend', h);
+}
+$('cid-lista').addEventListener('scroll', (e) => { const b = e.currentTarget; if (b.scrollTop + b.clientHeight > b.scrollHeight - 600 && cidMostrados < cidItens.length) maisCID(); }, { passive: true });
+function abrirCID(el) {
+  cidAlvo = el;
+  cidTab = atual && atual.cid ? 'esp' : 'todos';
+  $('cid-q').value = el.value.trim().replace(/^[A-Z][0-9]{2}(\.[0-9A-Z]+)?\s*[–-]\s*/, '');
+  desenharTabs();
+  $('cid-sheet').hidden = false; document.body.classList.add('sem-scroll');
+  carregarCID();
+  filtrarCID();
+  setTimeout(() => $('cid-q').focus({ preventScroll: true }), 250);
+}
+function fecharCID() { $('cid-sheet').hidden = true; document.body.classList.remove('sem-scroll'); const el = cidAlvo; cidAlvo = null; if (el) el.focus({ preventScroll: true }); }
+function aplicarCID(valor) {
+  const el = cidAlvo; if (!el) return;
+  el.value = valor; lembrarDiag(valor);
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  fecharCID(); fecharDiag();
+}
+let tCid = null;
+$('cid-q').addEventListener('input', () => { clearTimeout(tCid); tCid = setTimeout(filtrarCID, 160); });
+$('cid-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (!b) return; cidTab = b.dataset.tab; desenharTabs(); filtrarCID(); });
+$('cid-lista').addEventListener('click', (e) => { const b = e.target.closest('[data-ci]'); if (!b) return; const x = cidItens[+b.dataset.ci]; aplicarCID(x.c ? `${x.c} – ${x.d}` : x.d); });
+$('cid-livre').addEventListener('click', () => { const t = $('cid-q').value.trim(); if (t) aplicarCID(t); });
+$('cid-fechar').addEventListener('click', fecharCID);
+$('cid-fundo').addEventListener('click', fecharCID);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('cid-sheet').hidden) fecharCID(); });
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-cid-para]'); if (!b) return; const el = $(b.dataset.cidPara); if (el) { fecharDiag(); abrirCID(el); } });
 
 // ── Rascunho automático neste telemóvel ──
 const chaveRasc = () => (atual ? `urg24:rasc:${$('dia').value}:${atual.id}` : null);
@@ -947,9 +1096,10 @@ async function gerarPDF(sv, reg) {
     } else if (sec.grade) {
       secao(++n, sec.titulo);
       const G = sec.grade;
-      const corpo = G.linhas.map(([lc, lr, gr]) => [T((gr && gr !== 'Outros' && !sv.diario ? gr + ' · ' : '') + lr)].concat(G.colunas.map(([cc, , tp]) => (tp === 'n' ? (k[lc + '_' + cc] || '') : T(tx[lc + '_' + cc] || '')))));
+      let corpo = G.linhas.map(([lc, lr, gr]) => [T((gr && gr !== 'Outros' && !sv.diario ? gr + ' · ' : '') + lr)].concat(G.colunas.map(([cc, , tp]) => (tp === 'n' ? (k[lc + '_' + cc] || '') : T(tx[lc + '_' + cc] || '')))));
+      if (G.linhas.length > 10) { const cheias = corpo.filter((r) => r.slice(1).some((x) => x !== '')); corpo = cheias.length ? cheias : [[{ content: 'Sem registos', colSpan: G.colunas.length + 1, styles: { textColor: [140, 140, 140], halign: 'center' } }]]; }
       const nums = G.colunas.filter((c) => c[2] === 'n' && c[0] !== 'idade');
-      if (nums.length) corpo.push([{ content: 'TOTAL', styles: { fontStyle: 'bold' } }].concat(G.colunas.map(([cc, , tp]) => (tp === 'n' && cc !== 'idade' ? { content: k[cc] || 0, styles: { fontStyle: 'bold' } } : ''))));
+      if (nums.length) corpo.push([{ content: 'TOTAL', styles: { fontStyle: 'bold' } }].concat(G.colunas.map(([cc, , tp]) => (tp === 'n' && cc !== 'idade' ? { content: k[(G.totais ? G.totais + '_' : '') + cc] || 0, styles: { fontStyle: 'bold' } } : ''))));
       tab({ head: [[''].concat(G.colunas.map((c) => T(c[1])))], body: corpo, styles: { fontSize: 8, cellPadding: 1.4, halign: 'center', lineColor: [190, 200, 210], lineWidth: 0.2 }, columnStyles: { 0: { halign: 'left', cellWidth: 48 } } });
     }
   }
