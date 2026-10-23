@@ -9,7 +9,10 @@
    letra minúscula. Nesse caso amplia-se para ocupar o ecrã todo. */
 (function () {
   function ajustar() {
-    var de = document.documentElement, sw = screen.width, iw;
+    var de = document.documentElement, iw;
+    // Largura do ecrã na orientação actual (o iPhone dá sempre a do ecrã ao alto)
+    var deitado = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+    var sw = deitado ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
     de.style.zoom = '';
     iw = window.innerWidth || de.clientWidth;
     var tatil = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
@@ -46,8 +49,10 @@
     :root:not([data-theme="light"]) .ico{color:color-mix(in srgb,var(--cor) 55%,#fff);background:color-mix(in srgb,var(--cor) 28%,transparent)}
   }
   html{scroll-behavior:smooth}
-  html{font-size:17px}
-  body{margin:0;background:var(--zelo-bg);color:var(--zelo-ink);font-family:var(--zelo-font-body);font-size:18px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  /* Letra base: 17 px no telemóvel, cresce um pouco em tablets e computadores (até 21 px) */
+  html{font-size:clamp(17px, 12px + 0.9vw, 21px)}
+  html.modo-ampliado{font-size:17px}
+  body{margin:0;background:var(--zelo-bg);color:var(--zelo-ink);font-family:var(--zelo-font-body);font-size:1.06rem;line-height:1.45;-webkit-font-smoothing:antialiased}
   .oculto{display:none!important}
   .wrap{margin:0;padding:0 0 calc(32px + env(safe-area-inset-bottom))}
   .wrap.escolha{max-width:none;padding-left:12px;padding-right:12px}
