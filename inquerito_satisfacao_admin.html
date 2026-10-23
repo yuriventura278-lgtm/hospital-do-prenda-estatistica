@@ -3,7 +3,25 @@
 <head>
 <script src="zelo_consumo.js"></script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+/* Telemóvel em modo "Site para computador" (ou navegador que ignora o ajuste
+   ao ecrã): a página seria desenhada com ~980 px e encolhida, ficando com
+   letra minúscula. Nesse caso amplia-se para ocupar o ecrã todo. */
+(function () {
+  function ajustar() {
+    var de = document.documentElement, sw = screen.width, iw;
+    de.style.zoom = '';
+    iw = window.innerWidth || de.clientWidth;
+    var tatil = (navigator.maxTouchPoints || 0) > 0 || 'ontouchstart' in window;
+    if (tatil && sw && sw < 760 && iw > sw * 1.2) { de.style.zoom = (iw / sw).toFixed(3); de.classList.add('modo-ampliado'); }
+    else de.classList.remove('modo-ampliado');
+  }
+  ajustar();
+  window.addEventListener('orientationchange', function () { setTimeout(ajustar, 300); });
+})();
+</script>
+
 <title>Zelo — Inquérito de Satisfação</title>
 <script>document.documentElement.style.visibility='hidden';</script>
 <script>
