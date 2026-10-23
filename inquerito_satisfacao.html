@@ -63,13 +63,13 @@
   .legenda-feito .feito{position:static;width:18px;height:18px;font-size:.65rem}
 
   /* ── Ecrã 2: barra de topo fixa com progresso ── */
-  .barra-topo{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--zelo-bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);margin:0 -16px 12px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--zelo-line)}
+  .barra-topo{background:var(--zelo-surface);margin:0 -16px 14px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--zelo-line)}
   .barra-topo .linha{display:flex;align-items:center;gap:10px}
   .voltar{flex:none;width:42px;height:42px;border-radius:12px;border:1.5px solid var(--zelo-line-strong);background:var(--zelo-surface);display:flex;align-items:center;justify-content:center;cursor:pointer}
   .voltar svg{width:20px;height:20px}
   .titulo-area{min-width:0;flex:1}
   .titulo-area small{display:block;color:var(--zelo-ink-soft);font-size:.78rem;font-weight:600}
-  .titulo-area h2{font-family:var(--zelo-font-display);font-size:1.15rem;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .titulo-area h2{font-family:var(--zelo-font-display);font-size:1.15rem;line-height:1.2;margin:0;overflow-wrap:anywhere}
   .titulo-area .ico{display:none}
   .logo-mini{flex:none;width:40px;height:40px;border-radius:11px}
   .prog{height:6px;border-radius:3px;background:var(--zelo-surface-3);margin-top:10px;overflow:hidden}
@@ -82,6 +82,7 @@
   .nota{margin:-6px 0 14px;color:var(--zelo-ink-soft);font-size:.92rem}
   .campo{margin-bottom:18px}
   .campo:last-child{margin-bottom:0}
+  #depois:not(:empty){margin-bottom:18px}
   .rot{display:block;font-weight:700;margin-bottom:8px;font-size:.98rem}
   .rot small{font-weight:400;color:var(--zelo-ink-faint)}
   .obr{color:var(--zelo-warn)}
@@ -100,7 +101,7 @@
   .opcoes input:focus-visible + span,.escala input:focus-visible + span{outline:3px solid var(--zelo-accent-soft);outline-offset:2px}
 
   /* Perguntas com carinhas */
-  .item{padding:16px 0;border-top:1px solid var(--zelo-line);scroll-margin-top:120px}
+  .item{padding:16px 0;border-top:1px solid var(--zelo-line);scroll-margin-top:16px}
   .item:first-of-type{border-top:0;padding-top:4px}
   .item .pergunta{font-weight:700;margin-bottom:10px;display:flex;gap:8px}
   .item .pergunta b{flex:none;color:var(--zelo-ink-faint);font-size:.9rem;min-width:18px;padding-top:1px}
@@ -129,7 +130,7 @@
   .privado svg{width:16px;height:16px;flex:none}
 
   /* Botão de envio sempre visível no fundo do ecrã */
-  .barra-fundo{position:sticky;bottom:0;z-index:20;margin:16px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--zelo-bg) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--zelo-line);display:flex;align-items:center;gap:12px}
+  .barra-fundo{margin:16px 0 0;padding:14px 16px;background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:20px;box-shadow:var(--zelo-shadow-sm);display:flex;align-items:center;gap:12px}
   .barra-fundo .conta{flex:none;font-size:.82rem;color:var(--zelo-ink-soft);line-height:1.2}
   .barra-fundo .conta b{display:block;font-size:1rem;color:var(--zelo-ink)}
   .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-weight:700;font-size:1.05rem;min-height:52px;padding:12px 18px;border:0;border-radius:14px;background:var(--zelo-accent);color:var(--sobre-acento);cursor:pointer;transition:transform .1s,opacity .1s}
@@ -151,6 +152,14 @@
   @keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
   @keyframes traco{to{stroke-dashoffset:0}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.obrigado .ok svg{stroke-dashoffset:0}}
+  @media (max-width:480px){
+    .wrap{padding-left:10px;padding-right:10px}
+    .barra-topo{margin-left:-10px;margin-right:-10px;padding-left:14px;padding-right:14px}
+    section.cartao{padding:16px 12px;border-radius:16px}
+    .item.global{margin:10px -12px -16px;padding:14px 12px 16px;border-radius:0 0 16px 16px}
+    .escala{gap:5px}
+    .barra-fundo{padding:12px}
+  }
   @media (max-width:360px){.escala span{font-size:.64rem;min-height:62px}.escala span svg{width:26px;height:26px}.capa h1{font-size:1.5rem}}
   @media (min-width:700px){.capa{padding-bottom:72px}.capa h1{font-size:2.1rem}}
 </style>
@@ -415,7 +424,7 @@ $('perguntas').addEventListener('change', (e) => {
   if (!prox) return;
   setTimeout(() => {
     const r = prox.getBoundingClientRect();
-    if (r.top > window.innerHeight * 0.55 || r.top < 100) prox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (r.bottom > window.innerHeight - 8) prox.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 180);
 });
 $('form').addEventListener('change', atualizarProgresso);
