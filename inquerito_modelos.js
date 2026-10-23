@@ -196,7 +196,8 @@
         ] },
         SEXO, IDADE,
       ],
-      // Na Secretaria não se marcam consultas (q4 «Facilidade de marcação» foi retirada).
+      // Na Secretaria não se marcam consultas nem há filas/senhas ou sinalização:
+      // q4 (marcação), q6 (filas/senhas) e q7 (sinalização) foram retiradas.
       perguntas: [
         ['q1', 'Acolhimento e simpatia'],
         ['q2', 'Tempo de espera para ser atendido'],
@@ -210,8 +211,6 @@
         ['q15', 'Facilidade em conseguir a audiência', { assunto: ['audiencia'] }],
         ['q16', 'Tempo de espera pela audiência', { assunto: ['audiencia'] }],
         ['q17', 'Atenção dada ao seu assunto na audiência', { assunto: ['audiencia'] }],
-        ['q6', 'Organização das filas / senhas'],
-        ['q7', 'Sinalização dentro do hospital'],
         ['q8', 'Conforto da área de espera'],
         ['q9', 'Horário de funcionamento'],
       ],
