@@ -28,9 +28,12 @@
     :root:not([data-theme="light"]) .ico{color:color-mix(in srgb,var(--cor) 55%,#fff);background:color-mix(in srgb,var(--cor) 28%,transparent)}
   }
   html{scroll-behavior:smooth}
-  body{margin:0;background:var(--zelo-bg);color:var(--zelo-ink);font-family:var(--zelo-font-body);font-size:17px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  html{font-size:17px}
+  body{margin:0;background:var(--zelo-bg);color:var(--zelo-ink);font-family:var(--zelo-font-body);font-size:18px;line-height:1.45;-webkit-font-smoothing:antialiased}
   .oculto{display:none!important}
-  .wrap{max-width:640px;margin:0 auto;padding:0 16px calc(32px + env(safe-area-inset-bottom))}
+  .wrap{margin:0;padding:0 0 calc(32px + env(safe-area-inset-bottom))}
+  .wrap.escolha{max-width:none;padding-left:12px;padding-right:12px}
+  .capa-in{max-width:none}
   button{font:inherit;color:inherit}
 
   /* ── Ecrã 1: capa ── */
@@ -63,7 +66,7 @@
   .legenda-feito .feito{position:static;width:18px;height:18px;font-size:.65rem}
 
   /* ── Ecrã 2: barra de topo fixa com progresso ── */
-  .barra-topo{background:var(--zelo-surface);margin:0 -16px 14px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--zelo-line)}
+  .barra-topo{background:var(--zelo-surface);margin:0 0 10px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--zelo-line)}
   .barra-topo .linha{display:flex;align-items:center;gap:10px}
   .voltar{flex:none;width:42px;height:42px;border-radius:12px;border:1.5px solid var(--zelo-line-strong);background:var(--zelo-surface);display:flex;align-items:center;justify-content:center;cursor:pointer}
   .voltar svg{width:20px;height:20px}
@@ -75,7 +78,7 @@
   .prog{height:6px;border-radius:3px;background:var(--zelo-surface-3);margin-top:10px;overflow:hidden}
   .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--zelo-accent),var(--zelo-good));border-radius:3px;transition:width .3s}
 
-  section.cartao{background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:20px;box-shadow:var(--zelo-shadow-sm);padding:18px 16px;margin-bottom:14px}
+  section.cartao{background:var(--zelo-surface);border-top:1px solid var(--zelo-line);border-bottom:1px solid var(--zelo-line);padding:20px 18px;margin-bottom:10px}
   .sec-tit{display:flex;align-items:center;gap:10px;margin:0 0 14px}
   .sec-tit b{flex:none;width:28px;height:28px;border-radius:50%;background:var(--zelo-accent-soft);color:var(--zelo-accent-ink);display:flex;align-items:center;justify-content:center;font-size:.85rem}
   .sec-tit h3{font-family:var(--zelo-font-display);font-size:1.08rem;margin:0;color:var(--zelo-ink)}
@@ -106,7 +109,7 @@
   .item .pergunta{font-weight:700;margin-bottom:10px;display:flex;gap:8px}
   .item .pergunta b{flex:none;color:var(--zelo-ink-faint);font-size:.9rem;min-width:18px;padding-top:1px}
   .escala{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-  .escala span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;min-height:68px;padding:6px 2px;border:1.5px solid var(--zelo-line);border-radius:14px;font-size:.72rem;line-height:1.1;color:var(--zelo-ink-soft);cursor:pointer;user-select:none;background:var(--zelo-surface-2);transition:transform .12s,background .12s}
+  .escala span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;min-height:68px;padding:6px 2px;border:1.5px solid var(--zelo-line);border-radius:14px;font-size:.76rem;line-height:1.1;color:var(--zelo-ink-soft);cursor:pointer;user-select:none;background:var(--zelo-surface-2);transition:transform .12s,background .12s}
   .escala span svg{width:30px;height:30px;color:var(--zelo-ink-faint)}
   .escala label:active span{transform:scale(.94)}
   .escala input:checked + span{color:#fff;font-weight:700;border-color:transparent;transform:scale(1.04);box-shadow:0 6px 14px -6px rgba(0,0,0,.35)}
@@ -116,21 +119,21 @@
   .escala input[value="3"]:checked + span{background:#B08A1E}
   .escala input[value="4"]:checked + span{background:#4E8A5E}
   .escala input[value="5"]:checked + span{background:#2F6B45}
-  .item.global{background:var(--zelo-accent-soft);margin:10px -16px -18px;padding:16px 16px 18px;border-radius:0 0 20px 20px;border-top:0}
+  .item.global{background:var(--zelo-accent-soft);margin:10px -18px -20px;padding:16px 18px 20px;border-top:0}
   .item.global .escala span{background:var(--zelo-surface)}
   .falta .pergunta,.falta .rot{color:var(--zelo-warn)}
   .item.falta .escala span,.campo.falta select{border-color:var(--zelo-warn)}
   .erro{border-color:var(--zelo-warn)!important}
 
-  .aviso{display:none;background:var(--zelo-warn-soft);color:var(--zelo-warn-ink);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-weight:600}
+  .aviso{display:none;background:var(--zelo-warn-soft);color:var(--zelo-warn-ink);padding:14px 18px;margin-bottom:10px;font-weight:600}
   .aviso.on{display:block}
-  .info{display:flex;gap:10px;align-items:flex-start;background:var(--zelo-good-soft);color:var(--zelo-good-ink);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-weight:600;font-size:.95rem}
+  .info{display:flex;gap:10px;align-items:flex-start;background:var(--zelo-good-soft);color:var(--zelo-good-ink);padding:14px 18px;margin-bottom:10px;font-weight:600;font-size:.95rem}
   .contador{text-align:right;font-size:.8rem;color:var(--zelo-ink-faint);margin-top:4px}
-  .privado{display:flex;gap:8px;align-items:center;color:var(--zelo-ink-soft);font-size:.85rem;justify-content:center;margin:6px 0 0}
+  .privado{display:flex;gap:8px;align-items:center;color:var(--zelo-ink-soft);font-size:.85rem;justify-content:center;margin:12px 18px 0}
   .privado svg{width:16px;height:16px;flex:none}
 
   /* Botão de envio sempre visível no fundo do ecrã */
-  .barra-fundo{margin:16px 0 0;padding:14px 16px;background:var(--zelo-surface);border:1px solid var(--zelo-line);border-radius:20px;box-shadow:var(--zelo-shadow-sm);display:flex;align-items:center;gap:12px}
+  .barra-fundo{margin:10px 0 0;padding:16px 18px;background:var(--zelo-surface);border-top:1px solid var(--zelo-line);border-bottom:1px solid var(--zelo-line);display:flex;align-items:center;gap:12px}
   .barra-fundo .conta{flex:none;font-size:.82rem;color:var(--zelo-ink-soft);line-height:1.2}
   .barra-fundo .conta b{display:block;font-size:1rem;color:var(--zelo-ink)}
   .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-weight:700;font-size:1.05rem;min-height:52px;padding:12px 18px;border:0;border-radius:14px;background:var(--zelo-accent);color:var(--sobre-acento);cursor:pointer;transition:transform .1s,opacity .1s}
@@ -140,7 +143,7 @@
   .btn svg{width:20px;height:20px}
 
   /* ── Ecrã 3: obrigado ── */
-  .obrigado{text-align:center;padding:calc(56px + env(safe-area-inset-top)) 8px 24px}
+  .obrigado{text-align:center;padding:calc(56px + env(safe-area-inset-top)) 18px 24px}
   .obrigado .ok{width:96px;height:96px;border-radius:50%;background:var(--zelo-good);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;box-shadow:0 0 0 12px var(--zelo-good-soft);animation:pop .45s cubic-bezier(.2,1.4,.5,1)}
   .obrigado .ok svg{width:48px;height:48px;stroke-dasharray:30;stroke-dashoffset:30;animation:traco .4s .25s forwards}
   .obrigado h2{font-family:var(--zelo-font-display);font-size:1.6rem;margin:0 0 8px}
@@ -153,14 +156,14 @@
   @keyframes traco{to{stroke-dashoffset:0}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.obrigado .ok svg{stroke-dashoffset:0}}
   @media (max-width:480px){
-    .wrap{padding-left:10px;padding-right:10px}
-    .barra-topo{margin-left:-10px;margin-right:-10px;padding-left:14px;padding-right:14px}
-    section.cartao{padding:16px 12px;border-radius:16px}
-    .item.global{margin:10px -12px -16px;padding:14px 12px 16px;border-radius:0 0 16px 16px}
+    .wrap.escolha{padding-left:10px;padding-right:10px}
+    .barra-topo{padding-left:14px;padding-right:14px}
+    section.cartao{padding:18px 14px}
+    .item.global{margin:10px -14px -18px;padding:14px 14px 18px}
     .escala{gap:5px}
-    .barra-fundo{padding:12px}
+    .barra-fundo{padding:14px}
   }
-  @media (max-width:360px){.escala span{font-size:.64rem;min-height:62px}.escala span svg{width:26px;height:26px}.capa h1{font-size:1.5rem}}
+  @media (max-width:360px){.escala span{font-size:.7rem;min-height:66px}.escala span svg{width:26px;height:26px}.capa h1{font-size:1.5rem}}
   @media (min-width:700px){.capa{padding-bottom:72px}.capa h1{font-size:2.1rem}}
 </style>
 </head>
